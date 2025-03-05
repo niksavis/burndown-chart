@@ -35,3 +35,30 @@ To generate a burndown chart, run the [burndown.py](http://_vscodecontentref_/1)
 
 ```sh
 python burndown.py <items> <story_points> <throughput> <velocity> <deadline YYYY-MM-DD>
+```
+
+- `<items>`: Total number of items to be completed.
+- `<story_points>`: Total number of story points to be completed.
+- `<throughput>`: Weekly throughput (number of items completed per week).
+- `<velocity>`: Weekly velocity (number of story points completed per week).
+- `<deadline YYYY-MM-DD>`: Project deadline in `YYYY-MM-DD` format.
+
+Example:
+
+```sh
+python burndown.py 73 348 8 22 2025-05-29
+```
+
+The generated burndown chart will be saved as [`burndown_chart.svg`](burndown_chart.svg).
+
+## Example
+
+Here is an example of the generated burndown chart:
+
+![Burndown Chart](burndown_chart.svg)
+
+## License
+
+This repository is licensed under the [MIT License](LICENSE)
+
+**[⬆ Back to Top](#burndown-chart-generator)**
