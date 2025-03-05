@@ -31,7 +31,7 @@ This project generates a burndown chart for project management using Python and 
 
 ## Usage
 
-To generate a burndown chart, run the [burndown.py](http://_vscodecontentref_/1) script with the following arguments:
+To generate a burndown chart, run the [burndown.py](burndown.py) script with the following arguments:
 
 ```sh
 python burndown.py <items> <story_points> <throughput> <velocity> <deadline YYYY-MM-DD>
