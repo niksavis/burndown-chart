@@ -26,7 +26,7 @@ This project generates a burndown chart for project management using Python and 
 4. Install the required dependencies:
 
     ```sh
-    pip install -r requirements.txt
+    python -m pip install -r requirements.txt
     ```
 
 ## Usage
@@ -51,11 +51,29 @@ python burndown.py 73 348 8 22 2025-05-29
 
 The generated burndown chart will be saved as [`burndown_chart.svg`](burndown_chart.svg).
 
+To generate multiple burndown charts, run the [burndown.py](burndown.py) script with the `multi` argument followed by the dataset details:
+
+```sh
+python burndown.py multi <dataset_name> <items> <story_points> <throughput> <velocity> <deadline YYYY-MM-DD> ... (repeated for each dataset)
+```
+
+Example:
+
+```sh
+python burndown.py multi "Team A" 70 344 10 26 2025-05-29 "Team B" 122 488 15 46 2025-05-29
+```
+
+The generated multiple burndown chart will be saved as [`multiple_burndown_chart.svg`](multiple_burndown_chart.svg).
+
 ## Example
 
 Here is an example of the generated burndown chart:
 
 ![Burndown Chart](burndown_chart.svg)
+
+Here is an example of the generated multiple burndown chart:
+
+![Multiple Burndown Chart](multiple_burndown_chart.svg)
 
 ## License
 
