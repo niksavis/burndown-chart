@@ -96,18 +96,19 @@ def plot_lines(data_dict: Dict[str, Any], label_suffix: str = "") -> List[Any]:
     """
     texts = []
     config = [
-        ("ideal_items_x", "ideal_items_y", ":", "Ideal Throughput", "blue"),
-        ("actual_items_x", "actual_items_y", "-", "Actual Throughput", "darkblue"),
-        ("ideal_points_x", "ideal_points_y", ":", "Ideal Velocity", "lightcoral"),
-        ("actual_points_x", "actual_points_y", "-", "Actual Velocity", "red"),
+        ("ideal_items_x", "ideal_items_y", ":", "Ideal Throughput", "blue", 0.5),
+        ("actual_items_x", "actual_items_y", "-", "Actual Throughput", "darkblue", 1.0),
+        ("ideal_points_x", "ideal_points_y", ":", "Ideal Velocity", "lightcoral", 0.5),
+        ("actual_points_x", "actual_points_y", "-", "Actual Velocity", "red", 1.0),
     ]
-    for x_key, y_key, style, label_text, color in config:
+    for x_key, y_key, style, label_text, color, alpha_val in config:
         plt.plot(
             data_dict[x_key],
             data_dict[y_key],
             linestyle=style,
             label=f"{label_text}{label_suffix}",
             color=color,
+            alpha=alpha_val,
         )
         if data_dict[x_key]:
             txt = plt.text(
