@@ -45,11 +45,11 @@ To generate a single burndown chart, use the `single` subcommand followed by fiv
 python burndown.py single <items_val> <story_points_val> <throughput_val> <velocity_val> <deadline_str_val>
 ```
 
-- `<items>`: Total number of items to be completed.
-- `<story_points>`: Total number of story points to be completed.
-- `<throughput>`: Weekly throughput (number of items completed per week).
-- `<velocity>`: Weekly velocity (number of story points completed per week).
-- `<deadline_str_val>`: Project deadline in `YYYY-MM-DD` format.
+- `<items_val>`: Total number of backlog items.
+- `<story_points_val>`: Total number of story points.
+- `<throughput_val>`: Weekly throughput (items completed per week).
+- `<velocity_val>`: Weekly velocity (story points completed per week).
+- `<deadline_str_val>`: Deadline in `YYYY-MM-DD` format.
 
 Example:
 
@@ -64,17 +64,17 @@ The generated burndown chart will be saved as [`burndown_chart.svg`](burndown_ch
 To generate multiple burndown charts at once, use the `multi` subcommand followed by repeated groups of six arguments:
 
 ```sh
-python burndown.py multi <dataset_name> <items> <story_points> <throughput> <velocity> <deadline_str> ...
+python burndown.py multi <dataset_name> <items_val> <story_points_val> <throughput_val> <velocity_val> <deadline_str_val> ...
 ```
 
 Each group corresponds to one dataset:
 
 - `<dataset_name>`: A label/name for the dataset.
-- `<items>`: Total number of items for this dataset.
-- `<story_points>`: Total number of story points for this dataset.
-- `<throughput>`: Weekly throughput (number of items completed per week) for this dataset.
-- `<velocity>`: Weekly velocity (number of story points completed per week) for this dataset.
-- `<deadline_str_val>`: Project deadline in `YYYY-MM-DD` format for this dataset.
+- `<items_val>`: Total number of items for this dataset.
+- `<story_points_val>`: Total number of story points.
+- `<throughput_val>`: Weekly throughput (items completed per week).
+- `<velocity_val>`: Weekly velocity (story points completed per week).
+- `<deadline_str_val>`: Deadline in `YYYY-MM-DD` format.
 
 Example:
 
