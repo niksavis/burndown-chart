@@ -158,6 +158,12 @@ def plot_burndown_data(data_dict, label_suffix=""):
     return texts
 
 
+def save_figure(prefix, date_obj):
+    date_str = date_obj.strftime("%Y%m%d")
+    plt.savefig(f"{prefix}.svg")
+    plt.savefig(f"{prefix}_{date_str}.png")
+
+
 def generate_burndown_chart(
     total_items, total_story_points, weekly_throughput, weekly_velocity, deadline_str
 ):
@@ -249,7 +255,7 @@ def generate_burndown_chart(
     with open(os.devnull, "w") as fnull, contextlib.redirect_stdout(fnull):
         adjust_text(texts, arrowprops=dict(arrowstyle="->", color="gray"), ax=plt.gca())
 
-    plt.savefig("burndown_chart.svg")
+    save_figure("burndown_chart", today)
     plt.close()
 
 
@@ -304,7 +310,7 @@ def generate_multiple_burndown_charts(datasets):
             all_texts, arrowprops=dict(arrowstyle="->", color="gray"), ax=plt.gca()
         )
 
-    plt.savefig("multiple_burndown_chart.svg")
+    save_figure("multiple_burndown_chart", today)
     plt.close()
 
 
