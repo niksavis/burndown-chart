@@ -31,31 +31,50 @@ This project generates a burndown chart for project management using Python and 
 
 ## Usage
 
-To generate a burndown chart, run the [burndown.py](burndown.py) script with the following arguments:
+You can display detailed help by running:
 
 ```sh
-python burndown.py <items> <story_points> <throughput> <velocity> <deadline YYYY-MM-DD>
+python burndown.py --help
+```
+
+### Single Burndown
+
+To generate a single burndown chart, use the `single` subcommand followed by five arguments:
+
+```sh
+python burndown.py single <items_val> <story_points_val> <throughput_val> <velocity_val> <deadline_str_val>
 ```
 
 - `<items>`: Total number of items to be completed.
 - `<story_points>`: Total number of story points to be completed.
 - `<throughput>`: Weekly throughput (number of items completed per week).
 - `<velocity>`: Weekly velocity (number of story points completed per week).
-- `<deadline YYYY-MM-DD>`: Project deadline in `YYYY-MM-DD` format.
+- `<deadline_str_val>`: Project deadline in `YYYY-MM-DD` format.
 
 Example:
 
 ```sh
-python burndown.py 73 348 8 22 2025-05-29
+python burndown.py single 73 348 8 22 2025-05-29
 ```
 
 The generated burndown chart will be saved as [`burndown_chart.svg`](burndown_chart.svg).
 
-To generate multiple burndown charts, run the [burndown.py](burndown.py) script with the `multi` argument followed by the dataset details:
+### Multiple Burndown
+
+To generate multiple burndown charts at once, use the `multi` subcommand followed by repeated groups of six arguments:
 
 ```sh
-python burndown.py multi <dataset_name> <items> <story_points> <throughput> <velocity> <deadline YYYY-MM-DD> ... (repeated for each dataset)
+python burndown.py multi <dataset_name> <items> <story_points> <throughput> <velocity> <deadline_str> ...
 ```
+
+Each group corresponds to one dataset:
+
+- `<dataset_name>`: A label/name for the dataset.
+- `<items>`: Total number of items for this dataset.
+- `<story_points>`: Total number of story points for this dataset.
+- `<throughput>`: Weekly throughput (number of items completed per week) for this dataset.
+- `<velocity>`: Weekly velocity (number of story points completed per week) for this dataset.
+- `<deadline_str_val>`: Project deadline in `YYYY-MM-DD` format for this dataset.
 
 Example:
 
