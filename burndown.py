@@ -1,13 +1,20 @@
 import sys
+import argparse
 import datetime
-import matplotlib.pyplot as plt
 import math
-from adjustText import adjust_text
-import contextlib
 import os
+import contextlib
+import matplotlib.pyplot as plt
+from adjustText import adjust_text
+from typing import List, Dict, Any, Tuple
 
 
-def truncate_at_zero(x_vals, y_vals):
+def truncate_at_zero(
+    x_vals: List[datetime.date], y_vals: List[float]
+) -> Tuple[List[datetime.date], List[float]]:
+    """
+    Truncates the y-values at zero, preserving x-values up to that same index.
+    """
     truncated_x, truncated_y = [], []
     for x, y in zip(x_vals, y_vals):
         if y <= 0:
@@ -20,10 +27,17 @@ def truncate_at_zero(x_vals, y_vals):
 
 
 def generate_burndown_data(
-    total_items, total_story_points, weekly_throughput, weekly_velocity, deadline_str
-):
+    total_items: int,
+    total_story_points: int,
+    weekly_throughput: int,
+    weekly_velocity: int,
+    deadline_str: str,
+    today: datetime.date,
+) -> Dict[str, Any]:
+    """
+    Generates values needed for plotting both ideal and actual burndown lines.
+    """
     deadline = datetime.datetime.strptime(deadline_str, "%Y-%m-%d").date()
-    today = datetime.date.today()
     days_to_deadline = (deadline - today).days
 
     days_to_zero_items = (
@@ -39,7 +53,7 @@ def generate_burndown_data(
 
     dates = [today + datetime.timedelta(days=d) for d in range(days_to_plot + 1)]
 
-    def ideal_curve(total, deadline_days):
+    def ideal_curve(total: int, deadline_days: int) -> List[float]:
         return [
             max(total - (total / deadline_days) * d, 0) if deadline_days > 0 else 0
             for d in range(deadline_days + 1)
@@ -76,110 +90,75 @@ def generate_burndown_data(
     }
 
 
-def plot_burndown_data(data_dict, label_suffix=""):
+def plot_lines(data_dict: Dict[str, Any], label_suffix: str = "") -> List[Any]:
+    """
+    Plots four lines (ideal/actual items, ideal/actual points) with optional suffix for their labels.
+    """
     texts = []
-
-    plt.plot(
-        data_dict["ideal_items_x"],
-        data_dict["ideal_items_y"],
-        linestyle=":",
-        label=f"Ideal Throughput{label_suffix}",
-        color="blue",
-    )
-    if data_dict["ideal_items_x"]:
-        t = plt.text(
-            data_dict["ideal_items_x"][-1],
-            data_dict["ideal_items_y"][-1],
-            f"{label_suffix.strip()}",
-            color="blue",
-            fontsize=9,
-            ha="left",
-            va="center",
+    config = [
+        ("ideal_items_x", "ideal_items_y", ":", "Ideal Throughput", "blue"),
+        ("actual_items_x", "actual_items_y", "-", "Actual Throughput", "darkblue"),
+        ("ideal_points_x", "ideal_points_y", ":", "Ideal Velocity", "lightcoral"),
+        ("actual_points_x", "actual_points_y", "-", "Actual Velocity", "red"),
+    ]
+    for x_key, y_key, style, label_text, color in config:
+        plt.plot(
+            data_dict[x_key],
+            data_dict[y_key],
+            linestyle=style,
+            label=f"{label_text}{label_suffix}",
+            color=color,
         )
-        texts.append(t)
-
-    plt.plot(
-        data_dict["actual_items_x"],
-        data_dict["actual_items_y"],
-        linestyle="-",
-        label=f"Actual Throughput{label_suffix}",
-        color="darkblue",
-    )
-    if data_dict["actual_items_x"]:
-        t = plt.text(
-            data_dict["actual_items_x"][-1],
-            data_dict["actual_items_y"][-1],
-            f"{label_suffix.strip()}",
-            color="darkblue",
-            fontsize=9,
-            ha="left",
-            va="center",
-        )
-        texts.append(t)
-
-    plt.plot(
-        data_dict["ideal_points_x"],
-        data_dict["ideal_points_y"],
-        linestyle=":",
-        label=f"Ideal Velocity{label_suffix}",
-        color="lightcoral",
-    )
-    if data_dict["ideal_points_x"]:
-        t = plt.text(
-            data_dict["ideal_points_x"][-1],
-            data_dict["ideal_points_y"][-1],
-            f"{label_suffix.strip()}",
-            color="lightcoral",
-            fontsize=9,
-            ha="left",
-            va="center",
-        )
-        texts.append(t)
-
-    plt.plot(
-        data_dict["actual_points_x"],
-        data_dict["actual_points_y"],
-        linestyle="-",
-        label=f"Actual Velocity{label_suffix}",
-        color="red",
-    )
-    if data_dict["actual_points_x"]:
-        t = plt.text(
-            data_dict["actual_points_x"][-1],
-            data_dict["actual_points_y"][-1],
-            f"{label_suffix.strip()}",
-            color="red",
-            fontsize=9,
-            ha="left",
-            va="center",
-        )
-        texts.append(t)
-
+        if data_dict[x_key]:
+            txt = plt.text(
+                data_dict[x_key][-1],
+                data_dict[y_key][-1],
+                f"{label_suffix.strip()}",
+                color=color,
+                fontsize=9,
+                ha="left",
+                va="center",
+            )
+            texts.append(txt)
     return texts
 
 
-def save_figure(prefix, date_obj):
+def finalize_figure(texts: List[Any], prefix: str, date_obj: datetime.date) -> None:
+    """
+    Saves the figure as both SVG and PNG, then closes it.
+    """
+    with open(os.devnull, "w") as fnull, contextlib.redirect_stdout(fnull):
+        adjust_text(texts, arrowprops=dict(arrowstyle="->", color="gray"), ax=plt.gca())
+
     date_str = date_obj.strftime("%Y%m%d")
     plt.savefig(f"{prefix}.svg")
     plt.savefig(f"{prefix}_{date_str}.png")
+    plt.close()
 
 
 def generate_burndown_chart(
-    total_items, total_story_points, weekly_throughput, weekly_velocity, deadline_str
-):
+    total_items: int,
+    total_story_points: int,
+    weekly_throughput: int,
+    weekly_velocity: int,
+    deadline_str: str,
+    today: datetime.date,
+) -> None:
+    """
+    Generates a single burndown chart as both SVG and PNG.
+    """
     data = generate_burndown_data(
         total_items,
         total_story_points,
         weekly_throughput,
         weekly_velocity,
         deadline_str,
+        today,
     )
-    today = data["today"]
     deadline = data["deadline"]
 
     plt.figure(figsize=(10, 6))
-
-    texts = plot_burndown_data(data)
+    texts = plot_lines(data)
 
     plt.title(f"Project Burndown For {today.strftime('%Y-%m-%d')}")
     plt.legend(loc="upper right")
@@ -252,16 +231,16 @@ def generate_burndown_chart(
     plt.gcf().autofmt_xdate()
     plt.tight_layout()
 
-    with open(os.devnull, "w") as fnull, contextlib.redirect_stdout(fnull):
-        adjust_text(texts, arrowprops=dict(arrowstyle="->", color="gray"), ax=plt.gca())
-
-    save_figure("burndown_chart", today)
-    plt.close()
+    finalize_figure(texts, "burndown_chart", today)
 
 
-def generate_multiple_burndown_charts(datasets):
+def generate_multiple_burndown_charts(
+    datasets: List[Dict[str, Any]], today: datetime.date
+) -> None:
+    """
+    Generates multiple burndown charts on a single figure.
+    """
     plt.figure(figsize=(10, 6))
-    today = datetime.date.today()
     execution_date = today.strftime("%Y-%m-%d")
     plt.title(f"Project Burndowns For {execution_date}")
 
@@ -276,10 +255,10 @@ def generate_multiple_burndown_charts(datasets):
             params["throughput"],
             params["velocity"],
             params["deadline_str"],
+            today,
         )
-        text_objs = plot_burndown_data(data, label_suffix=f" ({params['name']})")
+        text_objs = plot_lines(data, label_suffix=f" ({params['name']})")
         all_texts.extend(text_objs)
-
         deadlines.append(data["deadline"])
         if data["actual_items_x"]:
             all_dates.append(data["actual_items_x"][-1])
@@ -287,69 +266,86 @@ def generate_multiple_burndown_charts(datasets):
             all_dates.append(data["actual_points_x"][-1])
 
     plt.legend(loc="upper right")
-
     for d in deadlines:
         plt.axvline(x=d, color="magenta", linestyle="--", linewidth=1)
 
     if all_dates:
         max_date = max(all_dates)
-        all_range_in_days = (max_date - today).days
-        dates = [
-            today + datetime.timedelta(days=i) for i in range(all_range_in_days + 1)
+        range_in_days = (max_date - today).days
+        date_list = [
+            today + datetime.timedelta(days=i) for i in range(range_in_days + 1)
         ]
         plt.xticks(
-            dates[::7], [date.strftime("%Y-%m-%d") for date in dates[::7]], rotation=45
+            date_list[::7],
+            [dt.strftime("%Y-%m-%d") for dt in date_list[::7]],
+            rotation=45,
         )
 
     plt.grid(True)
     plt.gcf().autofmt_xdate()
     plt.tight_layout()
 
-    with open(os.devnull, "w") as fnull, contextlib.redirect_stdout(fnull):
-        adjust_text(
-            all_texts, arrowprops=dict(arrowstyle="->", color="gray"), ax=plt.gca()
-        )
-
-    save_figure("multiple_burndown_chart", today)
-    plt.close()
+    finalize_figure(all_texts, "multiple_burndown_chart", today)
 
 
-def print_help():
-    print(
-        "Usage for single dataset:\n"
-        "  python burndown.py <items> <story_points> <throughput> <velocity> <deadline YYYY-MM-DD>\n"
-        "\n"
-        "Usage for multiple datasets:\n"
-        "  python burndown.py multi "
-        "<dataset_name> <items> <points> <throughput> <velocity> <deadline YYYY-MM-DD> "
-        "... (repeated for each dataset) ..."
+def main() -> None:
+    """
+    Parses command-line options using argparse and runs either single or multiple chart generation.
+    """
+    parser = argparse.ArgumentParser(description="Generate burndown charts.")
+    subparsers = parser.add_subparsers(
+        dest="mode", help="Command mode: single or multi"
     )
 
+    single_parser = subparsers.add_parser(
+        "single", help="Generate a single burndown chart"
+    )
+    single_parser.add_argument(
+        "items_val", type=int, help="total number of backlog items"
+    )
+    single_parser.add_argument("story_points_val", type=int, help="total story points")
+    single_parser.add_argument(
+        "throughput_val", type=int, help="weekly throughput of items"
+    )
+    single_parser.add_argument(
+        "velocity_val", type=int, help="weekly velocity in story points"
+    )
+    single_parser.add_argument(
+        "deadline_str_val", type=str, help="deadline in YYYY-MM-DD format"
+    )
 
-if __name__ == "__main__":
-    if len(sys.argv) == 1:
-        print_help()
+    multi_parser = subparsers.add_parser(
+        "multi", help="Generate multiple burndown charts"
+    )
+    multi_parser.add_argument(
+        "dataset_params",
+        nargs="+",
+        help=(
+            "List of six arguments repeated for each dataset: "
+            "dataset_name items story_points throughput velocity deadline_str"
+        ),
+    )
+
+    args = parser.parse_args()
+    if not args.mode:
+        parser.print_help()
         sys.exit(1)
 
-    if len(sys.argv) >= 2 and sys.argv[1] == "multi":
-        if len(sys.argv) == 2:
-            print_help()
+    if args.mode == "multi":
+        if len(args.dataset_params) % 6 != 0:
+            print("Error: The 'multi' command requires arguments in multiples of six.")
             sys.exit(1)
 
-        args = sys.argv[2:]
-        if len(args) % 6 != 0:
-            print_help()
-            sys.exit(1)
-
-        datasets = []
-        for i in range(0, len(args), 6):
-            dataset_name = args[i]
-            items = int(args[i + 1])
-            points = int(args[i + 2])
-            throughput = int(args[i + 3])
-            velocity = int(args[i + 4])
-            deadline_input = args[i + 5]
-            datasets.append(
+        dp = args.dataset_params
+        datasets_input = []
+        for i in range(0, len(dp), 6):
+            dataset_name = dp[i]
+            items = int(dp[i + 1])
+            points = int(dp[i + 2])
+            throughput = int(dp[i + 3])
+            velocity = int(dp[i + 4])
+            deadline_input = dp[i + 5]
+            datasets_input.append(
                 {
                     "name": dataset_name,
                     "items": items,
@@ -360,19 +356,21 @@ if __name__ == "__main__":
                 }
             )
 
-        generate_multiple_burndown_charts(datasets)
+        today_date = datetime.date.today()
+        generate_multiple_burndown_charts(datasets_input, today_date)
         print("Multiple burndown chart saved as multiple_burndown_chart.svg")
-        sys.exit(0)
+    else:
+        today_date = datetime.date.today()
+        generate_burndown_chart(
+            args.items_val,
+            args.story_points_val,
+            args.throughput_val,
+            args.velocity_val,
+            args.deadline_str_val,
+            today_date,
+        )
+        print("Burndown chart saved as burndown_chart.svg")
 
-    if len(sys.argv) != 6:
-        print_help()
-        sys.exit(1)
 
-    items = int(sys.argv[1])
-    story_points = int(sys.argv[2])
-    throughput = int(sys.argv[3])
-    velocity = int(sys.argv[4])
-    deadline_input = sys.argv[5]
-
-    generate_burndown_chart(items, story_points, throughput, velocity, deadline_input)
-    print("Burndown chart saved as burndown_chart.svg")
+if __name__ == "__main__":
+    main()
