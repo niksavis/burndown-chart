@@ -31,7 +31,10 @@ def parse_arguments() -> argparse.Namespace:
         default="statistics.csv",
         help="Path to the CSV file containing statistics",
     )
-    return parser.parse_args()
+    args = parser.parse_args()
+    if args.pert_factor < 3:
+        parser.error("--pert_factor cannot be lower than 3")
+    return args
 
 
 def read_and_clean_data(file_path: str) -> pd.DataFrame:
@@ -228,15 +231,29 @@ def plot_forecast(
         color="lightblue",
         alpha=0.7,
     )
+    # Truncate pessimistic line if it extends more than 3 months beyond the most likely completion date
+    max_date = items_x_avg[-1] + timedelta(days=90)
+    truncated_items_x_pes = [date for date in items_x_pes if date <= max_date]
+    truncated_items_y_pes = items_y_pes[: len(truncated_items_x_pes)]
     ax1.plot(
-        items_x_pes,
-        items_y_pes,
+        truncated_items_x_pes,
+        truncated_items_y_pes,
         label="Throughput Forecast (P)",
         linestyle="-.",
         linewidth=1.5,
         color="lightblue",
         alpha=0.7,
     )
+    if len(truncated_items_x_pes) < len(items_x_pes):
+        ax1.text(
+            truncated_items_x_pes[-1],
+            truncated_items_y_pes[-1],
+            items_x_pes[-1].strftime("%Y-%m-%d"),
+            color="lightblue",
+            ha="center",
+            va="bottom",
+        )
+
     ax1.set_xlabel("Time", fontsize="small")
     ax1.set_ylabel("Remaining Items", fontsize="small")
 
@@ -265,15 +282,28 @@ def plot_forecast(
         color="lightsalmon",
         alpha=0.7,
     )
+    # Truncate pessimistic line if it extends more than 3 months beyond the most likely completion date
+    truncated_points_x_pes = [date for date in points_x_pes if date <= max_date]
+    truncated_points_y_pes = points_y_pes[: len(truncated_points_x_pes)]
     ax2.plot(
-        points_x_pes,
-        points_y_pes,
+        truncated_points_x_pes,
+        truncated_points_y_pes,
         label="Velocity Forecast (P)",
         linestyle="-.",
         linewidth=1.5,
         color="lightsalmon",
         alpha=0.7,
     )
+    if len(truncated_points_x_pes) < len(points_x_pes):
+        ax2.text(
+            truncated_points_x_pes[-1],
+            truncated_points_y_pes[-1],
+            points_x_pes[-1].strftime("%Y-%m-%d"),
+            color="lightsalmon",
+            ha="center",
+            va="bottom",
+        )
+
     ax2.set_ylabel("Remaining Points", fontsize="small")
 
     ax1.axvline(deadline, color="red", linestyle="--", linewidth=2)
@@ -288,16 +318,28 @@ def plot_forecast(
 
     ax1.xaxis.set_major_formatter(plt.matplotlib.dates.DateFormatter("%Y-%m-%d"))
 
-    forecast_zero_dates = pd.Series(
-        [
-            items_x_avg[-1],
-            points_x_avg[-1],
-            items_x_opt[-1],
-            points_x_opt[-1],
-            items_x_pes[-1],
-            points_x_pes[-1],
-        ]
-    )
+    if len(truncated_items_x_pes) < len(items_x_pes) or len(
+        truncated_points_x_pes
+    ) < len(points_x_pes):
+        forecast_zero_dates = pd.Series(
+            [
+                items_x_avg[-1],
+                points_x_avg[-1],
+                items_x_opt[-1],
+                points_x_opt[-1],
+            ]
+        )
+    else:
+        forecast_zero_dates = pd.Series(
+            [
+                items_x_avg[-1],
+                points_x_avg[-1],
+                items_x_opt[-1],
+                points_x_opt[-1],
+                items_x_pes[-1],
+                points_x_pes[-1],
+            ]
+        )
     all_dates = pd.concat([df["date"], forecast_zero_dates]).unique()
     ax1.set_xticks(all_dates)
 
