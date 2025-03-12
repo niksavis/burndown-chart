@@ -84,6 +84,26 @@ python burndown.py multi "Team A" 70 344 10 26 2025-05-29 "Team B" 122 488 15 46
 
 The generated multiple burndown chart will be saved as [`multiple_burndown_chart.svg`](multiple_burndown_chart.svg).
 
+## Forecast
+
+To generate a forecast using historical data, run:
+
+```sh
+python forecast.py <total_items> <total_points> <deadline> [--stats_file <path>] [--pert_factor <n>]
+```
+
+- `<total_items>`: Total number of items to complete.
+- `<total_points>`: Total number of points to complete.
+- `<deadline>`: Deadline in `YYYY-MM-DD` format.
+- `--stats_file <path>`: Path to statistics CSV (default: `statistics.csv`).
+- `--pert_factor <n>`: Number of largest/smallest samples for PERT (default: 3).
+
+Example:
+
+```sh
+python forecast.py 50 200 2025-5-30 --stats_file statistics.csv --pert_factor 3
+```
+
 ## Example
 
 Here is an example of the generated burndown chart:
@@ -93,6 +113,10 @@ Here is an example of the generated burndown chart:
 Here is an example of the generated multiple burndown chart:
 
 ![Multiple Burndown Chart](multiple_burndown_chart.svg)
+
+Here is an example of the generated forecast chart:
+
+![Forecast Chart](forecast_chart.png)
 
 ## License
 
