@@ -4,7 +4,10 @@ import matplotlib.pyplot as plt
 import argparse
 
 
-def parse_arguments():
+def parse_arguments() -> argparse.Namespace:
+    """
+    Parse command-line arguments and return them as a Namespace.
+    """
     parser = argparse.ArgumentParser(description="Project Burndown Forecast")
     parser.add_argument(
         "total_items", type=int, help="Total number of items to be burned"
@@ -23,10 +26,18 @@ def parse_arguments():
         default=3,
         help="Number of largest and smallest values to use in PERT calculation (default: 3)",
     )
+    parser.add_argument(
+        "--stats_file",
+        default="statistics.csv",
+        help="Path to the CSV file containing statistics",
+    )
     return parser.parse_args()
 
 
-def read_and_clean_data(file_path):
+def read_and_clean_data(file_path: str) -> pd.DataFrame:
+    """
+    Read the CSV from file_path, clean data, and return a DataFrame.
+    """
     df = pd.read_csv(
         file_path,
         sep=";",
@@ -45,13 +56,21 @@ def read_and_clean_data(file_path):
     return df
 
 
-def compute_cumulative_values(df, total_items, total_points):
+def compute_cumulative_values(
+    df: pd.DataFrame, total_items: int, total_points: int
+) -> pd.DataFrame:
+    """
+    Compute cumulative remaining items and points based on the given totals.
+    """
     df["cum_items"] = df["no_items"][::-1].cumsum()[::-1] + total_items
     df["cum_points"] = df["no_points"][::-1].cumsum()[::-1] + total_points
     return df
 
 
-def compute_weekly_throughput(df):
+def compute_weekly_throughput(df: pd.DataFrame) -> tuple[pd.DataFrame, float, float]:
+    """
+    Group data by week to compute total items and points throughput.
+    """
     df["week"] = df["date"].dt.isocalendar().week
     df["year"] = df["date"].dt.year
     df["year_week"] = df.apply(lambda r: f"{r['year']}-{r['week']}", axis=1)
@@ -65,7 +84,12 @@ def compute_weekly_throughput(df):
     return grouped, avg_items, avg_points
 
 
-def calculate_rates(grouped, total_items, total_points, pert_factor):
+def calculate_rates(
+    grouped: pd.DataFrame, total_items: int, total_points: int, pert_factor: int
+) -> tuple[float, float, float, float, float, float]:
+    """
+    Calculate optimistic, most likely, and pessimistic rates; apply PERT formula.
+    """
     days_per_week = 7.0
     optimistic_items_rate = (
         grouped["no_items"].nlargest(pert_factor).mean() / days_per_week
@@ -103,23 +127,25 @@ def calculate_rates(grouped, total_items, total_points, pert_factor):
     return (
         pert_time_items,
         optimistic_items_rate,
-        most_likely_items_rate,
         pessimistic_items_rate,
         pert_time_points,
         optimistic_points_rate,
-        most_likely_points_rate,
         pessimistic_points_rate,
     )
 
 
-def daily_forecast(start_val, daily_rate, start_date):
+def daily_forecast(
+    start_val: float, daily_rate: float, start_date: datetime
+) -> tuple[list[datetime], list[float]]:
+    """
+    Generate daily forecast until start_val reaches zero, returning x and y values.
+    """
     if daily_rate <= 0:
         return [start_date], [start_val]
     x_vals, y_vals = [], []
     val = start_val
     current_date = start_date
-    max_date = pd.Timestamp.max
-    while val > 0 and current_date < max_date:
+    while val > 0:
         x_vals.append(current_date)
         y_vals.append(val)
         val -= daily_rate
@@ -130,50 +156,49 @@ def daily_forecast(start_val, daily_rate, start_date):
 
 
 def plot_forecast(
-    df,
-    items_x_avg,
-    items_y_avg,
-    items_x_opt,
-    items_y_opt,
-    items_x_pes,
-    items_y_pes,
-    points_x_avg,
-    points_y_avg,
-    points_x_opt,
-    points_y_opt,
-    points_x_pes,
-    points_y_pes,
-    pert_time_items,
-    optimistic_items_rate,
-    most_likely_items_rate,
-    pessimistic_items_rate,
-    pert_time_points,
-    optimistic_points_rate,
-    most_likely_points_rate,
-    pessimistic_points_rate,
-    pert_factor,
-    deadline,
-):
+    df: pd.DataFrame,
+    items_x_avg: list[datetime],
+    items_y_avg: list[float],
+    items_x_opt: list[datetime],
+    items_y_opt: list[float],
+    items_x_pes: list[datetime],
+    items_y_pes: list[float],
+    points_x_avg: list[datetime],
+    points_y_avg: list[float],
+    points_x_opt: list[datetime],
+    points_y_opt: list[float],
+    points_x_pes: list[datetime],
+    points_y_pes: list[float],
+    pert_time_items: float,
+    pert_time_points: float,
+    deadline: datetime,
+) -> None:
+    """
+    Plot burndown and velocity forecasts, along with a PERT-based time estimate.
+    """
     fig, ax1 = plt.subplots(figsize=(12, 6))
 
-    days_until_deadline = (deadline - df["date"].iloc[-1]).days
-
-    items_color = "green" if pert_time_items <= days_until_deadline else "red"
-    points_color = "green" if pert_time_points <= days_until_deadline else "red"
+    days_until_deadline = (deadline - datetime.now()).days
+    text_box_color = (
+        "green"
+        if (
+            pert_time_items <= days_until_deadline
+            and pert_time_points <= days_until_deadline
+        )
+        else "red"
+    )
 
     text_box = plt.figtext(
         0.5,
         0.80,
-        f"PERT Formula: $E = \\frac{{O + 4M + P}}{{6}}$, $F={pert_factor}$"
-        "\nOptimistic: Best case; Most Likely: Realistic case; Pessimistic: Worst case."
-        "\nFactor: The number of largest and smallest values used in the PERT calculation."
-        f"\nEstimated Duration (Items): {pert_time_items:.2f} days"
-        f"\nEstimated Duration (Points): {pert_time_points:.2f} days"
-        f"\nDays until deadline: {days_until_deadline} days",
+        f"PERT: $E = \\frac{{O + 4M + P}}{{6}}$"
+        f"\nEstimated Days (Items): {pert_time_items:.2f}"
+        f"\nEstimated Days (Points): {pert_time_points:.2f}"
+        f"\nDeadline in {days_until_deadline} days",
         ha="center",
         fontsize="small",
         bbox={"facecolor": "white", "alpha": 0.5, "pad": 5},
-        color=items_color if pert_time_items > pert_time_points else points_color,
+        color=text_box_color,
     )
 
     text_box.set_position((0.5, 0.85))
@@ -277,9 +302,7 @@ def plot_forecast(
     ax1.set_xticks(all_dates)
 
     ax1.set_xticklabels(
-        [date.strftime("%Y-%m-%d") for date in all_dates],
-        rotation=45,
-        fontsize="small",
+        [date.strftime("%Y-%m-%d") for date in all_dates], rotation=45, fontsize="small"
     )
 
     lines_1, labels_1 = ax1.get_legend_handles_labels()
@@ -298,21 +321,28 @@ def plot_forecast(
     plt.show()
 
 
-def main():
+def main() -> None:
+    """
+    Orchestrate reading data, computing rates, and plotting forecasts.
+    """
     args = parse_arguments()
-    df = read_and_clean_data("statistics.csv")
+    try:
+        df = read_and_clean_data(args.stats_file)
+    except FileNotFoundError:
+        print(f"Error: Stats file '{args.stats_file}' not found.")
+        return
     df = compute_cumulative_values(df, args.total_items, args.total_points)
-    grouped, avg_items, avg_points = compute_weekly_throughput(df)
+    df_grouped, _, _ = compute_weekly_throughput(df)
     (
         pert_time_items,
         optimistic_items_rate,
-        most_likely_items_rate,
         pessimistic_items_rate,
         pert_time_points,
         optimistic_points_rate,
-        most_likely_points_rate,
         pessimistic_points_rate,
-    ) = calculate_rates(grouped, args.total_items, args.total_points, args.pert_factor)
+    ) = calculate_rates(
+        df_grouped, args.total_items, args.total_points, args.pert_factor
+    )
 
     items_daily_rate = args.total_items / pert_time_items if pert_time_items > 0 else 0
     points_daily_rate = (
@@ -355,14 +385,7 @@ def main():
         points_x_pes,
         points_y_pes,
         pert_time_items,
-        optimistic_items_rate,
-        most_likely_items_rate,
-        pessimistic_items_rate,
         pert_time_points,
-        optimistic_points_rate,
-        most_likely_points_rate,
-        pessimistic_points_rate,
-        args.pert_factor,
         args.deadline,
     )
 
