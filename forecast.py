@@ -190,7 +190,7 @@ def plot_forecast(
 
     text_box = plt.figtext(
         0.5,
-        0.80,
+        0.75,
         f"PERT: $E = \\frac{{O + 4M + P}}{{6}}$"
         f"\nEstimated Days (Items): {pert_time_items:.2f}"
         f"\nEstimated Days (Points): {pert_time_points:.2f}"
@@ -201,7 +201,7 @@ def plot_forecast(
         color=text_box_color,
     )
 
-    text_box.set_position((0.5, 0.85))
+    text_box.set_position((0.5, 0.75))
     text_box.set_transform(ax1.transAxes)
 
     ax1.plot(
