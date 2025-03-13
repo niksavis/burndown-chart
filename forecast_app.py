@@ -561,7 +561,7 @@ app.layout = dbc.Container(
                 ),
             ]
         ),
-        # Help modal with better structure
+        # Help modal with IMPROVED FORMATTING for better readability
         dbc.Modal(
             [
                 dbc.ModalHeader("How to Use the Project Burndown Forecast App"),
@@ -573,7 +573,16 @@ app.layout = dbc.Container(
                                 html.H5(
                                     "Overview", className="border-bottom pb-2 mb-3"
                                 ),
-                                html.P(HELP_TEXTS["app_intro"], className="ml-3"),
+                                html.P(
+                                    [
+                                        "This application helps you forecast project completion based on historical progress.",
+                                        html.Br(),
+                                        "It uses the ",
+                                        html.Strong("PERT methodology"),
+                                        " to estimate when your project will be completed based on optimistic, pessimistic, and most likely scenarios.",
+                                    ],
+                                    className="ml-3",
+                                ),
                             ],
                             className="mb-4",
                         ),
@@ -584,64 +593,94 @@ app.layout = dbc.Container(
                                     "Input Parameters",
                                     className="border-bottom pb-2 mb-3",
                                 ),
-                                html.Table(
+                                html.Div(
                                     [
-                                        html.Tbody(
+                                        html.H6(
+                                            html.Strong("PERT Factor:"),
+                                            className="mt-3",
+                                        ),
+                                        html.Ul(
                                             [
-                                                html.Tr(
-                                                    [
-                                                        html.Td(
-                                                            "PERT Factor:",
-                                                            className="font-weight-bold pr-3 align-top",
-                                                        ),
-                                                        html.Td(
-                                                            HELP_TEXTS["pert_factor"]
-                                                        ),
-                                                    ],
-                                                    className="border-bottom",
+                                                html.Li(
+                                                    "Determines how many data points to use for optimistic and pessimistic estimates"
                                                 ),
-                                                html.Tr(
-                                                    [
-                                                        html.Td(
-                                                            "Deadline:",
-                                                            className="font-weight-bold pr-3 align-top",
-                                                        ),
-                                                        html.Td(HELP_TEXTS["deadline"]),
-                                                    ],
-                                                    className="border-bottom",
+                                                html.Li(
+                                                    "Higher value considers more historical data points"
                                                 ),
-                                                html.Tr(
+                                                html.Li(
                                                     [
-                                                        html.Td(
-                                                            "Total Items:",
-                                                            className="font-weight-bold pr-3 align-top",
-                                                        ),
-                                                        html.Td(
-                                                            HELP_TEXTS["total_items"]
-                                                        ),
-                                                    ],
-                                                    className="border-bottom",
-                                                ),
-                                                html.Tr(
-                                                    [
-                                                        html.Td(
-                                                            "Total Points:",
-                                                            className="font-weight-bold pr-3 align-top",
-                                                        ),
-                                                        html.Td(
-                                                            HELP_TEXTS["total_points"]
-                                                        ),
+                                                        html.Strong("Range:"),
+                                                        " 3-15 (default: 3)",
                                                     ]
                                                 ),
-                                            ]
-                                        )
+                                            ],
+                                            className="mb-3",
+                                        ),
+                                        html.H6(
+                                            html.Strong("Deadline:"), className="mt-3"
+                                        ),
+                                        html.Ul(
+                                            [
+                                                html.Li(
+                                                    "Set your project deadline here"
+                                                ),
+                                                html.Li(
+                                                    "The app will show if you're on track to meet it"
+                                                ),
+                                                html.Li(
+                                                    [
+                                                        html.Strong("Format:"),
+                                                        " YYYY-MM-DD",
+                                                    ]
+                                                ),
+                                            ],
+                                            className="mb-3",
+                                        ),
+                                        html.H6(
+                                            html.Strong("Total Items:"),
+                                            className="mt-3",
+                                        ),
+                                        html.Ul(
+                                            [
+                                                html.Li(
+                                                    "The total number of items (tasks, stories, etc.) to be completed"
+                                                ),
+                                                html.Li(
+                                                    [
+                                                        html.Em(
+                                                            "This represents work quantity"
+                                                        )
+                                                    ]
+                                                ),
+                                            ],
+                                            className="mb-3",
+                                        ),
+                                        html.H6(
+                                            html.Strong("Total Points:"),
+                                            className="mt-3",
+                                        ),
+                                        html.Ul(
+                                            [
+                                                html.Li(
+                                                    "The total number of points (effort, complexity) to be completed"
+                                                ),
+                                                html.Li(
+                                                    [
+                                                        html.Em(
+                                                            "This represents work effort/complexity"
+                                                        )
+                                                    ]
+                                                ),
+                                            ],
+                                            className="mb-3",
+                                        ),
                                     ],
-                                    className="table table-sm ml-3",
+                                    className="ml-3",
                                 ),
                             ],
                             className="mb-4",
                         ),
-                        # CSV Upload section
+                        # CSV Upload section with improved formatting
                         html.Div(
                             [
                                 html.H5(
@@ -650,14 +689,55 @@ app.layout = dbc.Container(
                                 ),
                                 html.Div(
                                     [
+                                        html.P(
+                                            [
+                                                html.Strong(
+                                                    "Your CSV file should contain the following columns:"
+                                                ),
+                                            ],
+                                            className="mb-2",
+                                        ),
+                                        html.Ul(
+                                            [
+                                                html.Li(
+                                                    [
+                                                        html.Strong("date:"),
+                                                        " Date of work completed (YYYY-MM-DD format)",
+                                                    ]
+                                                ),
+                                                html.Li(
+                                                    [
+                                                        html.Strong("no_items:"),
+                                                        " Number of items completed on that date",
+                                                    ]
+                                                ),
+                                                html.Li(
+                                                    [
+                                                        html.Strong("no_points:"),
+                                                        " Number of points completed on that date",
+                                                    ]
+                                                ),
+                                            ],
+                                            className="mb-3",
+                                        ),
+                                        html.P(
+                                            [
+                                                "The file can use ",
+                                                html.Em("semicolon (;)"),
+                                                " or ",
+                                                html.Em("comma (,)"),
+                                                " as separators.",
+                                            ],
+                                            className="mb-2",
+                                        ),
+                                        html.P(
+                                            html.Strong("Example:"), className="mb-1"
+                                        ),
                                         html.Pre(
                                             """date;no_items;no_points
 2025-03-01;5;50
 2025-03-02;7;70""",
                                             className="bg-light p-3 border rounded",
-                                        ),
-                                        html.P(
-                                            HELP_TEXTS["csv_format"], className="mt-2"
                                         ),
                                     ],
                                     className="ml-3",
@@ -674,20 +754,68 @@ app.layout = dbc.Container(
                                 ),
                                 html.Div(
                                     [
-                                        html.P(HELP_TEXTS["statistics_table"]),
+                                        html.P(
+                                            html.Strong(
+                                                "This table shows your historical data. You can:"
+                                            ),
+                                            className="mb-2",
+                                        ),
+                                        html.Ul(
+                                            [
+                                                html.Li(
+                                                    [
+                                                        html.Strong("Edit any cell"),
+                                                        " by clicking on it",
+                                                    ]
+                                                ),
+                                                html.Li(
+                                                    [
+                                                        html.Strong("Delete rows"),
+                                                        " with the 'x' button",
+                                                    ]
+                                                ),
+                                                html.Li(
+                                                    [
+                                                        html.Strong("Add new rows"),
+                                                        " with the 'Add Row' button",
+                                                    ]
+                                                ),
+                                                html.Li(
+                                                    [
+                                                        html.Strong("Sort"),
+                                                        " by clicking column headers",
+                                                    ]
+                                                ),
+                                            ],
+                                            className="mb-3",
+                                        ),
+                                        html.P(
+                                            [
+                                                html.Strong("Note:"),
+                                                " Changes to this data will update the forecast ",
+                                                html.Em("immediately"),
+                                                ".",
+                                            ],
+                                            className="mb-2",
+                                        ),
                                         html.Div(
                                             [
-                                                html.Div(
-                                                    "Date: YYYY-MM-DD format",
+                                                html.P(
+                                                    html.Strong("Column definitions:"),
                                                     className="mb-1",
                                                 ),
-                                                html.Div(
-                                                    "Items: Number of work items completed",
-                                                    className="mb-1",
-                                                ),
-                                                html.Div(
-                                                    "Points: Effort points completed",
-                                                    className="mb-1",
+                                                html.Ul(
+                                                    [
+                                                        html.Li(
+                                                            "Date: YYYY-MM-DD format"
+                                                        ),
+                                                        html.Li(
+                                                            "Items: Number of work items completed"
+                                                        ),
+                                                        html.Li(
+                                                            "Points: Effort points completed"
+                                                        ),
+                                                    ]
                                                 ),
                                             ],
                                             className="bg-light p-3 border rounded",
@@ -708,78 +836,114 @@ app.layout = dbc.Container(
                                 html.Div(
                                     [
                                         html.P(
-                                            HELP_TEXTS["forecast_explanation"],
-                                            className="mb-3",
+                                            html.Strong(
+                                                "The graph shows your burndown forecast based on historical data:"
+                                            ),
+                                            className="mb-2",
                                         ),
                                         html.Div(
                                             [
                                                 html.Div(
-                                                    [
-                                                        html.Span(
-                                                            "■",
-                                                            className="mr-2",
-                                                            style={
-                                                                "color": "rgb(0, 99, 178)"
-                                                            },
+                                                    className="row",
+                                                    children=[
+                                                        html.Div(
+                                                            className="col-6",
+                                                            children=[
+                                                                html.H6(
+                                                                    "Lines:",
+                                                                    className="mt-2 mb-2",
+                                                                ),
+                                                                html.Ul(
+                                                                    [
+                                                                        html.Li(
+                                                                            [
+                                                                                html.Strong(
+                                                                                    "Solid lines:"
+                                                                                ),
+                                                                                " Historical progress",
+                                                                            ]
+                                                                        ),
+                                                                        html.Li(
+                                                                            [
+                                                                                html.Strong(
+                                                                                    "Dashed lines:"
+                                                                                ),
+                                                                                " Most likely forecast",
+                                                                            ]
+                                                                        ),
+                                                                        html.Li(
+                                                                            [
+                                                                                html.Strong(
+                                                                                    "Dotted lines:"
+                                                                                ),
+                                                                                " Optimistic and pessimistic forecasts",
+                                                                            ]
+                                                                        ),
+                                                                    ]
+                                                                ),
+                                                            ],
                                                         ),
-                                                        "Blue: Items tracking",
-                                                    ],
-                                                    className="col-6 mb-2",
-                                                ),
-                                                html.Div(
-                                                    [
-                                                        html.Span(
-                                                            "■",
-                                                            className="mr-2",
-                                                            style={
-                                                                "color": "rgb(255, 127, 14)"
-                                                            },
+                                                        html.Div(
+                                                            className="col-6",
+                                                            children=[
+                                                                html.H6(
+                                                                    "Colors:",
+                                                                    className="mt-2 mb-2",
+                                                                ),
+                                                                html.Ul(
+                                                                    [
+                                                                        html.Li(
+                                                                            [
+                                                                                html.Span(
+                                                                                    "■",
+                                                                                    style={
+                                                                                        "color": "rgb(0, 99, 178)"
+                                                                                    },
+                                                                                ),
+                                                                                " Blue: Items tracking",
+                                                                            ]
+                                                                        ),
+                                                                        html.Li(
+                                                                            [
+                                                                                html.Span(
+                                                                                    "■",
+                                                                                    style={
+                                                                                        "color": "rgb(255, 127, 14)"
+                                                                                    },
+                                                                                ),
+                                                                                " Orange: Points tracking",
+                                                                            ]
+                                                                        ),
+                                                                        html.Li(
+                                                                            [
+                                                                                html.Span(
+                                                                                    "■",
+                                                                                    style={
+                                                                                        "color": "rgb(220, 20, 60)"
+                                                                                    },
+                                                                                ),
+                                                                                " Red line: Deadline",
+                                                                            ]
+                                                                        ),
+                                                                    ]
+                                                                ),
+                                                            ],
                                                         ),
-                                                        "Orange: Points tracking",
                                                     ],
-                                                    className="col-6 mb-2",
-                                                ),
-                                                html.Div(
-                                                    [
-                                                        html.Span(
-                                                            "■",
-                                                            className="mr-2",
-                                                            style={
-                                                                "color": "rgb(0, 128, 0)"
-                                                            },
-                                                        ),
-                                                        "Green: Optimistic forecast",
-                                                    ],
-                                                    className="col-6 mb-2",
-                                                ),
-                                                html.Div(
-                                                    [
-                                                        html.Span(
-                                                            "■",
-                                                            className="mr-2",
-                                                            style={
-                                                                "color": "rgb(128, 0, 128)"
-                                                            },
-                                                        ),
-                                                        "Purple: Pessimistic forecast",
-                                                    ],
-                                                    className="col-6 mb-2",
-                                                ),
-                                                html.Div(
-                                                    [
-                                                        html.Span(
-                                                            "■",
-                                                            className="mr-2",
-                                                            style={
-                                                                "color": "rgb(220, 20, 60)"
-                                                            },
-                                                        ),
-                                                        "Red line: Deadline",
-                                                    ],
-                                                    className="col-6 mb-2",
                                                 ),
                                             ],
-                                            className="row bg-light p-3 border rounded",
+                                            className="bg-light p-3 border rounded mb-3",
+                                        ),
+                                        html.P(
+                                            [
+                                                html.Strong("Reading the forecast:"),
+                                                html.Br(),
+                                                "Where the forecast lines cross the zero line indicates the estimated completion dates.",
+                                                html.Br(),
+                                                html.Em(
+                                                    "Green estimates mean you're on track to meet the deadline, red means at risk."
+                                                ),
+                                            ]
                                         ),
                                     ],
                                     className="ml-3",
