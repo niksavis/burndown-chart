@@ -281,7 +281,9 @@ def create_forecast_plot(df, total_items, total_points, pert_factor, deadline_st
     # Create subplot with secondary y-axis
     fig = make_subplots(specs=[[{"secondary_y": True}]])
 
-    # UPDATED COLORS FOR BETTER VISIBILITY
+    # Define main colors that will be used consistently
+    items_color = "rgb(0, 99, 178)"  # Blue for items
+    points_color = "rgb(255, 127, 14)"  # Orange for points
 
     # Historical items
     fig.add_trace(
@@ -290,8 +292,8 @@ def create_forecast_plot(df, total_items, total_points, pert_factor, deadline_st
             y=df_calc["cum_items"],
             mode="lines+markers",
             name="Items History",
-            line=dict(color="rgb(0, 99, 178)", width=3),  # Darker blue
-            marker=dict(size=8, color="rgb(0, 99, 178)"),
+            line=dict(color=items_color, width=3),  # Darker blue
+            marker=dict(size=8, color=items_color),
             hovertemplate="%{x}<br>Items: %{y}",
             visible=True,
         ),
@@ -305,7 +307,7 @@ def create_forecast_plot(df, total_items, total_points, pert_factor, deadline_st
             y=items_y_avg,
             mode="lines",
             name="Items Forecast (Most Likely)",
-            line=dict(color="rgb(0, 99, 178)", dash="dash", width=2),
+            line=dict(color=items_color, dash="dash", width=2),
             hovertemplate="%{x}<br>Items: %{y}",
             visible=True,
         ),
@@ -345,8 +347,8 @@ def create_forecast_plot(df, total_items, total_points, pert_factor, deadline_st
             y=df_calc["cum_points"],
             mode="lines+markers",
             name="Points History",
-            line=dict(color="rgb(255, 127, 14)", width=3),  # Orange
-            marker=dict(size=8, color="rgb(255, 127, 14)"),
+            line=dict(color=points_color, width=3),  # Orange
+            marker=dict(size=8, color=points_color),
             hovertemplate="%{x}<br>Points: %{y}",
         ),
         secondary_y=True,
@@ -359,7 +361,7 @@ def create_forecast_plot(df, total_items, total_points, pert_factor, deadline_st
             y=points_y_avg,
             mode="lines",
             name="Points Forecast (Most Likely)",
-            line=dict(color="rgb(255, 127, 14)", dash="dash", width=2),
+            line=dict(color=points_color, dash="dash", width=2),
             hovertemplate="%{x}<br>Points: %{y}",
         ),
         secondary_y=True,
@@ -442,19 +444,23 @@ def create_forecast_plot(df, total_items, total_points, pert_factor, deadline_st
     items_range = [0, max_items * 1.1]
     points_range = [0, max_items * scale_factor * 1.1]
 
+    # Create color-tinted grid colors to match data series colors
+    items_grid_color = "rgba(0, 99, 178, 0.1)"  # Light blue for items grid
+    points_grid_color = "rgba(255, 127, 14, 0.1)"  # Light orange for points grid
+
     # Update layout - REMOVED TITLE to avoid overlap with legend
     fig.update_layout(
         xaxis=dict(
             title={"text": "Date", "font": {"size": 16}},
             tickmode="auto",
             nticks=20,
-            gridcolor="lightgray",
+            gridcolor="rgba(200, 200, 200, 0.2)",  # Very light gray for x grid
             automargin=True,
         ),
         yaxis=dict(
             title={"text": "Remaining Items", "font": {"size": 16}},
             range=items_range,
-            gridcolor="lightgray",
+            gridcolor=items_grid_color,  # Light blue grid for items
             zeroline=True,
             zerolinecolor="black",
         ),
@@ -463,7 +469,7 @@ def create_forecast_plot(df, total_items, total_points, pert_factor, deadline_st
             overlaying="y",
             side="right",
             range=points_range,  # Use calculated range to align
-            gridcolor="lightgray",
+            gridcolor=points_grid_color,  # Light orange grid for points
             zeroline=True,
             zerolinecolor="black",
         ),
@@ -1034,6 +1040,8 @@ app.layout = dbc.Container(
                 ),
             ]
         ),
+        # Add space before Statistics Data section (same as space between Forecast Graph and Input/PERT)
+        html.Div(className="mb-3"),
         # Statistics Data Table row
         dbc.Row(
             [
