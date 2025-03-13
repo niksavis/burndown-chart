@@ -442,16 +442,8 @@ def create_forecast_plot(df, total_items, total_points, pert_factor, deadline_st
     items_range = [0, max_items * 1.1]
     points_range = [0, max_items * scale_factor * 1.1]
 
-    # Update layout
+    # Update layout - REMOVED TITLE to avoid overlap with legend
     fig.update_layout(
-        title={
-            "text": "Project Burndown Forecast",
-            "y": 0.95,
-            "x": 0.5,
-            "xanchor": "center",
-            "yanchor": "top",
-            "font": {"size": 24, "family": "Arial, sans-serif"},
-        },
         xaxis=dict(
             title={"text": "Date", "font": {"size": 16}},
             tickmode="auto",
@@ -475,11 +467,11 @@ def create_forecast_plot(df, total_items, total_points, pert_factor, deadline_st
             zeroline=True,
             zerolinecolor="black",
         ),
-        # Adjusted legend position to avoid overlap with deadline label
+        # Adjusted legend position
         legend=dict(
             orientation="h",
-            yanchor="bottom",
-            y=1.12,
+            yanchor="top",
+            y=1.0,
             xanchor="center",
             x=0.5,
             font={"size": 12},
@@ -488,7 +480,7 @@ def create_forecast_plot(df, total_items, total_points, pert_factor, deadline_st
             borderwidth=1,
         ),
         hovermode="closest",
-        margin=dict(r=70, l=70, t=120, b=70),
+        margin=dict(r=70, l=70, t=80, b=70),
         plot_bgcolor="white",
         paper_bgcolor="white",
         font={"family": "Arial, sans-serif"},
@@ -526,7 +518,7 @@ app = dash.Dash(
     ],
 )
 
-# Define layout
+# Define layout with reorganized components
 app.layout = dbc.Container(
     [
         # Sticky Help Button in top-right corner
@@ -550,7 +542,7 @@ app.layout = dbc.Container(
                 "zIndex": "1000",  # Ensure it stays on top of other elements
             },
         ),
-        # App header (without the help button)
+        # App header
         dbc.Row(
             [
                 dbc.Col(
@@ -558,37 +550,236 @@ app.layout = dbc.Container(
                         html.H1(
                             "Project Burndown Forecast", className="text-center my-4"
                         ),
-                        html.P(HELP_TEXTS["app_intro"], className="text-center lead"),
                     ],
                     width=12,
                 ),
             ]
         ),
-        # Help modal
+        # Help modal with better structure
         dbc.Modal(
             [
                 dbc.ModalHeader("How to Use the Project Burndown Forecast App"),
                 dbc.ModalBody(
                     [
-                        html.H5("Overview"),
-                        html.P(HELP_TEXTS["app_intro"]),
-                        html.H5("Input Parameters"),
-                        html.P(
-                            [html.Strong("PERT Factor: "), HELP_TEXTS["pert_factor"]]
+                        # Overview section
+                        html.Div(
+                            [
+                                html.H5(
+                                    "Overview", className="border-bottom pb-2 mb-3"
+                                ),
+                                html.P(HELP_TEXTS["app_intro"], className="ml-3"),
+                            ],
+                            className="mb-4",
                         ),
-                        html.P([html.Strong("Deadline: "), HELP_TEXTS["deadline"]]),
-                        html.P(
-                            [html.Strong("Total Items: "), HELP_TEXTS["total_items"]]
+                        # Input Parameters section
+                        html.Div(
+                            [
+                                html.H5(
+                                    "Input Parameters",
+                                    className="border-bottom pb-2 mb-3",
+                                ),
+                                html.Table(
+                                    [
+                                        html.Tbody(
+                                            [
+                                                html.Tr(
+                                                    [
+                                                        html.Td(
+                                                            "PERT Factor:",
+                                                            className="font-weight-bold pr-3 align-top",
+                                                        ),
+                                                        html.Td(
+                                                            HELP_TEXTS["pert_factor"]
+                                                        ),
+                                                    ],
+                                                    className="border-bottom",
+                                                ),
+                                                html.Tr(
+                                                    [
+                                                        html.Td(
+                                                            "Deadline:",
+                                                            className="font-weight-bold pr-3 align-top",
+                                                        ),
+                                                        html.Td(HELP_TEXTS["deadline"]),
+                                                    ],
+                                                    className="border-bottom",
+                                                ),
+                                                html.Tr(
+                                                    [
+                                                        html.Td(
+                                                            "Total Items:",
+                                                            className="font-weight-bold pr-3 align-top",
+                                                        ),
+                                                        html.Td(
+                                                            HELP_TEXTS["total_items"]
+                                                        ),
+                                                    ],
+                                                    className="border-bottom",
+                                                ),
+                                                html.Tr(
+                                                    [
+                                                        html.Td(
+                                                            "Total Points:",
+                                                            className="font-weight-bold pr-3 align-top",
+                                                        ),
+                                                        html.Td(
+                                                            HELP_TEXTS["total_points"]
+                                                        ),
+                                                    ]
+                                                ),
+                                            ]
+                                        )
+                                    ],
+                                    className="table table-sm ml-3",
+                                ),
+                            ],
+                            className="mb-4",
                         ),
-                        html.P(
-                            [html.Strong("Total Points: "), HELP_TEXTS["total_points"]]
+                        # CSV Upload section
+                        html.Div(
+                            [
+                                html.H5(
+                                    "CSV Upload Format",
+                                    className="border-bottom pb-2 mb-3",
+                                ),
+                                html.Div(
+                                    [
+                                        html.Pre(
+                                            """date;no_items;no_points
+2025-03-01;5;50
+2025-03-02;7;70""",
+                                            className="bg-light p-3 border rounded",
+                                        ),
+                                        html.P(
+                                            HELP_TEXTS["csv_format"], className="mt-2"
+                                        ),
+                                    ],
+                                    className="ml-3",
+                                ),
+                            ],
+                            className="mb-4",
                         ),
-                        html.H5("CSV Upload"),
-                        html.P(HELP_TEXTS["csv_format"]),
-                        html.H5("Statistics Table"),
-                        html.P(HELP_TEXTS["statistics_table"]),
-                        html.H5("Understanding the Forecast Graph"),
-                        html.P(HELP_TEXTS["forecast_explanation"]),
+                        # Statistics Table section
+                        html.Div(
+                            [
+                                html.H5(
+                                    "Working with the Statistics Table",
+                                    className="border-bottom pb-2 mb-3",
+                                ),
+                                html.Div(
+                                    [
+                                        html.P(HELP_TEXTS["statistics_table"]),
+                                        html.Div(
+                                            [
+                                                html.Div(
+                                                    "Date: YYYY-MM-DD format",
+                                                    className="mb-1",
+                                                ),
+                                                html.Div(
+                                                    "Items: Number of work items completed",
+                                                    className="mb-1",
+                                                ),
+                                                html.Div(
+                                                    "Points: Effort points completed",
+                                                    className="mb-1",
+                                                ),
+                                            ],
+                                            className="bg-light p-3 border rounded",
+                                        ),
+                                    ],
+                                    className="ml-3",
+                                ),
+                            ],
+                            className="mb-4",
+                        ),
+                        # Understanding the Forecast Graph
+                        html.Div(
+                            [
+                                html.H5(
+                                    "Understanding the Forecast Graph",
+                                    className="border-bottom pb-2 mb-3",
+                                ),
+                                html.Div(
+                                    [
+                                        html.P(
+                                            HELP_TEXTS["forecast_explanation"],
+                                            className="mb-3",
+                                        ),
+                                        html.Div(
+                                            [
+                                                html.Div(
+                                                    [
+                                                        html.Span(
+                                                            "■",
+                                                            className="mr-2",
+                                                            style={
+                                                                "color": "rgb(0, 99, 178)"
+                                                            },
+                                                        ),
+                                                        "Blue: Items tracking",
+                                                    ],
+                                                    className="col-6 mb-2",
+                                                ),
+                                                html.Div(
+                                                    [
+                                                        html.Span(
+                                                            "■",
+                                                            className="mr-2",
+                                                            style={
+                                                                "color": "rgb(255, 127, 14)"
+                                                            },
+                                                        ),
+                                                        "Orange: Points tracking",
+                                                    ],
+                                                    className="col-6 mb-2",
+                                                ),
+                                                html.Div(
+                                                    [
+                                                        html.Span(
+                                                            "■",
+                                                            className="mr-2",
+                                                            style={
+                                                                "color": "rgb(0, 128, 0)"
+                                                            },
+                                                        ),
+                                                        "Green: Optimistic forecast",
+                                                    ],
+                                                    className="col-6 mb-2",
+                                                ),
+                                                html.Div(
+                                                    [
+                                                        html.Span(
+                                                            "■",
+                                                            className="mr-2",
+                                                            style={
+                                                                "color": "rgb(128, 0, 128)"
+                                                            },
+                                                        ),
+                                                        "Purple: Pessimistic forecast",
+                                                    ],
+                                                    className="col-6 mb-2",
+                                                ),
+                                                html.Div(
+                                                    [
+                                                        html.Span(
+                                                            "■",
+                                                            className="mr-2",
+                                                            style={
+                                                                "color": "rgb(220, 20, 60)"
+                                                            },
+                                                        ),
+                                                        "Red line: Deadline",
+                                                    ],
+                                                    className="col-6 mb-2",
+                                                ),
+                                            ],
+                                            className="row bg-light p-3 border rounded",
+                                        ),
+                                    ],
+                                    className="ml-3",
+                                ),
+                            ]
+                        ),
                     ]
                 ),
                 dbc.ModalFooter(
@@ -598,36 +789,44 @@ app.layout = dbc.Container(
             id="help-modal",
             size="lg",
         ),
-        # Main content
+        # REORGANIZED LAYOUT: First the large Forecast Graph
         dbc.Row(
             [
-                # Left column - Controls and data input
                 dbc.Col(
                     [
-                        # PERT Analysis Section - Moved to top from bottom
                         dbc.Card(
                             [
                                 dbc.CardHeader(
                                     [
-                                        html.H4("PERT Analysis", className="d-inline"),
+                                        html.H4("Forecast Graph", className="d-inline"),
                                         create_info_tooltip(
-                                            "pert-info",
-                                            "PERT (Program Evaluation and Review Technique) estimates project completion time based on optimistic, pessimistic, and most likely scenarios.",
+                                            "forecast-graph",
+                                            HELP_TEXTS["forecast_explanation"],
                                         ),
                                     ]
                                 ),
                                 dbc.CardBody(
                                     [
-                                        html.Div(
-                                            id="pert-info-container",
-                                            className="text-center",
+                                        dcc.Graph(
+                                            id="forecast-graph",
+                                            style={"height": "650px"},
                                         ),
                                     ]
                                 ),
                             ],
-                            className="mb-4",
+                            className="mb-3 shadow-sm",
                         ),
-                        # Input Parameters
+                    ],
+                    width=12,
+                ),
+            ]
+        ),
+        # Second row: Input Parameters and PERT Analysis side by side
+        dbc.Row(
+            [
+                # Left column - Input Parameters
+                dbc.Col(
+                    [
                         dbc.Card(
                             [
                                 dbc.CardHeader(
@@ -665,12 +864,13 @@ app.layout = dbc.Container(
                                                             value=DEFAULT_PERT_FACTOR,
                                                             marks={
                                                                 i: str(i)
-                                                                for i in range(3, 16)
+                                                                for i in range(3, 16, 2)
                                                             },
                                                             step=1,
                                                         ),
                                                     ],
-                                                    width=6,
+                                                    width=12,
+                                                    lg=6,
                                                 ),
                                                 dbc.Col(
                                                     [
@@ -692,7 +892,8 @@ app.layout = dbc.Container(
                                                             className="form-control",
                                                         ),
                                                     ],
-                                                    width=6,
+                                                    width=12,
+                                                    lg=6,
                                                 ),
                                             ]
                                         ),
@@ -720,7 +921,8 @@ app.layout = dbc.Container(
                                                             step=1,
                                                         ),
                                                     ],
-                                                    width=6,
+                                                    width=12,
+                                                    lg=6,
                                                 ),
                                                 dbc.Col(
                                                     [
@@ -743,7 +945,8 @@ app.layout = dbc.Container(
                                                             step=1,
                                                         ),
                                                     ],
-                                                    width=6,
+                                                    width=12,
+                                                    lg=6,
                                                 ),
                                             ]
                                         ),
@@ -784,7 +987,7 @@ app.layout = dbc.Container(
                                                                 "borderStyle": "dashed",
                                                                 "borderRadius": "5px",
                                                                 "textAlign": "center",
-                                                                "margin": "10px",
+                                                                "margin": "10px 0",
                                                             },
                                                             multiple=False,
                                                         ),
@@ -796,41 +999,42 @@ app.layout = dbc.Container(
                                     ]
                                 ),
                             ],
-                            className="mb-4",
+                            className="mb-3 h-100 shadow-sm",
                         ),
                     ],
-                    width=4,
+                    width=7,
                 ),
-                # Right column - Graph display
+                # Right column - PERT Analysis
                 dbc.Col(
                     [
                         dbc.Card(
                             [
                                 dbc.CardHeader(
                                     [
-                                        html.H4("Forecast Graph", className="d-inline"),
+                                        html.H4("PERT Analysis", className="d-inline"),
                                         create_info_tooltip(
-                                            "forecast-graph",
-                                            HELP_TEXTS["forecast_explanation"],
+                                            "pert-info",
+                                            "PERT (Program Evaluation and Review Technique) estimates project completion time based on optimistic, pessimistic, and most likely scenarios.",
                                         ),
                                     ]
                                 ),
                                 dbc.CardBody(
                                     [
-                                        dcc.Graph(
-                                            id="forecast-graph",
-                                            style={"height": "600px"},
+                                        html.Div(
+                                            id="pert-info-container",
+                                            className="text-center",
                                         ),
                                     ]
                                 ),
-                            ]
+                            ],
+                            className="mb-3 h-100 shadow-sm",
                         ),
                     ],
-                    width=8,
+                    width=5,
                 ),
             ]
         ),
-        # Statistics Data Table moved to separate row below
+        # Statistics Data Table row
         dbc.Row(
             [
                 dbc.Col(
@@ -850,19 +1054,6 @@ app.layout = dbc.Container(
                                 ),
                                 dbc.CardBody(
                                     [
-                                        # Added a legend for the statistics table
-                                        html.Div(
-                                            [
-                                                html.P(
-                                                    [
-                                                        "This table shows work completed by date. ",
-                                                        "The 'Items' column is the count of work items (e.g., tasks) completed on each date. ",
-                                                        "The 'Points' column represents effort or complexity points completed.",
-                                                    ],
-                                                    className="text-muted mb-3",
-                                                ),
-                                            ]
-                                        ),
                                         dash_table.DataTable(
                                             id="statistics-table",
                                             columns=[
@@ -940,25 +1131,20 @@ app.layout = dbc.Container(
                                         ),
                                     ]
                                 ),
-                            ]
+                            ],
+                            className="shadow-sm",
                         ),
                     ],
                     width=12,
                 ),
-            ],
-            className="mt-4",
+            ]
         ),
-        # Footer with additional information
+        # Footer
         dbc.Row(
             [
                 dbc.Col(
                     [
                         html.Hr(),
-                        html.P(
-                            "Project Burndown Forecast Tool - Use the controls above to customize your forecast. "
-                            "For questions or support, contact your project administrator.",
-                            className="text-center text-muted",
-                        ),
                     ],
                     width=12,
                 ),
@@ -1147,7 +1333,6 @@ def update_graph_and_pert_info(
                                     ),
                                 ]
                             ),
-                            # Fixed: Correctly specify colSpan as a property, not in a dictionary
                             html.Tr(
                                 [
                                     html.Td(
@@ -1162,7 +1347,7 @@ def update_graph_and_pert_info(
                                             )
                                         ],
                                         colSpan=2,
-                                    )  # Correct way to specify colSpan
+                                    )
                                 ]
                             ),
                         ]
