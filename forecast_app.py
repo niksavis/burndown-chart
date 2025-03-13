@@ -26,6 +26,64 @@ SAMPLE_DATA = pd.DataFrame(
     }
 )
 
+# Help text definitions
+HELP_TEXTS = {
+    "app_intro": """
+        This application helps you forecast project completion based on historical progress. 
+        It uses the PERT methodology to estimate when your project will be completed based on 
+        optimistic, pessimistic, and most likely scenarios.
+    """,
+    "pert_factor": """
+        The PERT factor determines how many data points to use for optimistic and pessimistic estimates.
+        A higher value considers more historical data points for calculating scenarios.
+        Range: 3-15 (default: 3)
+    """,
+    "deadline": """
+        Set your project deadline here. The app will show if you're on track to meet it.
+        Format: YYYY-MM-DD
+    """,
+    "total_items": """
+        The total number of items (tasks, stories, etc.) to be completed in your project.
+        This represents work quantity.
+    """,
+    "total_points": """
+        The total number of points (effort, complexity) to be completed.
+        This represents work effort/complexity.
+    """,
+    "csv_format": """
+        Your CSV file should contain the following columns:
+        - date: Date of work completed (YYYY-MM-DD format)
+        - no_items: Number of items completed on that date
+        - no_points: Number of points completed on that date
+        
+        The file can use semicolon (;) or comma (,) as separators.
+        Example:
+        date;no_items;no_points
+        2025-03-01;5;50
+        2025-03-02;7;70
+    """,
+    "statistics_table": """
+        This table shows your historical data. You can:
+        - Edit any cell by clicking on it
+        - Delete rows with the 'x' button
+        - Add new rows with the 'Add Row' button
+        - Sort by clicking column headers
+        
+        Changes to this data will update the forecast immediately.
+    """,
+    "forecast_explanation": """
+        The graph shows your burndown forecast based on historical data:
+        - Solid lines: Historical progress
+        - Dashed lines: Most likely forecast
+        - Dotted lines: Optimistic and pessimistic forecasts
+        - Blue/Green lines: Items tracking
+        - Orange/Yellow lines: Points tracking
+        - Red vertical line: Your deadline
+        
+        Where the forecast lines cross the zero line indicates estimated completion dates.
+    """,
+}
+
 
 def read_and_clean_data(df):
     """Clean and prepare the dataframe"""
@@ -33,7 +91,6 @@ def read_and_clean_data(df):
     df["date"] = pd.to_datetime(df["date"], errors="coerce")
     df.dropna(subset=["date"], inplace=True)
     df.sort_values("date", inplace=True)
-    # Convert datetime to YYYY-MM-DD string format without time component
     df["date"] = df["date"].dt.strftime("%Y-%m-%d")
     df["no_items"] = pd.to_numeric(df["no_items"], errors="coerce")
     df["no_points"] = pd.to_numeric(df["no_points"], errors="coerce")
@@ -224,31 +281,33 @@ def create_forecast_plot(df, total_items, total_points, pert_factor, deadline_st
     # Create subplot with secondary y-axis
     fig = make_subplots(specs=[[{"secondary_y": True}]])
 
-    # Historical items - Make sure this is visible with thicker line
+    # UPDATED COLORS FOR BETTER VISIBILITY
+
+    # Historical items
     fig.add_trace(
         go.Scatter(
             x=df_calc["date"],
             y=df_calc["cum_items"],
             mode="lines+markers",
             name="Items History",
-            line=dict(color="blue", width=3),  # Increased width for visibility
-            marker=dict(size=8, color="blue"),  # Ensure markers are visible
+            line=dict(color="rgb(0, 99, 178)", width=3),  # Darker blue
+            marker=dict(size=8, color="rgb(0, 99, 178)"),
             hovertemplate="%{x}<br>Items: %{y}",
-            visible=True,  # Ensure visibility
+            visible=True,
         ),
         secondary_y=False,
     )
 
-    # Forecast (Items) - Make sure this is visible
+    # Forecast (Items)
     fig.add_trace(
         go.Scatter(
             x=items_x_avg,
             y=items_y_avg,
             mode="lines",
-            name="Items Forecast (M)",
-            line=dict(color="blue", dash="dash", width=2),  # Increased width
+            name="Items Forecast (Most Likely)",
+            line=dict(color="rgb(0, 99, 178)", dash="dash", width=2),
             hovertemplate="%{x}<br>Items: %{y}",
-            visible=True,  # Ensure visibility
+            visible=True,
         ),
         secondary_y=False,
     )
@@ -258,8 +317,8 @@ def create_forecast_plot(df, total_items, total_points, pert_factor, deadline_st
             x=items_x_opt,
             y=items_y_opt,
             mode="lines",
-            name="Items Forecast (O)",
-            line=dict(color="green", dash="dot", width=2),
+            name="Items Forecast (Optimistic)",
+            line=dict(color="rgb(0, 128, 0)", dash="dot", width=2),  # Green
             hovertemplate="%{x}<br>Items: %{y}",
         ),
         secondary_y=False,
@@ -270,8 +329,10 @@ def create_forecast_plot(df, total_items, total_points, pert_factor, deadline_st
             x=items_x_pes,
             y=items_y_pes,
             mode="lines",
-            name="Items Forecast (P)",
-            line=dict(color="red", dash="dot", width=2),
+            name="Items Forecast (Pessimistic)",
+            line=dict(
+                color="rgb(128, 0, 128)", dash="dot", width=2
+            ),  # Purple - changed from red
             hovertemplate="%{x}<br>Items: %{y}",
         ),
         secondary_y=False,
@@ -284,8 +345,8 @@ def create_forecast_plot(df, total_items, total_points, pert_factor, deadline_st
             y=df_calc["cum_points"],
             mode="lines+markers",
             name="Points History",
-            line=dict(color="orange", width=3),  # Make sure this is visible
-            marker=dict(size=8, color="orange"),
+            line=dict(color="rgb(255, 127, 14)", width=3),  # Orange
+            marker=dict(size=8, color="rgb(255, 127, 14)"),
             hovertemplate="%{x}<br>Points: %{y}",
         ),
         secondary_y=True,
@@ -297,8 +358,8 @@ def create_forecast_plot(df, total_items, total_points, pert_factor, deadline_st
             x=points_x_avg,
             y=points_y_avg,
             mode="lines",
-            name="Points Forecast (M)",
-            line=dict(color="orange", dash="dash", width=2),
+            name="Points Forecast (Most Likely)",
+            line=dict(color="rgb(255, 127, 14)", dash="dash", width=2),
             hovertemplate="%{x}<br>Points: %{y}",
         ),
         secondary_y=True,
@@ -309,8 +370,10 @@ def create_forecast_plot(df, total_items, total_points, pert_factor, deadline_st
             x=points_x_opt,
             y=points_y_opt,
             mode="lines",
-            name="Points Forecast (O)",
-            line=dict(color="orange", dash="dot", width=2),
+            name="Points Forecast (Optimistic)",
+            line=dict(
+                color="rgb(184, 134, 11)", dash="dot", width=2
+            ),  # Darker yellow/gold
             hovertemplate="%{x}<br>Points: %{y}",
         ),
         secondary_y=True,
@@ -321,8 +384,10 @@ def create_forecast_plot(df, total_items, total_points, pert_factor, deadline_st
             x=points_x_pes,
             y=points_y_pes,
             mode="lines",
-            name="Points Forecast (P)",
-            line=dict(color="red", dash="dot", width=2),
+            name="Points Forecast (Pessimistic)",
+            line=dict(
+                color="rgb(165, 42, 42)", dash="dot", width=2
+            ),  # Brown instead of red
             hovertemplate="%{x}<br>Points: %{y}",
         ),
         secondary_y=True,
@@ -338,7 +403,7 @@ def create_forecast_plot(df, total_items, total_points, pert_factor, deadline_st
         max(points_y_avg + points_y_opt + points_y_pes),
     )
 
-    # Add deadline line
+    # Add deadline line - Changed to a more visible bright red
     fig.add_shape(
         type="line",
         x0=deadline,
@@ -346,20 +411,24 @@ def create_forecast_plot(df, total_items, total_points, pert_factor, deadline_st
         y0=0,
         y1=1,
         yref="paper",
-        line=dict(color="Red", dash="dash", width=2),
+        line=dict(
+            color="rgb(220, 20, 60)", dash="dash", width=3
+        ),  # Crimson red, thicker
     )
 
     # Deadline annotation at the top of the line
     fig.add_annotation(
         x=deadline,
-        y=1,  # Position at the top
+        y=1,
         yref="paper",
         text="Deadline",
         showarrow=True,
         arrowhead=1,
         ax=0,
-        ay=-40,  # Negative value to point downward
-        font=dict(color="red", size=12),
+        ay=-40,
+        font=dict(
+            color="rgb(220, 20, 60)", size=14, family="Arial, sans-serif"
+        ),  # Matching red
     )
 
     # KEY SOLUTION: Align starting points while keeping raw y-axis values
@@ -381,23 +450,24 @@ def create_forecast_plot(df, total_items, total_points, pert_factor, deadline_st
             "x": 0.5,
             "xanchor": "center",
             "yanchor": "top",
+            "font": {"size": 24, "family": "Arial, sans-serif"},
         },
         xaxis=dict(
-            title="Date",
+            title={"text": "Date", "font": {"size": 16}},
             tickmode="auto",
             nticks=20,
             gridcolor="lightgray",
             automargin=True,
         ),
         yaxis=dict(
-            title="Remaining Items",
+            title={"text": "Remaining Items", "font": {"size": 16}},
             range=items_range,
             gridcolor="lightgray",
             zeroline=True,
             zerolinecolor="black",
         ),
         yaxis2=dict(
-            title="Remaining Points",
+            title={"text": "Remaining Points", "font": {"size": 16}},
             overlaying="y",
             side="right",
             range=points_range,  # Use calculated range to align
@@ -409,24 +479,78 @@ def create_forecast_plot(df, total_items, total_points, pert_factor, deadline_st
         legend=dict(
             orientation="h",
             yanchor="bottom",
-            y=1.12,  # Moved up to create more space
+            y=1.12,
             xanchor="center",
             x=0.5,
+            font={"size": 12},
+            bgcolor="rgba(255, 255, 255, 0.8)",  # Semi-transparent background
+            bordercolor="lightgray",
+            borderwidth=1,
         ),
         hovermode="closest",
-        margin=dict(r=70, l=70, t=120, b=70),  # Increased top margin
+        margin=dict(r=70, l=70, t=120, b=70),
         plot_bgcolor="white",
+        paper_bgcolor="white",
+        font={"family": "Arial, sans-serif"},
     )
 
     return fig, pert_time_items, pert_time_points
 
 
+# Create info icon with tooltip
+def create_info_tooltip(id_suffix, help_text):
+    return html.Div(
+        [
+            html.I(
+                className="fas fa-info-circle text-info ml-2",
+                id=f"info-tooltip-{id_suffix}",
+                style={"cursor": "pointer", "margin-left": "5px"},
+            ),
+            dbc.Tooltip(
+                help_text,
+                target=f"info-tooltip-{id_suffix}",
+                placement="right",
+                style={"max-width": "300px"},
+            ),
+        ],
+        style={"display": "inline-block"},
+    )
+
+
 # Create Dash app
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+app = dash.Dash(
+    __name__,
+    external_stylesheets=[
+        dbc.themes.BOOTSTRAP,
+        "https://use.fontawesome.com/releases/v5.15.4/css/all.css",  # Font Awesome for icons
+    ],
+)
 
 # Define layout
 app.layout = dbc.Container(
     [
+        # Sticky Help Button in top-right corner
+        html.Div(
+            [
+                dbc.Button(
+                    [
+                        html.I(className="fas fa-question-circle mr-2"),
+                        "How to Use This App",
+                    ],
+                    id="help-button",
+                    color="info",
+                    size="sm",
+                    className="shadow",
+                ),
+            ],
+            style={
+                "position": "fixed",
+                "top": "20px",
+                "right": "20px",
+                "zIndex": "1000",  # Ensure it stays on top of other elements
+            },
+        ),
+        # App header (without the help button)
         dbc.Row(
             [
                 dbc.Col(
@@ -434,26 +558,106 @@ app.layout = dbc.Container(
                         html.H1(
                             "Project Burndown Forecast", className="text-center my-4"
                         ),
+                        html.P(HELP_TEXTS["app_intro"], className="text-center lead"),
                     ],
                     width=12,
                 ),
             ]
         ),
+        # Help modal
+        dbc.Modal(
+            [
+                dbc.ModalHeader("How to Use the Project Burndown Forecast App"),
+                dbc.ModalBody(
+                    [
+                        html.H5("Overview"),
+                        html.P(HELP_TEXTS["app_intro"]),
+                        html.H5("Input Parameters"),
+                        html.P(
+                            [html.Strong("PERT Factor: "), HELP_TEXTS["pert_factor"]]
+                        ),
+                        html.P([html.Strong("Deadline: "), HELP_TEXTS["deadline"]]),
+                        html.P(
+                            [html.Strong("Total Items: "), HELP_TEXTS["total_items"]]
+                        ),
+                        html.P(
+                            [html.Strong("Total Points: "), HELP_TEXTS["total_points"]]
+                        ),
+                        html.H5("CSV Upload"),
+                        html.P(HELP_TEXTS["csv_format"]),
+                        html.H5("Statistics Table"),
+                        html.P(HELP_TEXTS["statistics_table"]),
+                        html.H5("Understanding the Forecast Graph"),
+                        html.P(HELP_TEXTS["forecast_explanation"]),
+                    ]
+                ),
+                dbc.ModalFooter(
+                    dbc.Button("Close", id="close-help", className="ml-auto")
+                ),
+            ],
+            id="help-modal",
+            size="lg",
+        ),
+        # Main content
         dbc.Row(
             [
+                # Left column - Controls and data input
                 dbc.Col(
                     [
+                        # PERT Analysis Section - Moved to top from bottom
                         dbc.Card(
                             [
-                                dbc.CardHeader("Input Parameters"),
+                                dbc.CardHeader(
+                                    [
+                                        html.H4("PERT Analysis", className="d-inline"),
+                                        create_info_tooltip(
+                                            "pert-info",
+                                            "PERT (Program Evaluation and Review Technique) estimates project completion time based on optimistic, pessimistic, and most likely scenarios.",
+                                        ),
+                                    ]
+                                ),
+                                dbc.CardBody(
+                                    [
+                                        html.Div(
+                                            id="pert-info-container",
+                                            className="text-center",
+                                        ),
+                                    ]
+                                ),
+                            ],
+                            className="mb-4",
+                        ),
+                        # Input Parameters
+                        dbc.Card(
+                            [
+                                dbc.CardHeader(
+                                    [
+                                        html.H4(
+                                            "Input Parameters", className="d-inline"
+                                        ),
+                                        create_info_tooltip(
+                                            "parameters",
+                                            "Change these values to adjust your project forecast.",
+                                        ),
+                                    ]
+                                ),
                                 dbc.CardBody(
                                     [
                                         dbc.Row(
                                             [
                                                 dbc.Col(
                                                     [
-                                                        html.Label("PERT Factor:"),
-                                                        # Updated PERT factor slider to range from 3 to 15
+                                                        html.Label(
+                                                            [
+                                                                "PERT Factor:",
+                                                                create_info_tooltip(
+                                                                    "pert-factor",
+                                                                    HELP_TEXTS[
+                                                                        "pert_factor"
+                                                                    ],
+                                                                ),
+                                                            ]
+                                                        ),
                                                         dcc.Slider(
                                                             id="pert-factor-slider",
                                                             min=3,
@@ -470,11 +674,22 @@ app.layout = dbc.Container(
                                                 ),
                                                 dbc.Col(
                                                     [
-                                                        html.Label("Deadline:"),
+                                                        html.Label(
+                                                            [
+                                                                "Deadline:",
+                                                                create_info_tooltip(
+                                                                    "deadline",
+                                                                    HELP_TEXTS[
+                                                                        "deadline"
+                                                                    ],
+                                                                ),
+                                                            ]
+                                                        ),
                                                         dcc.DatePickerSingle(
                                                             id="deadline-picker",
                                                             date=DEFAULT_DEADLINE,
                                                             display_format="YYYY-MM-DD",
+                                                            className="form-control",
                                                         ),
                                                     ],
                                                     width=6,
@@ -486,7 +701,17 @@ app.layout = dbc.Container(
                                             [
                                                 dbc.Col(
                                                     [
-                                                        html.Label("Total Items:"),
+                                                        html.Label(
+                                                            [
+                                                                "Total Items:",
+                                                                create_info_tooltip(
+                                                                    "total-items",
+                                                                    HELP_TEXTS[
+                                                                        "total_items"
+                                                                    ],
+                                                                ),
+                                                            ]
+                                                        ),
                                                         dbc.Input(
                                                             id="total-items-input",
                                                             type="number",
@@ -499,7 +724,17 @@ app.layout = dbc.Container(
                                                 ),
                                                 dbc.Col(
                                                     [
-                                                        html.Label("Total Points:"),
+                                                        html.Label(
+                                                            [
+                                                                "Total Points:",
+                                                                create_info_tooltip(
+                                                                    "total-points",
+                                                                    HELP_TEXTS[
+                                                                        "total_points"
+                                                                    ],
+                                                                ),
+                                                            ]
+                                                        ),
                                                         dbc.Input(
                                                             id="total-points-input",
                                                             type="number",
@@ -518,12 +753,23 @@ app.layout = dbc.Container(
                                                 dbc.Col(
                                                     [
                                                         html.Label(
-                                                            "Upload Statistics CSV:"
+                                                            [
+                                                                "Upload Statistics CSV:",
+                                                                create_info_tooltip(
+                                                                    "csv-upload",
+                                                                    HELP_TEXTS[
+                                                                        "csv_format"
+                                                                    ],
+                                                                ),
+                                                            ]
                                                         ),
                                                         dcc.Upload(
                                                             id="upload-data",
                                                             children=html.Div(
                                                                 [
+                                                                    html.I(
+                                                                        className="fas fa-file-upload mr-2"
+                                                                    ),
                                                                     "Drag and Drop or ",
                                                                     html.A(
                                                                         "Select CSV File"
@@ -552,29 +798,23 @@ app.layout = dbc.Container(
                             ],
                             className="mb-4",
                         ),
-                        # PERT Information Card
-                        dbc.Card(
-                            [
-                                dbc.CardHeader("PERT Analysis"),
-                                dbc.CardBody(
-                                    [
-                                        html.Div(
-                                            id="pert-info-container",
-                                            className="text-center",
-                                        ),
-                                    ]
-                                ),
-                            ],
-                            className="mb-4",
-                        ),
                     ],
                     width=4,
                 ),
+                # Right column - Graph display
                 dbc.Col(
                     [
                         dbc.Card(
                             [
-                                dbc.CardHeader("Forecast Graph"),
+                                dbc.CardHeader(
+                                    [
+                                        html.H4("Forecast Graph", className="d-inline"),
+                                        create_info_tooltip(
+                                            "forecast-graph",
+                                            HELP_TEXTS["forecast_explanation"],
+                                        ),
+                                    ]
+                                ),
                                 dbc.CardBody(
                                     [
                                         dcc.Graph(
@@ -590,31 +830,54 @@ app.layout = dbc.Container(
                 ),
             ]
         ),
+        # Statistics Data Table moved to separate row below
         dbc.Row(
             [
                 dbc.Col(
                     [
                         dbc.Card(
                             [
-                                dbc.CardHeader("Statistics Data"),
+                                dbc.CardHeader(
+                                    [
+                                        html.H4(
+                                            "Statistics Data", className="d-inline"
+                                        ),
+                                        create_info_tooltip(
+                                            "statistics-data",
+                                            HELP_TEXTS["statistics_table"],
+                                        ),
+                                    ]
+                                ),
                                 dbc.CardBody(
                                     [
+                                        # Added a legend for the statistics table
+                                        html.Div(
+                                            [
+                                                html.P(
+                                                    [
+                                                        "This table shows work completed by date. ",
+                                                        "The 'Items' column is the count of work items (e.g., tasks) completed on each date. ",
+                                                        "The 'Points' column represents effort or complexity points completed.",
+                                                    ],
+                                                    className="text-muted mb-3",
+                                                ),
+                                            ]
+                                        ),
                                         dash_table.DataTable(
                                             id="statistics-table",
                                             columns=[
-                                                # Changed to text type to display dates without time component
                                                 {
-                                                    "name": "Date",
+                                                    "name": "Date (YYYY-MM-DD)",
                                                     "id": "date",
                                                     "type": "text",
                                                 },
                                                 {
-                                                    "name": "Items",
+                                                    "name": "Items Completed",
                                                     "id": "no_items",
                                                     "type": "numeric",
                                                 },
                                                 {
-                                                    "name": "Points",
+                                                    "name": "Points Completed",
                                                     "id": "no_points",
                                                     "type": "numeric",
                                                 },
@@ -627,21 +890,74 @@ app.layout = dbc.Container(
                                             style_cell={
                                                 "textAlign": "center",
                                                 "minWidth": "100px",
+                                                "padding": "10px",
                                             },
                                             style_header={
-                                                "backgroundColor": "lightgrey",
+                                                "backgroundColor": "#f8f9fa",
                                                 "fontWeight": "bold",
+                                                "border": "1px solid #ddd",
                                             },
+                                            style_data={
+                                                "border": "1px solid #ddd",
+                                            },
+                                            style_data_conditional=[
+                                                {
+                                                    "if": {"row_index": "odd"},
+                                                    "backgroundColor": "#f9f9f9",
+                                                }
+                                            ],
+                                            tooltip_data=[
+                                                {
+                                                    column: {
+                                                        "value": "Click to edit",
+                                                        "type": "text",
+                                                    }
+                                                    for column in [
+                                                        "date",
+                                                        "no_items",
+                                                        "no_points",
+                                                    ]
+                                                }
+                                                for _ in range(len(SAMPLE_DATA))
+                                            ],
+                                            tooltip_duration=None,
                                         ),
-                                        html.Button(
-                                            "Add Row",
-                                            id="add-row-button",
-                                            n_clicks=0,
-                                            className="btn btn-primary mt-3",
+                                        html.Div(
+                                            [
+                                                dbc.Button(
+                                                    [
+                                                        html.I(
+                                                            className="fas fa-plus mr-2"
+                                                        ),
+                                                        "Add Row",
+                                                    ],
+                                                    id="add-row-button",
+                                                    color="primary",
+                                                    className="mt-3",
+                                                ),
+                                            ],
+                                            style={"textAlign": "center"},
                                         ),
                                     ]
                                 ),
                             ]
+                        ),
+                    ],
+                    width=12,
+                ),
+            ],
+            className="mt-4",
+        ),
+        # Footer with additional information
+        dbc.Row(
+            [
+                dbc.Col(
+                    [
+                        html.Hr(),
+                        html.P(
+                            "Project Burndown Forecast Tool - Use the controls above to customize your forecast. "
+                            "For questions or support, contact your project administrator.",
+                            className="text-center text-muted",
                         ),
                     ],
                     width=12,
@@ -657,10 +973,8 @@ app.layout = dbc.Container(
 # Define callbacks
 @app.callback(
     Output("statistics-table", "data"),
-    Input("add-row-button", "n_clicks"),
-    Input("upload-data", "contents"),
-    State("statistics-table", "data"),
-    State("upload-data", "filename"),
+    [Input("add-row-button", "n_clicks"), Input("upload-data", "contents")],
+    [State("statistics-table", "data"), State("upload-data", "filename")],
 )
 def update_table(n_clicks, contents, rows, filename):
     ctx = dash.callback_context
@@ -678,14 +992,15 @@ def update_table(n_clicks, contents, rows, filename):
         content_type, content_string = contents.split(",")
         decoded = base64.b64decode(content_string)
         try:
-            if "csv" in filename:
+            if "csv" in filename.lower():
+                # Try semicolon separator first
                 df = pd.read_csv(io.StringIO(decoded.decode("utf-8")), sep=";")
                 if (
                     "date" not in df.columns
                     or "no_items" not in df.columns
                     or "no_points" not in df.columns
                 ):
-                    # Try with automatic column detection
+                    # Try with comma separator
                     df = pd.read_csv(io.StringIO(decoded.decode("utf-8")))
 
                 # Clean data and ensure date is in YYYY-MM-DD format
@@ -734,7 +1049,7 @@ def update_graph_and_pert_info(
     items_color = "green" if pert_time_items <= days_to_deadline else "red"
     points_color = "green" if pert_time_points <= days_to_deadline else "red"
 
-    # Create PERT info HTML with formula in the table
+    # Create PERT info HTML with formula in the table and improved styling
     pert_info = html.Div(
         [
             html.Table(
@@ -745,7 +1060,9 @@ def update_graph_and_pert_info(
                             html.Tr(
                                 [
                                     html.Td(
-                                        "PERT Formula:", className="text-right pr-2"
+                                        "PERT Formula:",
+                                        className="text-right pr-2",
+                                        style={"font-weight": "bold"},
                                     ),
                                     html.Td(
                                         [
@@ -763,9 +1080,19 @@ def update_graph_and_pert_info(
                                     html.Td(
                                         "Estimated Days (Items):",
                                         className="text-right pr-2",
+                                        style={"font-weight": "bold"},
                                     ),
                                     html.Td(
-                                        f"{pert_time_items:.1f}",
+                                        [
+                                            f"{pert_time_items:.1f}",
+                                            html.Span(
+                                                " days",
+                                                style={
+                                                    "font-size": "0.9em",
+                                                    "color": "#666",
+                                                },
+                                            ),
+                                        ],
                                         style={
                                             "color": items_color,
                                             "font-weight": "bold",
@@ -778,9 +1105,19 @@ def update_graph_and_pert_info(
                                     html.Td(
                                         "Estimated Days (Points):",
                                         className="text-right pr-2",
+                                        style={"font-weight": "bold"},
                                     ),
                                     html.Td(
-                                        f"{pert_time_points:.1f}",
+                                        [
+                                            f"{pert_time_points:.1f}",
+                                            html.Span(
+                                                " days",
+                                                style={
+                                                    "font-size": "0.9em",
+                                                    "color": "#666",
+                                                },
+                                            ),
+                                        ],
                                         style={
                                             "color": points_color,
                                             "font-weight": "bold",
@@ -791,24 +1128,71 @@ def update_graph_and_pert_info(
                             html.Tr(
                                 [
                                     html.Td(
-                                        "Deadline in:", className="text-right pr-2"
-                                    ),
-                                    html.Td(
-                                        f"{days_to_deadline} days",
+                                        "Deadline in:",
+                                        className="text-right pr-2",
                                         style={"font-weight": "bold"},
                                     ),
+                                    html.Td(
+                                        [
+                                            f"{days_to_deadline}",
+                                            html.Span(
+                                                " days",
+                                                style={
+                                                    "font-size": "0.9em",
+                                                    "color": "#666",
+                                                },
+                                            ),
+                                        ],
+                                        style={"font-weight": "bold"},
+                                    ),
+                                ]
+                            ),
+                            # Fixed: Correctly specify colSpan as a property, not in a dictionary
+                            html.Tr(
+                                [
+                                    html.Td(
+                                        [
+                                            html.P(
+                                                [
+                                                    "Green means on track to meet deadline, red means at risk. ",
+                                                    "The PERT formula uses optimistic (O), most likely (M), and pessimistic (P) estimates.",
+                                                ],
+                                                className="mt-2 text-muted small",
+                                                style={"text-align": "center"},
+                                            )
+                                        ],
+                                        colSpan=2,
+                                    )  # Correct way to specify colSpan
                                 ]
                             ),
                         ]
                     )
                 ],
                 className="table table-borderless",
-                style={"margin": "0 auto", "width": "auto"},
+                style={
+                    "margin": "0 auto",
+                    "width": "auto",
+                    "border": "1px solid #eee",
+                    "borderRadius": "5px",
+                    "padding": "10px",
+                },
             )
         ]
     )
 
     return fig, pert_info
+
+
+# Help modal callbacks
+@app.callback(
+    Output("help-modal", "is_open"),
+    [Input("help-button", "n_clicks"), Input("close-help", "n_clicks")],
+    [State("help-modal", "is_open")],
+)
+def toggle_help_modal(n1, n2, is_open):
+    if n1 or n2:
+        return not is_open
+    return is_open
 
 
 # Run the app
