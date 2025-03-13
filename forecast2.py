@@ -173,8 +173,8 @@ def plot_forecast(
             x=df["date"],
             y=df["cum_items"],
             mode="lines+markers",
-            name="Throughput (Items)",
-            hovertemplate="%{x}<br>Throughput (Items): %{y}<extra></extra>",
+            name="Throughput",
+            hovertemplate="%{x}<br>Items: %{y}<extra></extra>",
         ),
         secondary_y=False,
     )
@@ -185,7 +185,7 @@ def plot_forecast(
             y=items_y_avg,
             mode="lines",
             name="Throughput Forecast (M)",
-            hovertemplate="%{x}<br>Throughput Forecast (M): %{y}<extra></extra>",
+            hovertemplate="%{x}<br>Items: %{y}<extra></extra>",
         ),
         secondary_y=False,
     )
@@ -195,7 +195,7 @@ def plot_forecast(
             y=items_y_opt,
             mode="lines",
             name="Throughput Forecast (O)",
-            hovertemplate="%{x}<br>Throughput Forecast (O): %{y}<extra></extra>",
+            hovertemplate="%{x}<br>Items: %{y}<extra></extra>",
         ),
         secondary_y=False,
     )
@@ -205,7 +205,7 @@ def plot_forecast(
             y=items_y_pes,
             mode="lines",
             name="Throughput Forecast (P)",
-            hovertemplate="%{x}<br>Throughput Forecast (P): %{y}<extra></extra>",
+            hovertemplate="%{x}<br>Items: %{y}<extra></extra>",
         ),
         secondary_y=False,
     )
@@ -216,8 +216,8 @@ def plot_forecast(
             x=df["date"],
             y=df["cum_points"],
             mode="lines+markers",
-            name="Velocity (Points)",
-            hovertemplate="%{x}<br>Velocity (Points): %{y}<extra></extra>",
+            name="Velocity",
+            hovertemplate="%{x}<br>Points: %{y}<extra></extra>",
         ),
         secondary_y=True,
     )
@@ -228,7 +228,7 @@ def plot_forecast(
             y=points_y_avg,
             mode="lines",
             name="Velocity Forecast (M)",
-            hovertemplate="%{x}<br>Velocity Forecast (M): %{y}<extra></extra>",
+            hovertemplate="%{x}<br>Points: %{y}<extra></extra>",
         ),
         secondary_y=True,
     )
@@ -238,7 +238,7 @@ def plot_forecast(
             y=points_y_opt,
             mode="lines",
             name="Velocity Forecast (O)",
-            hovertemplate="%{x}<br>Velocity Forecast (O): %{y}<extra></extra>",
+            hovertemplate="%{x}<br>Points: %{y}<extra></extra>",
         ),
         secondary_y=True,
     )
@@ -248,7 +248,7 @@ def plot_forecast(
             y=points_y_pes,
             mode="lines",
             name="Velocity Forecast (P)",
-            hovertemplate="%{x}<br>Velocity Forecast (P): %{y}<extra></extra>",
+            hovertemplate="%{x}<br>Points: %{y}<extra></extra>",
         ),
         secondary_y=True,
     )
