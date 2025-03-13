@@ -436,7 +436,7 @@ app.layout = dbc.Container(
                         ),
                     ],
                     width=12,
-                )
+                ),
             ]
         ),
         dbc.Row(
@@ -561,7 +561,7 @@ app.layout = dbc.Container(
                                         html.Div(
                                             id="pert-info-container",
                                             className="text-center",
-                                        )
+                                        ),
                                     ]
                                 ),
                             ],
