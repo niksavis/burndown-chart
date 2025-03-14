@@ -11,6 +11,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import dash
 from dash import dcc, html, dash_table, Input, Output, State
+from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
 import io
 import base64
@@ -136,10 +137,20 @@ def save_settings(pert_factor, deadline, total_items, total_points):
         "total_points": total_points,
     }
 
-    with open(SETTINGS_FILE, "w") as f:
-        json.dump(settings, f)
+    try:
+        # Write to a temporary file first
+        temp_file = f"{SETTINGS_FILE}.tmp"
+        with open(temp_file, "w") as f:
+            json.dump(settings, f)
 
-    logger.info(f"Settings saved to {SETTINGS_FILE}")
+        # Rename to final file (atomic operation)
+        if os.path.exists(SETTINGS_FILE):
+            os.remove(SETTINGS_FILE)
+        os.rename(temp_file, SETTINGS_FILE)
+
+        logger.info(f"Settings saved to {SETTINGS_FILE}")
+    except Exception as e:
+        logger.error(f"Error saving settings: {e}")
 
 
 def load_settings():
@@ -177,9 +188,21 @@ def save_statistics(data):
     Args:
         data: List of dictionaries containing statistics data
     """
-    df = pd.DataFrame(data)
-    df.to_csv(STATISTICS_FILE, index=False)
-    logger.info(f"Statistics saved to {STATISTICS_FILE}")
+    try:
+        df = pd.DataFrame(data)
+
+        # Write to a temporary file first
+        temp_file = f"{STATISTICS_FILE}.tmp"
+        df.to_csv(temp_file, index=False)
+
+        # Rename to final file (atomic operation)
+        if os.path.exists(STATISTICS_FILE):
+            os.remove(STATISTICS_FILE)
+        os.rename(temp_file, STATISTICS_FILE)
+
+        logger.info(f"Statistics saved to {STATISTICS_FILE}")
+    except Exception as e:
+        logger.error(f"Error saving statistics: {e}")
 
 
 def load_statistics():
@@ -807,7 +830,7 @@ def create_info_tooltip(id_suffix, help_text):
                 help_text,
                 target=f"info-tooltip-{id_suffix}",
                 placement="right",
-                style={"maxWidth": "300px"},  # Fixed camelCase for React styling
+                style={"maxWidth": "300px"},
             ),
         ],
         style={"display": "inline-block"},
@@ -1233,179 +1256,6 @@ def create_forecast_graph_card():
     )
 
 
-def create_input_parameters_card():
-    """
-    Create the input parameters card component.
-
-    Returns:
-        Dash Card component with input controls
-    """
-    # Load saved settings
-    saved_settings = load_settings()
-
-    return dbc.Card(
-        [
-            dbc.CardHeader(
-                [
-                    html.H4("Input Parameters", className="d-inline"),
-                    create_info_tooltip(
-                        "parameters",
-                        "Change these values to adjust your project forecast.",
-                    ),
-                ]
-            ),
-            dbc.CardBody(
-                [
-                    dbc.Row(
-                        [
-                            dbc.Col(
-                                [
-                                    html.Label(
-                                        [
-                                            "PERT Factor:",
-                                            create_info_tooltip(
-                                                "pert-factor", HELP_TEXTS["pert_factor"]
-                                            ),
-                                        ]
-                                    ),
-                                    dcc.Slider(
-                                        id="pert-factor-slider",
-                                        min=3,
-                                        max=15,
-                                        value=saved_settings[
-                                            "pert_factor"
-                                        ],  # Use saved value
-                                        marks={i: str(i) for i in range(3, 16, 2)},
-                                        step=1,
-                                    ),
-                                ],
-                                width=12,
-                                lg=6,
-                            ),
-                            dbc.Col(
-                                [
-                                    html.Label(
-                                        [
-                                            "Deadline:",
-                                            create_info_tooltip(
-                                                "deadline", HELP_TEXTS["deadline"]
-                                            ),
-                                        ]
-                                    ),
-                                    dcc.DatePickerSingle(
-                                        id="deadline-picker",
-                                        date=saved_settings[
-                                            "deadline"
-                                        ],  # Use saved value
-                                        display_format="YYYY-MM-DD",
-                                        className="form-control",
-                                    ),
-                                ],
-                                width=12,
-                                lg=6,
-                            ),
-                        ]
-                    ),
-                    html.Br(),
-                    dbc.Row(
-                        [
-                            dbc.Col(
-                                [
-                                    html.Label(
-                                        [
-                                            "Total Items:",
-                                            create_info_tooltip(
-                                                "total-items", HELP_TEXTS["total_items"]
-                                            ),
-                                        ]
-                                    ),
-                                    dbc.Input(
-                                        id="total-items-input",
-                                        type="number",
-                                        value=saved_settings[
-                                            "total_items"
-                                        ],  # Use saved value
-                                        min=0,
-                                        step=1,
-                                    ),
-                                ],
-                                width=12,
-                                lg=6,
-                            ),
-                            dbc.Col(
-                                [
-                                    html.Label(
-                                        [
-                                            "Total Points:",
-                                            create_info_tooltip(
-                                                "total-points",
-                                                HELP_TEXTS["total_points"],
-                                            ),
-                                        ]
-                                    ),
-                                    dbc.Input(
-                                        id="total-points-input",
-                                        type="number",
-                                        value=saved_settings[
-                                            "total_points"
-                                        ],  # Use saved value
-                                        min=0,
-                                        step=1,
-                                    ),
-                                ],
-                                width=12,
-                                lg=6,
-                            ),
-                        ]
-                    ),
-                    html.Br(),
-                    dbc.Row(
-                        [
-                            dbc.Col(
-                                [
-                                    html.Label(
-                                        [
-                                            "Upload Statistics CSV:",
-                                            create_info_tooltip(
-                                                "csv-upload", HELP_TEXTS["csv_format"]
-                                            ),
-                                        ]
-                                    ),
-                                    dcc.Upload(
-                                        id="upload-data",
-                                        children=html.Div(
-                                            [
-                                                html.I(
-                                                    className="fas fa-file-upload mr-2"
-                                                ),
-                                                "Drag and Drop or ",
-                                                html.A("Select CSV File"),
-                                            ]
-                                        ),
-                                        style={
-                                            "width": "100%",
-                                            "height": "60px",
-                                            "lineHeight": "60px",
-                                            "borderWidth": "1px",
-                                            "borderStyle": "dashed",
-                                            "borderRadius": "5px",
-                                            "textAlign": "center",
-                                            "margin": "10px 0",
-                                        },
-                                        multiple=False,
-                                    ),
-                                ],
-                                width=12,
-                            ),
-                        ]
-                    ),
-                ]
-            ),
-        ],
-        className="mb-3 h-100 shadow-sm",
-    )
-
-
 def create_pert_analysis_card():
     """
     Create the PERT analysis card component.
@@ -1434,89 +1284,637 @@ def create_pert_analysis_card():
     )
 
 
-def create_statistics_table_card():
-    """
-    Create the statistics table card component.
+# ===== APPLICATION SETUP =====
 
-    Returns:
-        Dash Card component with data table
-    """
-    # Load saved statistics
-    saved_statistics = load_statistics()
+# Initialize the Dash app
+app = dash.Dash(
+    __name__,
+    external_stylesheets=[
+        dbc.themes.BOOTSTRAP,
+        "https://use.fontawesome.com/releases/v5.15.4/css/all.css",  # Font Awesome for icons
+    ],
+)
 
-    return dbc.Card(
+
+# Layout function that gets fresh data on each load
+def serve_layout():
+    """
+    Serve a fresh layout with the latest data from disk.
+    This is crucial for proper browser refresh behavior.
+    """
+    # Load fresh data from disk each time the layout is served
+    current_settings = load_settings()
+    current_statistics = load_statistics()
+
+    return dbc.Container(
         [
-            dbc.CardHeader(
+            # Page initialization complete flag (hidden)
+            dcc.Store(id="app-init-complete", data=False),
+            # Persistent storage for the current data
+            dcc.Store(id="current-settings", data=current_settings),
+            dcc.Store(id="current-statistics", data=current_statistics),
+            # Sticky Help Button in top-right corner
+            html.Div(
                 [
-                    html.H4("Statistics Data", className="d-inline"),
-                    create_info_tooltip(
-                        "statistics-data", HELP_TEXTS["statistics_table"]
-                    ),
-                ]
-            ),
-            dbc.CardBody(
-                [
-                    dash_table.DataTable(
-                        id="statistics-table",
-                        columns=[
-                            {"name": "Date (YYYY-MM-DD)", "id": "date", "type": "text"},
-                            {
-                                "name": "Items Completed",
-                                "id": "no_items",
-                                "type": "numeric",
-                            },
-                            {
-                                "name": "Points Completed",
-                                "id": "no_points",
-                                "type": "numeric",
-                            },
-                        ],
-                        data=saved_statistics,  # Use saved statistics
-                        editable=True,
-                        row_deletable=True,
-                        sort_action="native",
-                        style_table={"overflowX": "auto"},
-                        style_cell={
-                            "textAlign": "center",
-                            "minWidth": "100px",
-                            "padding": "10px",
-                        },
-                        style_header={
-                            "backgroundColor": "#f8f9fa",
-                            "fontWeight": "bold",
-                            "border": "1px solid #ddd",
-                        },
-                        style_data={
-                            "border": "1px solid #ddd",
-                        },
-                        style_data_conditional=[
-                            {"if": {"row_index": "odd"}, "backgroundColor": "#f9f9f9"}
-                        ],
-                        tooltip_data=[
-                            {
-                                column: {"value": "Click to edit", "type": "text"}
-                                for column in ["date", "no_items", "no_points"]
-                            }
-                            for _ in range(len(saved_statistics))
-                        ],
-                        tooltip_duration=None,
-                    ),
-                    html.Div(
+                    dbc.Button(
                         [
-                            dbc.Button(
-                                [html.I(className="fas fa-plus mr-2"), "Add Row"],
-                                id="add-row-button",
-                                color="primary",
-                                className="mt-3",
+                            html.I(className="fas fa-question-circle mr-2"),
+                            "How to Use This App",
+                        ],
+                        id="help-button",
+                        color="info",
+                        size="sm",
+                        className="shadow",
+                    ),
+                ],
+                style={
+                    "position": "fixed",
+                    "top": "20px",
+                    "right": "20px",
+                    "zIndex": "1000",
+                },
+            ),
+            # App header
+            dbc.Row(
+                [
+                    dbc.Col(
+                        [
+                            html.H1(
+                                "Project Burndown Forecast",
+                                className="text-center my-4",
                             ),
                         ],
-                        style={"textAlign": "center"},
+                        width=12,
                     ),
                 ]
             ),
+            # Help modal
+            create_help_modal(),
+            # First row: Forecast Graph
+            dbc.Row(
+                [
+                    dbc.Col(
+                        [
+                            create_forecast_graph_card(),
+                        ],
+                        width=12,
+                    ),
+                ]
+            ),
+            # Second row: Input Parameters and PERT Analysis
+            dbc.Row(
+                [
+                    # Left: Input Parameters
+                    dbc.Col(
+                        [
+                            dbc.Card(
+                                [
+                                    dbc.CardHeader(
+                                        [
+                                            html.H4(
+                                                "Input Parameters", className="d-inline"
+                                            ),
+                                            create_info_tooltip(
+                                                "parameters",
+                                                "Change these values to adjust your project forecast.",
+                                            ),
+                                        ]
+                                    ),
+                                    dbc.CardBody(
+                                        [
+                                            dbc.Row(
+                                                [
+                                                    dbc.Col(
+                                                        [
+                                                            html.Label(
+                                                                [
+                                                                    "PERT Factor:",
+                                                                    create_info_tooltip(
+                                                                        "pert-factor",
+                                                                        HELP_TEXTS[
+                                                                            "pert_factor"
+                                                                        ],
+                                                                    ),
+                                                                ]
+                                                            ),
+                                                            dcc.Slider(
+                                                                id="pert-factor-slider",
+                                                                min=3,
+                                                                max=15,
+                                                                value=current_settings[
+                                                                    "pert_factor"
+                                                                ],
+                                                                marks={
+                                                                    i: str(i)
+                                                                    for i in range(
+                                                                        3, 16, 2
+                                                                    )
+                                                                },
+                                                                step=1,
+                                                            ),
+                                                        ],
+                                                        width=12,
+                                                        lg=6,
+                                                    ),
+                                                    dbc.Col(
+                                                        [
+                                                            html.Label(
+                                                                [
+                                                                    "Deadline:",
+                                                                    create_info_tooltip(
+                                                                        "deadline",
+                                                                        HELP_TEXTS[
+                                                                            "deadline"
+                                                                        ],
+                                                                    ),
+                                                                ]
+                                                            ),
+                                                            dcc.DatePickerSingle(
+                                                                id="deadline-picker",
+                                                                date=current_settings[
+                                                                    "deadline"
+                                                                ],
+                                                                display_format="YYYY-MM-DD",
+                                                                className="form-control",
+                                                            ),
+                                                        ],
+                                                        width=12,
+                                                        lg=6,
+                                                    ),
+                                                ]
+                                            ),
+                                            html.Br(),
+                                            dbc.Row(
+                                                [
+                                                    dbc.Col(
+                                                        [
+                                                            html.Label(
+                                                                [
+                                                                    "Total Items:",
+                                                                    create_info_tooltip(
+                                                                        "total-items",
+                                                                        HELP_TEXTS[
+                                                                            "total_items"
+                                                                        ],
+                                                                    ),
+                                                                ]
+                                                            ),
+                                                            dbc.Input(
+                                                                id="total-items-input",
+                                                                type="number",
+                                                                value=current_settings[
+                                                                    "total_items"
+                                                                ],
+                                                                min=0,
+                                                                step=1,
+                                                            ),
+                                                        ],
+                                                        width=12,
+                                                        lg=6,
+                                                    ),
+                                                    dbc.Col(
+                                                        [
+                                                            html.Label(
+                                                                [
+                                                                    "Total Points:",
+                                                                    create_info_tooltip(
+                                                                        "total-points",
+                                                                        HELP_TEXTS[
+                                                                            "total_points"
+                                                                        ],
+                                                                    ),
+                                                                ]
+                                                            ),
+                                                            dbc.Input(
+                                                                id="total-points-input",
+                                                                type="number",
+                                                                value=current_settings[
+                                                                    "total_points"
+                                                                ],
+                                                                min=0,
+                                                                step=1,
+                                                            ),
+                                                        ],
+                                                        width=12,
+                                                        lg=6,
+                                                    ),
+                                                ]
+                                            ),
+                                            html.Br(),
+                                            dbc.Row(
+                                                [
+                                                    dbc.Col(
+                                                        [
+                                                            html.Label(
+                                                                [
+                                                                    "Upload Statistics CSV:",
+                                                                    create_info_tooltip(
+                                                                        "csv-upload",
+                                                                        HELP_TEXTS[
+                                                                            "csv_format"
+                                                                        ],
+                                                                    ),
+                                                                ]
+                                                            ),
+                                                            dcc.Upload(
+                                                                id="upload-data",
+                                                                children=html.Div(
+                                                                    [
+                                                                        html.I(
+                                                                            className="fas fa-file-upload mr-2"
+                                                                        ),
+                                                                        "Drag and Drop or ",
+                                                                        html.A(
+                                                                            "Select CSV File"
+                                                                        ),
+                                                                    ]
+                                                                ),
+                                                                style={
+                                                                    "width": "100%",
+                                                                    "height": "60px",
+                                                                    "lineHeight": "60px",
+                                                                    "borderWidth": "1px",
+                                                                    "borderStyle": "dashed",
+                                                                    "borderRadius": "5px",
+                                                                    "textAlign": "center",
+                                                                    "margin": "10px 0",
+                                                                },
+                                                                multiple=False,
+                                                            ),
+                                                        ],
+                                                        width=12,
+                                                    ),
+                                                ]
+                                            ),
+                                        ]
+                                    ),
+                                ],
+                                className="mb-3 h-100 shadow-sm",
+                            ),
+                        ],
+                        width=7,
+                    ),
+                    # Right: PERT Analysis
+                    dbc.Col(
+                        [
+                            create_pert_analysis_card(),
+                        ],
+                        width=5,
+                    ),
+                ]
+            ),
+            # Spacer
+            html.Div(className="mb-3"),
+            # Third row: Statistics Data Table
+            dbc.Row(
+                [
+                    dbc.Col(
+                        [
+                            dbc.Card(
+                                [
+                                    dbc.CardHeader(
+                                        [
+                                            html.H4(
+                                                "Statistics Data", className="d-inline"
+                                            ),
+                                            create_info_tooltip(
+                                                "statistics-data",
+                                                HELP_TEXTS["statistics_table"],
+                                            ),
+                                        ]
+                                    ),
+                                    dbc.CardBody(
+                                        [
+                                            dash_table.DataTable(
+                                                id="statistics-table",
+                                                columns=[
+                                                    {
+                                                        "name": "Date (YYYY-MM-DD)",
+                                                        "id": "date",
+                                                        "type": "text",
+                                                    },
+                                                    {
+                                                        "name": "Items Completed",
+                                                        "id": "no_items",
+                                                        "type": "numeric",
+                                                    },
+                                                    {
+                                                        "name": "Points Completed",
+                                                        "id": "no_points",
+                                                        "type": "numeric",
+                                                    },
+                                                ],
+                                                data=current_statistics,
+                                                editable=True,
+                                                row_deletable=True,
+                                                sort_action="native",
+                                                style_table={"overflowX": "auto"},
+                                                style_cell={
+                                                    "textAlign": "center",
+                                                    "minWidth": "100px",
+                                                    "padding": "10px",
+                                                },
+                                                style_header={
+                                                    "backgroundColor": "#f8f9fa",
+                                                    "fontWeight": "bold",
+                                                    "border": "1px solid #ddd",
+                                                },
+                                                style_data={
+                                                    "border": "1px solid #ddd",
+                                                },
+                                                style_data_conditional=[
+                                                    {
+                                                        "if": {"row_index": "odd"},
+                                                        "backgroundColor": "#f9f9f9",
+                                                    }
+                                                ],
+                                                tooltip_data=[
+                                                    {
+                                                        column: {
+                                                            "value": "Click to edit",
+                                                            "type": "text",
+                                                        }
+                                                        for column in [
+                                                            "date",
+                                                            "no_items",
+                                                            "no_points",
+                                                        ]
+                                                    }
+                                                    for _ in range(
+                                                        len(current_statistics)
+                                                    )
+                                                ],
+                                                tooltip_duration=None,
+                                            ),
+                                            html.Div(
+                                                [
+                                                    dbc.Button(
+                                                        [
+                                                            html.I(
+                                                                className="fas fa-plus mr-2"
+                                                            ),
+                                                            "Add Row",
+                                                        ],
+                                                        id="add-row-button",
+                                                        color="primary",
+                                                        className="mt-3",
+                                                    ),
+                                                ],
+                                                style={"textAlign": "center"},
+                                            ),
+                                        ]
+                                    ),
+                                ],
+                                className="shadow-sm",
+                            ),
+                        ],
+                        width=12,
+                    ),
+                ]
+            ),
+            # Footer
+            dbc.Row(
+                [
+                    dbc.Col(
+                        [
+                            html.Hr(),
+                        ],
+                        width=12,
+                    ),
+                ],
+                className="mt-4",
+            ),
         ],
-        className="shadow-sm",
+        fluid=True,
     )
+
+
+# Set the layout function as the app's layout
+app.layout = serve_layout
+
+# ===== CALLBACKS =====
+
+
+@app.callback(Output("app-init-complete", "data"), [Input("forecast-graph", "figure")])
+def mark_initialization_complete(figure):
+    """
+    Mark the application as fully initialized after the graph is rendered.
+    This helps prevent saving during initial load.
+    """
+    # This will be called once the forecast graph is rendered
+    return True
+
+
+@app.callback(
+    [
+        Output("current-settings", "data"),
+        Output("current-settings", "modified_timestamp"),
+    ],
+    [
+        Input("pert-factor-slider", "value"),
+        Input("deadline-picker", "date"),
+        Input("total-items-input", "value"),
+        Input("total-points-input", "value"),
+    ],
+    [State("app-init-complete", "data")],
+)
+def update_and_save_settings(
+    pert_factor, deadline, total_items, total_points, init_complete
+):
+    """
+    Update current settings and save to disk when changed.
+    """
+    ctx = dash.callback_context
+
+    # Skip if not initialized or values are None
+    if (
+        not init_complete
+        or not ctx.triggered
+        or None in [pert_factor, deadline, total_items, total_points]
+    ):
+        raise PreventUpdate
+
+    # Create updated settings
+    settings = {
+        "pert_factor": pert_factor,
+        "deadline": deadline,
+        "total_items": total_items,
+        "total_points": total_points,
+    }
+
+    # Save to disk
+    save_settings(pert_factor, deadline, total_items, total_points)
+
+    logger.info(f"Settings updated and saved: {settings}")
+    return settings, int(datetime.now().timestamp() * 1000)
+
+
+@app.callback(
+    [
+        Output("current-statistics", "data"),
+        Output("current-statistics", "modified_timestamp"),
+    ],
+    [Input("statistics-table", "data")],
+    [State("app-init-complete", "data")],
+)
+def update_and_save_statistics(data, init_complete):
+    """
+    Update current statistics and save to disk when changed.
+    """
+    ctx = dash.callback_context
+
+    # Skip if not initialized or no data
+    if not init_complete or not ctx.triggered or not data:
+        raise PreventUpdate
+
+    # Save to disk
+    save_statistics(data)
+
+    logger.info("Statistics updated and saved")
+    return data, int(datetime.now().timestamp() * 1000)
+
+
+@app.callback(
+    Output("statistics-table", "data"),
+    [Input("add-row-button", "n_clicks"), Input("upload-data", "contents")],
+    [State("statistics-table", "data"), State("upload-data", "filename")],
+)
+def update_table(n_clicks, contents, rows, filename):
+    """
+    Update the statistics table data when a row is added or data is uploaded.
+    """
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        # No triggers, return unchanged
+        return rows
+
+    trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+
+    try:
+        if trigger_id == "add-row-button":
+            # Add a new empty row with date in YYYY-MM-DD format
+            rows.append(
+                {
+                    "date": datetime.now().strftime("%Y-%m-%d"),
+                    "no_items": 0,
+                    "no_points": 0,
+                }
+            )
+            return rows
+
+        elif trigger_id == "upload-data" and contents:
+            # Parse uploaded file
+            content_type, content_string = contents.split(",")
+            decoded = base64.b64decode(content_string)
+
+            if "csv" in filename.lower():
+                try:
+                    # Try semicolon separator first
+                    df = pd.read_csv(io.StringIO(decoded.decode("utf-8")), sep=";")
+                    if (
+                        "date" not in df.columns
+                        or "no_items" not in df.columns
+                        or "no_points" not in df.columns
+                    ):
+                        # Try with comma separator
+                        df = pd.read_csv(io.StringIO(decoded.decode("utf-8")))
+
+                    # Clean data and ensure date is in YYYY-MM-DD format
+                    df = read_and_clean_data(df)
+                    return df.to_dict("records")
+                except Exception as e:
+                    logger.error(f"Error loading CSV file: {e}")
+                    # Return unchanged data if there's an error
+                    return rows
+    except Exception as e:
+        logger.error(f"Error in update_table callback: {e}")
+
+    return rows
+
+
+@app.callback(
+    [Output("forecast-graph", "figure"), Output("pert-info-container", "children")],
+    [
+        Input("current-settings", "modified_timestamp"),
+        Input("current-statistics", "modified_timestamp"),
+    ],
+    [State("current-settings", "data"), State("current-statistics", "data")],
+)
+def update_graph_and_pert_info(settings_ts, statistics_ts, settings, statistics):
+    """
+    Update the forecast graph and PERT analysis when settings or statistics change.
+    """
+    if not settings or not statistics:
+        raise PreventUpdate
+
+    try:
+        # Create dataframe from statistics data
+        df = pd.DataFrame(statistics)
+
+        # Get values from settings
+        pert_factor = settings["pert_factor"]
+        total_items = settings["total_items"]
+        total_points = settings["total_points"]
+        deadline = settings["deadline"]
+
+        # Process data for calculations
+        if not df.empty:
+            df = compute_cumulative_values(df, total_items, total_points)
+
+        # Create forecast plot and get PERT values
+        fig, pert_time_items, pert_time_points = create_forecast_plot(
+            df=df,
+            total_items=total_items,
+            total_points=total_points,
+            pert_factor=pert_factor,
+            deadline_str=deadline,
+        )
+
+        # Calculate days to deadline
+        deadline_date = pd.to_datetime(deadline)
+        current_date = datetime.now()
+        days_to_deadline = max(0, (deadline_date - current_date).days)
+
+        # Create PERT info component
+        pert_info = create_pert_info_table(
+            pert_time_items, pert_time_points, days_to_deadline
+        )
+
+        return fig, pert_info
+
+    except Exception as e:
+        logger.error(f"Error in update_graph_and_pert_info callback: {e}")
+        # Return empty figure and error message on failure
+        fig = go.Figure()
+        fig.add_annotation(
+            text=f"Error generating forecast: {str(e)}",
+            xref="paper",
+            yref="paper",
+            x=0.5,
+            y=0.5,
+            showarrow=False,
+            font=dict(size=16, color="red"),
+        )
+
+        error_info = html.Div(
+            [html.P("Error calculating PERT values", style={"color": "red"})]
+        )
+
+        return fig, error_info
+
+
+@app.callback(
+    Output("help-modal", "is_open"),
+    [Input("help-button", "n_clicks"), Input("close-help", "n_clicks")],
+    [State("help-modal", "is_open")],
+)
+def toggle_help_modal(n1, n2, is_open):
+    """
+    Toggle the help modal visibility.
+    """
+    if n1 or n2:
+        return not is_open
+    return is_open
 
 
 def create_pert_info_table(pert_time_items, pert_time_points, days_to_deadline):
@@ -1663,337 +2061,6 @@ def create_pert_info_table(pert_time_items, pert_time_points, days_to_deadline):
             )
         ]
     )
-
-
-# ===== APPLICATION SETUP =====
-
-# Create Dash app
-app = dash.Dash(
-    __name__,
-    external_stylesheets=[
-        dbc.themes.BOOTSTRAP,
-        "https://use.fontawesome.com/releases/v5.15.4/css/all.css",  # Font Awesome for icons
-    ],
-)
-
-# Define app layout
-app.layout = dbc.Container(
-    [
-        # Sticky Help Button in top-right corner
-        html.Div(
-            [
-                dbc.Button(
-                    [
-                        html.I(className="fas fa-question-circle mr-2"),
-                        "How to Use This App",
-                    ],
-                    id="help-button",
-                    color="info",
-                    size="sm",
-                    className="shadow",
-                ),
-            ],
-            style={
-                "position": "fixed",
-                "top": "20px",
-                "right": "20px",
-                "zIndex": "1000",
-            },
-        ),
-        # App header
-        dbc.Row(
-            [
-                dbc.Col(
-                    [
-                        html.H1(
-                            "Project Burndown Forecast", className="text-center my-4"
-                        ),
-                    ],
-                    width=12,
-                ),
-            ]
-        ),
-        # Help modal
-        create_help_modal(),
-        # First row: Forecast Graph
-        dbc.Row(
-            [
-                dbc.Col(
-                    [
-                        create_forecast_graph_card(),
-                    ],
-                    width=12,
-                ),
-            ]
-        ),
-        # Second row: Input Parameters and PERT Analysis
-        dbc.Row(
-            [
-                # Left: Input Parameters
-                dbc.Col(
-                    [
-                        create_input_parameters_card(),
-                    ],
-                    width=7,
-                ),
-                # Right: PERT Analysis
-                dbc.Col(
-                    [
-                        create_pert_analysis_card(),
-                    ],
-                    width=5,
-                ),
-            ]
-        ),
-        # Spacer
-        html.Div(className="mb-3"),
-        # Third row: Statistics Data Table
-        dbc.Row(
-            [
-                dbc.Col(
-                    [
-                        create_statistics_table_card(),
-                    ],
-                    width=12,
-                ),
-            ]
-        ),
-        # Footer
-        dbc.Row(
-            [
-                dbc.Col(
-                    [
-                        html.Hr(),
-                    ],
-                    width=12,
-                ),
-            ],
-            className="mt-4",
-        ),
-        # Hidden divs for persistence callbacks
-        html.Div(id="save-settings-trigger", style={"display": "none"}),
-        html.Div(id="save-statistics-trigger", style={"display": "none"}),
-    ],
-    fluid=True,
-)
-
-# ===== CALLBACKS =====
-
-
-@app.callback(
-    Output("save-settings-trigger", "children"),
-    [
-        Input("pert-factor-slider", "value"),
-        Input("deadline-picker", "date"),
-        Input("total-items-input", "value"),
-        Input("total-points-input", "value"),
-    ],
-)
-def save_settings_on_change(pert_factor, deadline, total_items, total_points):
-    """
-    Save settings whenever any input parameter changes.
-
-    Args:
-        pert_factor: PERT factor value
-        deadline: Deadline date string
-        total_items: Total number of items
-        total_points: Total number of points
-
-    Returns:
-        Empty string (dummy output)
-    """
-    if all(v is not None for v in [pert_factor, deadline, total_items, total_points]):
-        save_settings(pert_factor, deadline, total_items, total_points)
-    return ""
-
-
-@app.callback(
-    Output("save-statistics-trigger", "children"), [Input("statistics-table", "data")]
-)
-def save_statistics_on_change(data):
-    """
-    Save statistics data whenever it changes.
-
-    Args:
-        data: Statistics table data
-
-    Returns:
-        Empty string (dummy output)
-    """
-    if data:
-        save_statistics(data)
-    return ""
-
-
-@app.callback(
-    Output("statistics-table", "data"),
-    [Input("add-row-button", "n_clicks"), Input("upload-data", "contents")],
-    [State("statistics-table", "data"), State("upload-data", "filename")],
-)
-def update_table(n_clicks, contents, rows, filename):
-    """
-    Update the statistics table data when a row is added or data is uploaded.
-
-    Args:
-        n_clicks: Number of times the add button was clicked
-        contents: Contents of the uploaded file
-        rows: Current table data
-        filename: Name of the uploaded file
-
-    Returns:
-        Updated table data
-    """
-    ctx = dash.callback_context
-    if not ctx.triggered:
-        # No triggers, return unchanged
-        return rows
-
-    trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
-
-    try:
-        if trigger_id == "add-row-button":
-            # Add a new empty row with date in YYYY-MM-DD format
-            rows.append(
-                {
-                    "date": datetime.now().strftime("%Y-%m-%d"),
-                    "no_items": 0,
-                    "no_points": 0,
-                }
-            )
-            return rows
-
-        elif trigger_id == "upload-data" and contents:
-            # Parse uploaded file
-            content_type, content_string = contents.split(",")
-            decoded = base64.b64decode(content_string)
-
-            if "csv" in filename.lower():
-                try:
-                    # Try semicolon separator first
-                    df = pd.read_csv(io.StringIO(decoded.decode("utf-8")), sep=";")
-                    if (
-                        "date" not in df.columns
-                        or "no_items" not in df.columns
-                        or "no_points" not in df.columns
-                    ):
-                        # Try with comma separator
-                        df = pd.read_csv(io.StringIO(decoded.decode("utf-8")))
-
-                    # Clean data and ensure date is in YYYY-MM-DD format
-                    df = read_and_clean_data(df)
-                    return df.to_dict("records")
-                except Exception as e:
-                    logger.error(f"Error loading CSV file: {e}")
-                    # Return unchanged data if there's an error
-                    return rows
-    except Exception as e:
-        logger.error(f"Error in update_table callback: {e}")
-
-    return rows
-
-
-@app.callback(
-    [Output("forecast-graph", "figure"), Output("pert-info-container", "children")],
-    [
-        Input("pert-factor-slider", "value"),
-        Input("total-items-input", "value"),
-        Input("total-points-input", "value"),
-        Input("deadline-picker", "date"),
-        Input("statistics-table", "data"),
-    ],
-)
-def update_graph_and_pert_info(
-    pert_factor, total_items, total_points, deadline, table_data
-):
-    """
-    Update the forecast graph and PERT analysis when inputs change.
-
-    Args:
-        pert_factor: PERT factor value
-        total_items: Total number of items to complete
-        total_points: Total number of points to complete
-        deadline: Deadline date as string
-        table_data: Current statistics table data
-
-    Returns:
-        Tuple of (figure, pert_info_container)
-    """
-    try:
-        # Create dataframe from table data
-        df = pd.DataFrame(table_data if table_data else [])
-
-        # Default values if inputs are invalid
-        pert_factor = pert_factor if pert_factor else DEFAULT_PERT_FACTOR
-        total_items = total_items if total_items else DEFAULT_TOTAL_ITEMS
-        total_points = total_points if total_points else DEFAULT_TOTAL_POINTS
-        deadline = deadline if deadline else DEFAULT_DEADLINE
-
-        # Process data for calculations
-        if not df.empty:
-            df = compute_cumulative_values(df, total_items, total_points)
-
-        # Create forecast plot and get PERT values
-        fig, pert_time_items, pert_time_points = create_forecast_plot(
-            df=df,
-            total_items=total_items,
-            total_points=total_points,
-            pert_factor=pert_factor,
-            deadline_str=deadline,
-        )
-
-        # Calculate days to deadline
-        deadline_date = pd.to_datetime(deadline)
-        current_date = datetime.now()
-        days_to_deadline = max(0, (deadline_date - current_date).days)
-
-        # Create PERT info component
-        pert_info = create_pert_info_table(
-            pert_time_items, pert_time_points, days_to_deadline
-        )
-
-        return fig, pert_info
-
-    except Exception as e:
-        logger.error(f"Error in update_graph_and_pert_info callback: {e}")
-        # Return empty figure and error message on failure
-        fig = go.Figure()
-        fig.add_annotation(
-            text=f"Error generating forecast: {str(e)}",
-            xref="paper",
-            yref="paper",
-            x=0.5,
-            y=0.5,
-            showarrow=False,
-            font=dict(size=16, color="red"),
-        )
-
-        error_info = html.Div(
-            [html.P("Error calculating PERT values", style={"color": "red"})]
-        )
-
-        return fig, error_info
-
-
-@app.callback(
-    Output("help-modal", "is_open"),
-    [Input("help-button", "n_clicks"), Input("close-help", "n_clicks")],
-    [State("help-modal", "is_open")],
-)
-def toggle_help_modal(n1, n2, is_open):
-    """
-    Toggle the help modal visibility.
-
-    Args:
-        n1: Number of times the help button was clicked
-        n2: Number of times the close button was clicked
-        is_open: Current state of the modal
-
-    Returns:
-        New state for the modal (open/closed)
-    """
-    if n1 or n2:
-        return not is_open
-    return is_open
 
 
 # Run the app
