@@ -15,6 +15,8 @@ import dash_bootstrap_components as dbc
 import io
 import base64
 import logging
+import json
+import os
 
 # Configure logging
 logging.basicConfig(
@@ -28,6 +30,10 @@ DEFAULT_PERT_FACTOR = 3
 DEFAULT_TOTAL_ITEMS = 100
 DEFAULT_TOTAL_POINTS = 1000
 DEFAULT_DEADLINE = (datetime.now() + timedelta(days=60)).strftime("%Y-%m-%d")
+
+# File paths for data persistence
+SETTINGS_FILE = "forecast_settings.json"
+STATISTICS_FILE = "forecast_statistics.csv"
 
 # Sample data for initialization
 SAMPLE_DATA = pd.DataFrame(
@@ -109,6 +115,93 @@ HELP_TEXTS = {
         Where the forecast lines cross the zero line indicates estimated completion dates.
     """,
 }
+
+# ===== DATA PERSISTENCE FUNCTIONS =====
+
+
+def save_settings(pert_factor, deadline, total_items, total_points):
+    """
+    Save user settings to JSON file.
+
+    Args:
+        pert_factor: PERT factor value
+        deadline: Deadline date string
+        total_items: Total number of items
+        total_points: Total number of points
+    """
+    settings = {
+        "pert_factor": pert_factor,
+        "deadline": deadline,
+        "total_items": total_items,
+        "total_points": total_points,
+    }
+
+    with open(SETTINGS_FILE, "w") as f:
+        json.dump(settings, f)
+
+    logger.info(f"Settings saved to {SETTINGS_FILE}")
+
+
+def load_settings():
+    """
+    Load user settings from JSON file.
+
+    Returns:
+        Dictionary containing settings or default values if file not found
+    """
+    default_settings = {
+        "pert_factor": DEFAULT_PERT_FACTOR,
+        "deadline": DEFAULT_DEADLINE,
+        "total_items": DEFAULT_TOTAL_ITEMS,
+        "total_points": DEFAULT_TOTAL_POINTS,
+    }
+
+    try:
+        if os.path.exists(SETTINGS_FILE):
+            with open(SETTINGS_FILE, "r") as f:
+                settings = json.load(f)
+            logger.info(f"Settings loaded from {SETTINGS_FILE}")
+            return settings
+        else:
+            logger.info("Settings file not found, using defaults")
+            return default_settings
+    except Exception as e:
+        logger.error(f"Error loading settings: {e}")
+        return default_settings
+
+
+def save_statistics(data):
+    """
+    Save statistics data to CSV file.
+
+    Args:
+        data: List of dictionaries containing statistics data
+    """
+    df = pd.DataFrame(data)
+    df.to_csv(STATISTICS_FILE, index=False)
+    logger.info(f"Statistics saved to {STATISTICS_FILE}")
+
+
+def load_statistics():
+    """
+    Load statistics data from CSV file.
+
+    Returns:
+        List of dictionaries containing statistics data or sample data if file not found
+    """
+    try:
+        if os.path.exists(STATISTICS_FILE):
+            df = pd.read_csv(STATISTICS_FILE)
+            data = df.to_dict("records")
+            logger.info(f"Statistics loaded from {STATISTICS_FILE}")
+            return data
+        else:
+            logger.info("Statistics file not found, using sample data")
+            return SAMPLE_DATA.to_dict("records")
+    except Exception as e:
+        logger.error(f"Error loading statistics: {e}")
+        return SAMPLE_DATA.to_dict("records")
+
 
 # ===== DATA PROCESSING FUNCTIONS =====
 
@@ -708,13 +801,13 @@ def create_info_tooltip(id_suffix, help_text):
             html.I(
                 className="fas fa-info-circle text-info ml-2",
                 id=f"info-tooltip-{id_suffix}",
-                style={"cursor": "pointer", "margin-left": "5px"},
+                style={"cursor": "pointer", "marginLeft": "5px"},
             ),
             dbc.Tooltip(
                 help_text,
                 target=f"info-tooltip-{id_suffix}",
                 placement="right",
-                style={"max-width": "300px"},
+                style={"maxWidth": "300px"},  # Fixed camelCase for React styling
             ),
         ],
         style={"display": "inline-block"},
@@ -1147,6 +1240,9 @@ def create_input_parameters_card():
     Returns:
         Dash Card component with input controls
     """
+    # Load saved settings
+    saved_settings = load_settings()
+
     return dbc.Card(
         [
             dbc.CardHeader(
@@ -1176,7 +1272,9 @@ def create_input_parameters_card():
                                         id="pert-factor-slider",
                                         min=3,
                                         max=15,
-                                        value=DEFAULT_PERT_FACTOR,
+                                        value=saved_settings[
+                                            "pert_factor"
+                                        ],  # Use saved value
                                         marks={i: str(i) for i in range(3, 16, 2)},
                                         step=1,
                                     ),
@@ -1196,7 +1294,9 @@ def create_input_parameters_card():
                                     ),
                                     dcc.DatePickerSingle(
                                         id="deadline-picker",
-                                        date=DEFAULT_DEADLINE,
+                                        date=saved_settings[
+                                            "deadline"
+                                        ],  # Use saved value
                                         display_format="YYYY-MM-DD",
                                         className="form-control",
                                     ),
@@ -1222,7 +1322,9 @@ def create_input_parameters_card():
                                     dbc.Input(
                                         id="total-items-input",
                                         type="number",
-                                        value=DEFAULT_TOTAL_ITEMS,
+                                        value=saved_settings[
+                                            "total_items"
+                                        ],  # Use saved value
                                         min=0,
                                         step=1,
                                     ),
@@ -1244,7 +1346,9 @@ def create_input_parameters_card():
                                     dbc.Input(
                                         id="total-points-input",
                                         type="number",
-                                        value=DEFAULT_TOTAL_POINTS,
+                                        value=saved_settings[
+                                            "total_points"
+                                        ],  # Use saved value
                                         min=0,
                                         step=1,
                                     ),
@@ -1337,6 +1441,9 @@ def create_statistics_table_card():
     Returns:
         Dash Card component with data table
     """
+    # Load saved statistics
+    saved_statistics = load_statistics()
+
     return dbc.Card(
         [
             dbc.CardHeader(
@@ -1364,7 +1471,7 @@ def create_statistics_table_card():
                                 "type": "numeric",
                             },
                         ],
-                        data=SAMPLE_DATA.to_dict("records"),
+                        data=saved_statistics,  # Use saved statistics
                         editable=True,
                         row_deletable=True,
                         sort_action="native",
@@ -1390,7 +1497,7 @@ def create_statistics_table_card():
                                 column: {"value": "Click to edit", "type": "text"}
                                 for column in ["date", "no_items", "no_points"]
                             }
-                            for _ in range(len(SAMPLE_DATA))
+                            for _ in range(len(saved_statistics))
                         ],
                         tooltip_duration=None,
                     ),
@@ -1440,7 +1547,7 @@ def create_pert_info_table(pert_time_items, pert_time_points, days_to_deadline):
                                     html.Td(
                                         "PERT Formula:",
                                         className="text-right pr-2",
-                                        style={"font-weight": "bold"},
+                                        style={"fontWeight": "bold"},
                                     ),
                                     html.Td(
                                         [
@@ -1458,7 +1565,7 @@ def create_pert_info_table(pert_time_items, pert_time_points, days_to_deadline):
                                     html.Td(
                                         "Estimated Days (Items):",
                                         className="text-right pr-2",
-                                        style={"font-weight": "bold"},
+                                        style={"fontWeight": "bold"},
                                     ),
                                     html.Td(
                                         [
@@ -1466,14 +1573,14 @@ def create_pert_info_table(pert_time_items, pert_time_points, days_to_deadline):
                                             html.Span(
                                                 " days",
                                                 style={
-                                                    "font-size": "0.9em",
+                                                    "fontSize": "0.9em",
                                                     "color": "#666",
                                                 },
                                             ),
                                         ],
                                         style={
                                             "color": items_color,
-                                            "font-weight": "bold",
+                                            "fontWeight": "bold",
                                         },
                                     ),
                                 ]
@@ -1483,7 +1590,7 @@ def create_pert_info_table(pert_time_items, pert_time_points, days_to_deadline):
                                     html.Td(
                                         "Estimated Days (Points):",
                                         className="text-right pr-2",
-                                        style={"font-weight": "bold"},
+                                        style={"fontWeight": "bold"},
                                     ),
                                     html.Td(
                                         [
@@ -1491,14 +1598,14 @@ def create_pert_info_table(pert_time_items, pert_time_points, days_to_deadline):
                                             html.Span(
                                                 " days",
                                                 style={
-                                                    "font-size": "0.9em",
+                                                    "fontSize": "0.9em",
                                                     "color": "#666",
                                                 },
                                             ),
                                         ],
                                         style={
                                             "color": points_color,
-                                            "font-weight": "bold",
+                                            "fontWeight": "bold",
                                         },
                                     ),
                                 ]
@@ -1508,7 +1615,7 @@ def create_pert_info_table(pert_time_items, pert_time_points, days_to_deadline):
                                     html.Td(
                                         "Deadline in:",
                                         className="text-right pr-2",
-                                        style={"font-weight": "bold"},
+                                        style={"fontWeight": "bold"},
                                     ),
                                     html.Td(
                                         [
@@ -1516,12 +1623,12 @@ def create_pert_info_table(pert_time_items, pert_time_points, days_to_deadline):
                                             html.Span(
                                                 " days",
                                                 style={
-                                                    "font-size": "0.9em",
+                                                    "fontSize": "0.9em",
                                                     "color": "#666",
                                                 },
                                             ),
                                         ],
-                                        style={"font-weight": "bold"},
+                                        style={"fontWeight": "bold"},
                                     ),
                                 ]
                             ),
@@ -1535,7 +1642,7 @@ def create_pert_info_table(pert_time_items, pert_time_points, days_to_deadline):
                                                     "The PERT formula uses optimistic (O), most likely (M), and pessimistic (P) estimates.",
                                                 ],
                                                 className="mt-2 text-muted small",
-                                                style={"text-align": "center"},
+                                                style={"textAlign": "center"},
                                             )
                                         ],
                                         colSpan=2,
@@ -1663,11 +1770,59 @@ app.layout = dbc.Container(
             ],
             className="mt-4",
         ),
+        # Hidden divs for persistence callbacks
+        html.Div(id="save-settings-trigger", style={"display": "none"}),
+        html.Div(id="save-statistics-trigger", style={"display": "none"}),
     ],
     fluid=True,
 )
 
 # ===== CALLBACKS =====
+
+
+@app.callback(
+    Output("save-settings-trigger", "children"),
+    [
+        Input("pert-factor-slider", "value"),
+        Input("deadline-picker", "date"),
+        Input("total-items-input", "value"),
+        Input("total-points-input", "value"),
+    ],
+)
+def save_settings_on_change(pert_factor, deadline, total_items, total_points):
+    """
+    Save settings whenever any input parameter changes.
+
+    Args:
+        pert_factor: PERT factor value
+        deadline: Deadline date string
+        total_items: Total number of items
+        total_points: Total number of points
+
+    Returns:
+        Empty string (dummy output)
+    """
+    if all(v is not None for v in [pert_factor, deadline, total_items, total_points]):
+        save_settings(pert_factor, deadline, total_items, total_points)
+    return ""
+
+
+@app.callback(
+    Output("save-statistics-trigger", "children"), [Input("statistics-table", "data")]
+)
+def save_statistics_on_change(data):
+    """
+    Save statistics data whenever it changes.
+
+    Args:
+        data: Statistics table data
+
+    Returns:
+        Empty string (dummy output)
+    """
+    if data:
+        save_statistics(data)
+    return ""
 
 
 @app.callback(
