@@ -1402,11 +1402,15 @@ def create_help_modal():
 
 def create_forecast_graph_card():
     """
-    Create the forecast graph card component.
+    Create the forecast graph card component with customized download filename.
 
     Returns:
         Dash Card component with the forecast graph
     """
+    # Generate the current date for the filename
+    current_date = datetime.now().strftime("%Y%m%d")
+    default_filename = f"burndown_forecast_{current_date}"
+
     return dbc.Card(
         [
             dbc.CardHeader(
@@ -1419,7 +1423,16 @@ def create_forecast_graph_card():
             ),
             dbc.CardBody(
                 [
-                    dcc.Graph(id="forecast-graph", style={"height": "650px"}),
+                    dcc.Graph(
+                        id="forecast-graph",
+                        style={"height": "650px"},
+                        config={
+                            # Only specify the filename, let Plotly handle the rest of the export settings
+                            "toImageButtonOptions": {
+                                "filename": default_filename,
+                            },
+                        },
+                    ),
                 ]
             ),
         ],
