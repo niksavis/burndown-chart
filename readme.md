@@ -125,6 +125,7 @@ The app generates an interactive burndown chart with:
   - Pessimistic forecast (based on worst performance)
 - **PERT Analysis**: Shows estimated completion dates using the Program Evaluation and Review Technique.
 - **Deadline Tracking**: Visual indicators show if you're on track to meet your deadline.
+- **Export Options**: Save your chart as a PNG image with the filename format `burndown_forecast_YYYYMMDD.png`.
 
 ### CSV Format for Historical Data
 
@@ -181,6 +182,8 @@ Here is an example of the interactive forecast application:
 - **CSV upload issues**: Check that your CSV format matches the example format. The sample statistics.csv file is known to work correctly.
 
 - **Image rendering**: If SVG images don't render in your browser, try opening them in a dedicated image viewer or graphics application.
+
+- **Data persistence**: The application automatically saves your settings and statistics data to `forecast_settings.json` and `forecast_statistics.csv` in the application directory. If you experience issues with saved data, try deleting these files to reset to defaults.
 
 - **Port conflicts**: If you get an error that port 8050 is already in use, either close the other application using that port or modify the app.run_server() line in forecast_app.py to use a different port. For example:
 
