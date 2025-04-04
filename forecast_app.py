@@ -769,6 +769,152 @@ def apply_layout_settings(fig):
     return fig
 
 
+def add_metrics_annotations(fig, metrics_data):
+    """
+    Add metrics as annotations below the x-axis of the plot.
+
+    Args:
+        fig: Plotly figure object
+        metrics_data: Dictionary with metrics to display
+
+    Returns:
+        Updated figure with metrics annotations
+    """
+    # Define styles for metrics display
+    base_y_position = -0.2  # Starting position below x-axis
+    font_color = "#505050"
+    title_font_size = 16
+    value_font_size = 14
+
+    # Create background shape for metrics area
+    fig.add_shape(
+        type="rect",
+        xref="paper",
+        yref="paper",
+        x0=0,
+        y0=base_y_position - 0.13,  # Background bottom position
+        x1=1,
+        y1=base_y_position + 0.03,  # Background top position
+        fillcolor="rgba(245, 245, 245, 0.8)",
+        line=dict(color="rgba(200, 200, 200, 0.5)", width=1),
+    )
+
+    # Create a title for the metrics section - adjusted y position to be inside the rectangle
+    fig.add_annotation(
+        xref="paper",
+        yref="paper",
+        x=0.02,  # Left aligned
+        y=base_y_position + 0.04,  # Adjusted to be lower and inside the rectangle
+        text="<b>Project Metrics</b>",
+        showarrow=False,
+        font=dict(size=title_font_size, color=font_color, family="Arial, sans-serif"),
+        align="left",
+    )
+
+    # Define the metrics to display in columns
+    metrics_columns = [
+        [
+            {
+                "label": "Total Items",
+                "value": metrics_data["total_items"],
+                "format": "{:,}",
+            },
+            {
+                "label": "Total Points",
+                "value": metrics_data["total_points"],
+                "format": "{:,}",
+            },
+        ],
+        [
+            {"label": "Deadline", "value": metrics_data["deadline"], "format": "{}"},
+            {
+                "label": "Deadline in",
+                "value": metrics_data["days_to_deadline"],
+                "format": "{:,} days",
+            },
+        ],
+        [
+            {
+                "label": "Est. Days (Items)",
+                "value": metrics_data["pert_time_items"],
+                "format": "{:.1f} days",
+            },
+            {
+                "label": "Est. Days (Points)",
+                "value": metrics_data["pert_time_points"],
+                "format": "{:.1f} days",
+            },
+        ],
+        [
+            {
+                "label": "Avg Weekly Items (10W)",
+                "value": metrics_data["avg_weekly_items"],
+                "format": "{:.1f}",
+            },
+            {
+                "label": "Avg Weekly Points (10W)",
+                "value": metrics_data["avg_weekly_points"],
+                "format": "{:.1f}",
+            },
+        ],
+    ]
+
+    # Calculate column positions
+    column_width = 0.23  # Width of each column
+    column_gap = 0.01  # Gap between columns
+    start_x = 0.02  # Starting position (left margin)
+
+    # Add metrics to the figure - adjusted y positions
+    for col_idx, column in enumerate(metrics_columns):
+        x_pos = start_x + col_idx * (column_width + column_gap)
+
+        for row_idx, metric in enumerate(column):
+            # Adjusted spacing to be more centered in the gray rectangle
+            y_offset = -0.05 - 0.05 * row_idx  # More space between metrics in a column
+            y_pos = base_y_position + y_offset  # Adjusted to move down in the rectangle
+
+            # Format the label and value
+            formatted_value = metric["format"].format(metric["value"])
+
+            # Color for estimated days
+            text_color = font_color
+            if "Est. Days" in metric["label"]:
+                if (
+                    "Items" in metric["label"]
+                    and metrics_data["pert_time_items"]
+                    > metrics_data["days_to_deadline"]
+                ):
+                    text_color = "red"
+                elif (
+                    "Points" in metric["label"]
+                    and metrics_data["pert_time_points"]
+                    > metrics_data["days_to_deadline"]
+                ):
+                    text_color = "red"
+
+            # Add the metric to the figure
+            fig.add_annotation(
+                xref="paper",
+                yref="paper",
+                x=x_pos,
+                y=y_pos,
+                text=f"<b>{metric['label']}:</b> {formatted_value}",
+                showarrow=False,
+                font=dict(
+                    size=value_font_size, color=text_color, family="Arial, sans-serif"
+                ),
+                align="left",
+            )
+
+    # Update the figure margin to accommodate the metrics area
+    fig.update_layout(
+        margin=dict(b=150)  # Increase bottom margin to make room for metrics
+    )
+
+    return fig
+
+
+# Update the create_forecast_plot function
 def create_forecast_plot(df, total_items, total_points, pert_factor, deadline_str):
     """
     Create the complete forecast plot with all components.
@@ -801,6 +947,31 @@ def create_forecast_plot(df, total_items, total_points, pert_factor, deadline_st
     fig = add_deadline_marker(fig, deadline)
     fig = configure_axes(fig, forecast_data)
     fig = apply_layout_settings(fig)
+
+    # Calculate days to deadline for metrics
+    current_date = datetime.now()
+    days_to_deadline = max(0, (deadline - current_date).days)
+
+    # Calculate average weekly metrics for display
+    avg_weekly_items, avg_weekly_points = 0, 0
+    if not df.empty:
+        avg_weekly_items, avg_weekly_points = calculate_weekly_averages(
+            df.to_dict("records")
+        )
+
+    # Add metrics data to the plot
+    metrics_data = {
+        "total_items": total_items,
+        "total_points": total_points,
+        "deadline": deadline.strftime("%Y-%m-%d"),
+        "days_to_deadline": days_to_deadline,
+        "pert_time_items": forecast_data["pert_time_items"],
+        "pert_time_points": forecast_data["pert_time_points"],
+        "avg_weekly_items": avg_weekly_items,
+        "avg_weekly_points": avg_weekly_points,
+    }
+
+    fig = add_metrics_annotations(fig, metrics_data)
 
     return fig, forecast_data["pert_time_items"], forecast_data["pert_time_points"]
 
