@@ -914,7 +914,7 @@ def add_metrics_annotations(fig, metrics_data):
     return fig
 
 
-# Update the create_forecast_plot function
+# create_forecast_plot function
 def create_forecast_plot(df, total_items, total_points, pert_factor, deadline_str):
     """
     Create the complete forecast plot with all components.
@@ -1870,9 +1870,8 @@ app.layout = serve_layout
 def mark_initialization_complete(figure):
     """
     Mark the application as fully initialized after the graph is rendered.
-    This helps prevent saving during initial load.
+    This prevents saving during initial load and avoids triggering callbacks prematurely.
     """
-    # This will be called once the forecast graph is rendered
     return True
 
 
