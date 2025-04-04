@@ -799,12 +799,12 @@ def add_metrics_annotations(fig, metrics_data):
         line=dict(color="rgba(200, 200, 200, 0.5)", width=1),
     )
 
-    # Create a title for the metrics section - adjusted y position to be inside the rectangle
+    # Create a title for the metrics section
     fig.add_annotation(
         xref="paper",
         yref="paper",
         x=0.02,  # Left aligned
-        y=base_y_position + 0.04,  # Adjusted to be lower and inside the rectangle
+        y=base_y_position + 0.04,  # Position at the top of the metrics area
         text="<b>Project Metrics</b>",
         showarrow=False,
         font=dict(size=title_font_size, color=font_color, family="Arial, sans-serif"),
@@ -859,19 +859,18 @@ def add_metrics_annotations(fig, metrics_data):
         ],
     ]
 
-    # Calculate column positions
-    column_width = 0.23  # Width of each column
-    column_gap = 0.01  # Gap between columns
-    start_x = 0.02  # Starting position (left margin)
+    # Calculate column positions with better spacing
+    # Use fixed positions rather than relative calculations to ensure consistent spacing
+    column_positions = [0.02, 0.27, 0.52, 0.77]  # Left position of each column
 
-    # Add metrics to the figure - adjusted y positions
+    # Add metrics to the figure - ensure all are left-aligned
     for col_idx, column in enumerate(metrics_columns):
-        x_pos = start_x + col_idx * (column_width + column_gap)
+        x_pos = column_positions[col_idx]  # Use fixed position for consistent spacing
 
         for row_idx, metric in enumerate(column):
-            # Adjusted spacing to be more centered in the gray rectangle
-            y_offset = -0.05 - 0.05 * row_idx  # More space between metrics in a column
-            y_pos = base_y_position + y_offset  # Adjusted to move down in the rectangle
+            # Spacing between rows
+            y_offset = -0.05 - 0.05 * row_idx
+            y_pos = base_y_position + y_offset
 
             # Format the label and value
             formatted_value = metric["format"].format(metric["value"])
@@ -892,7 +891,7 @@ def add_metrics_annotations(fig, metrics_data):
                 ):
                     text_color = "red"
 
-            # Add the metric to the figure
+            # Add the metric to the figure with explicit left alignment for all columns
             fig.add_annotation(
                 xref="paper",
                 yref="paper",
@@ -904,6 +903,7 @@ def add_metrics_annotations(fig, metrics_data):
                     size=value_font_size, color=text_color, family="Arial, sans-serif"
                 ),
                 align="left",
+                xanchor="left",  # Explicitly set left anchor for text alignment
             )
 
     # Update the figure margin to accommodate the metrics area
