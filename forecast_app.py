@@ -1875,9 +1875,16 @@ def update_graph_and_pert_info(settings_ts, statistics_ts, settings, statistics)
         current_date = datetime.now()
         days_to_deadline = max(0, (deadline_date - current_date).days)
 
+        # Calculate average weekly metrics
+        avg_weekly_items, avg_weekly_points = calculate_weekly_averages(statistics)
+
         # Create PERT info component
         pert_info = create_pert_info_table(
-            pert_time_items, pert_time_points, days_to_deadline
+            pert_time_items,
+            pert_time_points,
+            days_to_deadline,
+            avg_weekly_items,
+            avg_weekly_points,
         )
 
         return fig, pert_info
@@ -1917,7 +1924,13 @@ def toggle_help_modal(n1, n2, is_open):
     return is_open
 
 
-def create_pert_info_table(pert_time_items, pert_time_points, days_to_deadline):
+def create_pert_info_table(
+    pert_time_items,
+    pert_time_points,
+    days_to_deadline,
+    avg_weekly_items=0,
+    avg_weekly_points=0,
+):
     """
     Create the PERT information table.
 
@@ -1925,6 +1938,8 @@ def create_pert_info_table(pert_time_items, pert_time_points, days_to_deadline):
         pert_time_items: PERT estimate for items (days)
         pert_time_points: PERT estimate for points (days)
         days_to_deadline: Days remaining until deadline
+        avg_weekly_items: Average weekly items completed (last 10 weeks)
+        avg_weekly_points: Average weekly points completed (last 10 weeks)
 
     Returns:
         Dash component with PERT information table
@@ -2030,6 +2045,61 @@ def create_pert_info_table(pert_time_items, pert_time_points, days_to_deadline):
                                     ),
                                 ]
                             ),
+                            # Add separator between deadline and averages
+                            html.Tr(
+                                [
+                                    html.Td(
+                                        html.Hr(style={"margin": "10px 0"}),
+                                        colSpan=2,
+                                    )
+                                ]
+                            ),
+                            # Add Average Weekly Items
+                            html.Tr(
+                                [
+                                    html.Td(
+                                        "Avg Weekly Items (10w):",
+                                        className="text-right pr-2",
+                                        style={"fontWeight": "bold"},
+                                    ),
+                                    html.Td(
+                                        [
+                                            f"{avg_weekly_items}",
+                                            html.Span(
+                                                " items/week",
+                                                style={
+                                                    "fontSize": "0.9em",
+                                                    "color": "#666",
+                                                },
+                                            ),
+                                        ],
+                                        style={"fontWeight": "bold"},
+                                    ),
+                                ]
+                            ),
+                            # Add Average Weekly Points
+                            html.Tr(
+                                [
+                                    html.Td(
+                                        "Avg Weekly Points (10w):",
+                                        className="text-right pr-2",
+                                        style={"fontWeight": "bold"},
+                                    ),
+                                    html.Td(
+                                        [
+                                            f"{avg_weekly_points}",
+                                            html.Span(
+                                                " points/week",
+                                                style={
+                                                    "fontSize": "0.9em",
+                                                    "color": "#666",
+                                                },
+                                            ),
+                                        ],
+                                        style={"fontWeight": "bold"},
+                                    ),
+                                ]
+                            ),
                             html.Tr(
                                 [
                                     html.Td(
@@ -2061,6 +2131,38 @@ def create_pert_info_table(pert_time_items, pert_time_points, days_to_deadline):
             )
         ]
     )
+
+
+def calculate_weekly_averages(statistics_data):
+    """
+    Calculate average weekly items and points for the last 10 weeks.
+
+    Args:
+        statistics_data: List of dictionaries containing statistics data
+
+    Returns:
+        Tuple of (avg_weekly_items, avg_weekly_points)
+    """
+    if not statistics_data or len(statistics_data) == 0:
+        return 0, 0
+
+    # Create DataFrame and ensure numeric types
+    df = pd.DataFrame(statistics_data)
+    df["no_items"] = pd.to_numeric(df["no_items"], errors="coerce").fillna(0)
+    df["no_points"] = pd.to_numeric(df["no_points"], errors="coerce").fillna(0)
+
+    # Sort by date to ensure we get the most recent 10 weeks
+    df["date"] = pd.to_datetime(df["date"], errors="coerce")
+    df = df.sort_values("date")
+
+    # Get the last 10 entries or all if less than 10
+    recent_data = df.tail(10)
+
+    # Calculate averages
+    avg_weekly_items = recent_data["no_items"].mean()
+    avg_weekly_points = recent_data["no_points"].mean()
+
+    return round(avg_weekly_items, 1), round(avg_weekly_points, 1)
 
 
 # Run the app
