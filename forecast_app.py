@@ -902,7 +902,7 @@ def add_metrics_annotations(fig, metrics_data):
             {
                 "label": "Total Points",
                 "value": metrics_data["total_points"],
-                "format": "{:,}",
+                "format": "{:,.0f}",
             },
         ],
         [
