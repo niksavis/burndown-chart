@@ -56,7 +56,7 @@ SAMPLE_DATA = pd.DataFrame(
 COLOR_PALETTE = {
     "items": "rgb(0, 99, 178)",  # Blue for items
     "points": "rgb(255, 127, 14)",  # Orange for points
-    "optimistic": "rgb(0, 128, 0)",  # Green for optimistic forecast
+    "optimistic": "rgb(20, 168, 150)",  # Teal for optimistic forecast (changed from green)
     "pessimistic": "rgb(128, 0, 128)",  # Purple for pessimistic forecast
     "deadline": "rgb(220, 20, 60)",  # Crimson for deadline
     "items_grid": "rgba(0, 99, 178, 0.1)",  # Light blue grid
@@ -1521,6 +1521,144 @@ def create_forecast_graph_card():
     )
 
 
+def create_forecast_info_card():
+    """
+    Create the forecast methodology information card component with enhanced explanations.
+
+    Returns:
+        Dash Card component with detailed forecast methodology explanation
+    """
+    return dbc.Card(
+        [
+            dbc.CardHeader(
+                [
+                    html.H4("Forecast Information", className="d-inline"),
+                    create_info_tooltip(
+                        "forecast-info",
+                        "Detailed explanation of how to interpret the forecast graph.",
+                    ),
+                ]
+            ),
+            dbc.CardBody(
+                [
+                    html.Div(
+                        [
+                            html.P(
+                                [
+                                    html.Strong("Forecast Methodology: "),
+                                    "PERT (Program Evaluation and Review Technique) estimation based on your historical performance data. ",
+                                    "The forecast uses three scenarios:",
+                                ],
+                                className="mb-2",
+                            ),
+                            html.Ul(
+                                [
+                                    html.Li(
+                                        [
+                                            html.Strong("Optimistic: "),
+                                            html.Span(
+                                                "Teal",
+                                                style={
+                                                    "color": COLOR_PALETTE[
+                                                        "optimistic"
+                                                    ],
+                                                    "fontWeight": "bold",
+                                                },
+                                            ),
+                                            " for items, ",
+                                            html.Span(
+                                                "Gold",
+                                                style={
+                                                    "color": "rgb(184, 134, 11)",
+                                                    "fontWeight": "bold",
+                                                },
+                                            ),
+                                            " for points. Based on your best performance periods (20% confidence level).",
+                                        ]
+                                    ),
+                                    html.Li(
+                                        [
+                                            html.Strong("Most Likely: "),
+                                            html.Span(
+                                                "Blue",
+                                                style={
+                                                    "color": COLOR_PALETTE["items"],
+                                                    "fontWeight": "bold",
+                                                },
+                                            ),
+                                            " for items, ",
+                                            html.Span(
+                                                "Orange",
+                                                style={
+                                                    "color": COLOR_PALETTE["points"],
+                                                    "fontWeight": "bold",
+                                                },
+                                            ),
+                                            " for points. Based on your average performance (50% confidence level).",
+                                        ]
+                                    ),
+                                    html.Li(
+                                        [
+                                            html.Strong("Pessimistic: "),
+                                            html.Span(
+                                                "Purple",
+                                                style={
+                                                    "color": COLOR_PALETTE[
+                                                        "pessimistic"
+                                                    ],
+                                                    "fontWeight": "bold",
+                                                },
+                                            ),
+                                            " for items, ",
+                                            html.Span(
+                                                "Brown",
+                                                style={
+                                                    "color": "rgb(165, 42, 42)",
+                                                    "fontWeight": "bold",
+                                                },
+                                            ),
+                                            " for points. Based on your slowest performance periods (80% confidence level).",
+                                        ]
+                                    ),
+                                ],
+                                className="mb-2",
+                            ),
+                            html.P(
+                                [
+                                    html.Strong("Reading the Graph: "),
+                                    "Solid lines show historical data. Dashed and dotted lines show forecasts. ",
+                                    "Where these lines cross zero indicates estimated completion dates.",
+                                ],
+                                className="mb-2",
+                            ),
+                            html.P(
+                                [
+                                    html.Strong("Color Coding for Estimates: "),
+                                    "Estimated days appear in ",
+                                    html.Span(
+                                        "green",
+                                        style={"color": "green", "fontWeight": "bold"},
+                                    ),
+                                    " when on track to meet the deadline, and in ",
+                                    html.Span(
+                                        "red",
+                                        style={"color": "red", "fontWeight": "bold"},
+                                    ),
+                                    " when at risk of missing the deadline. The red vertical line represents your deadline date.",
+                                ],
+                                className="mb-0",
+                            ),
+                        ],
+                        style={"textAlign": "left"},
+                    )
+                ],
+                className="py-3",  # Slightly more padding for better readability
+            ),
+        ],
+        className="mb-3 shadow-sm",
+    )
+
+
 def create_pert_analysis_card():
     """
     Create the PERT analysis card component.
@@ -1637,6 +1775,17 @@ def serve_layout():
                     dbc.Col(
                         [
                             create_forecast_graph_card(),
+                        ],
+                        width=12,
+                    ),
+                ]
+            ),
+            # New row: Forecast Info Card
+            dbc.Row(
+                [
+                    dbc.Col(
+                        [
+                            create_forecast_info_card(),
                         ],
                         width=12,
                     ),
@@ -2124,7 +2273,7 @@ def update_total_points_calculation(
     except (ValueError, TypeError):
         # Return previous values if conversion fails
         return (
-            f"{calc_results.get('total_points', 0):.0f}",
+            f"{calc_results.get('total_points', 0)::.0f}",
             f"Using {calc_results.get('avg_points_per_item', 0):.1f} points per item for calculation",
             calc_results,
         )
@@ -2136,7 +2285,6 @@ def update_total_points_calculation(
 
     # Prepare info text with source of calculation and styling
     style = {"color": "inherit"}  # Default styling
-
     if estimated_items <= 0:
         info_text = f"Using {avg_points_per_item:.1f} points per item (based on historical data)"
     else:
@@ -2264,17 +2412,13 @@ def update_and_save_statistics(data, init_complete):
 
     # Save to disk
     save_statistics(data)
-
     logger.info("Statistics updated and saved")
     return data, int(datetime.now().timestamp() * 1000)
 
 
 @app.callback(
     Output("statistics-table", "data"),
-    [
-        Input("add-row-button", "n_clicks"),
-        Input("upload-data", "contents"),
-    ],
+    [Input("add-row-button", "n_clicks"), Input("upload-data", "contents")],
     [State("statistics-table", "data"), State("upload-data", "filename")],
 )
 def update_table(n_clicks, contents, rows, filename):
@@ -2287,7 +2431,6 @@ def update_table(n_clicks, contents, rows, filename):
         return rows
 
     trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
-
     try:
         # Add a new row with a smart date calculation
         if trigger_id == "add-row-button":
@@ -2329,7 +2472,6 @@ def update_table(n_clicks, contents, rows, filename):
             # Parse uploaded file
             content_type, content_string = contents.split(",")
             decoded = base64.b64decode(content_string)
-
             if "csv" in filename.lower():
                 try:
                     # Try semicolon separator first
@@ -2351,7 +2493,6 @@ def update_table(n_clicks, contents, rows, filename):
                     return rows
     except Exception as e:
         logger.error(f"Error in update_table callback: {e}")
-
     return rows
 
 
@@ -2420,7 +2561,6 @@ def update_graph_and_pert_info(
         )
 
         return fig, pert_info
-
     except Exception as e:
         logger.error(f"Error in update_graph_and_pert_info callback: {e}")
         # Return empty figure and error message on failure
@@ -2434,11 +2574,9 @@ def update_graph_and_pert_info(
             showarrow=False,
             font=dict(size=16, color="red"),
         )
-
         error_info = html.Div(
             [html.P("Error calculating PERT values", style={"color": "red"})]
         )
-
         return fig, error_info
 
 
@@ -2684,84 +2822,8 @@ def create_pert_info_table(
                                     ),
                                 ]
                             ),
-                            # Add separator before forecast methodology explanation
-                            html.Tr(
-                                [
-                                    html.Td(
-                                        html.Hr(style={"margin": "10px 0"}),
-                                        colSpan=2,
-                                    )
-                                ]
-                            ),
-                            # Add forecast methodology explanation
-                            html.Tr(
-                                [
-                                    html.Td(
-                                        colSpan=2,
-                                        children=[
-                                            html.P(
-                                                "Forecast Methodology:",
-                                                style={
-                                                    "fontWeight": "bold",
-                                                    "marginBottom": "5px",
-                                                },
-                                                className="text-center",
-                                            ),
-                                            html.Ul(
-                                                [
-                                                    html.Li(
-                                                        [
-                                                            html.Strong(
-                                                                "Most Likely (M): "
-                                                            ),
-                                                            "Average of all historical data",
-                                                        ]
-                                                    ),
-                                                    html.Li(
-                                                        [
-                                                            html.Strong(
-                                                                "Optimistic (O): "
-                                                            ),
-                                                            f"Highest {pert_factor} values from historical data",
-                                                        ]
-                                                    ),
-                                                    html.Li(
-                                                        [
-                                                            html.Strong(
-                                                                "Pessimistic (P): "
-                                                            ),
-                                                            f"Lowest {pert_factor} values from historical data",
-                                                        ]
-                                                    ),
-                                                ],
-                                                style={
-                                                    "fontSize": "0.9em",
-                                                    "paddingLeft": "20px",
-                                                    "marginBottom": "5px",
-                                                },
-                                            ),
-                                        ],
-                                        style={"textAlign": "left"},
-                                    )
-                                ]
-                            ),
-                            html.Tr(
-                                [
-                                    html.Td(
-                                        [
-                                            html.P(
-                                                [
-                                                    "Green means on track to meet deadline, red means at risk. ",
-                                                    "The PERT formula uses optimistic (O), most likely (M), and pessimistic (P) estimates.",
-                                                ],
-                                                className="mt-2 text-muted small",
-                                                style={"textAlign": "center"},
-                                            )
-                                        ],
-                                        colSpan=2,
-                                    )
-                                ]
-                            ),
+                            # Removed the forecast methodology explanation and "Green means..." text
+                            # as they are now in the Forecast Info card
                         ]
                     )
                 ],
