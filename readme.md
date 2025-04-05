@@ -106,8 +106,10 @@ The forecast application offers several advanced features:
 
 - **PERT Factor**: Determines how many data points to use for optimistic and pessimistic estimates (range: 3-15).
 - **Deadline**: Set your project deadline date.
+- **Estimated Items**: Number of items that have been estimated with points.
 - **Total Items**: The total number of work items to be completed.
-- **Total Points**: The total number of complexity/effort points to be completed.
+- **Estimated Points**: Sum of points for the items that have been estimated.
+- **Total Points**: Automatically calculated based on estimated items/points or historical data.
 
 #### Data Management
 
@@ -125,6 +127,12 @@ The app generates an interactive burndown chart with:
   - Pessimistic forecast (based on worst performance)
 - **PERT Analysis**: Shows estimated completion dates using the Program Evaluation and Review Technique.
 - **Deadline Tracking**: Visual indicators show if you're on track to meet your deadline.
+- **Project Metrics**: Displays key metrics including:
+  - Total Items and Points (displayed as whole numbers)
+  - Deadline and days remaining
+  - Estimated completion days for Items and Points
+  - Average Weekly Items/Points (from last 10 weeks)
+  - Median Weekly Items/Points (from last 10 weeks)
 - **Export Options**: Save your chart as a PNG image with the filename format `burndown_forecast_YYYYMMDD.png`.
 
 ### CSV Format for Historical Data

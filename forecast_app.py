@@ -1210,6 +1210,36 @@ def create_help_modal():
                                         ],
                                         className="mb-3",
                                     ),
+                                    html.H6(
+                                        html.Strong("Estimated Items:"),
+                                        className="mt-3",
+                                    ),
+                                    html.Ul(
+                                        [
+                                            html.Li(
+                                                "The number of items that have been estimated with points"
+                                            ),
+                                            html.Li(
+                                                "Used to calculate average points per item and the total points"
+                                            ),
+                                        ],
+                                        className="mb-3",
+                                    ),
+                                    html.H6(
+                                        html.Strong("Estimated Points:"),
+                                        className="mt-3",
+                                    ),
+                                    html.Ul(
+                                        [
+                                            html.Li(
+                                                "The sum of points for the items that have been estimated"
+                                            ),
+                                            html.Li(
+                                                "Used along with Estimated Items to calculate the average"
+                                            ),
+                                        ],
+                                        className="mb-3",
+                                    ),
                                 ],
                                 className="ml-3",
                             ),
@@ -1425,6 +1455,9 @@ def create_help_modal():
                                                                 [
                                                                     html.Li(
                                                                         [
+                                                                            html.Strong(
+                                                                                "Items: "
+                                                                            ),
                                                                             html.Span(
                                                                                 "■",
                                                                                 style={
@@ -1433,11 +1466,32 @@ def create_help_modal():
                                                                                     ]
                                                                                 },
                                                                             ),
-                                                                            " Blue: Items tracking",
+                                                                            " Blue (history/likely), ",
+                                                                            html.Span(
+                                                                                "■",
+                                                                                style={
+                                                                                    "color": COLOR_PALETTE[
+                                                                                        "optimistic"
+                                                                                    ]
+                                                                                },
+                                                                            ),
+                                                                            " Teal (optimistic), ",
+                                                                            html.Span(
+                                                                                "■",
+                                                                                style={
+                                                                                    "color": COLOR_PALETTE[
+                                                                                        "pessimistic"
+                                                                                    ]
+                                                                                },
+                                                                            ),
+                                                                            " Purple (pessimistic)",
                                                                         ]
                                                                     ),
                                                                     html.Li(
                                                                         [
+                                                                            html.Strong(
+                                                                                "Points: "
+                                                                            ),
                                                                             html.Span(
                                                                                 "■",
                                                                                 style={
@@ -1446,11 +1500,28 @@ def create_help_modal():
                                                                                     ]
                                                                                 },
                                                                             ),
-                                                                            " Orange: Points tracking",
+                                                                            " Orange (history/likely), ",
+                                                                            html.Span(
+                                                                                "■",
+                                                                                style={
+                                                                                    "color": "rgb(184, 134, 11)"
+                                                                                },
+                                                                            ),
+                                                                            " Gold (optimistic), ",
+                                                                            html.Span(
+                                                                                "■",
+                                                                                style={
+                                                                                    "color": "rgb(165, 42, 42)"
+                                                                                },
+                                                                            ),
+                                                                            " Brown (pessimistic)",
                                                                         ]
                                                                     ),
                                                                     html.Li(
                                                                         [
+                                                                            html.Strong(
+                                                                                "Deadline: "
+                                                                            ),
                                                                             html.Span(
                                                                                 "■",
                                                                                 style={
@@ -1459,7 +1530,7 @@ def create_help_modal():
                                                                                     ]
                                                                                 },
                                                                             ),
-                                                                            " Red line: Deadline",
+                                                                            " Red vertical line",
                                                                         ]
                                                                     ),
                                                                 ]
@@ -1473,14 +1544,45 @@ def create_help_modal():
                                     ),
                                     html.P(
                                         [
-                                            html.Strong("Reading the forecast:"),
+                                            html.Strong("Project Metrics:"),
                                             html.Br(),
-                                            "Where the forecast lines cross the zero line indicates the estimated completion dates.",
-                                            html.Br(),
-                                            html.Em(
-                                                "Green estimates mean you're on track to meet the deadline, red means at risk."
+                                            "The graph displays key metrics below the chart, including:",
+                                            html.Ul(
+                                                [
+                                                    html.Li(
+                                                        "Total Items and Points (whole numbers)"
+                                                    ),
+                                                    html.Li(
+                                                        "Deadline and days remaining"
+                                                    ),
+                                                    html.Li(
+                                                        "Estimated completion days for Items and Points"
+                                                    ),
+                                                    html.Li(
+                                                        "Average and Median weekly Items/Points (last 10 weeks)"
+                                                    ),
+                                                ]
                                             ),
-                                        ]
+                                            html.Strong("Status Indicators:"),
+                                            " Estimated days appear in ",
+                                            html.Span(
+                                                "green",
+                                                style={
+                                                    "color": "green",
+                                                    "fontWeight": "bold",
+                                                },
+                                            ),
+                                            " when on track to meet the deadline, and in ",
+                                            html.Span(
+                                                "red",
+                                                style={
+                                                    "color": "red",
+                                                    "fontWeight": "bold",
+                                                },
+                                            ),
+                                            " when at risk of missing the deadline.",
+                                        ],
+                                        className="mt-3 mb-0",
                                     ),
                                 ],
                                 className="ml-3",
