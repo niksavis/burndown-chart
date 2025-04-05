@@ -1965,6 +1965,16 @@ def serve_layout():
                                                 editable=True,
                                                 row_deletable=True,
                                                 sort_action="native",
+                                                # Add default sorting by date, descending order (newest first)
+                                                sort_by=[
+                                                    {
+                                                        "column_id": "date",
+                                                        "direction": "desc",
+                                                    }
+                                                ],
+                                                # Add pagination
+                                                page_size=10,
+                                                page_action="native",
                                                 style_table={"overflowX": "auto"},
                                                 style_cell={
                                                     "textAlign": "center",
@@ -2005,6 +2015,7 @@ def serve_layout():
                                             ),
                                             html.Div(
                                                 [
+                                                    # Just one button for adding rows
                                                     dbc.Button(
                                                         [
                                                             html.I(
@@ -2260,7 +2271,10 @@ def update_and_save_statistics(data, init_complete):
 
 @app.callback(
     Output("statistics-table", "data"),
-    [Input("add-row-button", "n_clicks"), Input("upload-data", "contents")],
+    [
+        Input("add-row-button", "n_clicks"),
+        Input("upload-data", "contents"),
+    ],
     [State("statistics-table", "data"), State("upload-data", "filename")],
 )
 def update_table(n_clicks, contents, rows, filename):
@@ -2275,14 +2289,39 @@ def update_table(n_clicks, contents, rows, filename):
     trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
     try:
+        # Add a new row with a smart date calculation
         if trigger_id == "add-row-button":
-            # Add a new empty row with date in YYYY-MM-DD format
-            rows.append(
+            if not rows:
+                # If no existing rows, use today's date
+                new_date = datetime.now().strftime("%Y-%m-%d")
+            else:
+                # Find the most recent date
+                try:
+                    date_objects = [
+                        datetime.strptime(row["date"], "%Y-%m-%d")
+                        for row in rows
+                        if row["date"] and len(row["date"]) == 10
+                    ]
+                    if date_objects:
+                        most_recent_date = max(date_objects)
+                        # Set new date to 7 days after the most recent
+                        new_date = (most_recent_date + timedelta(days=7)).strftime(
+                            "%Y-%m-%d"
+                        )
+                    else:
+                        new_date = datetime.now().strftime("%Y-%m-%d")
+                except ValueError:
+                    # Handle any date parsing errors
+                    new_date = datetime.now().strftime("%Y-%m-%d")
+
+            # Insert at beginning (will be at top with desc sorting)
+            rows.insert(
+                0,
                 {
-                    "date": datetime.now().strftime("%Y-%m-%d"),
+                    "date": new_date,
                     "no_items": 0,
                     "no_points": 0,
-                }
+                },
             )
             return rows
 
