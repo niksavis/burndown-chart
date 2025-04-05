@@ -2377,6 +2377,7 @@ def update_graph_and_pert_info(
             avg_weekly_points,
             med_weekly_items,
             med_weekly_points,
+            pert_factor,  # Pass pert_factor to the function
         )
 
         return fig, pert_info
@@ -2424,6 +2425,7 @@ def create_pert_info_table(
     avg_weekly_points=0,
     med_weekly_items=0,
     med_weekly_points=0,
+    pert_factor=3,  # Add default value
 ):
     """
     Create the PERT information table.
@@ -2436,6 +2438,7 @@ def create_pert_info_table(
         avg_weekly_points: Average weekly points completed (last 10 weeks)
         med_weekly_items: Median weekly items completed (last 10 weeks)
         med_weekly_points: Median weekly points completed (last 10 weeks)
+        pert_factor: Number of data points used for optimistic/pessimistic scenarios
 
     Returns:
         Dash component with PERT information table
@@ -2640,6 +2643,67 @@ def create_pert_info_table(
                                         ],
                                         style={"fontWeight": "bold"},
                                     ),
+                                ]
+                            ),
+                            # Add separator before forecast methodology explanation
+                            html.Tr(
+                                [
+                                    html.Td(
+                                        html.Hr(style={"margin": "10px 0"}),
+                                        colSpan=2,
+                                    )
+                                ]
+                            ),
+                            # Add forecast methodology explanation
+                            html.Tr(
+                                [
+                                    html.Td(
+                                        colSpan=2,
+                                        children=[
+                                            html.P(
+                                                "Forecast Methodology:",
+                                                style={
+                                                    "fontWeight": "bold",
+                                                    "marginBottom": "5px",
+                                                },
+                                                className="text-center",
+                                            ),
+                                            html.Ul(
+                                                [
+                                                    html.Li(
+                                                        [
+                                                            html.Strong(
+                                                                "Most Likely (M): "
+                                                            ),
+                                                            "Average of all historical data",
+                                                        ]
+                                                    ),
+                                                    html.Li(
+                                                        [
+                                                            html.Strong(
+                                                                "Optimistic (O): "
+                                                            ),
+                                                            f"Highest {pert_factor} values from historical data",
+                                                        ]
+                                                    ),
+                                                    html.Li(
+                                                        [
+                                                            html.Strong(
+                                                                "Pessimistic (P): "
+                                                            ),
+                                                            f"Lowest {pert_factor} values from historical data",
+                                                        ]
+                                                    ),
+                                                ],
+                                                style={
+                                                    "fontSize": "0.9em",
+                                                    "paddingLeft": "20px",
+                                                    "marginBottom": "5px",
+                                                },
+                                            ),
+                                        ],
+                                        style={"textAlign": "left"},
+                                    )
                                 ]
                             ),
                             html.Tr(
