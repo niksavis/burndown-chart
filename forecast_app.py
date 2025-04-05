@@ -31,6 +31,10 @@ DEFAULT_PERT_FACTOR = 3
 DEFAULT_TOTAL_ITEMS = 100
 DEFAULT_TOTAL_POINTS = 1000
 DEFAULT_DEADLINE = (datetime.now() + timedelta(days=60)).strftime("%Y-%m-%d")
+DEFAULT_ESTIMATED_ITEMS = 20  # Default value for estimated items (20% of total items)
+DEFAULT_ESTIMATED_POINTS = (
+    200  # Default value for estimated points (based on default averages)
+)
 
 # File paths for data persistence
 SETTINGS_FILE = "forecast_settings.json"
@@ -83,6 +87,14 @@ HELP_TEXTS = {
         The total number of points (effort, complexity) to be completed.
         This represents work effort/complexity.
     """,
+    "estimated_items": """
+        The number of items that have already been estimated with points.
+        This should be less than or equal to Total Items.
+    """,
+    "estimated_points": """
+        The sum of points for the items that have been estimated.
+        Used to calculate the average points per item for the entire project.
+    """,
     "csv_format": """
         Your CSV file should contain the following columns:
         - date: Date of work completed (YYYY-MM-DD format)
@@ -120,7 +132,14 @@ HELP_TEXTS = {
 # ===== DATA PERSISTENCE FUNCTIONS =====
 
 
-def save_settings(pert_factor, deadline, total_items, total_points):
+def save_settings(
+    pert_factor,
+    deadline,
+    total_items,
+    total_points,
+    estimated_items=None,
+    estimated_points=None,
+):
     """
     Save user settings to JSON file.
 
@@ -129,12 +148,20 @@ def save_settings(pert_factor, deadline, total_items, total_points):
         deadline: Deadline date string
         total_items: Total number of items
         total_points: Total number of points
+        estimated_items: Number of items that have been estimated
+        estimated_points: Number of points for the estimated items
     """
     settings = {
         "pert_factor": pert_factor,
         "deadline": deadline,
         "total_items": total_items,
         "total_points": total_points,
+        "estimated_items": estimated_items
+        if estimated_items is not None
+        else DEFAULT_ESTIMATED_ITEMS,
+        "estimated_points": estimated_points
+        if estimated_points is not None
+        else DEFAULT_ESTIMATED_POINTS,
     }
 
     try:
@@ -165,6 +192,8 @@ def load_settings():
         "deadline": DEFAULT_DEADLINE,
         "total_items": DEFAULT_TOTAL_ITEMS,
         "total_points": DEFAULT_TOTAL_POINTS,
+        "estimated_items": DEFAULT_ESTIMATED_ITEMS,
+        "estimated_points": DEFAULT_ESTIMATED_POINTS,
     }
 
     try:
@@ -172,6 +201,13 @@ def load_settings():
             with open(SETTINGS_FILE, "r") as f:
                 settings = json.load(f)
             logger.info(f"Settings loaded from {SETTINGS_FILE}")
+
+            # Add default values for new fields if they don't exist
+            if "estimated_items" not in settings:
+                settings["estimated_items"] = DEFAULT_ESTIMATED_ITEMS
+            if "estimated_points" not in settings:
+                settings["estimated_points"] = DEFAULT_ESTIMATED_POINTS
+
             return settings
         else:
             logger.info("Settings file not found, using defaults")
@@ -224,6 +260,50 @@ def load_statistics():
     except Exception as e:
         logger.error(f"Error loading statistics: {e}")
         return SAMPLE_DATA.to_dict("records")
+
+
+def calculate_total_points(
+    total_items, estimated_items, estimated_points, statistics_data=None
+):
+    """
+    Calculate the total points based on estimated points and items.
+
+    Args:
+        total_items: Total number of items in the project
+        estimated_items: Number of items that have been estimated
+        estimated_points: Number of points for the estimated items
+        statistics_data: Optional historical data to use as fallback
+
+    Returns:
+        Tuple of (estimated_total_points, avg_points_per_item)
+    """
+    # Basic validation to prevent division by zero
+    if estimated_items <= 0:
+        # If no items are estimated, try to use historical data
+        if statistics_data and len(statistics_data) > 0:
+            # Calculate average points per item from historical data
+            df = pd.DataFrame(statistics_data)
+            df["no_items"] = pd.to_numeric(df["no_items"], errors="coerce").fillna(0)
+            df["no_points"] = pd.to_numeric(df["no_points"], errors="coerce").fillna(0)
+
+            total_completed_items = df["no_items"].sum()
+            total_completed_points = df["no_points"].sum()
+
+            if total_completed_items > 0:
+                avg_points_per_item = total_completed_points / total_completed_items
+                estimated_total_points = total_items * avg_points_per_item
+                return estimated_total_points, avg_points_per_item
+
+        # Default to 10 points per item if no data available
+        return total_items * 10, 10
+
+    # Calculate average points per item based on estimates
+    avg_points_per_item = estimated_points / estimated_items
+
+    # Calculate total points using the average
+    estimated_total_points = total_items * avg_points_per_item
+
+    return estimated_total_points, avg_points_per_item
 
 
 # ===== DATA PROCESSING FUNCTIONS =====
@@ -955,7 +1035,8 @@ def create_forecast_plot(df, total_items, total_points, pert_factor, deadline_st
     # Calculate average weekly metrics for display
     avg_weekly_items, avg_weekly_points = 0, 0
     if not df.empty:
-        avg_weekly_items, avg_weekly_points = calculate_weekly_averages(
+        # Fix: Unpack only the first two values from calculate_weekly_averages
+        avg_weekly_items, avg_weekly_points, _, _ = calculate_weekly_averages(
             df.to_dict("records")
         )
 
@@ -1490,6 +1571,14 @@ def serve_layout():
     current_settings = load_settings()
     current_statistics = load_statistics()
 
+    # Calculate total points based on estimated values (for initial display)
+    estimated_total_points, avg_points_per_item = calculate_total_points(
+        current_settings["total_items"],
+        current_settings["estimated_items"],
+        current_settings["estimated_points"],
+        current_statistics,
+    )
+
     return dbc.Container(
         [
             # Page initialization complete flag (hidden)
@@ -1497,6 +1586,14 @@ def serve_layout():
             # Persistent storage for the current data
             dcc.Store(id="current-settings", data=current_settings),
             dcc.Store(id="current-statistics", data=current_statistics),
+            # Store for calculation results
+            dcc.Store(
+                id="calculation-results",
+                data={
+                    "total_points": estimated_total_points,
+                    "avg_points_per_item": avg_points_per_item,
+                },
+            ),
             # Sticky Help Button in top-right corner
             html.Div(
                 [
@@ -1566,6 +1663,7 @@ def serve_layout():
                                     ),
                                     dbc.CardBody(
                                         [
+                                            # PERT factor and Deadline (unchanged)
                                             dbc.Row(
                                                 [
                                                     dbc.Col(
@@ -1628,8 +1726,35 @@ def serve_layout():
                                                 ]
                                             ),
                                             html.Br(),
+                                            # REDESIGNED: Estimated Items and Total Items in one row
                                             dbc.Row(
                                                 [
+                                                    dbc.Col(
+                                                        [
+                                                            html.Label(
+                                                                [
+                                                                    "Estimated Items:",
+                                                                    create_info_tooltip(
+                                                                        "estimated-items",
+                                                                        HELP_TEXTS[
+                                                                            "estimated_items"
+                                                                        ],
+                                                                    ),
+                                                                ]
+                                                            ),
+                                                            dbc.Input(
+                                                                id="estimated-items-input",
+                                                                type="number",
+                                                                value=current_settings[
+                                                                    "estimated_items"
+                                                                ],
+                                                                min=0,
+                                                                step=1,
+                                                            ),
+                                                        ],
+                                                        width=12,
+                                                        lg=6,
+                                                    ),
                                                     dbc.Col(
                                                         [
                                                             html.Label(
@@ -1656,24 +1781,30 @@ def serve_layout():
                                                         width=12,
                                                         lg=6,
                                                     ),
+                                                ]
+                                            ),
+                                            html.Br(),
+                                            # REDESIGNED: Estimated Points and Total Points in one row
+                                            dbc.Row(
+                                                [
                                                     dbc.Col(
                                                         [
                                                             html.Label(
                                                                 [
-                                                                    "Total Points:",
+                                                                    "Estimated Points:",
                                                                     create_info_tooltip(
-                                                                        "total-points",
+                                                                        "estimated-points",
                                                                         HELP_TEXTS[
-                                                                            "total_points"
+                                                                            "estimated_points"
                                                                         ],
                                                                     ),
                                                                 ]
                                                             ),
                                                             dbc.Input(
-                                                                id="total-points-input",
+                                                                id="estimated-points-input",
                                                                 type="number",
                                                                 value=current_settings[
-                                                                    "total_points"
+                                                                    "estimated_points"
                                                                 ],
                                                                 min=0,
                                                                 step=1,
@@ -1682,9 +1813,51 @@ def serve_layout():
                                                         width=12,
                                                         lg=6,
                                                     ),
+                                                    dbc.Col(
+                                                        [
+                                                            html.Label(
+                                                                [
+                                                                    "Total Points (calculated):",
+                                                                    create_info_tooltip(
+                                                                        "total-points",
+                                                                        HELP_TEXTS[
+                                                                            "total_points"
+                                                                        ],
+                                                                    ),
+                                                                ]
+                                                            ),
+                                                            dbc.InputGroup(
+                                                                [
+                                                                    dbc.Input(
+                                                                        id="total-points-display",
+                                                                        value=f"{estimated_total_points:.0f}",
+                                                                        disabled=True,
+                                                                        style={
+                                                                            "backgroundColor": "#f8f9fa"
+                                                                        },
+                                                                    ),
+                                                                    dbc.InputGroupText(
+                                                                        html.I(
+                                                                            className="fas fa-calculator"
+                                                                        ),
+                                                                    ),
+                                                                ]
+                                                            ),
+                                                            html.Small(
+                                                                id="points-calculation-info",
+                                                                children=[
+                                                                    f"Using {avg_points_per_item:.1f} points per item for calculation"
+                                                                ],
+                                                                className="text-muted mt-1 d-block",
+                                                            ),
+                                                        ],
+                                                        width=12,
+                                                        lg=6,
+                                                    ),
                                                 ]
                                             ),
                                             html.Br(),
+                                            # CSV Upload section (unchanged)
                                             dbc.Row(
                                                 [
                                                     dbc.Col(
@@ -1888,6 +2061,113 @@ def mark_initialization_complete(figure):
     return True
 
 
+# Add new callback to update the total points calculation (moved from bottom of file)
+@app.callback(
+    [
+        Output("total-points-display", "value"),
+        Output("points-calculation-info", "children"),
+        Output("calculation-results", "data"),
+    ],
+    [
+        Input("total-items-input", "value"),
+        Input("estimated-items-input", "value"),
+        Input("estimated-points-input", "value"),
+        Input("current-statistics", "modified_timestamp"),
+    ],
+    [
+        State("current-statistics", "data"),
+        State("calculation-results", "data"),
+    ],
+)
+def update_total_points_calculation(
+    total_items, estimated_items, estimated_points, stats_ts, statistics, calc_results
+):
+    """
+    Update the total points calculation based on estimated items and points or historical data.
+
+    Args:
+        total_items: Total number of items in the project
+        estimated_items: Number of items that have been estimated
+        estimated_points: Number of points for the estimated items
+        stats_ts: Timestamp for statistics changes (trigger)
+        statistics: Current statistics data
+        calc_results: Previous calculation results
+
+    Returns:
+        Tuple of (formatted total points, calculation info text, updated calculation data)
+    """
+    # Input validation
+    if None in [total_items, estimated_items, estimated_points]:
+        # Return previous values if any input is None
+        return (
+            f"{calc_results.get('total_points', 0):.0f}",
+            f"Using {calc_results.get('avg_points_per_item', 0):.1f} points per item for calculation",
+            calc_results,
+        )
+
+    # Handle invalid inputs by converting to numbers
+    try:
+        total_items = int(total_items)
+        estimated_items = int(estimated_items)
+        estimated_points = float(estimated_points)
+    except (ValueError, TypeError):
+        # Return previous values if conversion fails
+        return (
+            f"{calc_results.get('total_points', 0):.0f}",
+            f"Using {calc_results.get('avg_points_per_item', 0):.1f} points per item for calculation",
+            calc_results,
+        )
+
+    # Calculate total points and average
+    estimated_total_points, avg_points_per_item = calculate_total_points(
+        total_items, estimated_items, estimated_points, statistics
+    )
+
+    # Prepare info text with source of calculation and styling
+    style = {"color": "inherit"}  # Default styling
+
+    if estimated_items <= 0:
+        info_text = f"Using {avg_points_per_item:.1f} points per item (based on historical data)"
+    else:
+        # If estimated items exceeds total, show a warning
+        if estimated_items > total_items:
+            info_text = (
+                f"Warning: Estimated items ({estimated_items}) exceeds total items ({total_items}). "
+                f"Using {avg_points_per_item:.1f} points per item."
+            )
+            style = {"color": "#dc3545"}  # Bootstrap danger red
+        else:
+            percent_estimated = (
+                (estimated_items / total_items) * 100 if total_items > 0 else 0
+            )
+            # Add confidence level based on percentage estimated
+            confidence = "low"
+            if percent_estimated >= 75:
+                confidence = "high"
+                style = {"color": "#28a745"}  # Bootstrap success green
+            elif percent_estimated >= 30:
+                confidence = "medium"
+                style = {"color": "#ffc107"}  # Bootstrap warning yellow
+
+            info_text = (
+                f"Using {avg_points_per_item:.1f} points per item "
+                f"({percent_estimated:.0f}% of items estimated, {confidence} confidence)"
+            )
+
+    # Update the calculation results store
+    updated_calc_results = {
+        "total_points": estimated_total_points,
+        "avg_points_per_item": avg_points_per_item,
+    }
+
+    # Return with styled info text
+    return (
+        f"{estimated_total_points:.0f}",
+        html.Span(info_text, style=style),
+        updated_calc_results,
+    )
+
+
 @app.callback(
     [
         Output("current-settings", "data"),
@@ -1897,12 +2177,20 @@ def mark_initialization_complete(figure):
         Input("pert-factor-slider", "value"),
         Input("deadline-picker", "date"),
         Input("total-items-input", "value"),
-        Input("total-points-input", "value"),
+        Input("calculation-results", "data"),  # Use calculated total points
+        Input("estimated-items-input", "value"),
+        Input("estimated-points-input", "value"),
     ],
     [State("app-init-complete", "data")],
 )
 def update_and_save_settings(
-    pert_factor, deadline, total_items, total_points, init_complete
+    pert_factor,
+    deadline,
+    total_items,
+    calc_results,
+    estimated_items,
+    estimated_points,
+    init_complete,
 ):
     """
     Update current settings and save to disk when changed.
@@ -1913,9 +2201,13 @@ def update_and_save_settings(
     if (
         not init_complete
         or not ctx.triggered
-        or None in [pert_factor, deadline, total_items, total_points]
+        or None
+        in [pert_factor, deadline, total_items, estimated_items, estimated_points]
     ):
         raise PreventUpdate
+
+    # Get total points from calculation results
+    total_points = calc_results.get("total_points", DEFAULT_TOTAL_POINTS)
 
     # Create updated settings
     settings = {
@@ -1923,10 +2215,19 @@ def update_and_save_settings(
         "deadline": deadline,
         "total_items": total_items,
         "total_points": total_points,
+        "estimated_items": estimated_items,
+        "estimated_points": estimated_points,
     }
 
     # Save to disk
-    save_settings(pert_factor, deadline, total_items, total_points)
+    save_settings(
+        pert_factor,
+        deadline,
+        total_items,
+        total_points,
+        estimated_items,
+        estimated_points,
+    )
 
     logger.info(f"Settings updated and saved: {settings}")
     return settings, int(datetime.now().timestamp() * 1000)
@@ -2020,10 +2321,13 @@ def update_table(n_clicks, contents, rows, filename):
     [
         Input("current-settings", "modified_timestamp"),
         Input("current-statistics", "modified_timestamp"),
+        Input("calculation-results", "data"),
     ],
     [State("current-settings", "data"), State("current-statistics", "data")],
 )
-def update_graph_and_pert_info(settings_ts, statistics_ts, settings, statistics):
+def update_graph_and_pert_info(
+    settings_ts, statistics_ts, calc_results, settings, statistics
+):
     """
     Update the forecast graph and PERT analysis when settings or statistics change.
     """
@@ -2037,7 +2341,8 @@ def update_graph_and_pert_info(settings_ts, statistics_ts, settings, statistics)
         # Get values from settings
         pert_factor = settings["pert_factor"]
         total_items = settings["total_items"]
-        total_points = settings["total_points"]
+        # Use calculated total points from calc_results if available
+        total_points = calc_results.get("total_points", settings["total_points"])
         deadline = settings["deadline"]
 
         # Process data for calculations
@@ -2058,8 +2363,10 @@ def update_graph_and_pert_info(settings_ts, statistics_ts, settings, statistics)
         current_date = datetime.now()
         days_to_deadline = max(0, (deadline_date - current_date).days)
 
-        # Calculate average weekly metrics
-        avg_weekly_items, avg_weekly_points = calculate_weekly_averages(statistics)
+        # Calculate average and median weekly metrics
+        avg_weekly_items, avg_weekly_points, med_weekly_items, med_weekly_points = (
+            calculate_weekly_averages(statistics)
+        )
 
         # Create PERT info component
         pert_info = create_pert_info_table(
@@ -2068,6 +2375,8 @@ def update_graph_and_pert_info(settings_ts, statistics_ts, settings, statistics)
             days_to_deadline,
             avg_weekly_items,
             avg_weekly_points,
+            med_weekly_items,
+            med_weekly_points,
         )
 
         return fig, pert_info
@@ -2113,6 +2422,8 @@ def create_pert_info_table(
     days_to_deadline,
     avg_weekly_items=0,
     avg_weekly_points=0,
+    med_weekly_items=0,
+    med_weekly_points=0,
 ):
     """
     Create the PERT information table.
@@ -2123,6 +2434,8 @@ def create_pert_info_table(
         days_to_deadline: Days remaining until deadline
         avg_weekly_items: Average weekly items completed (last 10 weeks)
         avg_weekly_points: Average weekly points completed (last 10 weeks)
+        med_weekly_items: Median weekly items completed (last 10 weeks)
+        med_weekly_points: Median weekly points completed (last 10 weeks)
 
     Returns:
         Dash component with PERT information table
@@ -2228,7 +2541,7 @@ def create_pert_info_table(
                                     ),
                                 ]
                             ),
-                            # Add separator between deadline and averages
+                            # Add separator between deadline and metrics
                             html.Tr(
                                 [
                                     html.Td(
@@ -2260,6 +2573,29 @@ def create_pert_info_table(
                                     ),
                                 ]
                             ),
+                            # Add Median Weekly Items (NEW)
+                            html.Tr(
+                                [
+                                    html.Td(
+                                        "Med Weekly Items (10w):",
+                                        className="text-right pr-2",
+                                        style={"fontWeight": "bold"},
+                                    ),
+                                    html.Td(
+                                        [
+                                            f"{med_weekly_items}",
+                                            html.Span(
+                                                " items/week",
+                                                style={
+                                                    "fontSize": "0.9em",
+                                                    "color": "#666",
+                                                },
+                                            ),
+                                        ],
+                                        style={"fontWeight": "bold"},
+                                    ),
+                                ]
+                            ),
                             # Add Average Weekly Points
                             html.Tr(
                                 [
@@ -2271,6 +2607,29 @@ def create_pert_info_table(
                                     html.Td(
                                         [
                                             f"{avg_weekly_points}",
+                                            html.Span(
+                                                " points/week",
+                                                style={
+                                                    "fontSize": "0.9em",
+                                                    "color": "#666",
+                                                },
+                                            ),
+                                        ],
+                                        style={"fontWeight": "bold"},
+                                    ),
+                                ]
+                            ),
+                            # Add Median Weekly Points (NEW)
+                            html.Tr(
+                                [
+                                    html.Td(
+                                        "Med Weekly Points (10w):",
+                                        className="text-right pr-2",
+                                        style={"fontWeight": "bold"},
+                                    ),
+                                    html.Td(
+                                        [
+                                            f"{med_weekly_points}",
                                             html.Span(
                                                 " points/week",
                                                 style={
@@ -2318,16 +2677,16 @@ def create_pert_info_table(
 
 def calculate_weekly_averages(statistics_data):
     """
-    Calculate average weekly items and points for the last 10 weeks.
+    Calculate average and median weekly items and points for the last 10 weeks.
 
     Args:
         statistics_data: List of dictionaries containing statistics data
 
     Returns:
-        Tuple of (avg_weekly_items, avg_weekly_points)
+        Tuple of (avg_weekly_items, avg_weekly_points, med_weekly_items, med_weekly_points)
     """
     if not statistics_data or len(statistics_data) == 0:
-        return 0, 0
+        return 0, 0, 0, 0
 
     # Create DataFrame and ensure numeric types
     df = pd.DataFrame(statistics_data)
@@ -2341,11 +2700,18 @@ def calculate_weekly_averages(statistics_data):
     # Get the last 10 entries or all if less than 10
     recent_data = df.tail(10)
 
-    # Calculate averages
+    # Calculate averages and medians
     avg_weekly_items = recent_data["no_items"].mean()
     avg_weekly_points = recent_data["no_points"].mean()
+    med_weekly_items = recent_data["no_items"].median()
+    med_weekly_points = recent_data["no_points"].median()
 
-    return round(avg_weekly_items, 1), round(avg_weekly_points, 1)
+    return (
+        round(avg_weekly_items, 1),
+        round(avg_weekly_points, 1),
+        round(med_weekly_items, 1),
+        round(med_weekly_points, 1),
+    )
 
 
 # Run the app
