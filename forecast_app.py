@@ -937,11 +937,23 @@ def add_metrics_annotations(fig, metrics_data):
                 "format": "{:.1f}",
             },
         ],
+        [
+            {
+                "label": "Med Weekly Items (10W)",
+                "value": metrics_data["med_weekly_items"],
+                "format": "{:.1f}",
+            },
+            {
+                "label": "Med Weekly Points (10W)",
+                "value": metrics_data["med_weekly_points"],
+                "format": "{:.1f}",
+            },
+        ],
     ]
 
     # Calculate column positions with better spacing
     # Use fixed positions rather than relative calculations to ensure consistent spacing
-    column_positions = [0.02, 0.27, 0.52, 0.77]  # Left position of each column
+    column_positions = [0.02, 0.21, 0.40, 0.60, 0.80]  # Left position of each column
 
     # Add metrics to the figure - ensure all are left-aligned
     for col_idx, column in enumerate(metrics_columns):
@@ -988,7 +1000,7 @@ def add_metrics_annotations(fig, metrics_data):
 
     # Update the figure margin to accommodate the metrics area
     fig.update_layout(
-        margin=dict(b=150)  # Increase bottom margin to make room for metrics
+        margin=dict(b=180)  # Increase bottom margin to make room for added metrics
     )
 
     return fig
@@ -1032,12 +1044,13 @@ def create_forecast_plot(df, total_items, total_points, pert_factor, deadline_st
     current_date = datetime.now()
     days_to_deadline = max(0, (deadline - current_date).days)
 
-    # Calculate average weekly metrics for display
+    # Calculate average and median weekly metrics for display
     avg_weekly_items, avg_weekly_points = 0, 0
+    med_weekly_items, med_weekly_points = 0, 0
     if not df.empty:
-        # Fix: Unpack only the first two values from calculate_weekly_averages
-        avg_weekly_items, avg_weekly_points, _, _ = calculate_weekly_averages(
-            df.to_dict("records")
+        # Get all four values from calculate_weekly_averages
+        avg_weekly_items, avg_weekly_points, med_weekly_items, med_weekly_points = (
+            calculate_weekly_averages(df.to_dict("records"))
         )
 
     # Add metrics data to the plot
@@ -1050,6 +1063,8 @@ def create_forecast_plot(df, total_items, total_points, pert_factor, deadline_st
         "pert_time_points": forecast_data["pert_time_points"],
         "avg_weekly_items": avg_weekly_items,
         "avg_weekly_points": avg_weekly_points,
+        "med_weekly_items": med_weekly_items,
+        "med_weekly_points": med_weekly_points,
     }
 
     fig = add_metrics_annotations(fig, metrics_data)
