@@ -93,7 +93,7 @@ The project includes an interactive web-based burndown forecast tool that provid
 Launch the interactive forecast application with:
 
 ```sh
-python forecast_app.py
+python app.py
 ```
 
 Then open your web browser and navigate to: `http://127.0.0.1:8050/`
