@@ -11,7 +11,7 @@ markers, and styling elements used to build the complete forecast visualization.
 import plotly.graph_objects as go
 
 # Import from configuration
-from config import COLOR_PALETTE
+from configuration.config import COLOR_PALETTE
 
 #######################################################################
 # TRACE CREATION FUNCTIONS

@@ -13,7 +13,7 @@ from dash.exceptions import PreventUpdate
 from datetime import datetime
 
 # Import from application modules
-from config import (
+from configuration.config import (
     logger,
     DEFAULT_TOTAL_POINTS,
     DEFAULT_ESTIMATED_ITEMS,

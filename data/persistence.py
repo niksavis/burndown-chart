@@ -13,7 +13,7 @@ import json
 import pandas as pd
 
 # Import from configuration
-from config import (
+from configuration.config import (
     logger,
     SETTINGS_FILE,
     STATISTICS_FILE,

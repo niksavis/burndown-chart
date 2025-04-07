@@ -16,7 +16,7 @@ import io
 import base64
 
 # Import from application modules
-from config import logger
+from configuration.config import logger
 from data.persistence import save_statistics
 from data.processing import read_and_clean_data
 

@@ -13,7 +13,7 @@ import dash_bootstrap_components as dbc
 from datetime import datetime
 
 # Import from other modules
-from config import HELP_TEXTS, COLOR_PALETTE
+from configuration.config import HELP_TEXTS, COLOR_PALETTE
 from ui.components import create_info_tooltip
 
 #######################################################################
