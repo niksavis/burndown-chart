@@ -14,7 +14,7 @@ import pandas as pd
 from datetime import datetime
 
 # Import from other modules
-from configuration.config import COLOR_PALETTE
+from configuration.settings import COLOR_PALETTE
 from data.processing import (
     prepare_forecast_data,
     calculate_weekly_averages,

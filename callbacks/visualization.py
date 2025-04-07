@@ -14,7 +14,7 @@ import pandas as pd
 from datetime import datetime
 
 # Import from application modules
-from configuration.config import logger
+from configuration.settings import logger
 from data.processing import compute_cumulative_values, calculate_weekly_averages
 from visualization.charts import create_forecast_plot
 from ui.components import create_pert_info_table

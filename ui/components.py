@@ -12,7 +12,7 @@ from dash import html, dcc
 import dash_bootstrap_components as dbc
 
 # Import from configuration
-from configuration.config import COLOR_PALETTE
+from configuration.settings import COLOR_PALETTE
 # HELP_TEXTS is imported but not directly used in this file
 
 #######################################################################
