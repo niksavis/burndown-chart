@@ -11,7 +11,6 @@ forecasting algorithms for the burndown chart application.
 import pandas as pd
 from datetime import datetime, timedelta
 
-
 #######################################################################
 # DATA PROCESSING FUNCTIONS
 #######################################################################
