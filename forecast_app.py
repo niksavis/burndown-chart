@@ -5,6 +5,9 @@ A Dash-based web application that forecasts project completion using the PERT me
 based on historical data. This tool visualizes burndown charts for both items and points.
 """
 
+#######################################################################
+# IMPORTS
+#######################################################################
 import pandas as pd
 from datetime import datetime, timedelta
 import plotly.graph_objects as go
@@ -19,14 +22,19 @@ import logging
 import json
 import os
 
-# Configure logging
+#######################################################################
+# LOGGING CONFIGURATION
+#######################################################################
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
 
-# ===== APPLICATION CONSTANTS =====
+#######################################################################
+# APPLICATION CONSTANTS
+#######################################################################
+# Default values
 DEFAULT_PERT_FACTOR = 3
 DEFAULT_TOTAL_ITEMS = 100
 DEFAULT_TOTAL_POINTS = 1000
@@ -129,7 +137,9 @@ HELP_TEXTS = {
     """,
 }
 
-# ===== DATA PERSISTENCE FUNCTIONS =====
+#######################################################################
+# DATA PERSISTENCE FUNCTIONS
+#######################################################################
 
 
 def save_settings(
@@ -306,7 +316,9 @@ def calculate_total_points(
     return estimated_total_points, avg_points_per_item
 
 
-# ===== DATA PROCESSING FUNCTIONS =====
+#######################################################################
+# DATA PROCESSING FUNCTIONS
+#######################################################################
 
 
 def read_and_clean_data(df):
@@ -492,7 +504,48 @@ def daily_forecast(start_val, daily_rate, start_date):
     return x_vals, y_vals
 
 
-# ===== VISUALIZATION FUNCTIONS =====
+def calculate_weekly_averages(statistics_data):
+    """
+    Calculate average and median weekly items and points for the last 10 weeks.
+
+    Args:
+        statistics_data: List of dictionaries containing statistics data
+
+    Returns:
+        Tuple of (avg_weekly_items, avg_weekly_points, med_weekly_items, med_weekly_points)
+    """
+    if not statistics_data or len(statistics_data) == 0:
+        return 0, 0, 0, 0
+
+    # Create DataFrame and ensure numeric types
+    df = pd.DataFrame(statistics_data)
+    df["no_items"] = pd.to_numeric(df["no_items"], errors="coerce").fillna(0)
+    df["no_points"] = pd.to_numeric(df["no_points"], errors="coerce").fillna(0)
+
+    # Sort by date to ensure we get the most recent 10 weeks
+    df["date"] = pd.to_datetime(df["date"], errors="coerce")
+    df = df.sort_values("date")
+
+    # Get the last 10 entries or all if less than 10
+    recent_data = df.tail(10)
+
+    # Calculate averages and medians
+    avg_weekly_items = recent_data["no_items"].mean()
+    avg_weekly_points = recent_data["no_points"].mean()
+    med_weekly_items = recent_data["no_items"].median()
+    med_weekly_points = recent_data["no_points"].median()
+
+    return (
+        round(avg_weekly_items, 1),
+        round(avg_weekly_points, 1),
+        round(med_weekly_items, 1),
+        round(med_weekly_points, 1),
+    )
+
+
+#######################################################################
+# VISUALIZATION FUNCTIONS
+#######################################################################
 
 
 def prepare_forecast_data(df, total_items, total_points, pert_factor):
@@ -1006,7 +1059,6 @@ def add_metrics_annotations(fig, metrics_data):
     return fig
 
 
-# create_forecast_plot function
 def create_forecast_plot(df, total_items, total_points, pert_factor, deadline_str):
     """
     Create the complete forecast plot with all components.
@@ -1072,7 +1124,9 @@ def create_forecast_plot(df, total_items, total_points, pert_factor, deadline_st
     return fig, forecast_data["pert_time_items"], forecast_data["pert_time_points"]
 
 
-# ===== UI COMPONENT FUNCTIONS =====
+#######################################################################
+# UI COMPONENT FUNCTIONS
+#######################################################################
 
 
 def create_info_tooltip(id_suffix, help_text):
@@ -1804,7 +1858,255 @@ def create_pert_analysis_card():
     )
 
 
-# ===== APPLICATION SETUP =====
+def create_pert_info_table(
+    pert_time_items,
+    pert_time_points,
+    days_to_deadline,
+    avg_weekly_items=0,
+    avg_weekly_points=0,
+    med_weekly_items=0,
+    med_weekly_points=0,
+    pert_factor=3,  # Add default value
+):
+    """
+    Create the PERT information table.
+
+    Args:
+        pert_time_items: PERT estimate for items (days)
+        pert_time_points: PERT estimate for points (days)
+        days_to_deadline: Days remaining until deadline
+        avg_weekly_items: Average weekly items completed (last 10 weeks)
+        avg_weekly_points: Average weekly points completed (last 10 weeks)
+        med_weekly_items: Median weekly items completed (last 10 weeks)
+        med_weekly_points: Median weekly points completed (last 10 weeks)
+        pert_factor: Number of data points used for optimistic/pessimistic scenarios
+
+    Returns:
+        Dash component with PERT information table
+    """
+    # Determine colors based on if we'll meet the deadline
+    items_color = "green" if pert_time_items <= days_to_deadline else "red"
+    points_color = "green" if pert_time_points <= days_to_deadline else "red"
+
+    return html.Div(
+        [
+            html.Table(
+                [
+                    html.Tbody(
+                        [
+                            # PERT formula as first row in the table
+                            html.Tr(
+                                [
+                                    html.Td(
+                                        "PERT Formula:",
+                                        className="text-right pr-2",
+                                        style={"fontWeight": "bold"},
+                                    ),
+                                    html.Td(
+                                        [
+                                            dcc.Markdown(
+                                                r"$E = \frac{O + 4M + P}{6}$",
+                                                mathjax=True,
+                                                style={"display": "inline-block"},
+                                            )
+                                        ]
+                                    ),
+                                ]
+                            ),
+                            html.Tr(
+                                [
+                                    html.Td(
+                                        "Estimated Days (Items):",
+                                        className="text-right pr-2",
+                                        style={"fontWeight": "bold"},
+                                    ),
+                                    html.Td(
+                                        [
+                                            f"{pert_time_items:.1f}",
+                                            html.Span(
+                                                " days",
+                                                style={
+                                                    "fontSize": "0.9em",
+                                                    "color": "#666",
+                                                },
+                                            ),
+                                        ],
+                                        style={
+                                            "color": items_color,
+                                            "fontWeight": "bold",
+                                        },
+                                    ),
+                                ]
+                            ),
+                            html.Tr(
+                                [
+                                    html.Td(
+                                        "Estimated Days (Points):",
+                                        className="text-right pr-2",
+                                        style={"fontWeight": "bold"},
+                                    ),
+                                    html.Td(
+                                        [
+                                            f"{pert_time_points:.1f}",
+                                            html.Span(
+                                                " days",
+                                                style={
+                                                    "fontSize": "0.9em",
+                                                    "color": "#666",
+                                                },
+                                            ),
+                                        ],
+                                        style={
+                                            "color": points_color,
+                                            "fontWeight": "bold",
+                                        },
+                                    ),
+                                ]
+                            ),
+                            html.Tr(
+                                [
+                                    html.Td(
+                                        "Deadline in:",
+                                        className="text-right pr-2",
+                                        style={"fontWeight": "bold"},
+                                    ),
+                                    html.Td(
+                                        [
+                                            f"{days_to_deadline}",
+                                            html.Span(
+                                                " days",
+                                                style={
+                                                    "fontSize": "0.9em",
+                                                    "color": "#666",
+                                                },
+                                            ),
+                                        ],
+                                        style={"fontWeight": "bold"},
+                                    ),
+                                ]
+                            ),
+                            # Add separator between deadline and metrics
+                            html.Tr(
+                                [
+                                    html.Td(
+                                        html.Hr(style={"margin": "10px 0"}),
+                                        colSpan=2,
+                                    )
+                                ]
+                            ),
+                            # Add Average Weekly Items
+                            html.Tr(
+                                [
+                                    html.Td(
+                                        "Avg Weekly Items (10w):",
+                                        className="text-right pr-2",
+                                        style={"fontWeight": "bold"},
+                                    ),
+                                    html.Td(
+                                        [
+                                            f"{avg_weekly_items}",
+                                            html.Span(
+                                                " items/week",
+                                                style={
+                                                    "fontSize": "0.9em",
+                                                    "color": "#666",
+                                                },
+                                            ),
+                                        ],
+                                        style={"fontWeight": "bold"},
+                                    ),
+                                ]
+                            ),
+                            # Add Median Weekly Items (NEW)
+                            html.Tr(
+                                [
+                                    html.Td(
+                                        "Med Weekly Items (10w):",
+                                        className="text-right pr-2",
+                                        style={"fontWeight": "bold"},
+                                    ),
+                                    html.Td(
+                                        [
+                                            f"{med_weekly_items}",
+                                            html.Span(
+                                                " items/week",
+                                                style={
+                                                    "fontSize": "0.9em",
+                                                    "color": "#666",
+                                                },
+                                            ),
+                                        ],
+                                        style={"fontWeight": "bold"},
+                                    ),
+                                ]
+                            ),
+                            # Add Average Weekly Points
+                            html.Tr(
+                                [
+                                    html.Td(
+                                        "Avg Weekly Points (10w):",
+                                        className="text-right pr-2",
+                                        style={"fontWeight": "bold"},
+                                    ),
+                                    html.Td(
+                                        [
+                                            f"{avg_weekly_points}",
+                                            html.Span(
+                                                " points/week",
+                                                style={
+                                                    "fontSize": "0.9em",
+                                                    "color": "#666",
+                                                },
+                                            ),
+                                        ],
+                                        style={"fontWeight": "bold"},
+                                    ),
+                                ]
+                            ),
+                            # Add Median Weekly Points (NEW)
+                            html.Tr(
+                                [
+                                    html.Td(
+                                        "Med Weekly Points (10w):",
+                                        className="text-right pr-2",
+                                        style={"fontWeight": "bold"},
+                                    ),
+                                    html.Td(
+                                        [
+                                            f"{med_weekly_points}",
+                                            html.Span(
+                                                " points/week",
+                                                style={
+                                                    "fontSize": "0.9em",
+                                                    "color": "#666",
+                                                },
+                                            ),
+                                        ],
+                                        style={"fontWeight": "bold"},
+                                    ),
+                                ]
+                            ),
+                            # Removed the forecast methodology explanation and "Green means..." text
+                            # as they are now in the Forecast Info card
+                        ]
+                    )
+                ],
+                className="table table-borderless",
+                style={
+                    "margin": "0 auto",
+                    "width": "auto",
+                    "border": "1px solid #eee",
+                    "borderRadius": "5px",
+                    "padding": "10px",
+                },
+            )
+        ]
+    )
+
+
+#######################################################################
+# APPLICATION SETUP
+#######################################################################
 
 # Initialize the Dash app
 app = dash.Dash(
@@ -2326,7 +2628,9 @@ def serve_layout():
 # Set the layout function as the app's layout
 app.layout = serve_layout
 
-# ===== CALLBACKS =====
+#######################################################################
+# CALLBACKS
+#######################################################################
 
 
 @app.callback(Output("app-init-complete", "data"), [Input("forecast-graph", "figure")])
@@ -2711,290 +3015,9 @@ def toggle_help_modal(n1, n2, is_open):
     return is_open
 
 
-def create_pert_info_table(
-    pert_time_items,
-    pert_time_points,
-    days_to_deadline,
-    avg_weekly_items=0,
-    avg_weekly_points=0,
-    med_weekly_items=0,
-    med_weekly_points=0,
-    pert_factor=3,  # Add default value
-):
-    """
-    Create the PERT information table.
-
-    Args:
-        pert_time_items: PERT estimate for items (days)
-        pert_time_points: PERT estimate for points (days)
-        days_to_deadline: Days remaining until deadline
-        avg_weekly_items: Average weekly items completed (last 10 weeks)
-        avg_weekly_points: Average weekly points completed (last 10 weeks)
-        med_weekly_items: Median weekly items completed (last 10 weeks)
-        med_weekly_points: Median weekly points completed (last 10 weeks)
-        pert_factor: Number of data points used for optimistic/pessimistic scenarios
-
-    Returns:
-        Dash component with PERT information table
-    """
-    # Determine colors based on if we'll meet the deadline
-    items_color = "green" if pert_time_items <= days_to_deadline else "red"
-    points_color = "green" if pert_time_points <= days_to_deadline else "red"
-
-    return html.Div(
-        [
-            html.Table(
-                [
-                    html.Tbody(
-                        [
-                            # PERT formula as first row in the table
-                            html.Tr(
-                                [
-                                    html.Td(
-                                        "PERT Formula:",
-                                        className="text-right pr-2",
-                                        style={"fontWeight": "bold"},
-                                    ),
-                                    html.Td(
-                                        [
-                                            dcc.Markdown(
-                                                r"$E = \frac{O + 4M + P}{6}$",
-                                                mathjax=True,
-                                                style={"display": "inline-block"},
-                                            )
-                                        ]
-                                    ),
-                                ]
-                            ),
-                            html.Tr(
-                                [
-                                    html.Td(
-                                        "Estimated Days (Items):",
-                                        className="text-right pr-2",
-                                        style={"fontWeight": "bold"},
-                                    ),
-                                    html.Td(
-                                        [
-                                            f"{pert_time_items:.1f}",
-                                            html.Span(
-                                                " days",
-                                                style={
-                                                    "fontSize": "0.9em",
-                                                    "color": "#666",
-                                                },
-                                            ),
-                                        ],
-                                        style={
-                                            "color": items_color,
-                                            "fontWeight": "bold",
-                                        },
-                                    ),
-                                ]
-                            ),
-                            html.Tr(
-                                [
-                                    html.Td(
-                                        "Estimated Days (Points):",
-                                        className="text-right pr-2",
-                                        style={"fontWeight": "bold"},
-                                    ),
-                                    html.Td(
-                                        [
-                                            f"{pert_time_points:.1f}",
-                                            html.Span(
-                                                " days",
-                                                style={
-                                                    "fontSize": "0.9em",
-                                                    "color": "#666",
-                                                },
-                                            ),
-                                        ],
-                                        style={
-                                            "color": points_color,
-                                            "fontWeight": "bold",
-                                        },
-                                    ),
-                                ]
-                            ),
-                            html.Tr(
-                                [
-                                    html.Td(
-                                        "Deadline in:",
-                                        className="text-right pr-2",
-                                        style={"fontWeight": "bold"},
-                                    ),
-                                    html.Td(
-                                        [
-                                            f"{days_to_deadline}",
-                                            html.Span(
-                                                " days",
-                                                style={
-                                                    "fontSize": "0.9em",
-                                                    "color": "#666",
-                                                },
-                                            ),
-                                        ],
-                                        style={"fontWeight": "bold"},
-                                    ),
-                                ]
-                            ),
-                            # Add separator between deadline and metrics
-                            html.Tr(
-                                [
-                                    html.Td(
-                                        html.Hr(style={"margin": "10px 0"}),
-                                        colSpan=2,
-                                    )
-                                ]
-                            ),
-                            # Add Average Weekly Items
-                            html.Tr(
-                                [
-                                    html.Td(
-                                        "Avg Weekly Items (10w):",
-                                        className="text-right pr-2",
-                                        style={"fontWeight": "bold"},
-                                    ),
-                                    html.Td(
-                                        [
-                                            f"{avg_weekly_items}",
-                                            html.Span(
-                                                " items/week",
-                                                style={
-                                                    "fontSize": "0.9em",
-                                                    "color": "#666",
-                                                },
-                                            ),
-                                        ],
-                                        style={"fontWeight": "bold"},
-                                    ),
-                                ]
-                            ),
-                            # Add Median Weekly Items (NEW)
-                            html.Tr(
-                                [
-                                    html.Td(
-                                        "Med Weekly Items (10w):",
-                                        className="text-right pr-2",
-                                        style={"fontWeight": "bold"},
-                                    ),
-                                    html.Td(
-                                        [
-                                            f"{med_weekly_items}",
-                                            html.Span(
-                                                " items/week",
-                                                style={
-                                                    "fontSize": "0.9em",
-                                                    "color": "#666",
-                                                },
-                                            ),
-                                        ],
-                                        style={"fontWeight": "bold"},
-                                    ),
-                                ]
-                            ),
-                            # Add Average Weekly Points
-                            html.Tr(
-                                [
-                                    html.Td(
-                                        "Avg Weekly Points (10w):",
-                                        className="text-right pr-2",
-                                        style={"fontWeight": "bold"},
-                                    ),
-                                    html.Td(
-                                        [
-                                            f"{avg_weekly_points}",
-                                            html.Span(
-                                                " points/week",
-                                                style={
-                                                    "fontSize": "0.9em",
-                                                    "color": "#666",
-                                                },
-                                            ),
-                                        ],
-                                        style={"fontWeight": "bold"},
-                                    ),
-                                ]
-                            ),
-                            # Add Median Weekly Points (NEW)
-                            html.Tr(
-                                [
-                                    html.Td(
-                                        "Med Weekly Points (10w):",
-                                        className="text-right pr-2",
-                                        style={"fontWeight": "bold"},
-                                    ),
-                                    html.Td(
-                                        [
-                                            f"{med_weekly_points}",
-                                            html.Span(
-                                                " points/week",
-                                                style={
-                                                    "fontSize": "0.9em",
-                                                    "color": "#666",
-                                                },
-                                            ),
-                                        ],
-                                        style={"fontWeight": "bold"},
-                                    ),
-                                ]
-                            ),
-                            # Removed the forecast methodology explanation and "Green means..." text
-                            # as they are now in the Forecast Info card
-                        ]
-                    )
-                ],
-                className="table table-borderless",
-                style={
-                    "margin": "0 auto",
-                    "width": "auto",
-                    "border": "1px solid #eee",
-                    "borderRadius": "5px",
-                    "padding": "10px",
-                },
-            )
-        ]
-    )
-
-
-def calculate_weekly_averages(statistics_data):
-    """
-    Calculate average and median weekly items and points for the last 10 weeks.
-
-    Args:
-        statistics_data: List of dictionaries containing statistics data
-
-    Returns:
-        Tuple of (avg_weekly_items, avg_weekly_points, med_weekly_items, med_weekly_points)
-    """
-    if not statistics_data or len(statistics_data) == 0:
-        return 0, 0, 0, 0
-
-    # Create DataFrame and ensure numeric types
-    df = pd.DataFrame(statistics_data)
-    df["no_items"] = pd.to_numeric(df["no_items"], errors="coerce").fillna(0)
-    df["no_points"] = pd.to_numeric(df["no_points"], errors="coerce").fillna(0)
-
-    # Sort by date to ensure we get the most recent 10 weeks
-    df["date"] = pd.to_datetime(df["date"], errors="coerce")
-    df = df.sort_values("date")
-
-    # Get the last 10 entries or all if less than 10
-    recent_data = df.tail(10)
-
-    # Calculate averages and medians
-    avg_weekly_items = recent_data["no_items"].mean()
-    avg_weekly_points = recent_data["no_points"].mean()
-    med_weekly_items = recent_data["no_items"].median()
-    med_weekly_points = recent_data["no_points"].median()
-
-    return (
-        round(avg_weekly_items, 1),
-        round(avg_weekly_points, 1),
-        round(med_weekly_items, 1),
-        round(med_weekly_points, 1),
-    )
-
+#######################################################################
+# MAIN
+#######################################################################
 
 # Run the app
 if __name__ == "__main__":
