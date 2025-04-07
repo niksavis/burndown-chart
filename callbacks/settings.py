@@ -13,14 +13,13 @@ from dash.exceptions import PreventUpdate
 from datetime import datetime
 
 # Import from application modules
-from configuration.settings import (
+from configuration import (
     logger,
     DEFAULT_TOTAL_POINTS,
     DEFAULT_ESTIMATED_ITEMS,
     DEFAULT_ESTIMATED_POINTS,
 )
-from data.persistence import save_settings
-from data.processing import calculate_total_points
+from data import save_settings, calculate_total_points
 
 #######################################################################
 # CALLBACKS

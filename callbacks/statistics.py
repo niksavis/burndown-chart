@@ -16,9 +16,8 @@ import io
 import base64
 
 # Import from application modules
-from configuration.settings import logger
-from data.persistence import save_statistics
-from data.processing import read_and_clean_data
+from configuration import logger
+from data import save_statistics, read_and_clean_data
 
 #######################################################################
 # CALLBACKS

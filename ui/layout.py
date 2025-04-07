@@ -9,16 +9,18 @@ a fresh layout with the latest data from disk on each page load.
 # IMPORTS
 #######################################################################
 from dash import html, dcc
-
 import dash_bootstrap_components as dbc
 
 # Import from data modules
-from data.persistence import load_settings, load_statistics
-from data.processing import calculate_total_points
+from data import (
+    load_settings,
+    load_statistics,
+    calculate_total_points,
+)
 
 # Import UI components
-from ui.components import create_help_modal
-from ui.cards import (
+from ui import (
+    create_help_modal,
     create_forecast_graph_card,
     create_forecast_info_card,
     create_pert_analysis_card,
