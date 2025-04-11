@@ -126,6 +126,15 @@ def save_statistics(data):
     try:
         df = pd.DataFrame(data)
 
+        # Ensure date column is in proper datetime format for sorting
+        df["date"] = pd.to_datetime(df["date"], errors="coerce")
+
+        # Sort by date in ascending order (oldest first)
+        df = df.sort_values("date", ascending=True)
+
+        # Convert back to string format for storage
+        df["date"] = df["date"].dt.strftime("%Y-%m-%d")
+
         # Write to a temporary file first
         temp_file = f"{STATISTICS_FILE}.tmp"
         df.to_csv(temp_file, index=False)
@@ -150,12 +159,36 @@ def load_statistics():
     try:
         if os.path.exists(STATISTICS_FILE):
             df = pd.read_csv(STATISTICS_FILE)
+
+            # Ensure date column is in proper datetime format for sorting
+            df["date"] = pd.to_datetime(df["date"], errors="coerce")
+
+            # Sort by date in ascending order (oldest first)
+            df = df.sort_values("date", ascending=True)
+
+            # Convert back to string format for display
+            df["date"] = df["date"].dt.strftime("%Y-%m-%d")
+
             data = df.to_dict("records")
             logger.info(f"Statistics loaded from {STATISTICS_FILE}")
             return data
         else:
             logger.info("Statistics file not found, using sample data")
-            return SAMPLE_DATA.to_dict("records")
+
+            # Make sure sample data is also sorted by date
+            sample_df = SAMPLE_DATA.copy()
+            sample_df["date"] = pd.to_datetime(sample_df["date"], errors="coerce")
+            sample_df = sample_df.sort_values("date", ascending=True)
+            sample_df["date"] = sample_df["date"].dt.strftime("%Y-%m-%d")
+
+            return sample_df.to_dict("records")
     except Exception as e:
         logger.error(f"Error loading statistics: {e}")
-        return SAMPLE_DATA.to_dict("records")
+
+        # Make sure sample data is also sorted by date
+        sample_df = SAMPLE_DATA.copy()
+        sample_df["date"] = pd.to_datetime(sample_df["date"], errors="coerce")
+        sample_df = sample_df.sort_values("date", ascending=True)
+        sample_df["date"] = sample_df["date"].dt.strftime("%Y-%m-%d")
+
+        return sample_df.to_dict("records")
