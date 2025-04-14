@@ -406,18 +406,22 @@ def add_metrics_annotations(fig, metrics_data):
             # Color for estimated days
             text_color = font_color
             if "Est. Days" in metric["label"]:
-                if (
-                    "Items" in metric["label"]
-                    and metrics_data["pert_time_items"]
-                    > metrics_data["days_to_deadline"]
-                ):
-                    text_color = "red"
-                elif (
-                    "Points" in metric["label"]
-                    and metrics_data["pert_time_points"]
-                    > metrics_data["days_to_deadline"]
-                ):
-                    text_color = "red"
+                if "Items" in metric["label"]:
+                    if (
+                        metrics_data["pert_time_items"]
+                        > metrics_data["days_to_deadline"]
+                    ):
+                        text_color = "red"
+                    else:
+                        text_color = "green"
+                elif "Points" in metric["label"]:
+                    if (
+                        metrics_data["pert_time_points"]
+                        > metrics_data["days_to_deadline"]
+                    ):
+                        text_color = "red"
+                    else:
+                        text_color = "green"
 
             # Add the metric to the figure with explicit left alignment for all columns
             fig.add_annotation(
