@@ -561,6 +561,8 @@ def create_pert_info_table(
     med_weekly_items=0,
     med_weekly_points=0,
     pert_factor=3,  # Add default value
+    total_items=0,  # New parameter for total items
+    total_points=0,  # New parameter for total points
 ):
     """
     Create the PERT information table.
@@ -574,6 +576,8 @@ def create_pert_info_table(
         med_weekly_items: Median weekly items completed (last 10 weeks)
         med_weekly_points: Median weekly points completed (last 10 weeks)
         pert_factor: Number of data points used for optimistic/pessimistic scenarios
+        total_items: Total remaining items to complete
+        total_points: Total remaining points to complete
 
     Returns:
         Dash component with PERT information table
@@ -581,6 +585,34 @@ def create_pert_info_table(
     # Determine colors based on if we'll meet the deadline
     items_color = "green" if pert_time_items <= days_to_deadline else "red"
     points_color = "green" if pert_time_points <= days_to_deadline else "red"
+
+    # Calculate weeks to complete based on average and median rates
+    weeks_avg_items = (
+        total_items / avg_weekly_items if avg_weekly_items > 0 else float("inf")
+    )
+    weeks_med_items = (
+        total_items / med_weekly_items if med_weekly_items > 0 else float("inf")
+    )
+    weeks_avg_points = (
+        total_points / avg_weekly_points if avg_weekly_points > 0 else float("inf")
+    )
+    weeks_med_points = (
+        total_points / med_weekly_points if med_weekly_points > 0 else float("inf")
+    )
+
+    # Determine colors for weeks estimates by converting to days and comparing with deadline
+    weeks_avg_items_color = (
+        "green" if weeks_avg_items * 7 <= days_to_deadline else "red"
+    )
+    weeks_med_items_color = (
+        "green" if weeks_med_items * 7 <= days_to_deadline else "red"
+    )
+    weeks_avg_points_color = (
+        "green" if weeks_avg_points * 7 <= days_to_deadline else "red"
+    )
+    weeks_med_points_color = (
+        "green" if weeks_med_points * 7 <= days_to_deadline else "red"
+    )
 
     return html.Div(
         [
@@ -680,6 +712,124 @@ def create_pert_info_table(
                                 ]
                             ),
                             # Add separator between deadline and metrics
+                            html.Tr(
+                                [
+                                    html.Td(
+                                        html.Hr(style={"margin": "10px 0"}),
+                                        colSpan=2,
+                                    )
+                                ]
+                            ),
+                            # Add new metrics for weeks to complete
+                            html.Tr(
+                                [
+                                    html.Td(
+                                        "Est. Weeks (Avg Items):",
+                                        className="text-right pr-2",
+                                        style={"fontWeight": "bold"},
+                                    ),
+                                    html.Td(
+                                        [
+                                            f"{weeks_avg_items:.1f}"
+                                            if weeks_avg_items != float("inf")
+                                            else "∞",
+                                            html.Span(
+                                                " weeks",
+                                                style={
+                                                    "fontSize": "0.9em",
+                                                    "color": "#666",
+                                                },
+                                            ),
+                                        ],
+                                        style={
+                                            "color": weeks_avg_items_color,
+                                            "fontWeight": "bold",
+                                        },
+                                    ),
+                                ]
+                            ),
+                            html.Tr(
+                                [
+                                    html.Td(
+                                        "Est. Weeks (Med Items):",
+                                        className="text-right pr-2",
+                                        style={"fontWeight": "bold"},
+                                    ),
+                                    html.Td(
+                                        [
+                                            f"{weeks_med_items:.1f}"
+                                            if weeks_med_items != float("inf")
+                                            else "∞",
+                                            html.Span(
+                                                " weeks",
+                                                style={
+                                                    "fontSize": "0.9em",
+                                                    "color": "#666",
+                                                },
+                                            ),
+                                        ],
+                                        style={
+                                            "color": weeks_med_items_color,
+                                            "fontWeight": "bold",
+                                        },
+                                    ),
+                                ]
+                            ),
+                            html.Tr(
+                                [
+                                    html.Td(
+                                        "Est. Weeks (Avg Points):",
+                                        className="text-right pr-2",
+                                        style={"fontWeight": "bold"},
+                                    ),
+                                    html.Td(
+                                        [
+                                            f"{weeks_avg_points:.1f}"
+                                            if weeks_avg_points != float("inf")
+                                            else "∞",
+                                            html.Span(
+                                                " weeks",
+                                                style={
+                                                    "fontSize": "0.9em",
+                                                    "color": "#666",
+                                                },
+                                            ),
+                                        ],
+                                        style={
+                                            "color": weeks_avg_points_color,
+                                            "fontWeight": "bold",
+                                        },
+                                    ),
+                                ]
+                            ),
+                            html.Tr(
+                                [
+                                    html.Td(
+                                        "Est. Weeks (Med Points):",
+                                        className="text-right pr-2",
+                                        style={"fontWeight": "bold"},
+                                    ),
+                                    html.Td(
+                                        [
+                                            f"{weeks_med_points:.1f}"
+                                            if weeks_med_points != float("inf")
+                                            else "∞",
+                                            html.Span(
+                                                " weeks",
+                                                style={
+                                                    "fontSize": "0.9em",
+                                                    "color": "#666",
+                                                },
+                                            ),
+                                        ],
+                                        style={
+                                            "color": weeks_med_points_color,
+                                            "fontWeight": "bold",
+                                        },
+                                    ),
+                                ]
+                            ),
+                            # Add a second separator
                             html.Tr(
                                 [
                                     html.Td(

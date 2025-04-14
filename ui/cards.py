@@ -276,6 +276,10 @@ def create_input_parameters_card(
                                         value=current_settings["pert_factor"],
                                         marks={i: str(i) for i in range(3, 16, 2)},
                                         step=1,
+                                        tooltip={
+                                            "placement": "bottom",
+                                            "always_visible": True,
+                                        },
                                     ),
                                 ],
                                 width=12,

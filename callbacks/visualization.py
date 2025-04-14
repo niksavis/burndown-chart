@@ -107,6 +107,8 @@ def register(app):
                 med_weekly_items,
                 med_weekly_points,
                 pert_factor,
+                total_items,  # Pass total items to the info table
+                total_points,  # Pass total points to the info table
             )
 
             return fig, pert_info
