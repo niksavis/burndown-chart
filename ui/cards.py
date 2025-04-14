@@ -260,40 +260,10 @@ def create_input_parameters_card(
                             html.H5(
                                 "Project Timeline", className="mb-3 border-bottom pb-2"
                             ),
-                            # Three-column layout for time-related parameters
+                            # First row: Deadline and PERT Factor (swapped and no padding)
                             dbc.Row(
                                 [
-                                    # PERT Factor (column 1)
-                                    dbc.Col(
-                                        [
-                                            html.Label(
-                                                [
-                                                    "PERT Factor:",
-                                                    create_info_tooltip(
-                                                        "pert-factor",
-                                                        HELP_TEXTS["pert_factor"],
-                                                    ),
-                                                ]
-                                            ),
-                                            dcc.Slider(
-                                                id="pert-factor-slider",
-                                                min=3,
-                                                max=15,
-                                                value=current_settings["pert_factor"],
-                                                marks={
-                                                    i: str(i) for i in range(3, 16, 2)
-                                                },
-                                                step=1,
-                                                tooltip={
-                                                    "placement": "bottom",
-                                                    "always_visible": True,
-                                                },
-                                            ),
-                                        ],
-                                        width=12,
-                                        md=4,
-                                    ),
-                                    # Deadline (column 2)
+                                    # Deadline - now first
                                     dbc.Col(
                                         [
                                             html.Label(
@@ -325,9 +295,45 @@ def create_input_parameters_card(
                                             ),
                                         ],
                                         width=12,
-                                        md=4,
+                                        md=4,  # Keep same width
                                     ),
-                                    # Data Points (column 3)
+                                    # PERT Factor - directly adjacent to Deadline (removed spacer)
+                                    dbc.Col(
+                                        [
+                                            html.Label(
+                                                [
+                                                    "PERT Factor:",
+                                                    create_info_tooltip(
+                                                        "pert-factor",
+                                                        HELP_TEXTS["pert_factor"],
+                                                    ),
+                                                ]
+                                            ),
+                                            dcc.Slider(
+                                                id="pert-factor-slider",
+                                                min=3,
+                                                max=15,
+                                                value=current_settings["pert_factor"],
+                                                marks={
+                                                    i: str(i) for i in range(3, 16, 2)
+                                                },
+                                                step=1,
+                                                tooltip={
+                                                    "placement": "bottom",
+                                                    "always_visible": True,
+                                                },
+                                            ),
+                                        ],
+                                        width=12,
+                                        md=8,  # Expanded from 6 to 8 to fill the space
+                                    ),
+                                ],
+                                className="mb-3",  # Keep margin below this row
+                            ),
+                            # Second row: Data Points to Include (full width)
+                            dbc.Row(
+                                [
+                                    # Data Points - now full width
                                     dbc.Col(
                                         [
                                             html.Label(
@@ -360,15 +366,14 @@ def create_input_parameters_card(
                                                 className="text-muted mt-1 d-block",
                                             ),
                                         ],
-                                        width=12,
-                                        md=4,
+                                        width=12,  # Full width in all screen sizes
                                     ),
                                 ],
                             ),
                         ],
                         className="mb-4",
                     ),
-                    # Project Scope Section
+                    # Project Scope Section - unchanged
                     html.Div(
                         [
                             html.H5(

@@ -127,10 +127,10 @@ def serve_layout():
                     ),
                 ]
             ),
-            # Third row: Input Parameters and PERT Analysis - adjust proportions
+            # Third row: Input Parameters and PERT Analysis - equal width cards
             dbc.Row(
                 [
-                    # Left: Input Parameters (wider for better form layout)
+                    # Left: Input Parameters
                     dbc.Col(
                         [
                             create_input_parameters_card(
@@ -140,15 +140,15 @@ def serve_layout():
                             ),
                         ],
                         width=12,
-                        lg=8,
+                        lg=6,  # Changed from 8 to 6 (equal width)
                     ),
-                    # Right: PERT Analysis (narrower but with improved internal layout)
+                    # Right: PERT Analysis
                     dbc.Col(
                         [
                             create_pert_analysis_card(),
                         ],
                         width=12,
-                        lg=4,
+                        lg=6,  # Changed from 4 to 6 (equal width)
                     ),
                 ],
                 className="d-flex align-items-stretch mb-3",  # Make cards equal height

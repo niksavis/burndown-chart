@@ -675,27 +675,44 @@ def create_pert_info_table(
                             ),
                             html.Div(
                                 [
-                                    # Deadline - using the direct string
+                                    # Deadline - reformatted to match other sections
                                     html.Div(
                                         [
                                             html.I(
                                                 className="fas fa-calendar-day mr-2 text-primary"
                                             ),
                                             html.Span(
-                                                "Deadline: ",
-                                                className="font-weight-bold",
+                                                "Deadline:",
+                                                className="font-weight-bold d-block mb-2",
                                             ),
-                                            html.Span(
-                                                f"{deadline_date_str} ({days_to_deadline} days)",
-                                                style={
-                                                    "fontWeight": "bold",
-                                                    "fontSize": "1.1rem",
-                                                },
+                                            html.Div(
+                                                [
+                                                    html.Span(
+                                                        "Date: ",
+                                                        className="font-weight-bold",
+                                                    ),
+                                                    html.Span(
+                                                        f"{deadline_date_str}",
+                                                    ),
+                                                ],
+                                                className="ml-4 mb-1",
+                                            ),
+                                            html.Div(
+                                                [
+                                                    html.Span(
+                                                        "Remaining: ",
+                                                        className="font-weight-bold",
+                                                    ),
+                                                    html.Span(
+                                                        f"{days_to_deadline} days",
+                                                    ),
+                                                ],
+                                                className="ml-4",
                                             ),
                                         ],
                                         className="mb-3 p-2 border-bottom",
                                     ),
-                                    # PERT Estimates
+                                    # PERT Estimates - keep as is
                                     html.Div(
                                         [
                                             html.I(
@@ -749,7 +766,6 @@ def create_pert_info_table(
                                         className="mb-1 p-2",
                                     ),
                                 ],
-                                # Remove h-100 class to let container size naturally to content
                                 className="p-3 border rounded",
                             ),
                         ],
@@ -873,7 +889,6 @@ def create_pert_info_table(
                                         className="mb-1 p-2",
                                     ),
                                 ],
-                                # Remove h-100 class to let container size naturally to content
                                 className="p-3 border rounded",
                             ),
                         ],
