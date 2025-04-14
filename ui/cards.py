@@ -231,7 +231,7 @@ def create_input_parameters_card(
     current_settings, avg_points_per_item, estimated_total_points
 ):
     """
-    Create the input parameters card component.
+    Create the input parameters card component with improved organization and visual hierarchy.
 
     Args:
         current_settings: Dictionary with current application settings
@@ -254,277 +254,299 @@ def create_input_parameters_card(
             ),
             dbc.CardBody(
                 [
-                    # First row: PERT Factor and Deadline
-                    dbc.Row(
+                    # Project Timeline Section
+                    html.Div(
                         [
-                            # Left column: PERT Factor
-                            dbc.Col(
-                                [
-                                    html.Label(
-                                        [
-                                            "PERT Factor:",
-                                            create_info_tooltip(
-                                                "pert-factor",
-                                                HELP_TEXTS["pert_factor"],
-                                            ),
-                                        ]
-                                    ),
-                                    dcc.Slider(
-                                        id="pert-factor-slider",
-                                        min=3,
-                                        max=15,
-                                        value=current_settings["pert_factor"],
-                                        marks={i: str(i) for i in range(3, 16, 2)},
-                                        step=1,
-                                        tooltip={
-                                            "placement": "bottom",
-                                            "always_visible": True,
-                                        },
-                                    ),
-                                ],
-                                width=12,
-                                lg=6,
+                            html.H5(
+                                "Project Timeline", className="mb-3 border-bottom pb-2"
                             ),
-                            # Right column: Deadline with calendar
-                            dbc.Col(
+                            # Three-column layout for time-related parameters
+                            dbc.Row(
                                 [
-                                    html.Label(
+                                    # PERT Factor (column 1)
+                                    dbc.Col(
                                         [
-                                            "Deadline:",
-                                            create_info_tooltip(
-                                                "deadline",
-                                                HELP_TEXTS["deadline"],
+                                            html.Label(
+                                                [
+                                                    "PERT Factor:",
+                                                    create_info_tooltip(
+                                                        "pert-factor",
+                                                        HELP_TEXTS["pert_factor"],
+                                                    ),
+                                                ]
                                             ),
-                                        ]
+                                            dcc.Slider(
+                                                id="pert-factor-slider",
+                                                min=3,
+                                                max=15,
+                                                value=current_settings["pert_factor"],
+                                                marks={
+                                                    i: str(i) for i in range(3, 16, 2)
+                                                },
+                                                step=1,
+                                                tooltip={
+                                                    "placement": "bottom",
+                                                    "always_visible": True,
+                                                },
+                                            ),
+                                        ],
+                                        width=12,
+                                        md=4,
                                     ),
-                                    dcc.DatePickerSingle(
-                                        id="deadline-picker",
-                                        date=current_settings["deadline"],
-                                        display_format="YYYY-MM-DD",
-                                        first_day_of_week=1,  # Monday as first day
-                                        show_outside_days=True,
-                                        with_portal=False,  # Changed from True to False
-                                        with_full_screen_portal=False,
-                                        placeholder="Select deadline date",
-                                        persistence=True,
-                                        min_date_allowed=datetime.now().strftime(
-                                            "%Y-%m-%d"
-                                        ),
-                                        style={
-                                            "width": "100%",
-                                            "border-radius": "0.25rem",
-                                        },
+                                    # Deadline (column 2)
+                                    dbc.Col(
+                                        [
+                                            html.Label(
+                                                [
+                                                    "Deadline:",
+                                                    create_info_tooltip(
+                                                        "deadline",
+                                                        HELP_TEXTS["deadline"],
+                                                    ),
+                                                ]
+                                            ),
+                                            dcc.DatePickerSingle(
+                                                id="deadline-picker",
+                                                date=current_settings["deadline"],
+                                                display_format="YYYY-MM-DD",
+                                                first_day_of_week=1,
+                                                show_outside_days=True,
+                                                with_portal=False,
+                                                with_full_screen_portal=False,
+                                                placeholder="Select deadline date",
+                                                persistence=True,
+                                                min_date_allowed=datetime.now().strftime(
+                                                    "%Y-%m-%d"
+                                                ),
+                                                style={
+                                                    "width": "100%",
+                                                    "border-radius": "0.25rem",
+                                                },
+                                            ),
+                                        ],
+                                        width=12,
+                                        md=4,
+                                    ),
+                                    # Data Points (column 3)
+                                    dbc.Col(
+                                        [
+                                            html.Label(
+                                                [
+                                                    "Data Points to Include:",
+                                                    create_info_tooltip(
+                                                        "data-points-count",
+                                                        HELP_TEXTS["data_points_count"],
+                                                    ),
+                                                ]
+                                            ),
+                                            dcc.Slider(
+                                                id="data-points-input",
+                                                min=current_settings["pert_factor"] * 2,
+                                                max=10,
+                                                value=current_settings.get(
+                                                    "data_points_count",
+                                                    current_settings["pert_factor"] * 2,
+                                                ),
+                                                marks=None,
+                                                step=1,
+                                                tooltip={
+                                                    "placement": "bottom",
+                                                    "always_visible": True,
+                                                },
+                                            ),
+                                            html.Small(
+                                                id="data-points-info",
+                                                children="Using all available data points",
+                                                className="text-muted mt-1 d-block",
+                                            ),
+                                        ],
+                                        width=12,
+                                        md=4,
                                     ),
                                 ],
-                                width=12,
-                                lg=6,
                             ),
                         ],
-                        className="mb-3",
+                        className="mb-4",
                     ),
-                    # Second row: Data Points to Include (below PERT Factor)
-                    dbc.Row(
+                    # Project Scope Section
+                    html.Div(
                         [
-                            # Left column: Data Points to Include
-                            dbc.Col(
+                            html.H5(
+                                "Project Scope", className="mb-3 border-bottom pb-2"
+                            ),
+                            # Items (Estimated and Total) in one row
+                            dbc.Row(
                                 [
-                                    html.Label(
+                                    # Estimated Items
+                                    dbc.Col(
                                         [
-                                            "Data Points to Include:",
-                                            create_info_tooltip(
-                                                "data-points-count",
-                                                HELP_TEXTS["data_points_count"],
+                                            html.Label(
+                                                [
+                                                    "Estimated Items:",
+                                                    create_info_tooltip(
+                                                        "estimated-items",
+                                                        HELP_TEXTS["estimated_items"],
+                                                    ),
+                                                ]
                                             ),
-                                        ]
+                                            dbc.Input(
+                                                id="estimated-items-input",
+                                                type="number",
+                                                value=current_settings[
+                                                    "estimated_items"
+                                                ],
+                                                min=0,
+                                                step=1,
+                                            ),
+                                        ],
+                                        width=12,
+                                        md=6,
                                     ),
-                                    # Use slider with automatic percentage marks - no separate min/max indicators
-                                    dcc.Slider(
-                                        id="data-points-input",
-                                        min=current_settings["pert_factor"] * 2,
-                                        max=10,  # Will be updated by callback
-                                        value=current_settings.get(
-                                            "data_points_count",
-                                            current_settings["pert_factor"] * 2,
-                                        ),
-                                        # Marks will be set by callback
-                                        marks=None,
-                                        step=1,
-                                        className="my-3",  # Added margin for spacing
-                                        tooltip={
-                                            "placement": "bottom",
-                                            "always_visible": True,
-                                        },
-                                    ),
-                                    # Keep the info text that shows details about the selection
-                                    html.Small(
-                                        id="data-points-info",
-                                        children="Using all available data points",
-                                        className="text-muted mt-1 mb-2 d-block",
+                                    # Total Items
+                                    dbc.Col(
+                                        [
+                                            html.Label(
+                                                [
+                                                    "Total Items:",
+                                                    create_info_tooltip(
+                                                        "total-items",
+                                                        HELP_TEXTS["total_items"],
+                                                    ),
+                                                ]
+                                            ),
+                                            dbc.Input(
+                                                id="total-items-input",
+                                                type="number",
+                                                value=current_settings["total_items"],
+                                                min=0,
+                                                step=1,
+                                            ),
+                                        ],
+                                        width=12,
+                                        md=6,
                                     ),
                                 ],
-                                width=12,
-                                lg=6,
                                 className="mb-3",
                             ),
-                            # Right column: Empty space for balance
-                            dbc.Col(width=12, lg=6),
-                        ]
-                    ),
-                    html.Hr(className="my-4"),  # Visual separator
-                    # Estimated Items and Total Items
-                    dbc.Row(
-                        [
-                            dbc.Col(
+                            # Points (Estimated and Total) in one row
+                            dbc.Row(
                                 [
-                                    html.Label(
+                                    # Estimated Points
+                                    dbc.Col(
                                         [
-                                            "Estimated Items:",
-                                            create_info_tooltip(
-                                                "estimated-items",
-                                                HELP_TEXTS["estimated_items"],
+                                            html.Label(
+                                                [
+                                                    "Estimated Points:",
+                                                    create_info_tooltip(
+                                                        "estimated-points",
+                                                        HELP_TEXTS["estimated_points"],
+                                                    ),
+                                                ]
                                             ),
-                                        ]
-                                    ),
-                                    dbc.Input(
-                                        id="estimated-items-input",
-                                        type="number",
-                                        value=current_settings["estimated_items"],
-                                        min=0,
-                                        step=1,
-                                    ),
-                                ],
-                                width=12,
-                                lg=6,
-                            ),
-                            dbc.Col(
-                                [
-                                    html.Label(
-                                        [
-                                            "Total Items:",
-                                            create_info_tooltip(
-                                                "total-items",
-                                                HELP_TEXTS["total_items"],
-                                            ),
-                                        ]
-                                    ),
-                                    dbc.Input(
-                                        id="total-items-input",
-                                        type="number",
-                                        value=current_settings["total_items"],
-                                        min=0,
-                                        step=1,
-                                    ),
-                                ],
-                                width=12,
-                                lg=6,
-                            ),
-                        ]
-                    ),
-                    html.Br(),
-                    # Estimated Points and Total Points
-                    dbc.Row(
-                        [
-                            dbc.Col(
-                                [
-                                    html.Label(
-                                        [
-                                            "Estimated Points:",
-                                            create_info_tooltip(
-                                                "estimated-points",
-                                                HELP_TEXTS["estimated_points"],
-                                            ),
-                                        ]
-                                    ),
-                                    dbc.Input(
-                                        id="estimated-points-input",
-                                        type="number",
-                                        value=current_settings["estimated_points"],
-                                        min=0,
-                                        step=1,
-                                    ),
-                                ],
-                                width=12,
-                                lg=6,
-                            ),
-                            dbc.Col(
-                                [
-                                    html.Label(
-                                        [
-                                            "Total Points (calculated):",
-                                            create_info_tooltip(
-                                                "total-points",
-                                                HELP_TEXTS["total_points"],
-                                            ),
-                                        ]
-                                    ),
-                                    dbc.InputGroup(
-                                        [
                                             dbc.Input(
-                                                id="total-points-display",
-                                                value=f"{estimated_total_points:.0f}",
-                                                disabled=True,
-                                                style={"backgroundColor": "#f8f9fa"},
+                                                id="estimated-points-input",
+                                                type="number",
+                                                value=current_settings[
+                                                    "estimated_points"
+                                                ],
+                                                min=0,
+                                                step=1,
                                             ),
-                                            dbc.InputGroupText(
-                                                html.I(className="fas fa-calculator"),
-                                            ),
-                                        ]
-                                    ),
-                                    html.Small(
-                                        id="points-calculation-info",
-                                        children=[
-                                            f"Using {avg_points_per_item:.1f} points per item for calculation"
                                         ],
-                                        className="text-muted mt-1 d-block",
+                                        width=12,
+                                        md=6,
                                     ),
-                                ],
-                                width=12,
-                                lg=6,
-                            ),
-                        ]
-                    ),
-                    html.Br(),
-                    # CSV Upload section
-                    dbc.Row(
-                        [
-                            dbc.Col(
-                                [
-                                    html.Label(
+                                    # Total Points (Calculated)
+                                    dbc.Col(
                                         [
-                                            "Upload Statistics CSV:",
-                                            create_info_tooltip(
-                                                "csv-upload",
-                                                HELP_TEXTS["csv_format"],
+                                            html.Label(
+                                                [
+                                                    "Total Points (calculated):",
+                                                    create_info_tooltip(
+                                                        "total-points",
+                                                        HELP_TEXTS["total_points"],
+                                                    ),
+                                                ]
                                             ),
-                                        ]
-                                    ),
-                                    dcc.Upload(
-                                        id="upload-data",
-                                        children=html.Div(
-                                            [
-                                                html.I(
-                                                    className="fas fa-file-upload mr-2"
-                                                ),
-                                                "Drag and Drop or ",
-                                                html.A("Select CSV File"),
-                                            ]
-                                        ),
-                                        style={
-                                            "width": "100%",
-                                            "height": "60px",
-                                            "lineHeight": "60px",
-                                            "borderWidth": "1px",
-                                            "borderStyle": "dashed",
-                                            "borderRadius": "5px",
-                                            "textAlign": "center",
-                                            "margin": "10px 0",
-                                        },
-                                        multiple=False,
+                                            dbc.InputGroup(
+                                                [
+                                                    dbc.Input(
+                                                        id="total-points-display",
+                                                        value=f"{estimated_total_points:.0f}",
+                                                        disabled=True,
+                                                        style={
+                                                            "backgroundColor": "#f8f9fa"
+                                                        },
+                                                    ),
+                                                    dbc.InputGroupText(
+                                                        html.I(
+                                                            className="fas fa-calculator"
+                                                        ),
+                                                    ),
+                                                ]
+                                            ),
+                                            html.Small(
+                                                id="points-calculation-info",
+                                                children=[
+                                                    f"Using {avg_points_per_item:.1f} points per item for calculation"
+                                                ],
+                                                className="text-muted mt-1 d-block",
+                                            ),
+                                        ],
+                                        width=12,
+                                        md=6,
                                     ),
                                 ],
-                                width=12,
                             ),
-                        ]
+                        ],
+                        className="mb-4",
+                    ),
+                    # Data Import Section
+                    html.Div(
+                        [
+                            html.H5("Data Import", className="mb-3 border-bottom pb-2"),
+                            # CSV Upload
+                            dbc.Row(
+                                [
+                                    dbc.Col(
+                                        [
+                                            html.Label(
+                                                [
+                                                    "Upload Statistics CSV:",
+                                                    create_info_tooltip(
+                                                        "csv-upload",
+                                                        HELP_TEXTS["csv_format"],
+                                                    ),
+                                                ]
+                                            ),
+                                            dcc.Upload(
+                                                id="upload-data",
+                                                children=html.Div(
+                                                    [
+                                                        html.I(
+                                                            className="fas fa-file-upload mr-2"
+                                                        ),
+                                                        "Drag and Drop or ",
+                                                        html.A("Select CSV File"),
+                                                    ]
+                                                ),
+                                                style={
+                                                    "width": "100%",
+                                                    "height": "60px",
+                                                    "lineHeight": "60px",
+                                                    "borderWidth": "1px",
+                                                    "borderStyle": "dashed",
+                                                    "borderRadius": "5px",
+                                                    "textAlign": "center",
+                                                },
+                                                multiple=False,
+                                            ),
+                                        ],
+                                        width=12,
+                                    ),
+                                ],
+                            ),
+                        ],
                     ),
                 ]
             ),

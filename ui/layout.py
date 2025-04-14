@@ -127,10 +127,10 @@ def serve_layout():
                     ),
                 ]
             ),
-            # Third row: Input Parameters and PERT Analysis
+            # Third row: Input Parameters and PERT Analysis - adjust proportions
             dbc.Row(
                 [
-                    # Left: Input Parameters
+                    # Left: Input Parameters (wider for better form layout)
                     dbc.Col(
                         [
                             create_input_parameters_card(
@@ -139,16 +139,19 @@ def serve_layout():
                                 estimated_total_points,
                             ),
                         ],
-                        width=7,
+                        width=12,
+                        lg=8,
                     ),
-                    # Right: PERT Analysis
+                    # Right: PERT Analysis (narrower but with improved internal layout)
                     dbc.Col(
                         [
                             create_pert_analysis_card(),
                         ],
-                        width=5,
+                        width=12,
+                        lg=4,
                     ),
-                ]
+                ],
+                className="d-flex align-items-stretch mb-3",  # Make cards equal height
             ),
             # Spacer
             html.Div(className="mb-3"),

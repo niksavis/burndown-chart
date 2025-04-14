@@ -109,6 +109,7 @@ def register(app):
                 pert_factor,
                 total_items,  # Pass total items to the info table
                 total_points,  # Pass total points to the info table
+                deadline,  # Pass the original deadline string from settings
             )
 
             return fig, pert_info

@@ -10,6 +10,7 @@ that are used across the application.
 #######################################################################
 from dash import html, dcc
 import dash_bootstrap_components as dbc
+from datetime import datetime, timedelta
 
 # Import from configuration
 from configuration import COLOR_PALETTE
@@ -563,9 +564,10 @@ def create_pert_info_table(
     pert_factor=3,  # Add default value
     total_items=0,  # New parameter for total items
     total_points=0,  # New parameter for total points
+    deadline_str=None,  # Add parameter for direct deadline string
 ):
     """
-    Create the PERT information table.
+    Create the PERT information table with improved organization and visual grouping.
 
     Args:
         pert_time_items: PERT estimate for items (days)
@@ -578,9 +580,10 @@ def create_pert_info_table(
         pert_factor: Number of data points used for optimistic/pessimistic scenarios
         total_items: Total remaining items to complete
         total_points: Total remaining points to complete
+        deadline_str: The deadline date string from settings
 
     Returns:
-        Dash component with PERT information table
+        Dash component with improved PERT information display
     """
     # Determine colors based on if we'll meet the deadline
     items_color = "green" if pert_time_items <= days_to_deadline else "red"
@@ -600,7 +603,7 @@ def create_pert_info_table(
         total_points / med_weekly_points if med_weekly_points > 0 else float("inf")
     )
 
-    # Determine colors for weeks estimates by converting to days and comparing with deadline
+    # Determine colors for weeks estimates
     weeks_avg_items_color = (
         "green" if weeks_avg_items * 7 <= days_to_deadline else "red"
     )
@@ -614,333 +617,435 @@ def create_pert_info_table(
         "green" if weeks_med_points * 7 <= days_to_deadline else "red"
     )
 
+    # Calculate projected completion dates
+    current_date = datetime.now()
+    items_completion_date = current_date + timedelta(days=pert_time_items)
+    points_completion_date = current_date + timedelta(days=pert_time_points)
+
+    # Use the provided deadline string instead of recalculating
+    if deadline_str:
+        deadline_date_str = deadline_str
+    else:
+        # Fallback to calculation if not provided
+        current_date = datetime.now()
+        deadline_date = current_date + timedelta(days=days_to_deadline)
+        deadline_date_str = deadline_date.strftime("%Y-%m-%d")
+
+    # Format dates for display (only format completion dates, use deadline_str directly)
+    items_completion_str = items_completion_date.strftime("%Y-%m-%d")
+    points_completion_str = points_completion_date.strftime("%Y-%m-%d")
+
     return html.Div(
         [
-            html.Table(
+            # PERT Formula Section
+            html.Div(
                 [
-                    html.Tbody(
+                    html.H5("PERT Formula", className="mb-3 border-bottom pb-2"),
+                    html.Div(
                         [
-                            # PERT formula as first row in the table
-                            html.Tr(
-                                [
-                                    html.Td(
-                                        "PERT Formula:",
-                                        className="text-right pr-2",
-                                        style={"fontWeight": "bold"},
-                                    ),
-                                    html.Td(
-                                        [
-                                            dcc.Markdown(
-                                                r"$E = \frac{O + 4M + P}{6}$",
-                                                mathjax=True,
-                                                style={"display": "inline-block"},
-                                            )
-                                        ]
-                                    ),
-                                ]
+                            html.Div(
+                                "E = ",
+                                className="font-weight-bold mr-1",
+                                style={"fontSize": "1.2rem"},
                             ),
-                            html.Tr(
-                                [
-                                    html.Td(
-                                        "Estimated Days (Items):",
-                                        className="text-right pr-2",
-                                        style={"fontWeight": "bold"},
-                                    ),
-                                    html.Td(
-                                        [
-                                            f"{pert_time_items:.1f}",
-                                            html.Span(
-                                                " days",
-                                                style={
-                                                    "fontSize": "0.9em",
-                                                    "color": "#666",
-                                                },
-                                            ),
-                                        ],
-                                        style={
-                                            "color": items_color,
-                                            "fontWeight": "bold",
-                                        },
-                                    ),
-                                ]
+                            dcc.Markdown(
+                                r"$\frac{O + 4M + P}{6}$",
+                                mathjax=True,
+                                style={"display": "inline-block"},
                             ),
-                            html.Tr(
-                                [
-                                    html.Td(
-                                        "Estimated Days (Points):",
-                                        className="text-right pr-2",
-                                        style={"fontWeight": "bold"},
-                                    ),
-                                    html.Td(
-                                        [
-                                            f"{pert_time_points:.1f}",
-                                            html.Span(
-                                                " days",
-                                                style={
-                                                    "fontSize": "0.9em",
-                                                    "color": "#666",
-                                                },
-                                            ),
-                                        ],
-                                        style={
-                                            "color": points_color,
-                                            "fontWeight": "bold",
-                                        },
-                                    ),
-                                ]
+                            html.Div(
+                                "(O=Optimistic, M=Most Likely, P=Pessimistic)",
+                                className="text-muted ml-2",
+                                style={"fontSize": "0.9rem"},
                             ),
-                            html.Tr(
-                                [
-                                    html.Td(
-                                        "Deadline in:",
-                                        className="text-right pr-2",
-                                        style={"fontWeight": "bold"},
-                                    ),
-                                    html.Td(
-                                        [
-                                            f"{days_to_deadline}",
-                                            html.Span(
-                                                " days",
-                                                style={
-                                                    "fontSize": "0.9em",
-                                                    "color": "#666",
-                                                },
-                                            ),
-                                        ],
-                                        style={"fontWeight": "bold"},
-                                    ),
-                                ]
-                            ),
-                            # Add separator between deadline and metrics
-                            html.Tr(
-                                [
-                                    html.Td(
-                                        html.Hr(style={"margin": "10px 0"}),
-                                        colSpan=2,
-                                    )
-                                ]
-                            ),
-                            # Add new metrics for weeks to complete
-                            html.Tr(
-                                [
-                                    html.Td(
-                                        "Est. Weeks (Avg Items):",
-                                        className="text-right pr-2",
-                                        style={"fontWeight": "bold"},
-                                    ),
-                                    html.Td(
-                                        [
-                                            f"{weeks_avg_items:.1f}"
-                                            if weeks_avg_items != float("inf")
-                                            else "∞",
-                                            html.Span(
-                                                " weeks",
-                                                style={
-                                                    "fontSize": "0.9em",
-                                                    "color": "#666",
-                                                },
-                                            ),
-                                        ],
-                                        style={
-                                            "color": weeks_avg_items_color,
-                                            "fontWeight": "bold",
-                                        },
-                                    ),
-                                ]
-                            ),
-                            html.Tr(
-                                [
-                                    html.Td(
-                                        "Est. Weeks (Med Items):",
-                                        className="text-right pr-2",
-                                        style={"fontWeight": "bold"},
-                                    ),
-                                    html.Td(
-                                        [
-                                            f"{weeks_med_items:.1f}"
-                                            if weeks_med_items != float("inf")
-                                            else "∞",
-                                            html.Span(
-                                                " weeks",
-                                                style={
-                                                    "fontSize": "0.9em",
-                                                    "color": "#666",
-                                                },
-                                            ),
-                                        ],
-                                        style={
-                                            "color": weeks_med_items_color,
-                                            "fontWeight": "bold",
-                                        },
-                                    ),
-                                ]
-                            ),
-                            html.Tr(
-                                [
-                                    html.Td(
-                                        "Est. Weeks (Avg Points):",
-                                        className="text-right pr-2",
-                                        style={"fontWeight": "bold"},
-                                    ),
-                                    html.Td(
-                                        [
-                                            f"{weeks_avg_points:.1f}"
-                                            if weeks_avg_points != float("inf")
-                                            else "∞",
-                                            html.Span(
-                                                " weeks",
-                                                style={
-                                                    "fontSize": "0.9em",
-                                                    "color": "#666",
-                                                },
-                                            ),
-                                        ],
-                                        style={
-                                            "color": weeks_avg_points_color,
-                                            "fontWeight": "bold",
-                                        },
-                                    ),
-                                ]
-                            ),
-                            html.Tr(
-                                [
-                                    html.Td(
-                                        "Est. Weeks (Med Points):",
-                                        className="text-right pr-2",
-                                        style={"fontWeight": "bold"},
-                                    ),
-                                    html.Td(
-                                        [
-                                            f"{weeks_med_points:.1f}"
-                                            if weeks_med_points != float("inf")
-                                            else "∞",
-                                            html.Span(
-                                                " weeks",
-                                                style={
-                                                    "fontSize": "0.9em",
-                                                    "color": "#666",
-                                                },
-                                            ),
-                                        ],
-                                        style={
-                                            "color": weeks_med_points_color,
-                                            "fontWeight": "bold",
-                                        },
-                                    ),
-                                ]
-                            ),
-                            # Add a second separator
-                            html.Tr(
-                                [
-                                    html.Td(
-                                        html.Hr(style={"margin": "10px 0"}),
-                                        colSpan=2,
-                                    )
-                                ]
-                            ),
-                            # Add Average Weekly Items
-                            html.Tr(
-                                [
-                                    html.Td(
-                                        "Avg Weekly Items (10w):",
-                                        className="text-right pr-2",
-                                        style={"fontWeight": "bold"},
-                                    ),
-                                    html.Td(
-                                        [
-                                            f"{avg_weekly_items}",
-                                            html.Span(
-                                                " items/week",
-                                                style={
-                                                    "fontSize": "0.9em",
-                                                    "color": "#666",
-                                                },
-                                            ),
-                                        ],
-                                        style={"fontWeight": "bold"},
-                                    ),
-                                ]
-                            ),
-                            # Add Median Weekly Items
-                            html.Tr(
-                                [
-                                    html.Td(
-                                        "Med Weekly Items (10w):",
-                                        className="text-right pr-2",
-                                        style={"fontWeight": "bold"},
-                                    ),
-                                    html.Td(
-                                        [
-                                            f"{med_weekly_items}",
-                                            html.Span(
-                                                " items/week",
-                                                style={
-                                                    "fontSize": "0.9em",
-                                                    "color": "#666",
-                                                },
-                                            ),
-                                        ],
-                                        style={"fontWeight": "bold"},
-                                    ),
-                                ]
-                            ),
-                            # Add Average Weekly Points
-                            html.Tr(
-                                [
-                                    html.Td(
-                                        "Avg Weekly Points (10w):",
-                                        className="text-right pr-2",
-                                        style={"fontWeight": "bold"},
-                                    ),
-                                    html.Td(
-                                        [
-                                            f"{avg_weekly_points}",
-                                            html.Span(
-                                                " points/week",
-                                                style={
-                                                    "fontSize": "0.9em",
-                                                    "color": "#666",
-                                                },
-                                            ),
-                                        ],
-                                        style={"fontWeight": "bold"},
-                                    ),
-                                ]
-                            ),
-                            # Add Median Weekly Points
-                            html.Tr(
-                                [
-                                    html.Td(
-                                        "Med Weekly Points (10w):",
-                                        className="text-right pr-2",
-                                        style={"fontWeight": "bold"},
-                                    ),
-                                    html.Td(
-                                        [
-                                            f"{med_weekly_points}",
-                                            html.Span(
-                                                " points/week",
-                                                style={
-                                                    "fontSize": "0.9em",
-                                                    "color": "#666",
-                                                },
-                                            ),
-                                        ],
-                                        style={"fontWeight": "bold"},
-                                    ),
-                                ]
-                            ),
-                        ]
-                    )
+                        ],
+                        className="d-flex align-items-center justify-content-center mb-2",
+                    ),
                 ],
-                className="table table-borderless",
-                style={
-                    "margin": "0 auto",
-                    "width": "auto",
-                    "border": "1px solid #eee",
-                    "borderRadius": "5px",
-                    "padding": "10px",
-                },
-            )
-        ]
+                className="mb-4 text-center",
+            ),
+            # Deadline and Forecast Section
+            dbc.Row(
+                [
+                    # Left column - Deadline Status
+                    dbc.Col(
+                        [
+                            html.H5(
+                                "Deadline Status", className="mb-3 border-bottom pb-2"
+                            ),
+                            html.Div(
+                                [
+                                    # Deadline - using the direct string
+                                    html.Div(
+                                        [
+                                            html.I(
+                                                className="fas fa-calendar-day mr-2 text-primary"
+                                            ),
+                                            html.Span(
+                                                "Deadline: ",
+                                                className="font-weight-bold",
+                                            ),
+                                            html.Span(
+                                                f"{deadline_date_str} ({days_to_deadline} days)",
+                                                style={
+                                                    "fontWeight": "bold",
+                                                    "fontSize": "1.1rem",
+                                                },
+                                            ),
+                                        ],
+                                        className="mb-3 p-2 border-bottom",
+                                    ),
+                                    # PERT Estimates
+                                    html.Div(
+                                        [
+                                            html.I(
+                                                className="fas fa-chart-line mr-2 text-primary"
+                                            ),
+                                            html.Span(
+                                                "PERT Estimates:",
+                                                className="font-weight-bold d-block mb-2",
+                                            ),
+                                            html.Div(
+                                                [
+                                                    html.Span(
+                                                        "Items: ",
+                                                        className="font-weight-bold",
+                                                    ),
+                                                    html.Span(
+                                                        f"{pert_time_items:.1f} days",
+                                                        style={
+                                                            "color": items_color,
+                                                            "fontWeight": "bold",
+                                                        },
+                                                    ),
+                                                    html.Span(
+                                                        f" (by {items_completion_str})",
+                                                        className="ml-1 text-muted small",
+                                                    ),
+                                                ],
+                                                className="ml-4 mb-1",
+                                            ),
+                                            html.Div(
+                                                [
+                                                    html.Span(
+                                                        "Points: ",
+                                                        className="font-weight-bold",
+                                                    ),
+                                                    html.Span(
+                                                        f"{pert_time_points:.1f} days",
+                                                        style={
+                                                            "color": points_color,
+                                                            "fontWeight": "bold",
+                                                        },
+                                                    ),
+                                                    html.Span(
+                                                        f" (by {points_completion_str})",
+                                                        className="ml-1 text-muted small",
+                                                    ),
+                                                ],
+                                                className="ml-4",
+                                            ),
+                                        ],
+                                        className="mb-1 p-2",
+                                    ),
+                                ],
+                                # Remove h-100 class to let container size naturally to content
+                                className="p-3 border rounded",
+                            ),
+                        ],
+                        width=12,
+                        lg=6,
+                        className="mb-3 mb-lg-0",
+                    ),
+                    # Right column - Completion Estimates
+                    dbc.Col(
+                        [
+                            html.H5(
+                                "Completion Forecast",
+                                className="mb-3 border-bottom pb-2",
+                            ),
+                            html.Div(
+                                [
+                                    # Items completion
+                                    html.Div(
+                                        [
+                                            html.I(
+                                                className="fas fa-tasks mr-2 text-primary"
+                                            ),
+                                            html.Span(
+                                                "Items Forecast:",
+                                                className="font-weight-bold d-block mb-2",
+                                            ),
+                                            html.Div(
+                                                [
+                                                    html.Span(
+                                                        "By Average: ",
+                                                        className="font-weight-bold",
+                                                    ),
+                                                    html.Span(
+                                                        f"{weeks_avg_items:.1f}"
+                                                        if weeks_avg_items
+                                                        != float("inf")
+                                                        else "∞",
+                                                        style={
+                                                            "color": weeks_avg_items_color,
+                                                            "fontWeight": "bold",
+                                                        },
+                                                    ),
+                                                    html.Span(" weeks"),
+                                                ],
+                                                className="ml-4 mb-1",
+                                            ),
+                                            html.Div(
+                                                [
+                                                    html.Span(
+                                                        "By Median: ",
+                                                        className="font-weight-bold",
+                                                    ),
+                                                    html.Span(
+                                                        f"{weeks_med_items:.1f}"
+                                                        if weeks_med_items
+                                                        != float("inf")
+                                                        else "∞",
+                                                        style={
+                                                            "color": weeks_med_items_color,
+                                                            "fontWeight": "bold",
+                                                        },
+                                                    ),
+                                                    html.Span(" weeks"),
+                                                ],
+                                                className="ml-4",
+                                            ),
+                                        ],
+                                        className="mb-3 p-2 border-bottom",
+                                    ),
+                                    # Points completion
+                                    html.Div(
+                                        [
+                                            html.I(
+                                                className="fas fa-chart-bar mr-2 text-primary"
+                                            ),
+                                            html.Span(
+                                                "Points Forecast:",
+                                                className="font-weight-bold d-block mb-2",
+                                            ),
+                                            html.Div(
+                                                [
+                                                    html.Span(
+                                                        "By Average: ",
+                                                        className="font-weight-bold",
+                                                    ),
+                                                    html.Span(
+                                                        f"{weeks_avg_points:.1f}"
+                                                        if weeks_avg_points
+                                                        != float("inf")
+                                                        else "∞",
+                                                        style={
+                                                            "color": weeks_avg_points_color,
+                                                            "fontWeight": "bold",
+                                                        },
+                                                    ),
+                                                    html.Span(" weeks"),
+                                                ],
+                                                className="ml-4 mb-1",
+                                            ),
+                                            html.Div(
+                                                [
+                                                    html.Span(
+                                                        "By Median: ",
+                                                        className="font-weight-bold",
+                                                    ),
+                                                    html.Span(
+                                                        f"{weeks_med_points:.1f}"
+                                                        if weeks_med_points
+                                                        != float("inf")
+                                                        else "∞",
+                                                        style={
+                                                            "color": weeks_med_points_color,
+                                                            "fontWeight": "bold",
+                                                        },
+                                                    ),
+                                                    html.Span(" weeks"),
+                                                ],
+                                                className="ml-4",
+                                            ),
+                                        ],
+                                        className="mb-1 p-2",
+                                    ),
+                                ],
+                                # Remove h-100 class to let container size naturally to content
+                                className="p-3 border rounded",
+                            ),
+                        ],
+                        width=12,
+                        lg=6,
+                    ),
+                ],
+                className="mb-4",
+            ),
+            # Weekly Velocity Metrics Section - add more top margin
+            html.Div(
+                [
+                    html.H5(
+                        "Weekly Velocity (Last 10 Weeks)",
+                        className="mb-3 border-bottom pb-2",
+                    ),
+                    dbc.Row(
+                        [
+                            # Items Velocity
+                            dbc.Col(
+                                [
+                                    html.Div(
+                                        [
+                                            html.H6(
+                                                [
+                                                    html.I(
+                                                        className="fas fa-tasks mr-2 text-primary"
+                                                    ),
+                                                    "Items",
+                                                ],
+                                                className="text-center mb-3 border-bottom pb-2",
+                                            ),
+                                            html.Div(
+                                                [
+                                                    # Average Items
+                                                    html.Div(
+                                                        [
+                                                            html.Span(
+                                                                f"{avg_weekly_items}",
+                                                                style={
+                                                                    "fontSize": "1.5rem",
+                                                                    "fontWeight": "bold",
+                                                                    "color": "#007bff",
+                                                                },
+                                                            ),
+                                                            html.Span(
+                                                                " items/week",
+                                                                className="text-muted ml-1",
+                                                            ),
+                                                        ],
+                                                        className="text-center",
+                                                    ),
+                                                    html.Div(
+                                                        "Average",
+                                                        className="text-center text-muted small",
+                                                    ),
+                                                ],
+                                                className="mb-3",
+                                            ),
+                                            html.Div(
+                                                [
+                                                    # Median Items
+                                                    html.Div(
+                                                        [
+                                                            html.Span(
+                                                                f"{med_weekly_items}",
+                                                                style={
+                                                                    "fontSize": "1.5rem",
+                                                                    "fontWeight": "bold",
+                                                                    "color": "#6c757d",
+                                                                },
+                                                            ),
+                                                            html.Span(
+                                                                " items/week",
+                                                                className="text-muted ml-1",
+                                                            ),
+                                                        ],
+                                                        className="text-center",
+                                                    ),
+                                                    html.Div(
+                                                        "Median",
+                                                        className="text-center text-muted small",
+                                                    ),
+                                                ],
+                                            ),
+                                        ],
+                                        className="p-3 border rounded h-100",
+                                    ),
+                                ],
+                                width=12,
+                                md=6,
+                                className="mb-3 mb-md-0",
+                            ),
+                            # Points Velocity
+                            dbc.Col(
+                                [
+                                    html.Div(
+                                        [
+                                            html.H6(
+                                                [
+                                                    html.I(
+                                                        className="fas fa-chart-bar mr-2 text-primary"
+                                                    ),
+                                                    "Points",
+                                                ],
+                                                className="text-center mb-3 border-bottom pb-2",
+                                            ),
+                                            html.Div(
+                                                [
+                                                    # Average Points
+                                                    html.Div(
+                                                        [
+                                                            html.Span(
+                                                                f"{avg_weekly_points}",
+                                                                style={
+                                                                    "fontSize": "1.5rem",
+                                                                    "fontWeight": "bold",
+                                                                    "color": "#fd7e14",
+                                                                },
+                                                            ),
+                                                            html.Span(
+                                                                " points/week",
+                                                                className="text-muted ml-1",
+                                                            ),
+                                                        ],
+                                                        className="text-center",
+                                                    ),
+                                                    html.Div(
+                                                        "Average",
+                                                        className="text-center text-muted small",
+                                                    ),
+                                                ],
+                                                className="mb-3",
+                                            ),
+                                            html.Div(
+                                                [
+                                                    # Median Points
+                                                    html.Div(
+                                                        [
+                                                            html.Span(
+                                                                f"{med_weekly_points}",
+                                                                style={
+                                                                    "fontSize": "1.5rem",
+                                                                    "fontWeight": "bold",
+                                                                    "color": "#6c757d",
+                                                                },
+                                                            ),
+                                                            html.Span(
+                                                                " points/week",
+                                                                className="text-muted ml-1",
+                                                            ),
+                                                        ],
+                                                        className="text-center",
+                                                    ),
+                                                    html.Div(
+                                                        "Median",
+                                                        className="text-center text-muted small",
+                                                    ),
+                                                ],
+                                            ),
+                                        ],
+                                        className="p-3 border rounded h-100",
+                                    ),
+                                ],
+                                width=12,
+                                md=6,
+                            ),
+                        ],
+                    ),
+                ],
+                # Add more top margin to push the section down
+                className="mt-4",  # Added top margin
+            ),
+        ],
     )
