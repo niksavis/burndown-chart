@@ -20,6 +20,9 @@ from data import (
     calculate_weekly_averages,
 )
 
+# Import add_deadline_marker from elements module to avoid duplication
+from visualization.elements import add_deadline_marker
+
 #######################################################################
 # CHART CREATION FUNCTIONS
 #######################################################################
@@ -160,44 +163,6 @@ def create_plot_traces(forecast_data):
     )
 
     return traces
-
-
-def add_deadline_marker(fig, deadline):
-    """
-    Add deadline marker line and annotation to the figure.
-
-    Args:
-        fig: Plotly figure object
-        deadline: Deadline date (datetime object)
-
-    Returns:
-        Updated figure with deadline marker
-    """
-    # Add vertical line at deadline
-    fig.add_shape(
-        type="line",
-        x0=deadline,
-        x1=deadline,
-        y0=0,
-        y1=1,
-        yref="paper",
-        line=dict(color=COLOR_PALETTE["deadline"], dash="dash", width=3),
-    )
-
-    # Add deadline annotation
-    fig.add_annotation(
-        x=deadline,
-        y=1,
-        yref="paper",
-        text="Deadline",
-        showarrow=True,
-        arrowhead=1,
-        ax=0,
-        ay=-40,
-        font=dict(color=COLOR_PALETTE["deadline"], size=14, family="Arial, sans-serif"),
-    )
-
-    return fig
 
 
 def configure_axes(fig, forecast_data):

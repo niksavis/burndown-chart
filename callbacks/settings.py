@@ -23,6 +23,30 @@ from configuration import (
 from data import save_settings, calculate_total_points
 
 #######################################################################
+# HELPER FUNCTIONS
+#######################################################################
+
+
+def get_data_points_info(value, min_val, max_val):
+    """Helper function to generate info text about data points selection"""
+    if min_val == max_val:
+        return "Using all available data points"
+
+    percent = (
+        ((value - min_val) / (max_val - min_val) * 100) if max_val > min_val else 100
+    )
+
+    if value == min_val:
+        return f"Using minimum data points ({value} points, most recent data only)"
+    elif value == max_val:
+        return f"Using all available data points ({value} points)"
+    else:
+        return (
+            f"Using {value} most recent data points ({percent:.0f}% of available data)"
+        )
+
+
+#######################################################################
 # CALLBACKS
 #######################################################################
 
@@ -148,25 +172,6 @@ def register(app):
         Update the info text about selected data points.
         """
         return get_data_points_info(value, min_value, max_value)
-
-    # Keep the helper function
-    def get_data_points_info(value, min_val, max_val):
-        """Helper function to generate info text about data points selection"""
-        if min_val == max_val:
-            return "Using all available data points"
-
-        percent = (
-            ((value - min_val) / (max_val - min_val) * 100)
-            if max_val > min_val
-            else 100
-        )
-
-        if value == min_val:
-            return f"Using minimum data points ({value} points, most recent data only)"
-        elif value == max_val:
-            return f"Using all available data points ({value} points)"
-        else:
-            return f"Using {value} most recent data points ({percent:.0f}% of available data)"
 
     @app.callback(
         [
