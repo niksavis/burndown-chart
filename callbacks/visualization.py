@@ -67,9 +67,11 @@ def register(app):
             # Get values from settings
             pert_factor = settings["pert_factor"]
             total_items = settings["total_items"]
-            # Use calculated total points from calc_results if available
             total_points = calc_results.get("total_points", settings["total_points"])
             deadline = settings["deadline"]
+            data_points_count = settings.get(
+                "data_points_count", len(df)
+            )  # Get selected data points count
 
             # Process data for calculations
             if not df.empty:
@@ -82,6 +84,7 @@ def register(app):
                 total_points=total_points,
                 pert_factor=pert_factor,
                 deadline_str=deadline,
+                data_points_count=data_points_count,  # Pass data_points_count to forecast function
             )
 
             # Calculate days to deadline

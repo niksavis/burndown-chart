@@ -282,7 +282,9 @@ def calculate_weekly_averages(statistics_data):
     )
 
 
-def prepare_forecast_data(df, total_items, total_points, pert_factor):
+def prepare_forecast_data(
+    df, total_items, total_points, pert_factor, data_points_count=None
+):
     """
     Prepare all necessary data for the forecast visualization.
 
@@ -291,13 +293,38 @@ def prepare_forecast_data(df, total_items, total_points, pert_factor):
         total_items: Total number of items to complete
         total_points: Total number of points to complete
         pert_factor: PERT factor for calculations
+        data_points_count: Number of most recent data points to use (defaults to all)
 
     Returns:
         Dictionary containing all data needed for visualization
     """
+    # Handle empty dataframe case
+    if df.empty:
+        return {
+            "df_calc": df,
+            "pert_time_items": 0,
+            "pert_time_points": 0,
+            "items_forecasts": {"avg": ([], []), "opt": ([], []), "pes": ([], [])},
+            "points_forecasts": {"avg": ([], []), "opt": ([], []), "pes": ([], [])},
+            "max_items": total_items,
+            "max_points": total_points,
+            "start_date": datetime.now(),
+            "last_items": total_items,
+            "last_points": total_points,
+        }
+
     # Convert string dates to datetime for calculations
     df_calc = df.copy()
     df_calc["date"] = pd.to_datetime(df_calc["date"])
+
+    # Filter to use only the specified number of most recent data points
+    if data_points_count is not None and len(df_calc) > data_points_count:
+        # Sort by date descending to get most recent first
+        df_calc = df_calc.sort_values("date", ascending=False)
+        # Take only the specified number of rows
+        df_calc = df_calc.head(data_points_count)
+        # Resort by date ascending for calculations
+        df_calc = df_calc.sort_values("date", ascending=True)
 
     # Compute weekly throughput and rates
     grouped = compute_weekly_throughput(df_calc)

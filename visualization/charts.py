@@ -442,7 +442,9 @@ def add_metrics_annotations(fig, metrics_data):
     return fig
 
 
-def create_forecast_plot(df, total_items, total_points, pert_factor, deadline_str):
+def create_forecast_plot(
+    df, total_items, total_points, pert_factor, deadline_str, data_points_count=None
+):
     """
     Create the complete forecast plot with all components.
 
@@ -452,6 +454,7 @@ def create_forecast_plot(df, total_items, total_points, pert_factor, deadline_st
         total_points: Total number of points to complete
         pert_factor: PERT factor for calculations
         deadline_str: Deadline date as string (YYYY-MM-DD)
+        data_points_count: Number of most recent data points to use (defaults to all)
 
     Returns:
         Tuple of (figure, pert_time_items, pert_time_points)
@@ -460,7 +463,9 @@ def create_forecast_plot(df, total_items, total_points, pert_factor, deadline_st
     deadline = pd.to_datetime(deadline_str)
 
     # Prepare all data needed for the visualization
-    forecast_data = prepare_forecast_data(df, total_items, total_points, pert_factor)
+    forecast_data = prepare_forecast_data(
+        df, total_items, total_points, pert_factor, data_points_count
+    )
 
     # Create subplot with secondary y-axis
     fig = make_subplots(specs=[[{"secondary_y": True}]])
@@ -504,6 +509,10 @@ def create_forecast_plot(df, total_items, total_points, pert_factor, deadline_st
         "avg_weekly_points": avg_weekly_points,
         "med_weekly_items": med_weekly_items,
         "med_weekly_points": med_weekly_points,
+        "data_points_used": data_points_count
+        if data_points_count is not None
+        else len(df),
+        "data_points_available": len(df),
     }
 
     fig = add_metrics_annotations(fig, metrics_data)

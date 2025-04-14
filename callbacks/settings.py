@@ -15,6 +15,7 @@ from datetime import datetime
 # Import from application modules
 from configuration import (
     logger,
+    DEFAULT_PERT_FACTOR,
     DEFAULT_TOTAL_POINTS,
     DEFAULT_ESTIMATED_ITEMS,
     DEFAULT_ESTIMATED_POINTS,
@@ -135,6 +136,39 @@ def register(app):
         )
 
     @app.callback(
+        Output("data-points-info", "children"),
+        [
+            Input("data-points-input", "value"),
+            Input("data-points-input", "min"),
+            Input("data-points-input", "max"),
+        ],
+    )
+    def update_data_points_info(value, min_value, max_value):
+        """
+        Update the info text about selected data points.
+        """
+        return get_data_points_info(value, min_value, max_value)
+
+    # Keep the helper function
+    def get_data_points_info(value, min_val, max_val):
+        """Helper function to generate info text about data points selection"""
+        if min_val == max_val:
+            return "Using all available data points"
+
+        percent = (
+            ((value - min_val) / (max_val - min_val) * 100)
+            if max_val > min_val
+            else 100
+        )
+
+        if value == min_val:
+            return f"Using minimum data points ({value} points, most recent data only)"
+        elif value == max_val:
+            return f"Using all available data points ({value} points)"
+        else:
+            return f"Using {value} most recent data points ({percent:.0f}% of available data)"
+
+    @app.callback(
         [
             Output("current-settings", "data"),
             Output("current-settings", "modified_timestamp"),
@@ -143,9 +177,10 @@ def register(app):
             Input("pert-factor-slider", "value"),
             Input("deadline-picker", "date"),
             Input("total-items-input", "value"),
-            Input("calculation-results", "data"),  # Use calculated total points
+            Input("calculation-results", "data"),
             Input("estimated-items-input", "value"),
             Input("estimated-points-input", "value"),
+            Input("data-points-input", "value"),  # Added data_points_count input
         ],
         [State("app-init-complete", "data")],
     )
@@ -156,6 +191,7 @@ def register(app):
         calc_results,
         estimated_items,
         estimated_points,
+        data_points_count,  # Added parameter
         init_complete,
     ):
         """
@@ -168,14 +204,22 @@ def register(app):
             not init_complete
             or not ctx.triggered
             or None
-            in [pert_factor, deadline, total_items, estimated_items, estimated_points]
+            in [
+                pert_factor,
+                deadline,
+                total_items,
+                # Remove these from None check since we'll provide defaults
+                # estimated_items,
+                # estimated_points,
+                data_points_count,  # Added check
+            ]
         ):
             raise PreventUpdate
 
         # Get total points from calculation results
         total_points = calc_results.get("total_points", DEFAULT_TOTAL_POINTS)
 
-        # Use consistent .get() pattern for all fallbacks
+        # Use consistent .get() pattern for all fallbacks - restored from previous implementation
         input_values = {
             "estimated_items": estimated_items,
             "estimated_points": estimated_points,
@@ -193,6 +237,7 @@ def register(app):
             "total_points": total_points,
             "estimated_items": estimated_items,
             "estimated_points": estimated_points,
+            "data_points_count": data_points_count,  # Added to settings
         }
 
         # Save to disk
@@ -203,7 +248,59 @@ def register(app):
             total_points,
             estimated_items,
             estimated_points,
+            data_points_count,  # Added parameter
         )
 
         logger.info(f"Settings updated and saved: {settings}")
         return settings, int(datetime.now().timestamp() * 1000)
+
+    @app.callback(
+        [
+            Output("data-points-input", "min"),
+            Output("data-points-input", "max"),
+            Output("data-points-input", "marks"),
+        ],
+        [
+            Input("pert-factor-slider", "value"),
+            Input("statistics-table", "data"),
+        ],
+    )
+    def update_data_points_constraints(pert_factor, statistics_data):
+        """
+        Update the min, max constraints, and marks for the data points slider.
+        """
+        if pert_factor is None:
+            pert_factor = DEFAULT_PERT_FACTOR
+
+        min_value = pert_factor * 2
+        max_value = len(statistics_data) if statistics_data else min_value
+
+        # Ensure min doesn't exceed max
+        min_value = min(min_value, max_value)
+
+        # Calculate percentage positions
+        range_size = max_value - min_value
+        p25 = min_value + int(range_size * 0.25)
+        p50 = min_value + int(range_size * 0.5)
+        p75 = min_value + int(range_size * 0.75)
+
+        # Create marks for min, 25%, 50%, 75%, and max
+        marks = {}
+
+        # Only add percentage marks if there's enough range
+        if range_size > 3:
+            marks = {
+                min_value: {"label": str(min_value)},
+                p25: {"label": str(p25)},
+                p50: {"label": str(p50)},
+                p75: {"label": str(p75)},
+                max_value: {"label": str(max_value)},
+            }
+        else:
+            # If range is small, just show min and max
+            marks = {
+                min_value: {"label": str(min_value)},
+                max_value: {"label": str(max_value)},
+            }
+
+        return min_value, max_value, marks

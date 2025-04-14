@@ -254,9 +254,10 @@ def create_input_parameters_card(
             ),
             dbc.CardBody(
                 [
-                    # PERT factor and Deadline
+                    # First row: PERT Factor and Deadline
                     dbc.Row(
                         [
+                            # Left column: PERT Factor
                             dbc.Col(
                                 [
                                     html.Label(
@@ -280,6 +281,7 @@ def create_input_parameters_card(
                                 width=12,
                                 lg=6,
                             ),
+                            # Right column: Deadline with calendar
                             dbc.Col(
                                 [
                                     html.Label(
@@ -295,15 +297,76 @@ def create_input_parameters_card(
                                         id="deadline-picker",
                                         date=current_settings["deadline"],
                                         display_format="YYYY-MM-DD",
-                                        className="form-control",
+                                        first_day_of_week=1,  # Monday as first day
+                                        show_outside_days=True,
+                                        with_portal=False,  # Changed from True to False
+                                        with_full_screen_portal=False,
+                                        placeholder="Select deadline date",
+                                        persistence=True,
+                                        min_date_allowed=datetime.now().strftime(
+                                            "%Y-%m-%d"
+                                        ),
+                                        style={
+                                            "width": "100%",
+                                            "border-radius": "0.25rem",
+                                        },
                                     ),
                                 ],
                                 width=12,
                                 lg=6,
                             ),
+                        ],
+                        className="mb-3",
+                    ),
+                    # Second row: Data Points to Include (below PERT Factor)
+                    dbc.Row(
+                        [
+                            # Left column: Data Points to Include
+                            dbc.Col(
+                                [
+                                    html.Label(
+                                        [
+                                            "Data Points to Include:",
+                                            create_info_tooltip(
+                                                "data-points-count",
+                                                HELP_TEXTS["data_points_count"],
+                                            ),
+                                        ]
+                                    ),
+                                    # Use slider with automatic percentage marks - no separate min/max indicators
+                                    dcc.Slider(
+                                        id="data-points-input",
+                                        min=current_settings["pert_factor"] * 2,
+                                        max=10,  # Will be updated by callback
+                                        value=current_settings.get(
+                                            "data_points_count",
+                                            current_settings["pert_factor"] * 2,
+                                        ),
+                                        # Marks will be set by callback
+                                        marks=None,
+                                        step=1,
+                                        className="my-3",  # Added margin for spacing
+                                        tooltip={
+                                            "placement": "bottom",
+                                            "always_visible": True,
+                                        },
+                                    ),
+                                    # Keep the info text that shows details about the selection
+                                    html.Small(
+                                        id="data-points-info",
+                                        children="Using all available data points",
+                                        className="text-muted mt-1 mb-2 d-block",
+                                    ),
+                                ],
+                                width=12,
+                                lg=6,
+                                className="mb-3",
+                            ),
+                            # Right column: Empty space for balance
+                            dbc.Col(width=12, lg=6),
                         ]
                     ),
-                    html.Br(),
+                    html.Hr(className="my-4"),  # Visual separator
                     # Estimated Items and Total Items
                     dbc.Row(
                         [

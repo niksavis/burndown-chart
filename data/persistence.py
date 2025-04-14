@@ -24,6 +24,7 @@ from configuration import (
     DEFAULT_DEADLINE,
     DEFAULT_ESTIMATED_ITEMS,
     DEFAULT_ESTIMATED_POINTS,
+    DEFAULT_DATA_POINTS_COUNT,
 )
 
 #######################################################################
@@ -38,6 +39,7 @@ def save_settings(
     total_points,
     estimated_items=None,
     estimated_points=None,
+    data_points_count=None,
 ):
     """
     Save user settings to JSON file.
@@ -49,6 +51,7 @@ def save_settings(
         total_points: Total number of points
         estimated_items: Number of items that have been estimated
         estimated_points: Number of points for the estimated items
+        data_points_count: Number of data points to use for calculations
     """
     settings = {
         "pert_factor": pert_factor,
@@ -61,6 +64,9 @@ def save_settings(
         "estimated_points": estimated_points
         if estimated_points is not None
         else DEFAULT_ESTIMATED_POINTS,
+        "data_points_count": data_points_count
+        if data_points_count is not None
+        else max(DEFAULT_DATA_POINTS_COUNT, pert_factor * 2),
     }
 
     try:
@@ -93,6 +99,7 @@ def load_settings():
         "total_points": DEFAULT_TOTAL_POINTS,
         "estimated_items": DEFAULT_ESTIMATED_ITEMS,
         "estimated_points": DEFAULT_ESTIMATED_POINTS,
+        "data_points_count": DEFAULT_DATA_POINTS_COUNT,
     }
 
     try:
@@ -106,6 +113,12 @@ def load_settings():
                 settings["estimated_items"] = DEFAULT_ESTIMATED_ITEMS
             if "estimated_points" not in settings:
                 settings["estimated_points"] = DEFAULT_ESTIMATED_POINTS
+            if "data_points_count" not in settings:
+                # Default to 2x PERT factor or minimum default
+                pert_factor = settings.get("pert_factor", DEFAULT_PERT_FACTOR)
+                settings["data_points_count"] = max(
+                    DEFAULT_DATA_POINTS_COUNT, pert_factor * 2
+                )
 
             return settings
         else:

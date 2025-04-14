@@ -33,6 +33,7 @@ DEFAULT_ESTIMATED_ITEMS = 20  # Default value for estimated items (20% of total 
 DEFAULT_ESTIMATED_POINTS = (
     200  # Default value for estimated points (based on default averages)
 )
+DEFAULT_DATA_POINTS_COUNT = 2 * DEFAULT_PERT_FACTOR  # Default to minimum valid value
 
 # File paths for data persistence
 SETTINGS_FILE = "forecast_settings.json"
@@ -72,6 +73,11 @@ HELP_TEXTS = {
         The PERT factor determines how many data points to use for optimistic and pessimistic estimates.
         A higher value considers more historical data points for calculating scenarios.
         Range: 3-15 (default: 3)
+    """,
+    "data_points_count": """
+        Select how many historical data points to include in your forecast calculation.
+        The minimum is 2× your PERT Factor to ensure statistically valid results.
+        Using fewer points makes your forecast more responsive to recent trends.
     """,
     "deadline": """
         Set your project deadline here. The app will show if you're on track to meet it.
