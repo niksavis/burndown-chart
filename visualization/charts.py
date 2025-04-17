@@ -585,7 +585,7 @@ def create_weekly_items_chart(statistics_data, date_range_weeks=None):
                 mode="lines",
                 name="Weighted 4-Week Average",
                 line=dict(
-                    color="#FF6347",  # Tomato color
+                    color="#0047AB",  # Cobalt blue - darker shade of blue
                     width=3,
                     dash="solid",
                 ),
@@ -800,21 +800,37 @@ def create_combined_weekly_chart(statistics_data, date_range_weeks=None):
     # Format date for display
     weekly_df["week_label"] = weekly_df["start_date"].dt.strftime("%b %d")
 
-    # Calculate weighted moving average for points (last 4 weeks)
+    # Calculate weighted moving average for items (last 4 weeks)
     if len(weekly_df) >= 4:
-        values = weekly_df["points"].values
-        weighted_avg = []
+        # For items
+        items_values = weekly_df["items"].values
+        items_weighted_avg = []
 
         for i in range(len(weekly_df)):
             if i < 3:
-                weighted_avg.append(None)
+                items_weighted_avg.append(None)
             else:
-                window = values[i - 3 : i + 1]
+                window = items_values[i - 3 : i + 1]
                 weights = [0.1, 0.2, 0.3, 0.4]
                 w_avg = sum(w * v for w, v in zip(weights, window))
-                weighted_avg.append(w_avg)
+                items_weighted_avg.append(w_avg)
 
-        weekly_df["weighted_avg"] = weighted_avg
+        weekly_df["items_weighted_avg"] = items_weighted_avg
+
+        # For points
+        points_values = weekly_df["points"].values
+        points_weighted_avg = []
+
+        for i in range(len(weekly_df)):
+            if i < 3:
+                points_weighted_avg.append(None)
+            else:
+                window = points_values[i - 3 : i + 1]
+                weights = [0.1, 0.2, 0.3, 0.4]
+                w_avg = sum(w * v for w, v in zip(weights, window))
+                points_weighted_avg.append(w_avg)
+
+        weekly_df["points_weighted_avg"] = points_weighted_avg
 
     # Create the subplot with 1 row and 2 columns
     fig = make_subplots(
@@ -854,15 +870,40 @@ def create_combined_weekly_chart(statistics_data, date_range_weeks=None):
         col=2,
     )
 
-    # Add weighted moving average line for points if we have enough data
-    if len(weekly_df) >= 4 and "weighted_avg" in weekly_df.columns:
+    # Add weighted moving average line for items if we have enough data
+    if len(weekly_df) >= 4 and "items_weighted_avg" in weekly_df.columns:
+        # Filter out None values for display
+        items_weighted_df = weekly_df.dropna(subset=["items_weighted_avg"])
+
         fig.add_trace(
             go.Scatter(
-                x=weekly_df["week_label"],
-                y=weekly_df["weighted_avg"],
+                x=items_weighted_df["week_label"],
+                y=items_weighted_df["items_weighted_avg"],
                 mode="lines",
-                name="Weighted 4-Week Average",
-                line=dict(color="#FF6347", width=3, dash="solid"),
+                name="Items 4-Week Avg",
+                line=dict(
+                    color="#0047AB", width=3, dash="solid"
+                ),  # Cobalt blue for items
+                hovertemplate="Week of %{x}<br>Weighted Avg: %{y:.1f}<extra></extra>",
+            ),
+            row=1,
+            col=1,
+        )
+
+    # Add weighted moving average line for points if we have enough data
+    if len(weekly_df) >= 4 and "points_weighted_avg" in weekly_df.columns:
+        # Filter out None values for display
+        points_weighted_df = weekly_df.dropna(subset=["points_weighted_avg"])
+
+        fig.add_trace(
+            go.Scatter(
+                x=points_weighted_df["week_label"],
+                y=points_weighted_df["points_weighted_avg"],
+                mode="lines",
+                name="Points 4-Week Avg",
+                line=dict(
+                    color="#FF6347", width=3, dash="solid"
+                ),  # Tomato color for points
                 hovertemplate="Week of %{x}<br>Weighted Avg: %{y:.1f}<extra></extra>",
             ),
             row=1,
