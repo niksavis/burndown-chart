@@ -15,6 +15,7 @@ import pandas as pd
 
 # Import from other modules
 from configuration import HELP_TEXTS, COLOR_PALETTE
+from visualization import empty_figure
 
 # Fix circular import issue - import directly from components instead of ui
 from ui.components import create_info_tooltip
@@ -1075,170 +1076,271 @@ def create_project_status_card(statistics_df, settings):
     )
 
 
-def create_team_capacity_card():
+def create_team_capacity_card(capacity_metrics=None, settings=None):
     """
-    Create the team capacity card component.
+    Create a card displaying team capacity information and metrics.
+
+    Args:
+        capacity_metrics: Dictionary with capacity metrics data
+        settings: Dictionary with current settings
 
     Returns:
-        Dash Card component with team capacity inputs and metrics
+        A Dash card component for team capacity
     """
-    return dbc.Card(
+    if settings is None:
+        settings = {}
+
+    team_members = settings.get("team_members", 1)
+    hours_per_member = settings.get("hours_per_member", 40)
+    include_weekends = settings.get("include_weekends", False)
+
+    # Calculate total weekly capacity
+    total_capacity = team_members * hours_per_member
+
+    # Create settings controls
+    controls = html.Div(
         [
-            dbc.CardHeader(
+            html.H4("Team Capacity Settings", className="mt-3"),
+            dbc.Row(
                 [
-                    html.H4("Team Capacity Settings", className="d-inline"),
-                    create_info_tooltip(
-                        "capacity-settings",
-                        "Configure your team's capacity to see how it affects project completion forecasts.",
+                    dbc.Col(
+                        [
+                            dbc.Label("Team Members"),
+                            dbc.Input(
+                                id="team-members-input",
+                                type="number",
+                                min=1,
+                                max=100,
+                                value=team_members,
+                                step=1,
+                            ),
+                        ],
+                        width=6,
+                    ),
+                    dbc.Col(
+                        [
+                            dbc.Label("Hours per Member (Weekly)"),
+                            dbc.Input(
+                                id="hours-per-member-input",
+                                type="number",
+                                min=1,
+                                max=168,
+                                value=hours_per_member,
+                                step=1,
+                            ),
+                        ],
+                        width=6,
                     ),
                 ]
             ),
+            dbc.Row(
+                [
+                    dbc.Col(
+                        [
+                            dbc.Label("Include Weekends"),
+                            dbc.Switch(
+                                id="include-weekends-switch",
+                                value=include_weekends,
+                                className="mt-2",
+                            ),
+                        ],
+                        width=12,
+                    ),
+                ]
+            ),
+            dbc.Button(
+                "Update Capacity",
+                id="update-capacity-button",
+                color="primary",
+                className="mt-3",
+            ),
+            html.Hr(),
+            html.H5(f"Total Weekly Capacity: {total_capacity} hours"),
+        ]
+    )
+
+    # Create metrics section
+    metrics = html.Div(
+        [
+            html.H4("Capacity Metrics", className="mt-3"),
+            html.Div(
+                id="capacity-metrics-container",
+                children=[
+                    _create_capacity_metrics_content(capacity_metrics, total_capacity)
+                ],
+            ),
+        ]
+    )
+
+    # Create forecast graph
+    forecast = html.Div(
+        [
+            html.H4("Capacity Forecast", className="mt-3"),
+            dcc.Graph(
+                id="capacity-forecast-graph",
+                figure=empty_figure("No capacity data available"),
+                config={"displayModeBar": False},
+                style={"height": "400px"},
+            ),
+        ]
+    )
+
+    # Assemble the card
+    card = dbc.Card(
+        [
+            dbc.CardHeader("Team Capacity Analysis"),
             dbc.CardBody(
                 [
-                    dbc.Form(
-                        [
-                            dbc.Row(
-                                [
-                                    dbc.Col(
-                                        [
-                                            dbc.Label("Team Members:"),
-                                            dbc.Input(
-                                                id="team-members-input",
-                                                type="number",
-                                                min=1,
-                                                max=100,
-                                                value=5,
-                                                step=1,
-                                            ),
-                                            dbc.FormText(
-                                                "Number of people working on the project"
-                                            ),
-                                        ],
-                                        md=6,
-                                        className="mb-3",
-                                    ),
-                                    dbc.Col(
-                                        [
-                                            dbc.Label("Hours per Member (weekly):"),
-                                            dbc.Input(
-                                                id="hours-per-member-input",
-                                                type="number",
-                                                min=1,
-                                                max=80,
-                                                value=40,
-                                                step=1,
-                                            ),
-                                            dbc.FormText(
-                                                "Available working hours per team member per week"
-                                            ),
-                                        ],
-                                        md=6,
-                                        className="mb-3",
-                                    ),
-                                ]
-                            ),
-                            dbc.Row(
-                                [
-                                    dbc.Col(
-                                        [
-                                            dbc.Label("Hours per Point (optional):"),
-                                            dbc.Input(
-                                                id="hours-per-point-input",
-                                                type="number",
-                                                min=0.1,
-                                                max=40,
-                                                value=None,
-                                                placeholder="Auto-calculate",
-                                                step=0.1,
-                                            ),
-                                            dbc.FormText(
-                                                "Estimated hours required per story point"
-                                            ),
-                                        ],
-                                        md=6,
-                                        className="mb-3",
-                                    ),
-                                    dbc.Col(
-                                        [
-                                            dbc.Label("Hours per Item (optional):"),
-                                            dbc.Input(
-                                                id="hours-per-item-input",
-                                                type="number",
-                                                min=0.1,
-                                                max=40,
-                                                value=None,
-                                                placeholder="Auto-calculate",
-                                                step=0.1,
-                                            ),
-                                            dbc.FormText(
-                                                "Estimated hours required per work item"
-                                            ),
-                                        ],
-                                        md=6,
-                                        className="mb-3",
-                                    ),
-                                ]
-                            ),
-                            dbc.Row(
-                                [
-                                    dbc.Col(
-                                        [
-                                            dbc.Checkbox(
-                                                id="include-weekends-input",
-                                                label="Include weekends in capacity",
-                                                value=False,
-                                                className="mb-3",
-                                            ),
-                                        ],
-                                        width=12,
-                                    ),
-                                ]
-                            ),
-                            dbc.Button(
-                                "Update Capacity",
-                                id="update-capacity-button",
-                                color="primary",
-                                className="mt-3",
-                            ),
-                        ]
+                    html.P(
+                        "Analyze team capacity and forecasted requirements based on project statistics."
                     ),
+                    controls,
                     html.Hr(),
-                    html.H5("Calculated Capacity Metrics", className="mt-4"),
-                    html.Div(id="capacity-metrics-container", className="mt-3"),
+                    metrics,
+                    html.Hr(),
+                    forecast,
                 ]
             ),
-        ],
-        className="mb-4 shadow-sm",
+        ]
+    )
+
+    return card
+
+
+def _create_capacity_metrics_content(capacity_metrics, total_capacity):
+    """
+    Create the content for the capacity metrics section.
+
+    Args:
+        capacity_metrics: Dictionary with capacity metrics data
+        total_capacity: Total weekly capacity in hours
+
+    Returns:
+        A Dash component with capacity metrics
+    """
+    if capacity_metrics is None:
+        return html.Div(
+            [
+                html.P(
+                    "No capacity metrics available. Please load project data to see metrics."
+                ),
+            ],
+            className="text-muted",
+        )
+
+    # Extract metrics
+    avg_time_per_item = capacity_metrics.get("avg_time_per_item", 0)
+    avg_time_per_point = capacity_metrics.get("avg_time_per_point", 0)
+    utilized_capacity = capacity_metrics.get("utilized_capacity", 0)
+
+    # Calculate utilization percentage
+    utilization_percentage = (
+        (utilized_capacity / total_capacity * 100) if total_capacity > 0 else 0
+    )
+
+    # Determine utilization status and color
+    if utilization_percentage > 100:
+        status = "Over Capacity"
+        color = "danger"
+    elif utilization_percentage > 85:
+        status = "Near Capacity"
+        color = "warning"
+    else:
+        status = "Under Capacity"
+        color = "success"
+
+    return html.Div(
+        [
+            dbc.Row(
+                [
+                    dbc.Col(
+                        [
+                            html.H6("Average Time"),
+                            html.Div(
+                                [
+                                    html.Div(
+                                        [
+                                            html.Span(
+                                                "Per Item: ", className="text-muted"
+                                            ),
+                                            html.Span(f"{avg_time_per_item:.2f} hrs"),
+                                        ]
+                                    ),
+                                    html.Div(
+                                        [
+                                            html.Span(
+                                                "Per Point: ", className="text-muted"
+                                            ),
+                                            html.Span(f"{avg_time_per_point:.2f} hrs"),
+                                        ]
+                                    ),
+                                ]
+                            ),
+                        ],
+                        width=6,
+                    ),
+                    dbc.Col(
+                        [
+                            html.H6("Capacity Utilization"),
+                            html.Div(
+                                [
+                                    dbc.Progress(
+                                        value=min(utilization_percentage, 100),
+                                        color=color,
+                                        className="mb-2",
+                                        style={"height": "20px"},
+                                    ),
+                                    html.Div(
+                                        [
+                                            html.Span(
+                                                f"{utilization_percentage:.1f}% ",
+                                                className=f"text-{color} font-weight-bold",
+                                            ),
+                                            html.Span(f"({status})"),
+                                        ]
+                                    ),
+                                    html.Div(
+                                        [
+                                            html.Span("Used: ", className="text-muted"),
+                                            html.Span(
+                                                f"{utilized_capacity:.1f} hrs of {total_capacity} hrs"
+                                            ),
+                                        ]
+                                    ),
+                                ]
+                            ),
+                        ],
+                        width=6,
+                    ),
+                ]
+            ),
+        ]
     )
 
 
 def create_capacity_chart_card():
     """
-    Create the capacity chart card component.
+    Create a card containing the capacity chart visualization.
 
     Returns:
-        Dash Card component with the team capacity chart
+        A Dash card component for the capacity chart
     """
     return dbc.Card(
         [
-            dbc.CardHeader(
-                [
-                    html.H4("Team Capacity Chart", className="d-inline"),
-                    create_info_tooltip(
-                        "capacity-chart",
-                        "This chart shows your team's capacity against project burndown.",
-                    ),
-                ]
-            ),
+            dbc.CardHeader("Capacity Forecast Chart"),
             dbc.CardBody(
                 [
+                    html.P(
+                        "Visualize your team's capacity against forecasted work requirements."
+                    ),
                     dcc.Graph(
                         id="capacity-chart",
-                        style={"height": "600px"},
+                        figure=empty_figure("No capacity data available"),
                         config={"displayModeBar": True, "responsive": True},
+                        style={"height": "500px"},
                     ),
                 ]
             ),
         ],
-        className="mb-4 shadow-sm",
+        className="mb-3",
     )

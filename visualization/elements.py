@@ -14,6 +14,40 @@ import plotly.graph_objects as go
 from configuration import COLOR_PALETTE
 
 #######################################################################
+# EMPTY FIGURE FUNCTION
+#######################################################################
+
+
+def empty_figure(message="No data available"):
+    """
+    Create an empty figure with a message.
+
+    Args:
+        message: Message to display in the empty figure
+
+    Returns:
+        Plotly figure object with the message
+    """
+    fig = go.Figure()
+    fig.add_annotation(
+        text=message,
+        xref="paper",
+        yref="paper",
+        x=0.5,
+        y=0.5,
+        showarrow=False,
+        font=dict(size=16, color="#505050"),
+    )
+    fig.update_layout(
+        xaxis=dict(showgrid=False, showticklabels=False),
+        yaxis=dict(showgrid=False, showticklabels=False),
+        plot_bgcolor="rgba(240, 240, 240, 0.1)",
+        height=400,
+    )
+    return fig
+
+
+#######################################################################
 # TRACE CREATION FUNCTIONS
 #######################################################################
 

@@ -1363,3 +1363,179 @@ def create_weekly_points_forecast_chart(
     )
 
     return fig
+
+
+def create_capacity_chart(capacity_data, forecast_data, settings):
+    """
+    Create a chart visualizing team capacity against forecasted work.
+
+    Args:
+        capacity_data (dict): Dictionary with capacity metrics
+        forecast_data (dict): Dictionary with forecasted work
+        settings (dict): Application settings
+
+    Returns:
+        plotly.graph_objects.Figure: Capacity chart
+    """
+    # Create figure with secondary y-axis
+    fig = make_subplots(specs=[[{"secondary_y": True}]])
+
+    # Extract dates and convert to datetime objects
+    dates = [pd.to_datetime(date) for date in forecast_data.get("dates", [])]
+
+    if not dates:
+        # If no forecast data, return empty chart with message
+        fig.add_annotation(
+            text="No forecast data available.",
+            xref="paper",
+            yref="paper",
+            x=0.5,
+            y=0.5,
+            showarrow=False,
+            font=dict(size=16),
+        )
+        return fig
+
+    # Calculate weekly capacity line (constant)
+    team_capacity = capacity_data.get("weekly_capacity", 0)
+    capacity_line = [team_capacity] * len(dates)
+
+    # Extract forecasted work requirements
+    forecasted_items = forecast_data.get("forecasted_items", [])
+    forecasted_points = forecast_data.get("forecasted_points", [])
+
+    # Calculate required hours based on hours per item/point
+    hours_per_item = capacity_data.get("avg_hours_per_item", 0)
+    hours_per_point = capacity_data.get("avg_hours_per_point", 0)
+
+    items_hours = [items * hours_per_item for items in forecasted_items]
+    points_hours = [points * hours_per_point for points in forecasted_points]
+
+    # Create capacity line (constant team capacity)
+    fig.add_trace(
+        go.Scatter(
+            x=dates,
+            y=capacity_line,
+            mode="lines",
+            name="Team Capacity",
+            line=dict(color="rgba(0, 200, 0, 0.8)", width=2, dash="dash"),
+        ),
+        secondary_y=False,
+    )
+
+    # Create items-based required capacity
+    fig.add_trace(
+        go.Scatter(
+            x=dates,
+            y=items_hours,
+            mode="lines",
+            name="Required (Items)",
+            line=dict(color=COLOR_PALETTE["items"], width=2),
+            fill="tozeroy",
+        ),
+        secondary_y=False,
+    )
+
+    # Create points-based required capacity
+    fig.add_trace(
+        go.Scatter(
+            x=dates,
+            y=points_hours,
+            mode="lines",
+            name="Required (Points)",
+            line=dict(color=COLOR_PALETTE["points"], width=2),
+            fill="tozeroy",
+        ),
+        secondary_y=False,
+    )
+
+    # Add utilization percentage on secondary y-axis
+    max_utilization = (
+        max(
+            max(items_hours + [0.1]) / team_capacity if team_capacity else 1,
+            max(points_hours + [0.1]) / team_capacity if team_capacity else 1,
+            1,
+        )
+        * 100
+    )
+
+    # Utilization threshold lines
+    fig.add_trace(
+        go.Scatter(
+            x=dates,
+            y=[100] * len(dates),
+            mode="lines",
+            name="100% Utilization",
+            line=dict(color="rgba(255, 165, 0, 0.8)", width=1.5, dash="dot"),
+            hoverinfo="name+y",
+        ),
+        secondary_y=True,
+    )
+
+    fig.add_trace(
+        go.Scatter(
+            x=dates,
+            y=[85] * len(dates),
+            mode="lines",
+            name="85% Target Utilization",
+            line=dict(color="rgba(0, 128, 0, 0.6)", width=1.5, dash="dot"),
+            hoverinfo="name+y",
+        ),
+        secondary_y=True,
+    )
+
+    # Calculate utilization percentages
+    items_utilization = [
+        (hours / team_capacity * 100) if team_capacity else 0 for hours in items_hours
+    ]
+    points_utilization = [
+        (hours / team_capacity * 100) if team_capacity else 0 for hours in points_hours
+    ]
+
+    # Add utilization percentages traces
+    fig.add_trace(
+        go.Scatter(
+            x=dates,
+            y=items_utilization,
+            mode="lines",
+            name="Items Utilization %",
+            line=dict(color=COLOR_PALETTE["items"], width=1.5),
+            visible="legendonly",  # Hidden by default
+        ),
+        secondary_y=True,
+    )
+
+    fig.add_trace(
+        go.Scatter(
+            x=dates,
+            y=points_utilization,
+            mode="lines",
+            name="Points Utilization %",
+            line=dict(color=COLOR_PALETTE["points"], width=1.5),
+            visible="legendonly",  # Hidden by default
+        ),
+        secondary_y=True,
+    )
+
+    # Customize axis labels
+    fig.update_layout(
+        title="Team Capacity vs. Forecasted Work",
+        xaxis_title="Date",
+        yaxis_title="Hours per Week",
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
+        hovermode="x unified",
+        margin=dict(l=60, r=60, t=50, b=50),
+    )
+
+    fig.update_yaxes(title_text="Hours per Week", secondary_y=False)
+
+    fig.update_yaxes(
+        title_text="Utilization (%)",
+        secondary_y=True,
+        range=[
+            0,
+            max(max_utilization * 1.1, 110),
+        ],  # Set scale to maximum utilization + 10%
+    )
+
+    return fig

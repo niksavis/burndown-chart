@@ -8,16 +8,162 @@ This module handles callbacks related to statistics data management.
 # IMPORTS
 #######################################################################
 import dash
-from dash import Input, Output, State
+from dash import Input, Output, State, html
 from dash.exceptions import PreventUpdate
 import pandas as pd
 from datetime import datetime, timedelta
 import io
 import base64
+import plotly.graph_objects as go
+import dash_bootstrap_components as dbc
 
 # Import from application modules
 from configuration import logger
 from data import save_statistics, read_and_clean_data
+from data.capacity import CapacityManager
+from visualization import empty_figure
+
+#######################################################################
+# HELPER FUNCTIONS
+#######################################################################
+
+
+def _create_capacity_metrics_content(capacity_metrics, total_capacity):
+    """
+    Create the content for the capacity metrics section.
+
+    Args:
+        capacity_metrics: Dictionary with capacity metrics data
+        total_capacity: Total weekly capacity in hours
+
+    Returns:
+        A Dash component with capacity metrics
+    """
+    if capacity_metrics is None:
+        return html.Div(
+            [
+                html.P(
+                    "No capacity metrics available. Please load project data to see metrics."
+                ),
+            ],
+            className="text-muted",
+        )
+
+    # Extract metrics using correct keys from calculate_capacity_from_stats return value
+    avg_hours_per_item = capacity_metrics.get("avg_hours_per_item", 0)
+    avg_hours_per_point = capacity_metrics.get("avg_hours_per_point", 0)
+    utilization_percentage = capacity_metrics.get("utilization_percentage", 0)
+
+    # Determine utilization status and color
+    if utilization_percentage > 100:
+        status = "Over Capacity"
+        color = "danger"
+    elif utilization_percentage > 85:
+        status = "Near Capacity"
+        color = "warning"
+    else:
+        status = "Under Capacity"
+        color = "success"
+
+    # Calculate utilized capacity for display
+    utilized_capacity = (
+        (utilization_percentage / 100) * total_capacity if total_capacity > 0 else 0
+    )
+
+    return html.Div(
+        [
+            dbc.Row(
+                [
+                    dbc.Col(
+                        [
+                            html.H6("Average Time"),
+                            html.Div(
+                                [
+                                    html.Div(
+                                        [
+                                            html.Span(
+                                                "Per Item: ", className="text-muted"
+                                            ),
+                                            html.Span(f"{avg_hours_per_item:.2f} hrs"),
+                                        ]
+                                    ),
+                                    html.Div(
+                                        [
+                                            html.Span(
+                                                "Per Point: ", className="text-muted"
+                                            ),
+                                            html.Span(f"{avg_hours_per_point:.2f} hrs"),
+                                        ]
+                                    ),
+                                ]
+                            ),
+                        ],
+                        width=6,
+                    ),
+                    dbc.Col(
+                        [
+                            html.H6("Capacity Utilization"),
+                            html.Div(
+                                [
+                                    dbc.Progress(
+                                        value=min(utilization_percentage, 100),
+                                        color=color,
+                                        className="mb-2",
+                                        style={"height": "20px"},
+                                    ),
+                                    html.Div(
+                                        [
+                                            html.Span(
+                                                f"{utilization_percentage:.1f}% ",
+                                                className=f"text-{color} font-weight-bold",
+                                            ),
+                                            html.Span(f"({status})"),
+                                        ]
+                                    ),
+                                    html.Div(
+                                        [
+                                            html.Span("Used: ", className="text-muted"),
+                                            html.Span(
+                                                f"{utilized_capacity:.1f} hrs of {total_capacity} hrs"
+                                            ),
+                                        ]
+                                    ),
+                                ]
+                            ),
+                        ],
+                        width=6,
+                    ),
+                ]
+            ),
+            # Add trend display if available
+            html.Div(
+                [
+                    html.H6("Recent Trend", className="mt-3"),
+                    html.Div(
+                        [
+                            html.Span("Trend: ", className="text-muted"),
+                            html.Span(
+                                f"{capacity_metrics.get('recent_trend_percentage', 0):.1f}% ",
+                                className=f"{'text-success' if capacity_metrics.get('recent_trend_percentage', 0) <= 0 else 'text-danger'}",
+                            ),
+                            html.Span(
+                                f"({'decreasing' if capacity_metrics.get('recent_trend_percentage', 0) <= 0 else 'increasing'})",
+                                className="text-muted",
+                            ),
+                        ]
+                    ),
+                ],
+                className="mt-2",
+                # Only show if trend data is available
+                style={
+                    "display": "block"
+                    if "recent_trend_percentage" in capacity_metrics
+                    else "none"
+                },
+            ),
+        ]
+    )
+
 
 #######################################################################
 # CALLBACKS
@@ -179,3 +325,164 @@ def register(app):
 
         # Default: maintain current state
         return is_open
+
+    @app.callback(
+        [
+            Output("capacity-metrics-container", "children", allow_duplicate=True),
+            Output("capacity-forecast-graph", "figure"),
+        ],
+        [
+            Input("team-members-input", "value"),
+            Input("hours-per-member-input", "value"),
+            Input("include-weekends-switch", "value"),
+            Input("current-statistics", "data"),
+        ],
+        prevent_initial_call=True,
+    )
+    def update_capacity_visualization(
+        team_members, hours_per_member, include_weekends, statistics_data
+    ):
+        """
+        Update the capacity metrics and forecast visualization based on team settings and statistics data.
+        """
+        if not statistics_data or not team_members or not hours_per_member:
+            # Return empty visualizations if no data or invalid settings
+            return html.Div("No capacity metrics available"), empty_figure(
+                "No data available"
+            )
+
+        # Calculate total weekly capacity
+        total_capacity = team_members * hours_per_member
+
+        # Convert statistics data to DataFrame for processing
+        stats_df = pd.DataFrame(statistics_data)
+        if not stats_df.empty:
+            # Ensure date column is in datetime format
+            stats_df["date"] = pd.to_datetime(stats_df["date"])
+            # Ensure numeric columns are numeric
+            stats_df["no_items"] = pd.to_numeric(stats_df["no_items"])
+            stats_df["no_points"] = pd.to_numeric(stats_df["no_points"])
+
+        # Initialize capacity manager and set parameters
+        capacity_manager = CapacityManager()
+        capacity_manager.set_capacity_parameters(
+            team_members=team_members,
+            hours_per_member=hours_per_member,
+            include_weekends=include_weekends,
+        )
+
+        # Calculate capacity metrics from statistics data
+        capacity_metrics = capacity_manager.calculate_capacity_from_stats(stats_df)
+
+        # Get start and end dates for forecast
+        today = datetime.now().date()
+        # Default to 8 weeks of forecast
+        end_date = today + timedelta(weeks=8)
+
+        # Estimate total items and points from statistics
+        total_items = stats_df["no_items"].sum() if not stats_df.empty else 0
+        total_points = stats_df["no_points"].sum() if not stats_df.empty else 0
+
+        # Generate capacity forecast with proper parameters
+        forecast_data = capacity_manager.generate_capacity_forecast(
+            start_date=today,
+            end_date=end_date,
+            total_items=total_items,
+            total_points=total_points,
+        )
+
+        # Create metrics content
+        metrics_content = _create_capacity_metrics_content(
+            capacity_metrics, total_capacity
+        )
+
+        # Create forecast figure
+        forecast_fig = _create_capacity_forecast_figure(forecast_data, total_capacity)
+
+        return metrics_content, forecast_fig
+
+    def _create_capacity_forecast_figure(forecast_data, total_capacity):
+        """
+        Create a figure for the capacity forecast visualization.
+
+        Args:
+            forecast_data: Dictionary with forecast data
+            total_capacity: Total weekly capacity in hours
+
+        Returns:
+            A Plotly figure object
+        """
+        if not forecast_data:
+            return empty_figure("No forecast data available")
+
+        # Extract weekly forecast data from the new structure
+        weekly_forecast = forecast_data.get("weekly_forecast")
+
+        if weekly_forecast is None or weekly_forecast.empty:
+            return empty_figure("Insufficient forecast data")
+
+        # Create figure with capacity forecast
+        fig = go.Figure()
+
+        # Add required capacity line
+        fig.add_trace(
+            go.Scatter(
+                x=weekly_forecast["date"],
+                y=weekly_forecast["required_hours"],
+                mode="lines+markers",
+                name="Required Capacity",
+                line=dict(color="blue", width=3),
+                marker=dict(size=8),
+            )
+        )
+
+        # Add total capacity line
+        fig.add_trace(
+            go.Scatter(
+                x=weekly_forecast["date"],
+                y=[total_capacity] * len(weekly_forecast),
+                mode="lines",
+                name="Available Capacity",
+                line=dict(color="green", width=2, dash="dash"),
+            )
+        )
+
+        # Add capacity threshold line (85%)
+        fig.add_trace(
+            go.Scatter(
+                x=weekly_forecast["date"],
+                y=[total_capacity * 0.85] * len(weekly_forecast),
+                mode="lines",
+                name="85% Threshold",
+                line=dict(color="orange", width=2, dash="dot"),
+            )
+        )
+
+        # Update layout
+        fig.update_layout(
+            title="Capacity Forecast",
+            xaxis_title="Week",
+            yaxis_title="Hours Required",
+            legend=dict(
+                orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1
+            ),
+            margin=dict(l=40, r=40, t=40, b=40),
+            hovermode="x unified",
+        )
+
+        # Add colored regions to highlight over/under capacity
+        for i in range(len(weekly_forecast) - 1):
+            current_required = weekly_forecast["required_hours"].iloc[i]
+            if current_required > total_capacity:
+                fig.add_shape(
+                    type="rect",
+                    x0=weekly_forecast["date"].iloc[i],
+                    x1=weekly_forecast["date"].iloc[i + 1],
+                    y0=total_capacity,
+                    y1=weekly_forecast["required_hours"].max() * 1.1,
+                    fillcolor="rgba(255, 0, 0, 0.1)",
+                    line=dict(width=0),
+                    layer="below",
+                )
+
+        return fig

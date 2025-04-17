@@ -61,6 +61,8 @@ class CapacityManager:
                 "avg_hours_per_item": 0,
                 "weekly_points_capacity": 0,
                 "weekly_items_capacity": 0,
+                "utilization_percentage": 0,
+                "recent_trend_percentage": 0,
             }
 
         # Group by week
@@ -92,11 +94,62 @@ class CapacityManager:
         if self.hours_per_item and self.hours_per_item > 0:
             weekly_items_capacity = self.capacity_hours_per_week / self.hours_per_item
 
+        # Calculate capacity utilization based on recent weeks (last 4 weeks)
+        utilization_percentage = 0
+        recent_trend_percentage = 0
+
+        if len(weekly_stats) > 0 and self.capacity_hours_per_week > 0:
+            # Sort by year and week to ensure proper ordering
+            weekly_stats = weekly_stats.sort_values(["year", "week"])
+
+            # Calculate estimated hours per week based on items and points
+            if self.hours_per_item > 0:
+                weekly_stats["estimated_hours_items"] = (
+                    weekly_stats["no_items"] * self.hours_per_item
+                )
+            else:
+                weekly_stats["estimated_hours_items"] = 0
+
+            if self.hours_per_point > 0:
+                weekly_stats["estimated_hours_points"] = (
+                    weekly_stats["no_points"] * self.hours_per_point
+                )
+            else:
+                weekly_stats["estimated_hours_points"] = 0
+
+            # Use the max of the two as the estimated hours (more conservative approach)
+            weekly_stats["estimated_hours"] = weekly_stats[
+                ["estimated_hours_items", "estimated_hours_points"]
+            ].max(axis=1)
+
+            # Calculate utilization percentage based on the most recent 4 weeks or all available data
+            recent_weeks = min(4, len(weekly_stats))
+            recent_data = weekly_stats.tail(recent_weeks)
+
+            avg_recent_hours = recent_data["estimated_hours"].mean()
+            utilization_percentage = (
+                avg_recent_hours / self.capacity_hours_per_week
+            ) * 100
+
+            # Calculate trend (comparing last 2 weeks with previous 2 weeks)
+            if len(weekly_stats) >= 4:
+                last_2_weeks = weekly_stats.tail(2)["estimated_hours"].mean()
+                prev_2_weeks = weekly_stats.iloc[-4:-2]["estimated_hours"].mean()
+
+                if prev_2_weeks > 0:
+                    recent_trend_percentage = (
+                        (last_2_weeks - prev_2_weeks) / prev_2_weeks
+                    ) * 100
+                else:
+                    recent_trend_percentage = 0
+
         return {
             "avg_hours_per_point": self.hours_per_point,
             "avg_hours_per_item": self.hours_per_item,
             "weekly_points_capacity": weekly_points_capacity,
             "weekly_items_capacity": weekly_items_capacity,
+            "utilization_percentage": utilization_percentage,
+            "recent_trend_percentage": recent_trend_percentage,
         }
 
     def generate_capacity_forecast(
@@ -127,6 +180,7 @@ class CapacityManager:
                 "date": date_range,
                 "day_of_week": date_range.dayofweek,
                 "week_number": date_range.isocalendar().week,
+                "year": date_range.isocalendar().year,
                 "capacity_hours": self.capacity_hours_per_week
                 / 5,  # Daily capacity (5 working days)
             }
@@ -180,10 +234,122 @@ class CapacityManager:
             points_days = total_hours_points / (self.capacity_hours_per_week / 5)
             points_completion_date = start_date + timedelta(days=points_days)
 
+        # Add forecasted capacity requirements for upcoming weeks
+        # Group by week
+        weekly_capacity = (
+            capacity_data.groupby(["year", "week_number"])
+            .agg(
+                {
+                    "date": "first",  # First day of the week
+                    "capacity_hours": "sum",
+                    "items_capacity": "sum",
+                    "points_capacity": "sum",
+                }
+            )
+            .reset_index()
+        )
+
+        # Calculate remaining work each week
+        weekly_capacity["remaining_items"] = (
+            total_items - weekly_capacity["items_capacity"].cumsum()
+        )
+        weekly_capacity["remaining_points"] = (
+            total_points - weekly_capacity["points_capacity"].cumsum()
+        )
+
+        # Calculate required hours each week to meet deadline
+        weeks_until_deadline = len(weekly_capacity)
+        if weeks_until_deadline > 0:
+            weekly_capacity["required_hours_items"] = (
+                weekly_capacity["remaining_items"].shift(1) * self.hours_per_item
+            ) / weeks_until_deadline
+            weekly_capacity["required_hours_points"] = (
+                weekly_capacity["remaining_points"].shift(1) * self.hours_per_point
+            ) / weeks_until_deadline
+            # Fill first week
+            weekly_capacity.loc[0, "required_hours_items"] = (
+                total_items * self.hours_per_item
+            ) / weeks_until_deadline
+            weekly_capacity.loc[0, "required_hours_points"] = (
+                total_points * self.hours_per_point
+            ) / weeks_until_deadline
+
+        weekly_capacity["required_hours"] = weekly_capacity[
+            ["required_hours_items", "required_hours_points"]
+        ].max(axis=1)
+        weekly_capacity["capacity_utilization"] = (
+            weekly_capacity["required_hours"] / self.capacity_hours_per_week
+        ) * 100
+
         self.capacity_data = capacity_data
 
         return {
             "capacity_data": capacity_data,
             "items_completion_date": items_completion_date,
             "points_completion_date": points_completion_date,
+            "weekly_forecast": weekly_capacity,
+        }
+
+    def calculate_required_velocity(self, total_items, total_points, deadline):
+        """
+        Calculate required velocity to meet the deadline
+
+        Args:
+            total_items: Total items remaining
+            total_points: Total points remaining
+            deadline: Deadline date
+
+        Returns:
+            Dictionary with required velocity metrics
+        """
+        today = datetime.now()
+        days_to_deadline = (deadline - today).days
+
+        if days_to_deadline <= 0:
+            return {
+                "required_items_per_week": float("inf"),
+                "required_points_per_week": float("inf"),
+                "required_hours_per_week": float("inf"),
+                "capacity_sufficient": False,
+                "capacity_percentage_needed": 0,
+            }
+
+        weeks_to_deadline = days_to_deadline / 7
+
+        required_items_per_week = total_items / weeks_to_deadline
+        required_points_per_week = total_points / weeks_to_deadline
+
+        # Calculate hours needed for items and points
+        if self.hours_per_item and self.hours_per_item > 0:
+            hours_for_items = total_items * self.hours_per_item
+            required_hours_items = hours_for_items / weeks_to_deadline
+        else:
+            required_hours_items = 0
+
+        if self.hours_per_point and self.hours_per_point > 0:
+            hours_for_points = total_points * self.hours_per_point
+            required_hours_points = hours_for_points / weeks_to_deadline
+        else:
+            required_hours_points = 0
+
+        # Use the max of the two as the required hours
+        required_hours_per_week = max(required_hours_items, required_hours_points)
+
+        # Check if capacity is sufficient
+        capacity_sufficient = self.capacity_hours_per_week >= required_hours_per_week
+
+        # Calculate capacity percentage needed
+        if self.capacity_hours_per_week > 0:
+            capacity_percentage_needed = (
+                required_hours_per_week / self.capacity_hours_per_week
+            ) * 100
+        else:
+            capacity_percentage_needed = 0
+
+        return {
+            "required_items_per_week": required_items_per_week,
+            "required_points_per_week": required_points_per_week,
+            "required_hours_per_week": required_hours_per_week,
+            "capacity_sufficient": capacity_sufficient,
+            "capacity_percentage_needed": capacity_percentage_needed,
         }

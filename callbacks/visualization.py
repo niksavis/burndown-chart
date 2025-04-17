@@ -29,6 +29,7 @@ from visualization import (
     create_combined_weekly_chart,
     create_weekly_items_forecast_chart,
     create_weekly_points_forecast_chart,
+    empty_figure,
 )
 from ui import (
     create_pert_info_table,
@@ -1045,3 +1046,291 @@ def register(app):
 
         # Increment clicks to trigger the modal
         return (current_clicks or 0) + 1
+
+    @app.callback(
+        [
+            Output("capacity-forecast-graph", "figure", allow_duplicate=True),
+        ],
+        [
+            Input("team-members-input", "value"),
+            Input("hours-per-member-input", "value"),
+            Input("include-weekends-switch", "value"),
+            Input("current-statistics", "data"),
+        ],
+        [
+            State("current-settings", "data"),
+        ],
+        prevent_initial_call=True,
+    )
+    def update_capacity_forecast(
+        team_members, hours_per_member, include_weekends, stats_data, settings
+    ):
+        """
+        Update the capacity forecast visualization based on team parameters and statistics.
+
+        Args:
+            team_members: Number of team members
+            hours_per_member: Hours per team member per week
+            include_weekends: Whether to include weekends in the calculation
+            stats_data: Dictionary with statistics data
+            settings: Dictionary with current settings
+
+        Returns:
+            Plotly figure for capacity forecast
+        """
+        # Create default figure if no data
+        if not stats_data or not team_members or not hours_per_member:
+            return [empty_figure("No capacity data available")]
+
+        try:
+            # Initialize capacity manager
+            from data.capacity import CapacityManager
+
+            capacity_manager = CapacityManager()
+
+            # Set capacity parameters
+            capacity_manager.set_capacity_parameters(
+                team_members=team_members,
+                hours_per_member=hours_per_member,
+                include_weekends=bool(include_weekends),
+            )
+
+            # Convert the statistics data to a pandas DataFrame
+            stats_df = pd.DataFrame(stats_data)
+            if not stats_df.empty:
+                # Ensure date column is datetime and numeric columns are numbers
+                stats_df["date"] = pd.to_datetime(stats_df["date"])
+                stats_df["no_items"] = pd.to_numeric(stats_df["no_items"])
+                stats_df["no_points"] = pd.to_numeric(stats_df["no_points"])
+
+            # Calculate capacity metrics from stats
+            capacity_metrics = capacity_manager.calculate_capacity_from_stats(stats_df)
+
+            # Generate capacity forecast for next 6 weeks
+            forecast_weeks = settings.get("forecast_weeks", 6) if settings else 6
+
+            # We need to handle the forecast differently based on the function's expected parameters
+            # Check if the generate_capacity_forecast accepts a weeks_to_forecast parameter
+            import inspect
+
+            forecast_params = inspect.signature(
+                capacity_manager.generate_capacity_forecast
+            ).parameters
+
+            if "weeks_to_forecast" in forecast_params:
+                # Call with weeks_to_forecast parameter
+                forecast_data = capacity_manager.generate_capacity_forecast(
+                    stats_df, weeks_to_forecast=forecast_weeks
+                )
+            else:
+                # Call with start_date, end_date, total_items, total_points parameters
+                from datetime import datetime, timedelta
+
+                start_date = datetime.now().date()
+                end_date = start_date + timedelta(weeks=forecast_weeks)
+
+                # Calculate total items and points remaining
+                total_items = 0
+                total_points = 0
+                if not stats_df.empty:
+                    total_items = stats_df["no_items"].sum()
+                    total_points = stats_df["no_points"].sum()
+
+                forecast_data = capacity_manager.generate_capacity_forecast(
+                    start_date=start_date,
+                    end_date=end_date,
+                    total_items=total_items,
+                    total_points=total_points,
+                )
+
+            # Handle different forecast_data structures based on what's returned
+            if isinstance(forecast_data, dict) and "weekly_forecast" in forecast_data:
+                # New structure with weekly_forecast DataFrame
+                weekly_forecast = forecast_data["weekly_forecast"]
+
+                # Create forecast figure
+                fig = go.Figure()
+
+                # Add capacity line
+                weekly_capacity = team_members * hours_per_member
+                fig.add_trace(
+                    go.Scatter(
+                        x=weekly_forecast["date"]
+                        if "date" in weekly_forecast
+                        else weekly_forecast.index,
+                        y=[weekly_capacity] * len(weekly_forecast),
+                        mode="lines",
+                        name="Available Capacity",
+                        line=dict(color="#28a745", width=2, dash="dash"),
+                    )
+                )
+
+                # Add forecast line
+                fig.add_trace(
+                    go.Scatter(
+                        x=weekly_forecast["date"]
+                        if "date" in weekly_forecast
+                        else weekly_forecast.index,
+                        y=weekly_forecast["required_hours"],
+                        mode="lines+markers",
+                        name="Forecasted Requirement",
+                        line=dict(color="#17a2b8", width=3),
+                    )
+                )
+
+            else:
+                # Old structure with list/dict of weeks
+                # Create forecast figure
+                fig = go.Figure()
+
+                # Add capacity line
+                weekly_capacity = team_members * hours_per_member
+                fig.add_trace(
+                    go.Scatter(
+                        x=list(range(forecast_weeks + 1)),
+                        y=[weekly_capacity] * (forecast_weeks + 1),
+                        mode="lines",
+                        name="Available Capacity",
+                        line=dict(color="#28a745", width=2, dash="dash"),
+                    )
+                )
+
+                # Add forecast line - adapt to whatever structure is returned
+                if isinstance(forecast_data, list):
+                    y_values = [week.get("required_hours", 0) for week in forecast_data]
+                elif isinstance(forecast_data, dict):
+                    y_values = [
+                        forecast_data.get(week, {}).get("required_hours", 0)
+                        for week in range(forecast_weeks + 1)
+                    ]
+                else:
+                    y_values = [0] * (forecast_weeks + 1)
+
+                fig.add_trace(
+                    go.Scatter(
+                        x=list(range(forecast_weeks + 1)),
+                        y=y_values,
+                        mode="lines+markers",
+                        name="Forecasted Requirement",
+                        line=dict(color="#17a2b8", width=3),
+                    )
+                )
+
+            # Configure layout
+            fig.update_layout(
+                title="Capacity Forecast",
+                xaxis_title="Time",
+                yaxis_title="Hours",
+                hovermode="x unified",
+                legend=dict(
+                    orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1
+                ),
+                margin=dict(l=40, r=40, t=60, b=40),
+            )
+
+            return [fig]
+
+        except Exception as e:
+            import traceback
+
+            print(f"Error updating capacity forecast: {e}")
+            traceback.print_exc()
+            return [empty_figure(f"Error: {str(e)}")]
+
+    @app.callback(
+        [
+            Output("tab-capacity-content", "children"),
+        ],
+        [
+            Input("current-statistics", "data"),
+            Input("team-members-input", "value"),
+            Input("hours-per-member-input", "value"),
+            Input("include-weekends-switch", "value"),
+        ],
+        [
+            State("current-settings", "data"),
+        ],
+    )
+    def update_capacity_tab(
+        stats_data, team_members, hours_per_member, include_weekends, settings
+    ):
+        """
+        Update the team capacity tab content.
+
+        Args:
+            stats_data: Dictionary with statistics data
+            team_members: Number of team members
+            hours_per_member: Hours per team member per week
+            include_weekends: Whether to include weekends in the calculation
+            settings: Dictionary with current settings
+
+        Returns:
+            Updated capacity tab content
+        """
+        from ui.cards import create_team_capacity_card
+
+        # Update settings with current values
+        if not settings:
+            settings = {}
+
+        current_settings = {
+            "team_members": team_members
+            if team_members is not None
+            else settings.get("team_members", 1),
+            "hours_per_member": hours_per_member
+            if hours_per_member is not None
+            else settings.get("hours_per_member", 40),
+            "include_weekends": bool(include_weekends),
+        }
+
+        try:
+            # Initialize capacity manager
+            from data.capacity import CapacityManager
+
+            capacity_manager = CapacityManager()
+
+            # Set capacity parameters
+            capacity_manager.set_capacity_parameters(
+                team_members=current_settings["team_members"],
+                hours_per_member=current_settings["hours_per_member"],
+                include_weekends=current_settings["include_weekends"],
+            )
+
+            # Convert stats_data to DataFrame before calculating metrics
+            if stats_data:
+                stats_df = pd.DataFrame(stats_data)
+                # Ensure date column is datetime and numeric columns are numbers
+                if not stats_df.empty:
+                    stats_df["date"] = pd.to_datetime(stats_df["date"])
+                    stats_df["no_items"] = pd.to_numeric(stats_df["no_items"])
+                    stats_df["no_points"] = pd.to_numeric(stats_df["no_points"])
+
+                # Calculate capacity metrics from stats DataFrame
+                capacity_metrics = capacity_manager.calculate_capacity_from_stats(
+                    stats_df
+                )
+            else:
+                capacity_metrics = None
+
+            # Create capacity card
+            capacity_card = create_team_capacity_card(
+                capacity_metrics, current_settings
+            )
+
+            return [capacity_card]
+
+        except Exception as e:
+            import traceback
+
+            print(f"Error updating capacity tab: {e}")
+            traceback.print_exc()
+            return [
+                html.Div(
+                    [
+                        html.H4("Error Loading Capacity Data"),
+                        html.P(f"An error occurred: {str(e)}"),
+                        html.Hr(),
+                        create_team_capacity_card(None, current_settings),
+                    ]
+                )
+            ]
