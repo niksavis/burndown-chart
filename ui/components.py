@@ -1176,36 +1176,40 @@ def create_trend_indicator(trend_data, metric_name="Items"):
 #######################################################################
 
 
-def create_export_buttons(chart_id, statistics_data=None):
+def create_export_buttons(chart_id=None, statistics_data=None):
     """
-    Create buttons for exporting chart as PNG and data as CSV.
+    Create a button for exporting data as CSV.
 
     Args:
-        chart_id: ID of the chart to export
+        chart_id: Optional ID of the chart (for compatibility with existing code)
         statistics_data: Optional statistics data for CSV export
 
     Returns:
-        A Dash component with export buttons
+        A Dash component with the export button
     """
     return html.Div(
         [
             dbc.Button(
-                [html.I(className="fas fa-file-image mr-2"), "Save as PNG"],
-                id=f"{chart_id}-png-button",
-                color="outline-primary",
-                size="sm",
-                className="mr-2",
-            ),
-            dbc.Button(
                 [html.I(className="fas fa-file-csv mr-2"), "Export Data (CSV)"],
-                id=f"{chart_id}-csv-button",
+                id="statistics-csv-button",  # Use a single consistent ID
                 color="outline-secondary",
                 size="sm",
             ),
             # Hidden download component for CSV export
-            dcc.Download(id=f"{chart_id}-csv-download"),
+            dcc.Download(id="statistics-csv-download"),
             # Hidden div to store timestamp when export was triggered
-            html.Div(id=f"{chart_id}-export-timestamp", style={"display": "none"}),
+            html.Div(id="statistics-export-timestamp", style={"display": "none"}),
+            # Information text about built-in export functionality
+            html.Div(
+                [
+                    html.I(className="fas fa-info-circle mr-1 text-info"),
+                    html.Span(
+                        "Tip: Use the camera icon in the graph toolbar to save as PNG/SVG",
+                        className="text-muted small",
+                    ),
+                ],
+                className="ml-2 d-inline-block",
+            ),
         ],
-        className="d-flex mb-3 mt-2",
+        className="d-flex align-items-center mb-3 mt-2",
     )

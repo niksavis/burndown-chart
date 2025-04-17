@@ -540,6 +540,26 @@ def create_weekly_items_chart(statistics_data, date_range_weeks=None):
     # Format date for display
     weekly_df["week_label"] = weekly_df["start_date"].dt.strftime("%b %d")
 
+    # Calculate weighted moving average (last 4 weeks)
+    # More weight given to recent weeks using exponential weights
+    if len(weekly_df) >= 4:
+        # Create a copy of items column for calculation
+        values = weekly_df["items"].values
+        weighted_avg = []
+
+        for i in range(len(weekly_df)):
+            if i < 3:  # First 3 weeks don't have enough prior data
+                weighted_avg.append(None)
+            else:
+                # Get last 4 weeks of data
+                window = values[i - 3 : i + 1]
+                # Apply exponential weights (more weight to recent weeks)
+                weights = [0.1, 0.2, 0.3, 0.4]  # Weights sum to 1.0
+                w_avg = sum(w * v for w, v in zip(weights, window))
+                weighted_avg.append(w_avg)
+
+        weekly_df["weighted_avg"] = weighted_avg
+
     # Create the figure
     fig = go.Figure()
 
@@ -555,6 +575,23 @@ def create_weekly_items_chart(statistics_data, date_range_weeks=None):
             hovertemplate="Week of %{x}<br>Items: %{y}<extra></extra>",
         )
     )
+
+    # Add weighted moving average line if we have enough data
+    if len(weekly_df) >= 4 and "weighted_avg" in weekly_df.columns:
+        fig.add_trace(
+            go.Scatter(
+                x=weekly_df["week_label"],
+                y=weekly_df["weighted_avg"],
+                mode="lines",
+                name="Weighted 4-Week Average",
+                line=dict(
+                    color="#FF6347",  # Tomato color
+                    width=3,
+                    dash="solid",
+                ),
+                hovertemplate="Week of %{x}<br>Weighted Avg: %{y:.1f}<extra></extra>",
+            )
+        )
 
     # Update layout with grid lines and styling
     fig.update_layout(
@@ -574,6 +611,7 @@ def create_weekly_items_chart(statistics_data, date_range_weeks=None):
         xaxis=dict(
             tickangle=45,
         ),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
         plot_bgcolor="rgba(255, 255, 255, 0.9)",
     )
 

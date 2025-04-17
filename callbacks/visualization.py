@@ -217,9 +217,7 @@ def register(app):
             )
             charts["tab-burndown"] = html.Div(
                 [
-                    # Export buttons
-                    create_export_buttons("burndown", statistics),
-                    # Burndown chart
+                    # Burndown chart (removed export buttons)
                     dcc.Graph(
                         id="forecast-graph",
                         figure=burndown_fig,
@@ -263,9 +261,7 @@ def register(app):
                     html.Div(
                         [create_trend_indicator(items_trend, "Items")], className="mb-4"
                     ),
-                    # Export buttons
-                    create_export_buttons("items", statistics),
-                    # Items weekly chart
+                    # Items weekly chart (removed export buttons)
                     dcc.Graph(
                         id="items-chart",
                         figure=items_fig,
@@ -276,8 +272,7 @@ def register(app):
                     html.Div(
                         [
                             html.H5("Forecast for Next 4 Weeks", className="mt-4 mb-3"),
-                            # Export buttons for forecast chart
-                            create_export_buttons("items-forecast", statistics),
+                            # Removed export buttons for forecast chart
                             dcc.Graph(
                                 id="items-forecast-chart",
                                 figure=create_weekly_items_forecast_chart(
@@ -326,9 +321,7 @@ def register(app):
                         [create_trend_indicator(points_trend, "Points")],
                         className="mb-4",
                     ),
-                    # Export buttons
-                    create_export_buttons("points", statistics),
-                    # Points weekly chart
+                    # Points weekly chart (removed export buttons)
                     dcc.Graph(
                         id="points-chart",
                         figure=points_fig,
@@ -339,8 +332,7 @@ def register(app):
                     html.Div(
                         [
                             html.H5("Forecast for Next 4 Weeks", className="mt-4 mb-3"),
-                            # Export buttons for forecast chart
-                            create_export_buttons("points-forecast", statistics),
+                            # Removed export buttons for forecast chart
                             dcc.Graph(
                                 id="points-forecast-chart",
                                 figure=create_weekly_points_forecast_chart(
@@ -401,8 +393,7 @@ def register(app):
                         ],
                         className="mb-3",
                     ),
-                    # Export buttons
-                    create_export_buttons("combined", statistics),
+                    # Removed export buttons
                     # Combined weekly chart
                     dcc.Graph(
                         id="combined-chart",

@@ -571,6 +571,9 @@ def create_statistics_data_card(current_statistics):
         Dash Card component for statistics data
     """
     from dash import dash_table
+    from ui.components import (
+        create_export_buttons,
+    )  # Import the export buttons component
 
     return dbc.Card(
         [
@@ -585,6 +588,8 @@ def create_statistics_data_card(current_statistics):
             ),
             dbc.CardBody(
                 [
+                    # Add the export buttons at the top of the card
+                    create_export_buttons(statistics_data=current_statistics),
                     dash_table.DataTable(
                         id="statistics-table",
                         columns=[
