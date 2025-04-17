@@ -748,14 +748,14 @@ def create_weekly_points_chart(statistics_data, date_range_weeks=None):
 
 def create_combined_weekly_chart(statistics_data, date_range_weeks=None):
     """
-    Create a combined view showing both weekly items and points charts side by side.
+    Create a combined view showing both weekly items and points as intertwined bars.
 
     Args:
         statistics_data: List of dictionaries containing statistics data
         date_range_weeks: Number of weeks to display (None for all)
 
     Returns:
-        Plotly figure object with both charts
+        Plotly figure object with intertwined items and points bars
     """
     # Create DataFrame from statistics data
     df = pd.DataFrame(statistics_data).copy()
@@ -800,7 +800,7 @@ def create_combined_weekly_chart(statistics_data, date_range_weeks=None):
     # Format date for display
     weekly_df["week_label"] = weekly_df["start_date"].dt.strftime("%b %d")
 
-    # Calculate weighted moving average for items (last 4 weeks)
+    # Calculate weighted moving average for items and points (last 4 weeks)
     if len(weekly_df) >= 4:
         # For items
         items_values = weekly_df["items"].values
@@ -832,100 +832,117 @@ def create_combined_weekly_chart(statistics_data, date_range_weeks=None):
 
         weekly_df["points_weighted_avg"] = points_weighted_avg
 
-    # Create the subplot with 1 row and 2 columns
-    fig = make_subplots(
-        rows=1,
-        cols=2,
-        subplot_titles=("Weekly Completed Items", "Weekly Completed Points"),
-        horizontal_spacing=0.1,
-    )
+    # Create the figure
+    fig = go.Figure()
 
-    # Add items bar chart (left subplot)
+    # Get x positions for the bars
+    # For items: position - 0.2 (slightly to the left)
+    # For points: position + 0.2 (slightly to the right)
+    x_positions = list(range(len(weekly_df)))
+
+    # Add items bars
     fig.add_trace(
         go.Bar(
-            x=weekly_df["week_label"],
+            x=x_positions,
             y=weekly_df["items"],
+            name="Items",
             marker_color=COLOR_PALETTE["items"],
-            name="Completed Items",
             text=weekly_df["items"],
             textposition="outside",
-            hovertemplate="Week of %{x}<br>Items: %{y}<extra></extra>",
-        ),
-        row=1,
-        col=1,
+            width=0.4,  # Make bars narrower
+            offset=-0.2,  # Shift to the left
+            hovertemplate="Week of %{customdata}<br>Items: %{y}<extra></extra>",
+            customdata=weekly_df["week_label"],
+        )
     )
 
-    # Add points bar chart (right subplot)
+    # Add points bars
     fig.add_trace(
         go.Bar(
-            x=weekly_df["week_label"],
+            x=x_positions,
             y=weekly_df["points"],
+            name="Points",
             marker_color=COLOR_PALETTE["points"],
-            name="Completed Points",
             text=weekly_df["points"],
             textposition="outside",
-            hovertemplate="Week of %{x}<br>Points: %{y}<extra></extra>",
-        ),
-        row=1,
-        col=2,
+            width=0.4,  # Make bars narrower
+            offset=0.2,  # Shift to the right
+            hovertemplate="Week of %{customdata}<br>Points: %{y}<extra></extra>",
+            customdata=weekly_df["week_label"],
+        )
     )
 
     # Add weighted moving average line for items if we have enough data
     if len(weekly_df) >= 4 and "items_weighted_avg" in weekly_df.columns:
         # Filter out None values for display
         items_weighted_df = weekly_df.dropna(subset=["items_weighted_avg"])
+        items_x_positions = list(
+            range(len(weekly_df) - len(items_weighted_df), len(weekly_df))
+        )
 
         fig.add_trace(
             go.Scatter(
-                x=items_weighted_df["week_label"],
+                x=items_x_positions,
                 y=items_weighted_df["items_weighted_avg"],
                 mode="lines",
                 name="Items 4-Week Avg",
                 line=dict(
-                    color="#0047AB", width=3, dash="solid"
-                ),  # Cobalt blue for items
-                hovertemplate="Week of %{x}<br>Weighted Avg: %{y:.1f}<extra></extra>",
-            ),
-            row=1,
-            col=1,
+                    color="#0047AB",  # Cobalt blue for items
+                    width=3,
+                    dash="solid",
+                ),
+                hovertemplate="Week of %{customdata}<br>Weighted Avg: %{y:.1f}<extra></extra>",
+                customdata=items_weighted_df["week_label"],
+            )
         )
 
     # Add weighted moving average line for points if we have enough data
     if len(weekly_df) >= 4 and "points_weighted_avg" in weekly_df.columns:
         # Filter out None values for display
         points_weighted_df = weekly_df.dropna(subset=["points_weighted_avg"])
+        points_x_positions = list(
+            range(len(weekly_df) - len(points_weighted_df), len(weekly_df))
+        )
 
         fig.add_trace(
             go.Scatter(
-                x=points_weighted_df["week_label"],
+                x=points_x_positions,
                 y=points_weighted_df["points_weighted_avg"],
                 mode="lines",
                 name="Points 4-Week Avg",
                 line=dict(
-                    color="#FF6347", width=3, dash="solid"
-                ),  # Tomato color for points
-                hovertemplate="Week of %{x}<br>Weighted Avg: %{y:.1f}<extra></extra>",
-            ),
-            row=1,
-            col=2,
+                    color="#FF6347",  # Tomato color for points
+                    width=3,
+                    dash="solid",
+                ),
+                hovertemplate="Week of %{customdata}<br>Weighted Avg: %{y:.1f}<extra></extra>",
+                customdata=points_weighted_df["week_label"],
+            )
         )
 
-    # Update layout and axes for better appearance
+    # Set custom x-axis tick labels
     fig.update_layout(
-        title="Weekly Progress Charts",
-        height=500,  # Increased height for better visualization
+        xaxis=dict(
+            tickmode="array",
+            tickvals=x_positions,
+            ticktext=weekly_df["week_label"],
+            tickangle=45,
+        )
+    )
+
+    # Update layout for better appearance
+    fig.update_layout(
+        title="Weekly Progress - Items and Points",
+        xaxis_title="Week Starting",
+        yaxis_title="Count",
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
         plot_bgcolor="rgba(255, 255, 255, 0.9)",
         hovermode="closest",
+        bargap=0.15,  # Gap between bar groups
+        bargroupgap=0.1,  # Gap between bars in a group
+        height=500,  # Match the height of individual charts
+        margin=dict(l=50, r=50, t=80, b=100),  # Margins
     )
-
-    # Update y-axes titles
-    fig.update_yaxes(title_text="Items Completed", row=1, col=1)
-    fig.update_yaxes(title_text="Points Completed", row=1, col=2)
-
-    # Update x-axes
-    for i in range(1, 3):
-        fig.update_xaxes(title_text="Week Starting", tickangle=45, row=1, col=i)
 
     return fig
 
