@@ -28,6 +28,7 @@ app = dash.Dash(
         dbc.themes.FLATLY,
         "https://use.fontawesome.com/releases/v5.15.4/css/all.css",  # Font Awesome for icons
     ],
+    suppress_callback_exceptions=True,  # Suppress exceptions for components created by callbacks
 )
 
 # Set the layout function as the app's layout

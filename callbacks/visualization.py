@@ -243,7 +243,7 @@ def register(app):
                                 "Show data for last:", className="mr-2 font-weight-bold"
                             ),
                             dcc.Slider(
-                                id="items-date-range-slider",
+                                id={"type": "date-range-slider", "tab": "items"},
                                 min=4,
                                 max=52,
                                 step=4,
@@ -305,7 +305,7 @@ def register(app):
                                 "Show data for last:", className="mr-2 font-weight-bold"
                             ),
                             dcc.Slider(
-                                id="points-date-range-slider",
+                                id={"type": "date-range-slider", "tab": "points"},
                                 min=4,
                                 max=52,
                                 step=4,
@@ -369,7 +369,7 @@ def register(app):
                                 "Show data for last:", className="mr-2 font-weight-bold"
                             ),
                             dcc.Slider(
-                                id="combined-date-range-slider",
+                                id={"type": "date-range-slider", "tab": "combined"},
                                 min=4,
                                 max=52,
                                 step=4,
@@ -425,35 +425,33 @@ def register(app):
                 ]
             )
 
+    # Replace the previous update_date_range callback with this pattern-matching callback
     @app.callback(
         Output("date-range-weeks", "data"),
         [
-            Input("items-date-range-slider", "value"),
-            Input("points-date-range-slider", "value"),
-            Input("combined-date-range-slider", "value"),
+            Input({"type": "date-range-slider", "tab": "ALL"}, "value"),
         ],
     )
-    def update_date_range(items_range, points_range, combined_range):
+    def update_date_range(value):
         """
         Update the date range based on whichever slider was most recently changed.
+        This uses a pattern-matching callback to handle sliders across different tabs.
         """
         # Get the ID of the component that triggered the callback
         ctx = callback_context
         if not ctx.triggered:
             raise PreventUpdate
 
-        # Get the value from the slider that was changed
-        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+        # Get the ID and value of the slider that was changed
+        trigger = ctx.triggered[0]
+        prop_id = trigger["prop_id"]
+        value = trigger["value"]
 
-        if trigger_id == "items-date-range-slider":
-            return items_range
-        elif trigger_id == "points-date-range-slider":
-            return points_range
-        elif trigger_id == "combined-date-range-slider":
-            return combined_range
+        # If no valid value, use default
+        if value is None:
+            return 24
 
-        # Default fallback if trigger cannot be determined
-        return 24  # Default to 24 weeks
+        return value
 
     # Add callbacks for CSV exports
     # Create one callback for each chart

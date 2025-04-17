@@ -84,6 +84,11 @@ def create_app_layout(settings, statistics, is_sample_data):
             ),
             # Store for date range selection
             dcc.Store(id="date-range-weeks", data=None),
+            # Add an empty div to hold the forecast-graph (will be populated by callback)
+            html.Div(
+                dcc.Graph(id="forecast-graph", style={"display": "none"}),
+                id="forecast-graph-container",
+            ),
             # Sticky Help Button in top-right corner
             html.Div(
                 [
