@@ -40,6 +40,9 @@ from ui import (
 )
 from data.capacity import CapacityManager
 
+# Create a global instance of the capacity manager
+capacity_manager = CapacityManager()
+
 #######################################################################
 # CALLBACKS
 #######################################################################
@@ -62,6 +65,383 @@ def register(app):
         This prevents saving during initial load and avoids triggering callbacks prematurely.
         """
         return True
+
+    # Add capacity metrics callback
+    @app.callback(
+        Output("capacity-metrics-container", "children"),
+        [Input("update-capacity-button", "n_clicks")],
+        [
+            State("team-members-input", "value"),
+            State("hours-per-member-input", "value"),
+            State("hours-per-point-input", "value"),
+            State("hours-per-item-input", "value"),
+            State("include-weekends-input", "value"),
+            State("current-statistics", "data"),
+        ],
+    )
+    def update_capacity_metrics(
+        n_clicks,
+        team_members,
+        hours_per_member,
+        hours_per_point,
+        hours_per_item,
+        include_weekends,
+        statistics,
+    ):
+        """
+        Update capacity metrics when capacity settings change.
+        """
+        if n_clicks is None:
+            raise PreventUpdate
+
+        # Validate inputs
+        if not team_members or not hours_per_member:
+            return html.Div(
+                "Please enter team members and hours per member",
+                className="text-danger",
+            )
+
+        # Update capacity manager
+        capacity_manager.set_capacity_parameters(
+            team_members,
+            hours_per_member,
+            hours_per_point,
+            hours_per_item,
+            include_weekends,
+        )
+
+        # Calculate capacity metrics from historical data
+        stats_df = pd.DataFrame(statistics) if statistics else pd.DataFrame()
+        capacity_metrics = capacity_manager.calculate_capacity_from_stats(stats_df)
+
+        # Total team capacity per week
+        total_weekly_capacity = team_members * hours_per_member
+
+        # Create metrics display
+        return html.Div(
+            [
+                dbc.Row(
+                    [
+                        dbc.Col(
+                            dbc.Card(
+                                dbc.CardBody(
+                                    [
+                                        html.H5(
+                                            "Total Weekly Capacity",
+                                            className="card-title",
+                                        ),
+                                        html.H3(
+                                            f"{total_weekly_capacity} hours",
+                                            className="text-primary",
+                                        ),
+                                        html.P(
+                                            f"Team of {team_members} with {hours_per_member} hours each",
+                                            className="card-text",
+                                        ),
+                                    ]
+                                ),
+                                className="text-center mb-3",
+                            ),
+                            md=6,
+                        ),
+                        dbc.Col(
+                            dbc.Card(
+                                dbc.CardBody(
+                                    [
+                                        html.H5(
+                                            "Weekly Story Points Capacity",
+                                            className="card-title",
+                                        ),
+                                        html.H3(
+                                            f"{capacity_metrics['weekly_points_capacity']:.1f} points",
+                                            className="text-warning",
+                                        ),
+                                        html.P(
+                                            f"{capacity_metrics['avg_hours_per_point']:.1f} hours per point (est.)",
+                                            className="card-text",
+                                        ),
+                                    ]
+                                ),
+                                className="text-center mb-3",
+                            ),
+                            md=6,
+                        ),
+                    ]
+                ),
+                dbc.Row(
+                    [
+                        dbc.Col(
+                            dbc.Card(
+                                dbc.CardBody(
+                                    [
+                                        html.H5(
+                                            "Weekly Items Capacity",
+                                            className="card-title",
+                                        ),
+                                        html.H3(
+                                            f"{capacity_metrics['weekly_items_capacity']:.1f} items",
+                                            className="text-info",
+                                        ),
+                                        html.P(
+                                            f"{capacity_metrics['avg_hours_per_item']:.1f} hours per item (est.)",
+                                            className="card-text",
+                                        ),
+                                    ]
+                                ),
+                                className="text-center mb-3",
+                            ),
+                            md=6,
+                        ),
+                        dbc.Col(
+                            dbc.Card(
+                                dbc.CardBody(
+                                    [
+                                        html.H5("Working Days", className="card-title"),
+                                        html.H3(
+                                            "5 days/week"
+                                            if not include_weekends
+                                            else "7 days/week",
+                                            className="text-success",
+                                        ),
+                                        html.P(
+                                            "Including weekends"
+                                            if include_weekends
+                                            else "Excluding weekends",
+                                            className="card-text",
+                                        ),
+                                    ]
+                                ),
+                                className="text-center mb-3",
+                            ),
+                            md=6,
+                        ),
+                    ]
+                ),
+            ]
+        )
+
+    # Add capacity chart callback
+    @app.callback(
+        Output("capacity-chart", "figure"),
+        [
+            Input("capacity-metrics-container", "children"),
+            Input("current-settings", "data"),
+            Input("current-statistics", "data"),
+            Input("update-capacity-button", "n_clicks"),
+        ],
+        [
+            State("team-members-input", "value"),
+            State("hours-per-member-input", "value"),
+            State("hours-per-point-input", "value"),
+            State("hours-per-item-input", "value"),
+            State("include-weekends-input", "value"),
+        ],
+    )
+    def update_capacity_chart(
+        capacity_metrics,
+        settings,
+        statistics,
+        n_clicks,
+        team_members,
+        hours_per_member,
+        hours_per_point,
+        hours_per_item,
+        include_weekends,
+    ):
+        """
+        Update the capacity chart visualization.
+        """
+        if not settings or not statistics or n_clicks is None:
+            raise PreventUpdate
+
+        if not team_members or not hours_per_member:
+            # Create empty figure with message
+            fig = go.Figure()
+            fig.add_annotation(
+                text="Please update capacity settings to generate chart",
+                xref="paper",
+                yref="paper",
+                x=0.5,
+                y=0.5,
+                showarrow=False,
+                font=dict(size=16),
+            )
+            return fig
+
+        # Create DataFrame from statistics
+        stats_df = pd.DataFrame(statistics)
+        if stats_df.empty:
+            # Create empty figure with message
+            fig = go.Figure()
+            fig.add_annotation(
+                text="No statistics data available",
+                xref="paper",
+                yref="paper",
+                x=0.5,
+                y=0.5,
+                showarrow=False,
+                font=dict(size=16),
+            )
+            return fig
+
+        # Convert date strings to datetime objects
+        stats_df["date"] = pd.to_datetime(stats_df["date"])
+
+        # Sort by date
+        stats_df = stats_df.sort_values("date")
+
+        # Calculate cumulative values
+        stats_df["cumulative_items"] = stats_df["no_items"].cumsum()
+        stats_df["cumulative_points"] = stats_df["no_points"].cumsum()
+
+        # Get remaining items and points
+        total_items = settings["total_items"]
+        total_points = settings["total_points"]
+        remaining_items = total_items - stats_df["cumulative_items"].max()
+        remaining_points = total_points - stats_df["cumulative_points"].max()
+
+        # Generate capacity forecast
+        start_date = datetime.now()
+        end_date = datetime.strptime(settings["deadline"], "%Y-%m-%d")
+
+        # Generate capacity forecast
+        forecast = capacity_manager.generate_capacity_forecast(
+            start_date, end_date, remaining_items, remaining_points
+        )
+
+        capacity_data = forecast["capacity_data"]
+
+        # Create figure
+        fig = go.Figure()
+
+        # Add historical burndown data
+        fig.add_scatter(
+            x=stats_df["date"],
+            y=total_items - stats_df["cumulative_items"],
+            mode="lines+markers",
+            name="Remaining Items (historical)",
+            line=dict(color="rgba(0, 99, 178, 1)", width=3),
+            showlegend=True,
+        )
+
+        fig.add_scatter(
+            x=stats_df["date"],
+            y=total_points - stats_df["cumulative_points"],
+            mode="lines+markers",
+            name="Remaining Points (historical)",
+            line=dict(color="rgba(255, 127, 14, 1)", width=3),
+            showlegend=True,
+        )
+
+        # Add capacity data for items
+        if capacity_data["cumulative_items_capacity"].max() > 0:
+            # Calculate remaining items based on capacity
+            items_capacity_dates = capacity_data["date"]
+            items_capacity = capacity_data["cumulative_items_capacity"]
+
+            remaining_items_with_capacity = [
+                max(0, remaining_items - val) for val in items_capacity
+            ]
+
+            fig.add_scatter(
+                x=items_capacity_dates,
+                y=remaining_items_with_capacity,
+                mode="lines",
+                name="Remaining Items (with capacity)",
+                line=dict(color="rgba(0, 99, 178, 0.7)", width=2, dash="dot"),
+                showlegend=True,
+            )
+
+            # Add vertical line at items completion date
+            if forecast["items_completion_date"]:
+                fig.add_shape(
+                    type="line",
+                    x0=forecast["items_completion_date"],
+                    y0=0,
+                    x1=forecast["items_completion_date"],
+                    y1=remaining_items,
+                    line=dict(color="rgba(0, 99, 178, 0.5)", width=2, dash="dash"),
+                )
+                fig.add_annotation(
+                    x=forecast["items_completion_date"],
+                    y=remaining_items / 2,
+                    text=f"Items<br>Complete<br>{forecast['items_completion_date'].strftime('%Y-%m-%d')}",
+                    showarrow=False,
+                    font=dict(color="rgba(0, 99, 178, 1)"),
+                    align="center",
+                )
+
+        # Add capacity data for points
+        if capacity_data["cumulative_points_capacity"].max() > 0:
+            # Calculate remaining points based on capacity
+            points_capacity_dates = capacity_data["date"]
+            points_capacity = capacity_data["cumulative_points_capacity"]
+
+            remaining_points_with_capacity = [
+                max(0, remaining_points - val) for val in points_capacity
+            ]
+
+            fig.add_scatter(
+                x=points_capacity_dates,
+                y=remaining_points_with_capacity,
+                mode="lines",
+                name="Remaining Points (with capacity)",
+                line=dict(color="rgba(255, 127, 14, 0.7)", width=2, dash="dot"),
+                showlegend=True,
+            )
+
+            # Add vertical line at points completion date
+            if forecast["points_completion_date"]:
+                fig.add_shape(
+                    type="line",
+                    x0=forecast["points_completion_date"],
+                    y0=0,
+                    x1=forecast["points_completion_date"],
+                    y1=remaining_points,
+                    line=dict(color="rgba(255, 127, 14, 0.5)", width=2, dash="dash"),
+                )
+                fig.add_annotation(
+                    x=forecast["points_completion_date"],
+                    y=remaining_points / 2,
+                    text=f"Points<br>Complete<br>{forecast['points_completion_date'].strftime('%Y-%m-%d')}",
+                    showarrow=False,
+                    font=dict(color="rgba(255, 127, 14, 1)"),
+                    align="center",
+                )
+
+        # Add deadline line
+        deadline_date = datetime.strptime(settings["deadline"], "%Y-%m-%d")
+        fig.add_shape(
+            type="line",
+            x0=deadline_date,
+            y0=0,
+            x1=deadline_date,
+            y1=max(remaining_items, remaining_points) * 1.1,
+            line=dict(color="red", width=2, dash="dash"),
+        )
+        fig.add_annotation(
+            x=deadline_date,
+            y=max(remaining_items, remaining_points) * 1.05,
+            text=f"Deadline: {settings['deadline']}",
+            showarrow=True,
+            arrowhead=1,
+            ax=0,
+            ay=-40,
+            font=dict(color="red", size=12),
+        )
+
+        # Update layout
+        fig.update_layout(
+            title="Team Capacity vs. Project Burndown",
+            xaxis_title="Date",
+            yaxis_title="Remaining Work",
+            legend=dict(x=0.01, y=0.99, bgcolor="rgba(255, 255, 255, 0.8)"),
+            margin=dict(l=60, r=30, t=60, b=60),
+            hovermode="closest",
+            plot_bgcolor="rgba(240, 240, 240, 0.1)",
+        )
+
+        return fig
 
     @app.callback(
         [Output("forecast-graph", "figure"), Output("pert-info-container", "children")],
