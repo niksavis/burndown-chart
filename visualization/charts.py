@@ -1010,7 +1010,7 @@ def create_weekly_items_forecast_chart(
                 text=(
                     f"<b>Forecast Methodology:</b> Based on PERT analysis using historical data.<br>"
                     f"<b>Most Likely:</b> {forecast_data['items'].get('most_likely_value', 0):.1f} items/week (historical average)<br>"
-                    f"<b>Optimistic:</b> {forecast_data['items'].get('optimistic_value', 0)::.1f} items/week<br>"
+                    f"<b>Optimistic:</b> {forecast_data['items'].get('optimistic_value', 0):.1f} items/week<br>"
                     f"<b>Pessimistic:</b> {forecast_data['items'].get('pessimistic_value', 0):.1f} items/week"
                 ),
                 showarrow=False,

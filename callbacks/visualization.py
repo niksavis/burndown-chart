@@ -51,11 +51,11 @@ def register(app):
     """
 
     @app.callback(
-        Output("app-init-complete", "data"), [Input("forecast-graph", "figure")]
+        Output("app-init-complete", "data"), [Input("chart-tabs", "active_tab")]
     )
-    def mark_initialization_complete(figure):
+    def mark_initialization_complete(active_tab):
         """
-        Mark the application as fully initialized after the graph is rendered.
+        Mark the application as fully initialized after the tabs are rendered.
         This prevents saving during initial load and avoids triggering callbacks prematurely.
         """
         return True
