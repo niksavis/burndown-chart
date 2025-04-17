@@ -35,7 +35,10 @@ from ui import (
     create_tab_content,
     create_trend_indicator,
     create_export_buttons,
+    create_team_capacity_card,
+    create_capacity_chart_card,
 )
+from data.capacity import CapacityManager
 
 #######################################################################
 # CALLBACKS
@@ -405,6 +408,17 @@ def register(app):
             )
 
             # Create content for the active tab
+
+            # Add capacity tab content
+            charts["tab-capacity"] = html.Div(
+                [
+                    # Create capacity settings card
+                    create_team_capacity_card(),
+                    # Create capacity chart card
+                    create_capacity_chart_card(),
+                ]
+            )
+
             return create_tab_content(active_tab, charts)
 
         except Exception as e:

@@ -15,7 +15,9 @@ import pandas as pd
 
 # Import from other modules
 from configuration import HELP_TEXTS, COLOR_PALETTE
-from ui import create_info_tooltip
+
+# Fix circular import issue - import directly from components instead of ui
+from ui.components import create_info_tooltip
 
 #######################################################################
 # CARD COMPONENTS
@@ -1073,154 +1075,170 @@ def create_project_status_card(statistics_df, settings):
     )
 
 
-def create_team_capacity_card(id_prefix="capacity"):
+def create_team_capacity_card():
     """
-    Create the team capacity card with inputs for team capacity parameters.
+    Create the team capacity card component.
+
+    Returns:
+        Dash Card component with team capacity inputs and metrics
     """
     return dbc.Card(
         [
-            dbc.CardHeader(html.H5("Team Capacity")),
-            dbc.CardBody(
+            dbc.CardHeader(
                 [
-                    dbc.Row(
-                        [
-                            dbc.Col(
-                                [
-                                    dbc.Label(
-                                        [
-                                            "Team Members",
-                                            create_info_tooltip(
-                                                "team-members",
-                                                "Number of team members working on this project",
-                                            ),
-                                        ]
-                                    ),
-                                    dbc.Input(
-                                        id=f"{id_prefix}-team-members",
-                                        type="number",
-                                        min=1,
-                                        step=1,
-                                        value=5,
-                                    ),
-                                ],
-                                width=6,
-                                className="mb-3",
-                            ),
-                            dbc.Col(
-                                [
-                                    dbc.Label(
-                                        [
-                                            "Hours per Member (weekly)",
-                                            create_info_tooltip(
-                                                "hours-per-member",
-                                                "Available hours per team member per week (typically 40 for full-time)",
-                                            ),
-                                        ]
-                                    ),
-                                    dbc.Input(
-                                        id=f"{id_prefix}-hours-per-member",
-                                        type="number",
-                                        min=1,
-                                        max=80,
-                                        step=1,
-                                        value=40,
-                                    ),
-                                ],
-                                width=6,
-                                className="mb-3",
-                            ),
-                        ]
-                    ),
-                    dbc.Row(
-                        [
-                            dbc.Col(
-                                [
-                                    dbc.Label(
-                                        [
-                                            "Hours per Point",
-                                            create_info_tooltip(
-                                                "hours-per-point",
-                                                "Estimated hours required per story point (leave blank to calculate from data)",
-                                            ),
-                                        ]
-                                    ),
-                                    dbc.Input(
-                                        id=f"{id_prefix}-hours-per-point",
-                                        type="number",
-                                        min=0.1,
-                                        step=0.1,
-                                        placeholder="Auto-calculate",
-                                    ),
-                                ],
-                                width=6,
-                                className="mb-3",
-                            ),
-                            dbc.Col(
-                                [
-                                    dbc.Label(
-                                        [
-                                            "Hours per Item",
-                                            create_info_tooltip(
-                                                "hours-per-item",
-                                                "Estimated hours required per work item (leave blank to calculate from data)",
-                                            ),
-                                        ]
-                                    ),
-                                    dbc.Input(
-                                        id=f"{id_prefix}-hours-per-item",
-                                        type="number",
-                                        min=0.1,
-                                        step=0.1,
-                                        placeholder="Auto-calculate",
-                                    ),
-                                ],
-                                width=6,
-                                className="mb-3",
-                            ),
-                        ]
-                    ),
-                    dbc.Row(
-                        [
-                            dbc.Col(
-                                [
-                                    dbc.Checkbox(
-                                        id=f"{id_prefix}-include-weekends",
-                                        label="Include weekends in capacity",
-                                        value=False,
-                                    ),
-                                ],
-                                width=12,
-                                className="mb-3",
-                            ),
-                        ]
-                    ),
-                    dbc.Row(
-                        [
-                            dbc.Col(
-                                [
-                                    dbc.Button(
-                                        "Update Capacity",
-                                        id=f"{id_prefix}-update-btn",
-                                        color="primary",
-                                        className="w-100",
-                                    ),
-                                ],
-                                width=12,
-                            ),
-                        ]
+                    html.H4("Team Capacity Settings", className="d-inline"),
+                    create_info_tooltip(
+                        "capacity-settings",
+                        "Configure your team's capacity to see how it affects project completion forecasts.",
                     ),
                 ]
             ),
-            dbc.CardFooter(
+            dbc.CardBody(
                 [
-                    html.Div(
+                    dbc.Form(
                         [
-                            html.H6("Calculated Capacity Metrics:"),
-                            html.Div(id=f"{id_prefix}-metrics-display"),
+                            dbc.Row(
+                                [
+                                    dbc.Col(
+                                        [
+                                            dbc.Label("Team Members:"),
+                                            dbc.Input(
+                                                id="team-members-input",
+                                                type="number",
+                                                min=1,
+                                                max=100,
+                                                value=5,
+                                                step=1,
+                                            ),
+                                            dbc.FormText(
+                                                "Number of people working on the project"
+                                            ),
+                                        ],
+                                        md=6,
+                                        className="mb-3",
+                                    ),
+                                    dbc.Col(
+                                        [
+                                            dbc.Label("Hours per Member (weekly):"),
+                                            dbc.Input(
+                                                id="hours-per-member-input",
+                                                type="number",
+                                                min=1,
+                                                max=80,
+                                                value=40,
+                                                step=1,
+                                            ),
+                                            dbc.FormText(
+                                                "Available working hours per team member per week"
+                                            ),
+                                        ],
+                                        md=6,
+                                        className="mb-3",
+                                    ),
+                                ]
+                            ),
+                            dbc.Row(
+                                [
+                                    dbc.Col(
+                                        [
+                                            dbc.Label("Hours per Point (optional):"),
+                                            dbc.Input(
+                                                id="hours-per-point-input",
+                                                type="number",
+                                                min=0.1,
+                                                max=40,
+                                                value=None,
+                                                placeholder="Auto-calculate",
+                                                step=0.1,
+                                            ),
+                                            dbc.FormText(
+                                                "Estimated hours required per story point"
+                                            ),
+                                        ],
+                                        md=6,
+                                        className="mb-3",
+                                    ),
+                                    dbc.Col(
+                                        [
+                                            dbc.Label("Hours per Item (optional):"),
+                                            dbc.Input(
+                                                id="hours-per-item-input",
+                                                type="number",
+                                                min=0.1,
+                                                max=40,
+                                                value=None,
+                                                placeholder="Auto-calculate",
+                                                step=0.1,
+                                            ),
+                                            dbc.FormText(
+                                                "Estimated hours required per work item"
+                                            ),
+                                        ],
+                                        md=6,
+                                        className="mb-3",
+                                    ),
+                                ]
+                            ),
+                            dbc.Row(
+                                [
+                                    dbc.Col(
+                                        [
+                                            dbc.Checkbox(
+                                                id="include-weekends-input",
+                                                label="Include weekends in capacity",
+                                                value=False,
+                                                className="mb-3",
+                                            ),
+                                        ],
+                                        width=12,
+                                    ),
+                                ]
+                            ),
+                            dbc.Button(
+                                "Update Capacity",
+                                id="update-capacity-button",
+                                color="primary",
+                                className="mt-3",
+                            ),
                         ]
-                    )
+                    ),
+                    html.Hr(),
+                    html.H5("Calculated Capacity Metrics", className="mt-4"),
+                    html.Div(id="capacity-metrics-container", className="mt-3"),
                 ]
             ),
         ],
-        className="mb-4",
+        className="mb-4 shadow-sm",
+    )
+
+
+def create_capacity_chart_card():
+    """
+    Create the capacity chart card component.
+
+    Returns:
+        Dash Card component with the team capacity chart
+    """
+    return dbc.Card(
+        [
+            dbc.CardHeader(
+                [
+                    html.H4("Team Capacity Chart", className="d-inline"),
+                    create_info_tooltip(
+                        "capacity-chart",
+                        "This chart shows your team's capacity against project burndown.",
+                    ),
+                ]
+            ),
+            dbc.CardBody(
+                [
+                    dcc.Graph(
+                        id="capacity-chart",
+                        style={"height": "600px"},
+                        config={"displayModeBar": True, "responsive": True},
+                    ),
+                ]
+            ),
+        ],
+        className="mb-4 shadow-sm",
     )
