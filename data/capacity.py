@@ -74,16 +74,26 @@ class CapacityManager:
             .reset_index()
         )
 
-        # Calculate averages if we have capacity hours set
-        if self.capacity_hours_per_week > 0:
+        # Calculate averages if we have capacity hours set and team members
+        if self.capacity_hours_per_week > 0 and self.team_members > 0:
             avg_weekly_items = weekly_stats["no_items"].mean()
             avg_weekly_points = weekly_stats["no_points"].mean()
 
+            # Calculate hours per item based on individual productivity
+            # Instead of using total team capacity, calculate per-member productivity
+            hours_per_member = self.capacity_hours_per_week / self.team_members
+
             if avg_weekly_items > 0:
-                self.hours_per_item = self.capacity_hours_per_week / avg_weekly_items
+                # Calculate individual productivity (hours per item per person)
+                self.hours_per_item = hours_per_member / (
+                    avg_weekly_items / self.team_members
+                )
 
             if avg_weekly_points > 0:
-                self.hours_per_point = self.capacity_hours_per_week / avg_weekly_points
+                # Calculate individual productivity (hours per point per person)
+                self.hours_per_point = hours_per_member / (
+                    avg_weekly_points / self.team_members
+                )
 
         weekly_points_capacity = 0
         weekly_items_capacity = 0
@@ -153,7 +163,12 @@ class CapacityManager:
         }
 
     def generate_capacity_forecast(
-        self, start_date, end_date, total_items, total_points
+        self,
+        start_date,
+        end_date,
+        remaining_items,
+        remaining_points,
+        burndown_forecast=None,
     ):
         """
         Generate capacity forecast data for visualization
@@ -161,8 +176,9 @@ class CapacityManager:
         Args:
             start_date: Start date for forecast
             end_date: End date for forecast
-            total_items: Total number of items to complete
-            total_points: Total number of points to complete
+            remaining_items: Number of items remaining to be completed
+            remaining_points: Number of points remaining to be completed
+            burndown_forecast: Optional dictionary with burndown forecast data to align forecasts
 
         Returns:
             DataFrame with capacity forecast data
@@ -224,13 +240,13 @@ class CapacityManager:
         items_completion_date = None
         points_completion_date = None
 
-        if self.hours_per_item and self.hours_per_item > 0:
-            total_hours_items = total_items * self.hours_per_item
+        if self.hours_per_item and self.hours_per_item > 0 and remaining_items > 0:
+            total_hours_items = remaining_items * self.hours_per_item
             items_days = total_hours_items / (self.capacity_hours_per_week / 5)
             items_completion_date = start_date + timedelta(days=items_days)
 
-        if self.hours_per_point and self.hours_per_point > 0:
-            total_hours_points = total_points * self.hours_per_point
+        if self.hours_per_point and self.hours_per_point > 0 and remaining_points > 0:
+            total_hours_points = remaining_points * self.hours_per_point
             points_days = total_hours_points / (self.capacity_hours_per_week / 5)
             points_completion_date = start_date + timedelta(days=points_days)
 
@@ -251,32 +267,112 @@ class CapacityManager:
 
         # Calculate remaining work each week
         weekly_capacity["remaining_items"] = (
-            total_items - weekly_capacity["items_capacity"].cumsum()
+            remaining_items - weekly_capacity["items_capacity"].cumsum()
         )
+        weekly_capacity["remaining_items"] = weekly_capacity["remaining_items"].clip(
+            lower=0
+        )
+
         weekly_capacity["remaining_points"] = (
-            total_points - weekly_capacity["points_capacity"].cumsum()
+            remaining_points - weekly_capacity["points_capacity"].cumsum()
+        )
+        weekly_capacity["remaining_points"] = weekly_capacity["remaining_points"].clip(
+            lower=0
         )
 
-        # Calculate required hours each week to meet deadline
-        weeks_until_deadline = len(weekly_capacity)
-        if weeks_until_deadline > 0:
-            weekly_capacity["required_hours_items"] = (
-                weekly_capacity["remaining_items"].shift(1) * self.hours_per_item
-            ) / weeks_until_deadline
-            weekly_capacity["required_hours_points"] = (
-                weekly_capacity["remaining_points"].shift(1) * self.hours_per_point
-            ) / weeks_until_deadline
-            # Fill first week
-            weekly_capacity.loc[0, "required_hours_items"] = (
-                total_items * self.hours_per_item
-            ) / weeks_until_deadline
-            weekly_capacity.loc[0, "required_hours_points"] = (
-                total_points * self.hours_per_point
-            ) / weeks_until_deadline
+        # If we have burndown forecast data, align the forecasts for consistent visualization
+        if burndown_forecast is not None and isinstance(burndown_forecast, dict):
+            # Use burndown completion dates if available
+            if "items_completion_date" in burndown_forecast:
+                items_completion_date = burndown_forecast["items_completion_date"]
+            if "points_completion_date" in burndown_forecast:
+                points_completion_date = burndown_forecast["points_completion_date"]
 
+        # Calculate required hours based on actual completion forecast
+        # This ensures the capacity forecast aligns with the burndown chart
+        if items_completion_date:
+            days_to_completion = (items_completion_date - start_date).days
+            if days_to_completion > 0:
+                weeks_to_completion = days_to_completion / 7
+                for i, row in weekly_capacity.iterrows():
+                    week_number = i + 1
+                    if week_number <= len(weekly_capacity):
+                        # Calculate progressive decrease in required hours as we approach completion
+                        remaining_work_ratio = max(
+                            0, 1 - (week_number / weeks_to_completion)
+                        )
+                        weekly_capacity.loc[i, "required_hours_items"] = (
+                            (
+                                (
+                                    remaining_items
+                                    * self.hours_per_item
+                                    * remaining_work_ratio
+                                )
+                                / (weeks_to_completion - week_number + 1)
+                            )
+                            if week_number <= weeks_to_completion
+                            else 0
+                        )
+        else:
+            # Fallback to simple linear distribution if no completion date
+            weeks_until_deadline = len(weekly_capacity)
+            if weeks_until_deadline > 0:
+                weekly_capacity["required_hours_items"] = (
+                    weekly_capacity["remaining_items"].shift(1) * self.hours_per_item
+                ) / weeks_until_deadline
+                # Fill first week
+                weekly_capacity.loc[0, "required_hours_items"] = (
+                    remaining_items * self.hours_per_item
+                ) / weeks_until_deadline
+
+        # Same for points
+        if points_completion_date:
+            days_to_completion = (points_completion_date - start_date).days
+            if days_to_completion > 0:
+                weeks_to_completion = days_to_completion / 7
+                for i, row in weekly_capacity.iterrows():
+                    week_number = i + 1
+                    if week_number <= len(weekly_capacity):
+                        remaining_work_ratio = max(
+                            0, 1 - (week_number / weeks_to_completion)
+                        )
+                        weekly_capacity.loc[i, "required_hours_points"] = (
+                            (
+                                (
+                                    remaining_points
+                                    * self.hours_per_point
+                                    * remaining_work_ratio
+                                )
+                                / (weeks_to_completion - week_number + 1)
+                            )
+                            if week_number <= weeks_to_completion
+                            else 0
+                        )
+        else:
+            weeks_until_deadline = len(weekly_capacity)
+            if weeks_until_deadline > 0:
+                weekly_capacity["required_hours_points"] = (
+                    weekly_capacity["remaining_points"].shift(1) * self.hours_per_point
+                ) / weeks_until_deadline
+                # Fill first week
+                weekly_capacity.loc[0, "required_hours_points"] = (
+                    remaining_points * self.hours_per_point
+                ) / weeks_until_deadline
+
+        # Handle NaN values
+        weekly_capacity["required_hours_items"] = weekly_capacity[
+            "required_hours_items"
+        ].fillna(0)
+        weekly_capacity["required_hours_points"] = weekly_capacity[
+            "required_hours_points"
+        ].fillna(0)
+
+        # Use the max of the two as the required hours (more conservative approach)
         weekly_capacity["required_hours"] = weekly_capacity[
             ["required_hours_items", "required_hours_points"]
         ].max(axis=1)
+
+        # Calculate capacity utilization percentage
         weekly_capacity["capacity_utilization"] = (
             weekly_capacity["required_hours"] / self.capacity_hours_per_week
         ) * 100

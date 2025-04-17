@@ -28,8 +28,6 @@ from ui.cards import (
     create_input_parameters_card,
     create_statistics_data_card,
     create_project_status_card,
-    create_team_capacity_card,
-    create_capacity_chart_card,
 )
 
 # Define public API
@@ -48,8 +46,6 @@ __all__ = [
     "create_input_parameters_card",
     "create_statistics_data_card",
     "create_project_status_card",
-    "create_team_capacity_card",
-    "create_capacity_chart_card",
     # Layout
     "serve_layout",
     "create_app_layout",

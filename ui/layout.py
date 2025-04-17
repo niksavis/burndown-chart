@@ -11,6 +11,7 @@ a fresh layout with the latest data from disk on each page load.
 from dash import html, dcc
 import dash_bootstrap_components as dbc
 import pandas as pd  # Add pandas for DataFrame conversion
+from datetime import datetime
 
 # Import from data modules
 from data import (
@@ -66,6 +67,12 @@ def create_app_layout(settings, statistics, is_sample_data):
         settings["estimated_points"],
         statistics,
     )
+
+    # Create dataframe from statistics
+    statistics_df = pd.DataFrame(statistics)
+
+    # Get the current year for footer copyright
+    current_year = datetime.now().year
 
     return dbc.Container(
         [
@@ -204,7 +211,7 @@ def create_app_layout(settings, statistics, is_sample_data):
                     dbc.Col(
                         [
                             create_project_status_card(
-                                pd.DataFrame(statistics),  # Convert list to DataFrame
+                                statistics_df,  # Convert list to DataFrame
                                 settings,  # Pass the entire settings dictionary
                             ),
                         ],
@@ -259,8 +266,16 @@ def create_app_layout(settings, statistics, is_sample_data):
                         [
                             html.Hr(),
                             html.P(
-                                "Project Burndown Forecast - Built with Dash",
-                                className="text-center text-muted small",
+                                [
+                                    f"© {current_year} ",
+                                    html.A(
+                                        "Project Burndown Forecast",
+                                        href="#",
+                                        className="text-decoration-none",
+                                    ),
+                                    " - All rights reserved. ",
+                                ],
+                                className="text-muted small mb-1",
                             ),
                         ],
                         width=12,

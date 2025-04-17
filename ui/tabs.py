@@ -44,12 +44,6 @@ def create_tabs():
                         labelClassName="font-weight-bold",
                         activeLabelClassName="text-primary",
                     ),
-                    dbc.Tab(
-                        label="Team Capacity",
-                        tab_id="tab-capacity",
-                        labelClassName="font-weight-bold",
-                        activeLabelClassName="text-primary",
-                    ),
                 ],
                 id="chart-tabs",
                 active_tab="tab-burndown",
@@ -78,7 +72,6 @@ def create_tab_content(active_tab, charts):
         "tab-items",
         "tab-points",
         "tab-combined",
-        "tab-capacity",
     ]:
         active_tab = "tab-burndown"
 
@@ -92,7 +85,6 @@ def create_tab_content(active_tab, charts):
                     "tab-items": "Weekly Completed Items",
                     "tab-points": "Weekly Completed Points",
                     "tab-combined": "Combined Weekly Progress",
-                    "tab-capacity": "Team Capacity",
                 }[active_tab],
                 className="mb-4",
             ),

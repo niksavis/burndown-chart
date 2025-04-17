@@ -337,10 +337,13 @@ def register(app):
             Input("include-weekends-switch", "value"),
             Input("current-statistics", "data"),
         ],
+        [
+            State("current-settings", "data"),
+        ],
         prevent_initial_call=True,
     )
     def update_capacity_visualization(
-        team_members, hours_per_member, include_weekends, statistics_data
+        team_members, hours_per_member, include_weekends, statistics_data, settings
     ):
         """
         Update the capacity metrics and forecast visualization based on team settings and statistics data.
@@ -350,6 +353,9 @@ def register(app):
             return html.Div("No capacity metrics available"), empty_figure(
                 "No data available"
             )
+
+        if not settings:
+            settings = {}
 
         # Calculate total weekly capacity
         total_capacity = team_members * hours_per_member
@@ -374,21 +380,32 @@ def register(app):
         # Calculate capacity metrics from statistics data
         capacity_metrics = capacity_manager.calculate_capacity_from_stats(stats_df)
 
+        # Get burndown data to align visualizations
+        burndown_forecast = None
+        if hasattr(capacity_manager, "calculate_burndown_forecast"):
+            burndown_forecast = capacity_manager.calculate_burndown_forecast(stats_df)
+
         # Get start and end dates for forecast
         today = datetime.now().date()
         # Default to 8 weeks of forecast
-        end_date = today + timedelta(weeks=8)
+        end_date = settings.get(
+            "deadline", (today + timedelta(weeks=8)).strftime("%Y-%m-%d")
+        )
+        if isinstance(end_date, str):
+            end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
 
-        # Estimate total items and points from statistics
-        total_items = stats_df["no_items"].sum() if not stats_df.empty else 0
-        total_points = stats_df["no_points"].sum() if not stats_df.empty else 0
+        # Calculate ACTUAL remaining work (not just total from statistics)
+        # The total items/points in the settings represent the remaining work
+        remaining_items = settings.get("total_items", 0)
+        remaining_points = settings.get("total_points", 0)
 
         # Generate capacity forecast with proper parameters
         forecast_data = capacity_manager.generate_capacity_forecast(
             start_date=today,
             end_date=end_date,
-            total_items=total_items,
-            total_points=total_points,
+            remaining_items=remaining_items,
+            remaining_points=remaining_points,
+            burndown_forecast=burndown_forecast,
         )
 
         # Create metrics content
