@@ -19,14 +19,15 @@ from data import (
 )
 
 # Import UI components
-from ui import (
-    create_help_modal,
+from ui.components import create_help_modal
+from ui.cards import (
     create_forecast_graph_card,
     create_forecast_info_card,
     create_pert_analysis_card,
     create_input_parameters_card,
     create_statistics_data_card,
 )
+from ui.tabs import create_tabs
 
 #######################################################################
 # LAYOUT FUNCTION
@@ -35,22 +36,33 @@ from ui import (
 
 def serve_layout():
     """
+    Create the application layout.
+
+    Returns:
+        Dash application layout with all components
+    """
+    # Load initial data
+    settings = load_settings()
+    statistics, is_sample_data = load_statistics()
+
+    app_layout = create_app_layout(settings, statistics, is_sample_data)
+    return app_layout
+
+
+def create_app_layout(settings, statistics, is_sample_data):
+    """
     Serve a fresh layout with the latest data from disk.
     This is crucial for proper browser refresh behavior.
 
     Returns:
         Dash Container component with complete application layout
     """
-    # Load fresh data from disk each time the layout is served
-    current_settings = load_settings()
-    current_statistics = load_statistics()
-
     # Calculate total points based on estimated values (for initial display)
     estimated_total_points, avg_points_per_item = calculate_total_points(
-        current_settings["total_items"],
-        current_settings["estimated_items"],
-        current_settings["estimated_points"],
-        current_statistics,
+        settings["total_items"],
+        settings["estimated_items"],
+        settings["estimated_points"],
+        statistics,
     )
 
     return dbc.Container(
@@ -58,8 +70,10 @@ def serve_layout():
             # Page initialization complete flag (hidden)
             dcc.Store(id="app-init-complete", data=False),
             # Persistent storage for the current data
-            dcc.Store(id="current-settings", data=current_settings),
-            dcc.Store(id="current-statistics", data=current_statistics),
+            dcc.Store(id="current-settings", data=settings),
+            dcc.Store(id="current-statistics", data=statistics),
+            # Store for sample data flag
+            dcc.Store(id="is-sample-data", data=is_sample_data),
             # Store for calculation results
             dcc.Store(
                 id="calculation-results",
@@ -68,6 +82,8 @@ def serve_layout():
                     "avg_points_per_item": avg_points_per_item,
                 },
             ),
+            # Store for date range selection
+            dcc.Store(id="date-range-weeks", data=None),
             # Sticky Help Button in top-right corner
             html.Div(
                 [
@@ -89,6 +105,39 @@ def serve_layout():
                     "zIndex": "1000",
                 },
             ),
+            # Sample data notification banner (shown only when using sample data)
+            html.Div(
+                [
+                    dbc.Alert(
+                        [
+                            html.I(className="fas fa-info-circle mr-2"),
+                            html.Strong("Using Sample Data: "),
+                            "You're currently viewing demo data. ",
+                            "Upload your own data using the form below or add entries manually to start tracking your project.",
+                            dbc.Button(
+                                "Dismiss",
+                                id="dismiss-sample-alert",
+                                color="link",
+                                size="sm",
+                                className="ml-3",
+                            ),
+                        ],
+                        id="sample-data-alert",
+                        color="info",
+                        dismissable=False,
+                        is_open=is_sample_data,
+                        className="mb-0",
+                    ),
+                ],
+                style={
+                    "position": "fixed",
+                    "top": "0",
+                    "left": "0",
+                    "right": "0",
+                    "zIndex": "1050",
+                },
+                id="sample-data-banner",
+            ),
             # App header
             dbc.Row(
                 [
@@ -105,12 +154,22 @@ def serve_layout():
             ),
             # Help modal
             create_help_modal(),
-            # First row: Forecast Graph
+            # Tab Navigation and Charts Row
             dbc.Row(
                 [
                     dbc.Col(
                         [
-                            create_forecast_graph_card(),
+                            dbc.Card(
+                                [
+                                    dbc.CardBody(
+                                        [
+                                            # Tabbed interface
+                                            create_tabs(),
+                                        ]
+                                    ),
+                                ],
+                                className="shadow-sm mb-4",
+                            ),
                         ],
                         width=12,
                     ),
@@ -134,7 +193,7 @@ def serve_layout():
                     dbc.Col(
                         [
                             create_input_parameters_card(
-                                current_settings,
+                                settings,
                                 avg_points_per_item,
                                 estimated_total_points,
                             ),
@@ -160,7 +219,7 @@ def serve_layout():
                 [
                     dbc.Col(
                         [
-                            create_statistics_data_card(current_statistics),
+                            create_statistics_data_card(statistics),
                         ],
                         width=12,
                     ),

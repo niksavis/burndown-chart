@@ -11,6 +11,7 @@ It provides functions for managing settings (JSON) and statistics (CSV).
 import os
 import json
 import pandas as pd
+from datetime import datetime, timedelta
 
 # Import from configuration
 from configuration import (
@@ -167,7 +168,9 @@ def load_statistics():
     Load statistics data from CSV file.
 
     Returns:
-        List of dictionaries containing statistics data or sample data if file not found
+        Tuple (data, is_sample) where:
+        - data: List of dictionaries containing statistics data
+        - is_sample: Boolean indicating if sample data is being used
     """
     try:
         if os.path.exists(STATISTICS_FILE):
@@ -184,24 +187,137 @@ def load_statistics():
 
             data = df.to_dict("records")
             logger.info(f"Statistics loaded from {STATISTICS_FILE}")
-            return data
+            return data, False  # Return data and flag that it's not sample data
         else:
             logger.info("Statistics file not found, using sample data")
 
             # Make sure sample data is also sorted by date
-            sample_df = SAMPLE_DATA.copy()
+            sample_df = generate_realistic_sample_data()
             sample_df["date"] = pd.to_datetime(sample_df["date"], errors="coerce")
             sample_df = sample_df.sort_values("date", ascending=True)
             sample_df["date"] = sample_df["date"].dt.strftime("%Y-%m-%d")
 
-            return sample_df.to_dict("records")
+            return sample_df.to_dict("records"), True  # Return sample data with flag
     except Exception as e:
         logger.error(f"Error loading statistics: {e}")
 
         # Make sure sample data is also sorted by date
-        sample_df = SAMPLE_DATA.copy()
+        sample_df = generate_realistic_sample_data()
         sample_df["date"] = pd.to_datetime(sample_df["date"], errors="coerce")
         sample_df = sample_df.sort_values("date", ascending=True)
         sample_df["date"] = sample_df["date"].dt.strftime("%Y-%m-%d")
 
-        return sample_df.to_dict("records")
+        return sample_df.to_dict("records"), True  # Return sample data with flag
+
+
+def generate_realistic_sample_data():
+    """
+    Generate realistic sample data that spans multiple weeks for better visualization.
+    This provides a more comprehensive dataset when no real data is available.
+
+    Returns:
+        DataFrame with sample data
+    """
+    # Start date will be 12 weeks ago
+    end_date = datetime.now()
+    start_date = end_date - timedelta(days=12 * 7)  # 12 weeks
+
+    # Generate dates for each day in the range
+    dates = []
+    current_date = start_date
+    while current_date <= end_date:
+        # Skip weekends to simulate real work patterns
+        if current_date.weekday() < 5:  # Monday to Friday
+            dates.append(current_date)
+        current_date += timedelta(days=1)
+
+    # Generate realistic data with trends and variations
+    n_dates = len(dates)
+
+    # Create a base velocity with some randomness
+    base_items = 3  # Base number of items per day
+    base_points = 30  # Base number of points per day
+
+    # Generate data with realistic patterns:
+    # 1. General improvement trend over time
+    # 2. Occasional spikes and dips
+    # 3. Correlation between items and points
+
+    items = []
+    points = []
+
+    for i in range(n_dates):
+        # Calculate progress factor (increases slightly over time)
+        progress_factor = 1.0 + (i / n_dates) * 0.5
+
+        # Weekly pattern (more productive mid-week)
+        day_of_week = dates[i].weekday()
+        day_factor = 0.8 + (1.4 - abs(day_of_week - 2) * 0.15)
+
+        # Random factor (daily variation)
+        random_factor = 0.5 + (1.0 * (i % 3)) if i % 10 < 8 else 0
+
+        # Calculate items and points
+        day_items = max(
+            0, round(base_items * progress_factor * day_factor * random_factor)
+        )
+
+        # Points are correlated with items but have more variation
+        points_per_item = base_points / base_items * (0.8 + random_factor * 0.4)
+        day_points = max(0, round(day_items * points_per_item))
+
+        items.append(day_items)
+        points.append(day_points)
+
+    # Create the dataframe
+    sample_df = pd.DataFrame(
+        {
+            "date": [d.strftime("%Y-%m-%d") for d in dates],
+            "no_items": items,
+            "no_points": points,
+        }
+    )
+
+    return sample_df
+
+
+def read_and_clean_data(df):
+    """
+    Clean and validate statistics data.
+
+    Args:
+        df: Pandas DataFrame containing raw statistics data
+
+    Returns:
+        DataFrame with cleaned and formatted data
+    """
+    # Ensure required columns exist
+    required_columns = ["date", "no_items", "no_points"]
+    for col in required_columns:
+        if col not in df.columns:
+            raise ValueError(f"Required column '{col}' not found in data")
+
+    # Convert date to datetime format
+    df["date"] = pd.to_datetime(df["date"], errors="coerce")
+
+    # Drop rows with invalid dates
+    df = df.dropna(subset=["date"])
+
+    # Ensure items and points are numeric
+    df["no_items"] = (
+        pd.to_numeric(df["no_items"], errors="coerce").fillna(0).astype(int)
+    )
+    df["no_points"] = (
+        pd.to_numeric(df["no_points"], errors="coerce").fillna(0).astype(int)
+    )
+
+    # Sort by date
+    df = df.sort_values("date", ascending=True)
+
+    # Convert date back to string format
+    df["date"] = df["date"].dt.strftime("%Y-%m-%d")
+
+    # Select only required columns
+    df = df[required_columns]
+
+    return df

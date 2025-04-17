@@ -1064,3 +1064,148 @@ def create_pert_info_table(
             ),
         ],
     )
+
+
+#######################################################################
+# TREND INDICATOR COMPONENT
+#######################################################################
+
+
+def create_trend_indicator(trend_data, metric_name="Items"):
+    """
+    Create a trend indicator component with arrow and percentage change.
+
+    Args:
+        trend_data: Dictionary with trend information from calculate_performance_trend
+        metric_name: Name of the metric being displayed ("Items" or "Points")
+
+    Returns:
+        A Dash component with the trend indicator
+    """
+    # Define colors and icons based on trend direction
+    trend_colors = {
+        "up": "#28a745",  # Green for positive trend
+        "down": "#dc3545",  # Red for negative trend
+        "stable": "#6c757d",  # Gray for stable trend
+    }
+
+    trend_icons = {
+        "up": "fas fa-arrow-up",
+        "down": "fas fa-arrow-down",
+        "stable": "fas fa-arrows-alt-h",
+    }
+
+    # Get direction, value and significance
+    direction = trend_data.get("trend_direction", "stable")
+    percent_change = trend_data.get("percent_change", 0)
+    is_significant = trend_data.get("is_significant", False)
+    weeks = trend_data.get("weeks_compared", 4)
+    current_avg = trend_data.get("current_avg", 0)
+    previous_avg = trend_data.get("previous_avg", 0)
+
+    # Determine text color and font weight based on significance
+    text_color = trend_colors.get(direction, "#6c757d")
+    font_weight = "bold" if is_significant else "normal"
+
+    # Build the component
+    return html.Div(
+        [
+            html.H6(f"{metric_name} Trend (Last {weeks * 2} Weeks)", className="mb-2"),
+            html.Div(
+                [
+                    html.I(
+                        className=trend_icons.get(direction, "fas fa-arrows-alt-h"),
+                        style={
+                            "color": text_color,
+                            "fontSize": "1.5rem",
+                            "marginRight": "10px",
+                        },
+                    ),
+                    html.Span(
+                        f"{abs(percent_change)}% {'Increase' if direction == 'up' else 'Decrease' if direction == 'down' else 'Change'}",
+                        style={
+                            "color": text_color,
+                            "fontWeight": font_weight,
+                            "fontSize": "1.2rem",
+                        },
+                    ),
+                ],
+                className="d-flex align-items-center mb-2",
+            ),
+            html.Div(
+                [
+                    html.Div(
+                        [
+                            html.Span("Recent Average: ", className="font-weight-bold"),
+                            html.Span(f"{current_avg} {metric_name.lower()}/week"),
+                        ],
+                        className="mr-3",
+                    ),
+                    html.Div(
+                        [
+                            html.Span(
+                                "Previous Average: ", className="font-weight-bold"
+                            ),
+                            html.Span(f"{previous_avg} {metric_name.lower()}/week"),
+                        ],
+                    ),
+                ],
+                className="d-flex flex-wrap small text-muted",
+            ),
+            # Add warning/celebration message for significant changes
+            html.Div(
+                html.Span(
+                    "Significant change detected!" if is_significant else "",
+                    className="font-italic small",
+                    style={"color": text_color},
+                ),
+                className="mt-1",
+            ),
+        ],
+        className="trend-indicator p-3 border rounded",
+        style={
+            "backgroundColor": f"rgba({','.join(map(str, [int(c[1:3], 16), int(c[3:5], 16), int(c[5:7], 16)]))}, 0.1)"
+            if (c := trend_colors.get(direction, "#6c757d"))
+            else "rgba(108, 117, 125, 0.1)"
+        },
+    )
+
+
+#######################################################################
+# EXPORT BUTTONS COMPONENT
+#######################################################################
+
+
+def create_export_buttons(chart_id, statistics_data=None):
+    """
+    Create buttons for exporting chart as PNG and data as CSV.
+
+    Args:
+        chart_id: ID of the chart to export
+        statistics_data: Optional statistics data for CSV export
+
+    Returns:
+        A Dash component with export buttons
+    """
+    return html.Div(
+        [
+            dbc.Button(
+                [html.I(className="fas fa-file-image mr-2"), "Save as PNG"],
+                id=f"{chart_id}-png-button",
+                color="outline-primary",
+                size="sm",
+                className="mr-2",
+            ),
+            dbc.Button(
+                [html.I(className="fas fa-file-csv mr-2"), "Export Data (CSV)"],
+                id=f"{chart_id}-csv-button",
+                color="outline-secondary",
+                size="sm",
+            ),
+            # Hidden download component for CSV export
+            dcc.Download(id=f"{chart_id}-csv-download"),
+            # Hidden div to store timestamp when export was triggered
+            html.Div(id=f"{chart_id}-export-timestamp", style={"display": "none"}),
+        ],
+        className="d-flex mb-3 mt-2",
+    )

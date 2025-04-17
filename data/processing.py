@@ -401,3 +401,217 @@ def prepare_forecast_data(
         "last_items": last_items,
         "last_points": last_points,
     }
+
+
+def generate_weekly_forecast(statistics_data, pert_factor=3, forecast_weeks=4):
+    """
+    Generate a 4-week forecast for items and points per week using PERT methodology.
+
+    Args:
+        statistics_data: List of dictionaries containing statistics data
+        pert_factor: Number of data points to use for optimistic/pessimistic scenarios
+        forecast_weeks: Number of weeks to forecast (default: 4)
+
+    Returns:
+        Dictionary containing forecast data for items and points
+    """
+    # Create DataFrame from statistics data
+    df = pd.DataFrame(statistics_data).copy()
+    if df.empty:
+        # Return empty forecast data if no historical data
+        return {
+            "items": {
+                "dates": [],
+                "most_likely": [],
+                "optimistic": [],
+                "pessimistic": [],
+            },
+            "points": {
+                "dates": [],
+                "most_likely": [],
+                "optimistic": [],
+                "pessimistic": [],
+            },
+        }
+
+    # Convert date to datetime and ensure proper format
+    df["date"] = pd.to_datetime(df["date"])
+
+    # Add week and year columns for grouping
+    df["week"] = df["date"].dt.isocalendar().week
+    df["year"] = df["date"].dt.year
+    df["year_week"] = df.apply(lambda r: f"{r['year']}-W{r['week']:02d}", axis=1)
+
+    # Aggregate by week
+    weekly_df = (
+        df.groupby("year_week")
+        .agg(
+            items=("no_items", "sum"),
+            points=("no_points", "sum"),
+            start_date=("date", "min"),
+        )
+        .reset_index()
+    )
+
+    # Sort by date
+    weekly_df = weekly_df.sort_values("start_date")
+
+    # Calculate PERT estimates for weekly items
+    if len(weekly_df) > 0:
+        # Ensure we have at least pert_factor rows
+        valid_pert_factor = min(pert_factor, len(weekly_df))
+
+        # Most likely: average of all data
+        most_likely_items = weekly_df["items"].mean()
+
+        # Optimistic: average of best performing weeks
+        optimistic_items = weekly_df["items"].nlargest(valid_pert_factor).mean()
+
+        # Pessimistic: average of worst performing weeks (excluding zeros)
+        non_zero_items = weekly_df[weekly_df["items"] > 0]["items"]
+        if len(non_zero_items) > 0:
+            pessimistic_items = non_zero_items.nsmallest(valid_pert_factor).mean()
+        else:
+            pessimistic_items = weekly_df["items"].min()
+
+        # Same calculations for points
+        most_likely_points = weekly_df["points"].mean()
+        optimistic_points = weekly_df["points"].nlargest(valid_pert_factor).mean()
+
+        non_zero_points = weekly_df[weekly_df["points"] > 0]["points"]
+        if len(non_zero_points) > 0:
+            pessimistic_points = non_zero_points.nsmallest(valid_pert_factor).mean()
+        else:
+            pessimistic_points = weekly_df["points"].min()
+
+        # Get the last date from historical data as starting point
+        last_date = weekly_df["start_date"].max()
+
+        # Generate forecast dates (4 weeks from last date)
+        forecast_dates = []
+        for i in range(1, forecast_weeks + 1):
+            next_date = last_date + timedelta(weeks=i)
+            forecast_dates.append(next_date)
+
+        # Format dates for display
+        formatted_dates = [date.strftime("%b %d") for date in forecast_dates]
+
+        # Create forecast values for items
+        most_likely_items_forecast = [most_likely_items] * forecast_weeks
+        optimistic_items_forecast = [optimistic_items] * forecast_weeks
+        pessimistic_items_forecast = [pessimistic_items] * forecast_weeks
+
+        # Create forecast values for points
+        most_likely_points_forecast = [most_likely_points] * forecast_weeks
+        optimistic_points_forecast = [optimistic_points] * forecast_weeks
+        pessimistic_points_forecast = [pessimistic_points] * forecast_weeks
+
+        return {
+            "items": {
+                "dates": formatted_dates,
+                "most_likely": most_likely_items_forecast,
+                "optimistic": optimistic_items_forecast,
+                "pessimistic": pessimistic_items_forecast,
+                "most_likely_value": most_likely_items,
+                "optimistic_value": optimistic_items,
+                "pessimistic_value": pessimistic_items,
+            },
+            "points": {
+                "dates": formatted_dates,
+                "most_likely": most_likely_points_forecast,
+                "optimistic": optimistic_points_forecast,
+                "pessimistic": pessimistic_points_forecast,
+                "most_likely_value": most_likely_points,
+                "optimistic_value": optimistic_points,
+                "pessimistic_value": pessimistic_points,
+            },
+        }
+    else:
+        return {
+            "items": {
+                "dates": [],
+                "most_likely": [],
+                "optimistic": [],
+                "pessimistic": [],
+            },
+            "points": {
+                "dates": [],
+                "most_likely": [],
+                "optimistic": [],
+                "pessimistic": [],
+            },
+        }
+
+
+def calculate_performance_trend(statistics_data, metric="no_items", weeks_to_compare=4):
+    """
+    Calculate performance trend indicators based on historical data.
+
+    Args:
+        statistics_data: List of dictionaries containing statistics data
+        metric: The metric to calculate trend for ("no_items" or "no_points")
+        weeks_to_compare: Number of weeks to use for trend calculation
+
+    Returns:
+        Dictionary containing trend data:
+        - trend_direction: "up", "down", or "stable"
+        - percent_change: Percentage change between periods
+        - current_avg: Average value for current period
+        - previous_avg: Average value for previous period
+        - is_significant: True if change is >20%
+    """
+    if not statistics_data or len(statistics_data) < weeks_to_compare * 2:
+        return {
+            "trend_direction": "stable",
+            "percent_change": 0,
+            "current_avg": 0,
+            "previous_avg": 0,
+            "is_significant": False,
+            "weeks_compared": weeks_to_compare,
+        }
+
+    # Create DataFrame and ensure proper date format
+    df = pd.DataFrame(statistics_data).copy()
+    df["date"] = pd.to_datetime(df["date"])
+    df = df.sort_values("date")
+
+    # Convert metric values to numeric
+    df[metric] = pd.to_numeric(df[metric], errors="coerce").fillna(0)
+
+    # Get the latest data points for comparison
+    recent_data = df.tail(weeks_to_compare * 2)
+
+    # Split into current and previous periods
+    current_period = recent_data.tail(weeks_to_compare)
+    previous_period = recent_data.head(weeks_to_compare)
+
+    # Calculate averages for each period
+    current_avg = current_period[metric].mean()
+    previous_avg = previous_period[metric].mean()
+
+    # Calculate percentage change
+    if previous_avg > 0:
+        percent_change = ((current_avg - previous_avg) / previous_avg) * 100
+    else:
+        # If previous average is 0, use current average as the change
+        percent_change = current_avg * 100 if current_avg > 0 else 0
+
+    # Determine trend direction
+    if abs(percent_change) < 5:
+        trend_direction = "stable"
+    elif percent_change > 0:
+        trend_direction = "up"
+    else:
+        trend_direction = "down"
+
+    # Check if change is significant (>20%)
+    is_significant = abs(percent_change) >= 20
+
+    return {
+        "trend_direction": trend_direction,
+        "percent_change": round(percent_change, 1),
+        "current_avg": round(current_avg, 1),
+        "previous_avg": round(previous_avg, 1),
+        "is_significant": is_significant,
+        "weeks_compared": weeks_to_compare,
+    }

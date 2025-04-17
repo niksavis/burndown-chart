@@ -7,17 +7,35 @@ This module handles callbacks related to visualization updates and interactions.
 #######################################################################
 # IMPORTS
 #######################################################################
-from dash import html, Input, Output, State
+from dash import html, Input, Output, State, dcc, callback_context
 from dash.exceptions import PreventUpdate
 import plotly.graph_objects as go
 import pandas as pd
 from datetime import datetime
+import dash_bootstrap_components as dbc
 
 # Import from application modules
 from configuration import logger
-from data import compute_cumulative_values, calculate_weekly_averages
-from visualization import create_forecast_plot
-from ui import create_pert_info_table
+from data import (
+    compute_cumulative_values,
+    calculate_weekly_averages,
+    calculate_performance_trend,
+    generate_weekly_forecast,
+)
+from visualization import (
+    create_forecast_plot,
+    create_weekly_items_chart,
+    create_weekly_points_chart,
+    create_combined_weekly_chart,
+    create_weekly_items_forecast_chart,
+    create_weekly_points_forecast_chart,
+)
+from ui import (
+    create_pert_info_table,
+    create_tab_content,
+    create_trend_indicator,
+    create_export_buttons,
+)
 
 #######################################################################
 # CALLBACKS
@@ -143,3 +161,446 @@ def register(app):
         if n1 or n2:
             return not is_open
         return is_open
+
+    @app.callback(
+        Output("tab-content", "children"),
+        [
+            Input("chart-tabs", "active_tab"),
+            Input("current-settings", "modified_timestamp"),
+            Input("current-statistics", "modified_timestamp"),
+            Input("calculation-results", "data"),
+            Input("date-range-weeks", "data"),
+        ],
+        [
+            State("current-settings", "data"),
+            State("current-statistics", "data"),
+        ],
+    )
+    def render_tab_content(
+        active_tab,
+        settings_ts,
+        statistics_ts,
+        calc_results,
+        date_range_weeks,
+        settings,
+        statistics,
+    ):
+        """
+        Render the appropriate content based on the selected tab.
+        This callback updates whenever tab selection changes or the underlying data changes.
+        """
+        if not settings or not statistics:
+            raise PreventUpdate
+
+        try:
+            # Get values from settings
+            pert_factor = settings["pert_factor"]
+            total_items = settings["total_items"]
+            total_points = calc_results.get("total_points", settings["total_points"])
+            deadline = settings["deadline"]
+
+            # Convert statistics to DataFrame
+            df = pd.DataFrame(statistics)
+
+            # Prepare charts for each tab
+            charts = {}
+
+            # Burndown chart (existing)
+            burndown_fig, _, _ = create_forecast_plot(
+                df=compute_cumulative_values(df, total_items, total_points)
+                if not df.empty
+                else df,
+                total_items=total_items,
+                total_points=total_points,
+                pert_factor=pert_factor,
+                deadline_str=deadline,
+            )
+            charts["tab-burndown"] = html.Div(
+                [
+                    # Export buttons
+                    create_export_buttons("burndown", statistics),
+                    # Burndown chart
+                    dcc.Graph(
+                        id="forecast-graph",
+                        figure=burndown_fig,
+                        config={"displayModeBar": True, "responsive": True},
+                        style={"height": "600px"},
+                    ),
+                ]
+            )
+
+            # Weekly items chart
+            items_fig = create_weekly_items_chart(statistics, date_range_weeks)
+            # Calculate trend indicators for items
+            items_trend = calculate_performance_trend(statistics, "no_items", 4)
+
+            charts["tab-items"] = html.Div(
+                [
+                    # Date range selector for items chart
+                    html.Div(
+                        [
+                            html.Label(
+                                "Show data for last:", className="mr-2 font-weight-bold"
+                            ),
+                            dcc.Slider(
+                                id="items-date-range-slider",
+                                min=4,
+                                max=52,
+                                step=4,
+                                value=date_range_weeks or 24,
+                                marks={
+                                    4: "4 weeks",
+                                    12: "12 weeks",
+                                    24: "24 weeks",
+                                    52: "All",
+                                },
+                                className="mb-4",
+                            ),
+                        ],
+                        className="mb-3",
+                    ),
+                    # Performance trend indicator
+                    html.Div(
+                        [create_trend_indicator(items_trend, "Items")], className="mb-4"
+                    ),
+                    # Export buttons
+                    create_export_buttons("items", statistics),
+                    # Items weekly chart
+                    dcc.Graph(
+                        id="items-chart",
+                        figure=items_fig,
+                        config={"displayModeBar": True, "responsive": True},
+                        style={"height": "500px"},
+                    ),
+                    # Items weekly forecast chart
+                    html.Div(
+                        [
+                            html.H5("Forecast for Next 4 Weeks", className="mt-4 mb-3"),
+                            # Export buttons for forecast chart
+                            create_export_buttons("items-forecast", statistics),
+                            dcc.Graph(
+                                id="items-forecast-chart",
+                                figure=create_weekly_items_forecast_chart(
+                                    statistics, pert_factor, date_range_weeks
+                                ),
+                                config={"displayModeBar": True, "responsive": True},
+                                style={"height": "500px"},
+                            ),
+                        ]
+                    ),
+                ]
+            )
+
+            # Weekly points chart
+            points_fig = create_weekly_points_chart(statistics, date_range_weeks)
+            # Calculate trend indicators for points
+            points_trend = calculate_performance_trend(statistics, "no_points", 4)
+
+            charts["tab-points"] = html.Div(
+                [
+                    # Date range selector for points chart
+                    html.Div(
+                        [
+                            html.Label(
+                                "Show data for last:", className="mr-2 font-weight-bold"
+                            ),
+                            dcc.Slider(
+                                id="points-date-range-slider",
+                                min=4,
+                                max=52,
+                                step=4,
+                                value=date_range_weeks or 24,
+                                marks={
+                                    4: "4 weeks",
+                                    12: "12 weeks",
+                                    24: "24 weeks",
+                                    52: "All",
+                                },
+                                className="mb-4",
+                            ),
+                        ],
+                        className="mb-3",
+                    ),
+                    # Performance trend indicator
+                    html.Div(
+                        [create_trend_indicator(points_trend, "Points")],
+                        className="mb-4",
+                    ),
+                    # Export buttons
+                    create_export_buttons("points", statistics),
+                    # Points weekly chart
+                    dcc.Graph(
+                        id="points-chart",
+                        figure=points_fig,
+                        config={"displayModeBar": True, "responsive": True},
+                        style={"height": "500px"},
+                    ),
+                    # Points weekly forecast chart
+                    html.Div(
+                        [
+                            html.H5("Forecast for Next 4 Weeks", className="mt-4 mb-3"),
+                            # Export buttons for forecast chart
+                            create_export_buttons("points-forecast", statistics),
+                            dcc.Graph(
+                                id="points-forecast-chart",
+                                figure=create_weekly_points_forecast_chart(
+                                    statistics, pert_factor, date_range_weeks
+                                ),
+                                config={"displayModeBar": True, "responsive": True},
+                                style={"height": "500px"},
+                            ),
+                        ]
+                    ),
+                ]
+            )
+
+            # Combined view chart
+            combined_fig = create_combined_weekly_chart(statistics, date_range_weeks)
+            # Calculate trend indicators for both items and points
+            items_trend = calculate_performance_trend(statistics, "no_items", 4)
+            points_trend = calculate_performance_trend(statistics, "no_points", 4)
+
+            charts["tab-combined"] = html.Div(
+                [
+                    # Date range selector for combined chart
+                    html.Div(
+                        [
+                            html.Label(
+                                "Show data for last:", className="mr-2 font-weight-bold"
+                            ),
+                            dcc.Slider(
+                                id="combined-date-range-slider",
+                                min=4,
+                                max=52,
+                                step=4,
+                                value=date_range_weeks or 24,
+                                marks={
+                                    4: "4 weeks",
+                                    12: "12 weeks",
+                                    24: "24 weeks",
+                                    52: "All",
+                                },
+                                className="mb-4",
+                            ),
+                        ],
+                        className="mb-3",
+                    ),
+                    # Performance trend indicators (side by side)
+                    dbc.Row(
+                        [
+                            dbc.Col(
+                                [create_trend_indicator(items_trend, "Items")],
+                                md=6,
+                                className="mb-3",
+                            ),
+                            dbc.Col(
+                                [create_trend_indicator(points_trend, "Points")],
+                                md=6,
+                                className="mb-3",
+                            ),
+                        ],
+                        className="mb-3",
+                    ),
+                    # Export buttons
+                    create_export_buttons("combined", statistics),
+                    # Combined weekly chart
+                    dcc.Graph(
+                        id="combined-chart",
+                        figure=combined_fig,
+                        config={"displayModeBar": True, "responsive": True},
+                        style={"height": "600px"},
+                    ),
+                ]
+            )
+
+            # Create content for the active tab
+            return create_tab_content(active_tab, charts)
+
+        except Exception as e:
+            logger.error(f"Error in render_tab_content callback: {e}")
+            return html.Div(
+                [
+                    html.H4("Error Loading Chart", className="text-danger"),
+                    html.P(f"An error occurred: {str(e)}"),
+                ]
+            )
+
+    @app.callback(
+        Output("date-range-weeks", "data"),
+        [
+            Input("items-date-range-slider", "value"),
+            Input("points-date-range-slider", "value"),
+            Input("combined-date-range-slider", "value"),
+        ],
+    )
+    def update_date_range(items_range, points_range, combined_range):
+        """
+        Update the date range based on whichever slider was most recently changed.
+        """
+        # Get the ID of the component that triggered the callback
+        ctx = callback_context
+        if not ctx.triggered:
+            raise PreventUpdate
+
+        # Get the value from the slider that was changed
+        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+
+        if trigger_id == "items-date-range-slider":
+            return items_range
+        elif trigger_id == "points-date-range-slider":
+            return points_range
+        elif trigger_id == "combined-date-range-slider":
+            return combined_range
+
+        # Default fallback if trigger cannot be determined
+        return 24  # Default to 24 weeks
+
+    # Add callbacks for CSV exports
+    # Create one callback for each chart
+    chart_ids = [
+        "burndown",
+        "items",
+        "points",
+        "combined",
+        "items-forecast",
+        "points-forecast",
+    ]
+
+    for chart_id in chart_ids:
+
+        @app.callback(
+            Output(f"{chart_id}-csv-download", "data"),
+            Input(f"{chart_id}-csv-button", "n_clicks"),
+            [State("current-statistics", "data"), State("date-range-weeks", "data")],
+            prevent_initial_call=True,
+        )
+        def export_csv_data(n_clicks, statistics, date_range_weeks, chart_id=chart_id):
+            """
+            Export chart data as CSV when the export button is clicked.
+
+            Args:
+                n_clicks: Number of button clicks
+                statistics: Current statistics data
+                date_range_weeks: Selected date range in weeks
+                chart_id: ID of the chart to export (passed in via closure)
+
+            Returns:
+                Dictionary with CSV download data
+            """
+            if not n_clicks or not statistics:
+                raise PreventUpdate
+
+            try:
+                current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+                # Create pandas DataFrame for CSV export
+                if chart_id == "burndown":
+                    # Export burndown chart data
+                    df = pd.DataFrame(statistics)
+                    df["date"] = pd.to_datetime(df["date"])
+                    df = df.sort_values("date")
+                    filename = f"burndown_chart_data_{current_time}.csv"
+
+                elif chart_id in ["items", "items-forecast"]:
+                    # Export weekly items data
+                    df = pd.DataFrame(statistics)
+                    df["date"] = pd.to_datetime(df["date"])
+                    df = df.sort_values("date")
+
+                    # Group by week
+                    df["week"] = df["date"].dt.isocalendar().week
+                    df["year"] = df["date"].dt.year
+                    df["year_week"] = df.apply(
+                        lambda r: f"{r['year']}-W{r['week']:02d}", axis=1
+                    )
+                    weekly_df = (
+                        df.groupby("year_week")
+                        .agg(week_start=("date", "min"), items=("no_items", "sum"))
+                        .reset_index()
+                    )
+
+                    # Filter by date range if specified
+                    if date_range_weeks and chart_id == "items":
+                        weekly_df = weekly_df.sort_values("week_start", ascending=False)
+                        weekly_df = weekly_df.head(date_range_weeks)
+                        weekly_df = weekly_df.sort_values("week_start")
+
+                    df = weekly_df
+                    prefix = "forecast_" if chart_id == "items-forecast" else ""
+                    filename = f"{prefix}weekly_items_data_{current_time}.csv"
+
+                elif chart_id in ["points", "points-forecast"]:
+                    # Export weekly points data
+                    df = pd.DataFrame(statistics)
+                    df["date"] = pd.to_datetime(df["date"])
+                    df = df.sort_values("date")
+
+                    # Group by week
+                    df["week"] = df["date"].dt.isocalendar().week
+                    df["year"] = df["date"].dt.year
+                    df["year_week"] = df.apply(
+                        lambda r: f"{r['year']}-W{r['week']:02d}", axis=1
+                    )
+                    weekly_df = (
+                        df.groupby("year_week")
+                        .agg(week_start=("date", "min"), points=("no_points", "sum"))
+                        .reset_index()
+                    )
+
+                    # Filter by date range if specified
+                    if date_range_weeks and chart_id == "points":
+                        weekly_df = weekly_df.sort_values("week_start", ascending=False)
+                        weekly_df = weekly_df.head(date_range_weeks)
+                        weekly_df = weekly_df.sort_values("week_start")
+
+                    df = weekly_df
+                    prefix = "forecast_" if chart_id == "points-forecast" else ""
+                    filename = f"{prefix}weekly_points_data_{current_time}.csv"
+
+                elif chart_id == "combined":
+                    # Export both weekly items and points data
+                    df = pd.DataFrame(statistics)
+                    df["date"] = pd.to_datetime(df["date"])
+                    df = df.sort_values("date")
+
+                    # Group by week
+                    df["week"] = df["date"].dt.isocalendar().week
+                    df["year"] = df["date"].dt.year
+                    df["year_week"] = df.apply(
+                        lambda r: f"{r['year']}-W{r['week']:02d}", axis=1
+                    )
+                    weekly_df = (
+                        df.groupby("year_week")
+                        .agg(
+                            week_start=("date", "min"),
+                            items=("no_items", "sum"),
+                            points=("no_points", "sum"),
+                        )
+                        .reset_index()
+                    )
+
+                    # Filter by date range if specified
+                    if date_range_weeks:
+                        weekly_df = weekly_df.sort_values("week_start", ascending=False)
+                        weekly_df = weekly_df.head(date_range_weeks)
+                        weekly_df = weekly_df.sort_values("week_start")
+
+                    df = weekly_df
+                    filename = f"combined_weekly_data_{current_time}.csv"
+
+                # Format dates for better readability
+                if "date" in df.columns:
+                    df["date"] = df["date"].dt.strftime("%Y-%m-%d")
+                if "week_start" in df.columns:
+                    df["week_start"] = df["week_start"].dt.strftime("%Y-%m-%d")
+
+                # Return CSV data
+                return dcc.send_data_frame(df.to_csv, filename, index=False)
+
+            except Exception as e:
+                logger.error(f"Error exporting CSV data for {chart_id}: {e}")
+                # Return empty CSV with error message
+                error_df = pd.DataFrame({"Error": [f"Failed to export data: {str(e)}"]})
+                return dcc.send_data_frame(
+                    error_df.to_csv, f"export_error_{current_time}.csv", index=False
+                )

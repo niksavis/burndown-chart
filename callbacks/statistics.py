@@ -56,18 +56,23 @@ def register(app):
         return data, int(datetime.now().timestamp() * 1000)
 
     @app.callback(
-        Output("statistics-table", "data"),
+        [Output("statistics-table", "data"), Output("is-sample-data", "data")],
         [Input("add-row-button", "n_clicks"), Input("upload-data", "contents")],
-        [State("statistics-table", "data"), State("upload-data", "filename")],
+        [
+            State("statistics-table", "data"),
+            State("upload-data", "filename"),
+            State("is-sample-data", "data"),
+        ],
     )
-    def update_table(n_clicks, contents, rows, filename):
+    def update_table(n_clicks, contents, rows, filename, is_sample_data):
         """
         Update the statistics table data when a row is added or data is uploaded.
+        Also update the sample data flag when real data is uploaded.
         """
         ctx = dash.callback_context
         if not ctx.triggered:
             # No triggers, return unchanged
-            return rows
+            return rows, is_sample_data
 
         trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
         try:
@@ -105,7 +110,12 @@ def register(app):
                         "no_points": 0,
                     },
                 )
-                return rows
+
+                # If user adds a row, we're no longer using sample data
+                if is_sample_data:
+                    return rows, False
+                else:
+                    return rows, is_sample_data
 
             elif trigger_id == "upload-data" and contents:
                 # Parse uploaded file
@@ -125,11 +135,47 @@ def register(app):
 
                         # Clean data and ensure date is in YYYY-MM-DD format
                         df = read_and_clean_data(df)
-                        return df.to_dict("records")
+                        # When uploading data, we're no longer using sample data
+                        return df.to_dict("records"), False
                     except Exception as e:
                         logger.error(f"Error loading CSV file: {e}")
                         # Return unchanged data if there's an error
-                        return rows
+                        return rows, is_sample_data
         except Exception as e:
             logger.error(f"Error in update_table callback: {e}")
-        return rows
+        return rows, is_sample_data
+
+    @app.callback(
+        Output("sample-data-alert", "is_open"),
+        [
+            Input("dismiss-sample-alert", "n_clicks"),
+            Input("is-sample-data", "data"),
+            Input("upload-data", "contents"),
+        ],
+        [State("sample-data-alert", "is_open")],
+    )
+    def toggle_sample_data_alert(n_clicks, is_sample_data, upload_contents, is_open):
+        """
+        Show or hide the sample data alert banner.
+        - Show when sample data is being used
+        - Hide when dismissed or when real data is uploaded
+        """
+        ctx = dash.callback_context
+        if not ctx.triggered:
+            # Initial load
+            return is_sample_data
+
+        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+
+        if trigger_id == "dismiss-sample-alert" and n_clicks:
+            # User dismissed the alert
+            return False
+        elif trigger_id == "upload-data" and upload_contents:
+            # Data was uploaded, hide the alert
+            return False
+        elif trigger_id == "is-sample-data":
+            # Sample data flag changed
+            return is_sample_data
+
+        # Default: maintain current state
+        return is_open
