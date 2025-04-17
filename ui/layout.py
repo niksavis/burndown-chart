@@ -10,6 +10,7 @@ a fresh layout with the latest data from disk on each page load.
 #######################################################################
 from dash import html, dcc
 import dash_bootstrap_components as dbc
+import pandas as pd  # Add pandas for DataFrame conversion
 
 # Import from data modules
 from data import (
@@ -19,13 +20,14 @@ from data import (
 )
 
 # Import UI components
-from ui.components import create_help_modal
+from ui.components import create_help_modal, create_continue_iteration_modal
 from ui.cards import (
     create_forecast_graph_card,
     create_forecast_info_card,
     create_pert_analysis_card,
     create_input_parameters_card,
     create_statistics_data_card,
+    create_project_status_card,
 )
 from ui.tabs import create_tabs
 
@@ -84,6 +86,9 @@ def create_app_layout(settings, statistics, is_sample_data):
             ),
             # Store for date range selection
             dcc.Store(id="date-range-weeks", data=None),
+            # Add hidden components for the iteration functionality
+            html.Button(id="show-continue-iteration", style={"display": "none"}),
+            dcc.Store(id="iteration-trigger", data=0),
             # Add an empty div to hold the forecast-graph (will be populated by callback)
             html.Div(
                 dcc.Graph(id="forecast-graph", style={"display": "none"}),
@@ -159,6 +164,8 @@ def create_app_layout(settings, statistics, is_sample_data):
             ),
             # Help modal
             create_help_modal(),
+            # Continue iteration modal
+            create_continue_iteration_modal(),
             # Tab Navigation and Charts Row
             dbc.Row(
                 [
@@ -190,6 +197,21 @@ def create_app_layout(settings, statistics, is_sample_data):
                         width=12,
                     ),
                 ]
+            ),
+            # New row: Project Status Summary Card
+            dbc.Row(
+                [
+                    dbc.Col(
+                        [
+                            create_project_status_card(
+                                pd.DataFrame(statistics),  # Convert list to DataFrame
+                                settings,  # Pass the entire settings dictionary
+                            ),
+                        ],
+                        width=12,
+                    ),
+                ],
+                className="mb-4",
             ),
             # Third row: Input Parameters and PERT Analysis - equal width cards
             dbc.Row(

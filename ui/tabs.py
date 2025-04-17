@@ -6,6 +6,7 @@ This module provides the tab-based navigation components for the application.
 
 import dash_bootstrap_components as dbc
 from dash import html, dcc
+from datetime import datetime, timedelta
 
 
 def create_tabs():
@@ -43,6 +44,12 @@ def create_tabs():
                         labelClassName="font-weight-bold",
                         activeLabelClassName="text-primary",
                     ),
+                    dbc.Tab(
+                        label="Team Capacity",
+                        tab_id="tab-capacity",
+                        labelClassName="font-weight-bold",
+                        activeLabelClassName="text-primary",
+                    ),
                 ],
                 id="chart-tabs",
                 active_tab="tab-burndown",
@@ -66,7 +73,13 @@ def create_tab_content(active_tab, charts):
         Dash component containing the active tab's content
     """
     # Default to burndown chart if tab is None or invalid
-    if active_tab not in ["tab-burndown", "tab-items", "tab-points", "tab-combined"]:
+    if active_tab not in [
+        "tab-burndown",
+        "tab-items",
+        "tab-points",
+        "tab-combined",
+        "tab-capacity",
+    ]:
         active_tab = "tab-burndown"
 
     # Return the appropriate chart based on the active tab
@@ -79,6 +92,7 @@ def create_tab_content(active_tab, charts):
                     "tab-items": "Weekly Completed Items",
                     "tab-points": "Weekly Completed Points",
                     "tab-combined": "Combined Weekly Progress",
+                    "tab-capacity": "Team Capacity",
                 }[active_tab],
                 className="mb-4",
             ),

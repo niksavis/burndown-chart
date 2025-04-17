@@ -1213,3 +1213,55 @@ def create_export_buttons(chart_id=None, statistics_data=None):
         ],
         className="d-flex align-items-center mb-3 mt-2",
     )
+
+
+#######################################################################
+# CONTINUE ITERATION MODAL COMPONENT
+#######################################################################
+
+
+def create_continue_iteration_modal():
+    """
+    Create a modal dialog that asks the user if they want to continue iterating.
+
+    Returns:
+        Dash Modal component
+    """
+    return dbc.Modal(
+        [
+            dbc.ModalHeader("Continue Iteration?"),
+            dbc.ModalBody(
+                [
+                    html.P(
+                        "Would you like to continue with another iteration of calculations?",
+                        className="mb-3",
+                    ),
+                    html.P(
+                        [
+                            "Continuing will perform another round of simulation with the ",
+                            html.Strong("current parameters"),
+                            " and statistics.",
+                        ],
+                        className="mb-3",
+                    ),
+                ]
+            ),
+            dbc.ModalFooter(
+                [
+                    dbc.Button(
+                        "Cancel",
+                        id="cancel-iteration",
+                        color="secondary",
+                        className="mr-2",
+                    ),
+                    dbc.Button(
+                        "Continue Iteration",
+                        id="continue-iteration",
+                        color="primary",
+                    ),
+                ]
+            ),
+        ],
+        id="continue-iteration-modal",
+        is_open=False,
+    )

@@ -10,7 +10,8 @@ of the application, such as the forecast graph card, info card, etc.
 #######################################################################
 from dash import html, dcc
 import dash_bootstrap_components as dbc
-from datetime import datetime
+from datetime import datetime, timedelta
+import pandas as pd
 
 # Import from other modules
 from configuration import HELP_TEXTS, COLOR_PALETTE
@@ -678,4 +679,548 @@ def create_statistics_data_card(current_statistics):
             ),
         ],
         className="shadow-sm",
+    )
+
+
+def create_project_status_card(statistics_df, settings):
+    """
+    Create the project status summary card with key project metrics.
+
+    Args:
+        statistics_df: DataFrame with historical statistics
+        settings: Dictionary with current application settings
+
+    Returns:
+        Dash Card component with project status summary
+    """
+    # Calculate progress metrics
+    total_items = settings["total_items"]
+    total_points = settings["total_points"]
+
+    # Calculate completed items and points from statistics
+    completed_items = statistics_df["no_items"].sum() if not statistics_df.empty else 0
+    completed_points = (
+        statistics_df["no_points"].sum() if not statistics_df.empty else 0
+    )
+
+    # Calculate percentages
+    items_percentage = min(
+        round((completed_items / total_items) * 100 if total_items > 0 else 0, 1), 100
+    )
+    points_percentage = min(
+        round((completed_points / total_points) * 100 if total_points > 0 else 0, 1),
+        100,
+    )
+
+    # Calculate velocity metrics
+    if not statistics_df.empty and len(statistics_df) >= 2:
+        # Group by week for calculation
+        statistics_df["date"] = pd.to_datetime(statistics_df["date"])
+        weekly_stats = statistics_df.resample("W", on="date").sum()
+
+        # Get weekly averages
+        avg_weekly_items = round(weekly_stats["no_items"].mean(), 1)
+        avg_weekly_points = round(weekly_stats["no_points"].mean(), 1)
+
+        # Get standard deviations for stability indicators
+        std_weekly_items = round(weekly_stats["no_items"].std(), 1)
+        std_weekly_points = round(weekly_stats["no_points"].std(), 1)
+
+        # Calculate stability as coefficient of variation (CV)
+        cv_items = (
+            round((std_weekly_items / avg_weekly_items) * 100, 1)
+            if avg_weekly_items > 0
+            else 0
+        )
+        cv_points = (
+            round((std_weekly_points / avg_weekly_points) * 100, 1)
+            if avg_weekly_points > 0
+            else 0
+        )
+    else:
+        avg_weekly_items = 0
+        avg_weekly_points = 0
+        std_weekly_items = 0
+        std_weekly_points = 0
+        cv_items = 0
+        cv_points = 0
+
+    # Calculate estimated completion dates
+    remaining_items = max(0, total_items - completed_items)
+    remaining_points = max(0, total_points - completed_points)
+
+    if avg_weekly_items > 0:
+        weeks_to_complete_items = round(remaining_items / avg_weekly_items, 1)
+        completion_date_items = (
+            datetime.now() + timedelta(weeks=weeks_to_complete_items)
+        ).strftime("%Y-%m-%d")
+    else:
+        weeks_to_complete_items = float("inf")
+        completion_date_items = "Unknown"
+
+    if avg_weekly_points > 0:
+        weeks_to_complete_points = round(remaining_points / avg_weekly_points, 1)
+        completion_date_points = (
+            datetime.now() + timedelta(weeks=weeks_to_complete_points)
+        ).strftime("%Y-%m-%d")
+    else:
+        weeks_to_complete_points = float("inf")
+        completion_date_points = "Unknown"
+
+    # Calculate days until deadline
+    deadline_date = datetime.strptime(settings["deadline"], "%Y-%m-%d")
+    days_to_deadline = (deadline_date - datetime.now()).days
+
+    # Determine if completion estimates are within deadline
+    items_on_track = (
+        completion_date_items != "Unknown"
+        and datetime.strptime(completion_date_items, "%Y-%m-%d") <= deadline_date
+    )
+    points_on_track = (
+        completion_date_points != "Unknown"
+        and datetime.strptime(completion_date_points, "%Y-%m-%d") <= deadline_date
+    )
+
+    # Generate status indicators and colors
+    items_color = "success" if items_on_track else "danger"
+    points_color = "success" if points_on_track else "danger"
+
+    return dbc.Card(
+        [
+            dbc.CardHeader(
+                [
+                    html.H4("Project Status Summary", className="d-inline"),
+                    create_info_tooltip(
+                        "project-status",
+                        "Key metrics showing current progress, velocity, and estimated completion based on historical data.",
+                    ),
+                ]
+            ),
+            dbc.CardBody(
+                [
+                    # Progress Section
+                    html.Div(
+                        [
+                            html.H5(
+                                "Current Progress", className="mb-3 border-bottom pb-2"
+                            ),
+                            dbc.Row(
+                                [
+                                    # Items Progress
+                                    dbc.Col(
+                                        [
+                                            html.Label(
+                                                [
+                                                    f"Items Completed: {completed_items} of {total_items}",
+                                                ]
+                                            ),
+                                            dbc.Progress(
+                                                value=items_percentage,
+                                                id="items-progress-bar",
+                                                color="info",
+                                                className="mb-1",
+                                                style={"height": "20px"},
+                                            ),
+                                            html.Small(
+                                                f"{items_percentage}% complete",
+                                                className="text-muted",
+                                            ),
+                                        ],
+                                        width=12,
+                                        md=6,
+                                        className="mb-3",
+                                    ),
+                                    # Points Progress
+                                    dbc.Col(
+                                        [
+                                            html.Label(
+                                                [
+                                                    f"Points Completed: {completed_points} of {total_points}",
+                                                ]
+                                            ),
+                                            dbc.Progress(
+                                                value=points_percentage,
+                                                id="points-progress-bar",
+                                                color="warning",
+                                                className="mb-1",
+                                                style={"height": "20px"},
+                                            ),
+                                            html.Small(
+                                                f"{points_percentage}% complete",
+                                                className="text-muted",
+                                            ),
+                                        ],
+                                        width=12,
+                                        md=6,
+                                        className="mb-3",
+                                    ),
+                                ],
+                            ),
+                        ],
+                        className="mb-4",
+                    ),
+                    # Velocity Section
+                    html.Div(
+                        [
+                            html.H5(
+                                "Velocity Metrics", className="mb-3 border-bottom pb-2"
+                            ),
+                            dbc.Row(
+                                [
+                                    # Items Velocity
+                                    dbc.Col(
+                                        [
+                                            html.Div(
+                                                [
+                                                    html.Label("Weekly Items"),
+                                                    html.Div(
+                                                        [
+                                                            html.Span(
+                                                                f"{avg_weekly_items}",
+                                                                style={
+                                                                    "fontSize": "24px",
+                                                                    "fontWeight": "bold",
+                                                                    "color": COLOR_PALETTE[
+                                                                        "items"
+                                                                    ],
+                                                                },
+                                                                className="mr-2",
+                                                            ),
+                                                            html.Small(
+                                                                f"± {std_weekly_items}",
+                                                                className="text-muted ml-1",
+                                                            ),
+                                                        ],
+                                                        className="d-flex align-items-baseline",
+                                                    ),
+                                                    html.Small(
+                                                        [
+                                                            f"Stability: {cv_items}% ",
+                                                            html.I(
+                                                                className=f"fas {'fa-check-circle text-success' if cv_items < 25 else 'fa-exclamation-circle text-warning'}",
+                                                                title=f"{'Stable' if cv_items < 25 else 'Variable'} velocity",
+                                                            ),
+                                                        ],
+                                                        className="d-block",
+                                                    ),
+                                                ],
+                                                className="text-center p-3 border rounded",
+                                                style={
+                                                    "backgroundColor": "rgba(0, 99, 178, 0.1)"
+                                                },
+                                            ),
+                                        ],
+                                        width=12,
+                                        md=6,
+                                        className="mb-3",
+                                    ),
+                                    # Points Velocity
+                                    dbc.Col(
+                                        [
+                                            html.Div(
+                                                [
+                                                    html.Label("Weekly Points"),
+                                                    html.Div(
+                                                        [
+                                                            html.Span(
+                                                                f"{avg_weekly_points}",
+                                                                style={
+                                                                    "fontSize": "24px",
+                                                                    "fontWeight": "bold",
+                                                                    "color": COLOR_PALETTE[
+                                                                        "points"
+                                                                    ],
+                                                                },
+                                                                className="mr-2",
+                                                            ),
+                                                            html.Small(
+                                                                f"± {std_weekly_points}",
+                                                                className="text-muted ml-1",
+                                                            ),
+                                                        ],
+                                                        className="d-flex align-items-baseline",
+                                                    ),
+                                                    html.Small(
+                                                        [
+                                                            f"Stability: {cv_points}% ",
+                                                            html.I(
+                                                                className=f"fas {'fa-check-circle text-success' if cv_points < 25 else 'fa-exclamation-circle text-warning'}",
+                                                                title=f"{'Stable' if cv_points < 25 else 'Variable'} velocity",
+                                                            ),
+                                                        ],
+                                                        className="d-block",
+                                                    ),
+                                                ],
+                                                className="text-center p-3 border rounded",
+                                                style={
+                                                    "backgroundColor": "rgba(255, 127, 14, 0.1)"
+                                                },
+                                            ),
+                                        ],
+                                        width=12,
+                                        md=6,
+                                        className="mb-3",
+                                    ),
+                                ],
+                            ),
+                        ],
+                        className="mb-4",
+                    ),
+                    # Completion Forecast Section
+                    html.Div(
+                        [
+                            html.H5(
+                                "Completion Forecast",
+                                className="mb-3 border-bottom pb-2",
+                            ),
+                            dbc.Row(
+                                [
+                                    # Items Forecast
+                                    dbc.Col(
+                                        [
+                                            html.Label("Items Forecast"),
+                                            html.Div(
+                                                html.Span(
+                                                    completion_date_items,
+                                                    style={
+                                                        "fontSize": "20px",
+                                                        "color": f"{'green' if items_on_track else 'red'}",
+                                                    },
+                                                    className="font-weight-bold",
+                                                ),
+                                                className="mb-1",
+                                            ),
+                                            html.Small(
+                                                f"{weeks_to_complete_items:.1f} weeks remaining"
+                                                if weeks_to_complete_items
+                                                != float("inf")
+                                                else "Cannot estimate",
+                                                className="text-muted d-block",
+                                            ),
+                                        ],
+                                        width=12,
+                                        md=6,
+                                        className="mb-3",
+                                    ),
+                                    # Points Forecast
+                                    dbc.Col(
+                                        [
+                                            html.Label("Points Forecast"),
+                                            html.Div(
+                                                html.Span(
+                                                    completion_date_points,
+                                                    style={
+                                                        "fontSize": "20px",
+                                                        "color": f"{'green' if points_on_track else 'red'}",
+                                                    },
+                                                    className="font-weight-bold",
+                                                ),
+                                                className="mb-1",
+                                            ),
+                                            html.Small(
+                                                f"{weeks_to_complete_points:.1f} weeks remaining"
+                                                if weeks_to_complete_points
+                                                != float("inf")
+                                                else "Cannot estimate",
+                                                className="text-muted d-block",
+                                            ),
+                                        ],
+                                        width=12,
+                                        md=6,
+                                        className="mb-3",
+                                    ),
+                                ],
+                            ),
+                            # Deadline Display
+                            dbc.Row(
+                                [
+                                    dbc.Col(
+                                        [
+                                            html.Label("Project Deadline"),
+                                            html.Div(
+                                                html.Span(
+                                                    settings["deadline"],
+                                                    style={
+                                                        "fontSize": "20px",
+                                                        "color": COLOR_PALETTE[
+                                                            "deadline"
+                                                        ],
+                                                    },
+                                                    className="font-weight-bold",
+                                                ),
+                                                className="mb-1",
+                                            ),
+                                            html.Small(
+                                                f"{days_to_deadline} days remaining",
+                                                className="text-muted d-block",
+                                            ),
+                                        ],
+                                        width=12,
+                                        className="text-center p-3 border rounded",
+                                        style={
+                                            "backgroundColor": "rgba(220, 20, 60, 0.1)"
+                                        },
+                                    ),
+                                ],
+                            ),
+                        ],
+                    ),
+                ],
+                className="py-3",
+            ),
+        ],
+        className="mb-3 shadow-sm",
+    )
+
+
+def create_team_capacity_card(id_prefix="capacity"):
+    """
+    Create the team capacity card with inputs for team capacity parameters.
+    """
+    return dbc.Card(
+        [
+            dbc.CardHeader(html.H5("Team Capacity")),
+            dbc.CardBody(
+                [
+                    dbc.Row(
+                        [
+                            dbc.Col(
+                                [
+                                    dbc.Label(
+                                        [
+                                            "Team Members",
+                                            create_info_tooltip(
+                                                "team-members",
+                                                "Number of team members working on this project",
+                                            ),
+                                        ]
+                                    ),
+                                    dbc.Input(
+                                        id=f"{id_prefix}-team-members",
+                                        type="number",
+                                        min=1,
+                                        step=1,
+                                        value=5,
+                                    ),
+                                ],
+                                width=6,
+                                className="mb-3",
+                            ),
+                            dbc.Col(
+                                [
+                                    dbc.Label(
+                                        [
+                                            "Hours per Member (weekly)",
+                                            create_info_tooltip(
+                                                "hours-per-member",
+                                                "Available hours per team member per week (typically 40 for full-time)",
+                                            ),
+                                        ]
+                                    ),
+                                    dbc.Input(
+                                        id=f"{id_prefix}-hours-per-member",
+                                        type="number",
+                                        min=1,
+                                        max=80,
+                                        step=1,
+                                        value=40,
+                                    ),
+                                ],
+                                width=6,
+                                className="mb-3",
+                            ),
+                        ]
+                    ),
+                    dbc.Row(
+                        [
+                            dbc.Col(
+                                [
+                                    dbc.Label(
+                                        [
+                                            "Hours per Point",
+                                            create_info_tooltip(
+                                                "hours-per-point",
+                                                "Estimated hours required per story point (leave blank to calculate from data)",
+                                            ),
+                                        ]
+                                    ),
+                                    dbc.Input(
+                                        id=f"{id_prefix}-hours-per-point",
+                                        type="number",
+                                        min=0.1,
+                                        step=0.1,
+                                        placeholder="Auto-calculate",
+                                    ),
+                                ],
+                                width=6,
+                                className="mb-3",
+                            ),
+                            dbc.Col(
+                                [
+                                    dbc.Label(
+                                        [
+                                            "Hours per Item",
+                                            create_info_tooltip(
+                                                "hours-per-item",
+                                                "Estimated hours required per work item (leave blank to calculate from data)",
+                                            ),
+                                        ]
+                                    ),
+                                    dbc.Input(
+                                        id=f"{id_prefix}-hours-per-item",
+                                        type="number",
+                                        min=0.1,
+                                        step=0.1,
+                                        placeholder="Auto-calculate",
+                                    ),
+                                ],
+                                width=6,
+                                className="mb-3",
+                            ),
+                        ]
+                    ),
+                    dbc.Row(
+                        [
+                            dbc.Col(
+                                [
+                                    dbc.Checkbox(
+                                        id=f"{id_prefix}-include-weekends",
+                                        label="Include weekends in capacity",
+                                        value=False,
+                                    ),
+                                ],
+                                width=12,
+                                className="mb-3",
+                            ),
+                        ]
+                    ),
+                    dbc.Row(
+                        [
+                            dbc.Col(
+                                [
+                                    dbc.Button(
+                                        "Update Capacity",
+                                        id=f"{id_prefix}-update-btn",
+                                        color="primary",
+                                        className="w-100",
+                                    ),
+                                ],
+                                width=12,
+                            ),
+                        ]
+                    ),
+                ]
+            ),
+            dbc.CardFooter(
+                [
+                    html.Div(
+                        [
+                            html.H6("Calculated Capacity Metrics:"),
+                            html.Div(id=f"{id_prefix}-metrics-display"),
+                        ]
+                    )
+                ]
+            ),
+        ],
+        className="mb-4",
     )
