@@ -1254,7 +1254,7 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
                 points_trend_color = "secondary"
                 points_trend_icon = "fa-equals"
 
-            # Calculate estimated completion date based on remaining work
+            # Calculate LINEAR estimated completion date based on remaining work
             if avg_weekly_items > 0:
                 weeks_to_complete_items = remaining_items / avg_weekly_items
                 completion_date_items = datetime.now() + timedelta(
@@ -1265,6 +1265,7 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
             else:
                 completion_date_items_str = "Unknown"
                 days_to_complete_items = None
+                weeks_to_complete_items = None
 
             if avg_weekly_points > 0:
                 weeks_to_complete_points = remaining_points / avg_weekly_points
@@ -1276,6 +1277,7 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
             else:
                 completion_date_points_str = "Unknown"
                 days_to_complete_points = None
+                weeks_to_complete_points = None
         else:
             avg_weekly_items = 0
             avg_weekly_points = 0
@@ -1294,6 +1296,8 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
             completion_date_points_str = "Unknown"
             days_to_complete_items = None
             days_to_complete_points = None
+            weeks_to_complete_items = None
+            weeks_to_complete_points = None
             stability_score = 0
             zero_item_weeks = 0
             zero_point_weeks = 0
@@ -1540,7 +1544,7 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
                                                 ),
                                             ],
                                         ),
-                                        # Deadline and forecast completion dates
+                                        # Deadline info
                                         dbc.Row(
                                             [
                                                 dbc.Col(
@@ -1568,8 +1572,42 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
                                                                             className="ms-1 text-muted",
                                                                         ),
                                                                     ],
-                                                                    className="mb-1 d-flex align-items-center",
+                                                                    className="mb-3 d-flex align-items-center",
                                                                 ),
+                                                            ],
+                                                            className="border p-2 rounded",
+                                                        ),
+                                                    ],
+                                                    width=12,
+                                                ),
+                                            ],
+                                            className="mb-3",
+                                        ),
+                                        # Linear Forecasts section
+                                        dbc.Row(
+                                            [
+                                                dbc.Col(
+                                                    [
+                                                        html.Div(
+                                                            [
+                                                                # Header with tooltip
+                                                                html.Div(
+                                                                    [
+                                                                        html.I(
+                                                                            className="fas fa-chart-line me-2 text-info"
+                                                                        ),
+                                                                        html.Span(
+                                                                            "Linear Forecast",
+                                                                            className="fw-bold",
+                                                                        ),
+                                                                        create_info_tooltip(
+                                                                            "linear-forecast",
+                                                                            "Simple linear projection based on average weekly velocity (calculated from the last 10 weeks).",
+                                                                        ),
+                                                                    ],
+                                                                    className="mb-2 d-flex align-items-center",
+                                                                ),
+                                                                # Items Forecast
                                                                 html.Div(
                                                                     [
                                                                         html.I(
@@ -1588,16 +1626,24 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
                                                                             f"{completion_date_items_str}",
                                                                             className=f"ms-1 {('text-success' if deadline_obj is not None and completion_date_items_str != 'Unknown' and datetime.strptime(completion_date_items_str, '%Y-%m-%d') <= deadline_obj else 'text-danger') if deadline_obj is not None and completion_date_items_str != 'Unknown' else ''}",
                                                                         ),
-                                                                        html.Small(
-                                                                            f" ({days_to_complete_items} days)"
+                                                                        html.Span(
+                                                                            f" ({days_to_complete_items} days"
                                                                             if days_to_complete_items
                                                                             is not None
                                                                             else "",
                                                                             className="ms-1 text-muted",
                                                                         ),
+                                                                        html.Span(
+                                                                            f", {weeks_to_complete_items:.1f} weeks)"
+                                                                            if weeks_to_complete_items
+                                                                            is not None
+                                                                            else ")",
+                                                                            className="text-muted",
+                                                                        ),
                                                                     ],
                                                                     className="mb-1 d-flex align-items-center",
                                                                 ),
+                                                                # Points Forecast
                                                                 html.Div(
                                                                     [
                                                                         html.I(
@@ -1616,12 +1662,19 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
                                                                             f"{completion_date_points_str}",
                                                                             className=f"ms-1 {('text-success' if deadline_obj is not None and completion_date_points_str != 'Unknown' and datetime.strptime(completion_date_points_str, '%Y-%m-%d') <= deadline_obj else 'text-danger') if deadline_obj is not None and completion_date_points_str != 'Unknown' else ''}",
                                                                         ),
-                                                                        html.Small(
-                                                                            f" ({days_to_complete_points} days)"
+                                                                        html.Span(
+                                                                            f" ({days_to_complete_points} days"
                                                                             if days_to_complete_points
                                                                             is not None
                                                                             else "",
                                                                             className="ms-1 text-muted",
+                                                                        ),
+                                                                        html.Span(
+                                                                            f", {weeks_to_complete_points:.1f} weeks)"
+                                                                            if weeks_to_complete_points
+                                                                            is not None
+                                                                            else ")",
+                                                                            className="text-muted",
                                                                         ),
                                                                     ],
                                                                     className="d-flex align-items-center",
@@ -1820,6 +1873,10 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
                                                     className="fas fa-project-diagram me-2 text-primary"
                                                 ),
                                                 "PERT Analysis",
+                                                create_info_tooltip(
+                                                    "pert-analysis",
+                                                    "PERT (Program Evaluation and Review Technique) provides a weighted estimate considering optimistic, most likely, and pessimistic scenarios based on historical data.",
+                                                ),
                                             ],
                                             className="border-bottom pb-2 mb-3",
                                         ),
