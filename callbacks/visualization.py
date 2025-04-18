@@ -227,8 +227,10 @@ def register(app):
                 ]
             )
 
-            # Weekly items chart
-            items_fig = create_weekly_items_chart(statistics, date_range_weeks)
+            # Weekly items chart with forecast
+            items_fig = create_weekly_items_chart(
+                statistics, date_range_weeks, pert_factor
+            )
             # Calculate trend indicators for items
             items_trend = calculate_performance_trend(statistics, "no_items", 4)
 
@@ -261,33 +263,20 @@ def register(app):
                     html.Div(
                         [create_trend_indicator(items_trend, "Items")], className="mb-4"
                     ),
-                    # Items weekly chart (removed export buttons)
+                    # Consolidated items weekly chart with forecast
                     dcc.Graph(
                         id="items-chart",
                         figure=items_fig,
                         config={"displayModeBar": True, "responsive": True},
-                        style={"height": "500px"},
-                    ),
-                    # Items weekly forecast chart
-                    html.Div(
-                        [
-                            html.H5("Forecast for Next 4 Weeks", className="mt-4 mb-3"),
-                            # Removed export buttons for forecast chart
-                            dcc.Graph(
-                                id="items-forecast-chart",
-                                figure=create_weekly_items_forecast_chart(
-                                    statistics, pert_factor, date_range_weeks
-                                ),
-                                config={"displayModeBar": True, "responsive": True},
-                                style={"height": "500px"},
-                            ),
-                        ]
+                        style={"height": "600px"},
                     ),
                 ]
             )
 
-            # Weekly points chart
-            points_fig = create_weekly_points_chart(statistics, date_range_weeks)
+            # Weekly points chart with forecast
+            points_fig = create_weekly_points_chart(
+                statistics, date_range_weeks, pert_factor
+            )
             # Calculate trend indicators for points
             points_trend = calculate_performance_trend(statistics, "no_points", 4)
 
@@ -321,27 +310,12 @@ def register(app):
                         [create_trend_indicator(points_trend, "Points")],
                         className="mb-4",
                     ),
-                    # Points weekly chart (removed export buttons)
+                    # Consolidated points weekly chart with forecast
                     dcc.Graph(
                         id="points-chart",
                         figure=points_fig,
                         config={"displayModeBar": True, "responsive": True},
-                        style={"height": "500px"},
-                    ),
-                    # Points weekly forecast chart
-                    html.Div(
-                        [
-                            html.H5("Forecast for Next 4 Weeks", className="mt-4 mb-3"),
-                            # Removed export buttons for forecast chart
-                            dcc.Graph(
-                                id="points-forecast-chart",
-                                figure=create_weekly_points_forecast_chart(
-                                    statistics, pert_factor, date_range_weeks
-                                ),
-                                config={"displayModeBar": True, "responsive": True},
-                                style={"height": "500px"},
-                            ),
-                        ]
+                        style={"height": "600px"},
                     ),
                 ]
             )

@@ -403,14 +403,14 @@ def prepare_forecast_data(
     }
 
 
-def generate_weekly_forecast(statistics_data, pert_factor=3, forecast_weeks=4):
+def generate_weekly_forecast(statistics_data, pert_factor=3, forecast_weeks=1):
     """
-    Generate a 4-week forecast for items and points per week using PERT methodology.
+    Generate a weekly forecast for items and points per week using PERT methodology.
 
     Args:
         statistics_data: List of dictionaries containing statistics data
         pert_factor: Number of data points to use for optimistic/pessimistic scenarios
-        forecast_weeks: Number of weeks to forecast (default: 4)
+        forecast_weeks: Number of weeks to forecast (default: 1)
 
     Returns:
         Dictionary containing forecast data for items and points
@@ -487,43 +487,42 @@ def generate_weekly_forecast(statistics_data, pert_factor=3, forecast_weeks=4):
         # Get the last date from historical data as starting point
         last_date = weekly_df["start_date"].max()
 
-        # Generate forecast dates (4 weeks from last date)
-        forecast_dates = []
-        for i in range(1, forecast_weeks + 1):
-            next_date = last_date + timedelta(weeks=i)
-            forecast_dates.append(next_date)
+        # Generate the next week forecast date (ensuring proper progression)
+        next_date = last_date + timedelta(weeks=1)
 
-        # Format dates for display
-        formatted_dates = [date.strftime("%b %d") for date in forecast_dates]
+        # Format date for display - clear indication this is the next week
+        formatted_date = next_date.strftime("%b %d")
 
-        # Create forecast values for items
-        most_likely_items_forecast = [most_likely_items] * forecast_weeks
-        optimistic_items_forecast = [optimistic_items] * forecast_weeks
-        pessimistic_items_forecast = [pessimistic_items] * forecast_weeks
+        # Create forecast values for items (single week)
+        most_likely_items_forecast = [most_likely_items]
+        optimistic_items_forecast = [optimistic_items]
+        pessimistic_items_forecast = [pessimistic_items]
 
-        # Create forecast values for points
-        most_likely_points_forecast = [most_likely_points] * forecast_weeks
-        optimistic_points_forecast = [optimistic_points] * forecast_weeks
-        pessimistic_points_forecast = [pessimistic_points] * forecast_weeks
+        # Create forecast values for points (single week)
+        most_likely_points_forecast = [most_likely_points]
+        optimistic_points_forecast = [optimistic_points]
+        pessimistic_points_forecast = [pessimistic_points]
 
         return {
             "items": {
-                "dates": formatted_dates,
+                "dates": [formatted_date],
                 "most_likely": most_likely_items_forecast,
                 "optimistic": optimistic_items_forecast,
                 "pessimistic": pessimistic_items_forecast,
                 "most_likely_value": most_likely_items,
                 "optimistic_value": optimistic_items,
                 "pessimistic_value": pessimistic_items,
+                "next_date": next_date,  # Include the actual date object for proper date progression
             },
             "points": {
-                "dates": formatted_dates,
+                "dates": [formatted_date],
                 "most_likely": most_likely_points_forecast,
-                "optimistic": optimistic_points_forecast,
+                "optimistic": most_likely_points_forecast,
                 "pessimistic": pessimistic_points_forecast,
                 "most_likely_value": most_likely_points,
                 "optimistic_value": optimistic_points,
                 "pessimistic_value": pessimistic_points,
+                "next_date": next_date,  # Include the actual date object for proper date progression
             },
         }
     else:

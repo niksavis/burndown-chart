@@ -490,13 +490,17 @@ def create_forecast_plot(
     return fig, forecast_data["pert_time_items"], forecast_data["pert_time_points"]
 
 
-def create_weekly_items_chart(statistics_data, date_range_weeks=None):
+def create_weekly_items_chart(
+    statistics_data, date_range_weeks=None, pert_factor=3, include_forecast=True
+):
     """
-    Create a bar chart showing weekly completed items.
+    Create a bar chart showing weekly completed items with optional forecast for the next week.
 
     Args:
         statistics_data: List of dictionaries containing statistics data
         date_range_weeks: Number of weeks to display (None for all)
+        pert_factor: PERT factor for calculations (for forecast)
+        include_forecast: Whether to include forecast data (default: True)
 
     Returns:
         Plotly figure object with the weekly items chart
@@ -572,31 +576,95 @@ def create_weekly_items_chart(statistics_data, date_range_weeks=None):
             name="Completed Items",
             text=weekly_df["items"],
             textposition="outside",
-            hovertemplate="Week of %{x}<br>Items: %{y}<extra></extra>",
+            customdata=weekly_df["week_label"],  # Add custom data for hover template
+            hovertemplate="Week of %{customdata}<br>Items: %{y}<extra></extra>",
         )
     )
 
     # Add weighted moving average line if we have enough data
     if len(weekly_df) >= 4 and "weighted_avg" in weekly_df.columns:
+        # Filter out None values for display
+        weighted_df = weekly_df.dropna(subset=["weighted_avg"])
+
+        # Create a separate trace for the weighted average line
         fig.add_trace(
             go.Scatter(
-                x=weekly_df["week_label"],
-                y=weekly_df["weighted_avg"],
-                mode="lines",
+                x=weighted_df["week_label"],
+                y=weighted_df["weighted_avg"],
+                mode="lines+markers",
                 name="Weighted 4-Week Average",
                 line=dict(
                     color="#0047AB",  # Cobalt blue - darker shade of blue
                     width=3,
                     dash="solid",
                 ),
-                hovertemplate="Week of %{x}<br>Weighted Avg: %{y:.1f}<extra></extra>",
+                marker=dict(size=6, opacity=1),
+                customdata=weighted_df[
+                    "week_label"
+                ],  # Add custom data for hover template
+                hovertemplate="Week of %{customdata}<br>Weighted Avg: %{y:.1f}<extra></extra>",
+                hoverinfo="all",  # Ensure hover info shows
             )
         )
 
+    # Add forecast data if requested
+    if include_forecast and len(weekly_df) > 0:
+        # Generate forecast data
+        forecast_data = generate_weekly_forecast(statistics_data, pert_factor)
+
+        if forecast_data["items"]["dates"]:
+            # Most likely forecast - only display the single bar for the next week
+            fig.add_trace(
+                go.Bar(
+                    x=forecast_data["items"]["dates"],
+                    y=forecast_data["items"]["most_likely"],
+                    marker_color=COLOR_PALETTE["items"],
+                    marker_pattern_shape="x",  # Add pattern to distinguish forecast
+                    opacity=0.7,
+                    name="Next Week Forecast",
+                    text=[
+                        round(val, 1) for val in forecast_data["items"]["most_likely"]
+                    ],
+                    textposition="outside",
+                    hovertemplate="Forecast for %{x}<br>Items: %{y:.1f}<extra></extra>",
+                )
+            )
+
+            # Add vertical line between historical and forecast data
+            fig.add_vline(
+                x=len(weekly_df["week_label"])
+                - 0.5,  # Position between last historical and first forecast
+                line_dash="dash",
+                line_color="rgba(0, 0, 0, 0.5)",
+                annotation_text="Forecast starts",
+                annotation_position="top",
+            )
+
+            # Add methodology annotation
+            fig.add_annotation(
+                x=0.5,
+                y=-0.35,  # Changed from -0.32 to -0.35 to match the Weekly Completed Points chart
+                xref="paper",
+                yref="paper",
+                text=(
+                    f"<b>Next Week Forecast:</b> Based on PERT analysis with weighted average of historical data.<br>"
+                    f"Most Likely: {forecast_data['items'].get('most_likely_value', 0):.1f} items/week | "
+                    f"Optimistic: {forecast_data['items'].get('optimistic_value', 0):.1f} items/week | "
+                    f"Pessimistic: {forecast_data['items'].get('pessimistic_value', 0):.1f} items/week"
+                ),
+                showarrow=False,
+                font=dict(size=12),
+                align="center",
+                bordercolor="rgba(200, 200, 200, 0.5)",
+                borderwidth=1,
+                borderpad=6,
+                bgcolor="rgba(250, 250, 250, 0.8)",
+            )
+
     # Update layout with grid lines and styling
     fig.update_layout(
-        title="Weekly Completed Items",
-        xaxis_title="Week Starting",
+        title="Weekly Completed Items with Next Week Forecast",
+        xaxis_title="Week",
         yaxis_title="Items Completed",
         hovermode="x unified",
         hoverlabel=dict(
@@ -613,18 +681,26 @@ def create_weekly_items_chart(statistics_data, date_range_weeks=None):
         ),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
         plot_bgcolor="rgba(255, 255, 255, 0.9)",
+        margin=dict(
+            b=130
+        ),  # Significantly increased bottom margin to prevent info box cutoff
+        height=650,  # Explicitly set height to ensure enough space for the info box
     )
 
     return fig
 
 
-def create_weekly_points_chart(statistics_data, date_range_weeks=None):
+def create_weekly_points_chart(
+    statistics_data, date_range_weeks=None, pert_factor=3, include_forecast=True
+):
     """
-    Create a bar chart showing weekly completed points with a weighted moving average line.
+    Create a bar chart showing weekly completed points with a weighted moving average line and optional forecast for next week.
 
     Args:
         statistics_data: List of dictionaries containing statistics data
         date_range_weeks: Number of weeks to display (None for all)
+        pert_factor: PERT factor for calculations (for forecast)
+        include_forecast: Whether to include forecast data (default: True)
 
     Returns:
         Plotly figure object with the weekly points chart
@@ -700,31 +776,118 @@ def create_weekly_points_chart(statistics_data, date_range_weeks=None):
             name="Completed Points",
             text=weekly_df["points"],
             textposition="outside",
-            hovertemplate="Week of %{x}<br>Points: %{y}<extra></extra>",
+            customdata=weekly_df["week_label"],  # Add custom data for hover template
+            hovertemplate="Week of %{customdata}<br>Points: %{y}<extra></extra>",
         )
     )
 
     # Add weighted moving average line if we have enough data
     if len(weekly_df) >= 4 and "weighted_avg" in weekly_df.columns:
+        # Filter out None values for display
+        weighted_df = weekly_df.dropna(subset=["weighted_avg"])
+
+        # Create a separate trace for the weighted average line
         fig.add_trace(
             go.Scatter(
-                x=weekly_df["week_label"],
-                y=weekly_df["weighted_avg"],
-                mode="lines",
+                x=weighted_df["week_label"],
+                y=weighted_df["weighted_avg"],
+                mode="lines+markers",
                 name="Weighted 4-Week Average",
                 line=dict(
                     color="#FF6347",  # Tomato color
                     width=3,
                     dash="solid",
                 ),
-                hovertemplate="Week of %{x}<br>Weighted Avg: %{y:.1f}<extra></extra>",
+                marker=dict(size=6, opacity=1),
+                customdata=weighted_df[
+                    "week_label"
+                ],  # Add custom data for hover template
+                hovertemplate="Week of %{customdata}<br>Weighted Avg: %{y:.1f}<extra></extra>",
+                hoverinfo="all",  # Ensure hover info shows
             )
         )
 
+    # Add forecast data if requested
+    if include_forecast and len(weekly_df) > 0:
+        # Generate forecast data
+        forecast_data = generate_weekly_forecast(statistics_data, pert_factor)
+
+        if forecast_data["points"]["dates"]:
+            # Get points forecast for next week
+            most_likely = forecast_data["points"]["most_likely"]
+            optimistic = forecast_data["points"]["optimistic"]
+            pessimistic = forecast_data["points"]["pessimistic"]
+
+            # Calculate confidence interval bounds (25% of difference)
+            upper_bound = [
+                ml + 0.25 * (opt - ml) for ml, opt in zip(most_likely, optimistic)
+            ]
+            lower_bound = [
+                ml - 0.25 * (ml - pes) for ml, pes in zip(most_likely, pessimistic)
+            ]
+
+            # Single next week forecast with confidence interval
+            fig.add_trace(
+                go.Bar(
+                    x=forecast_data["points"]["dates"],
+                    y=most_likely,
+                    marker_color=COLOR_PALETTE["points"],
+                    marker_pattern_shape="x",  # Add pattern to distinguish forecast
+                    opacity=0.7,
+                    name="Next Week Forecast",
+                    text=[round(val, 1) for val in most_likely],
+                    textposition="outside",
+                    error_y=dict(
+                        type="data",
+                        symmetric=False,
+                        array=[u - ml for u, ml in zip(upper_bound, most_likely)],
+                        arrayminus=[ml - l for ml, l in zip(most_likely, lower_bound)],
+                        color="rgba(0, 0, 0, 0.3)",
+                    ),
+                    hovertemplate=(
+                        "Forecast for %{x}<br>"
+                        "Points: %{y:.1f}<br>"
+                        "Confidence Interval: [%{error_y.arrayminus:.1f}, %{error_y.array:.1f}]"
+                        "<extra></extra>"
+                    ),
+                )
+            )
+
+            # Add vertical line between historical and forecast data
+            fig.add_vline(
+                x=len(weekly_df["week_label"])
+                - 0.5,  # Position between last historical and first forecast
+                line_dash="dash",
+                line_color="rgba(0, 0, 0, 0.5)",
+                annotation_text="Forecast starts",
+                annotation_position="top",
+            )
+
+            # Add methodology annotation
+            fig.add_annotation(
+                x=0.5,
+                y=-0.35,  # Moved down from -0.25 to prevent covering x-axis label
+                xref="paper",
+                yref="paper",
+                text=(
+                    f"<b>Next Week Forecast:</b> Based on PERT analysis with weighted average of historical data.<br>"
+                    f"Most Likely: {forecast_data['points'].get('most_likely_value', 0):.1f} points/week | "
+                    f"Optimistic: {forecast_data['points'].get('optimistic_value', 0):.1f} points/week | "
+                    f"Pessimistic: {forecast_data['points'].get('pessimistic_value', 0):.1f} points/week"
+                ),
+                showarrow=False,
+                font=dict(size=12),
+                align="center",
+                bordercolor="rgba(200, 200, 200, 0.5)",
+                borderwidth=1,
+                borderpad=6,
+                bgcolor="rgba(250, 250, 250, 0.8)",
+            )
+
     # Update layout with grid lines and styling
     fig.update_layout(
-        title="Weekly Completed Points",
-        xaxis_title="Week Starting",
+        title="Weekly Completed Points with Next Week Forecast",
+        xaxis_title="Week",
         yaxis_title="Points Completed",
         hovermode="x unified",
         hoverlabel=dict(
@@ -741,6 +904,10 @@ def create_weekly_points_chart(statistics_data, date_range_weeks=None):
         ),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
         plot_bgcolor="rgba(255, 255, 255, 0.9)",
+        margin=dict(
+            b=130
+        ),  # Significantly increased bottom margin to prevent info box cutoff
+        height=650,  # Explicitly set height to ensure enough space for the info box
     )
 
     return fig
@@ -906,7 +1073,7 @@ def create_weekly_items_forecast_chart(
                     f"<b>Forecast Methodology:</b> Based on PERT analysis using historical data.<br>"
                     f"<b>Most Likely:</b> {forecast_data['items'].get('most_likely_value', 0):.1f} items/week (historical average)<br>"
                     f"<b>Optimistic:</b> {forecast_data['items'].get('optimistic_value', 0):.1f} items/week<br>"
-                    f"<b>Pessimistic:</b> {forecast_data['items'].get('pessimistic_value', 0):.1f} items/week"
+                    f"<b>Pessimistic:</b> {forecast_data['items'].get('pessimistic_value', 0)::.1f} items/week"
                 ),
                 showarrow=False,
                 font=dict(size=12),
@@ -1022,14 +1189,19 @@ def create_weekly_points_forecast_chart(
             go.Scatter(
                 x=weighted_df["week_label"],
                 y=weighted_df["weighted_avg"],
-                mode="lines",
+                mode="lines+markers",
                 name="Weighted 4-Week Average",
                 line=dict(
                     color="#FF6347",  # Tomato color
                     width=3,
                     dash="solid",
                 ),
-                hovertemplate="Week of %{x}<br>Weighted Avg: %{y:.1f}<extra></extra>",
+                marker=dict(size=6, opacity=1),
+                customdata=weighted_df[
+                    "week_label"
+                ],  # Add custom data for hover template
+                hovertemplate="Week of %{customdata}<br>Weighted Avg: %{y:.1f}<extra></extra>",
+                hoverinfo="all",  # Ensure hover info shows
             )
         )
 
@@ -1067,8 +1239,8 @@ def create_weekly_points_forecast_chart(
                     color="rgba(0, 0, 0, 0.3)",
                 ),
                 hovertemplate=(
-                    "Week of %{x}<br>"
-                    "Points (Most Likely): %{y:.1f}<br>"
+                    "Forecast for %{x}<br>"
+                    "Points: %{y:.1f}<br>"
                     "Confidence Interval: [%{error_y.arrayminus:.1f}, %{error_y.array:.1f}]"
                     "<extra></extra>"
                 ),
