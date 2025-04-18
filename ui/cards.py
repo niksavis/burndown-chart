@@ -937,7 +937,8 @@ def create_project_status_card(statistics_df, settings):
                                                                 ]
                                                             },
                                                         ),
-                                                        f"{avg_weekly_items:.1f} items/week",
+                                                        f"{avg_weekly_items:.1f}",
+                                                        html.Small(" items/week"),
                                                     ],
                                                     className="d-flex align-items-center mb-2",
                                                 ),
@@ -951,7 +952,8 @@ def create_project_status_card(statistics_df, settings):
                                                                 ]
                                                             },
                                                         ),
-                                                        f"{avg_weekly_points:.1f} points/week",
+                                                        f"{avg_weekly_points:.1f}",
+                                                        html.Small(" points/week"),
                                                     ],
                                                     className="d-flex align-items-center",
                                                 ),
@@ -1584,7 +1586,7 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
                                                                         ),
                                                                         html.Span(
                                                                             f"{completion_date_items_str}",
-                                                                            className=f"{('text-success' if deadline_obj is not None and completion_date_items_str != 'Unknown' and datetime.strptime(completion_date_items_str, '%Y-%m-%d') <= deadline_obj else 'text-danger') if deadline_obj is not None and completion_date_items_str != 'Unknown' else ''}",
+                                                                            className=f"ms-1 {('text-success' if deadline_obj is not None and completion_date_items_str != 'Unknown' and datetime.strptime(completion_date_items_str, '%Y-%m-%d') <= deadline_obj else 'text-danger') if deadline_obj is not None and completion_date_items_str != 'Unknown' else ''}",
                                                                         ),
                                                                         html.Small(
                                                                             f" ({days_to_complete_items} days)"
@@ -1612,7 +1614,7 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
                                                                         ),
                                                                         html.Span(
                                                                             f"{completion_date_points_str}",
-                                                                            className=f"{('text-success' if deadline_obj is not None and completion_date_points_str != 'Unknown' and datetime.strptime(completion_date_points_str, '%Y-%m-%d') <= deadline_obj else 'text-danger') if deadline_obj is not None and completion_date_points_str != 'Unknown' else ''}",
+                                                                            className=f"ms-1 {('text-success' if deadline_obj is not None and completion_date_points_str != 'Unknown' and datetime.strptime(completion_date_points_str, '%Y-%m-%d') <= deadline_obj else 'text-danger') if deadline_obj is not None and completion_date_points_str != 'Unknown' else ''}",
                                                                         ),
                                                                         html.Small(
                                                                             f" ({days_to_complete_points} days)"
