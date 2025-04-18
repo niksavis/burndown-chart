@@ -1178,90 +1178,44 @@ def create_trend_indicator(trend_data, metric_name="Items"):
 
 def create_export_buttons(chart_id=None, statistics_data=None):
     """
-    Create a button for exporting data as CSV.
+    Create a row of export buttons for charts or statistics data.
 
     Args:
-        chart_id: Optional ID of the chart (for compatibility with existing code)
-        statistics_data: Optional statistics data for CSV export
+        chart_id: ID of the chart for export filename
+        statistics_data: Statistics data to export (if provided, shows statistics export button)
 
     Returns:
-        A Dash component with the export button
+        Dash Div component with export buttons
     """
-    return html.Div(
-        [
+    buttons = []
+
+    if chart_id:
+        # Add CSV export button for chart
+        buttons.append(
             dbc.Button(
-                [html.I(className="fas fa-file-csv mr-2"), "Export Data (CSV)"],
-                id="statistics-csv-button",  # Use a single consistent ID
-                color="outline-secondary",
+                [html.I(className="fas fa-file-csv mr-2"), "Export CSV"],
+                id=f"{chart_id}-csv-button",
+                color="secondary",
                 size="sm",
-            ),
-            # Hidden download component for CSV export
-            dcc.Download(id="statistics-csv-download"),
-            # Hidden div to store timestamp when export was triggered
-            html.Div(id="statistics-export-timestamp", style={"display": "none"}),
-            # Information text about built-in export functionality
-            html.Div(
-                [
-                    html.I(className="fas fa-info-circle mr-1 text-info"),
-                    html.Span(
-                        "Tip: Use the camera icon in the graph toolbar to save as PNG/SVG",
-                        className="text-muted small",
-                    ),
-                ],
-                className="ml-2 d-inline-block",
-            ),
-        ],
-        className="d-flex align-items-center mb-3 mt-2",
-    )
+                className="mr-2",
+            )
+        )
+        buttons.append(html.Div(dcc.Download(id=f"{chart_id}-csv-download")))
 
+    if statistics_data:
+        # Add button for export stats
+        buttons.append(
+            dbc.Button(
+                [html.I(className="fas fa-file-export mr-2"), "Export Statistics"],
+                id="export-statistics-button",
+                color="secondary",
+                size="sm",
+                className="mr-2",
+            )
+        )
+        buttons.append(html.Div(dcc.Download(id="export-statistics-download")))
 
-#######################################################################
-# CONTINUE ITERATION MODAL COMPONENT
-#######################################################################
-
-
-def create_continue_iteration_modal():
-    """
-    Create a modal dialog that asks the user if they want to continue iterating.
-
-    Returns:
-        Dash Modal component
-    """
-    return dbc.Modal(
-        [
-            dbc.ModalHeader("Continue Iteration?"),
-            dbc.ModalBody(
-                [
-                    html.P(
-                        "Would you like to continue with another iteration of calculations?",
-                        className="mb-3",
-                    ),
-                    html.P(
-                        [
-                            "Continuing will perform another round of simulation with the ",
-                            html.Strong("current parameters"),
-                            " and statistics.",
-                        ],
-                        className="mb-3",
-                    ),
-                ]
-            ),
-            dbc.ModalFooter(
-                [
-                    dbc.Button(
-                        "Cancel",
-                        id="cancel-iteration",
-                        color="secondary",
-                        className="mr-2",
-                    ),
-                    dbc.Button(
-                        "Continue Iteration",
-                        id="continue-iteration",
-                        color="primary",
-                    ),
-                ]
-            ),
-        ],
-        id="continue-iteration-modal",
-        is_open=False,
+    return html.Div(
+        buttons,
+        className="d-flex justify-content-end mb-3",
     )

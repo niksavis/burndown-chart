@@ -21,7 +21,7 @@ from data import (
 )
 
 # Import UI components
-from ui.components import create_help_modal, create_continue_iteration_modal
+from ui.components import create_help_modal
 from ui.cards import (
     create_forecast_graph_card,
     create_forecast_info_card,
@@ -93,9 +93,6 @@ def create_app_layout(settings, statistics, is_sample_data):
             ),
             # Store for date range selection
             dcc.Store(id="date-range-weeks", data=None),
-            # Add hidden components for the iteration functionality
-            html.Button(id="show-continue-iteration", style={"display": "none"}),
-            dcc.Store(id="iteration-trigger", data=0),
             # Add an empty div to hold the forecast-graph (will be populated by callback)
             html.Div(
                 dcc.Graph(id="forecast-graph", style={"display": "none"}),
@@ -171,8 +168,6 @@ def create_app_layout(settings, statistics, is_sample_data):
             ),
             # Help modal
             create_help_modal(),
-            # Continue iteration modal
-            create_continue_iteration_modal(),
             # Tab Navigation and Charts Row
             dbc.Row(
                 [
