@@ -1708,7 +1708,7 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
                                                                                     f"{cv_items:.1f}%",
                                                                                     className=f"{'text-success' if cv_items < 30 else 'text-warning' if cv_items < 50 else 'text-danger'}",
                                                                                 ),
-                                                                                " • Zero weeks: ",
+                                                                                " • Zero weeks (last 10): ",
                                                                                 html.Span(
                                                                                     f"{zero_item_weeks}",
                                                                                     className=f"{'text-success' if zero_item_weeks == 0 else 'text-danger'}",
@@ -1783,7 +1783,7 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
                                                                                     f"{cv_points:.1f}%",
                                                                                     className=f"{'text-success' if cv_points < 30 else 'text-warning' if cv_points < 50 else 'text-danger'}",
                                                                                 ),
-                                                                                " • Zero weeks: ",
+                                                                                " • Zero weeks (last 10): ",
                                                                                 html.Span(
                                                                                     f"{zero_point_weeks}",
                                                                                     className=f"{'text-success' if zero_point_weeks == 0 else 'text-danger'}",
