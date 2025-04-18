@@ -697,6 +697,10 @@ def create_project_status_card(statistics_df, settings):
         A Dash card component for project status summary
     """
     try:
+        import pandas as pd
+        import dash_bootstrap_components as dbc
+        from dash import html
+
         # Extract key metrics from settings (these represent remaining work)
         remaining_items = settings.get("total_items", 0)
         remaining_points = settings.get("total_points", 0)
@@ -827,8 +831,6 @@ def create_project_status_card(statistics_df, settings):
                 days_of_data = 0
         else:
             days_of_data = 0
-
-        import dash_bootstrap_components as dbc
 
         # Create the card component
         return dbc.Card(
@@ -1061,8 +1063,6 @@ def create_project_status_card(statistics_df, settings):
 
 def create_project_summary_card(statistics_df, settings, pert_data=None):
     """
-    Create a comprehensive project summary card that combines the Project Status Summary
-    and PERT Analysis information.
 
     Args:
         statistics_df: DataFrame containing the project statistics
@@ -1138,6 +1138,10 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
             # Calculate metrics
             avg_weekly_items = weekly_data["no_items"].mean()
             avg_weekly_points = weekly_data["no_points"].mean()
+
+            # Calculate median weekly values
+            med_weekly_items = weekly_data["no_items"].median()
+            med_weekly_points = weekly_data["no_points"].median()
 
             # Calculate coefficient of variation (CV = stdev / mean)
             std_weekly_items = weekly_data["no_items"].std()
@@ -1256,28 +1260,62 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
 
             # Calculate LINEAR estimated completion date based on remaining work
             if avg_weekly_items > 0:
-                weeks_to_complete_items = remaining_items / avg_weekly_items
-                completion_date_items = datetime.now() + timedelta(
-                    weeks=weeks_to_complete_items
+                weeks_to_complete_items_avg = remaining_items / avg_weekly_items
+                completion_date_items_avg = datetime.now() + timedelta(
+                    weeks=weeks_to_complete_items_avg
                 )
-                days_to_complete_items = int(weeks_to_complete_items * 7)
-                completion_date_items_str = completion_date_items.strftime("%Y-%m-%d")
+                days_to_complete_items_avg = int(weeks_to_complete_items_avg * 7)
+                completion_date_items_avg_str = completion_date_items_avg.strftime(
+                    "%Y-%m-%d"
+                )
             else:
-                completion_date_items_str = "Unknown"
-                days_to_complete_items = None
-                weeks_to_complete_items = None
+                completion_date_items_avg_str = "Unknown"
+                days_to_complete_items_avg = None
+                weeks_to_complete_items_avg = None
+
+            # Calculate median-based completion date for items
+            if med_weekly_items > 0:
+                weeks_to_complete_items_med = remaining_items / med_weekly_items
+                completion_date_items_med = datetime.now() + timedelta(
+                    weeks=weeks_to_complete_items_med
+                )
+                days_to_complete_items_med = int(weeks_to_complete_items_med * 7)
+                completion_date_items_med_str = completion_date_items_med.strftime(
+                    "%Y-%m-%d"
+                )
+            else:
+                completion_date_items_med_str = "Unknown"
+                days_to_complete_items_med = None
+                weeks_to_complete_items_med = None
 
             if avg_weekly_points > 0:
-                weeks_to_complete_points = remaining_points / avg_weekly_points
-                completion_date_points = datetime.now() + timedelta(
-                    weeks=weeks_to_complete_points
+                weeks_to_complete_points_avg = remaining_points / avg_weekly_points
+                completion_date_points_avg = datetime.now() + timedelta(
+                    weeks=weeks_to_complete_points_avg
                 )
-                days_to_complete_points = int(weeks_to_complete_points * 7)
-                completion_date_points_str = completion_date_points.strftime("%Y-%m-%d")
+                days_to_complete_points_avg = int(weeks_to_complete_points_avg * 7)
+                completion_date_points_avg_str = completion_date_points_avg.strftime(
+                    "%Y-%m-%d"
+                )
             else:
-                completion_date_points_str = "Unknown"
-                days_to_complete_points = None
-                weeks_to_complete_points = None
+                completion_date_points_avg_str = "Unknown"
+                days_to_complete_points_avg = None
+                weeks_to_complete_points_avg = None
+
+            # Calculate median-based completion date for points
+            if med_weekly_points > 0:
+                weeks_to_complete_points_med = remaining_points / med_weekly_points
+                completion_date_points_med = datetime.now() + timedelta(
+                    weeks=weeks_to_complete_points_med
+                )
+                days_to_complete_points_med = int(weeks_to_complete_points_med * 7)
+                completion_date_points_med_str = completion_date_points_med.strftime(
+                    "%Y-%m-%d"
+                )
+            else:
+                completion_date_points_med_str = "Unknown"
+                days_to_complete_points_med = None
+                weeks_to_complete_points_med = None
         else:
             avg_weekly_items = 0
             avg_weekly_points = 0
@@ -1292,12 +1330,12 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
             stability_status = "No Data"
             stability_color = "secondary"
             stability_icon = "fa-question-circle"
-            completion_date_items_str = "Unknown"
-            completion_date_points_str = "Unknown"
-            days_to_complete_items = None
-            days_to_complete_points = None
-            weeks_to_complete_items = None
-            weeks_to_complete_points = None
+            completion_date_items_avg_str = "Unknown"
+            completion_date_points_avg_str = "Unknown"
+            days_to_complete_items_avg = None
+            days_to_complete_points_avg = None
+            weeks_to_complete_items_avg = None
+            weeks_to_complete_points_avg = None
             stability_score = 0
             zero_item_weeks = 0
             zero_point_weeks = 0
@@ -1602,12 +1640,12 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
                                                                         ),
                                                                         create_info_tooltip(
                                                                             "linear-forecast",
-                                                                            "Simple linear projection based on average weekly velocity (calculated from the last 10 weeks).",
+                                                                            "Simple linear projection based on average and median weekly velocity (calculated from the last 10 weeks).",
                                                                         ),
                                                                     ],
                                                                     className="mb-2 d-flex align-items-center",
                                                                 ),
-                                                                # Items Forecast
+                                                                # Items Forecast - Average
                                                                 html.Div(
                                                                     [
                                                                         html.I(
@@ -1619,23 +1657,23 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
                                                                             },
                                                                         ),
                                                                         html.Span(
-                                                                            "Items completion: ",
+                                                                            "Items completion (Average): ",
                                                                             className="fw-bold",
                                                                         ),
                                                                         html.Span(
-                                                                            f"{completion_date_items_str}",
-                                                                            className=f"ms-1 {('text-success' if deadline_obj is not None and completion_date_items_str != 'Unknown' and datetime.strptime(completion_date_items_str, '%Y-%m-%d') <= deadline_obj else 'text-danger') if deadline_obj is not None and completion_date_items_str != 'Unknown' else ''}",
+                                                                            f"{completion_date_items_avg_str}",
+                                                                            className=f"ms-1 {('text-success' if deadline_obj is not None and completion_date_items_avg_str != 'Unknown' and datetime.strptime(completion_date_items_avg_str, '%Y-%m-%d') <= deadline_obj else 'text-danger') if deadline_obj is not None and completion_date_items_avg_str != 'Unknown' else ''}",
                                                                         ),
                                                                         html.Span(
-                                                                            f" ({days_to_complete_items} days"
-                                                                            if days_to_complete_items
+                                                                            f" ({days_to_complete_items_avg} days"
+                                                                            if days_to_complete_items_avg
                                                                             is not None
                                                                             else "",
                                                                             className="ms-1 text-muted",
                                                                         ),
                                                                         html.Span(
-                                                                            f", {weeks_to_complete_items:.1f} weeks)"
-                                                                            if weeks_to_complete_items
+                                                                            f", {weeks_to_complete_items_avg:.1f} weeks)"
+                                                                            if weeks_to_complete_items_avg
                                                                             is not None
                                                                             else ")",
                                                                             className="text-muted",
@@ -1643,7 +1681,44 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
                                                                     ],
                                                                     className="mb-1 d-flex align-items-center",
                                                                 ),
-                                                                # Points Forecast
+                                                                # Items Forecast - Median
+                                                                html.Div(
+                                                                    [
+                                                                        html.I(
+                                                                            className="fas fa-tasks me-2",
+                                                                            style={
+                                                                                "color": COLOR_PALETTE[
+                                                                                    "items"
+                                                                                ],
+                                                                                "opacity": "0.7",
+                                                                            },
+                                                                        ),
+                                                                        html.Span(
+                                                                            "Items completion (Median): ",
+                                                                            className="fw-bold",
+                                                                        ),
+                                                                        html.Span(
+                                                                            f"{completion_date_items_med_str}",
+                                                                            className=f"ms-1 {('text-success' if deadline_obj is not None and completion_date_items_med_str != 'Unknown' and datetime.strptime(completion_date_items_med_str, '%Y-%m-%d') <= deadline_obj else 'text-danger') if deadline_obj is not None and completion_date_items_med_str != 'Unknown' else ''}",
+                                                                        ),
+                                                                        html.Span(
+                                                                            f" ({days_to_complete_items_med} days"
+                                                                            if days_to_complete_items_med
+                                                                            is not None
+                                                                            else "",
+                                                                            className="ms-1 text-muted",
+                                                                        ),
+                                                                        html.Span(
+                                                                            f", {weeks_to_complete_items_med:.1f} weeks)"
+                                                                            if weeks_to_complete_items_med
+                                                                            is not None
+                                                                            else ")",
+                                                                            className="text-muted",
+                                                                        ),
+                                                                    ],
+                                                                    className="mb-3 d-flex align-items-center",
+                                                                ),
+                                                                # Points Forecast - Average
                                                                 html.Div(
                                                                     [
                                                                         html.I(
@@ -1655,23 +1730,60 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
                                                                             },
                                                                         ),
                                                                         html.Span(
-                                                                            "Points completion: ",
+                                                                            "Points completion (Average): ",
                                                                             className="fw-bold",
                                                                         ),
                                                                         html.Span(
-                                                                            f"{completion_date_points_str}",
-                                                                            className=f"ms-1 {('text-success' if deadline_obj is not None and completion_date_points_str != 'Unknown' and datetime.strptime(completion_date_points_str, '%Y-%m-%d') <= deadline_obj else 'text-danger') if deadline_obj is not None and completion_date_points_str != 'Unknown' else ''}",
+                                                                            f"{completion_date_points_avg_str}",
+                                                                            className=f"ms-1 {('text-success' if deadline_obj is not None and completion_date_points_avg_str != 'Unknown' and datetime.strptime(completion_date_points_avg_str, '%Y-%m-%d') <= deadline_obj else 'text-danger') if deadline_obj is not None and completion_date_points_avg_str != 'Unknown' else ''}",
                                                                         ),
                                                                         html.Span(
-                                                                            f" ({days_to_complete_points} days"
-                                                                            if days_to_complete_points
+                                                                            f" ({days_to_complete_points_avg} days"
+                                                                            if days_to_complete_points_avg
                                                                             is not None
                                                                             else "",
                                                                             className="ms-1 text-muted",
                                                                         ),
                                                                         html.Span(
-                                                                            f", {weeks_to_complete_points:.1f} weeks)"
-                                                                            if weeks_to_complete_points
+                                                                            f", {weeks_to_complete_points_avg:.1f} weeks)"
+                                                                            if weeks_to_complete_points_avg
+                                                                            is not None
+                                                                            else ")",
+                                                                            className="text-muted",
+                                                                        ),
+                                                                    ],
+                                                                    className="mb-1 d-flex align-items-center",
+                                                                ),
+                                                                # Points Forecast - Median
+                                                                html.Div(
+                                                                    [
+                                                                        html.I(
+                                                                            className="fas fa-chart-line me-2",
+                                                                            style={
+                                                                                "color": COLOR_PALETTE[
+                                                                                    "points"
+                                                                                ],
+                                                                                "opacity": "0.7",
+                                                                            },
+                                                                        ),
+                                                                        html.Span(
+                                                                            "Points completion (Median): ",
+                                                                            className="fw-bold",
+                                                                        ),
+                                                                        html.Span(
+                                                                            f"{completion_date_points_med_str}",
+                                                                            className=f"ms-1 {('text-success' if deadline_obj is not None and completion_date_points_med_str != 'Unknown' and datetime.strptime(completion_date_points_med_str, '%Y-%m-%d') <= deadline_obj else 'text-danger') if deadline_obj is not None and completion_date_points_med_str != 'Unknown' else ''}",
+                                                                        ),
+                                                                        html.Span(
+                                                                            f" ({days_to_complete_points_med} days"
+                                                                            if days_to_complete_points_med
+                                                                            is not None
+                                                                            else "",
+                                                                            className="ms-1 text-muted",
+                                                                        ),
+                                                                        html.Span(
+                                                                            f", {weeks_to_complete_points_med:.1f} weeks)"
+                                                                            if weeks_to_complete_points_med
                                                                             is not None
                                                                             else ")",
                                                                             className="text-muted",
