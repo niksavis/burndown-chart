@@ -726,6 +726,9 @@ def create_project_status_card(statistics_df, settings):
             int((completed_points / total_points) * 100) if total_points > 0 else 0
         )
 
+        # Check if percentages are similar (within 2% of each other)
+        similar_percentages = abs(items_percentage - points_percentage) <= 2
+
         # Calculate average weekly velocity and coefficient of variation (last 10 weeks)
         recent_df = (
             statistics_df.tail(10) if not statistics_df.empty else pd.DataFrame()
@@ -988,6 +991,7 @@ def create_project_status_card(statistics_df, settings):
                                         html.Div(
                                             [
                                                 html.Span("Progress:", className="h5"),
+                                                # If percentages are similar, show combined progress bar
                                                 html.Div(
                                                     [
                                                         dbc.Progress(
@@ -998,10 +1002,10 @@ def create_project_status_card(statistics_df, settings):
                                                                 ),
                                                             ],
                                                             value=items_percentage,
-                                                            color="info",
+                                                            color="primary",
                                                             className="mb-1",
                                                             style={"height": "22px"},
-                                                            id="items-progress-bar",
+                                                            id="combined-progress-bar",
                                                         ),
                                                         html.Small(
                                                             [
@@ -1010,29 +1014,10 @@ def create_project_status_card(statistics_df, settings):
                                                                     f" ({remaining_items} remaining)",
                                                                     className="ml-1",
                                                                 ),
-                                                            ],
-                                                            className="text-muted d-block",
-                                                        ),
-                                                    ],
-                                                    className="mt-1",
-                                                ),
-                                                html.Div(
-                                                    [
-                                                        dbc.Progress(
-                                                            [
                                                                 html.Span(
-                                                                    f"{points_percentage}%",
-                                                                    className="progress-bar-label",
+                                                                    " • ",
+                                                                    className="mx-2 text-muted",
                                                                 ),
-                                                            ],
-                                                            value=points_percentage,
-                                                            color="warning",
-                                                            className="mb-1",
-                                                            style={"height": "22px"},
-                                                            id="points-progress-bar",
-                                                        ),
-                                                        html.Small(
-                                                            [
                                                                 f"{completed_points} of {total_points} points",
                                                                 html.Span(
                                                                     f" ({remaining_points} remaining)",
@@ -1043,6 +1028,83 @@ def create_project_status_card(statistics_df, settings):
                                                         ),
                                                     ],
                                                     className="mt-1",
+                                                    style={
+                                                        "display": "block"
+                                                        if similar_percentages
+                                                        else "none"
+                                                    },
+                                                ),
+                                                # If percentages are different, show separate progress bars
+                                                html.Div(
+                                                    [
+                                                        # Items progress bar
+                                                        html.Div(
+                                                            [
+                                                                dbc.Progress(
+                                                                    [
+                                                                        html.Span(
+                                                                            f"{items_percentage}%",
+                                                                            className="progress-bar-label",
+                                                                        ),
+                                                                    ],
+                                                                    value=items_percentage,
+                                                                    color="info",
+                                                                    className="mb-1",
+                                                                    style={
+                                                                        "height": "22px"
+                                                                    },
+                                                                    id="items-progress-bar",
+                                                                ),
+                                                                html.Small(
+                                                                    [
+                                                                        f"{completed_items} of {total_items} items",
+                                                                        html.Span(
+                                                                            f" ({remaining_items} remaining)",
+                                                                            className="ml-1",
+                                                                        ),
+                                                                    ],
+                                                                    className="text-muted d-block",
+                                                                ),
+                                                            ],
+                                                            className="mt-1",
+                                                        ),
+                                                        # Points progress bar
+                                                        html.Div(
+                                                            [
+                                                                dbc.Progress(
+                                                                    [
+                                                                        html.Span(
+                                                                            f"{points_percentage}%",
+                                                                            className="progress-bar-label",
+                                                                        ),
+                                                                    ],
+                                                                    value=points_percentage,
+                                                                    color="warning",
+                                                                    className="mb-1",
+                                                                    style={
+                                                                        "height": "22px"
+                                                                    },
+                                                                    id="points-progress-bar",
+                                                                ),
+                                                                html.Small(
+                                                                    [
+                                                                        f"{completed_points} of {total_points} points",
+                                                                        html.Span(
+                                                                            f" ({remaining_points} remaining)",
+                                                                            className="ml-1",
+                                                                        ),
+                                                                    ],
+                                                                    className="text-muted d-block",
+                                                                ),
+                                                            ],
+                                                            className="mt-1",
+                                                        ),
+                                                    ],
+                                                    style={
+                                                        "display": "block"
+                                                        if not similar_percentages
+                                                        else "none"
+                                                    },
                                                 ),
                                             ],
                                             className="p-3 mb-3 border rounded",
