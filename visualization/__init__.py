@@ -8,7 +8,6 @@ from visualization.charts import (
     create_forecast_plot,
     create_weekly_items_chart,
     create_weekly_points_chart,
-    create_combined_weekly_chart,
     create_weekly_items_forecast_chart,
     create_weekly_points_forecast_chart,
 )
@@ -26,7 +25,6 @@ __all__ = [
     "create_forecast_plot",
     "create_weekly_items_chart",
     "create_weekly_points_chart",
-    "create_combined_weekly_chart",
     "create_weekly_items_forecast_chart",
     "create_weekly_points_forecast_chart",
     "create_historical_trace",

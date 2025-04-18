@@ -38,12 +38,6 @@ def create_tabs():
                         labelClassName="font-weight-bold",
                         activeLabelClassName="text-primary",
                     ),
-                    dbc.Tab(
-                        label="Combined View",
-                        tab_id="tab-combined",
-                        labelClassName="font-weight-bold",
-                        activeLabelClassName="text-primary",
-                    ),
                 ],
                 id="chart-tabs",
                 active_tab="tab-burndown",
@@ -71,7 +65,6 @@ def create_tab_content(active_tab, charts):
         "tab-burndown",
         "tab-items",
         "tab-points",
-        "tab-combined",
     ]:
         active_tab = "tab-burndown"
 
@@ -84,7 +77,6 @@ def create_tab_content(active_tab, charts):
                     "tab-burndown": "Project Burndown Forecast",
                     "tab-items": "Weekly Completed Items",
                     "tab-points": "Weekly Completed Points",
-                    "tab-combined": "Combined Weekly Progress",
                 }[active_tab],
                 className="mb-4",
             ),

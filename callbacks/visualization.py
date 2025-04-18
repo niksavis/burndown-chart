@@ -26,7 +26,6 @@ from visualization import (
     create_forecast_plot,
     create_weekly_items_chart,
     create_weekly_points_chart,
-    create_combined_weekly_chart,
     create_weekly_items_forecast_chart,
     create_weekly_points_forecast_chart,
     empty_figure,
@@ -347,64 +346,6 @@ def register(app):
                 ]
             )
 
-            # Combined view chart
-            combined_fig = create_combined_weekly_chart(statistics, date_range_weeks)
-            # Calculate trend indicators for both items and points
-            items_trend = calculate_performance_trend(statistics, "no_items", 4)
-            points_trend = calculate_performance_trend(statistics, "no_points", 4)
-
-            charts["tab-combined"] = html.Div(
-                [
-                    # Date range selector for combined chart
-                    html.Div(
-                        [
-                            html.Label(
-                                "Show data for last:", className="mr-2 font-weight-bold"
-                            ),
-                            dcc.Slider(
-                                id={"type": "date-range-slider", "tab": "combined"},
-                                min=4,
-                                max=52,
-                                step=4,
-                                value=date_range_weeks or 24,
-                                marks={
-                                    4: "4 weeks",
-                                    12: "12 weeks",
-                                    24: "24 weeks",
-                                    52: "All",
-                                },
-                                className="mb-4",
-                            ),
-                        ],
-                        className="mb-3",
-                    ),
-                    # Performance trend indicators (side by side)
-                    dbc.Row(
-                        [
-                            dbc.Col(
-                                [create_trend_indicator(items_trend, "Items")],
-                                md=6,
-                                className="mb-3",
-                            ),
-                            dbc.Col(
-                                [create_trend_indicator(points_trend, "Points")],
-                                md=6,
-                                className="mb-3",
-                            ),
-                        ],
-                        className="mb-3",
-                    ),
-                    # Removed export buttons
-                    # Combined weekly chart
-                    dcc.Graph(
-                        id="combined-chart",
-                        figure=combined_fig,
-                        config={"displayModeBar": True, "responsive": True},
-                        style={"height": "600px"},
-                    ),
-                ]
-            )
-
             # Create content for the active tab
             return create_tab_content(active_tab, charts)
 
@@ -451,7 +392,6 @@ def register(app):
         "burndown",
         "items",
         "points",
-        "combined",
         "items-forecast",
         "points-forecast",
     ]
@@ -546,37 +486,6 @@ def register(app):
                     df = weekly_df
                     prefix = "forecast_" if chart_id == "points-forecast" else ""
                     filename = f"{prefix}weekly_points_data_{current_time}.csv"
-
-                elif chart_id == "combined":
-                    # Export both weekly items and points data
-                    df = pd.DataFrame(statistics)
-                    df["date"] = pd.to_datetime(df["date"])
-                    df = df.sort_values("date")
-
-                    # Group by week
-                    df["week"] = df["date"].dt.isocalendar().week
-                    df["year"] = df["date"].dt.year
-                    df["year_week"] = df.apply(
-                        lambda r: f"{r['year']}-W{r['week']:02d}", axis=1
-                    )
-                    weekly_df = (
-                        df.groupby("year_week")
-                        .agg(
-                            week_start=("date", "min"),
-                            items=("no_items", "sum"),
-                            points=("no_points", "sum"),
-                        )
-                        .reset_index()
-                    )
-
-                    # Filter by date range if specified
-                    if date_range_weeks:
-                        weekly_df = weekly_df.sort_values("week_start", ascending=False)
-                        weekly_df = weekly_df.head(date_range_weeks)
-                        weekly_df = weekly_df.sort_values("week_start")
-
-                    df = weekly_df
-                    filename = f"combined_weekly_data_{current_time}.csv"
 
                 # Format dates for better readability
                 if "date" in df.columns:
