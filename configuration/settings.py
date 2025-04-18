@@ -84,20 +84,20 @@ HELP_TEXTS = {
         Format: YYYY-MM-DD
     """,
     "total_items": """
-        The total number of items (tasks, stories, etc.) to be completed in your project.
-        This represents work quantity.
+        The total number of remaining items (tasks, stories, etc.) yet to be completed in your project.
+        This represents the remaining work quantity needed to complete the project.
     """,
     "total_points": """
-        The total number of points (effort, complexity) to be completed.
-        This represents work effort/complexity.
+        The total number of remaining points (effort, complexity) yet to be completed.
+        This represents the remaining work effort/complexity needed to complete the project.
     """,
     "estimated_items": """
-        The number of items that have already been estimated with points.
-        This should be less than or equal to Total Items.
+        The number of remaining items that have already been estimated with points.
+        This should be less than or equal to Remaining Total Items.
     """,
     "estimated_points": """
-        The sum of points for the items that have been estimated.
-        Used to calculate the average points per item for the entire project.
+        The sum of points for the remaining items that have been estimated.
+        Used to calculate the average points per item for the remaining work.
     """,
     "csv_format": """
         Your CSV file should contain the following columns:

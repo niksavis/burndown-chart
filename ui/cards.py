@@ -391,7 +391,7 @@ def create_input_parameters_card(
                                         [
                                             html.Label(
                                                 [
-                                                    "Estimated Items:",
+                                                    "Remaining Estimated Items:",
                                                     create_info_tooltip(
                                                         "estimated-items",
                                                         HELP_TEXTS["estimated_items"],
@@ -416,7 +416,7 @@ def create_input_parameters_card(
                                         [
                                             html.Label(
                                                 [
-                                                    "Total Items:",
+                                                    "Remaining Total Items:",
                                                     create_info_tooltip(
                                                         "total-items",
                                                         HELP_TEXTS["total_items"],
@@ -445,7 +445,7 @@ def create_input_parameters_card(
                                         [
                                             html.Label(
                                                 [
-                                                    "Estimated Points:",
+                                                    "Remaining Estimated Points:",
                                                     create_info_tooltip(
                                                         "estimated-points",
                                                         HELP_TEXTS["estimated_points"],
@@ -470,7 +470,7 @@ def create_input_parameters_card(
                                         [
                                             html.Label(
                                                 [
-                                                    "Total Points (calculated):",
+                                                    "Remaining Total Points (calculated):",
                                                     create_info_tooltip(
                                                         "total-points",
                                                         HELP_TEXTS["total_points"],
@@ -497,7 +497,7 @@ def create_input_parameters_card(
                                             html.Small(
                                                 id="points-calculation-info",
                                                 children=[
-                                                    f"Using {avg_points_per_item:.1f} points per item for calculation"
+                                                    f"Using {avg_points_per_item:.1f} points per remaining item for calculation"
                                                 ],
                                                 className="text-muted mt-1 d-block",
                                             ),
