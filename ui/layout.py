@@ -25,10 +25,9 @@ from ui.components import create_help_modal
 from ui.cards import (
     create_forecast_graph_card,
     create_forecast_info_card,
-    create_pert_analysis_card,
     create_input_parameters_card,
     create_statistics_data_card,
-    create_project_status_card,
+    create_project_summary_card,
 )
 from ui.tabs import create_tabs
 
@@ -190,14 +189,18 @@ def create_app_layout(settings, statistics, is_sample_data):
                 ]
             ),
             # Note: Forecast Info Card has been moved to tab-specific content
-            # New row: Project Status Summary Card
+            # Project Dashboard Card (combines Project Status Summary and PERT Analysis)
             dbc.Row(
                 [
                     dbc.Col(
                         [
-                            create_project_status_card(
-                                statistics_df,  # Convert list to DataFrame
-                                settings,  # Pass the entire settings dictionary
+                            create_project_summary_card(
+                                statistics_df,
+                                settings,
+                                pert_data={
+                                    "pert_time_items": None,  # Will be populated by callback
+                                    "pert_time_points": None,  # Will be populated by callback
+                                },
                             ),
                         ],
                         width=12,
@@ -205,10 +208,10 @@ def create_app_layout(settings, statistics, is_sample_data):
                 ],
                 className="mb-4",
             ),
-            # Third row: Input Parameters and PERT Analysis - equal width cards
+            # Input Parameters Card
             dbc.Row(
                 [
-                    # Left: Input Parameters
+                    # Input Parameters
                     dbc.Col(
                         [
                             create_input_parameters_card(
@@ -218,18 +221,9 @@ def create_app_layout(settings, statistics, is_sample_data):
                             ),
                         ],
                         width=12,
-                        lg=6,  # Changed from 8 to 6 (equal width)
-                    ),
-                    # Right: PERT Analysis
-                    dbc.Col(
-                        [
-                            create_pert_analysis_card(),
-                        ],
-                        width=12,
-                        lg=6,  # Changed from 4 to 6 (equal width)
                     ),
                 ],
-                className="d-flex align-items-stretch mb-3",  # Make cards equal height
+                className="mb-3",
             ),
             # Spacer
             html.Div(className="mb-3"),

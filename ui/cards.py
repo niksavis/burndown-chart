@@ -18,7 +18,7 @@ from configuration import HELP_TEXTS, COLOR_PALETTE
 from visualization import empty_figure
 
 # Fix circular import issue - import directly from components instead of ui
-from ui.components import create_info_tooltip
+from ui.components import create_info_tooltip, create_pert_info_table
 
 #######################################################################
 # CARD COMPONENTS
@@ -730,15 +730,402 @@ def create_project_status_card(statistics_df, settings):
         similar_percentages = abs(items_percentage - points_percentage) <= 2
 
         # Calculate average weekly velocity and coefficient of variation (last 10 weeks)
-        recent_df = (
-            statistics_df.tail(10) if not statistics_df.empty else pd.DataFrame()
-        )
+        # Create a copy of the DataFrame to avoid SettingWithCopyWarning
+        recent_df = statistics_df.copy() if not statistics_df.empty else pd.DataFrame()
 
         # Convert to datetime to ensure proper week grouping
         if not recent_df.empty:
-            recent_df["date"] = pd.to_datetime(recent_df["date"])
-            recent_df["week"] = recent_df["date"].dt.isocalendar().week
-            recent_df["year"] = recent_df["date"].dt.isocalendar().year
+            # Use proper pandas assignment with .loc to avoid SettingWithCopyWarning
+            recent_df.loc[:, "date"] = pd.to_datetime(recent_df["date"])
+            recent_df.loc[:, "week"] = recent_df["date"].dt.isocalendar().week
+            recent_df.loc[:, "year"] = recent_df["date"].dt.isocalendar().year
+
+            # Use tail(10) after assigning week and year columns
+            recent_df = recent_df.tail(10)
+
+            weekly_data = (
+                recent_df.groupby(["year", "week"])
+                .agg({"no_items": "sum", "no_points": "sum"})
+                .reset_index()
+            )
+
+            # Calculate metrics
+            avg_weekly_items = weekly_data["no_items"].mean()
+            avg_weekly_points = weekly_data["no_points"].mean()
+
+            # Calculate coefficient of variation (CV = stdev / mean)
+            std_weekly_items = weekly_data["no_items"].std()
+            std_weekly_points = weekly_data["no_points"].std()
+
+            cv_items = (
+                (std_weekly_items / avg_weekly_items * 100)
+                if avg_weekly_items > 0
+                else 0
+            )
+            cv_points = (
+                (std_weekly_points / avg_weekly_points * 100)
+                if avg_weekly_points > 0
+                else 0
+            )
+
+            # Calculate stability metrics (weeks with 0 or > 2x average)
+            zero_item_weeks = len(weekly_data[weekly_data["no_items"] == 0])
+            zero_point_weeks = len(weekly_data[weekly_data["no_points"] == 0])
+
+            high_item_weeks = len(
+                weekly_data[weekly_data["no_items"] > avg_weekly_items * 2]
+            )
+            high_point_weeks = len(
+                weekly_data[weekly_data["no_points"] > avg_weekly_points * 2]
+            )
+
+            # Calculate overall stability score (0-100)
+            stability_score = max(
+                0,
+                100
+                - cv_items * 0.5
+                - cv_points * 0.5
+                - zero_item_weeks * 10
+                - zero_point_weeks * 10
+                - high_item_weeks * 5
+                - high_point_weeks * 5,
+            )
+            stability_score = min(100, max(0, stability_score))
+
+            # Determine velocity consistency status
+            if stability_score >= 80:
+                stability_status = "Consistent"
+                stability_color = "success"
+                stability_icon = "fa-check-circle"
+            elif stability_score >= 50:
+                stability_status = "Moderate"
+                stability_color = "warning"
+                stability_icon = "fa-exclamation-circle"
+            else:
+                stability_status = "Variable"
+                stability_color = "danger"
+                stability_icon = "fa-times-circle"
+        else:
+            # Default values if no data is available
+            avg_weekly_items = 0
+            avg_weekly_points = 0
+            stability_status = "Unknown"
+            stability_color = "secondary"
+            stability_icon = "fa-question-circle"
+
+        # Calculate days of data available
+        if not statistics_df.empty:
+            if "date" in statistics_df.columns:
+                earliest_date = pd.to_datetime(statistics_df["date"].min())
+                latest_date = pd.to_datetime(statistics_df["date"].max())
+                days_of_data = (
+                    (latest_date - earliest_date).days + 1
+                    if earliest_date and latest_date
+                    else 0
+                )
+            else:
+                days_of_data = 0
+        else:
+            days_of_data = 0
+
+        import dash_bootstrap_components as dbc
+
+        # Create the card component
+        return dbc.Card(
+            [
+                dbc.CardHeader(
+                    [
+                        html.H4("Project Status Summary", className="d-inline"),
+                        create_info_tooltip(
+                            "project-status",
+                            "Summary of your project's current progress and metrics.",
+                        ),
+                    ]
+                ),
+                dbc.CardBody(
+                    [
+                        # Project Completion Stats Row
+                        dbc.Row(
+                            [
+                                # Items Completion
+                                dbc.Col(
+                                    [
+                                        html.H6("Items Completion"),
+                                        html.Div(
+                                            [
+                                                html.Span(
+                                                    f"{items_percentage}%",
+                                                    style={
+                                                        "fontSize": "24px",
+                                                        "fontWeight": "bold",
+                                                        "color": COLOR_PALETTE["items"],
+                                                    },
+                                                ),
+                                                html.Div(
+                                                    [
+                                                        f"Completed: {completed_items} of {total_items} items",
+                                                    ],
+                                                    className="text-muted small",
+                                                ),
+                                            ],
+                                            className="text-center mb-2",
+                                        ),
+                                        # Progress bar for items
+                                        dbc.Progress(
+                                            value=items_percentage,
+                                            color="info",
+                                            className="mb-3",
+                                            style={"height": "10px"},
+                                        ),
+                                    ],
+                                    md=6,
+                                ),
+                                # Points Completion
+                                dbc.Col(
+                                    [
+                                        html.H6("Points Completion"),
+                                        html.Div(
+                                            [
+                                                html.Span(
+                                                    f"{points_percentage}%",
+                                                    style={
+                                                        "fontSize": "24px",
+                                                        "fontWeight": "bold",
+                                                        "color": COLOR_PALETTE[
+                                                            "points"
+                                                        ],
+                                                    },
+                                                ),
+                                                html.Div(
+                                                    [
+                                                        f"Completed: {completed_points} of {total_points} points",
+                                                    ],
+                                                    className="text-muted small",
+                                                ),
+                                            ],
+                                            className="text-center mb-2",
+                                        ),
+                                        # Progress bar for points
+                                        dbc.Progress(
+                                            value=points_percentage,
+                                            color="warning",
+                                            className="mb-3",
+                                            style={"height": "10px"},
+                                        ),
+                                    ],
+                                    md=6,
+                                ),
+                            ],
+                            className="mb-4",
+                        ),
+                        # Metrics Row
+                        dbc.Row(
+                            [
+                                # Weekly Averages
+                                dbc.Col(
+                                    [
+                                        html.H6("Weekly Averages", className="mb-3"),
+                                        html.Div(
+                                            [
+                                                html.Div(
+                                                    [
+                                                        html.I(
+                                                            className="fas fa-tasks me-2",
+                                                            style={
+                                                                "color": COLOR_PALETTE[
+                                                                    "items"
+                                                                ]
+                                                            },
+                                                        ),
+                                                        f"{avg_weekly_items:.1f} items/week",
+                                                    ],
+                                                    className="d-flex align-items-center mb-2",
+                                                ),
+                                                html.Div(
+                                                    [
+                                                        html.I(
+                                                            className="fas fa-chart-line me-2",
+                                                            style={
+                                                                "color": COLOR_PALETTE[
+                                                                    "points"
+                                                                ]
+                                                            },
+                                                        ),
+                                                        f"{avg_weekly_points:.1f} points/week",
+                                                    ],
+                                                    className="d-flex align-items-center",
+                                                ),
+                                            ],
+                                            className="ps-3",
+                                        ),
+                                    ],
+                                    md=4,
+                                ),
+                                # Velocity Stability
+                                dbc.Col(
+                                    [
+                                        html.H6("Velocity Stability", className="mb-3"),
+                                        html.Div(
+                                            [
+                                                html.I(
+                                                    className=f"fas {stability_icon} me-2",
+                                                    style={
+                                                        "color": f"var(--bs-{stability_color})"
+                                                    },
+                                                ),
+                                                html.Span(
+                                                    stability_status,
+                                                    style={
+                                                        "color": f"var(--bs-{stability_color})",
+                                                        "fontWeight": "bold",
+                                                    },
+                                                ),
+                                            ],
+                                            className="d-flex align-items-center ps-3",
+                                        ),
+                                    ],
+                                    md=4,
+                                ),
+                                # Dataset Info
+                                dbc.Col(
+                                    [
+                                        html.H6("Dataset Info", className="mb-3"),
+                                        html.Div(
+                                            [
+                                                html.Div(
+                                                    [
+                                                        html.I(
+                                                            className="fas fa-calendar-alt me-2 text-secondary"
+                                                        ),
+                                                        f"{days_of_data} days of data",
+                                                    ],
+                                                    className="d-flex align-items-center mb-2",
+                                                ),
+                                                html.Div(
+                                                    [
+                                                        html.I(
+                                                            className="fas fa-table me-2 text-secondary"
+                                                        ),
+                                                        f"{len(statistics_df) if not statistics_df.empty else 0} data points",
+                                                    ],
+                                                    className="d-flex align-items-center",
+                                                ),
+                                            ],
+                                            className="ps-3",
+                                        ),
+                                    ],
+                                    md=4,
+                                ),
+                            ],
+                        ),
+                    ],
+                    className="py-4",
+                ),
+            ],
+            className="mb-4 shadow-sm",
+        )
+
+    except Exception as e:
+        # Return an error card if something goes wrong
+        import dash_bootstrap_components as dbc
+        from dash import html
+
+        return dbc.Card(
+            [
+                dbc.CardHeader(
+                    html.H4("Project Status Summary", className="text-danger")
+                ),
+                dbc.CardBody(
+                    [
+                        html.Div(
+                            [
+                                html.I(
+                                    className="fas fa-exclamation-triangle text-danger me-2"
+                                ),
+                                html.Span(
+                                    "Unable to display project information. Please ensure you have valid project data.",
+                                    className="text-danger",
+                                ),
+                            ],
+                            className="d-flex align-items-center mb-2",
+                        ),
+                        html.Small(f"Error: {str(e)}", className="text-muted"),
+                    ]
+                ),
+            ],
+            className="mb-4 shadow-sm",
+        )
+
+
+def create_project_summary_card(statistics_df, settings, pert_data=None):
+    """
+    Create a comprehensive project summary card that combines the Project Status Summary
+    and PERT Analysis information.
+
+    Args:
+        statistics_df: DataFrame containing the project statistics
+        settings: Dictionary with current settings
+        pert_data: Dictionary containing PERT analysis data (optional)
+
+    Returns:
+        A Dash card component with comprehensive project information
+    """
+    try:
+        import pandas as pd
+        import dash_bootstrap_components as dbc
+        from dash import html
+
+        # Make a copy of statistics_df to avoid modifying the original
+        statistics_df = (
+            statistics_df.copy() if not statistics_df.empty else pd.DataFrame()
+        )
+
+        # Convert 'date' column to datetime right at the beginning
+        if not statistics_df.empty and "date" in statistics_df.columns:
+            statistics_df["date"] = pd.to_datetime(statistics_df["date"])
+
+        # Extract key metrics from settings (these represent remaining work)
+        remaining_items = settings.get("total_items", 0)
+        remaining_points = settings.get("total_points", 0)
+
+        # Calculate completed items and points from statistics
+        completed_items = (
+            int(statistics_df["no_items"].sum()) if not statistics_df.empty else 0
+        )
+        completed_points = (
+            int(statistics_df["no_points"].sum()) if not statistics_df.empty else 0
+        )
+
+        # Calculate true project totals (completed + remaining)
+        total_items = remaining_items + completed_items
+        total_points = round(
+            remaining_points + completed_points
+        )  # Round to nearest integer
+        remaining_points = round(
+            remaining_points
+        )  # Round remaining points to nearest integer
+
+        # Calculate percentages based on true project totals
+        items_percentage = (
+            int((completed_items / total_items) * 100) if total_items > 0 else 0
+        )
+        points_percentage = (
+            int((completed_points / total_points) * 100) if total_points > 0 else 0
+        )
+
+        # Check if percentages are similar (within 2% of each other)
+        similar_percentages = abs(items_percentage - points_percentage) <= 2
+
+        # Calculate average weekly velocity and coefficient of variation (last 10 weeks)
+        recent_df = (
+            statistics_df.tail(10).copy() if not statistics_df.empty else pd.DataFrame()
+        )
+
+        # Calculate weekly metrics - Now we know date is already datetime
+        if not recent_df.empty:
+            # Add week and year columns
+            recent_df.loc[:, "week"] = recent_df["date"].dt.isocalendar().week
+            recent_df.loc[:, "year"] = recent_df["date"].dt.isocalendar().year
 
             weekly_data = (
                 recent_df.groupby(["year", "week"])
@@ -940,8 +1327,8 @@ def create_project_status_card(statistics_df, settings):
 
         # Calculate days of data available
         if not statistics_df.empty:
-            min_date = pd.to_datetime(statistics_df["date"].min())
-            max_date = pd.to_datetime(statistics_df["date"].max())
+            min_date = statistics_df["date"].min()
+            max_date = statistics_df["date"].max()
             data_span_days = (
                 (max_date - min_date).days + 1 if not statistics_df.empty else 0
             )
@@ -969,20 +1356,65 @@ def create_project_status_card(statistics_df, settings):
             data_quality_color = "danger"
             data_quality_score = 0
 
+        # Format deadline string for display
+        deadline_date = settings.get("deadline")
+        deadline_obj = None
+        if deadline_date:
+            deadline_str = deadline_date
+            try:
+                deadline_obj = datetime.strptime(deadline_date, "%Y-%m-%d")
+                days_to_deadline = (deadline_obj - datetime.now()).days
+            except (ValueError, TypeError):
+                days_to_deadline = None
+        else:
+            deadline_str = "Not set"
+            days_to_deadline = None
+
+        # Create the pert_info content directly instead of using a container
+        pert_info_content = html.Div("PERT analysis data not available")
+        if pert_data:
+            try:
+                pert_time_items = pert_data.get("pert_time_items", 0)
+                pert_time_points = pert_data.get("pert_time_points", 0)
+
+                # If both PERT values are None, provide a placeholder message
+                if pert_time_items is None and pert_time_points is None:
+                    pert_info_content = html.Div(
+                        "PERT analysis will display here once forecast data is available",
+                        className="text-muted p-3",
+                    )
+                else:
+                    # Create PERT info table directly without using a container
+                    pert_info_content = create_pert_info_table(
+                        pert_time_items if pert_time_items is not None else 0,
+                        pert_time_points if pert_time_points is not None else 0,
+                        days_to_deadline if days_to_deadline is not None else 0,
+                        avg_weekly_items=avg_weekly_items,
+                        avg_weekly_points=avg_weekly_points,
+                        pert_factor=settings.get("pert_factor", 3),
+                        total_items=remaining_items,
+                        total_points=remaining_points,
+                        deadline_str=deadline_str,
+                    )
+            except Exception as pert_error:
+                pert_info_content = html.P(
+                    f"Error generating PERT analysis: {str(pert_error)}"
+                )
+
         return dbc.Card(
             [
                 dbc.CardHeader(
                     [
-                        html.H4("Project Status Summary", className="d-inline"),
+                        html.H4("Project Dashboard", className="d-inline"),
                         create_info_tooltip(
-                            "project-status",
-                            "This summary shows your project's current progress, trends, and health metrics based on historical data.",
+                            "project-dashboard",
+                            "Comprehensive project overview showing status, forecasts, and PERT analysis based on your historical data.",
                         ),
                     ]
                 ),
                 dbc.CardBody(
                     [
-                        # Top row: Quick Stats
+                        # First row: Quick Stats and Health indicators
                         dbc.Row(
                             [
                                 # Completion Progress
@@ -1183,7 +1615,30 @@ def create_project_status_card(statistics_df, settings):
                                 ),
                             ],
                         ),
-                        # Second row: Velocity Metrics & Trends
+                        # Second row: PERT Analysis (if available)
+                        dbc.Row(
+                            [
+                                dbc.Col(
+                                    [
+                                        html.Div(
+                                            [
+                                                html.Span(
+                                                    "PERT Analysis:", className="h5"
+                                                ),
+                                                html.Div(
+                                                    pert_info_content,
+                                                    className="mt-3",
+                                                    id="project-dashboard-pert-content",
+                                                ),
+                                            ],
+                                            className="p-3 mb-3 border rounded",
+                                        ),
+                                    ],
+                                    width=12,
+                                ),
+                            ],
+                        ),
+                        # Third row: Velocity Metrics & Trends
                         dbc.Row(
                             [
                                 # Velocity and Trends
@@ -1330,6 +1785,77 @@ def create_project_status_card(statistics_df, settings):
                                                     ],
                                                     className="border-bottom pb-2 mb-2",
                                                 ),
+                                                # Completion Forecast
+                                                dbc.Row(
+                                                    [
+                                                        dbc.Col(
+                                                            [
+                                                                html.Div(
+                                                                    [
+                                                                        html.Div(
+                                                                            "Completion Forecast:",
+                                                                            className="font-weight-bold mb-2",
+                                                                        ),
+                                                                        html.Div(
+                                                                            [
+                                                                                html.I(
+                                                                                    className=f"fas fa-calendar-day text-info mr-2"
+                                                                                ),
+                                                                                html.Span(
+                                                                                    "Deadline: "
+                                                                                ),
+                                                                                html.Span(
+                                                                                    f"{deadline_str}",
+                                                                                    className=f"font-weight-bold",
+                                                                                ),
+                                                                                html.Span(
+                                                                                    f" ({days_to_deadline} days remaining)"
+                                                                                    if days_to_deadline
+                                                                                    is not None
+                                                                                    else "",
+                                                                                    className="ml-1 text-muted small",
+                                                                                ),
+                                                                            ],
+                                                                            className="d-flex align-items-center mb-2",
+                                                                        ),
+                                                                        html.Div(
+                                                                            [
+                                                                                html.I(
+                                                                                    className=f"fas fa-tasks text-info mr-2"
+                                                                                ),
+                                                                                html.Span(
+                                                                                    "Items Completion: "
+                                                                                ),
+                                                                                html.Span(
+                                                                                    f"{completion_date_items}",
+                                                                                    className=f"font-weight-bold {('text-success' if deadline_obj is not None and completion_date_items != 'Unknown' and datetime.strptime(completion_date_items, '%Y-%m-%d') <= deadline_obj else 'text-danger') if deadline_obj is not None and completion_date_items != 'Unknown' else ''}",
+                                                                                ),
+                                                                            ],
+                                                                            className="d-flex align-items-center mb-2",
+                                                                        ),
+                                                                        html.Div(
+                                                                            [
+                                                                                html.I(
+                                                                                    className=f"fas fa-chart-line text-warning mr-2"
+                                                                                ),
+                                                                                html.Span(
+                                                                                    "Points Completion: "
+                                                                                ),
+                                                                                html.Span(
+                                                                                    f"{completion_date_points}",
+                                                                                    className=f"font-weight-bold {('text-success' if deadline_obj is not None and completion_date_points != 'Unknown' and datetime.strptime(completion_date_points, '%Y-%m-%d') <= deadline_obj else 'text-danger') if deadline_obj is not None and completion_date_points != 'Unknown' else ''}",
+                                                                                ),
+                                                                            ],
+                                                                            className="d-flex align-items-center",
+                                                                        ),
+                                                                    ],
+                                                                    className="p-2",
+                                                                ),
+                                                            ],
+                                                            width=12,
+                                                        ),
+                                                    ],
+                                                ),
                                                 # Risk Indicators
                                                 dbc.Row(
                                                     [
@@ -1407,14 +1933,29 @@ def create_project_status_card(statistics_df, settings):
         # Fallback card in case of errors
         return dbc.Card(
             [
-                dbc.CardHeader("Project Status Summary"),
+                dbc.CardHeader("Project Dashboard"),
                 dbc.CardBody(
                     [
                         html.P(
-                            "Unable to display project status. Please ensure you have valid project data.",
+                            "Unable to display project information. Please ensure you have valid project data.",
                             className="text-danger",
                         ),
                         html.Small(f"Error: {str(e)}", className="text-muted"),
+                        # Debug information
+                        html.Div(
+                            [
+                                html.Hr(),
+                                html.H6("Debug Information:", className="text-muted"),
+                                html.P(f"Error details: {type(e).__name__}: {str(e)}"),
+                                html.Pre(
+                                    f"Error context: pert_data: {pert_data if pert_data else 'None'}\n"
+                                    f"Settings: {settings if settings else 'None'}",
+                                    style={"fontSize": "0.8rem"},
+                                ),
+                            ],
+                            className="mt-3",
+                            style={"display": "block"},  # For debugging
+                        ),
                     ]
                 ),
             ],

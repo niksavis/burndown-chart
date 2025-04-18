@@ -35,6 +35,7 @@ from ui import (
     create_tab_content,
     create_trend_indicator,
     create_export_buttons,
+    create_project_summary_card,
 )
 
 #######################################################################
@@ -61,7 +62,10 @@ def register(app):
         return True
 
     @app.callback(
-        [Output("forecast-graph", "figure"), Output("pert-info-container", "children")],
+        [
+            Output("forecast-graph", "figure"),
+            Output("project-dashboard-pert-content", "children"),
+        ],
         [
             Input("current-settings", "modified_timestamp"),
             Input("current-statistics", "modified_timestamp"),
@@ -73,7 +77,8 @@ def register(app):
         settings_ts, statistics_ts, calc_results, settings, statistics
     ):
         """
-        Update the forecast graph and PERT analysis when settings or statistics change.
+        Update the forecast graph and Project Dashboard PERT data
+        when settings or statistics change.
         """
         if not settings or not statistics:
             raise PreventUpdate
@@ -115,8 +120,8 @@ def register(app):
                 calculate_weekly_averages(statistics)
             )
 
-            # Create PERT info component
-            pert_info = create_pert_info_table(
+            # Create the PERT info component for the Project Dashboard
+            project_dashboard_pert_info = create_pert_info_table(
                 pert_time_items,
                 pert_time_points,
                 days_to_deadline,
@@ -124,13 +129,13 @@ def register(app):
                 avg_weekly_points,
                 med_weekly_items,
                 med_weekly_points,
-                pert_factor,
-                total_items,  # Pass total items to the info table
-                total_points,  # Pass total points to the info table
-                deadline,  # Pass the original deadline string from settings
+                pert_factor=pert_factor,
+                total_items=total_items,
+                total_points=total_points,
+                deadline_str=deadline,
             )
 
-            return fig, pert_info
+            return fig, project_dashboard_pert_info
         except Exception as e:
             logger.error(f"Error in update_graph_and_pert_info callback: {e}")
             # Return empty figure and error message on failure
