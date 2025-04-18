@@ -189,17 +189,7 @@ def create_app_layout(settings, statistics, is_sample_data):
                     ),
                 ]
             ),
-            # Second row: Forecast Info Card
-            dbc.Row(
-                [
-                    dbc.Col(
-                        [
-                            create_forecast_info_card(),
-                        ],
-                        width=12,
-                    ),
-                ]
-            ),
+            # Note: Forecast Info Card has been moved to tab-specific content
             # New row: Project Status Summary Card
             dbc.Row(
                 [

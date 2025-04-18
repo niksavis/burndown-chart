@@ -60,6 +60,13 @@ def create_tab_content(active_tab, charts):
     Returns:
         Dash component containing the active tab's content
     """
+    # Import forecast info card functions
+    from ui.cards import (
+        create_items_forecast_info_card,
+        create_points_forecast_info_card,
+        create_forecast_info_card,
+    )
+
     # Default to burndown chart if tab is None or invalid
     if active_tab not in [
         "tab-burndown",
@@ -67,6 +74,13 @@ def create_tab_content(active_tab, charts):
         "tab-points",
     ]:
         active_tab = "tab-burndown"
+
+    # Tab-specific forecast info cards
+    tab_info_cards = {
+        "tab-burndown": create_forecast_info_card(),
+        "tab-items": create_items_forecast_info_card(),
+        "tab-points": create_points_forecast_info_card(),
+    }
 
     # Return the appropriate chart based on the active tab
     return html.Div(
@@ -82,6 +96,8 @@ def create_tab_content(active_tab, charts):
             ),
             # Tab content
             charts.get(active_tab, html.Div("No chart available")),
+            # Tab-specific info card
+            tab_info_cards.get(active_tab, None),
         ],
         # Add transition animation with CSS
         className="tab-content-container",
