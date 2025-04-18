@@ -697,11 +697,11 @@ def create_project_status_card(statistics_df, settings):
         A Dash card component for project status summary
     """
     try:
-        # Extract key metrics from settings
-        total_items = settings.get("total_items", 0)
-        total_points = settings.get("total_points", 0)
+        # Extract key metrics from settings (these represent remaining work)
+        remaining_items = settings.get("total_items", 0)
+        remaining_points = settings.get("total_points", 0)
 
-        # Calculate completed items and points
+        # Calculate completed items and points from statistics
         completed_items = (
             int(statistics_df["no_items"].sum()) if not statistics_df.empty else 0
         )
@@ -709,17 +709,22 @@ def create_project_status_card(statistics_df, settings):
             int(statistics_df["no_points"].sum()) if not statistics_df.empty else 0
         )
 
-        # Calculate percentages
+        # Calculate true project totals (completed + remaining)
+        total_items = remaining_items + completed_items
+        total_points = round(
+            remaining_points + completed_points
+        )  # Round to nearest integer
+        remaining_points = round(
+            remaining_points
+        )  # Round remaining points to nearest integer
+
+        # Calculate percentages based on true project totals
         items_percentage = (
             int((completed_items / total_items) * 100) if total_items > 0 else 0
         )
         points_percentage = (
             int((completed_points / total_points) * 100) if total_points > 0 else 0
         )
-
-        # Calculate remaining work
-        remaining_items = max(0, total_items - completed_items)
-        remaining_points = max(0, total_points - completed_points)
 
         # Calculate average weekly velocity and coefficient of variation (last 10 weeks)
         recent_df = (
@@ -857,7 +862,7 @@ def create_project_status_card(statistics_df, settings):
                 points_trend_color = "secondary"
                 points_trend_icon = "fa-equals"
 
-            # Calculate estimated completion date
+            # Calculate estimated completion date based on remaining work
             if avg_weekly_items > 0:
                 weeks_to_complete_items = remaining_items / avg_weekly_items
                 completion_date_items = (
@@ -880,9 +885,9 @@ def create_project_status_card(statistics_df, settings):
                 project_days = (datetime.now() - first_date).days
 
                 if project_days > 0:
-                    initial_estimate = settings.get("estimated_items", total_items)
+                    initial_estimate = settings.get("estimated_items", remaining_items)
                     scope_change_pct = (
-                        ((total_items - initial_estimate) / initial_estimate * 100)
+                        ((remaining_items - initial_estimate) / initial_estimate * 100)
                         if initial_estimate > 0
                         else 0
                     )
