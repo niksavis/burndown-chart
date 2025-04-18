@@ -1324,6 +1324,10 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
             completion_date_items = "Unknown"
             completion_date_points = "Unknown"
             stability_score = 0
+            zero_item_weeks = 0
+            zero_point_weeks = 0
+            high_item_weeks = 0
+            high_point_weeks = 0
 
         # Calculate days of data available
         if not statistics_df.empty:
@@ -1355,6 +1359,8 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
             data_quality = "No Data"
             data_quality_color = "danger"
             data_quality_score = 0
+            data_span_days = 0
+            unique_dates = 0
 
         # Format deadline string for display
         deadline_date = settings.get("deadline")
@@ -1414,62 +1420,26 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
                 ),
                 dbc.CardBody(
                     [
-                        # First row: Quick Stats and Health indicators
+                        # 1. OVERVIEW SECTION - Key progress indicators in compact form
                         dbc.Row(
                             [
-                                # Completion Progress
                                 dbc.Col(
                                     [
+                                        html.H5(
+                                            [
+                                                html.I(
+                                                    className="fas fa-tachometer-alt me-2 text-primary"
+                                                ),
+                                                "Project Overview",
+                                            ],
+                                            className="border-bottom pb-2 mb-3",
+                                        ),
+                                        # Project completion stats - Combined or separate
                                         html.Div(
                                             [
-                                                html.Span("Progress:", className="h5"),
-                                                # If percentages are similar, show combined progress bar
                                                 html.Div(
                                                     [
-                                                        dbc.Progress(
-                                                            [
-                                                                html.Span(
-                                                                    f"{items_percentage}%",
-                                                                    className="progress-bar-label",
-                                                                ),
-                                                            ],
-                                                            value=items_percentage,
-                                                            color="primary",
-                                                            className="mb-1",
-                                                            style={"height": "22px"},
-                                                            id="combined-progress-bar",
-                                                        ),
-                                                        html.Small(
-                                                            [
-                                                                f"{completed_items} of {total_items} items",
-                                                                html.Span(
-                                                                    f" ({remaining_items} remaining)",
-                                                                    className="ml-1",
-                                                                ),
-                                                                html.Span(
-                                                                    " • ",
-                                                                    className="mx-2 text-muted",
-                                                                ),
-                                                                f"{completed_points} of {total_points} points",
-                                                                html.Span(
-                                                                    f" ({remaining_points} remaining)",
-                                                                    className="ml-1",
-                                                                ),
-                                                            ],
-                                                            className="text-muted d-block",
-                                                        ),
-                                                    ],
-                                                    className="mt-1",
-                                                    style={
-                                                        "display": "block"
-                                                        if similar_percentages
-                                                        else "none"
-                                                    },
-                                                ),
-                                                # If percentages are different, show separate progress bars
-                                                html.Div(
-                                                    [
-                                                        # Items progress bar
+                                                        # Combined progress bar - shown when percentages are similar
                                                         html.Div(
                                                             [
                                                                 dbc.Progress(
@@ -1480,451 +1450,571 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
                                                                         ),
                                                                     ],
                                                                     value=items_percentage,
-                                                                    color="info",
+                                                                    color="primary",
                                                                     className="mb-1",
                                                                     style={
                                                                         "height": "22px"
                                                                     },
-                                                                    id="items-progress-bar",
+                                                                    id="combined-progress-bar",
                                                                 ),
                                                                 html.Small(
                                                                     [
                                                                         f"{completed_items} of {total_items} items",
                                                                         html.Span(
                                                                             f" ({remaining_items} remaining)",
-                                                                            className="ml-1",
+                                                                            className="ms-1",
                                                                         ),
-                                                                    ],
-                                                                    className="text-muted d-block",
-                                                                ),
-                                                            ],
-                                                            className="mt-1",
-                                                        ),
-                                                        # Points progress bar
-                                                        html.Div(
-                                                            [
-                                                                dbc.Progress(
-                                                                    [
                                                                         html.Span(
-                                                                            f"{points_percentage}%",
-                                                                            className="progress-bar-label",
+                                                                            " • ",
+                                                                            className="mx-2 text-muted",
                                                                         ),
-                                                                    ],
-                                                                    value=points_percentage,
-                                                                    color="warning",
-                                                                    className="mb-1",
-                                                                    style={
-                                                                        "height": "22px"
-                                                                    },
-                                                                    id="points-progress-bar",
-                                                                ),
-                                                                html.Small(
-                                                                    [
                                                                         f"{completed_points} of {total_points} points",
                                                                         html.Span(
                                                                             f" ({remaining_points} remaining)",
-                                                                            className="ml-1",
+                                                                            className="ms-1",
                                                                         ),
                                                                     ],
                                                                     className="text-muted d-block",
                                                                 ),
                                                             ],
-                                                            className="mt-1",
+                                                            style={
+                                                                "display": "block"
+                                                                if similar_percentages
+                                                                else "none"
+                                                            },
                                                         ),
-                                                    ],
-                                                    style={
-                                                        "display": "block"
-                                                        if not similar_percentages
-                                                        else "none"
-                                                    },
-                                                ),
-                                            ],
-                                            className="p-3 mb-3 border rounded",
-                                        ),
-                                    ],
-                                    width=12,
-                                    md=6,
-                                ),
-                                # Project Health Indicators
-                                dbc.Col(
-                                    [
-                                        html.Div(
-                                            [
-                                                html.Span(
-                                                    "Project Health:", className="h5"
-                                                ),
-                                                # Velocity Stability
-                                                html.Div(
-                                                    [
-                                                        html.I(
-                                                            className=f"fas {stability_icon} text-{stability_color} mr-2",
-                                                            style={"width": "20px"},
-                                                        ),
-                                                        html.Span("Velocity: "),
-                                                        html.Span(
-                                                            f"{stability_status}",
-                                                            className=f"font-weight-bold text-{stability_color}",
-                                                        ),
-                                                        html.Span(
-                                                            f" (score: {stability_score:.0f})",
-                                                            className="ml-1 text-muted small",
-                                                        ),
-                                                    ],
-                                                    className="d-flex align-items-center mb-2",
-                                                ),
-                                                # Scope Stability
-                                                html.Div(
-                                                    [
-                                                        html.I(
-                                                            className=f"fas {'fa-lock' if scope_color == 'success' else 'fa-lock-open'} text-{scope_color} mr-2",
-                                                            style={"width": "20px"},
-                                                        ),
-                                                        html.Span("Scope: "),
-                                                        html.Span(
-                                                            f"{scope_stability}",
-                                                            className=f"font-weight-bold text-{scope_color}",
-                                                        ),
-                                                        html.Span(
-                                                            f" ({scope_change_pct:+.1f}%)",
-                                                            className="ml-1 text-muted small",
-                                                        ),
-                                                    ],
-                                                    className="d-flex align-items-center mb-2",
-                                                ),
-                                                # Data Quality
-                                                html.Div(
-                                                    [
-                                                        html.I(
-                                                            className=f"fas fa-database text-{data_quality_color} mr-2",
-                                                            style={"width": "20px"},
-                                                        ),
-                                                        html.Span("Data Quality: "),
-                                                        html.Span(
-                                                            f"{data_quality}",
-                                                            className=f"font-weight-bold text-{data_quality_color}",
-                                                        ),
-                                                    ],
-                                                    className="d-flex align-items-center",
-                                                ),
-                                            ],
-                                            className="p-3 mb-3 border rounded",
-                                        ),
-                                    ],
-                                    width=12,
-                                    md=6,
-                                ),
-                            ],
-                        ),
-                        # Second row: PERT Analysis (if available)
-                        dbc.Row(
-                            [
-                                dbc.Col(
-                                    [
-                                        html.Div(
-                                            [
-                                                html.Span(
-                                                    "PERT Analysis:", className="h5"
-                                                ),
-                                                html.Div(
-                                                    pert_info_content,
-                                                    className="mt-3",
-                                                    id="project-dashboard-pert-content",
-                                                ),
-                                            ],
-                                            className="p-3 mb-3 border rounded",
-                                        ),
-                                    ],
-                                    width=12,
-                                ),
-                            ],
-                        ),
-                        # Third row: Velocity Metrics & Trends
-                        dbc.Row(
-                            [
-                                # Velocity and Trends
-                                dbc.Col(
-                                    [
-                                        html.Div(
-                                            [
-                                                html.Span(
-                                                    "Velocity & Trends:", className="h5"
-                                                ),
-                                                dbc.Row(
-                                                    [
-                                                        # Items Trend
-                                                        dbc.Col(
+                                                        # Separate progress bars - shown when percentages differ
+                                                        html.Div(
                                                             [
+                                                                dbc.Row(
+                                                                    [
+                                                                        dbc.Col(
+                                                                            [
+                                                                                # Items progress
+                                                                                html.Div(
+                                                                                    [
+                                                                                        html.Small(
+                                                                                            [
+                                                                                                html.I(
+                                                                                                    className="fas fa-tasks me-1",
+                                                                                                    style={
+                                                                                                        "color": COLOR_PALETTE[
+                                                                                                            "items"
+                                                                                                        ]
+                                                                                                    },
+                                                                                                ),
+                                                                                                "Items",
+                                                                                            ],
+                                                                                            className="mb-1 d-block",
+                                                                                        ),
+                                                                                        dbc.Progress(
+                                                                                            [
+                                                                                                html.Span(
+                                                                                                    f"{items_percentage}%",
+                                                                                                    className="progress-bar-label",
+                                                                                                ),
+                                                                                            ],
+                                                                                            value=items_percentage,
+                                                                                            color="info",
+                                                                                            className="mb-1",
+                                                                                            style={
+                                                                                                "height": "20px"
+                                                                                            },
+                                                                                            id="items-progress-bar",
+                                                                                        ),
+                                                                                        html.Small(
+                                                                                            f"{completed_items} of {total_items} ({remaining_items} left)",
+                                                                                            className="text-muted d-block",
+                                                                                        ),
+                                                                                    ],
+                                                                                ),
+                                                                            ],
+                                                                            md=6,
+                                                                        ),
+                                                                        dbc.Col(
+                                                                            [
+                                                                                # Points progress
+                                                                                html.Div(
+                                                                                    [
+                                                                                        html.Small(
+                                                                                            [
+                                                                                                html.I(
+                                                                                                    className="fas fa-chart-line me-1",
+                                                                                                    style={
+                                                                                                        "color": COLOR_PALETTE[
+                                                                                                            "points"
+                                                                                                        ]
+                                                                                                    },
+                                                                                                ),
+                                                                                                "Points",
+                                                                                            ],
+                                                                                            className="mb-1 d-block",
+                                                                                        ),
+                                                                                        dbc.Progress(
+                                                                                            [
+                                                                                                html.Span(
+                                                                                                    f"{points_percentage}%",
+                                                                                                    className="progress-bar-label",
+                                                                                                ),
+                                                                                            ],
+                                                                                            value=points_percentage,
+                                                                                            color="warning",
+                                                                                            className="mb-1",
+                                                                                            style={
+                                                                                                "height": "20px"
+                                                                                            },
+                                                                                            id="points-progress-bar",
+                                                                                        ),
+                                                                                        html.Small(
+                                                                                            f"{completed_points} of {total_points} ({remaining_points} left)",
+                                                                                            className="text-muted d-block",
+                                                                                        ),
+                                                                                    ],
+                                                                                ),
+                                                                            ],
+                                                                            md=6,
+                                                                        ),
+                                                                    ],
+                                                                ),
+                                                            ],
+                                                            style={
+                                                                "display": "block"
+                                                                if not similar_percentages
+                                                                else "none"
+                                                            },
+                                                        ),
+                                                    ],
+                                                    className="mb-3",
+                                                ),
+                                            ],
+                                        ),
+                                        # Deadline and forecast completion dates
+                                        dbc.Row(
+                                            [
+                                                dbc.Col(
+                                                    [
+                                                        html.Div(
+                                                            [
+                                                                html.Div(
+                                                                    [
+                                                                        html.I(
+                                                                            className="fas fa-calendar-day me-2 text-info"
+                                                                        ),
+                                                                        html.Span(
+                                                                            "Deadline: ",
+                                                                            className="fw-bold",
+                                                                        ),
+                                                                        html.Span(
+                                                                            f"{deadline_str}",
+                                                                            className="ms-1",
+                                                                        ),
+                                                                        html.Small(
+                                                                            f" ({days_to_deadline} days left)"
+                                                                            if days_to_deadline
+                                                                            is not None
+                                                                            else "",
+                                                                            className="ms-1 text-muted",
+                                                                        ),
+                                                                    ],
+                                                                    className="mb-1 d-flex align-items-center",
+                                                                ),
+                                                                html.Div(
+                                                                    [
+                                                                        html.I(
+                                                                            className="fas fa-tasks me-2",
+                                                                            style={
+                                                                                "color": COLOR_PALETTE[
+                                                                                    "items"
+                                                                                ]
+                                                                            },
+                                                                        ),
+                                                                        html.Span(
+                                                                            "Items completion: ",
+                                                                            className="fw-bold",
+                                                                        ),
+                                                                        html.Span(
+                                                                            f"{completion_date_items}",
+                                                                            className=f"{('text-success' if deadline_obj is not None and completion_date_items != 'Unknown' and datetime.strptime(completion_date_items, '%Y-%m-%d') <= deadline_obj else 'text-danger') if deadline_obj is not None and completion_date_items != 'Unknown' else ''}",
+                                                                        ),
+                                                                    ],
+                                                                    className="mb-1 d-flex align-items-center",
+                                                                ),
+                                                                html.Div(
+                                                                    [
+                                                                        html.I(
+                                                                            className="fas fa-chart-line me-2",
+                                                                            style={
+                                                                                "color": COLOR_PALETTE[
+                                                                                    "points"
+                                                                                ]
+                                                                            },
+                                                                        ),
+                                                                        html.Span(
+                                                                            "Points completion: ",
+                                                                            className="fw-bold",
+                                                                        ),
+                                                                        html.Span(
+                                                                            f"{completion_date_points}",
+                                                                            className=f"{('text-success' if deadline_obj is not None and completion_date_points != 'Unknown' and datetime.strptime(completion_date_points, '%Y-%m-%d') <= deadline_obj else 'text-danger') if deadline_obj is not None and completion_date_points != 'Unknown' else ''}",
+                                                                        ),
+                                                                    ],
+                                                                    className="d-flex align-items-center",
+                                                                ),
+                                                            ],
+                                                            className="border p-2 rounded",
+                                                        ),
+                                                    ],
+                                                    md=6,
+                                                ),
+                                                # Data stats & dataset quality
+                                                dbc.Col(
+                                                    [
+                                                        html.Div(
+                                                            [
+                                                                html.Div(
+                                                                    [
+                                                                        html.I(
+                                                                            className="fas fa-database me-2 text-secondary"
+                                                                        ),
+                                                                        html.Span(
+                                                                            "Dataset: ",
+                                                                            className="fw-bold",
+                                                                        ),
+                                                                        html.Small(
+                                                                            f"{len(statistics_df) if not statistics_df.empty else 0} records over {data_span_days} days"
+                                                                        ),
+                                                                    ],
+                                                                    className="mb-1 d-flex align-items-center",
+                                                                ),
+                                                                html.Div(
+                                                                    [
+                                                                        html.I(
+                                                                            className=f"fas fa-check-circle me-2 text-{data_quality_color}"
+                                                                        ),
+                                                                        html.Span(
+                                                                            "Data quality: ",
+                                                                            className="fw-bold",
+                                                                        ),
+                                                                        html.Span(
+                                                                            f"{data_quality}",
+                                                                            className=f"text-{data_quality_color}",
+                                                                        ),
+                                                                    ],
+                                                                    className="mb-1 d-flex align-items-center",
+                                                                ),
+                                                                html.Div(
+                                                                    [
+                                                                        html.I(
+                                                                            className=f"fas {stability_icon} me-2 text-{stability_color}"
+                                                                        ),
+                                                                        html.Span(
+                                                                            "Velocity: ",
+                                                                            className="fw-bold",
+                                                                        ),
+                                                                        html.Span(
+                                                                            f"{stability_status}",
+                                                                            className=f"text-{stability_color}",
+                                                                        ),
+                                                                        html.Small(
+                                                                            f" (score: {stability_score:.0f})",
+                                                                            className="ms-1 text-muted",
+                                                                        ),
+                                                                    ],
+                                                                    className="d-flex align-items-center",
+                                                                ),
+                                                            ],
+                                                            className="border p-2 rounded",
+                                                        ),
+                                                    ],
+                                                    md=6,
+                                                ),
+                                            ],
+                                            className="mb-4",
+                                        ),
+                                    ],
+                                    lg=6,
+                                ),
+                                # 2. PERFORMANCE METRICS - Velocity, trends & patterns
+                                dbc.Col(
+                                    [
+                                        html.H5(
+                                            [
+                                                html.I(
+                                                    className="fas fa-chart-bar me-2 text-primary"
+                                                ),
+                                                "Performance Metrics",
+                                            ],
+                                            className="border-bottom pb-2 mb-3",
+                                        ),
+                                        # Velocity metrics
+                                        dbc.Row(
+                                            [
+                                                dbc.Col(
+                                                    [
+                                                        html.Div(
+                                                            [
+                                                                # Items velocity & trend
                                                                 html.Div(
                                                                     [
                                                                         html.Div(
                                                                             [
                                                                                 html.I(
-                                                                                    className=f"fas {items_trend_icon} text-{items_trend_color} mr-2",
+                                                                                    className=f"fas {items_trend_icon} me-2 text-{items_trend_color}"
                                                                                 ),
                                                                                 html.Span(
-                                                                                    "Items: "
+                                                                                    "Items: ",
+                                                                                    className="fw-bold",
                                                                                 ),
                                                                                 html.Span(
                                                                                     f"{items_trend}",
-                                                                                    className=f"font-weight-bold text-{items_trend_color}",
+                                                                                    className=f"text-{items_trend_color}",
                                                                                 ),
                                                                             ],
-                                                                            className="d-flex align-items-center mb-2",
+                                                                            className="mb-1 d-flex align-items-center",
                                                                         ),
                                                                         html.Div(
                                                                             [
                                                                                 html.Span(
                                                                                     f"{avg_weekly_items:.1f}",
                                                                                     style={
-                                                                                        "fontSize": "1.2rem",
+                                                                                        "fontSize": "1.1rem",
                                                                                         "fontWeight": "bold",
-                                                                                        "color": "#007bff",
+                                                                                        "color": COLOR_PALETTE[
+                                                                                            "items"
+                                                                                        ],
                                                                                     },
                                                                                 ),
                                                                                 html.Small(
-                                                                                    " items/week",
-                                                                                    className="ml-1",
+                                                                                    " items/week"
                                                                                 ),
-                                                                                html.Div(
-                                                                                    [
-                                                                                        html.Span(
-                                                                                            f"{items_change_pct:+.1f}%"
-                                                                                            if items_change_pct
-                                                                                            != float(
-                                                                                                "inf"
-                                                                                            )
-                                                                                            else "N/A",
-                                                                                            className=f"{'text-success' if items_change_pct > 0 else 'text-danger' if items_change_pct < 0 else 'text-secondary'}",
-                                                                                        ),
-                                                                                        html.Small(
-                                                                                            " vs previous 4 weeks",
-                                                                                            className="ml-1",
-                                                                                        ),
-                                                                                    ],
-                                                                                    className="text-muted small",
+                                                                                html.Span(
+                                                                                    f" ({items_change_pct:+.1f}%)"
+                                                                                    if items_change_pct
+                                                                                    != float(
+                                                                                        "inf"
+                                                                                    )
+                                                                                    else " (∞%)",
+                                                                                    className=f"ms-2 {'text-success' if items_change_pct > 0 else 'text-danger' if items_change_pct < 0 else 'text-secondary'}",
                                                                                 ),
                                                                             ],
-                                                                            className="mb-1",
+                                                                            className="mb-1 d-flex align-items-center",
                                                                         ),
                                                                         html.Small(
-                                                                            f"CV: {cv_items:.1f}% (stability)",
-                                                                            className="text-muted d-block",
+                                                                            [
+                                                                                "CV: ",
+                                                                                html.Span(
+                                                                                    f"{cv_items:.1f}%",
+                                                                                    className=f"{'text-success' if cv_items < 30 else 'text-warning' if cv_items < 50 else 'text-danger'}",
+                                                                                ),
+                                                                                " • Zero weeks: ",
+                                                                                html.Span(
+                                                                                    f"{zero_item_weeks}",
+                                                                                    className=f"{'text-success' if zero_item_weeks == 0 else 'text-danger'}",
+                                                                                ),
+                                                                            ],
+                                                                            className="text-muted",
                                                                         ),
                                                                     ],
-                                                                    className="p-2",
+                                                                    className="border p-2 rounded mb-2",
                                                                 ),
-                                                            ],
-                                                            width=6,
-                                                            className="border-right",
-                                                        ),
-                                                        # Points Trend
-                                                        dbc.Col(
-                                                            [
+                                                                # Points velocity & trend
                                                                 html.Div(
                                                                     [
                                                                         html.Div(
                                                                             [
                                                                                 html.I(
-                                                                                    className=f"fas {points_trend_icon} text-{points_trend_color} mr-2",
+                                                                                    className=f"fas {points_trend_icon} me-2 text-{points_trend_color}"
                                                                                 ),
                                                                                 html.Span(
-                                                                                    "Points: "
+                                                                                    "Points: ",
+                                                                                    className="fw-bold",
                                                                                 ),
                                                                                 html.Span(
                                                                                     f"{points_trend}",
-                                                                                    className=f"font-weight-bold text-{points_trend_color}",
+                                                                                    className=f"text-{points_trend_color}",
                                                                                 ),
                                                                             ],
-                                                                            className="d-flex align-items-center mb-2",
+                                                                            className="mb-1 d-flex align-items-center",
                                                                         ),
                                                                         html.Div(
                                                                             [
                                                                                 html.Span(
                                                                                     f"{avg_weekly_points:.1f}",
                                                                                     style={
-                                                                                        "fontSize": "1.2rem",
+                                                                                        "fontSize": "1.1rem",
                                                                                         "fontWeight": "bold",
-                                                                                        "color": "#fd7e14",
+                                                                                        "color": COLOR_PALETTE[
+                                                                                            "points"
+                                                                                        ],
                                                                                     },
                                                                                 ),
                                                                                 html.Small(
-                                                                                    " points/week",
-                                                                                    className="ml-1",
+                                                                                    " points/week"
                                                                                 ),
-                                                                                html.Div(
-                                                                                    [
-                                                                                        html.Span(
-                                                                                            f"{points_change_pct:+.1f}%"
-                                                                                            if points_change_pct
-                                                                                            != float(
-                                                                                                "inf"
-                                                                                            )
-                                                                                            else "N/A",
-                                                                                            className=f"{'text-success' if points_change_pct > 0 else 'text-danger' if points_change_pct < 0 else 'text-secondary'}",
-                                                                                        ),
-                                                                                        html.Small(
-                                                                                            " vs previous 4 weeks",
-                                                                                            className="ml-1",
-                                                                                        ),
-                                                                                    ],
-                                                                                    className="text-muted small",
+                                                                                html.Span(
+                                                                                    f" ({points_change_pct:+.1f}%)"
+                                                                                    if points_change_pct
+                                                                                    != float(
+                                                                                        "inf"
+                                                                                    )
+                                                                                    else " (∞%)",
+                                                                                    className=f"ms-2 {'text-success' if points_change_pct > 0 else 'text-danger' if points_change_pct < 0 else 'text-secondary'}",
+                                                                                ),
+                                                                            ],
+                                                                            className="mb-1 d-flex align-items-center",
+                                                                        ),
+                                                                        html.Small(
+                                                                            [
+                                                                                "CV: ",
+                                                                                html.Span(
+                                                                                    f"{cv_points:.1f}%",
+                                                                                    className=f"{'text-success' if cv_points < 30 else 'text-warning' if cv_points < 50 else 'text-danger'}",
+                                                                                ),
+                                                                                " • Zero weeks: ",
+                                                                                html.Span(
+                                                                                    f"{zero_point_weeks}",
+                                                                                    className=f"{'text-success' if zero_point_weeks == 0 else 'text-danger'}",
+                                                                                ),
+                                                                            ],
+                                                                            className="text-muted",
+                                                                        ),
+                                                                    ],
+                                                                    className="border p-2 rounded",
+                                                                ),
+                                                            ],
+                                                        ),
+                                                    ],
+                                                    md=6,
+                                                ),
+                                                # Risk indicators & scope stability
+                                                dbc.Col(
+                                                    [
+                                                        html.Div(
+                                                            [
+                                                                # Scope stability indicator
+                                                                html.Div(
+                                                                    [
+                                                                        html.Div(
+                                                                            [
+                                                                                html.I(
+                                                                                    className=f"fas {'fa-lock' if scope_color == 'success' else 'fa-lock-open'} me-2 text-{scope_color}"
+                                                                                ),
+                                                                                html.Span(
+                                                                                    "Scope: ",
+                                                                                    className="fw-bold",
+                                                                                ),
+                                                                                html.Span(
+                                                                                    f"{scope_stability}",
+                                                                                    className=f"text-{scope_color}",
+                                                                                ),
+                                                                            ],
+                                                                            className="mb-1 d-flex align-items-center",
+                                                                        ),
+                                                                        html.Small(
+                                                                            f"Change: {scope_change_pct:+.1f}% since project start",
+                                                                            className=f"{'text-success' if scope_change_pct <= 0 else 'text-danger'}",
+                                                                        ),
+                                                                    ],
+                                                                    className="border p-2 rounded mb-2",
+                                                                ),
+                                                                # Risk indicators
+                                                                html.Div(
+                                                                    [
+                                                                        html.Div(
+                                                                            [
+                                                                                html.I(
+                                                                                    className="fas fa-exclamation-triangle me-2 text-warning"
+                                                                                ),
+                                                                                html.Span(
+                                                                                    "Risk Indicators:",
+                                                                                    className="fw-bold",
                                                                                 ),
                                                                             ],
                                                                             className="mb-1",
                                                                         ),
-                                                                        html.Small(
-                                                                            f"CV: {cv_points:.1f}% (stability)",
-                                                                            className="text-muted d-block",
-                                                                        ),
-                                                                    ],
-                                                                    className="p-2",
-                                                                ),
-                                                            ],
-                                                            width=6,
-                                                        ),
-                                                    ],
-                                                    className="border-bottom pb-2 mb-2",
-                                                ),
-                                                # Completion Forecast
-                                                dbc.Row(
-                                                    [
-                                                        dbc.Col(
-                                                            [
-                                                                html.Div(
-                                                                    [
-                                                                        html.Div(
-                                                                            "Completion Forecast:",
-                                                                            className="font-weight-bold mb-2",
-                                                                        ),
                                                                         html.Div(
                                                                             [
                                                                                 html.I(
-                                                                                    className=f"fas fa-calendar-day text-info mr-2"
+                                                                                    className="fas fa-check-circle text-success me-1"
+                                                                                    if zero_item_weeks
+                                                                                    == 0
+                                                                                    and zero_point_weeks
+                                                                                    == 0
+                                                                                    else "fas fa-exclamation-circle text-warning me-1"
                                                                                 ),
-                                                                                html.Span(
-                                                                                    "Deadline: "
-                                                                                ),
-                                                                                html.Span(
-                                                                                    f"{deadline_str}",
-                                                                                    className=f"font-weight-bold",
-                                                                                ),
-                                                                                html.Span(
-                                                                                    f" ({days_to_deadline} days remaining)"
-                                                                                    if days_to_deadline
-                                                                                    is not None
-                                                                                    else "",
-                                                                                    className="ml-1 text-muted small",
+                                                                                html.Small(
+                                                                                    "Consistent work pattern"
+                                                                                    if zero_item_weeks
+                                                                                    == 0
+                                                                                    and zero_point_weeks
+                                                                                    == 0
+                                                                                    else f"{zero_item_weeks + zero_point_weeks} weeks with no progress",
+                                                                                    className="me-2",
                                                                                 ),
                                                                             ],
-                                                                            className="d-flex align-items-center mb-2",
+                                                                            className="mb-1 d-flex align-items-center",
                                                                         ),
                                                                         html.Div(
                                                                             [
                                                                                 html.I(
-                                                                                    className=f"fas fa-tasks text-info mr-2"
+                                                                                    className="fas fa-check-circle text-success me-1"
+                                                                                    if high_item_weeks
+                                                                                    == 0
+                                                                                    and high_point_weeks
+                                                                                    == 0
+                                                                                    else "fas fa-exclamation-circle text-warning me-1"
                                                                                 ),
-                                                                                html.Span(
-                                                                                    "Items Completion: "
-                                                                                ),
-                                                                                html.Span(
-                                                                                    f"{completion_date_items}",
-                                                                                    className=f"font-weight-bold {('text-success' if deadline_obj is not None and completion_date_items != 'Unknown' and datetime.strptime(completion_date_items, '%Y-%m-%d') <= deadline_obj else 'text-danger') if deadline_obj is not None and completion_date_items != 'Unknown' else ''}",
-                                                                                ),
-                                                                            ],
-                                                                            className="d-flex align-items-center mb-2",
-                                                                        ),
-                                                                        html.Div(
-                                                                            [
-                                                                                html.I(
-                                                                                    className=f"fas fa-chart-line text-warning mr-2"
-                                                                                ),
-                                                                                html.Span(
-                                                                                    "Points Completion: "
-                                                                                ),
-                                                                                html.Span(
-                                                                                    f"{completion_date_points}",
-                                                                                    className=f"font-weight-bold {('text-success' if deadline_obj is not None and completion_date_points != 'Unknown' and datetime.strptime(completion_date_points, '%Y-%m-%d') <= deadline_obj else 'text-danger') if deadline_obj is not None and completion_date_points != 'Unknown' else ''}",
+                                                                                html.Small(
+                                                                                    "Steady velocity pattern"
+                                                                                    if high_item_weeks
+                                                                                    == 0
+                                                                                    and high_point_weeks
+                                                                                    == 0
+                                                                                    else f"{high_item_weeks + high_point_weeks} weeks with 2x normal velocity",
                                                                                 ),
                                                                             ],
                                                                             className="d-flex align-items-center",
                                                                         ),
                                                                     ],
-                                                                    className="p-2",
+                                                                    className="border p-2 rounded",
                                                                 ),
                                                             ],
-                                                            width=12,
                                                         ),
                                                     ],
-                                                ),
-                                                # Risk Indicators
-                                                dbc.Row(
-                                                    [
-                                                        dbc.Col(
-                                                            [
-                                                                html.Div(
-                                                                    [
-                                                                        html.Div(
-                                                                            "Risk Indicators:",
-                                                                            className="font-weight-bold mb-2",
-                                                                        ),
-                                                                        html.Div(
-                                                                            [
-                                                                                html.I(
-                                                                                    className="fas fa-exclamation-triangle text-warning mr-2"
-                                                                                    if zero_item_weeks
-                                                                                    > 0
-                                                                                    or zero_point_weeks
-                                                                                    > 0
-                                                                                    else "fas fa-check text-success mr-2",
-                                                                                ),
-                                                                                html.Span(
-                                                                                    f"{zero_item_weeks} weeks with zero items"
-                                                                                    if zero_item_weeks
-                                                                                    > 0
-                                                                                    else "Consistent item completion",
-                                                                                    className="small",
-                                                                                ),
-                                                                            ],
-                                                                            className="mb-1",
-                                                                        ),
-                                                                        html.Div(
-                                                                            [
-                                                                                html.I(
-                                                                                    className="fas fa-exclamation-triangle text-warning mr-2"
-                                                                                    if high_item_weeks
-                                                                                    > 0
-                                                                                    or high_point_weeks
-                                                                                    > 0
-                                                                                    else "fas fa-check text-success mr-2",
-                                                                                ),
-                                                                                html.Span(
-                                                                                    f"{high_item_weeks} weeks with 2x normal velocity"
-                                                                                    if high_item_weeks
-                                                                                    > 0
-                                                                                    else "Steady velocity pattern",
-                                                                                    className="small",
-                                                                                ),
-                                                                            ],
-                                                                            className="mb-1",
-                                                                        ),
-                                                                    ],
-                                                                    className="p-2",
-                                                                ),
-                                                            ],
-                                                            width=12,
-                                                        ),
-                                                    ],
+                                                    md=6,
                                                 ),
                                             ],
-                                            className="p-3 border rounded",
                                         ),
                                     ],
-                                    width=12,
+                                    lg=6,
                                 ),
                             ],
-                            className="mt-1",
+                            className="mb-3",
+                        ),
+                        # 3. PERT ANALYSIS SECTION
+                        dbc.Row(
+                            [
+                                dbc.Col(
+                                    [
+                                        html.H5(
+                                            [
+                                                html.I(
+                                                    className="fas fa-project-diagram me-2 text-primary"
+                                                ),
+                                                "PERT Analysis",
+                                            ],
+                                            className="border-bottom pb-2 mb-3",
+                                        ),
+                                        html.Div(
+                                            pert_info_content,
+                                            id="project-dashboard-pert-content",
+                                        ),
+                                    ],
+                                ),
+                            ],
                         ),
                     ],
+                    className="p-3",  # Add padding to entire card body
                 ),
             ],
             className="mb-3 shadow-sm",
