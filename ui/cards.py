@@ -1255,55 +1255,25 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
             # Calculate estimated completion date based on remaining work
             if avg_weekly_items > 0:
                 weeks_to_complete_items = remaining_items / avg_weekly_items
-                completion_date_items = (
-                    datetime.now() + timedelta(weeks=weeks_to_complete_items)
-                ).strftime("%Y-%m-%d")
+                completion_date_items = datetime.now() + timedelta(
+                    weeks=weeks_to_complete_items
+                )
+                days_to_complete_items = int(weeks_to_complete_items * 7)
+                completion_date_items_str = completion_date_items.strftime("%Y-%m-%d")
             else:
-                completion_date_items = "Unknown"
+                completion_date_items_str = "Unknown"
+                days_to_complete_items = None
 
             if avg_weekly_points > 0:
                 weeks_to_complete_points = remaining_points / avg_weekly_points
-                completion_date_points = (
-                    datetime.now() + timedelta(weeks=weeks_to_complete_points)
-                ).strftime("%Y-%m-%d")
+                completion_date_points = datetime.now() + timedelta(
+                    weeks=weeks_to_complete_points
+                )
+                days_to_complete_points = int(weeks_to_complete_points * 7)
+                completion_date_points_str = completion_date_points.strftime("%Y-%m-%d")
             else:
-                completion_date_points = "Unknown"
-
-            # Calculate scope change metrics
-            if len(statistics_df) > 0:
-                first_date = pd.to_datetime(statistics_df["date"].min())
-                project_days = (datetime.now() - first_date).days
-
-                if project_days > 0:
-                    initial_estimate = settings.get("estimated_items", remaining_items)
-                    scope_change_pct = (
-                        ((remaining_items - initial_estimate) / initial_estimate * 100)
-                        if initial_estimate > 0
-                        else 0
-                    )
-                    scope_change_per_month = (
-                        (scope_change_pct / project_days * 30)
-                        if project_days > 0
-                        else 0
-                    )
-
-                    if scope_change_per_month > 10:
-                        scope_stability = "High Volatility"
-                        scope_color = "danger"
-                    elif scope_change_per_month > 5:
-                        scope_stability = "Moderate Volatility"
-                        scope_color = "warning"
-                    else:
-                        scope_stability = "Stable Scope"
-                        scope_color = "success"
-                else:
-                    scope_stability = "Insufficient Data"
-                    scope_color = "secondary"
-                    scope_change_pct = 0
-            else:
-                scope_stability = "No Data"
-                scope_color = "secondary"
-                scope_change_pct = 0
+                completion_date_points_str = "Unknown"
+                days_to_complete_points = None
         else:
             avg_weekly_items = 0
             avg_weekly_points = 0
@@ -1318,11 +1288,10 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
             stability_status = "No Data"
             stability_color = "secondary"
             stability_icon = "fa-question-circle"
-            scope_stability = "No Data"
-            scope_color = "secondary"
-            scope_change_pct = 0
-            completion_date_items = "Unknown"
-            completion_date_points = "Unknown"
+            completion_date_items_str = "Unknown"
+            completion_date_points_str = "Unknown"
+            days_to_complete_items = None
+            days_to_complete_points = None
             stability_score = 0
             zero_item_weeks = 0
             zero_point_weeks = 0
@@ -1339,26 +1308,7 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
             unique_dates = (
                 statistics_df["date"].nunique() if not statistics_df.empty else 0
             )
-            data_density = (
-                (unique_dates / data_span_days * 100) if data_span_days > 0 else 0
-            )
-
-            # Calculate better data quality score
-            data_quality_score = min(100, data_density * 2)
-
-            if data_quality_score >= 70:
-                data_quality = "High"
-                data_quality_color = "success"
-            elif data_quality_score >= 40:
-                data_quality = "Medium"
-                data_quality_color = "warning"
-            else:
-                data_quality = "Low"
-                data_quality_color = "danger"
         else:
-            data_quality = "No Data"
-            data_quality_color = "danger"
-            data_quality_score = 0
             data_span_days = 0
             unique_dates = 0
 
@@ -1633,8 +1583,15 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
                                                                             className="fw-bold",
                                                                         ),
                                                                         html.Span(
-                                                                            f"{completion_date_items}",
-                                                                            className=f"{('text-success' if deadline_obj is not None and completion_date_items != 'Unknown' and datetime.strptime(completion_date_items, '%Y-%m-%d') <= deadline_obj else 'text-danger') if deadline_obj is not None and completion_date_items != 'Unknown' else ''}",
+                                                                            f"{completion_date_items_str}",
+                                                                            className=f"{('text-success' if deadline_obj is not None and completion_date_items_str != 'Unknown' and datetime.strptime(completion_date_items_str, '%Y-%m-%d') <= deadline_obj else 'text-danger') if deadline_obj is not None and completion_date_items_str != 'Unknown' else ''}",
+                                                                        ),
+                                                                        html.Small(
+                                                                            f" ({days_to_complete_items} days)"
+                                                                            if days_to_complete_items
+                                                                            is not None
+                                                                            else "",
+                                                                            className="ms-1 text-muted",
                                                                         ),
                                                                     ],
                                                                     className="mb-1 d-flex align-items-center",
@@ -1654,69 +1611,14 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
                                                                             className="fw-bold",
                                                                         ),
                                                                         html.Span(
-                                                                            f"{completion_date_points}",
-                                                                            className=f"{('text-success' if deadline_obj is not None and completion_date_points != 'Unknown' and datetime.strptime(completion_date_points, '%Y-%m-%d') <= deadline_obj else 'text-danger') if deadline_obj is not None and completion_date_points != 'Unknown' else ''}",
-                                                                        ),
-                                                                    ],
-                                                                    className="d-flex align-items-center",
-                                                                ),
-                                                            ],
-                                                            className="border p-2 rounded",
-                                                        ),
-                                                    ],
-                                                    md=6,
-                                                ),
-                                                # Data stats & dataset quality
-                                                dbc.Col(
-                                                    [
-                                                        html.Div(
-                                                            [
-                                                                html.Div(
-                                                                    [
-                                                                        html.I(
-                                                                            className="fas fa-database me-2 text-secondary"
-                                                                        ),
-                                                                        html.Span(
-                                                                            "Dataset: ",
-                                                                            className="fw-bold",
+                                                                            f"{completion_date_points_str}",
+                                                                            className=f"{('text-success' if deadline_obj is not None and completion_date_points_str != 'Unknown' and datetime.strptime(completion_date_points_str, '%Y-%m-%d') <= deadline_obj else 'text-danger') if deadline_obj is not None and completion_date_points_str != 'Unknown' else ''}",
                                                                         ),
                                                                         html.Small(
-                                                                            f"{len(statistics_df) if not statistics_df.empty else 0} records over {data_span_days} days"
-                                                                        ),
-                                                                    ],
-                                                                    className="mb-1 d-flex align-items-center",
-                                                                ),
-                                                                html.Div(
-                                                                    [
-                                                                        html.I(
-                                                                            className=f"fas fa-check-circle me-2 text-{data_quality_color}"
-                                                                        ),
-                                                                        html.Span(
-                                                                            "Data quality: ",
-                                                                            className="fw-bold",
-                                                                        ),
-                                                                        html.Span(
-                                                                            f"{data_quality}",
-                                                                            className=f"text-{data_quality_color}",
-                                                                        ),
-                                                                    ],
-                                                                    className="mb-1 d-flex align-items-center",
-                                                                ),
-                                                                html.Div(
-                                                                    [
-                                                                        html.I(
-                                                                            className=f"fas {stability_icon} me-2 text-{stability_color}"
-                                                                        ),
-                                                                        html.Span(
-                                                                            "Velocity: ",
-                                                                            className="fw-bold",
-                                                                        ),
-                                                                        html.Span(
-                                                                            f"{stability_status}",
-                                                                            className=f"text-{stability_color}",
-                                                                        ),
-                                                                        html.Small(
-                                                                            f" (score: {stability_score:.0f})",
+                                                                            f" ({days_to_complete_points} days)"
+                                                                            if days_to_complete_points
+                                                                            is not None
+                                                                            else "",
                                                                             className="ms-1 text-muted",
                                                                         ),
                                                                     ],
@@ -1726,7 +1628,7 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
                                                             className="border p-2 rounded",
                                                         ),
                                                     ],
-                                                    md=6,
+                                                    width=12,
                                                 ),
                                             ],
                                             className="mb-4",
@@ -1817,6 +1719,17 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
                                                                     ],
                                                                     className="border p-2 rounded mb-2",
                                                                 ),
+                                                            ],
+                                                            className="mb-3",
+                                                        ),
+                                                    ],
+                                                    md=6,
+                                                ),
+                                                # Points metrics
+                                                dbc.Col(
+                                                    [
+                                                        html.Div(
+                                                            [
                                                                 # Points velocity & trend
                                                                 html.Div(
                                                                     [
@@ -1877,103 +1790,6 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
                                                                                 ),
                                                                             ],
                                                                             className="text-muted",
-                                                                        ),
-                                                                    ],
-                                                                    className="border p-2 rounded",
-                                                                ),
-                                                            ],
-                                                        ),
-                                                    ],
-                                                    md=6,
-                                                ),
-                                                # Risk indicators & scope stability
-                                                dbc.Col(
-                                                    [
-                                                        html.Div(
-                                                            [
-                                                                # Scope stability indicator
-                                                                html.Div(
-                                                                    [
-                                                                        html.Div(
-                                                                            [
-                                                                                html.I(
-                                                                                    className=f"fas {'fa-lock' if scope_color == 'success' else 'fa-lock-open'} me-2 text-{scope_color}"
-                                                                                ),
-                                                                                html.Span(
-                                                                                    "Scope: ",
-                                                                                    className="fw-bold",
-                                                                                ),
-                                                                                html.Span(
-                                                                                    f"{scope_stability}",
-                                                                                    className=f"text-{scope_color}",
-                                                                                ),
-                                                                            ],
-                                                                            className="mb-1 d-flex align-items-center",
-                                                                        ),
-                                                                        html.Small(
-                                                                            f"Change: {scope_change_pct:+.1f}% since project start",
-                                                                            className=f"{'text-success' if scope_change_pct <= 0 else 'text-danger'}",
-                                                                        ),
-                                                                    ],
-                                                                    className="border p-2 rounded mb-2",
-                                                                ),
-                                                                # Risk indicators
-                                                                html.Div(
-                                                                    [
-                                                                        html.Div(
-                                                                            [
-                                                                                html.I(
-                                                                                    className="fas fa-exclamation-triangle me-2 text-warning"
-                                                                                ),
-                                                                                html.Span(
-                                                                                    "Risk Indicators:",
-                                                                                    className="fw-bold",
-                                                                                ),
-                                                                            ],
-                                                                            className="mb-1",
-                                                                        ),
-                                                                        html.Div(
-                                                                            [
-                                                                                html.I(
-                                                                                    className="fas fa-check-circle text-success me-1"
-                                                                                    if zero_item_weeks
-                                                                                    == 0
-                                                                                    and zero_point_weeks
-                                                                                    == 0
-                                                                                    else "fas fa-exclamation-circle text-warning me-1"
-                                                                                ),
-                                                                                html.Small(
-                                                                                    "Consistent work pattern"
-                                                                                    if zero_item_weeks
-                                                                                    == 0
-                                                                                    and zero_point_weeks
-                                                                                    == 0
-                                                                                    else f"{zero_item_weeks + zero_point_weeks} weeks with no progress",
-                                                                                    className="me-2",
-                                                                                ),
-                                                                            ],
-                                                                            className="mb-1 d-flex align-items-center",
-                                                                        ),
-                                                                        html.Div(
-                                                                            [
-                                                                                html.I(
-                                                                                    className="fas fa-check-circle text-success me-1"
-                                                                                    if high_item_weeks
-                                                                                    == 0
-                                                                                    and high_point_weeks
-                                                                                    == 0
-                                                                                    else "fas fa-exclamation-circle text-warning me-1"
-                                                                                ),
-                                                                                html.Small(
-                                                                                    "Steady velocity pattern"
-                                                                                    if high_item_weeks
-                                                                                    == 0
-                                                                                    and high_point_weeks
-                                                                                    == 0
-                                                                                    else f"{high_item_weeks + high_point_weeks} weeks with 2x normal velocity",
-                                                                                ),
-                                                                            ],
-                                                                            className="d-flex align-items-center",
                                                                         ),
                                                                     ],
                                                                     className="border p-2 rounded",
