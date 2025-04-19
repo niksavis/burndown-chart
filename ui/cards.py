@@ -1316,31 +1316,33 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
                 completion_date_points_med_str = "Unknown"
                 days_to_complete_points_med = None
                 weeks_to_complete_points_med = None
+
         else:
             avg_weekly_items = 0
             avg_weekly_points = 0
-            cv_items = 0
-            cv_points = 0
-            items_trend = "No Data"
-            points_trend = "No Data"
-            items_trend_color = "secondary"
-            points_trend_color = "secondary"
-            items_trend_icon = "fa-minus"
-            points_trend_icon = "fa-minus"
-            stability_status = "No Data"
+            med_weekly_items = 0
+            med_weekly_points = 0
+            stability_status = "Unknown"
             stability_color = "secondary"
             stability_icon = "fa-question-circle"
+            items_trend = "Unknown"
+            items_trend_color = "secondary"
+            items_trend_icon = "fa-minus"
+            points_trend = "Unknown"
+            points_trend_color = "secondary"
+            points_trend_icon = "fa-minus"
             completion_date_items_avg_str = "Unknown"
+            completion_date_items_med_str = "Unknown"
             completion_date_points_avg_str = "Unknown"
+            completion_date_points_med_str = "Unknown"
             days_to_complete_items_avg = None
+            days_to_complete_items_med = None
             days_to_complete_points_avg = None
+            days_to_complete_points_med = None
             weeks_to_complete_items_avg = None
+            weeks_to_complete_items_med = None
             weeks_to_complete_points_avg = None
-            stability_score = 0
-            zero_item_weeks = 0
-            zero_point_weeks = 0
-            high_item_weeks = 0
-            high_point_weeks = 0
+            weeks_to_complete_points_med = None
 
         # Calculate days of data available
         if not statistics_df.empty:
@@ -1374,8 +1376,26 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
         pert_info_content = html.Div("PERT analysis data not available")
         if pert_data:
             try:
-                pert_time_items = pert_data.get("pert_time_items", 0)
-                pert_time_points = pert_data.get("pert_time_points", 0)
+                pert_time_items = pert_data.get("pert_time_items")
+                pert_time_points = pert_data.get("pert_time_points")
+
+                # Calculate PERT completion dates
+                current_date = datetime.now()
+                if pert_time_items is not None:
+                    items_completion_date = current_date + timedelta(
+                        days=pert_time_items
+                    )
+                    items_completion_str = items_completion_date.strftime("%Y-%m-%d")
+                else:
+                    items_completion_str = "Unknown"
+
+                if pert_time_points is not None:
+                    points_completion_date = current_date + timedelta(
+                        days=pert_time_points
+                    )
+                    points_completion_str = points_completion_date.strftime("%Y-%m-%d")
+                else:
+                    points_completion_str = "Unknown"
 
                 # If both PERT values are None, provide a placeholder message
                 if pert_time_items is None and pert_time_points is None:
@@ -1395,10 +1415,13 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
                         total_items=remaining_items,
                         total_points=remaining_points,
                         deadline_str=deadline_str,
+                        med_weekly_items=med_weekly_items,
+                        med_weekly_points=med_weekly_points,
                     )
             except Exception as pert_error:
                 pert_info_content = html.P(
-                    f"Error generating PERT analysis: {str(pert_error)}"
+                    f"Error generating PERT analysis: {str(pert_error)}",
+                    className="text-danger p-3",
                 )
 
         return dbc.Card(
@@ -1621,29 +1644,159 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
                                             ],
                                             className="mb-3",
                                         ),
-                                        # Linear Forecasts section
+                                        # Linear Forecasts section renamed to Forecast and including PERT data
                                         dbc.Row(
                                             [
                                                 dbc.Col(
                                                     [
                                                         html.Div(
                                                             [
-                                                                # Header with tooltip
+                                                                # Header with tooltip - Renamed from Linear Forecast to Forecast
                                                                 html.Div(
                                                                     [
                                                                         html.I(
                                                                             className="fas fa-chart-line me-2 text-info"
                                                                         ),
                                                                         html.Span(
-                                                                            "Linear Forecast",
+                                                                            "Forecast",
                                                                             className="fw-bold",
                                                                         ),
                                                                         create_info_tooltip(
-                                                                            "linear-forecast",
-                                                                            "Simple linear projection based on average and median weekly velocity (calculated from the last 10 weeks).",
+                                                                            "forecast-section",
+                                                                            "Forecast projections based on linear trends and PERT analysis.",
                                                                         ),
                                                                     ],
                                                                     className="mb-2 d-flex align-items-center",
+                                                                ),
+                                                                # PERT Items completion - Fixed to use actual PERT data
+                                                                html.Div(
+                                                                    [
+                                                                        html.I(
+                                                                            className="fas fa-tasks me-2",
+                                                                            style={
+                                                                                "color": COLOR_PALETTE[
+                                                                                    "items"
+                                                                                ]
+                                                                            },
+                                                                        ),
+                                                                        html.Span(
+                                                                            "Items completion (PERT): ",
+                                                                            className="fw-bold",
+                                                                        ),
+                                                                        html.Span(
+                                                                            # If pert_data available, calculate completion date
+                                                                            items_completion_str
+                                                                            if "items_completion_str"
+                                                                            in locals()
+                                                                            else (
+                                                                                datetime.now()
+                                                                                + timedelta(
+                                                                                    days=pert_data.get(
+                                                                                        "pert_time_items",
+                                                                                        0,
+                                                                                    )
+                                                                                )
+                                                                                if pert_data
+                                                                                and pert_data.get(
+                                                                                    "pert_time_items"
+                                                                                )
+                                                                                is not None
+                                                                                else datetime.now()
+                                                                            ).strftime(
+                                                                                "%Y-%m-%d"
+                                                                            ),
+                                                                            className="ms-1 text-success"
+                                                                            if pert_data
+                                                                            and pert_data.get(
+                                                                                "pert_time_items"
+                                                                            )
+                                                                            is not None
+                                                                            and days_to_deadline
+                                                                            is not None
+                                                                            and pert_data.get(
+                                                                                "pert_time_items"
+                                                                            )
+                                                                            <= days_to_deadline
+                                                                            else "ms-1 text-danger",
+                                                                        ),
+                                                                        html.Span(
+                                                                            # Format days and weeks correctly
+                                                                            f" ({pert_data.get('pert_time_items'):.1f} days, {pert_data.get('pert_time_items') / 7:.1f} weeks)"
+                                                                            if pert_data
+                                                                            and pert_data.get(
+                                                                                "pert_time_items"
+                                                                            )
+                                                                            is not None
+                                                                            else " (Unknown)",
+                                                                            className="ms-1 text-muted",
+                                                                        ),
+                                                                    ],
+                                                                    className="mb-1 d-flex align-items-center",
+                                                                ),
+                                                                # PERT Points completion - Fixed to use actual PERT data
+                                                                html.Div(
+                                                                    [
+                                                                        html.I(
+                                                                            className="fas fa-chart-line me-2",
+                                                                            style={
+                                                                                "color": COLOR_PALETTE[
+                                                                                    "points"
+                                                                                ]
+                                                                            },
+                                                                        ),
+                                                                        html.Span(
+                                                                            "Points completion (PERT): ",
+                                                                            className="fw-bold",
+                                                                        ),
+                                                                        html.Span(
+                                                                            # If pert_data available, calculate completion date
+                                                                            points_completion_str
+                                                                            if "points_completion_str"
+                                                                            in locals()
+                                                                            else (
+                                                                                datetime.now()
+                                                                                + timedelta(
+                                                                                    days=pert_data.get(
+                                                                                        "pert_time_points",
+                                                                                        0,
+                                                                                    )
+                                                                                )
+                                                                                if pert_data
+                                                                                and pert_data.get(
+                                                                                    "pert_time_points"
+                                                                                )
+                                                                                is not None
+                                                                                else datetime.now()
+                                                                            ).strftime(
+                                                                                "%Y-%m-%d"
+                                                                            ),
+                                                                            className="ms-1 text-success"
+                                                                            if pert_data
+                                                                            and pert_data.get(
+                                                                                "pert_time_points"
+                                                                            )
+                                                                            is not None
+                                                                            and days_to_deadline
+                                                                            is not None
+                                                                            and pert_data.get(
+                                                                                "pert_time_points"
+                                                                            )
+                                                                            <= days_to_deadline
+                                                                            else "ms-1 text-danger",
+                                                                        ),
+                                                                        html.Span(
+                                                                            # Format days and weeks correctly
+                                                                            f" ({pert_data.get('pert_time_points'):.1f} days, {pert_data.get('pert_time_points') / 7:.1f} weeks)"
+                                                                            if pert_data
+                                                                            and pert_data.get(
+                                                                                "pert_time_points"
+                                                                            )
+                                                                            is not None
+                                                                            else " (Unknown)",
+                                                                            className="ms-1 text-muted",
+                                                                        ),
+                                                                    ],
+                                                                    className="mb-3 d-flex align-items-center",
                                                                 ),
                                                                 # Items Forecast - Average
                                                                 html.Div(
@@ -2401,4 +2554,147 @@ def create_points_forecast_info_card():
             ),
         ],
         className="mt-5 mb-3 shadow-sm",  # Added top margin to create more space from the chart
+    )
+
+
+def debug_pert_data(pert_data):
+    """Simple utility to display pert_data contents for debugging"""
+    import json
+    from dash import html
+
+    if pert_data is None:
+        return html.Pre("pert_data is None")
+
+    try:
+        # Format as pretty JSON with indentation
+        json_str = json.dumps(pert_data, indent=2, default=str)
+        return html.Pre(json_str)
+    except Exception as e:
+        return html.Pre(f"Error serializing pert_data: {str(e)}")
+
+
+def create_simple_pert_forecast_section(pert_data):
+    """
+    Create a simple PERT forecast section that directly displays the values.
+    This is a simplified version that avoids complex conditional formatting.
+
+    Args:
+        pert_data: Dictionary containing PERT analysis data
+
+    Returns:
+        Dash component with PERT forecast information
+    """
+    import dash_bootstrap_components as dbc
+    from dash import html
+    from datetime import datetime, timedelta
+
+    # Default values
+    items_completion_str = "Unknown"
+    points_completion_str = "Unknown"
+    items_days = "Unknown"
+    points_days = "Unknown"
+    items_weeks = "Unknown"
+    points_weeks = "Unknown"
+
+    # Extract values if available
+    if pert_data and isinstance(pert_data, dict):
+        pert_time_items = pert_data.get("pert_time_items")
+        pert_time_points = pert_data.get("pert_time_points")
+
+        # Check if we have pre-formatted completion strings in pert_data
+        items_completion_enhanced = pert_data.get("items_completion_enhanced")
+        points_completion_enhanced = pert_data.get("points_completion_enhanced")
+
+        if items_completion_enhanced is not None:
+            # Use pre-formatted string directly
+            items_completion_str_with_details = items_completion_enhanced
+        elif pert_time_items is not None:
+            # Format values if they exist but we don't have pre-formatted strings
+            current_date = datetime.now()
+            items_completion_date = current_date + timedelta(days=pert_time_items)
+            items_completion_str = items_completion_date.strftime("%Y-%m-%d")
+            items_days = f"{pert_time_items:.1f}"
+            items_weeks = f"{pert_time_items / 7:.1f}"
+            items_completion_str_with_details = (
+                f"{items_completion_str} ({items_days} days, {items_weeks} weeks)"
+            )
+        else:
+            items_completion_str_with_details = "Unknown"
+
+        if points_completion_enhanced is not None:
+            # Use pre-formatted string directly
+            points_completion_str_with_details = points_completion_enhanced
+        elif pert_time_points is not None:
+            # Format values if they exist but we don't have pre-formatted strings
+            current_date = datetime.now()
+            points_completion_date = current_date + timedelta(days=pert_time_points)
+            points_completion_str = points_completion_date.strftime("%Y-%m-%d")
+            points_days = f"{pert_time_points:.1f}"
+            points_weeks = f"{pert_time_points / 7:.1f}"
+            points_completion_str_with_details = (
+                f"{points_completion_str} ({points_days} days, {points_weeks} weeks)"
+            )
+        else:
+            points_completion_str_with_details = "Unknown"
+
+    return dbc.Card(
+        [
+            dbc.CardHeader("PERT Forecast"),
+            dbc.CardBody(
+                [
+                    html.Div(
+                        [
+                            html.P(
+                                [
+                                    html.Strong("Items completion (PERT): "),
+                                    items_completion_str_with_details,
+                                ]
+                            ),
+                            html.P(
+                                [
+                                    html.Strong("Points completion (PERT): "),
+                                    points_completion_str_with_details,
+                                ]
+                            ),
+                        ]
+                    )
+                ]
+            ),
+        ]
+    )
+
+
+def create_pert_forecast_display():
+    """
+    Create a simplified PERT forecast display with hardcoded values for testing.
+
+    Returns:
+        Dash component with PERT forecast information
+    """
+    import dash_bootstrap_components as dbc
+    from dash import html
+
+    return html.Div(
+        [
+            # Header with tooltip
+            html.H5("PERT Forecast"),
+            # Directly show hardcoded values for testing
+            html.Div(
+                [
+                    html.P(
+                        [
+                            html.Strong("Items completion (PERT): "),
+                            "2025-05-15 (55.5 days, 7.9 weeks)",
+                        ]
+                    ),
+                    html.P(
+                        [
+                            html.Strong("Points completion (PERT): "),
+                            "2025-05-20 (60.2 days, 8.6 weeks)",
+                        ]
+                    ),
+                ],
+                className="border p-2 rounded",
+            ),
+        ],
     )

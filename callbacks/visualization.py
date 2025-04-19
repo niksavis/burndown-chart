@@ -101,7 +101,7 @@ def register(app):
                 df = compute_cumulative_values(df, total_items, total_points)
 
             # Create forecast plot and get PERT values
-            fig, pert_time_items, pert_time_points = create_forecast_plot(
+            fig, pert_data = create_forecast_plot(
                 df=df,
                 total_items=total_items,
                 total_points=total_points,
@@ -122,8 +122,8 @@ def register(app):
 
             # Create the PERT info component for the Project Dashboard
             project_dashboard_pert_info = create_pert_info_table(
-                pert_time_items,
-                pert_time_points,
+                pert_data["pert_time_items"],
+                pert_data["pert_time_points"],
                 days_to_deadline,
                 avg_weekly_items,
                 avg_weekly_points,
@@ -211,7 +211,7 @@ def register(app):
             charts = {}
 
             # Burndown chart (existing)
-            burndown_fig, _, _ = create_forecast_plot(
+            burndown_fig, _ = create_forecast_plot(
                 df=compute_cumulative_values(df, total_items, total_points)
                 if not df.empty
                 else df,

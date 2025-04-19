@@ -427,7 +427,7 @@ def create_forecast_plot(
         data_points_count: Number of most recent data points to use (defaults to all)
 
     Returns:
-        Tuple of (figure, pert_time_items, pert_time_points)
+        Tuple of (figure, pert_data_dict) where pert_data_dict contains all PERT forecast information
     """
     # Ensure proper date format for deadline
     deadline = pd.to_datetime(deadline_str)
@@ -467,14 +467,28 @@ def create_forecast_plot(
             calculate_weekly_averages(df.to_dict("records"))
         )
 
+    # Calculate enhanced formatted strings for PERT estimates
+    pert_time_items = forecast_data["pert_time_items"]
+    pert_time_points = forecast_data["pert_time_points"]
+
+    # Generate the enhanced formatted strings
+    items_completion_date = current_date + timedelta(days=pert_time_items)
+    points_completion_date = current_date + timedelta(days=pert_time_points)
+
+    items_completion_str = items_completion_date.strftime("%Y-%m-%d")
+    points_completion_str = points_completion_date.strftime("%Y-%m-%d")
+
+    items_completion_enhanced = f"{items_completion_str} ({pert_time_items:.1f} days, {pert_time_items / 7:.1f} weeks)"
+    points_completion_enhanced = f"{points_completion_str} ({pert_time_points:.1f} days, {pert_time_points / 7:.1f} weeks)"
+
     # Add metrics data to the plot
     metrics_data = {
         "total_items": total_items,
         "total_points": total_points,
         "deadline": deadline.strftime("%Y-%m-%d"),
         "days_to_deadline": days_to_deadline,
-        "pert_time_items": forecast_data["pert_time_items"],
-        "pert_time_points": forecast_data["pert_time_points"],
+        "pert_time_items": pert_time_items,
+        "pert_time_points": pert_time_points,
         "avg_weekly_items": avg_weekly_items,
         "avg_weekly_points": avg_weekly_points,
         "med_weekly_items": med_weekly_items,
@@ -483,11 +497,23 @@ def create_forecast_plot(
         if data_points_count is not None
         else len(df),
         "data_points_available": len(df),
+        # Add the enhanced formatted strings
+        "items_completion_enhanced": items_completion_enhanced,
+        "points_completion_enhanced": points_completion_enhanced,
     }
 
     fig = add_metrics_annotations(fig, metrics_data)
 
-    return fig, forecast_data["pert_time_items"], forecast_data["pert_time_points"]
+    # Create a complete PERT data dictionary to return
+    pert_data = {
+        "pert_time_items": forecast_data["pert_time_items"],
+        "pert_time_points": forecast_data["pert_time_points"],
+        "items_completion_enhanced": items_completion_enhanced,
+        "points_completion_enhanced": points_completion_enhanced,
+        "days_to_deadline": days_to_deadline,
+    }
+
+    return fig, pert_data
 
 
 def create_weekly_items_chart(
