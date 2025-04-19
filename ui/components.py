@@ -792,7 +792,7 @@ def create_pert_info_table(
                                             ),
                                             f"{completed_points} of {actual_total_points} points ({remaining_points} remaining)",
                                         ],
-                                        className="text-muted mt-1 d-block",
+                                        className="text-muted mt-1 d-block text-center",
                                     ),
                                 ],
                                 style={
@@ -856,7 +856,7 @@ def create_pert_info_table(
                                             ),
                                             html.Small(
                                                 f"{completed_items} of {actual_total_items} items ({total_items} remaining)",
-                                                className="text-muted mt-1 d-block",
+                                                className="text-muted mt-1 d-block text-center",
                                             ),
                                         ],
                                         className="mb-3",
@@ -913,7 +913,7 @@ def create_pert_info_table(
                                             ),
                                             html.Small(
                                                 f"{completed_points} of {actual_total_points} points ({remaining_points} remaining)",
-                                                className="text-muted mt-1 d-block",
+                                                className="text-muted mt-1 d-block text-center",
                                             ),
                                         ],
                                     ),
@@ -936,7 +936,7 @@ def create_pert_info_table(
                                         style={"fontWeight": "bold"},
                                     ),
                                 ],
-                                className="mt-3 d-flex align-items-center",
+                                className="mt-3 d-flex align-items-center justify-content-center",
                             ),
                         ],
                         className="mb-3",
