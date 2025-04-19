@@ -741,102 +741,43 @@ def create_pert_info_table(
             html.Div(
                 [
                     html.H5(
-                        "Project Overview",
-                        className="mb-3 border-bottom pb-2",
+                        [
+                            html.I(
+                                className="fas fa-project-diagram me-2",
+                                style={"color": "#20c997"},
+                            ),
+                            "Project Overview",
+                        ],
+                        className="mb-3 border-bottom pb-2 d-flex align-items-center",
                     ),
-                    # Progress bar with percentage inside
                     html.Div(
                         [
-                            # Combined progress bar - shown when percentages are similar
+                            # Project progress section
                             html.Div(
                                 [
-                                    html.Div(
-                                        className="progress",
-                                        style={
-                                            "height": "24px",
-                                            "position": "relative",
-                                        },
-                                        children=[
-                                            html.Div(
-                                                className="progress-bar bg-primary",
-                                                style={
-                                                    "width": f"{items_percentage}%",
-                                                    "height": "100%",
-                                                },
-                                            ),
-                                            html.Span(
-                                                f"{items_percentage}%",
-                                                style={
-                                                    "position": "absolute",
-                                                    "top": "0",
-                                                    "left": "0",
-                                                    "width": "100%",
-                                                    "height": "100%",
-                                                    "display": "flex",
-                                                    "alignItems": "center",
-                                                    "justifyContent": "center",
-                                                    "color": "white"
-                                                    if items_percentage > 50
-                                                    else "black",
-                                                    "fontWeight": "bold",
-                                                },
-                                            ),
-                                        ],
-                                    ),
-                                    html.Small(
-                                        [
-                                            f"{completed_items} of {actual_total_items} items ({total_items} remaining)",
-                                            html.Span(
-                                                " • ",
-                                                className="mx-2 text-muted",
-                                            ),
-                                            f"{completed_points} of {actual_total_points} points ({remaining_points} remaining)",
-                                        ],
-                                        className="text-muted mt-1 d-block text-center",
-                                    ),
-                                ],
-                                style={
-                                    "display": "block"
-                                    if similar_percentages
-                                    else "none"
-                                },
-                            ),
-                            # Separate progress bars - shown when percentages differ
-                            html.Div(
-                                [
-                                    # Items progress bar
+                                    # Combined progress for similar percentages
                                     html.Div(
                                         [
-                                            html.Small(
-                                                [
-                                                    html.I(
-                                                        className="fas fa-tasks me-1",
-                                                        style={
-                                                            "color": COLOR_PALETTE[
-                                                                "items"
-                                                            ]
-                                                        },
-                                                    ),
-                                                    "Items",
-                                                ],
-                                                className="mb-1 d-block",
-                                            ),
                                             html.Div(
                                                 className="progress",
                                                 style={
                                                     "height": "24px",
                                                     "position": "relative",
+                                                    "borderRadius": "6px",
+                                                    "overflow": "hidden",
+                                                    "boxShadow": "inset 0 1px 2px rgba(0,0,0,.1)",
                                                 },
                                                 children=[
                                                     html.Div(
-                                                        className="progress-bar bg-info",
+                                                        className="progress-bar bg-primary",
                                                         style={
                                                             "width": f"{items_percentage}%",
                                                             "height": "100%",
+                                                            "transition": "width 1s ease",
                                                         },
                                                     ),
                                                     html.Span(
-                                                        f"{items_percentage}%",
+                                                        f"{items_percentage}% Complete",
                                                         style={
                                                             "position": "absolute",
                                                             "top": "0",
@@ -847,102 +788,268 @@ def create_pert_info_table(
                                                             "alignItems": "center",
                                                             "justifyContent": "center",
                                                             "color": "white"
-                                                            if items_percentage > 50
+                                                            if items_percentage > 40
                                                             else "black",
                                                             "fontWeight": "bold",
+                                                            "textShadow": "0 0 2px rgba(0,0,0,0.2)"
+                                                            if items_percentage > 40
+                                                            else "none",
                                                         },
                                                     ),
                                                 ],
-                                            ),
-                                            html.Small(
-                                                f"{completed_items} of {actual_total_items} items ({total_items} remaining)",
-                                                className="text-muted mt-1 d-block text-center",
-                                            ),
-                                        ],
-                                        className="mb-3",
-                                    ),
-                                    # Points progress bar
-                                    html.Div(
-                                        [
-                                            html.Small(
-                                                [
-                                                    html.I(
-                                                        className="fas fa-chart-line me-1",
-                                                        style={
-                                                            "color": COLOR_PALETTE[
-                                                                "points"
-                                                            ]
-                                                        },
-                                                    ),
-                                                    "Points",
-                                                ],
-                                                className="mb-1 d-block",
                                             ),
                                             html.Div(
-                                                className="progress",
+                                                [
+                                                    html.Small(
+                                                        [
+                                                            html.Span(
+                                                                [
+                                                                    html.I(
+                                                                        className="fas fa-tasks me-1",
+                                                                        style={
+                                                                            "color": COLOR_PALETTE[
+                                                                                "items"
+                                                                            ]
+                                                                        },
+                                                                    ),
+                                                                    html.Strong(
+                                                                        f"{completed_items}"
+                                                                    ),
+                                                                    f" of {actual_total_items} items",
+                                                                ],
+                                                                className="me-3",
+                                                            ),
+                                                            html.Span(
+                                                                [
+                                                                    html.I(
+                                                                        className="fas fa-chart-line me-1",
+                                                                        style={
+                                                                            "color": COLOR_PALETTE[
+                                                                                "points"
+                                                                            ]
+                                                                        },
+                                                                    ),
+                                                                    html.Strong(
+                                                                        f"{completed_points}"
+                                                                    ),
+                                                                    f" of {actual_total_points} points",
+                                                                ]
+                                                            ),
+                                                        ],
+                                                        className="text-muted mt-2 d-block",
+                                                    ),
+                                                ],
+                                                className="d-flex justify-content-center",
+                                            ),
+                                        ],
+                                        style={
+                                            "display": "block"
+                                            if similar_percentages
+                                            else "none"
+                                        },
+                                        className="mb-3",
+                                    ),
+                                    # Separate progress bars for different percentages
+                                    html.Div(
+                                        [
+                                            # Items progress
+                                            html.Div(
+                                                [
+                                                    html.Div(
+                                                        className="d-flex justify-content-between align-items-center mb-1",
+                                                        children=[
+                                                            html.Small(
+                                                                [
+                                                                    html.I(
+                                                                        className="fas fa-tasks me-1",
+                                                                        style={
+                                                                            "color": COLOR_PALETTE[
+                                                                                "items"
+                                                                            ]
+                                                                        },
+                                                                    ),
+                                                                    "Items Progress",
+                                                                ],
+                                                                className="fw-medium",
+                                                            ),
+                                                            html.Small(
+                                                                f"{items_percentage}% Complete",
+                                                                className="text-muted",
+                                                            ),
+                                                        ],
+                                                    ),
+                                                    html.Div(
+                                                        className="progress",
+                                                        style={
+                                                            "height": "16px",
+                                                            "borderRadius": "4px",
+                                                            "overflow": "hidden",
+                                                            "boxShadow": "inset 0 1px 2px rgba(0,0,0,.1)",
+                                                        },
+                                                        children=[
+                                                            html.Div(
+                                                                className="progress-bar bg-info",
+                                                                style={
+                                                                    "width": f"{items_percentage}%",
+                                                                    "height": "100%",
+                                                                    "transition": "width 1s ease",
+                                                                },
+                                                            ),
+                                                        ],
+                                                    ),
+                                                    html.Small(
+                                                        f"{completed_items} of {actual_total_items} items ({total_items} remaining)",
+                                                        className="text-muted mt-1 d-block",
+                                                    ),
+                                                ],
+                                                className="mb-3",
+                                            ),
+                                            # Points progress
+                                            html.Div(
+                                                [
+                                                    html.Div(
+                                                        className="d-flex justify-content-between align-items-center mb-1",
+                                                        children=[
+                                                            html.Small(
+                                                                [
+                                                                    html.I(
+                                                                        className="fas fa-chart-line me-1",
+                                                                        style={
+                                                                            "color": COLOR_PALETTE[
+                                                                                "points"
+                                                                            ]
+                                                                        },
+                                                                    ),
+                                                                    "Points Progress",
+                                                                ],
+                                                                className="fw-medium",
+                                                            ),
+                                                            html.Small(
+                                                                f"{points_percentage}% Complete",
+                                                                className="text-muted",
+                                                            ),
+                                                        ],
+                                                    ),
+                                                    html.Div(
+                                                        className="progress",
+                                                        style={
+                                                            "height": "16px",
+                                                            "borderRadius": "4px",
+                                                            "overflow": "hidden",
+                                                            "boxShadow": "inset 0 1px 2px rgba(0,0,0,.1)",
+                                                        },
+                                                        children=[
+                                                            html.Div(
+                                                                className="progress-bar bg-warning",
+                                                                style={
+                                                                    "width": f"{points_percentage}%",
+                                                                    "height": "100%",
+                                                                    "transition": "width 1s ease",
+                                                                },
+                                                            ),
+                                                        ],
+                                                    ),
+                                                    html.Small(
+                                                        f"{completed_points} of {actual_total_points} points ({remaining_points} remaining)",
+                                                        className="text-muted mt-1 d-block",
+                                                    ),
+                                                ],
+                                            ),
+                                        ],
+                                        style={
+                                            "display": "block"
+                                            if not similar_percentages
+                                            else "none"
+                                        },
+                                        className="mb-3",
+                                    ),
+                                ],
+                                className="mb-4",
+                            ),
+                            # Deadline card
+                            html.Div(
+                                [
+                                    html.Div(
+                                        className="d-flex align-items-center mb-2",
+                                        children=[
+                                            html.I(
+                                                className="fas fa-calendar-day fs-3 me-3",
                                                 style={
-                                                    "height": "24px",
-                                                    "position": "relative",
+                                                    "color": COLOR_PALETTE["deadline"]
+                                                },
+                                            ),
+                                            html.Div(
+                                                [
+                                                    html.Div(
+                                                        "Project Deadline",
+                                                        className="text-muted small",
+                                                    ),
+                                                    html.Div(
+                                                        deadline_date_str,
+                                                        className="fs-5 fw-bold",
+                                                    ),
+                                                ]
+                                            ),
+                                        ],
+                                    ),
+                                    # Days remaining visualization
+                                    html.Div(
+                                        [
+                                            html.Div(
+                                                className="d-flex justify-content-between align-items-center",
+                                                children=[
+                                                    html.Small(
+                                                        "Today", className="text-muted"
+                                                    ),
+                                                    html.Small(
+                                                        "Deadline",
+                                                        className="text-muted",
+                                                    ),
+                                                ],
+                                            ),
+                                            html.Div(
+                                                className="progress mt-1 mb-1",
+                                                style={
+                                                    "height": "8px",
+                                                    "borderRadius": "4px",
                                                 },
                                                 children=[
                                                     html.Div(
-                                                        className="progress-bar bg-warning",
+                                                        className="progress-bar bg-danger",
                                                         style={
-                                                            "width": f"{points_percentage}%",
-                                                            "height": "100%",
-                                                        },
-                                                    ),
-                                                    html.Span(
-                                                        f"{points_percentage}%",
-                                                        style={
-                                                            "position": "absolute",
-                                                            "top": "0",
-                                                            "left": "0",
-                                                            "width": "100%",
-                                                            "height": "100%",
-                                                            "display": "flex",
-                                                            "alignItems": "center",
-                                                            "justifyContent": "center",
-                                                            "color": "white"
-                                                            if points_percentage > 50
-                                                            else "black",
-                                                            "fontWeight": "bold",
+                                                            "width": f"{max(5, min(100, (100 - (days_to_deadline / (days_to_deadline + 30) * 100))))}%",
                                                         },
                                                     ),
                                                 ],
                                             ),
-                                            html.Small(
-                                                f"{completed_points} of {actual_total_points} points ({remaining_points} remaining)",
-                                                className="text-muted mt-1 d-block text-center",
+                                            html.Div(
+                                                html.Strong(
+                                                    f"{days_to_deadline} days remaining",
+                                                    style={
+                                                        "color": "green"
+                                                        if days_to_deadline > 30
+                                                        else "orange"
+                                                        if days_to_deadline > 14
+                                                        else "red"
+                                                    },
+                                                ),
+                                                className="text-center mt-1",
                                             ),
                                         ],
+                                        className="mt-2",
                                     ),
                                 ],
+                                className="p-3 border rounded",
                                 style={
-                                    "display": "block"
-                                    if not similar_percentages
-                                    else "none"
+                                    "background": "linear-gradient(to bottom, rgba(220, 53, 69, 0.05), rgba(255, 255, 255, 1))",
+                                    "boxShadow": "rgba(0, 0, 0, 0.05) 0px 1px 2px 0px",
                                 },
                             ),
-                            # Added deadline information below progress bars
-                            html.Div(
-                                [
-                                    html.I(
-                                        className="fas fa-calendar-day mr-2",
-                                        style={"color": COLOR_PALETTE["deadline"]},
-                                    ),
-                                    html.Span(
-                                        f"Deadline: {deadline_date_str} ({days_to_deadline} days remaining)",
-                                        style={"fontWeight": "bold"},
-                                    ),
-                                ],
-                                className="mt-3 d-flex align-items-center justify-content-center",
-                            ),
                         ],
-                        className="mb-3",
+                        className="p-3 border rounded h-100",
                     ),
                 ],
-                className="p-3 border rounded mb-4",
+                className="mb-4",
             ),
             # Reorganized layout: Completion Forecast and Weekly Velocity side by side
             dbc.Row(
@@ -951,14 +1058,29 @@ def create_pert_info_table(
                     dbc.Col(
                         [
                             html.H5(
-                                "Completion Forecast",
-                                className="mb-3 border-bottom pb-2",
+                                [
+                                    html.I(
+                                        className="fas fa-calendar-check me-2",
+                                        style={"color": "#20c997"},
+                                    ),
+                                    "Completion Forecast",
+                                ],
+                                className="mb-3 border-bottom pb-2 d-flex align-items-center",
                             ),
                             html.Div(
                                 [
-                                    # Items completion
+                                    # Subtitle with methodology information
+                                    html.Div(
+                                        html.Small(
+                                            "Based on PERT methodology (optimistic, most likely, and pessimistic estimates)",
+                                            className="text-muted mb-3 d-block text-center",
+                                        ),
+                                        className="mb-3",
+                                    ),
+                                    # Items Forecast Card
                                     html.Div(
                                         [
+                                            # Header with icon
                                             html.Div(
                                                 [
                                                     html.I(
@@ -971,59 +1093,57 @@ def create_pert_info_table(
                                                     ),
                                                     html.Span(
                                                         "Items Forecast",
-                                                        className="fw-bold fs-6",
+                                                        className="fw-medium",
                                                     ),
                                                 ],
                                                 className="d-flex align-items-center mb-3",
                                             ),
-                                            dbc.Row(
-                                                [
-                                                    dbc.Col(
-                                                        html.Small(
-                                                            "Method",
-                                                            className="text-muted",
-                                                        ),
-                                                        width=3,
-                                                        className="border-end",
+                                            # Table header
+                                            html.Div(
+                                                className="d-flex mb-2 px-3 py-2 bg-light rounded-top border-bottom",
+                                                style={"fontSize": "0.8rem"},
+                                                children=[
+                                                    html.Div(
+                                                        "Method",
+                                                        className="text-muted",
+                                                        style={"width": "25%"},
                                                     ),
-                                                    dbc.Col(
-                                                        html.Small(
-                                                            "Completion Date",
-                                                            className="text-muted",
-                                                        ),
-                                                        width=5,
+                                                    html.Div(
+                                                        "Completion Date",
+                                                        className="text-muted text-center",
+                                                        style={"width": "45%"},
                                                     ),
-                                                    dbc.Col(
-                                                        html.Small(
-                                                            "Timeframe",
-                                                            className="text-muted",
-                                                        ),
-                                                        width=4,
+                                                    html.Div(
+                                                        "Timeframe",
+                                                        className="text-muted text-end",
+                                                        style={"width": "30%"},
                                                     ),
                                                 ],
-                                                className="mb-2 text-center",
                                             ),
-                                            # PERT row - highlighted as the recommended method (now first)
-                                            dbc.Row(
-                                                [
-                                                    dbc.Col(
-                                                        html.Span(
-                                                            [
-                                                                "PERT ",
-                                                                html.I(
-                                                                    className="fas fa-star-of-life ms-1",
-                                                                    style={
-                                                                        "fontSize": "0.6rem",
-                                                                        "verticalAlign": "super",
-                                                                    },
-                                                                ),
-                                                            ],
-                                                            className="fw-bold",
-                                                        ),
-                                                        width=3,
-                                                        className="border-end",
+                                            # PERT row
+                                            html.Div(
+                                                className="d-flex align-items-center p-3 border-start border-4 mb-2",
+                                                style={
+                                                    "backgroundColor": f"rgba({items_color == 'green' and '40,167,69' or '220,53,69'},0.08)",
+                                                    "borderColor": items_color,
+                                                    "borderRadius": "4px",
+                                                },
+                                                children=[
+                                                    html.Div(
+                                                        [
+                                                            "PERT ",
+                                                            html.I(
+                                                                className="fas fa-star-of-life",
+                                                                style={
+                                                                    "fontSize": "0.6rem",
+                                                                    "verticalAlign": "super",
+                                                                },
+                                                            ),
+                                                        ],
+                                                        className="fw-bold",
+                                                        style={"width": "25%"},
                                                     ),
-                                                    dbc.Col(
+                                                    html.Div(
                                                         html.Span(
                                                             items_completion_str,
                                                             style={
@@ -1031,33 +1151,36 @@ def create_pert_info_table(
                                                             },
                                                             className="fw-medium",
                                                         ),
-                                                        width=5,
+                                                        style={"width": "45%"},
+                                                        className="text-center",
                                                     ),
-                                                    dbc.Col(
+                                                    html.Div(
                                                         html.Small(
                                                             f"{pert_time_items:.1f}d ({pert_time_items / 7:.1f}w)",
                                                         ),
-                                                        width=4,
+                                                        style={"width": "30%"},
+                                                        className="text-end",
                                                     ),
                                                 ],
-                                                className="py-2 rounded-1 border-start border-4 mb-2",
-                                                style={
-                                                    "backgroundColor": f"rgba({items_color == 'green' and '40,167,69' or '220,53,69'},0.08)",
-                                                    "borderColor": items_color,
-                                                },
                                             ),
                                             # Average row
-                                            dbc.Row(
-                                                [
-                                                    dbc.Col(
+                                            html.Div(
+                                                className="d-flex align-items-center p-2 mb-1",
+                                                style={
+                                                    "backgroundColor": f"rgba({weeks_avg_items_color == 'green' and '40,167,69' or '220,53,69'},0.05)",
+                                                    "borderRadius": "4px",
+                                                }
+                                                if weeks_avg_items != float("inf")
+                                                else {},
+                                                children=[
+                                                    html.Div(
                                                         html.Span(
                                                             "Average",
                                                             className="fw-medium",
                                                         ),
-                                                        width=3,
-                                                        className="border-end",
+                                                        style={"width": "25%"},
                                                     ),
-                                                    dbc.Col(
+                                                    html.Div(
                                                         html.Span(
                                                             avg_items_completion_str,
                                                             style={
@@ -1068,9 +1191,10 @@ def create_pert_info_table(
                                                             else {},
                                                             className="fw-medium",
                                                         ),
-                                                        width=5,
+                                                        style={"width": "45%"},
+                                                        className="text-center",
                                                     ),
-                                                    dbc.Col(
+                                                    html.Div(
                                                         html.Small(
                                                             f"{avg_items_days:.1f}d ({weeks_avg_items:.1f}w)"
                                                             if weeks_avg_items
@@ -1078,28 +1202,29 @@ def create_pert_info_table(
                                                             else "∞",
                                                             className="text-muted",
                                                         ),
-                                                        width=4,
+                                                        style={"width": "30%"},
+                                                        className="text-end",
                                                     ),
                                                 ],
-                                                className="py-1 rounded-1 mb-1",
-                                                style={
-                                                    "backgroundColor": f"rgba({weeks_avg_items_color == 'green' and '40,167,69' or '220,53,69'},0.05)"
-                                                }
-                                                if weeks_avg_items != float("inf")
-                                                else {},
                                             ),
                                             # Median row
-                                            dbc.Row(
-                                                [
-                                                    dbc.Col(
+                                            html.Div(
+                                                className="d-flex align-items-center p-2",
+                                                style={
+                                                    "backgroundColor": f"rgba({weeks_med_items_color == 'green' and '40,167,69' or '220,53,69'},0.05)",
+                                                    "borderRadius": "4px",
+                                                }
+                                                if weeks_med_items != float("inf")
+                                                else {},
+                                                children=[
+                                                    html.Div(
                                                         html.Span(
                                                             "Median",
                                                             className="fw-medium",
                                                         ),
-                                                        width=3,
-                                                        className="border-end",
+                                                        style={"width": "25%"},
                                                     ),
-                                                    dbc.Col(
+                                                    html.Div(
                                                         html.Span(
                                                             med_items_completion_str,
                                                             style={
@@ -1110,9 +1235,10 @@ def create_pert_info_table(
                                                             else {},
                                                             className="fw-medium",
                                                         ),
-                                                        width=5,
+                                                        style={"width": "45%"},
+                                                        className="text-center",
                                                     ),
-                                                    dbc.Col(
+                                                    html.Div(
                                                         html.Small(
                                                             f"{med_items_days:.1f}d ({weeks_med_items:.1f}w)"
                                                             if weeks_med_items
@@ -1120,22 +1246,22 @@ def create_pert_info_table(
                                                             else "∞",
                                                             className="text-muted",
                                                         ),
-                                                        width=4,
+                                                        style={"width": "30%"},
+                                                        className="text-end",
                                                     ),
                                                 ],
-                                                className="py-1 rounded-1 mb-1",
-                                                style={
-                                                    "backgroundColor": f"rgba({weeks_med_items_color == 'green' and '40,167,69' or '220,53,69'},0.05)"
-                                                }
-                                                if weeks_med_items != float("inf")
-                                                else {},
                                             ),
                                         ],
-                                        className="mb-4 pb-3 border-bottom",
+                                        className="mb-4 p-3 border rounded",
+                                        style={
+                                            "boxShadow": "rgba(0, 0, 0, 0.05) 0px 1px 2px 0px",
+                                            "background": "linear-gradient(to bottom, rgba(13, 110, 253, 0.05), rgba(255, 255, 255, 1))",
+                                        },
                                     ),
-                                    # Points completion
+                                    # Points Forecast Card
                                     html.Div(
                                         [
+                                            # Header with icon
                                             html.Div(
                                                 [
                                                     html.I(
@@ -1148,59 +1274,57 @@ def create_pert_info_table(
                                                     ),
                                                     html.Span(
                                                         "Points Forecast",
-                                                        className="fw-bold fs-6",
+                                                        className="fw-medium",
                                                     ),
                                                 ],
                                                 className="d-flex align-items-center mb-3",
                                             ),
-                                            dbc.Row(
-                                                [
-                                                    dbc.Col(
-                                                        html.Small(
-                                                            "Method",
-                                                            className="text-muted",
-                                                        ),
-                                                        width=3,
-                                                        className="border-end",
+                                            # Table header
+                                            html.Div(
+                                                className="d-flex mb-2 px-3 py-2 bg-light rounded-top border-bottom",
+                                                style={"fontSize": "0.8rem"},
+                                                children=[
+                                                    html.Div(
+                                                        "Method",
+                                                        className="text-muted",
+                                                        style={"width": "25%"},
                                                     ),
-                                                    dbc.Col(
-                                                        html.Small(
-                                                            "Completion Date",
-                                                            className="text-muted",
-                                                        ),
-                                                        width=5,
+                                                    html.Div(
+                                                        "Completion Date",
+                                                        className="text-muted text-center",
+                                                        style={"width": "45%"},
                                                     ),
-                                                    dbc.Col(
-                                                        html.Small(
-                                                            "Timeframe",
-                                                            className="text-muted",
-                                                        ),
-                                                        width=4,
+                                                    html.Div(
+                                                        "Timeframe",
+                                                        className="text-muted text-end",
+                                                        style={"width": "30%"},
                                                     ),
                                                 ],
-                                                className="mb-2 text-center",
                                             ),
-                                            # PERT row - highlighted as the recommended method (now first)
-                                            dbc.Row(
-                                                [
-                                                    dbc.Col(
-                                                        html.Span(
-                                                            [
-                                                                "PERT ",
-                                                                html.I(
-                                                                    className="fas fa-star-of-life ms-1",
-                                                                    style={
-                                                                        "fontSize": "0.6rem",
-                                                                        "verticalAlign": "super",
-                                                                    },
-                                                                ),
-                                                            ],
-                                                            className="fw-bold",
-                                                        ),
-                                                        width=3,
-                                                        className="border-end",
+                                            # PERT row
+                                            html.Div(
+                                                className="d-flex align-items-center p-3 border-start border-4 mb-2",
+                                                style={
+                                                    "backgroundColor": f"rgba({points_color == 'green' and '40,167,69' or '220,53,69'},0.08)",
+                                                    "borderColor": points_color,
+                                                    "borderRadius": "4px",
+                                                },
+                                                children=[
+                                                    html.Div(
+                                                        [
+                                                            "PERT ",
+                                                            html.I(
+                                                                className="fas fa-star-of-life",
+                                                                style={
+                                                                    "fontSize": "0.6rem",
+                                                                    "verticalAlign": "super",
+                                                                },
+                                                            ),
+                                                        ],
+                                                        className="fw-bold",
+                                                        style={"width": "25%"},
                                                     ),
-                                                    dbc.Col(
+                                                    html.Div(
                                                         html.Span(
                                                             points_completion_str,
                                                             style={
@@ -1208,33 +1332,36 @@ def create_pert_info_table(
                                                             },
                                                             className="fw-medium",
                                                         ),
-                                                        width=5,
+                                                        style={"width": "45%"},
+                                                        className="text-center",
                                                     ),
-                                                    dbc.Col(
+                                                    html.Div(
                                                         html.Small(
                                                             f"{pert_time_points:.1f}d ({pert_time_points / 7:.1f}w)",
                                                         ),
-                                                        width=4,
+                                                        style={"width": "30%"},
+                                                        className="text-end",
                                                     ),
                                                 ],
-                                                className="py-2 rounded-1 border-start border-4 mb-2",
-                                                style={
-                                                    "backgroundColor": f"rgba({points_color == 'green' and '40,167,69' or '220,53,69'},0.08)",
-                                                    "borderColor": points_color,
-                                                },
                                             ),
                                             # Average row
-                                            dbc.Row(
-                                                [
-                                                    dbc.Col(
+                                            html.Div(
+                                                className="d-flex align-items-center p-2 mb-1",
+                                                style={
+                                                    "backgroundColor": f"rgba({weeks_avg_points_color == 'green' and '40,167,69' or '220,53,69'},0.05)",
+                                                    "borderRadius": "4px",
+                                                }
+                                                if weeks_avg_points != float("inf")
+                                                else {},
+                                                children=[
+                                                    html.Div(
                                                         html.Span(
                                                             "Average",
                                                             className="fw-medium",
                                                         ),
-                                                        width=3,
-                                                        className="border-end",
+                                                        style={"width": "25%"},
                                                     ),
-                                                    dbc.Col(
+                                                    html.Div(
                                                         html.Span(
                                                             avg_points_completion_str,
                                                             style={
@@ -1245,9 +1372,10 @@ def create_pert_info_table(
                                                             else {},
                                                             className="fw-medium",
                                                         ),
-                                                        width=5,
+                                                        style={"width": "45%"},
+                                                        className="text-center",
                                                     ),
-                                                    dbc.Col(
+                                                    html.Div(
                                                         html.Small(
                                                             f"{avg_points_days:.1f}d ({weeks_avg_points:.1f}w)"
                                                             if weeks_avg_points
@@ -1255,28 +1383,29 @@ def create_pert_info_table(
                                                             else "∞",
                                                             className="text-muted",
                                                         ),
-                                                        width=4,
+                                                        style={"width": "30%"},
+                                                        className="text-end",
                                                     ),
                                                 ],
-                                                className="py-1 rounded-1 mb-1",
-                                                style={
-                                                    "backgroundColor": f"rgba({weeks_avg_points_color == 'green' and '40,167,69' or '220,53,69'},0.05)"
-                                                }
-                                                if weeks_avg_points != float("inf")
-                                                else {},
                                             ),
                                             # Median row
-                                            dbc.Row(
-                                                [
-                                                    dbc.Col(
+                                            html.Div(
+                                                className="d-flex align-items-center p-2",
+                                                style={
+                                                    "backgroundColor": f"rgba({weeks_med_points_color == 'green' and '40,167,69' or '220,53,69'},0.05)",
+                                                    "borderRadius": "4px",
+                                                }
+                                                if weeks_med_points != float("inf")
+                                                else {},
+                                                children=[
+                                                    html.Div(
                                                         html.Span(
                                                             "Median",
                                                             className="fw-medium",
                                                         ),
-                                                        width=3,
-                                                        className="border-end",
+                                                        style={"width": "25%"},
                                                     ),
-                                                    dbc.Col(
+                                                    html.Div(
                                                         html.Span(
                                                             med_points_completion_str,
                                                             style={
@@ -1287,9 +1416,10 @@ def create_pert_info_table(
                                                             else {},
                                                             className="fw-medium",
                                                         ),
-                                                        width=5,
+                                                        style={"width": "45%"},
+                                                        className="text-center",
                                                     ),
-                                                    dbc.Col(
+                                                    html.Div(
                                                         html.Small(
                                                             f"{med_points_days:.1f}d ({weeks_med_points:.1f}w)"
                                                             if weeks_med_points
@@ -1297,34 +1427,31 @@ def create_pert_info_table(
                                                             else "∞",
                                                             className="text-muted",
                                                         ),
-                                                        width=4,
+                                                        style={"width": "30%"},
+                                                        className="text-end",
                                                     ),
                                                 ],
-                                                className="py-1 rounded-1 mb-1",
-                                                style={
-                                                    "backgroundColor": f"rgba({weeks_med_points_color == 'green' and '40,167,69' or '220,53,69'},0.05)"
-                                                }
-                                                if weeks_med_points != float("inf")
-                                                else {},
-                                            ),
-                                            # Legend
-                                            html.Div(
-                                                html.Small(
-                                                    [
-                                                        html.I(
-                                                            className="fas fa-star-of-life me-1",
-                                                            style={
-                                                                "fontSize": "0.6rem"
-                                                            },
-                                                        ),
-                                                        "Recommended forecast based on optimistic, most likely, and pessimistic estimates",
-                                                    ],
-                                                    className="text-muted fst-italic",
-                                                ),
-                                                className="mt-3 text-center",
                                             ),
                                         ],
-                                        className="mb-1",
+                                        className="mb-3 p-3 border rounded",
+                                        style={
+                                            "boxShadow": "rgba(0, 0, 0, 0.05) 0px 1px 2px 0px",
+                                            "background": "linear-gradient(to bottom, rgba(253, 126, 20, 0.05), rgba(255, 255, 255, 1))",
+                                        },
+                                    ),
+                                    # Legend
+                                    html.Div(
+                                        html.Small(
+                                            [
+                                                html.I(
+                                                    className="fas fa-star-of-life me-1",
+                                                    style={"fontSize": "0.6rem"},
+                                                ),
+                                                "PERT forecast combines optimistic, most likely, and pessimistic estimates",
+                                            ],
+                                            className="text-muted fst-italic text-center",
+                                        ),
+                                        className="mt-2",
                                     ),
                                 ],
                                 className="p-3 border rounded h-100",
