@@ -976,53 +976,9 @@ def create_pert_info_table(
                                                 className="ml-4",
                                             ),
                                         ],
-                                        className="mb-3 p-2 border-bottom",
-                                    ),
-                                    # PERT Estimates - keep as is
-                                    html.Div(
-                                        [
-                                            html.I(
-                                                className="fas fa-chart-line mr-2 text-primary"
-                                            ),
-                                            html.Span(
-                                                "PERT Estimates:",
-                                                className="font-weight-bold d-block mb-2",
-                                            ),
-                                            html.Div(
-                                                [
-                                                    html.Span(
-                                                        "Items: ",
-                                                        className="font-weight-bold",
-                                                    ),
-                                                    html.Span(
-                                                        f"{items_completion_enhanced}",
-                                                        style={
-                                                            "color": items_color,
-                                                            "fontWeight": "bold",
-                                                        },
-                                                    ),
-                                                ],
-                                                className="ml-4 mb-1",
-                                            ),
-                                            html.Div(
-                                                [
-                                                    html.Span(
-                                                        "Points: ",
-                                                        className="font-weight-bold",
-                                                    ),
-                                                    html.Span(
-                                                        f"{points_completion_enhanced}",
-                                                        style={
-                                                            "color": points_color,
-                                                            "fontWeight": "bold",
-                                                        },
-                                                    ),
-                                                ],
-                                                className="ml-4",
-                                            ),
-                                        ],
                                         className="mb-1 p-2",
                                     ),
+                                    # PERT Estimates section removed as requested
                                 ],
                                 className="p-3 border rounded",
                             ),
