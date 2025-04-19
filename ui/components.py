@@ -959,126 +959,372 @@ def create_pert_info_table(
                                     # Items completion
                                     html.Div(
                                         [
-                                            html.I(
-                                                className="fas fa-tasks mr-2 text-primary"
-                                            ),
-                                            html.Span(
-                                                "Items Forecast:",
-                                                className="font-weight-bold d-block mb-2",
-                                            ),
                                             html.Div(
                                                 [
-                                                    html.Span(
-                                                        "By Average: ",
-                                                        className="font-weight-bold",
-                                                    ),
-                                                    html.Span(
-                                                        f"{avg_items_completion_enhanced}",
+                                                    html.I(
+                                                        className="fas fa-tasks me-2",
                                                         style={
-                                                            "color": weeks_avg_items_color,
-                                                            "fontWeight": "bold",
+                                                            "color": COLOR_PALETTE[
+                                                                "items"
+                                                            ]
                                                         },
                                                     ),
+                                                    html.Span(
+                                                        "Items Forecast",
+                                                        className="fw-bold fs-6",
+                                                    ),
                                                 ],
-                                                className="ml-4 mb-1",
+                                                className="d-flex align-items-center mb-3",
                                             ),
-                                            html.Div(
+                                            dbc.Row(
                                                 [
-                                                    html.Span(
-                                                        "By Median: ",
-                                                        className="font-weight-bold",
+                                                    dbc.Col(
+                                                        html.Small(
+                                                            "Method",
+                                                            className="text-muted",
+                                                        ),
+                                                        width=3,
+                                                        className="border-end",
                                                     ),
-                                                    html.Span(
-                                                        f"{med_items_completion_enhanced}",
-                                                        style={
-                                                            "color": weeks_med_items_color,
-                                                            "fontWeight": "bold",
-                                                        },
+                                                    dbc.Col(
+                                                        html.Small(
+                                                            "Completion Date",
+                                                            className="text-muted",
+                                                        ),
+                                                        width=5,
+                                                    ),
+                                                    dbc.Col(
+                                                        html.Small(
+                                                            "Timeframe",
+                                                            className="text-muted",
+                                                        ),
+                                                        width=4,
                                                     ),
                                                 ],
-                                                className="ml-4 mb-1",
+                                                className="mb-2 text-center",
                                             ),
-                                            # PERT estimate for Items
-                                            html.Div(
+                                            # Average row
+                                            dbc.Row(
                                                 [
-                                                    html.Span(
-                                                        "PERT: ",
-                                                        className="font-weight-bold",
+                                                    dbc.Col(
+                                                        html.Span(
+                                                            "Average",
+                                                            className="fw-medium",
+                                                        ),
+                                                        width=3,
+                                                        className="border-end",
                                                     ),
-                                                    html.Span(
-                                                        f"{items_completion_enhanced}",
-                                                        style={
-                                                            "color": items_color,
-                                                            "fontWeight": "bold",
-                                                        },
+                                                    dbc.Col(
+                                                        html.Span(
+                                                            avg_items_completion_str,
+                                                            style={
+                                                                "color": weeks_avg_items_color
+                                                            }
+                                                            if weeks_avg_items
+                                                            != float("inf")
+                                                            else {},
+                                                            className="fw-medium",
+                                                        ),
+                                                        width=5,
+                                                    ),
+                                                    dbc.Col(
+                                                        html.Small(
+                                                            f"{avg_items_days:.1f}d ({weeks_avg_items:.1f}w)"
+                                                            if weeks_avg_items
+                                                            != float("inf")
+                                                            else "∞",
+                                                            className="text-muted",
+                                                        ),
+                                                        width=4,
                                                     ),
                                                 ],
-                                                className="ml-4",
+                                                className="py-1 rounded-1 mb-1",
+                                                style={
+                                                    "backgroundColor": f"rgba({weeks_avg_items_color == 'green' and '40,167,69' or '220,53,69'},0.05)"
+                                                }
+                                                if weeks_avg_items != float("inf")
+                                                else {},
+                                            ),
+                                            # Median row
+                                            dbc.Row(
+                                                [
+                                                    dbc.Col(
+                                                        html.Span(
+                                                            "Median",
+                                                            className="fw-medium",
+                                                        ),
+                                                        width=3,
+                                                        className="border-end",
+                                                    ),
+                                                    dbc.Col(
+                                                        html.Span(
+                                                            med_items_completion_str,
+                                                            style={
+                                                                "color": weeks_med_items_color
+                                                            }
+                                                            if weeks_med_items
+                                                            != float("inf")
+                                                            else {},
+                                                            className="fw-medium",
+                                                        ),
+                                                        width=5,
+                                                    ),
+                                                    dbc.Col(
+                                                        html.Small(
+                                                            f"{med_items_days:.1f}d ({weeks_med_items:.1f}w)"
+                                                            if weeks_med_items
+                                                            != float("inf")
+                                                            else "∞",
+                                                            className="text-muted",
+                                                        ),
+                                                        width=4,
+                                                    ),
+                                                ],
+                                                className="py-1 rounded-1 mb-1",
+                                                style={
+                                                    "backgroundColor": f"rgba({weeks_med_items_color == 'green' and '40,167,69' or '220,53,69'},0.05)"
+                                                }
+                                                if weeks_med_items != float("inf")
+                                                else {},
+                                            ),
+                                            # PERT row - highlighted as the recommended method
+                                            dbc.Row(
+                                                [
+                                                    dbc.Col(
+                                                        html.Span(
+                                                            [
+                                                                "PERT ",
+                                                                html.I(
+                                                                    className="fas fa-star-of-life ms-1",
+                                                                    style={
+                                                                        "fontSize": "0.6rem",
+                                                                        "verticalAlign": "super",
+                                                                    },
+                                                                ),
+                                                            ],
+                                                            className="fw-bold",
+                                                        ),
+                                                        width=3,
+                                                        className="border-end",
+                                                    ),
+                                                    dbc.Col(
+                                                        html.Span(
+                                                            items_completion_str,
+                                                            style={
+                                                                "color": items_color
+                                                            },
+                                                            className="fw-medium",
+                                                        ),
+                                                        width=5,
+                                                    ),
+                                                    dbc.Col(
+                                                        html.Small(
+                                                            f"{pert_time_items:.1f}d ({pert_time_items / 7:.1f}w)",
+                                                        ),
+                                                        width=4,
+                                                    ),
+                                                ],
+                                                className="py-2 rounded-1 border-start border-4 mb-2",
+                                                style={
+                                                    "backgroundColor": f"rgba({items_color == 'green' and '40,167,69' or '220,53,69'},0.08)",
+                                                    "borderColor": items_color,
+                                                },
                                             ),
                                         ],
-                                        className="mb-3 p-2 border-bottom",
+                                        className="mb-4 pb-3 border-bottom",
                                     ),
                                     # Points completion
                                     html.Div(
                                         [
-                                            html.I(
-                                                className="fas fa-chart-bar mr-2 text-primary"
-                                            ),
-                                            html.Span(
-                                                "Points Forecast:",
-                                                className="font-weight-bold d-block mb-2",
-                                            ),
                                             html.Div(
                                                 [
-                                                    html.Span(
-                                                        "By Average: ",
-                                                        className="font-weight-bold",
-                                                    ),
-                                                    html.Span(
-                                                        f"{avg_points_completion_enhanced}",
+                                                    html.I(
+                                                        className="fas fa-chart-bar me-2",
                                                         style={
-                                                            "color": weeks_avg_points_color,
-                                                            "fontWeight": "bold",
+                                                            "color": COLOR_PALETTE[
+                                                                "points"
+                                                            ]
                                                         },
                                                     ),
+                                                    html.Span(
+                                                        "Points Forecast",
+                                                        className="fw-bold fs-6",
+                                                    ),
                                                 ],
-                                                className="ml-4 mb-1",
+                                                className="d-flex align-items-center mb-3",
                                             ),
-                                            html.Div(
+                                            dbc.Row(
                                                 [
-                                                    html.Span(
-                                                        "By Median: ",
-                                                        className="font-weight-bold",
+                                                    dbc.Col(
+                                                        html.Small(
+                                                            "Method",
+                                                            className="text-muted",
+                                                        ),
+                                                        width=3,
+                                                        className="border-end",
                                                     ),
-                                                    html.Span(
-                                                        f"{med_points_completion_enhanced}",
-                                                        style={
-                                                            "color": weeks_med_points_color,
-                                                            "fontWeight": "bold",
-                                                        },
+                                                    dbc.Col(
+                                                        html.Small(
+                                                            "Completion Date",
+                                                            className="text-muted",
+                                                        ),
+                                                        width=5,
+                                                    ),
+                                                    dbc.Col(
+                                                        html.Small(
+                                                            "Timeframe",
+                                                            className="text-muted",
+                                                        ),
+                                                        width=4,
                                                     ),
                                                 ],
-                                                className="ml-4",
+                                                className="mb-2 text-center",
                                             ),
-                                            # Add PERT estimate for Points
-                                            html.Div(
+                                            # Average row
+                                            dbc.Row(
                                                 [
-                                                    html.Span(
-                                                        "PERT: ",
-                                                        className="font-weight-bold",
+                                                    dbc.Col(
+                                                        html.Span(
+                                                            "Average",
+                                                            className="fw-medium",
+                                                        ),
+                                                        width=3,
+                                                        className="border-end",
                                                     ),
-                                                    html.Span(
-                                                        f"{points_completion_enhanced}",
-                                                        style={
-                                                            "color": points_color,
-                                                            "fontWeight": "bold",
-                                                        },
+                                                    dbc.Col(
+                                                        html.Span(
+                                                            avg_points_completion_str,
+                                                            style={
+                                                                "color": weeks_avg_points_color
+                                                            }
+                                                            if weeks_avg_points
+                                                            != float("inf")
+                                                            else {},
+                                                            className="fw-medium",
+                                                        ),
+                                                        width=5,
+                                                    ),
+                                                    dbc.Col(
+                                                        html.Small(
+                                                            f"{avg_points_days:.1f}d ({weeks_avg_points:.1f}w)"
+                                                            if weeks_avg_points
+                                                            != float("inf")
+                                                            else "∞",
+                                                            className="text-muted",
+                                                        ),
+                                                        width=4,
                                                     ),
                                                 ],
-                                                className="ml-4",
+                                                className="py-1 rounded-1 mb-1",
+                                                style={
+                                                    "backgroundColor": f"rgba({weeks_avg_points_color == 'green' and '40,167,69' or '220,53,69'},0.05)"
+                                                }
+                                                if weeks_avg_points != float("inf")
+                                                else {},
+                                            ),
+                                            # Median row
+                                            dbc.Row(
+                                                [
+                                                    dbc.Col(
+                                                        html.Span(
+                                                            "Median",
+                                                            className="fw-medium",
+                                                        ),
+                                                        width=3,
+                                                        className="border-end",
+                                                    ),
+                                                    dbc.Col(
+                                                        html.Span(
+                                                            med_points_completion_str,
+                                                            style={
+                                                                "color": weeks_med_points_color
+                                                            }
+                                                            if weeks_med_points
+                                                            != float("inf")
+                                                            else {},
+                                                            className="fw-medium",
+                                                        ),
+                                                        width=5,
+                                                    ),
+                                                    dbc.Col(
+                                                        html.Small(
+                                                            f"{med_points_days:.1f}d ({weeks_med_points:.1f}w)"
+                                                            if weeks_med_points
+                                                            != float("inf")
+                                                            else "∞",
+                                                            className="text-muted",
+                                                        ),
+                                                        width=4,
+                                                    ),
+                                                ],
+                                                className="py-1 rounded-1 mb-1",
+                                                style={
+                                                    "backgroundColor": f"rgba({weeks_med_points_color == 'green' and '40,167,69' or '220,53,69'},0.05)"
+                                                }
+                                                if weeks_med_points != float("inf")
+                                                else {},
+                                            ),
+                                            # PERT row - highlighted as the recommended method
+                                            dbc.Row(
+                                                [
+                                                    dbc.Col(
+                                                        html.Span(
+                                                            [
+                                                                "PERT ",
+                                                                html.I(
+                                                                    className="fas fa-star-of-life ms-1",
+                                                                    style={
+                                                                        "fontSize": "0.6rem",
+                                                                        "verticalAlign": "super",
+                                                                    },
+                                                                ),
+                                                            ],
+                                                            className="fw-bold",
+                                                        ),
+                                                        width=3,
+                                                        className="border-end",
+                                                    ),
+                                                    dbc.Col(
+                                                        html.Span(
+                                                            points_completion_str,
+                                                            style={
+                                                                "color": points_color
+                                                            },
+                                                            className="fw-medium",
+                                                        ),
+                                                        width=5,
+                                                    ),
+                                                    dbc.Col(
+                                                        html.Small(
+                                                            f"{pert_time_points:.1f}d ({pert_time_points / 7:.1f}w)",
+                                                        ),
+                                                        width=4,
+                                                    ),
+                                                ],
+                                                className="py-2 rounded-1 border-start border-4",
+                                                style={
+                                                    "backgroundColor": f"rgba({points_color == 'green' and '40,167,69' or '220,53,69'},0.08)",
+                                                    "borderColor": points_color,
+                                                },
+                                            ),
+                                            # Legend
+                                            html.Div(
+                                                html.Small(
+                                                    [
+                                                        html.I(
+                                                            className="fas fa-star-of-life me-1",
+                                                            style={
+                                                                "fontSize": "0.6rem"
+                                                            },
+                                                        ),
+                                                        "Recommended forecast based on optimistic, most likely, and pessimistic estimates",
+                                                    ],
+                                                    className="text-muted fst-italic",
+                                                ),
+                                                className="mt-3 text-center",
                                             ),
                                         ],
-                                        className="mb-1 p-2",
+                                        className="mb-1",
                                     ),
                                 ],
                                 className="p-3 border rounded h-100",
