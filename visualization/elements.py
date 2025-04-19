@@ -54,11 +54,11 @@ def empty_figure(message="No data available"):
 
 def create_historical_trace(df, column_name, name, color, secondary_y=False):
     """
-    Create a historical data trace with markers and lines.
+    Create a historical data trace with appropriate styling.
 
     Args:
-        df: DataFrame with the data
-        column_name: Name of the column to visualize
+        df: DataFrame with historical data
+        column_name: Column name to plot
         name: Display name for the trace
         color: Color to use for the trace
         secondary_y: Whether this trace uses the secondary y-axis
@@ -66,6 +66,9 @@ def create_historical_trace(df, column_name, name, color, secondary_y=False):
     Returns:
         Dictionary with trace data and axis specification
     """
+    # Import tooltip styling utilities
+    from ui.styles import format_hover_template, create_hoverlabel_config
+
     return {
         "data": go.Scatter(
             x=df["date"],
@@ -74,7 +77,15 @@ def create_historical_trace(df, column_name, name, color, secondary_y=False):
             name=name,
             line=dict(color=color, width=3),
             marker=dict(size=8, color=color),
-            hovertemplate="%{x}<br>" + name.split()[0] + ": %{y}",
+            hovertemplate=format_hover_template(
+                title=name,
+                fields={
+                    "Date": "%{x|%Y-%m-%d}",
+                    name.split()[0]: "%{y}",
+                },
+                extra_info=name.split()[0],
+            ),
+            hoverlabel=create_hoverlabel_config("default"),
         ),
         "secondary_y": secondary_y,
     }
@@ -97,6 +108,22 @@ def create_forecast_trace(
     Returns:
         Dictionary with trace data and axis specification
     """
+    # Import tooltip styling utilities
+    from ui.styles import format_hover_template, create_hoverlabel_config
+
+    # Determine tooltip variant based on name
+    variant = "default"
+    if "Optimistic" in name:
+        variant = "success"
+    elif "Pessimistic" in name:
+        variant = "warning"
+    elif "Most Likely" in name or "Average" in name:
+        variant = "info"
+
+    # Extract type from the name (e.g. "Items Forecast (Optimistic)" -> "Optimistic")
+    forecast_type = name.split("(")[-1].strip(")") if "(" in name else "Forecast"
+    data_type = "Items" if "Items" in name else "Points"
+
     return {
         "data": go.Scatter(
             x=x_vals,
@@ -104,7 +131,15 @@ def create_forecast_trace(
             mode="lines",
             name=name,
             line=dict(color=color, dash=dash_style, width=2),
-            hovertemplate="%{x}<br>" + name.split()[0] + ": %{y}",
+            hovertemplate=format_hover_template(
+                title=f"{data_type} Forecast",
+                fields={
+                    "Date": "%{x|%Y-%m-%d}",
+                    data_type: "%{y:.1f}",
+                    "Type": forecast_type,
+                },
+            ),
+            hoverlabel=create_hoverlabel_config(variant),
         ),
         "secondary_y": secondary_y,
     }

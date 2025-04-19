@@ -43,6 +43,9 @@ def create_plot_traces(forecast_data):
     items_forecasts = forecast_data["items_forecasts"]
     points_forecasts = forecast_data["points_forecasts"]
 
+    # Import tooltip styling utilities
+    from ui.styles import format_hover_template, create_hoverlabel_config
+
     traces = []
 
     # Historical items trace
@@ -55,7 +58,15 @@ def create_plot_traces(forecast_data):
                 name="Items History",
                 line=dict(color=COLOR_PALETTE["items"], width=3),
                 marker=dict(size=8, color=COLOR_PALETTE["items"]),
-                hovertemplate="%{x}<br>Items: %{y}",
+                hovertemplate=format_hover_template(
+                    title="Items History",
+                    fields={
+                        "Date": "%{x|%Y-%m-%d}",
+                        "Items": "%{y}",
+                    },
+                    extra_info="Items",
+                ),
+                hoverlabel=create_hoverlabel_config("default"),
             ),
             "secondary_y": False,
         }
@@ -70,7 +81,15 @@ def create_plot_traces(forecast_data):
                 mode="lines",
                 name="Items Forecast (Most Likely)",
                 line=dict(color=COLOR_PALETTE["items"], dash="dash", width=2),
-                hovertemplate="%{x}<br>Items: %{y}",
+                hovertemplate=format_hover_template(
+                    title="Items Forecast",
+                    fields={
+                        "Date": "%{x|%Y-%m-%d}",
+                        "Items": "%{y:.1f}",
+                        "Type": "Most Likely",
+                    },
+                ),
+                hoverlabel=create_hoverlabel_config("info"),
             ),
             "secondary_y": False,
         }
@@ -84,7 +103,15 @@ def create_plot_traces(forecast_data):
                 mode="lines",
                 name="Items Forecast (Optimistic)",
                 line=dict(color=COLOR_PALETTE["optimistic"], dash="dot", width=2),
-                hovertemplate="%{x}<br>Items: %{y}",
+                hovertemplate=format_hover_template(
+                    title="Items Forecast",
+                    fields={
+                        "Date": "%{x|%Y-%m-%d}",
+                        "Items": "%{y:.1f}",
+                        "Type": "Optimistic",
+                    },
+                ),
+                hoverlabel=create_hoverlabel_config("success"),
             ),
             "secondary_y": False,
         }
@@ -98,7 +125,15 @@ def create_plot_traces(forecast_data):
                 mode="lines",
                 name="Items Forecast (Pessimistic)",
                 line=dict(color=COLOR_PALETTE["pessimistic"], dash="dot", width=2),
-                hovertemplate="%{x}<br>Items: %{y}",
+                hovertemplate=format_hover_template(
+                    title="Items Forecast",
+                    fields={
+                        "Date": "%{x|%Y-%m-%d}",
+                        "Items": "%{y:.1f}",
+                        "Type": "Pessimistic",
+                    },
+                ),
+                hoverlabel=create_hoverlabel_config("warning"),
             ),
             "secondary_y": False,
         }
@@ -114,7 +149,15 @@ def create_plot_traces(forecast_data):
                 name="Points History",
                 line=dict(color=COLOR_PALETTE["points"], width=3),
                 marker=dict(size=8, color=COLOR_PALETTE["points"]),
-                hovertemplate="%{x}<br>Points: %{y}",
+                hovertemplate=format_hover_template(
+                    title="Points History",
+                    fields={
+                        "Date": "%{x|%Y-%m-%d}",
+                        "Points": "%{y}",
+                    },
+                    extra_info="Points",
+                ),
+                hoverlabel=create_hoverlabel_config("default"),
             ),
             "secondary_y": True,
         }
@@ -129,7 +172,15 @@ def create_plot_traces(forecast_data):
                 mode="lines",
                 name="Points Forecast (Most Likely)",
                 line=dict(color=COLOR_PALETTE["points"], dash="dash", width=2),
-                hovertemplate="%{x}<br>Points: %{y}",
+                hovertemplate=format_hover_template(
+                    title="Points Forecast",
+                    fields={
+                        "Date": "%{x|%Y-%m-%d}",
+                        "Points": "%{y:.1f}",
+                        "Type": "Most Likely",
+                    },
+                ),
+                hoverlabel=create_hoverlabel_config("info"),
             ),
             "secondary_y": True,
         }
@@ -143,7 +194,15 @@ def create_plot_traces(forecast_data):
                 mode="lines",
                 name="Points Forecast (Optimistic)",
                 line=dict(color="rgb(184, 134, 11)", dash="dot", width=2),
-                hovertemplate="%{x}<br>Points: %{y}",
+                hovertemplate=format_hover_template(
+                    title="Points Forecast",
+                    fields={
+                        "Date": "%{x|%Y-%m-%d}",
+                        "Points": "%{y:.1f}",
+                        "Type": "Optimistic",
+                    },
+                ),
+                hoverlabel=create_hoverlabel_config("success"),
             ),
             "secondary_y": True,
         }
@@ -157,7 +216,15 @@ def create_plot_traces(forecast_data):
                 mode="lines",
                 name="Points Forecast (Pessimistic)",
                 line=dict(color="rgb(165, 42, 42)", dash="dot", width=2),
-                hovertemplate="%{x}<br>Points: %{y}",
+                hovertemplate=format_hover_template(
+                    title="Points Forecast",
+                    fields={
+                        "Date": "%{x|%Y-%m-%d}",
+                        "Points": "%{y:.1f}",
+                        "Type": "Pessimistic",
+                    },
+                ),
+                hoverlabel=create_hoverlabel_config("warning"),
             ),
             "secondary_y": True,
         }
@@ -531,6 +598,9 @@ def create_weekly_items_chart(
     Returns:
         Plotly figure object with the weekly items chart
     """
+    # Import tooltip styling utilities
+    from ui.styles import format_hover_template, create_hoverlabel_config
+
     # Create DataFrame from statistics data
     df = pd.DataFrame(statistics_data).copy()
     if df.empty:
@@ -602,8 +672,15 @@ def create_weekly_items_chart(
             name="Completed Items",
             text=weekly_df["items"],
             textposition="outside",
-            customdata=weekly_df["week_label"],  # Add custom data for hover template
-            hovertemplate="Week of %{customdata}<br>Items: %{y}<extra></extra>",
+            customdata=weekly_df["week_label"],
+            hovertemplate=format_hover_template(
+                title="Weekly Items",
+                fields={
+                    "Week of": "%{customdata}",
+                    "Items": "%{y}",
+                },
+            ),
+            hoverlabel=create_hoverlabel_config("default"),
         )
     )
 
@@ -625,10 +702,15 @@ def create_weekly_items_chart(
                     dash="solid",
                 ),
                 marker=dict(size=6, opacity=1),
-                customdata=weighted_df[
-                    "week_label"
-                ],  # Add custom data for hover template
-                hovertemplate="Week of %{customdata}<br>Weighted Avg: %{y:.1f}<extra></extra>",
+                customdata=weighted_df["week_label"],
+                hovertemplate=format_hover_template(
+                    title="Weekly Average",
+                    fields={
+                        "Week of": "%{customdata}",
+                        "Weighted Avg": "%{y:.1f}",
+                    },
+                ),
+                hoverlabel=create_hoverlabel_config("info"),
                 hoverinfo="all",  # Ensure hover info shows
             )
         )
@@ -652,7 +734,15 @@ def create_weekly_items_chart(
                         round(val, 1) for val in forecast_data["items"]["most_likely"]
                     ],
                     textposition="outside",
-                    hovertemplate="Forecast for %{x}<br>Items: %{y:.1f}<extra></extra>",
+                    hovertemplate=format_hover_template(
+                        title="Items Forecast",
+                        fields={
+                            "Week": "%{x}",
+                            "Items": "%{y:.1f}",
+                            "Type": "Most Likely",
+                        },
+                    ),
+                    hoverlabel=create_hoverlabel_config("info"),
                 )
             )
 
@@ -694,7 +784,6 @@ def create_weekly_items_chart(
         yaxis_title="Items Completed",
         hovermode="x unified",
         hoverlabel=dict(
-            bgcolor="white",
             font_size=14,
         ),
         yaxis=dict(
@@ -731,6 +820,9 @@ def create_weekly_points_chart(
     Returns:
         Plotly figure object with the weekly points chart
     """
+    # Import tooltip styling utilities
+    from ui.styles import format_hover_template, create_hoverlabel_config
+
     # Create DataFrame from statistics data
     df = pd.DataFrame(statistics_data).copy()
     if df.empty:
@@ -802,8 +894,15 @@ def create_weekly_points_chart(
             name="Completed Points",
             text=weekly_df["points"],
             textposition="outside",
-            customdata=weekly_df["week_label"],  # Add custom data for hover template
-            hovertemplate="Week of %{customdata}<br>Points: %{y}<extra></extra>",
+            customdata=weekly_df["week_label"],
+            hovertemplate=format_hover_template(
+                title="Weekly Points",
+                fields={
+                    "Week of": "%{customdata}",
+                    "Points": "%{y}",
+                },
+            ),
+            hoverlabel=create_hoverlabel_config("default"),
         )
     )
 
@@ -825,10 +924,15 @@ def create_weekly_points_chart(
                     dash="solid",
                 ),
                 marker=dict(size=6, opacity=1),
-                customdata=weighted_df[
-                    "week_label"
-                ],  # Add custom data for hover template
-                hovertemplate="Week of %{customdata}<br>Weighted Avg: %{y:.1f}<extra></extra>",
+                customdata=weighted_df["week_label"],
+                hovertemplate=format_hover_template(
+                    title="Weekly Average",
+                    fields={
+                        "Week of": "%{customdata}",
+                        "Weighted Avg": "%{y:.1f}",
+                    },
+                ),
+                hoverlabel=create_hoverlabel_config("info"),
                 hoverinfo="all",  # Ensure hover info shows
             )
         )
@@ -870,12 +974,15 @@ def create_weekly_points_chart(
                         arrayminus=[ml - l for ml, l in zip(most_likely, lower_bound)],
                         color="rgba(0, 0, 0, 0.3)",
                     ),
-                    hovertemplate=(
-                        "Forecast for %{x}<br>"
-                        "Points: %{y:.1f}<br>"
-                        "Confidence Interval: [%{error_y.arrayminus:.1f}, %{error_y.array:.1f}]"
-                        "<extra></extra>"
+                    hovertemplate=format_hover_template(
+                        title="Points Forecast",
+                        fields={
+                            "Week": "%{x}",
+                            "Points": "%{y:.1f}",
+                            "Range": "[%{error_y.arrayminus:.1f}, %{error_y.array:.1f}]",
+                        },
                     ),
+                    hoverlabel=create_hoverlabel_config("info"),
                 )
             )
 
@@ -917,7 +1024,6 @@ def create_weekly_points_chart(
         yaxis_title="Points Completed",
         hovermode="x unified",
         hoverlabel=dict(
-            bgcolor="white",
             font_size=14,
         ),
         yaxis=dict(
@@ -953,6 +1059,9 @@ def create_weekly_items_forecast_chart(
     Returns:
         Plotly figure object with the weekly items forecast chart
     """
+    # Import tooltip styling utilities
+    from ui.styles import format_hover_template, create_hoverlabel_config
+
     # Create DataFrame from statistics data
     df = pd.DataFrame(statistics_data).copy()
     if df.empty:
@@ -1007,7 +1116,15 @@ def create_weekly_items_forecast_chart(
             name="Completed Items",
             text=weekly_df["items"],
             textposition="outside",
-            hovertemplate="Week of %{x}<br>Items: %{y}<extra></extra>",
+            customdata=weekly_df["week_label"],
+            hovertemplate=format_hover_template(
+                title="Weekly Items",
+                fields={
+                    "Week of": "%{customdata}",
+                    "Items": "%{y}",
+                },
+            ),
+            hoverlabel=create_hoverlabel_config("default"),
         )
     )
 
@@ -1024,7 +1141,11 @@ def create_weekly_items_forecast_chart(
                 name="Most Likely Forecast",
                 text=[round(val, 1) for val in forecast_data["items"]["most_likely"]],
                 textposition="outside",
-                hovertemplate="Week of %{x}<br>Items (Most Likely): %{y:.1f}<extra></extra>",
+                hovertemplate=format_hover_template(
+                    title="Items Forecast",
+                    fields={"Week": "%{x}", "Items": "%{y:.1f}", "Type": "Most Likely"},
+                ),
+                hoverlabel=create_hoverlabel_config("info"),
             )
         )
 
@@ -1039,7 +1160,11 @@ def create_weekly_items_forecast_chart(
                 name="Optimistic Forecast",
                 text=[round(val, 1) for val in forecast_data["items"]["optimistic"]],
                 textposition="outside",
-                hovertemplate="Week of %{x}<br>Items (Optimistic): %{y:.1f}<extra></extra>",
+                hovertemplate=format_hover_template(
+                    title="Items Forecast",
+                    fields={"Week": "%{x}", "Items": "%{y:.1f}", "Type": "Optimistic"},
+                ),
+                hoverlabel=create_hoverlabel_config("success"),
             )
         )
 
@@ -1054,7 +1179,11 @@ def create_weekly_items_forecast_chart(
                 name="Pessimistic Forecast",
                 text=[round(val, 1) for val in forecast_data["items"]["pessimistic"]],
                 textposition="outside",
-                hovertemplate="Week of %{x}<br>Items (Pessimistic): %{y:.1f}<extra></extra>",
+                hovertemplate=format_hover_template(
+                    title="Items Forecast",
+                    fields={"Week": "%{x}", "Items": "%{y:.1f}", "Type": "Pessimistic"},
+                ),
+                hoverlabel=create_hoverlabel_config("warning"),
             )
         )
 
@@ -1076,7 +1205,6 @@ def create_weekly_items_forecast_chart(
         yaxis_title="Items Completed",
         hovermode="x unified",
         hoverlabel=dict(
-            bgcolor="white",
             font_size=14,
         ),
         yaxis=dict(
@@ -1099,7 +1227,7 @@ def create_weekly_items_forecast_chart(
                     f"<b>Forecast Methodology:</b> Based on PERT analysis using historical data.<br>"
                     f"<b>Most Likely:</b> {forecast_data['items'].get('most_likely_value', 0):.1f} items/week (historical average)<br>"
                     f"<b>Optimistic:</b> {forecast_data['items'].get('optimistic_value', 0):.1f} items/week<br>"
-                    f"<b>Pessimistic:</b> {forecast_data['items'].get('pessimistic_value', 0)::.1f} items/week"
+                    f"<b>Pessimistic:</b> {forecast_data['items'].get('pessimistic_value', 0):.1f} items/week"
                 ),
                 showarrow=False,
                 font=dict(size=12),
@@ -1130,6 +1258,9 @@ def create_weekly_points_forecast_chart(
     Returns:
         Plotly figure object with the weekly points forecast chart
     """
+    # Import tooltip styling utilities
+    from ui.styles import format_hover_template, create_hoverlabel_config
+
     # Create DataFrame from statistics data
     df = pd.DataFrame(statistics_data).copy()
     if df.empty:
@@ -1202,7 +1333,15 @@ def create_weekly_points_forecast_chart(
             name="Completed Points",
             text=weekly_df["points"],
             textposition="outside",
-            hovertemplate="Week of %{x}<br>Points: %{y}<extra></extra>",
+            customdata=weekly_df["week_label"],
+            hovertemplate=format_hover_template(
+                title="Weekly Points",
+                fields={
+                    "Week of": "%{customdata}",
+                    "Points": "%{y}",
+                },
+            ),
+            hoverlabel=create_hoverlabel_config("default"),
         )
     )
 
@@ -1226,7 +1365,14 @@ def create_weekly_points_forecast_chart(
                 customdata=weighted_df[
                     "week_label"
                 ],  # Add custom data for hover template
-                hovertemplate="Week of %{customdata}<br>Weighted Avg: %{y:.1f}<extra></extra>",
+                hovertemplate=format_hover_template(
+                    title="Weekly Average",
+                    fields={
+                        "Week of": "%{customdata}",
+                        "Weighted Avg": "%{y:.1f}",
+                    },
+                ),
+                hoverlabel=create_hoverlabel_config("info"),
                 hoverinfo="all",  # Ensure hover info shows
             )
         )
@@ -1264,12 +1410,15 @@ def create_weekly_points_forecast_chart(
                     arrayminus=[ml - l for ml, l in zip(most_likely, lower_bound)],
                     color="rgba(0, 0, 0, 0.3)",
                 ),
-                hovertemplate=(
-                    "Forecast for %{x}<br>"
-                    "Points: %{y:.1f}<br>"
-                    "Confidence Interval: [%{error_y.arrayminus:.1f}, %{error_y.array:.1f}]"
-                    "<extra></extra>"
+                hovertemplate=format_hover_template(
+                    title="Points Forecast",
+                    fields={
+                        "Week": "%{x}",
+                        "Points": "%{y:.1f}",
+                        "Range": "[%{error_y.arrayminus:.1f}, %{error_y.array:.1f}]",
+                    },
                 ),
+                hoverlabel=create_hoverlabel_config("info"),
             )
         )
 
@@ -1284,7 +1433,11 @@ def create_weekly_points_forecast_chart(
                 name="Optimistic Forecast",
                 text=[round(val, 1) for val in optimistic],
                 textposition="outside",
-                hovertemplate="Week of %{x}<br>Points (Optimistic): %{y:.1f}<extra></extra>",
+                hovertemplate=format_hover_template(
+                    title="Points Forecast",
+                    fields={"Week": "%{x}", "Points": "%{y:.1f}", "Type": "Optimistic"},
+                ),
+                hoverlabel=create_hoverlabel_config("success"),
             )
         )
 
@@ -1299,7 +1452,15 @@ def create_weekly_points_forecast_chart(
                 name="Pessimistic Forecast",
                 text=[round(val, 1) for val in pessimistic],
                 textposition="outside",
-                hovertemplate="Week of %{x}<br>Points (Pessimistic): %{y:.1f}<extra></extra>",
+                hovertemplate=format_hover_template(
+                    title="Points Forecast",
+                    fields={
+                        "Week": "%{x}",
+                        "Points": "%{y:.1f}",
+                        "Type": "Pessimistic",
+                    },
+                ),
+                hoverlabel=create_hoverlabel_config("warning"),
             )
         )
 
@@ -1321,7 +1482,6 @@ def create_weekly_points_forecast_chart(
         yaxis_title="Points Completed",
         hovermode="x unified",
         hoverlabel=dict(
-            bgcolor="white",
             font_size=14,
         ),
         yaxis=dict(
@@ -1374,6 +1534,9 @@ def create_capacity_chart(capacity_data, forecast_data, settings):
     Returns:
         plotly.graph_objects.Figure: Capacity chart
     """
+    # Import tooltip styling utilities
+    from ui.styles import format_hover_template, create_hoverlabel_config
+
     # Create figure with secondary y-axis
     fig = make_subplots(specs=[[{"secondary_y": True}]])
 
@@ -1416,6 +1579,14 @@ def create_capacity_chart(capacity_data, forecast_data, settings):
             mode="lines",
             name="Team Capacity",
             line=dict(color="rgba(0, 200, 0, 0.8)", width=2, dash="dash"),
+            hovertemplate=format_hover_template(
+                title="Team Capacity",
+                fields={
+                    "Date": "%{x|%Y-%m-%d}",
+                    "Hours": "%{y:.1f}",
+                },
+            ),
+            hoverlabel=create_hoverlabel_config("success"),
         ),
         secondary_y=False,
     )
@@ -1429,6 +1600,14 @@ def create_capacity_chart(capacity_data, forecast_data, settings):
             name="Required (Items)",
             line=dict(color=COLOR_PALETTE["items"], width=2),
             fill="tozeroy",
+            hovertemplate=format_hover_template(
+                title="Items Work Hours",
+                fields={
+                    "Date": "%{x|%Y-%m-%d}",
+                    "Hours": "%{y:.1f}",
+                },
+            ),
+            hoverlabel=create_hoverlabel_config("info"),
         ),
         secondary_y=False,
     )
@@ -1442,6 +1621,14 @@ def create_capacity_chart(capacity_data, forecast_data, settings):
             name="Required (Points)",
             line=dict(color=COLOR_PALETTE["points"], width=2),
             fill="tozeroy",
+            hovertemplate=format_hover_template(
+                title="Points Work Hours",
+                fields={
+                    "Date": "%{x|%Y-%m-%d}",
+                    "Hours": "%{y:.1f}",
+                },
+            ),
+            hoverlabel=create_hoverlabel_config("info"),
         ),
         secondary_y=False,
     )
@@ -1464,7 +1651,13 @@ def create_capacity_chart(capacity_data, forecast_data, settings):
             mode="lines",
             name="100% Utilization",
             line=dict(color="rgba(255, 165, 0, 0.8)", width=1.5, dash="dot"),
-            hoverinfo="name+y",
+            hovertemplate=format_hover_template(
+                title="Utilization Threshold",
+                fields={
+                    "Threshold": "100%",
+                },
+            ),
+            hoverlabel=create_hoverlabel_config("warning"),
         ),
         secondary_y=True,
     )
@@ -1476,7 +1669,13 @@ def create_capacity_chart(capacity_data, forecast_data, settings):
             mode="lines",
             name="85% Target Utilization",
             line=dict(color="rgba(0, 128, 0, 0.6)", width=1.5, dash="dot"),
-            hoverinfo="name+y",
+            hovertemplate=format_hover_template(
+                title="Utilization Target",
+                fields={
+                    "Target": "85%",
+                },
+            ),
+            hoverlabel=create_hoverlabel_config("success"),
         ),
         secondary_y=True,
     )
@@ -1498,6 +1697,14 @@ def create_capacity_chart(capacity_data, forecast_data, settings):
             name="Items Utilization %",
             line=dict(color=COLOR_PALETTE["items"], width=1.5),
             visible="legendonly",  # Hidden by default
+            hovertemplate=format_hover_template(
+                title="Items Utilization",
+                fields={
+                    "Date": "%{x|%Y-%m-%d}",
+                    "Utilization": "%{y:.1f}%",
+                },
+            ),
+            hoverlabel=create_hoverlabel_config("info"),
         ),
         secondary_y=True,
     )
@@ -1510,6 +1717,14 @@ def create_capacity_chart(capacity_data, forecast_data, settings):
             name="Points Utilization %",
             line=dict(color=COLOR_PALETTE["points"], width=1.5),
             visible="legendonly",  # Hidden by default
+            hovertemplate=format_hover_template(
+                title="Points Utilization",
+                fields={
+                    "Date": "%{x|%Y-%m-%d}",
+                    "Utilization": "%{y:.1f}%",
+                },
+            ),
+            hoverlabel=create_hoverlabel_config("info"),
         ),
         secondary_y=True,
     )
@@ -1522,6 +1737,7 @@ def create_capacity_chart(capacity_data, forecast_data, settings):
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
         hovermode="x unified",
         margin=dict(l=60, r=60, t=50, b=50),
+        hoverlabel=dict(font_size=14),
     )
 
     fig.update_yaxes(title_text="Hours per Week", secondary_y=False)

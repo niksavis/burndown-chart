@@ -361,13 +361,18 @@ def create_input_parameters_card(
                                                 step=1,
                                                 tooltip={
                                                     "placement": "bottom",
-                                                    "always_visible": True,
+                                                    "always_visible": False,  # Changed from True to False to make tooltip follow the cursor
                                                 },
+                                                className="mb-1",  # Added margin-bottom to separate slider from info text
                                             ),
                                             html.Small(
                                                 id="data-points-info",
                                                 children="Using all available data points",
-                                                className="text-muted mt-1 d-block",
+                                                className="text-muted mt-1 d-block text-center",
+                                                style={
+                                                    "cursor": "pointer"
+                                                },  # Make it look clickable
+                                                title="Click to see data points selection details",  # Add hover title
                                             ),
                                         ],
                                         width=12,  # Full width in all screen sizes

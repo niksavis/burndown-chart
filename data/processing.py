@@ -140,30 +140,59 @@ def calculate_rates(grouped, total_items, total_points, pert_factor):
     """
     days_per_week = 7.0
 
-    # Validate and adjust pert_factor based on available data
-    pert_factor = min(pert_factor, len(grouped) // 2) if len(grouped) > 0 else 1
-    pert_factor = max(pert_factor, 1)  # Ensure at least 1
-
-    if len(grouped) == 0:
+    # If no data or empty dataframe, return safe default values
+    if grouped is None or len(grouped) == 0:
+        # Return zeros to avoid calculations with empty data
         return 0, 0, 0, 0, 0, 0
 
-    # Calculate daily rates for items
-    optimistic_items_rate = (
-        grouped["no_items"].nlargest(pert_factor).mean() / days_per_week
-    )
-    pessimistic_items_rate = (
-        grouped["no_items"].nsmallest(pert_factor).mean() / days_per_week
-    )
-    most_likely_items_rate = grouped["no_items"].mean() / days_per_week
+    # Validate and adjust pert_factor based on available data
+    valid_data_count = len(grouped)
 
-    # Calculate daily rates for points
-    optimistic_points_rate = (
-        grouped["no_points"].nlargest(pert_factor).mean() / days_per_week
-    )
-    pessimistic_points_rate = (
-        grouped["no_points"].nsmallest(pert_factor).mean() / days_per_week
-    )
-    most_likely_points_rate = grouped["no_points"].mean() / days_per_week
+    # When data is limited, adjust strategy to ensure stable results
+    if valid_data_count <= 3:
+        # With very few data points, just use the mean for all estimates
+        # This prevents crashes when pert_factor is 3 but we only have 1-3 data points
+        most_likely_items_rate = grouped["no_items"].mean() / days_per_week
+        most_likely_points_rate = grouped["no_points"].mean() / days_per_week
+
+        # Use the same value for optimistic and pessimistic to avoid erratic forecasts
+        # with tiny datasets
+        optimistic_items_rate = most_likely_items_rate
+        pessimistic_items_rate = most_likely_items_rate
+        optimistic_points_rate = most_likely_points_rate
+        pessimistic_points_rate = most_likely_points_rate
+    else:
+        # Normal case with sufficient data
+        # Adjust PERT factor to be at most 1/3 of available data for stable results
+        valid_pert_factor = min(pert_factor, max(1, valid_data_count // 3))
+        valid_pert_factor = max(valid_pert_factor, 1)  # Ensure at least 1
+
+        # Calculate daily rates for items
+        optimistic_items_rate = (
+            grouped["no_items"].nlargest(valid_pert_factor).mean() / days_per_week
+        )
+        pessimistic_items_rate = (
+            grouped["no_items"].nsmallest(valid_pert_factor).mean() / days_per_week
+        )
+        most_likely_items_rate = grouped["no_items"].mean() / days_per_week
+
+        # Calculate daily rates for points
+        optimistic_points_rate = (
+            grouped["no_points"].nlargest(valid_pert_factor).mean() / days_per_week
+        )
+        pessimistic_points_rate = (
+            grouped["no_points"].nsmallest(valid_pert_factor).mean() / days_per_week
+        )
+        most_likely_points_rate = grouped["no_points"].mean() / days_per_week
+
+    # Prevent any zero or negative rates that would cause division by zero errors
+    # or negative time forecasts
+    optimistic_items_rate = max(0.001, optimistic_items_rate)
+    pessimistic_items_rate = max(0.001, pessimistic_items_rate)
+    most_likely_items_rate = max(0.001, most_likely_items_rate)
+    optimistic_points_rate = max(0.001, optimistic_points_rate)
+    pessimistic_points_rate = max(0.001, pessimistic_points_rate)
+    most_likely_points_rate = max(0.001, most_likely_points_rate)
 
     # Calculate time estimates for items
     optimistic_time_items = (
@@ -223,6 +252,11 @@ def daily_forecast(start_val, daily_rate, start_date):
     Returns:
         Tuple of (x_values, y_values) for plotting
     """
+    # If rate is too small, we'll hit timestamp limits; enforce a minimum
+    if daily_rate < 0.001:
+        daily_rate = 0.001
+
+    # If rate is still effectively zero, return just the start point
     if daily_rate <= 0:
         return [start_date], [start_val]
 
@@ -230,11 +264,47 @@ def daily_forecast(start_val, daily_rate, start_date):
     val = start_val
     current_date = start_date
 
+    # Calculate expected end date
+    days_needed = val / daily_rate if daily_rate > 0 else 0
+
+    # Cap forecast at 10 years (3650 days) to prevent timestamp overflow
+    MAX_FORECAST_DAYS = 3650
+    if days_needed > MAX_FORECAST_DAYS:
+        # Create a capped forecast
+        num_points = min(
+            100, MAX_FORECAST_DAYS
+        )  # Use at most 100 points for the forecast
+        day_step = MAX_FORECAST_DAYS / num_points
+
+        for i in range(num_points):
+            days_elapsed = i * day_step
+            if days_elapsed > MAX_FORECAST_DAYS:
+                break
+
+            forecast_date = start_date + timedelta(days=days_elapsed)
+            forecast_val = max(0, val - (daily_rate * days_elapsed))
+
+            x_vals.append(forecast_date)
+            y_vals.append(forecast_val)
+
+        # Add final point at the maximum forecast date
+        final_date = start_date + timedelta(days=MAX_FORECAST_DAYS)
+        final_val = max(0, val - (daily_rate * MAX_FORECAST_DAYS))
+        x_vals.append(final_date)
+        y_vals.append(final_val)
+
+        return x_vals, y_vals
+
+    # Normal case - forecast until completion
     while val > 0:
         x_vals.append(current_date)
         y_vals.append(val)
         val -= daily_rate
         current_date += timedelta(days=1)
+
+        # Safety check to prevent infinite loops
+        if len(x_vals) > MAX_FORECAST_DAYS:
+            break
 
     # Add final zero point
     x_vals.append(current_date)
@@ -318,15 +388,19 @@ def prepare_forecast_data(
     df_calc["date"] = pd.to_datetime(df_calc["date"])
 
     # Filter to use only the specified number of most recent data points
-    if data_points_count is not None and len(df_calc) > data_points_count:
+    if (
+        data_points_count is not None
+        and data_points_count > 0
+        and len(df_calc) > data_points_count
+    ):
         # Sort by date descending to get most recent first
-        df_calc = df_calc.sort_values("date", ascending=False)
+        temp_df = df_calc.sort_values("date", ascending=False)
         # Take only the specified number of rows
-        df_calc = df_calc.head(data_points_count)
+        temp_df = temp_df.head(data_points_count)
         # Resort by date ascending for calculations
-        df_calc = df_calc.sort_values("date", ascending=True)
+        df_calc = temp_df.sort_values("date", ascending=True)
 
-    # Compute weekly throughput and rates
+    # Compute weekly throughput and rates with the filtered data
     grouped = compute_weekly_throughput(df_calc)
     rates = calculate_rates(grouped, total_items, total_points, pert_factor)
 
@@ -458,31 +532,63 @@ def generate_weekly_forecast(statistics_data, pert_factor=3, forecast_weeks=1):
 
     # Calculate PERT estimates for weekly items
     if len(weekly_df) > 0:
-        # Ensure we have at least pert_factor rows
-        valid_pert_factor = min(pert_factor, len(weekly_df))
+        valid_data_count = len(weekly_df)
 
-        # Most likely: average of all data
-        most_likely_items = weekly_df["items"].mean()
+        # Special handling for very small datasets
+        if valid_data_count <= 3:
+            # With very few data points, just use the mean for all estimates
+            # This prevents crashes when pert_factor is 3 but we only have 1-3 data points
+            most_likely_items = weekly_df["items"].mean()
+            most_likely_points = weekly_df["points"].mean()
 
-        # Optimistic: average of best performing weeks
-        optimistic_items = weekly_df["items"].nlargest(valid_pert_factor).mean()
+            # Use the same values for optimistic and pessimistic to avoid erratic forecasts
+            # with tiny datasets
+            optimistic_items = most_likely_items * 1.2  # Slightly optimistic
+            pessimistic_items = max(
+                0.1, most_likely_items * 0.8
+            )  # Slightly pessimistic but positive
 
-        # Pessimistic: average of worst performing weeks (excluding zeros)
-        non_zero_items = weekly_df[weekly_df["items"] > 0]["items"]
-        if len(non_zero_items) > 0:
-            pessimistic_items = non_zero_items.nsmallest(valid_pert_factor).mean()
+            optimistic_points = most_likely_points * 1.2  # Slightly optimistic
+            pessimistic_points = max(
+                0.1, most_likely_points * 0.8
+            )  # Slightly pessimistic but positive
         else:
-            pessimistic_items = weekly_df["items"].min()
+            # Adjust PERT factor to be at most 1/3 of available data for stable results
+            valid_pert_factor = min(pert_factor, max(1, valid_data_count // 3))
+            valid_pert_factor = max(valid_pert_factor, 1)  # Ensure at least 1
 
-        # Same calculations for points
-        most_likely_points = weekly_df["points"].mean()
-        optimistic_points = weekly_df["points"].nlargest(valid_pert_factor).mean()
+            # Most likely: average of all data
+            most_likely_items = weekly_df["items"].mean()
 
-        non_zero_points = weekly_df[weekly_df["points"] > 0]["points"]
-        if len(non_zero_points) > 0:
-            pessimistic_points = non_zero_points.nsmallest(valid_pert_factor).mean()
-        else:
-            pessimistic_points = weekly_df["points"].min()
+            # Optimistic: average of best performing weeks
+            optimistic_items = weekly_df["items"].nlargest(valid_pert_factor).mean()
+
+            # Pessimistic: average of worst performing weeks (excluding zeros)
+            non_zero_items = weekly_df[weekly_df["items"] > 0]["items"]
+            if len(non_zero_items) >= valid_pert_factor:
+                pessimistic_items = non_zero_items.nsmallest(valid_pert_factor).mean()
+            else:
+                # If we don't have enough non-zero values, use min value or a percentage of most_likely
+                pessimistic_items = (
+                    non_zero_items.min()
+                    if len(non_zero_items) > 0
+                    else max(0.1, most_likely_items * 0.5)
+                )
+
+            # Same calculations for points
+            most_likely_points = weekly_df["points"].mean()
+            optimistic_points = weekly_df["points"].nlargest(valid_pert_factor).mean()
+
+            non_zero_points = weekly_df[weekly_df["points"] > 0]["points"]
+            if len(non_zero_points) >= valid_pert_factor:
+                pessimistic_points = non_zero_points.nsmallest(valid_pert_factor).mean()
+            else:
+                # If we don't have enough non-zero values, use min value or a percentage of most_likely
+                pessimistic_points = (
+                    non_zero_points.min()
+                    if len(non_zero_points) > 0
+                    else max(0.1, most_likely_points * 0.5)
+                )
 
         # Get the last date from historical data as starting point
         last_date = weekly_df["start_date"].max()

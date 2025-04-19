@@ -76,84 +76,79 @@ def register(app):
     def update_graph_and_pert_info(
         settings_ts, statistics_ts, calc_results, settings, statistics
     ):
-        """
-        Update the forecast graph and Project Dashboard PERT data
-        when settings or statistics change.
-        """
-        if not settings or not statistics:
+        """Update the forecast graph and PERT information when settings or statistics change."""
+        # Get context to see which input triggered the callback
+        ctx = callback_context
+        if not ctx.triggered:
             raise PreventUpdate
 
-        try:
-            # Create dataframe from statistics data
-            df = pd.DataFrame(statistics)
+        # Get triggered input ID
+        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
-            # Get values from settings
-            pert_factor = settings["pert_factor"]
-            total_items = settings["total_items"]
-            total_points = calc_results.get("total_points", settings["total_points"])
-            deadline = settings["deadline"]
-            data_points_count = settings.get(
-                "data_points_count", len(df)
-            )  # Get selected data points count
+        # Validate inputs
+        if settings is None or statistics is None:
+            raise PreventUpdate
 
-            # Process data for calculations
-            if not df.empty:
-                df = compute_cumulative_values(df, total_items, total_points)
+        # If triggered by calculation_results but data is None, prevent update
+        if trigger_id == "calculation-results" and calc_results is None:
+            raise PreventUpdate
 
-            # Create forecast plot and get PERT values
-            fig, pert_data = create_forecast_plot(
-                df=df,
-                total_items=total_items,
-                total_points=total_points,
-                pert_factor=pert_factor,
-                deadline_str=deadline,
-                data_points_count=data_points_count,  # Pass data_points_count to forecast function
-            )
+        # Process the settings and statistics data
+        df = pd.DataFrame(statistics)
+        if len(df) > 0:  # Check if there's any data
+            df["date"] = pd.to_datetime(df["date"])
+            df = df.sort_values("date")
 
-            # Calculate days to deadline
-            deadline_date = pd.to_datetime(deadline)
-            current_date = datetime.now()
-            days_to_deadline = max(0, (deadline_date - current_date).days)
+        # Get necessary values
+        total_items = settings.get("total_items", 100)
+        total_points = settings.get("total_points", 500)
+        pert_factor = settings.get("pert_factor", 3)
+        deadline = settings.get("deadline", None)
+        data_points_count = settings.get(
+            "data_points_count", len(df)
+        )  # Get selected data points count
 
-            # Calculate average and median weekly metrics
-            avg_weekly_items, avg_weekly_points, med_weekly_items, med_weekly_points = (
-                calculate_weekly_averages(statistics)
-            )
+        # Process data for calculations
+        if not df.empty:
+            df = compute_cumulative_values(df, total_items, total_points)
 
-            # Create the PERT info component for the Project Dashboard
-            project_dashboard_pert_info = create_pert_info_table(
-                pert_data["pert_time_items"],
-                pert_data["pert_time_points"],
-                days_to_deadline,
-                avg_weekly_items,
-                avg_weekly_points,
-                med_weekly_items,
-                med_weekly_points,
-                pert_factor=pert_factor,
-                total_items=total_items,
-                total_points=total_points,
-                deadline_str=deadline,
-                statistics_df=df,
-            )
+        # Create forecast plot and get PERT values
+        fig, pert_data = create_forecast_plot(
+            df=df,
+            total_items=total_items,
+            total_points=total_points,
+            pert_factor=pert_factor,
+            deadline_str=deadline,
+            data_points_count=data_points_count,
+        )
 
-            return fig, project_dashboard_pert_info
-        except Exception as e:
-            logger.error(f"Error in update_graph_and_pert_info callback: {e}")
-            # Return empty figure and error message on failure
-            fig = go.Figure()
-            fig.add_annotation(
-                text=f"Error generating forecast: {str(e)}",
-                xref="paper",
-                yref="paper",
-                x=0.5,
-                y=0.5,
-                showarrow=False,
-                font=dict(size=16, color="red"),
-            )
-            error_info = html.Div(
-                [html.P("Error calculating PERT values", style={"color": "red"})]
-            )
-            return fig, error_info
+        # Calculate weekly averages for the info table
+        avg_weekly_items, avg_weekly_points, med_weekly_items, med_weekly_points = (
+            calculate_weekly_averages(statistics)
+        )
+
+        # Calculate days to deadline
+        deadline_date = pd.to_datetime(deadline)
+        current_date = datetime.now()
+        days_to_deadline = max(0, (deadline_date - current_date).days)
+
+        # Create the PERT info component for the Project Dashboard
+        project_dashboard_pert_info = create_pert_info_table(
+            pert_data["pert_time_items"],
+            pert_data["pert_time_points"],
+            days_to_deadline,
+            avg_weekly_items,
+            avg_weekly_points,
+            med_weekly_items,
+            med_weekly_points,
+            pert_factor=pert_factor,
+            total_items=total_items,
+            total_points=total_points,
+            deadline_str=deadline,
+            statistics_df=df,
+        )
+
+        return fig, project_dashboard_pert_info
 
     @app.callback(
         Output("help-modal", "is_open"),
@@ -204,6 +199,8 @@ def register(app):
             total_items = settings["total_items"]
             total_points = calc_results.get("total_points", settings["total_points"])
             deadline = settings["deadline"]
+            # Get the data_points_count setting
+            data_points_count = settings.get("data_points_count")
 
             # Convert statistics to DataFrame
             df = pd.DataFrame(statistics)
@@ -220,6 +217,7 @@ def register(app):
                 total_points=total_points,
                 pert_factor=pert_factor,
                 deadline_str=deadline,
+                data_points_count=data_points_count,  # Pass the data_points_count parameter
             )
             charts["tab-burndown"] = html.Div(
                 [

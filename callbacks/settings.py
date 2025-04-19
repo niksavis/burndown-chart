@@ -159,19 +159,8 @@ def register(app):
             updated_calc_results,
         )
 
-    @app.callback(
-        Output("data-points-info", "children"),
-        [
-            Input("data-points-input", "value"),
-            Input("data-points-input", "min"),
-            Input("data-points-input", "max"),
-        ],
-    )
-    def update_data_points_info(value, min_value, max_value):
-        """
-        Update the info text about selected data points.
-        """
-        return get_data_points_info(value, min_value, max_value)
+    # REMOVED: The Python callback for data-points-info that was causing the duplicate output error
+    # This functionality is now handled by the clientside callback below
 
     @app.callback(
         [
@@ -309,3 +298,41 @@ def register(app):
             }
 
         return min_value, max_value, marks
+
+    # Add a clientside callback to enhance slider interactions and synchronize slider value with the displayed text
+    app.clientside_callback(
+        """
+        function(value, min_value, max_value) {
+            // Format the info text
+            let infoText = "";
+            
+            if (min_value === max_value) {
+                infoText = "Using all available data points (" + value + " points)";
+            } else if (value === min_value) {
+                infoText = "Using minimum data points (" + value + " points, most recent data only)";
+            } else if (value === max_value) {
+                infoText = "Using all available data points (" + value + " points)";
+            } else {
+                // Calculate percentage
+                const percent = Math.round(((value - min_value) / (max_value - min_value)) * 100);
+                infoText = "Using " + value + " most recent data points (" + percent + "% of available data)";
+            }
+            
+            // Also trigger slider tooltip display when slider is updated automatically
+            const slider = document.getElementById('data-points-input');
+            if (slider) {
+                // Force the tooltip to update its position and value
+                const event = new Event('mousemove');
+                slider.dispatchEvent(event);
+            }
+            
+            return infoText;
+        }
+        """,
+        dash.Output("data-points-info", "children"),
+        [
+            dash.Input("data-points-input", "value"),
+            dash.Input("data-points-input", "min"),
+            dash.Input("data-points-input", "max"),
+        ],
+    )
