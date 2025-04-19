@@ -1122,26 +1122,29 @@ def create_pert_info_table(
                                             ),
                                             # PERT row
                                             html.Div(
-                                                className="d-flex align-items-center p-3 border-start border-4 mb-2",
+                                                className="d-flex align-items-center p-2 mb-1",
                                                 style={
                                                     "backgroundColor": f"rgba({items_color == 'green' and '40,167,69' or '220,53,69'},0.08)",
-                                                    "borderColor": items_color,
                                                     "borderRadius": "4px",
+                                                    "border": f"1px solid {items_color}",
                                                 },
                                                 children=[
                                                     html.Div(
                                                         [
-                                                            "PERT ",
+                                                            html.Span(
+                                                                "PERT",
+                                                                className="fw-bold",
+                                                            ),
                                                             html.I(
-                                                                className="fas fa-star-of-life",
+                                                                className="fas fa-star-of-life ms-2",
                                                                 style={
-                                                                    "fontSize": "0.6rem",
-                                                                    "verticalAlign": "super",
+                                                                    "fontSize": "0.7rem",
+                                                                    "color": items_color,
                                                                 },
                                                             ),
                                                         ],
-                                                        className="fw-bold",
                                                         style={"width": "25%"},
+                                                        className="d-flex align-items-center",
                                                     ),
                                                     html.Div(
                                                         html.Span(
@@ -1303,26 +1306,29 @@ def create_pert_info_table(
                                             ),
                                             # PERT row
                                             html.Div(
-                                                className="d-flex align-items-center p-3 border-start border-4 mb-2",
+                                                className="d-flex align-items-center p-2 mb-1",
                                                 style={
                                                     "backgroundColor": f"rgba({points_color == 'green' and '40,167,69' or '220,53,69'},0.08)",
-                                                    "borderColor": points_color,
                                                     "borderRadius": "4px",
+                                                    "border": f"1px solid {points_color}",
                                                 },
                                                 children=[
                                                     html.Div(
                                                         [
-                                                            "PERT ",
+                                                            html.Span(
+                                                                "PERT",
+                                                                className="fw-bold",
+                                                            ),
                                                             html.I(
-                                                                className="fas fa-star-of-life",
+                                                                className="fas fa-star-of-life ms-2",
                                                                 style={
-                                                                    "fontSize": "0.6rem",
-                                                                    "verticalAlign": "super",
+                                                                    "fontSize": "0.7rem",
+                                                                    "color": points_color,
                                                                 },
                                                             ),
                                                         ],
-                                                        className="fw-bold",
                                                         style={"width": "25%"},
+                                                        className="d-flex align-items-center",
                                                     ),
                                                     html.Div(
                                                         html.Span(
