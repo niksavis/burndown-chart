@@ -1916,7 +1916,7 @@ def create_pert_info_table(
                                                     className="fas fa-info-circle me-1",
                                                     style={"color": "#6c757d"},
                                                 ),
-                                                "Progress bars show relative velocity scale. Percentages show changes compared to previous period.",
+                                                "10-week velocity data used for project forecasting.",
                                             ],
                                             className="text-muted fst-italic small text-center",
                                         ),

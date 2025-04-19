@@ -1148,7 +1148,7 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
                     pert_info_content = html.Div(
                         "Forecast available after data processing",
                         className="text-muted text-center py-2",
-                        style={"fontSize": "0.9rem"},
+                        style={"fontSize": "1rem"},
                     )
                 else:
                     # Format PERT data for compact display
@@ -1188,8 +1188,8 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
                             # Title
                             html.H6(
                                 "Project Completion Forecast",
-                                className="border-bottom pb-1 mb-2",
-                                style={"fontSize": "0.95rem", "fontWeight": "bold"},
+                                className="border-bottom pb-1 mb-3",
+                                style={"fontSize": "1.1rem", "fontWeight": "bold"},
                             ),
                             # PERT Forecast in compact table format
                             dbc.Row(
@@ -1205,13 +1205,13 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
                                                             "color": COLOR_PALETTE[
                                                                 "items"
                                                             ],
-                                                            "fontSize": "0.9rem",
+                                                            "fontSize": "1rem",
                                                         },
                                                     ),
                                                     html.Span(
                                                         "Items Completion:",
                                                         style={
-                                                            "fontSize": "0.85rem",
+                                                            "fontSize": "0.95rem",
                                                             "fontWeight": "bold",
                                                         },
                                                     ),
@@ -1224,7 +1224,7 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
                                                         f"{items_completion_str}",
                                                         className="fw-bold",
                                                         style={
-                                                            "fontSize": "0.9rem",
+                                                            "fontSize": "1rem",
                                                             "color": COLOR_PALETTE[
                                                                 "items"
                                                             ],
@@ -1237,7 +1237,7 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
                                                 [
                                                     html.Span(
                                                         f"{items_days} days ({items_weeks} weeks)",
-                                                        style={"fontSize": "0.8rem"},
+                                                        style={"fontSize": "0.9rem"},
                                                     ),
                                                 ],
                                                 className="ms-3",
@@ -1257,13 +1257,13 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
                                                             "color": COLOR_PALETTE[
                                                                 "points"
                                                             ],
-                                                            "fontSize": "0.9rem",
+                                                            "fontSize": "1rem",
                                                         },
                                                     ),
                                                     html.Span(
                                                         "Points Completion:",
                                                         style={
-                                                            "fontSize": "0.85rem",
+                                                            "fontSize": "0.95rem",
                                                             "fontWeight": "bold",
                                                         },
                                                     ),
@@ -1276,7 +1276,7 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
                                                         f"{points_completion_str}",
                                                         className="fw-bold",
                                                         style={
-                                                            "fontSize": "0.9rem",
+                                                            "fontSize": "1rem",
                                                             "color": COLOR_PALETTE[
                                                                 "points"
                                                             ],
@@ -1289,7 +1289,7 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
                                                 [
                                                     html.Span(
                                                         f"{points_days} days ({points_weeks} weeks)",
-                                                        style={"fontSize": "0.8rem"},
+                                                        style={"fontSize": "0.9rem"},
                                                     ),
                                                 ],
                                                 className="ms-3",
@@ -1299,13 +1299,13 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
                                         className="px-2",
                                     ),
                                 ],
-                                className="mb-3",
+                                className="mb-4",  # Increased bottom margin for better spacing
                             ),
                             # Weekly velocity section
                             html.H6(
                                 "Weekly Velocity",
-                                className="border-bottom pb-1 mb-2 mt-2",
-                                style={"fontSize": "0.95rem", "fontWeight": "bold"},
+                                className="border-bottom pb-1 mb-3",
+                                style={"fontSize": "1.1rem", "fontWeight": "bold"},
                             ),
                             dbc.Row(
                                 [
@@ -1320,21 +1320,22 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
                                                             "color": COLOR_PALETTE[
                                                                 "items"
                                                             ],
-                                                            "fontSize": "0.9rem",
+                                                            "fontSize": "1rem",
                                                         },
                                                     ),
                                                     html.Span(
                                                         f"{avg_weekly_items:.1f}",
                                                         className="fw-bold",
                                                         style={
+                                                            "fontSize": "1.1rem",
                                                             "color": COLOR_PALETTE[
                                                                 "items"
-                                                            ]
+                                                            ],
                                                         },
                                                     ),
                                                     html.Small(
                                                         " items/week",
-                                                        style={"fontSize": "0.8rem"},
+                                                        style={"fontSize": "0.9rem"},
                                                     ),
                                                 ],
                                                 className="mb-2",
@@ -1354,21 +1355,22 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
                                                             "color": COLOR_PALETTE[
                                                                 "points"
                                                             ],
-                                                            "fontSize": "0.9rem",
+                                                            "fontSize": "1rem",
                                                         },
                                                     ),
                                                     html.Span(
                                                         f"{avg_weekly_points:.1f}",
                                                         className="fw-bold",
                                                         style={
+                                                            "fontSize": "1.1rem",
                                                             "color": COLOR_PALETTE[
                                                                 "points"
-                                                            ]
+                                                            ],
                                                         },
                                                     ),
                                                     html.Small(
                                                         " points/week",
-                                                        style={"fontSize": "0.8rem"},
+                                                        style={"fontSize": "0.9rem"},
                                                     ),
                                                 ],
                                                 className="mb-2",
@@ -1377,7 +1379,8 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
                                         width=6,
                                         className="px-2",
                                     ),
-                                ]
+                                ],
+                                className="mb-3",  # Added bottom margin to prevent overlap
                             ),
                             # Deadline section if available
                             html.Div(
@@ -1386,25 +1389,25 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
                                         [
                                             html.I(
                                                 className="fas fa-calendar-alt me-1 text-secondary",
-                                                style={"fontSize": "0.9rem"},
+                                                style={"fontSize": "1rem"},
                                             ),
                                             html.Span(
                                                 "Deadline: ",
                                                 style={
-                                                    "fontSize": "0.85rem",
+                                                    "fontSize": "0.95rem",
                                                     "fontWeight": "bold",
                                                 },
                                             ),
                                             html.Span(
                                                 deadline_str,
-                                                style={"fontSize": "0.85rem"},
+                                                style={"fontSize": "0.95rem"},
                                             ),
                                             html.Span(
                                                 f" ({days_to_deadline} days remaining)"
                                                 if days_to_deadline is not None
                                                 else "",
                                                 style={
-                                                    "fontSize": "0.8rem",
+                                                    "fontSize": "0.9rem",
                                                     "marginLeft": "8px",
                                                 },
                                             ),
@@ -1415,17 +1418,20 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
                             )
                             if deadline_date
                             else html.Div(),
-                        ]
+                        ],
+                        className="mb-2",  # Added bottom margin to prevent overlap with card border
                     )
             except Exception as pert_error:
                 pert_info_content = html.P(
                     f"Error: {str(pert_error)}",
-                    className="text-danger small p-2",
+                    className="text-danger p-2",
+                    style={"fontSize": "1rem"},
                 )
         else:
             pert_info_content = html.Div(
                 "Project forecast will display here once data is available",
-                className="text-muted small text-center py-3",
+                className="text-muted text-center py-3",
+                style={"fontSize": "1rem"},
             )
 
         return dbc.Card(
@@ -1435,14 +1441,14 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
                         html.H4(
                             "Project Dashboard",
                             className="d-inline",
-                            style={"fontSize": "1.25rem"},
+                            style={"fontSize": "1.4rem"},  # Increased heading size
                         ),
                         create_info_tooltip(
                             "project-dashboard",
                             "Project analysis based on your historical data.",
                         ),
                     ],
-                    className="py-2",  # Reduced padding
+                    className="py-2",
                 ),
                 dbc.CardBody(
                     [
@@ -1450,12 +1456,13 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
                         html.Div(
                             pert_info_content,
                             id="project-dashboard-pert-content",
+                            className="pt-1 pb-2",  # Added padding at top and bottom
                         ),
                     ],
-                    className="p-2",  # Reduced padding for smaller card
+                    className="p-3",  # Increased padding for better spacing
                 ),
             ],
-            className="mb-3 shadow-sm h-100",  # Added h-100 to match height with adjacent card
+            className="mb-3 shadow-sm h-100",
         )
     except Exception as e:
         # Fallback card in case of errors
@@ -1465,21 +1472,22 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
                     html.H4(
                         "Project Dashboard",
                         className="d-inline",
-                        style={"fontSize": "1.25rem"},
+                        style={"fontSize": "1.4rem"},  # Increased heading size
                     )
                 ),
                 dbc.CardBody(
                     [
                         html.P(
                             "Unable to display project information. Please ensure you have valid project data.",
-                            className="text-danger small mb-1",
+                            className="text-danger mb-1",
+                            style={"fontSize": "1rem"},
                         ),
                         html.Small(f"Error: {str(e)}", className="text-muted"),
                     ],
-                    className="p-2",
+                    className="p-3",
                 ),
             ],
-            className="mb-3 shadow-sm h-100",  # Added h-100 to match height with adjacent card
+            className="mb-3 shadow-sm h-100",
         )
 
 
