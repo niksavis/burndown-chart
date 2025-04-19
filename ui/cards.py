@@ -20,6 +20,14 @@ from visualization import empty_figure
 # Fix circular import issue - import directly from components instead of ui
 from ui.components import create_info_tooltip, create_pert_info_table
 
+# Import styling functions from ui.styles
+from ui.styles import (
+    create_input_style,
+    create_datepicker_style,
+    create_slider_style,
+    NEUTRAL_COLORS,
+)
+
 #######################################################################
 # CARD COMPONENTS
 #######################################################################
@@ -292,10 +300,9 @@ def create_input_parameters_card(
                                                 min_date_allowed=datetime.now().strftime(
                                                     "%Y-%m-%d"
                                                 ),
-                                                style={
-                                                    "width": "100%",
-                                                    "border-radius": "0.25rem",
-                                                },
+                                                style=create_datepicker_style(
+                                                    size="md"
+                                                ),
                                             ),
                                         ],
                                         width=12,
@@ -326,6 +333,7 @@ def create_input_parameters_card(
                                                     "placement": "bottom",
                                                     "always_visible": True,
                                                 },
+                                                className="my-3",  # Added margin top and bottom instead of style
                                             ),
                                         ],
                                         width=12,
@@ -361,9 +369,9 @@ def create_input_parameters_card(
                                                 step=1,
                                                 tooltip={
                                                     "placement": "bottom",
-                                                    "always_visible": False,  # Changed from True to False to make tooltip follow the cursor
+                                                    "always_visible": False,
                                                 },
-                                                className="mb-1",  # Added margin-bottom to separate slider from info text
+                                                className="mb-1 mt-3",  # Added top margin to replace style
                                             ),
                                             html.Small(
                                                 id="data-points-info",
@@ -411,6 +419,7 @@ def create_input_parameters_card(
                                                 ],
                                                 min=0,
                                                 step=1,
+                                                style=create_input_style(size="md"),
                                             ),
                                         ],
                                         width=12,
@@ -434,6 +443,7 @@ def create_input_parameters_card(
                                                 value=current_settings["total_items"],
                                                 min=0,
                                                 step=1,
+                                                style=create_input_style(size="md"),
                                             ),
                                         ],
                                         width=12,
@@ -465,6 +475,7 @@ def create_input_parameters_card(
                                                 ],
                                                 min=0,
                                                 step=1,
+                                                style=create_input_style(size="md"),
                                             ),
                                         ],
                                         width=12,
@@ -488,9 +499,9 @@ def create_input_parameters_card(
                                                         id="total-points-display",
                                                         value=f"{estimated_total_points:.0f}",
                                                         disabled=True,
-                                                        style={
-                                                            "backgroundColor": "#f8f9fa"
-                                                        },
+                                                        style=create_input_style(
+                                                            disabled=True, readonly=True
+                                                        ),
                                                     ),
                                                     dbc.InputGroupText(
                                                         html.I(
@@ -550,8 +561,12 @@ def create_input_parameters_card(
                                                     "lineHeight": "60px",
                                                     "borderWidth": "1px",
                                                     "borderStyle": "dashed",
-                                                    "borderRadius": "5px",
+                                                    "borderRadius": "0.25rem",
                                                     "textAlign": "center",
+                                                    "backgroundColor": NEUTRAL_COLORS[
+                                                        "gray-100"
+                                                    ],
+                                                    "transition": "border-color 0.15s ease-in-out, background-color 0.15s ease-in-out",
                                                 },
                                                 multiple=False,
                                             ),

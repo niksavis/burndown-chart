@@ -470,3 +470,241 @@ def create_chart_layout_config(
         layout["title"] = title
 
     return layout
+
+
+#######################################################################
+# FORM ELEMENT STYLING
+#######################################################################
+
+
+def create_input_style(
+    variant="default", disabled=False, size="md", readonly=False, error=False
+):
+    """
+    Create consistent styling for input fields.
+
+    Args:
+        variant (str): Input style variant (default, success, warning, danger)
+        disabled (bool): Whether the input is disabled
+        size (str): Input size (sm, md, lg)
+        readonly (bool): Whether the input is read-only
+        error (bool): Whether the input has validation errors
+
+    Returns:
+        dict: Dictionary with input styling properties
+    """
+    # Base style
+    base_style = {
+        "borderRadius": "0.25rem",
+        "transition": "border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out",
+    }
+
+    # Apply size
+    size_styles = {
+        "sm": {
+            "height": "calc(1.5em + 0.5rem + 2px)",
+            "padding": "0.25rem 0.5rem",
+            "fontSize": "0.875rem",
+        },
+        "md": {
+            "height": "calc(1.5em + 0.75rem + 2px)",
+            "padding": "0.375rem 0.75rem",
+            "fontSize": "1rem",
+        },
+        "lg": {
+            "height": "calc(1.5em + 1rem + 2px)",
+            "padding": "0.5rem 1rem",
+            "fontSize": "1.25rem",
+        },
+    }
+    base_style.update(size_styles.get(size, size_styles["md"]))
+
+    # Apply disabled styles
+    if disabled:
+        base_style.update(
+            {
+                "backgroundColor": NEUTRAL_COLORS["gray-200"],
+                "opacity": "1",
+                "cursor": "not-allowed",
+            }
+        )
+
+    # Apply readonly styles
+    if readonly:
+        base_style.update(
+            {
+                "backgroundColor": NEUTRAL_COLORS["gray-100"],
+                "opacity": "1",
+                "cursor": "default",
+            }
+        )
+
+    # Apply error styles - takes precedence over variant
+    if error:
+        base_style.update(
+            {
+                "borderColor": SEMANTIC_COLORS["danger"],
+                "boxShadow": f"0 0 0 0.2rem rgba({int(SEMANTIC_COLORS['danger'].split(',')[0].replace('rgb(', ''))}, "
+                + f"{int(SEMANTIC_COLORS['danger'].split(',')[1])}, "
+                + f"{int(SEMANTIC_COLORS['danger'].split(',')[2].replace(')', ''))}, 0.25)",
+            }
+        )
+        return base_style
+
+    # Apply variant styles
+    variant_styles = {
+        "default": {},
+        "success": {
+            "borderColor": SEMANTIC_COLORS["success"],
+            "boxShadow": f"0 0 0 0.2rem rgba(40, 167, 69, 0.25)",
+        },
+        "warning": {
+            "borderColor": SEMANTIC_COLORS["warning"],
+            "boxShadow": f"0 0 0 0.2rem rgba(255, 193, 7, 0.25)",
+        },
+        "danger": {
+            "borderColor": SEMANTIC_COLORS["danger"],
+            "boxShadow": f"0 0 0 0.2rem rgba(220, 53, 69, 0.25)",
+        },
+        "info": {
+            "borderColor": SEMANTIC_COLORS["info"],
+            "boxShadow": f"0 0 0 0.2rem rgba(13, 202, 240, 0.25)",
+        },
+    }
+
+    base_style.update(variant_styles.get(variant, variant_styles["default"]))
+    return base_style
+
+
+def create_label_style(required=False, size="md", disabled=False, error=False):
+    """
+    Create consistent styling for input labels.
+
+    Args:
+        required (bool): Whether the field is required
+        size (str): Label size (sm, md, lg)
+        disabled (bool): Whether the label is for a disabled field
+        error (bool): Whether the label is for a field with errors
+
+    Returns:
+        dict: Dictionary with label styling properties
+    """
+    # Base style
+    base_style = {
+        "display": "inline-block",
+        "marginBottom": "0.5rem",
+        "fontWeight": TYPOGRAPHY["weights"]["medium"],
+    }
+
+    # Apply size
+    size_map = {
+        "sm": TYPOGRAPHY["scale"]["small"],
+        "md": TYPOGRAPHY["scale"]["h6"],
+        "lg": TYPOGRAPHY["scale"]["h5"],
+    }
+    base_style["fontSize"] = size_map.get(size, size_map["md"])
+
+    # Apply disabled styles
+    if disabled:
+        base_style["color"] = NEUTRAL_COLORS["gray-600"]
+
+    # Apply error styles
+    if error:
+        base_style["color"] = SEMANTIC_COLORS["danger"]
+
+    return base_style
+
+
+def create_input_group_style(size="md"):
+    """
+    Create consistent styling for input groups.
+
+    Args:
+        size (str): Input group size (sm, md, lg)
+
+    Returns:
+        dict: Dictionary with input group styling properties
+    """
+    return {
+        "display": "flex",
+        "position": "relative",
+        "width": "100%",
+        "marginBottom": "1rem",
+    }
+
+
+def create_form_feedback_style(type="invalid"):
+    """
+    Create consistent styling for form feedback messages.
+
+    Args:
+        type (str): Feedback type (valid, invalid)
+
+    Returns:
+        dict: Dictionary with form feedback styling properties
+    """
+    base_style = {
+        "display": "block",
+        "width": "100%",
+        "marginTop": "0.25rem",
+        "fontSize": TYPOGRAPHY["scale"]["small"],
+    }
+
+    if type == "valid":
+        base_style["color"] = SEMANTIC_COLORS["success"]
+    else:
+        base_style["color"] = SEMANTIC_COLORS["danger"]
+
+    return base_style
+
+
+def create_slider_style(disabled=False, vertical=False, error=False):
+    """
+    Create consistent styling for sliders.
+
+    Args:
+        disabled (bool): Whether the slider is disabled
+        vertical (bool): Whether the slider is vertical
+        error (bool): Whether the slider has validation errors
+
+    Returns:
+        dict: Dictionary with slider styling properties
+    """
+    base_style = {
+        "margin": "1rem 0",
+    }
+
+    if vertical:
+        base_style["height"] = "300px"
+
+    if disabled:
+        base_style["opacity"] = "0.5"
+        base_style["cursor"] = "not-allowed"
+
+    return base_style
+
+
+def create_datepicker_style(size="md", disabled=False, error=False):
+    """
+    Create consistent styling for date pickers.
+
+    Args:
+        size (str): Date picker size (sm, md, lg)
+        disabled (bool): Whether the date picker is disabled
+        error (bool): Whether the date picker has validation errors
+
+    Returns:
+        dict: Dictionary with date picker styling properties
+    """
+    # Start with input style as a base
+    base_style = create_input_style(disabled=disabled, size=size, error=error)
+
+    # Add date picker specific styles
+    base_style.update(
+        {
+            "width": "100%",
+            "borderRadius": "0.25rem",
+        }
+    )
+
+    return base_style
