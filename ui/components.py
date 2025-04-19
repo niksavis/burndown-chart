@@ -1003,6 +1003,49 @@ def create_pert_info_table(
                                                 ],
                                                 className="mb-2 text-center",
                                             ),
+                                            # PERT row - highlighted as the recommended method (now first)
+                                            dbc.Row(
+                                                [
+                                                    dbc.Col(
+                                                        html.Span(
+                                                            [
+                                                                "PERT ",
+                                                                html.I(
+                                                                    className="fas fa-star-of-life ms-1",
+                                                                    style={
+                                                                        "fontSize": "0.6rem",
+                                                                        "verticalAlign": "super",
+                                                                    },
+                                                                ),
+                                                            ],
+                                                            className="fw-bold",
+                                                        ),
+                                                        width=3,
+                                                        className="border-end",
+                                                    ),
+                                                    dbc.Col(
+                                                        html.Span(
+                                                            items_completion_str,
+                                                            style={
+                                                                "color": items_color
+                                                            },
+                                                            className="fw-medium",
+                                                        ),
+                                                        width=5,
+                                                    ),
+                                                    dbc.Col(
+                                                        html.Small(
+                                                            f"{pert_time_items:.1f}d ({pert_time_items / 7:.1f}w)",
+                                                        ),
+                                                        width=4,
+                                                    ),
+                                                ],
+                                                className="py-2 rounded-1 border-start border-4 mb-2",
+                                                style={
+                                                    "backgroundColor": f"rgba({items_color == 'green' and '40,167,69' or '220,53,69'},0.08)",
+                                                    "borderColor": items_color,
+                                                },
+                                            ),
                                             # Average row
                                             dbc.Row(
                                                 [
@@ -1087,49 +1130,6 @@ def create_pert_info_table(
                                                 if weeks_med_items != float("inf")
                                                 else {},
                                             ),
-                                            # PERT row - highlighted as the recommended method
-                                            dbc.Row(
-                                                [
-                                                    dbc.Col(
-                                                        html.Span(
-                                                            [
-                                                                "PERT ",
-                                                                html.I(
-                                                                    className="fas fa-star-of-life ms-1",
-                                                                    style={
-                                                                        "fontSize": "0.6rem",
-                                                                        "verticalAlign": "super",
-                                                                    },
-                                                                ),
-                                                            ],
-                                                            className="fw-bold",
-                                                        ),
-                                                        width=3,
-                                                        className="border-end",
-                                                    ),
-                                                    dbc.Col(
-                                                        html.Span(
-                                                            items_completion_str,
-                                                            style={
-                                                                "color": items_color
-                                                            },
-                                                            className="fw-medium",
-                                                        ),
-                                                        width=5,
-                                                    ),
-                                                    dbc.Col(
-                                                        html.Small(
-                                                            f"{pert_time_items:.1f}d ({pert_time_items / 7:.1f}w)",
-                                                        ),
-                                                        width=4,
-                                                    ),
-                                                ],
-                                                className="py-2 rounded-1 border-start border-4 mb-2",
-                                                style={
-                                                    "backgroundColor": f"rgba({items_color == 'green' and '40,167,69' or '220,53,69'},0.08)",
-                                                    "borderColor": items_color,
-                                                },
-                                            ),
                                         ],
                                         className="mb-4 pb-3 border-bottom",
                                     ),
@@ -1179,6 +1179,49 @@ def create_pert_info_table(
                                                     ),
                                                 ],
                                                 className="mb-2 text-center",
+                                            ),
+                                            # PERT row - highlighted as the recommended method (now first)
+                                            dbc.Row(
+                                                [
+                                                    dbc.Col(
+                                                        html.Span(
+                                                            [
+                                                                "PERT ",
+                                                                html.I(
+                                                                    className="fas fa-star-of-life ms-1",
+                                                                    style={
+                                                                        "fontSize": "0.6rem",
+                                                                        "verticalAlign": "super",
+                                                                    },
+                                                                ),
+                                                            ],
+                                                            className="fw-bold",
+                                                        ),
+                                                        width=3,
+                                                        className="border-end",
+                                                    ),
+                                                    dbc.Col(
+                                                        html.Span(
+                                                            points_completion_str,
+                                                            style={
+                                                                "color": points_color
+                                                            },
+                                                            className="fw-medium",
+                                                        ),
+                                                        width=5,
+                                                    ),
+                                                    dbc.Col(
+                                                        html.Small(
+                                                            f"{pert_time_points:.1f}d ({pert_time_points / 7:.1f}w)",
+                                                        ),
+                                                        width=4,
+                                                    ),
+                                                ],
+                                                className="py-2 rounded-1 border-start border-4 mb-2",
+                                                style={
+                                                    "backgroundColor": f"rgba({points_color == 'green' and '40,167,69' or '220,53,69'},0.08)",
+                                                    "borderColor": points_color,
+                                                },
                                             ),
                                             # Average row
                                             dbc.Row(
@@ -1263,49 +1306,6 @@ def create_pert_info_table(
                                                 }
                                                 if weeks_med_points != float("inf")
                                                 else {},
-                                            ),
-                                            # PERT row - highlighted as the recommended method
-                                            dbc.Row(
-                                                [
-                                                    dbc.Col(
-                                                        html.Span(
-                                                            [
-                                                                "PERT ",
-                                                                html.I(
-                                                                    className="fas fa-star-of-life ms-1",
-                                                                    style={
-                                                                        "fontSize": "0.6rem",
-                                                                        "verticalAlign": "super",
-                                                                    },
-                                                                ),
-                                                            ],
-                                                            className="fw-bold",
-                                                        ),
-                                                        width=3,
-                                                        className="border-end",
-                                                    ),
-                                                    dbc.Col(
-                                                        html.Span(
-                                                            points_completion_str,
-                                                            style={
-                                                                "color": points_color
-                                                            },
-                                                            className="fw-medium",
-                                                        ),
-                                                        width=5,
-                                                    ),
-                                                    dbc.Col(
-                                                        html.Small(
-                                                            f"{pert_time_points:.1f}d ({pert_time_points / 7:.1f}w)",
-                                                        ),
-                                                        width=4,
-                                                    ),
-                                                ],
-                                                className="py-2 rounded-1 border-start border-4",
-                                                style={
-                                                    "backgroundColor": f"rgba({points_color == 'green' and '40,167,69' or '220,53,69'},0.08)",
-                                                    "borderColor": points_color,
-                                                },
                                             ),
                                             # Legend
                                             html.Div(
