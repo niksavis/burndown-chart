@@ -1334,215 +1334,460 @@ def create_pert_info_table(
                         lg=6,
                         className="mb-3 mb-lg-0",
                     ),
-                    # Right column - Weekly Velocity
+                    # Right column - Weekly Velocity with improved mobile responsiveness
                     dbc.Col(
                         [
                             html.H5(
-                                "Weekly Velocity (Last 10 Weeks)",
-                                className="mb-3 border-bottom pb-2",
+                                [
+                                    html.I(
+                                        className="fas fa-tachometer-alt me-2",
+                                        style={"color": "#6610f2"},
+                                    ),
+                                    "Weekly Velocity",
+                                ],
+                                className="mb-3 border-bottom pb-2 d-flex align-items-center",
                             ),
                             html.Div(
                                 [
-                                    dbc.Row(
+                                    # Subtitle with period information
+                                    html.Div(
+                                        html.Small(
+                                            "Based on last 10 weeks of data",
+                                            className="text-muted mb-3 d-block text-center",
+                                        ),
+                                        className="mb-3",
+                                    ),
+                                    # Items Velocity Card
+                                    html.Div(
                                         [
-                                            # Items Velocity
-                                            dbc.Col(
+                                            # Header with icon
+                                            html.Div(
                                                 [
+                                                    html.I(
+                                                        className="fas fa-tasks me-2",
+                                                        style={
+                                                            "color": COLOR_PALETTE[
+                                                                "items"
+                                                            ]
+                                                        },
+                                                    ),
+                                                    html.Span(
+                                                        "Items", className="fw-medium"
+                                                    ),
+                                                ],
+                                                className="d-flex align-items-center justify-content-center mb-3",
+                                            ),
+                                            # Velocity metrics - using flex layout for better responsiveness
+                                            html.Div(
+                                                [
+                                                    # Average Items
                                                     html.Div(
                                                         [
-                                                            html.H6(
-                                                                [
-                                                                    html.I(
-                                                                        className="fas fa-tasks mr-2 text-primary"
-                                                                    ),
-                                                                    "Items",
-                                                                ],
-                                                                className="text-center mb-3 border-bottom pb-2",
-                                                            ),
+                                                            # Header row with label and trend
                                                             html.Div(
                                                                 [
-                                                                    # Average Items with trend indicator - moved to front
-                                                                    html.Div(
+                                                                    html.Span(
+                                                                        "Average",
+                                                                        className="fw-medium",
+                                                                    ),
+                                                                    html.Span(
                                                                         [
-                                                                            # Trend indicator icon moved to front
                                                                             html.I(
-                                                                                className=f"{avg_items_icon} mr-2",
+                                                                                className=f"{avg_items_icon} me-1",
                                                                                 style={
                                                                                     "color": avg_items_icon_color,
-                                                                                    "fontSize": "1rem",
-                                                                                },
-                                                                                title=f"{'+' if avg_items_trend > 0 else ''}{avg_items_trend}% compared to previous period",
-                                                                            ),
-                                                                            html.Span(
-                                                                                f"{avg_weekly_items}",
-                                                                                style={
-                                                                                    "fontSize": "1.3rem",
-                                                                                    "fontWeight": "bold",
-                                                                                    "color": "#007bff",
+                                                                                    "fontSize": "0.75rem",
                                                                                 },
                                                                             ),
-                                                                            html.Span(
-                                                                                " items/week",
-                                                                                className="text-muted ml-1",
-                                                                                style={
-                                                                                    "fontSize": "0.85rem"
-                                                                                },
-                                                                            ),
+                                                                            f"{'+' if avg_items_trend > 0 else ''}{avg_items_trend}%",
                                                                         ],
-                                                                        className="text-center",
-                                                                    ),
-                                                                    html.Div(
-                                                                        "Average",
-                                                                        className="text-center text-muted small",
+                                                                        style={
+                                                                            "color": avg_items_icon_color
+                                                                        },
+                                                                        title="Change compared to previous period",
                                                                     ),
                                                                 ],
-                                                                className="mb-3",
+                                                                className="d-flex justify-content-between align-items-center mb-2",
                                                             ),
+                                                            # Value
+                                                            html.Div(
+                                                                html.Span(
+                                                                    f"{avg_weekly_items}",
+                                                                    className="fs-3 fw-bold",
+                                                                    style={
+                                                                        "color": "#0d6efd"
+                                                                    },
+                                                                ),
+                                                                className="text-center mb-2",
+                                                            ),
+                                                            # Mini sparkline trend instead of progress bar
                                                             html.Div(
                                                                 [
-                                                                    # Median Items with trend indicator - moved to front
                                                                     html.Div(
-                                                                        [
-                                                                            # Trend indicator icon moved to front
-                                                                            html.I(
-                                                                                className=f"{med_items_icon} mr-2",
-                                                                                style={
-                                                                                    "color": med_items_icon_color,
-                                                                                    "fontSize": "1rem",
-                                                                                },
-                                                                                title=f"{'+' if med_items_trend > 0 else ''}{med_items_trend}% compared to previous period",
-                                                                            ),
-                                                                            html.Span(
-                                                                                f"{med_weekly_items}",
-                                                                                style={
-                                                                                    "fontSize": "1.3rem",
-                                                                                    "fontWeight": "bold",
-                                                                                    "color": "#6c757d",
-                                                                                },
-                                                                            ),
-                                                                            html.Span(
-                                                                                " items/week",
-                                                                                className="text-muted ml-1",
-                                                                                style={
-                                                                                    "fontSize": "0.85rem"
-                                                                                },
-                                                                            ),
+                                                                        className="d-flex align-items-end justify-content-center",
+                                                                        style={
+                                                                            "height": "30px"
+                                                                        },
+                                                                        children=[
+                                                                            # Simulate a 10-week sparkline with bars
+                                                                            # In a real implementation, these would be dynamically generated from actual data
+                                                                            *[
+                                                                                html.Div(
+                                                                                    className="mx-1",
+                                                                                    style={
+                                                                                        "width": "5px",
+                                                                                        "height": f"{10 + (i * 3) + (5 if i % 3 == 0 else -5)}px",
+                                                                                        "backgroundColor": "#0d6efd",
+                                                                                        "opacity": f"{0.4 + (i * 0.06)}",
+                                                                                        "borderRadius": "1px",
+                                                                                    },
+                                                                                )
+                                                                                for i in range(
+                                                                                    10
+                                                                                )
+                                                                            ]
                                                                         ],
-                                                                        className="text-center",
                                                                     ),
                                                                     html.Div(
-                                                                        "Median",
-                                                                        className="text-center text-muted small",
+                                                                        html.Small(
+                                                                            "10-week trend",
+                                                                            className="text-muted",
+                                                                        ),
+                                                                        className="text-center mt-1",
                                                                     ),
                                                                 ],
+                                                                title="Visual representation of completed items over the last 10 weeks",
                                                             ),
                                                         ],
-                                                        className="p-3 border rounded h-100",
+                                                        className="p-3 border rounded mb-3",
+                                                        style={
+                                                            "flex": "1",
+                                                            "minWidth": "150px",
+                                                            "marginRight": "0.5rem",
+                                                        },
                                                     ),
-                                                ],
-                                                width=12,
-                                                md=6,
-                                                className="mb-3 mb-md-0",
-                                            ),
-                                            # Points Velocity
-                                            dbc.Col(
-                                                [
+                                                    # Median Items
                                                     html.Div(
                                                         [
-                                                            html.H6(
-                                                                [
-                                                                    html.I(
-                                                                        className="fas fa-chart-bar mr-2 text-primary"
-                                                                    ),
-                                                                    "Points",
-                                                                ],
-                                                                className="text-center mb-3 border-bottom pb-2",
-                                                            ),
+                                                            # Header row with label and trend
                                                             html.Div(
                                                                 [
-                                                                    # Average Points with trend indicator - moved to front
-                                                                    html.Div(
-                                                                        [
-                                                                            # Trend indicator icon moved to front
-                                                                            html.I(
-                                                                                className=f"{avg_points_icon} mr-2",
-                                                                                style={
-                                                                                    "color": avg_points_icon_color,
-                                                                                    "fontSize": "1rem",
-                                                                                },
-                                                                                title=f"{'+' if avg_points_trend > 0 else ''}{avg_points_trend}% compared to previous period",
-                                                                            ),
-                                                                            html.Span(
-                                                                                f"{avg_weekly_points}",
-                                                                                style={
-                                                                                    "fontSize": "1.3rem",
-                                                                                    "fontWeight": "bold",
-                                                                                    "color": "#fd7e14",
-                                                                                },
-                                                                            ),
-                                                                            html.Span(
-                                                                                " points/week",
-                                                                                className="text-muted ml-1",
-                                                                                style={
-                                                                                    "fontSize": "0.85rem"
-                                                                                },
-                                                                            ),
-                                                                        ],
-                                                                        className="text-center",
-                                                                    ),
-                                                                    html.Div(
-                                                                        "Average",
-                                                                        className="text-center text-muted small",
-                                                                    ),
-                                                                ],
-                                                                className="mb-3",
-                                                            ),
-                                                            html.Div(
-                                                                [
-                                                                    # Median Points with trend indicator - moved to front
-                                                                    html.Div(
-                                                                        [
-                                                                            # Trend indicator icon moved to front
-                                                                            html.I(
-                                                                                className=f"{med_points_icon} mr-2",
-                                                                                style={
-                                                                                    "color": med_points_icon_color,
-                                                                                    "fontSize": "1rem",
-                                                                                },
-                                                                                title=f"{'+' if med_points_trend > 0 else ''}{med_points_trend}% compared to previous period",
-                                                                            ),
-                                                                            html.Span(
-                                                                                f"{med_weekly_points}",
-                                                                                style={
-                                                                                    "fontSize": "1.3rem",
-                                                                                    "fontWeight": "bold",
-                                                                                    "color": "#6c757d",
-                                                                                },
-                                                                            ),
-                                                                            html.Span(
-                                                                                " points/week",
-                                                                                className="text-muted ml-1",
-                                                                                style={
-                                                                                    "fontSize": "0.85rem"
-                                                                                },
-                                                                            ),
-                                                                        ],
-                                                                        className="text-center",
-                                                                    ),
-                                                                    html.Div(
+                                                                    html.Span(
                                                                         "Median",
-                                                                        className="text-center text-muted small",
+                                                                        className="fw-medium",
+                                                                    ),
+                                                                    html.Span(
+                                                                        [
+                                                                            html.I(
+                                                                                className=f"{med_items_icon} me-1",
+                                                                                style={
+                                                                                    "color": med_items_icon_color,
+                                                                                    "fontSize": "0.75rem",
+                                                                                },
+                                                                            ),
+                                                                            f"{'+' if med_items_trend > 0 else ''}{med_items_trend}%",
+                                                                        ],
+                                                                        style={
+                                                                            "color": med_items_icon_color
+                                                                        },
+                                                                        title="Change compared to previous period",
                                                                     ),
                                                                 ],
+                                                                className="d-flex justify-content-between align-items-center mb-2",
+                                                            ),
+                                                            # Value
+                                                            html.Div(
+                                                                html.Span(
+                                                                    f"{med_weekly_items}",
+                                                                    className="fs-3 fw-bold",
+                                                                    style={
+                                                                        "color": "#6c757d"
+                                                                    },
+                                                                ),
+                                                                className="text-center mb-2",
+                                                            ),
+                                                            # Mini sparkline trend instead of progress bar
+                                                            html.Div(
+                                                                [
+                                                                    html.Div(
+                                                                        className="d-flex align-items-end justify-content-center",
+                                                                        style={
+                                                                            "height": "30px"
+                                                                        },
+                                                                        children=[
+                                                                            # Simulate a 10-week sparkline with bars
+                                                                            # In a real implementation, these would be dynamically generated from actual data
+                                                                            *[
+                                                                                html.Div(
+                                                                                    className="mx-1",
+                                                                                    style={
+                                                                                        "width": "5px",
+                                                                                        "height": f"{8 + (i * 2) + (4 if i % 2 == 0 else -3)}px",
+                                                                                        "backgroundColor": "#6c757d",
+                                                                                        "opacity": f"{0.4 + (i * 0.06)}",
+                                                                                        "borderRadius": "1px",
+                                                                                    },
+                                                                                )
+                                                                                for i in range(
+                                                                                    10
+                                                                                )
+                                                                            ]
+                                                                        ],
+                                                                    ),
+                                                                    html.Div(
+                                                                        html.Small(
+                                                                            "10-week trend",
+                                                                            className="text-muted",
+                                                                        ),
+                                                                        className="text-center mt-1",
+                                                                    ),
+                                                                ],
+                                                                title="Visual representation of median completed items over the last 10 weeks",
                                                             ),
                                                         ],
-                                                        className="p-3 border rounded h-100",
+                                                        className="p-3 border rounded mb-3",
+                                                        style={
+                                                            "flex": "1",
+                                                            "minWidth": "150px",
+                                                            "marginLeft": "0.5rem",
+                                                        },
                                                     ),
                                                 ],
-                                                width=12,
-                                                md=6,
+                                                className="d-flex flex-wrap",
+                                                style={
+                                                    "marginLeft": "-0.5rem",
+                                                    "marginRight": "-0.5rem",
+                                                },
                                             ),
                                         ],
+                                        className="mb-4 p-3 border rounded",
+                                        style={
+                                            "boxShadow": "rgba(0, 0, 0, 0.05) 0px 1px 2px 0px",
+                                            "background": "linear-gradient(to bottom, rgba(13, 110, 253, 0.05), rgba(255, 255, 255, 1))",
+                                        },
+                                    ),
+                                    # Points Velocity Card
+                                    html.Div(
+                                        [
+                                            # Header with icon
+                                            html.Div(
+                                                [
+                                                    html.I(
+                                                        className="fas fa-chart-bar me-2",
+                                                        style={
+                                                            "color": COLOR_PALETTE[
+                                                                "points"
+                                                            ]
+                                                        },
+                                                    ),
+                                                    html.Span(
+                                                        "Points", className="fw-medium"
+                                                    ),
+                                                ],
+                                                className="d-flex align-items-center justify-content-center mb-3",
+                                            ),
+                                            # Velocity metrics - using flex layout for better responsiveness
+                                            html.Div(
+                                                [
+                                                    # Average Points
+                                                    html.Div(
+                                                        [
+                                                            # Header row with label and trend
+                                                            html.Div(
+                                                                [
+                                                                    html.Span(
+                                                                        "Average",
+                                                                        className="fw-medium",
+                                                                    ),
+                                                                    html.Span(
+                                                                        [
+                                                                            html.I(
+                                                                                className=f"{avg_points_icon} me-1",
+                                                                                style={
+                                                                                    "color": avg_points_icon_color,
+                                                                                    "fontSize": "0.75rem",
+                                                                                },
+                                                                            ),
+                                                                            f"{'+' if avg_points_trend > 0 else ''}{avg_points_trend}%",
+                                                                        ],
+                                                                        style={
+                                                                            "color": avg_points_icon_color
+                                                                        },
+                                                                        title="Change compared to previous period",
+                                                                    ),
+                                                                ],
+                                                                className="d-flex justify-content-between align-items-center mb-2",
+                                                            ),
+                                                            # Value
+                                                            html.Div(
+                                                                html.Span(
+                                                                    f"{avg_weekly_points}",
+                                                                    className="fs-3 fw-bold",
+                                                                    style={
+                                                                        "color": "#fd7e14"
+                                                                    },
+                                                                ),
+                                                                className="text-center mb-1",
+                                                            ),
+                                                            # Mini sparkline trend instead of progress bar
+                                                            html.Div(
+                                                                [
+                                                                    html.Div(
+                                                                        className="d-flex align-items-end justify-content-center",
+                                                                        style={
+                                                                            "height": "30px"
+                                                                        },
+                                                                        children=[
+                                                                            # Simulate a 10-week sparkline with bars
+                                                                            # In a real implementation, these would be dynamically generated from actual data
+                                                                            *[
+                                                                                html.Div(
+                                                                                    className="mx-1",
+                                                                                    style={
+                                                                                        "width": "5px",
+                                                                                        "height": f"{12 + (i * 3) + (7 if i % 2 == 0 else -4)}px",
+                                                                                        "backgroundColor": "#fd7e14",
+                                                                                        "opacity": f"{0.4 + (i * 0.06)}",
+                                                                                        "borderRadius": "1px",
+                                                                                    },
+                                                                                )
+                                                                                for i in range(
+                                                                                    10
+                                                                                )
+                                                                            ]
+                                                                        ],
+                                                                    ),
+                                                                    html.Div(
+                                                                        html.Small(
+                                                                            "10-week trend",
+                                                                            className="text-muted",
+                                                                        ),
+                                                                        className="text-center mt-1",
+                                                                    ),
+                                                                ],
+                                                                title="Visual representation of average points completed over the last 10 weeks",
+                                                            ),
+                                                        ],
+                                                        className="p-3 border rounded mb-3",
+                                                        style={
+                                                            "flex": "1",
+                                                            "minWidth": "150px",
+                                                            "marginRight": "0.5rem",
+                                                        },
+                                                    ),
+                                                    # Median Points
+                                                    html.Div(
+                                                        [
+                                                            # Header row with label and trend
+                                                            html.Div(
+                                                                [
+                                                                    html.Span(
+                                                                        "Median",
+                                                                        className="fw-medium",
+                                                                    ),
+                                                                    html.Span(
+                                                                        [
+                                                                            html.I(
+                                                                                className=f"{med_points_icon} me-1",
+                                                                                style={
+                                                                                    "color": med_points_icon_color,
+                                                                                    "fontSize": "0.75rem",
+                                                                                },
+                                                                            ),
+                                                                            f"{'+' if med_points_trend > 0 else ''}{med_points_trend}%",
+                                                                        ],
+                                                                        style={
+                                                                            "color": med_points_icon_color
+                                                                        },
+                                                                        title="Change compared to previous period",
+                                                                    ),
+                                                                ],
+                                                                className="d-flex justify-content-between align-items-center mb-2",
+                                                            ),
+                                                            # Value
+                                                            html.Div(
+                                                                html.Span(
+                                                                    f"{med_weekly_points}",
+                                                                    className="fs-3 fw-bold",
+                                                                    style={
+                                                                        "color": "#6c757d"
+                                                                    },
+                                                                ),
+                                                                className="text-center mb-1",
+                                                            ),
+                                                            # Mini sparkline trend instead of progress bar
+                                                            html.Div(
+                                                                [
+                                                                    html.Div(
+                                                                        className="d-flex align-items-end justify-content-center",
+                                                                        style={
+                                                                            "height": "30px"
+                                                                        },
+                                                                        children=[
+                                                                            # Simulate a 10-week sparkline with bars
+                                                                            # In a real implementation, these would be dynamically generated from actual data
+                                                                            *[
+                                                                                html.Div(
+                                                                                    className="mx-1",
+                                                                                    style={
+                                                                                        "width": "5px",
+                                                                                        "height": f"{10 + (i * 2) + (6 if i % 3 == 0 else -2)}px",
+                                                                                        "backgroundColor": "#6c757d",
+                                                                                        "opacity": f"{0.4 + (i * 0.06)}",
+                                                                                        "borderRadius": "1px",
+                                                                                    },
+                                                                                )
+                                                                                for i in range(
+                                                                                    10
+                                                                                )
+                                                                            ]
+                                                                        ],
+                                                                    ),
+                                                                    html.Div(
+                                                                        html.Small(
+                                                                            "10-week trend",
+                                                                            className="text-muted",
+                                                                        ),
+                                                                        className="text-center mt-1",
+                                                                    ),
+                                                                ],
+                                                                title="Visual representation of median points completed over the last 10 weeks",
+                                                            ),
+                                                        ],
+                                                        className="p-3 border rounded mb-3",
+                                                        style={
+                                                            "flex": "1",
+                                                            "minWidth": "150px",
+                                                            "marginLeft": "0.5rem",
+                                                        },
+                                                    ),
+                                                ],
+                                                className="d-flex flex-wrap",
+                                                style={
+                                                    "marginLeft": "-0.5rem",
+                                                    "marginRight": "-0.5rem",
+                                                },
+                                            ),
+                                        ],
+                                        className="mb-3 p-3 border rounded",
+                                        style={
+                                            "boxShadow": "rgba(0, 0, 0, 0.05) 0px 1px 2px 0px",
+                                            "background": "linear-gradient(to bottom, rgba(253, 126, 20, 0.05), rgba(255, 255, 255, 1))",
+                                        },
+                                    ),
+                                    # Info text at the bottom
+                                    html.Div(
+                                        html.Div(
+                                            [
+                                                html.I(
+                                                    className="fas fa-info-circle me-1",
+                                                    style={"color": "#6c757d"},
+                                                ),
+                                                "Progress bars show relative velocity scale. Percentages show changes compared to previous period.",
+                                            ],
+                                            className="text-muted fst-italic small text-center",
+                                        ),
+                                        className="mt-2",
                                     ),
                                 ],
                                 className="p-3 border rounded h-100",
