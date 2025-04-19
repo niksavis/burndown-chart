@@ -944,10 +944,10 @@ def create_pert_info_table(
                 ],
                 className="p-3 border rounded mb-4",
             ),
-            # Deadline and Forecast Section in one-column layout (removing Deadline Status column)
+            # Reorganized layout: Completion Forecast and Weekly Velocity side by side
             dbc.Row(
                 [
-                    # Right column - Completion Forecast (now full width)
+                    # Left column - Completion Forecast
                     dbc.Col(
                         [
                             html.H5(
@@ -1081,7 +1081,213 @@ def create_pert_info_table(
                                         className="mb-1 p-2",
                                     ),
                                 ],
-                                className="p-3 border rounded",
+                                className="p-3 border rounded h-100",
+                            ),
+                        ],
+                        width=12,
+                        lg=6,
+                        className="mb-3 mb-lg-0",
+                    ),
+                    # Right column - Weekly Velocity
+                    dbc.Col(
+                        [
+                            html.H5(
+                                "Weekly Velocity (Last 10 Weeks)",
+                                className="mb-3 border-bottom pb-2",
+                            ),
+                            html.Div(
+                                [
+                                    dbc.Row(
+                                        [
+                                            # Items Velocity
+                                            dbc.Col(
+                                                [
+                                                    html.Div(
+                                                        [
+                                                            html.H6(
+                                                                [
+                                                                    html.I(
+                                                                        className="fas fa-tasks mr-2 text-primary"
+                                                                    ),
+                                                                    "Items",
+                                                                ],
+                                                                className="text-center mb-3 border-bottom pb-2",
+                                                            ),
+                                                            html.Div(
+                                                                [
+                                                                    # Average Items with trend indicator
+                                                                    html.Div(
+                                                                        [
+                                                                            html.Span(
+                                                                                f"{avg_weekly_items}",
+                                                                                style={
+                                                                                    "fontSize": "1.5rem",
+                                                                                    "fontWeight": "bold",
+                                                                                    "color": "#007bff",
+                                                                                },
+                                                                            ),
+                                                                            # Add trend indicator icon
+                                                                            html.I(
+                                                                                className=f"{avg_items_icon} ml-2",
+                                                                                style={
+                                                                                    "color": avg_items_icon_color,
+                                                                                    "fontSize": "1.2rem",
+                                                                                },
+                                                                                title=f"{'+' if avg_items_trend > 0 else ''}{avg_items_trend}% compared to previous period",
+                                                                            ),
+                                                                            html.Span(
+                                                                                " items/week",
+                                                                                className="text-muted ml-1",
+                                                                            ),
+                                                                        ],
+                                                                        className="text-center",
+                                                                    ),
+                                                                    html.Div(
+                                                                        "Average",
+                                                                        className="text-center text-muted small",
+                                                                    ),
+                                                                ],
+                                                                className="mb-3",
+                                                            ),
+                                                            html.Div(
+                                                                [
+                                                                    # Median Items with trend indicator
+                                                                    html.Div(
+                                                                        [
+                                                                            html.Span(
+                                                                                f"{med_weekly_items}",
+                                                                                style={
+                                                                                    "fontSize": "1.5rem",
+                                                                                    "fontWeight": "bold",
+                                                                                    "color": "#6c757d",
+                                                                                },
+                                                                            ),
+                                                                            # Add trend indicator icon
+                                                                            html.I(
+                                                                                className=f"{med_items_icon} ml-2",
+                                                                                style={
+                                                                                    "color": med_items_icon_color,
+                                                                                    "fontSize": "1.2rem",
+                                                                                },
+                                                                                title=f"{'+' if med_items_trend > 0 else ''}{med_items_trend}% compared to previous period",
+                                                                            ),
+                                                                            html.Span(
+                                                                                " items/week",
+                                                                                className="text-muted ml-1",
+                                                                            ),
+                                                                        ],
+                                                                        className="text-center",
+                                                                    ),
+                                                                    html.Div(
+                                                                        "Median",
+                                                                        className="text-center text-muted small",
+                                                                    ),
+                                                                ],
+                                                            ),
+                                                        ],
+                                                        className="p-3 border rounded h-100",
+                                                    ),
+                                                ],
+                                                width=12,
+                                                md=6,
+                                                className="mb-3 mb-md-0",
+                                            ),
+                                            # Points Velocity
+                                            dbc.Col(
+                                                [
+                                                    html.Div(
+                                                        [
+                                                            html.H6(
+                                                                [
+                                                                    html.I(
+                                                                        className="fas fa-chart-bar mr-2 text-primary"
+                                                                    ),
+                                                                    "Points",
+                                                                ],
+                                                                className="text-center mb-3 border-bottom pb-2",
+                                                            ),
+                                                            html.Div(
+                                                                [
+                                                                    # Average Points with trend indicator
+                                                                    html.Div(
+                                                                        [
+                                                                            html.Span(
+                                                                                f"{avg_weekly_points}",
+                                                                                style={
+                                                                                    "fontSize": "1.5rem",
+                                                                                    "fontWeight": "bold",
+                                                                                    "color": "#fd7e14",
+                                                                                },
+                                                                            ),
+                                                                            # Add trend indicator icon
+                                                                            html.I(
+                                                                                className=f"{avg_points_icon} ml-2",
+                                                                                style={
+                                                                                    "color": avg_points_icon_color,
+                                                                                    "fontSize": "1.2rem",
+                                                                                },
+                                                                                title=f"{'+' if avg_points_trend > 0 else ''}{avg_points_trend}% compared to previous period",
+                                                                            ),
+                                                                            html.Span(
+                                                                                " points/week",
+                                                                                className="text-muted ml-1",
+                                                                            ),
+                                                                        ],
+                                                                        className="text-center",
+                                                                    ),
+                                                                    html.Div(
+                                                                        "Average",
+                                                                        className="text-center text-muted small",
+                                                                    ),
+                                                                ],
+                                                                className="mb-3",
+                                                            ),
+                                                            html.Div(
+                                                                [
+                                                                    # Median Points with trend indicator
+                                                                    html.Div(
+                                                                        [
+                                                                            html.Span(
+                                                                                f"{med_weekly_points}",
+                                                                                style={
+                                                                                    "fontSize": "1.5rem",
+                                                                                    "fontWeight": "bold",
+                                                                                    "color": "#6c757d",
+                                                                                },
+                                                                            ),
+                                                                            # Add trend indicator icon
+                                                                            html.I(
+                                                                                className=f"{med_points_icon} ml-2",
+                                                                                style={
+                                                                                    "color": med_points_icon_color,
+                                                                                    "fontSize": "1.2rem",
+                                                                                },
+                                                                                title=f"{'+' if med_points_trend > 0 else ''}{med_points_trend}% compared to previous period",
+                                                                            ),
+                                                                            html.Span(
+                                                                                " points/week",
+                                                                                className="text-muted ml-1",
+                                                                            ),
+                                                                        ],
+                                                                        className="text-center",
+                                                                    ),
+                                                                    html.Div(
+                                                                        "Median",
+                                                                        className="text-center text-muted small",
+                                                                    ),
+                                                                ],
+                                                            ),
+                                                        ],
+                                                        className="p-3 border rounded h-100",
+                                                    ),
+                                                ],
+                                                width=12,
+                                                md=6,
+                                            ),
+                                        ],
+                                    ),
+                                ],
+                                className="p-3 border rounded h-100",
                             ),
                         ],
                         width=12,
@@ -1089,206 +1295,6 @@ def create_pert_info_table(
                     ),
                 ],
                 className="mb-4",
-            ),
-            # Weekly Velocity Metrics Section - add more top margin
-            html.Div(
-                [
-                    html.H5(
-                        "Weekly Velocity (Last 10 Weeks)",
-                        className="mb-3 border-bottom pb-2",
-                    ),
-                    dbc.Row(
-                        [
-                            # Items Velocity
-                            dbc.Col(
-                                [
-                                    html.Div(
-                                        [
-                                            html.H6(
-                                                [
-                                                    html.I(
-                                                        className="fas fa-tasks mr-2 text-primary"
-                                                    ),
-                                                    "Items",
-                                                ],
-                                                className="text-center mb-3 border-bottom pb-2",
-                                            ),
-                                            html.Div(
-                                                [
-                                                    # Average Items with trend indicator
-                                                    html.Div(
-                                                        [
-                                                            html.Span(
-                                                                f"{avg_weekly_items}",
-                                                                style={
-                                                                    "fontSize": "1.5rem",
-                                                                    "fontWeight": "bold",
-                                                                    "color": "#007bff",
-                                                                },
-                                                            ),
-                                                            # Add trend indicator icon
-                                                            html.I(
-                                                                className=f"{avg_items_icon} ml-2",
-                                                                style={
-                                                                    "color": avg_items_icon_color,
-                                                                    "fontSize": "1.2rem",
-                                                                },
-                                                                title=f"{'+' if avg_items_trend > 0 else ''}{avg_items_trend}% compared to previous period",
-                                                            ),
-                                                            html.Span(
-                                                                " items/week",
-                                                                className="text-muted ml-1",
-                                                            ),
-                                                        ],
-                                                        className="text-center",
-                                                    ),
-                                                    html.Div(
-                                                        "Average",
-                                                        className="text-center text-muted small",
-                                                    ),
-                                                ],
-                                                className="mb-3",
-                                            ),
-                                            html.Div(
-                                                [
-                                                    # Median Items with trend indicator
-                                                    html.Div(
-                                                        [
-                                                            html.Span(
-                                                                f"{med_weekly_items}",
-                                                                style={
-                                                                    "fontSize": "1.5rem",
-                                                                    "fontWeight": "bold",
-                                                                    "color": "#6c757d",
-                                                                },
-                                                            ),
-                                                            # Add trend indicator icon
-                                                            html.I(
-                                                                className=f"{med_items_icon} ml-2",
-                                                                style={
-                                                                    "color": med_items_icon_color,
-                                                                    "fontSize": "1.2rem",
-                                                                },
-                                                                title=f"{'+' if med_items_trend > 0 else ''}{med_items_trend}% compared to previous period",
-                                                            ),
-                                                            html.Span(
-                                                                " items/week",
-                                                                className="text-muted ml-1",
-                                                            ),
-                                                        ],
-                                                        className="text-center",
-                                                    ),
-                                                    html.Div(
-                                                        "Median",
-                                                        className="text-center text-muted small",
-                                                    ),
-                                                ],
-                                            ),
-                                        ],
-                                        className="p-3 border rounded h-100",
-                                    ),
-                                ],
-                                width=12,
-                                md=6,
-                                className="mb-3 mb-md-0",
-                            ),
-                            # Points Velocity
-                            dbc.Col(
-                                [
-                                    html.Div(
-                                        [
-                                            html.H6(
-                                                [
-                                                    html.I(
-                                                        className="fas fa-chart-bar mr-2 text-primary"
-                                                    ),
-                                                    "Points",
-                                                ],
-                                                className="text-center mb-3 border-bottom pb-2",
-                                            ),
-                                            html.Div(
-                                                [
-                                                    # Average Points with trend indicator
-                                                    html.Div(
-                                                        [
-                                                            html.Span(
-                                                                f"{avg_weekly_points}",
-                                                                style={
-                                                                    "fontSize": "1.5rem",
-                                                                    "fontWeight": "bold",
-                                                                    "color": "#fd7e14",
-                                                                },
-                                                            ),
-                                                            # Add trend indicator icon
-                                                            html.I(
-                                                                className=f"{avg_points_icon} ml-2",
-                                                                style={
-                                                                    "color": avg_points_icon_color,
-                                                                    "fontSize": "1.2rem",
-                                                                },
-                                                                title=f"{'+' if avg_points_trend > 0 else ''}{avg_points_trend}% compared to previous period",
-                                                            ),
-                                                            html.Span(
-                                                                " points/week",
-                                                                className="text-muted ml-1",
-                                                            ),
-                                                        ],
-                                                        className="text-center",
-                                                    ),
-                                                    html.Div(
-                                                        "Average",
-                                                        className="text-center text-muted small",
-                                                    ),
-                                                ],
-                                                className="mb-3",
-                                            ),
-                                            html.Div(
-                                                [
-                                                    # Median Points with trend indicator
-                                                    html.Div(
-                                                        [
-                                                            html.Span(
-                                                                f"{med_weekly_points}",
-                                                                style={
-                                                                    "fontSize": "1.5rem",
-                                                                    "fontWeight": "bold",
-                                                                    "color": "#6c757d",
-                                                                },
-                                                            ),
-                                                            # Add trend indicator icon
-                                                            html.I(
-                                                                className=f"{med_points_icon} ml-2",
-                                                                style={
-                                                                    "color": med_points_icon_color,
-                                                                    "fontSize": "1.2rem",
-                                                                },
-                                                                title=f"{'+' if med_points_trend > 0 else ''}{med_points_trend}% compared to previous period",
-                                                            ),
-                                                            html.Span(
-                                                                " points/week",
-                                                                className="text-muted ml-1",
-                                                            ),
-                                                        ],
-                                                        className="text-center",
-                                                    ),
-                                                    html.Div(
-                                                        "Median",
-                                                        className="text-center text-muted small",
-                                                    ),
-                                                ],
-                                            ),
-                                        ],
-                                        className="p-3 border rounded h-100",
-                                    ),
-                                ],
-                                width=12,
-                                md=6,
-                            ),
-                        ],
-                    ),
-                ],
-                # Add more top margin to push the section down
-                className="mt-4",  # Added top margin
             ),
         ],
     )
