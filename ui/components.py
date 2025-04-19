@@ -737,34 +737,7 @@ def create_pert_info_table(
 
     return html.Div(
         [
-            # PERT Formula Section
-            html.Div(
-                [
-                    html.H5("PERT Formula", className="mb-3 border-bottom pb-2"),
-                    html.Div(
-                        [
-                            html.Div(
-                                "E = ",
-                                className="font-weight-bold mr-1",
-                                style={"fontSize": "1.2rem"},
-                            ),
-                            dcc.Markdown(
-                                r"$\frac{O + 4M + P}{6}$",
-                                mathjax=True,
-                                style={"display": "inline-block"},
-                            ),
-                            html.Div(
-                                "(O=Optimistic, M=Most Likely, P=Pessimistic)",
-                                className="text-muted ml-2",
-                                style={"fontSize": "0.9rem"},
-                            ),
-                        ],
-                        className="d-flex align-items-center justify-content-center mb-2",
-                    ),
-                ],
-                className="mb-4 text-center",
-            ),
-            # Deadline and Forecast Section
+            # Deadline and Forecast Section (PERT Formula Section removed)
             dbc.Row(
                 [
                     # Left column - Deadline Status

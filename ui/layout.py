@@ -189,9 +189,22 @@ def create_app_layout(settings, statistics, is_sample_data):
                 ]
             ),
             # Note: Forecast Info Card has been moved to tab-specific content
-            # Project Dashboard Card (combines Project Status Summary and PERT Analysis)
+            # Project Dashboard and Input Parameters Cards in a side-by-side layout
             dbc.Row(
                 [
+                    # Input Parameters (on the left on medium+ screens)
+                    dbc.Col(
+                        [
+                            create_input_parameters_card(
+                                settings,
+                                avg_points_per_item,
+                                estimated_total_points,
+                            ),
+                        ],
+                        width=12,
+                        md=6,  # Half width on medium screens and up
+                    ),
+                    # Project Dashboard (on the right on medium+ screens)
                     dbc.Col(
                         [
                             create_project_summary_card(
@@ -204,26 +217,10 @@ def create_app_layout(settings, statistics, is_sample_data):
                             ),
                         ],
                         width=12,
+                        md=6,  # Half width on medium screens and up
                     ),
                 ],
                 className="mb-4",
-            ),
-            # Input Parameters Card
-            dbc.Row(
-                [
-                    # Input Parameters
-                    dbc.Col(
-                        [
-                            create_input_parameters_card(
-                                settings,
-                                avg_points_per_item,
-                                estimated_total_points,
-                            ),
-                        ],
-                        width=12,
-                    ),
-                ],
-                className="mb-3",
             ),
             # Spacer
             html.Div(className="mb-3"),

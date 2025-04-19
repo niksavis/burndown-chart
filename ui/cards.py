@@ -1063,7 +1063,7 @@ def create_project_status_card(statistics_df, settings):
 
 def create_project_summary_card(statistics_df, settings, pert_data=None):
     """
-    Create a card with project dashboard information.
+    Create a card with project dashboard information optimized for side-by-side layout.
 
     Args:
         statistics_df: DataFrame containing the project statistics
@@ -1138,7 +1138,6 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
             days_to_deadline = None
 
         # Create the pert_info content
-        # This now just creates the content container - we've removed the header and specific PERT sections
         if pert_data:
             try:
                 pert_time_items = pert_data.get("pert_time_items")
@@ -1147,46 +1146,303 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
                 # If both PERT values are None, provide a placeholder message
                 if pert_time_items is None and pert_time_points is None:
                     pert_info_content = html.Div(
-                        "Project forecast will display here once data is available",
-                        className="text-muted p-3",
+                        "Forecast available after data processing",
+                        className="text-muted text-center py-2",
+                        style={"fontSize": "0.9rem"},
                     )
                 else:
-                    # Create PERT info table without the headers and specific items/points sections
-                    pert_info_content = create_pert_info_table(
-                        pert_time_items if pert_time_items is not None else 0,
-                        pert_time_points if pert_time_points is not None else 0,
-                        days_to_deadline if days_to_deadline is not None else 0,
-                        avg_weekly_items=avg_weekly_items,
-                        avg_weekly_points=avg_weekly_points,
-                        pert_factor=settings.get("pert_factor", 3),
-                        total_items=remaining_items,
-                        total_points=remaining_points,
-                        deadline_str=deadline_str,
-                        med_weekly_items=med_weekly_items,
-                        med_weekly_points=med_weekly_points,
-                        statistics_df=statistics_df,
+                    # Format PERT data for compact display
+                    current_date = datetime.now()
+
+                    if pert_time_items is not None:
+                        items_completion_date = current_date + timedelta(
+                            days=pert_time_items
+                        )
+                        items_completion_str = items_completion_date.strftime(
+                            "%Y-%m-%d"
+                        )
+                        items_days = int(pert_time_items)
+                        items_weeks = round(pert_time_items / 7, 1)
+                    else:
+                        items_completion_str = "Unknown"
+                        items_days = "--"
+                        items_weeks = "--"
+
+                    if pert_time_points is not None:
+                        points_completion_date = current_date + timedelta(
+                            days=pert_time_points
+                        )
+                        points_completion_str = points_completion_date.strftime(
+                            "%Y-%m-%d"
+                        )
+                        points_days = int(pert_time_points)
+                        points_weeks = round(pert_time_points / 7, 1)
+                    else:
+                        points_completion_str = "Unknown"
+                        points_days = "--"
+                        points_weeks = "--"
+
+                    # Create compact PERT info content with optimized spacing
+                    pert_info_content = html.Div(
+                        [
+                            # Title
+                            html.H6(
+                                "Project Completion Forecast",
+                                className="border-bottom pb-1 mb-2",
+                                style={"fontSize": "0.95rem", "fontWeight": "bold"},
+                            ),
+                            # PERT Forecast in compact table format
+                            dbc.Row(
+                                [
+                                    # Items Forecast Column
+                                    dbc.Col(
+                                        [
+                                            html.Div(
+                                                [
+                                                    html.I(
+                                                        className="fas fa-tasks me-1",
+                                                        style={
+                                                            "color": COLOR_PALETTE[
+                                                                "items"
+                                                            ],
+                                                            "fontSize": "0.9rem",
+                                                        },
+                                                    ),
+                                                    html.Span(
+                                                        "Items Completion:",
+                                                        style={
+                                                            "fontSize": "0.85rem",
+                                                            "fontWeight": "bold",
+                                                        },
+                                                    ),
+                                                ],
+                                                className="mb-1",
+                                            ),
+                                            html.Div(
+                                                [
+                                                    html.Span(
+                                                        f"{items_completion_str}",
+                                                        className="fw-bold",
+                                                        style={
+                                                            "fontSize": "0.9rem",
+                                                            "color": COLOR_PALETTE[
+                                                                "items"
+                                                            ],
+                                                        },
+                                                    ),
+                                                ],
+                                                className="ms-3 mb-1",
+                                            ),
+                                            html.Div(
+                                                [
+                                                    html.Span(
+                                                        f"{items_days} days ({items_weeks} weeks)",
+                                                        style={"fontSize": "0.8rem"},
+                                                    ),
+                                                ],
+                                                className="ms-3",
+                                            ),
+                                        ],
+                                        width=6,
+                                        className="px-2",
+                                    ),
+                                    # Points Forecast Column
+                                    dbc.Col(
+                                        [
+                                            html.Div(
+                                                [
+                                                    html.I(
+                                                        className="fas fa-chart-line me-1",
+                                                        style={
+                                                            "color": COLOR_PALETTE[
+                                                                "points"
+                                                            ],
+                                                            "fontSize": "0.9rem",
+                                                        },
+                                                    ),
+                                                    html.Span(
+                                                        "Points Completion:",
+                                                        style={
+                                                            "fontSize": "0.85rem",
+                                                            "fontWeight": "bold",
+                                                        },
+                                                    ),
+                                                ],
+                                                className="mb-1",
+                                            ),
+                                            html.Div(
+                                                [
+                                                    html.Span(
+                                                        f"{points_completion_str}",
+                                                        className="fw-bold",
+                                                        style={
+                                                            "fontSize": "0.9rem",
+                                                            "color": COLOR_PALETTE[
+                                                                "points"
+                                                            ],
+                                                        },
+                                                    ),
+                                                ],
+                                                className="ms-3 mb-1",
+                                            ),
+                                            html.Div(
+                                                [
+                                                    html.Span(
+                                                        f"{points_days} days ({points_weeks} weeks)",
+                                                        style={"fontSize": "0.8rem"},
+                                                    ),
+                                                ],
+                                                className="ms-3",
+                                            ),
+                                        ],
+                                        width=6,
+                                        className="px-2",
+                                    ),
+                                ],
+                                className="mb-3",
+                            ),
+                            # Weekly velocity section
+                            html.H6(
+                                "Weekly Velocity",
+                                className="border-bottom pb-1 mb-2 mt-2",
+                                style={"fontSize": "0.95rem", "fontWeight": "bold"},
+                            ),
+                            dbc.Row(
+                                [
+                                    # Items velocity
+                                    dbc.Col(
+                                        [
+                                            html.Div(
+                                                [
+                                                    html.I(
+                                                        className="fas fa-tasks me-1",
+                                                        style={
+                                                            "color": COLOR_PALETTE[
+                                                                "items"
+                                                            ],
+                                                            "fontSize": "0.9rem",
+                                                        },
+                                                    ),
+                                                    html.Span(
+                                                        f"{avg_weekly_items:.1f}",
+                                                        className="fw-bold",
+                                                        style={
+                                                            "color": COLOR_PALETTE[
+                                                                "items"
+                                                            ]
+                                                        },
+                                                    ),
+                                                    html.Small(
+                                                        " items/week",
+                                                        style={"fontSize": "0.8rem"},
+                                                    ),
+                                                ],
+                                                className="mb-2",
+                                            ),
+                                        ],
+                                        width=6,
+                                        className="px-2",
+                                    ),
+                                    # Points velocity
+                                    dbc.Col(
+                                        [
+                                            html.Div(
+                                                [
+                                                    html.I(
+                                                        className="fas fa-chart-line me-1",
+                                                        style={
+                                                            "color": COLOR_PALETTE[
+                                                                "points"
+                                                            ],
+                                                            "fontSize": "0.9rem",
+                                                        },
+                                                    ),
+                                                    html.Span(
+                                                        f"{avg_weekly_points:.1f}",
+                                                        className="fw-bold",
+                                                        style={
+                                                            "color": COLOR_PALETTE[
+                                                                "points"
+                                                            ]
+                                                        },
+                                                    ),
+                                                    html.Small(
+                                                        " points/week",
+                                                        style={"fontSize": "0.8rem"},
+                                                    ),
+                                                ],
+                                                className="mb-2",
+                                            ),
+                                        ],
+                                        width=6,
+                                        className="px-2",
+                                    ),
+                                ]
+                            ),
+                            # Deadline section if available
+                            html.Div(
+                                [
+                                    html.Div(
+                                        [
+                                            html.I(
+                                                className="fas fa-calendar-alt me-1 text-secondary",
+                                                style={"fontSize": "0.9rem"},
+                                            ),
+                                            html.Span(
+                                                "Deadline: ",
+                                                style={
+                                                    "fontSize": "0.85rem",
+                                                    "fontWeight": "bold",
+                                                },
+                                            ),
+                                            html.Span(
+                                                deadline_str,
+                                                style={"fontSize": "0.85rem"},
+                                            ),
+                                            html.Span(
+                                                f" ({days_to_deadline} days remaining)"
+                                                if days_to_deadline is not None
+                                                else "",
+                                                style={
+                                                    "fontSize": "0.8rem",
+                                                    "marginLeft": "8px",
+                                                },
+                                            ),
+                                        ],
+                                        className="mt-2",
+                                    ),
+                                ]
+                            )
+                            if deadline_date
+                            else html.Div(),
+                        ]
                     )
             except Exception as pert_error:
                 pert_info_content = html.P(
-                    f"Error generating project analysis: {str(pert_error)}",
-                    className="text-danger p-3",
+                    f"Error: {str(pert_error)}",
+                    className="text-danger small p-2",
                 )
         else:
             pert_info_content = html.Div(
                 "Project forecast will display here once data is available",
-                className="text-muted p-3",
+                className="text-muted small text-center py-3",
             )
 
         return dbc.Card(
             [
                 dbc.CardHeader(
                     [
-                        html.H4("Project Dashboard", className="d-inline"),
+                        html.H4(
+                            "Project Dashboard",
+                            className="d-inline",
+                            style={"fontSize": "1.25rem"},
+                        ),
                         create_info_tooltip(
                             "project-dashboard",
                             "Project analysis based on your historical data.",
                         ),
-                    ]
+                    ],
+                    className="py-2",  # Reduced padding
                 ),
                 dbc.CardBody(
                     [
@@ -1196,42 +1452,34 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
                             id="project-dashboard-pert-content",
                         ),
                     ],
-                    className="p-3",  # Add padding to entire card body
+                    className="p-2",  # Reduced padding for smaller card
                 ),
             ],
-            className="mb-3 shadow-sm",
+            className="mb-3 shadow-sm h-100",  # Added h-100 to match height with adjacent card
         )
     except Exception as e:
         # Fallback card in case of errors
         return dbc.Card(
             [
-                dbc.CardHeader("Project Dashboard"),
+                dbc.CardHeader(
+                    html.H4(
+                        "Project Dashboard",
+                        className="d-inline",
+                        style={"fontSize": "1.25rem"},
+                    )
+                ),
                 dbc.CardBody(
                     [
                         html.P(
                             "Unable to display project information. Please ensure you have valid project data.",
-                            className="text-danger",
+                            className="text-danger small mb-1",
                         ),
                         html.Small(f"Error: {str(e)}", className="text-muted"),
-                        # Debug information
-                        html.Div(
-                            [
-                                html.Hr(),
-                                html.H6("Debug Information:", className="text-muted"),
-                                html.P(f"Error details: {type(e).__name__}: {str(e)}"),
-                                html.Pre(
-                                    f"Error context: pert_data: {pert_data if pert_data else 'None'}\n"
-                                    f"Settings: {settings if settings else 'None'}",
-                                    style={"fontSize": "0.8rem"},
-                                ),
-                            ],
-                            className="mt-3",
-                            style={"display": "block"},  # For debugging
-                        ),
-                    ]
+                    ],
+                    className="p-2",
                 ),
             ],
-            className="mb-3 shadow-sm",
+            className="mb-3 shadow-sm h-100",  # Added h-100 to match height with adjacent card
         )
 
 
@@ -1365,15 +1613,6 @@ def create_items_forecast_info_card():
                                                 },
                                             ),
                                             " (excluding zero values, 80% confidence level).",
-                                        ]
-                                    ),
-                                    html.Li(
-                                        [
-                                            html.Strong("PERT Formula: "),
-                                            html.Code(
-                                                "(Optimistic + 4 × Most Likely + Pessimistic) ÷ 6"
-                                            ),
-                                            " - This weighted average gives more importance to the most likely scenario.",
                                         ]
                                     ),
                                 ],
@@ -1531,8 +1770,8 @@ def create_points_forecast_info_card():
                             ),
                             html.P(
                                 [
-                                    html.Strong("PERT Estimation Method: "),
-                                    "The forecast uses PERT (Program Evaluation and Review Technique) to provide a weighted average that accounts for uncertainty:",
+                                    html.Strong("Forecast Method: "),
+                                    "The forecast uses historical data with different weights for three scenarios:",
                                 ],
                                 className="mb-1",
                             ),
