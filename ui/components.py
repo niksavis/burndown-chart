@@ -1115,29 +1115,32 @@ def create_pert_info_table(
                                                             ),
                                                             html.Div(
                                                                 [
-                                                                    # Average Items with trend indicator
+                                                                    # Average Items with trend indicator - moved to front
                                                                     html.Div(
                                                                         [
-                                                                            html.Span(
-                                                                                f"{avg_weekly_items}",
-                                                                                style={
-                                                                                    "fontSize": "1.5rem",
-                                                                                    "fontWeight": "bold",
-                                                                                    "color": "#007bff",
-                                                                                },
-                                                                            ),
-                                                                            # Add trend indicator icon
+                                                                            # Trend indicator icon moved to front
                                                                             html.I(
-                                                                                className=f"{avg_items_icon} ml-2",
+                                                                                className=f"{avg_items_icon} mr-2",
                                                                                 style={
                                                                                     "color": avg_items_icon_color,
-                                                                                    "fontSize": "1.2rem",
+                                                                                    "fontSize": "1rem",
                                                                                 },
                                                                                 title=f"{'+' if avg_items_trend > 0 else ''}{avg_items_trend}% compared to previous period",
                                                                             ),
                                                                             html.Span(
+                                                                                f"{avg_weekly_items}",
+                                                                                style={
+                                                                                    "fontSize": "1.3rem",
+                                                                                    "fontWeight": "bold",
+                                                                                    "color": "#007bff",
+                                                                                },
+                                                                            ),
+                                                                            html.Span(
                                                                                 " items/week",
                                                                                 className="text-muted ml-1",
+                                                                                style={
+                                                                                    "fontSize": "0.85rem"
+                                                                                },
                                                                             ),
                                                                         ],
                                                                         className="text-center",
@@ -1151,29 +1154,32 @@ def create_pert_info_table(
                                                             ),
                                                             html.Div(
                                                                 [
-                                                                    # Median Items with trend indicator
+                                                                    # Median Items with trend indicator - moved to front
                                                                     html.Div(
                                                                         [
-                                                                            html.Span(
-                                                                                f"{med_weekly_items}",
-                                                                                style={
-                                                                                    "fontSize": "1.5rem",
-                                                                                    "fontWeight": "bold",
-                                                                                    "color": "#6c757d",
-                                                                                },
-                                                                            ),
-                                                                            # Add trend indicator icon
+                                                                            # Trend indicator icon moved to front
                                                                             html.I(
-                                                                                className=f"{med_items_icon} ml-2",
+                                                                                className=f"{med_items_icon} mr-2",
                                                                                 style={
                                                                                     "color": med_items_icon_color,
-                                                                                    "fontSize": "1.2rem",
+                                                                                    "fontSize": "1rem",
                                                                                 },
                                                                                 title=f"{'+' if med_items_trend > 0 else ''}{med_items_trend}% compared to previous period",
                                                                             ),
                                                                             html.Span(
+                                                                                f"{med_weekly_items}",
+                                                                                style={
+                                                                                    "fontSize": "1.3rem",
+                                                                                    "fontWeight": "bold",
+                                                                                    "color": "#6c757d",
+                                                                                },
+                                                                            ),
+                                                                            html.Span(
                                                                                 " items/week",
                                                                                 className="text-muted ml-1",
+                                                                                style={
+                                                                                    "fontSize": "0.85rem"
+                                                                                },
                                                                             ),
                                                                         ],
                                                                         className="text-center",
@@ -1208,29 +1214,32 @@ def create_pert_info_table(
                                                             ),
                                                             html.Div(
                                                                 [
-                                                                    # Average Points with trend indicator
+                                                                    # Average Points with trend indicator - moved to front
                                                                     html.Div(
                                                                         [
-                                                                            html.Span(
-                                                                                f"{avg_weekly_points}",
-                                                                                style={
-                                                                                    "fontSize": "1.5rem",
-                                                                                    "fontWeight": "bold",
-                                                                                    "color": "#fd7e14",
-                                                                                },
-                                                                            ),
-                                                                            # Add trend indicator icon
+                                                                            # Trend indicator icon moved to front
                                                                             html.I(
-                                                                                className=f"{avg_points_icon} ml-2",
+                                                                                className=f"{avg_points_icon} mr-2",
                                                                                 style={
                                                                                     "color": avg_points_icon_color,
-                                                                                    "fontSize": "1.2rem",
+                                                                                    "fontSize": "1rem",
                                                                                 },
                                                                                 title=f"{'+' if avg_points_trend > 0 else ''}{avg_points_trend}% compared to previous period",
                                                                             ),
                                                                             html.Span(
+                                                                                f"{avg_weekly_points}",
+                                                                                style={
+                                                                                    "fontSize": "1.3rem",
+                                                                                    "fontWeight": "bold",
+                                                                                    "color": "#fd7e14",
+                                                                                },
+                                                                            ),
+                                                                            html.Span(
                                                                                 " points/week",
                                                                                 className="text-muted ml-1",
+                                                                                style={
+                                                                                    "fontSize": "0.85rem"
+                                                                                },
                                                                             ),
                                                                         ],
                                                                         className="text-center",
@@ -1244,29 +1253,32 @@ def create_pert_info_table(
                                                             ),
                                                             html.Div(
                                                                 [
-                                                                    # Median Points with trend indicator
+                                                                    # Median Points with trend indicator - moved to front
                                                                     html.Div(
                                                                         [
-                                                                            html.Span(
-                                                                                f"{med_weekly_points}",
-                                                                                style={
-                                                                                    "fontSize": "1.5rem",
-                                                                                    "fontWeight": "bold",
-                                                                                    "color": "#6c757d",
-                                                                                },
-                                                                            ),
-                                                                            # Add trend indicator icon
+                                                                            # Trend indicator icon moved to front
                                                                             html.I(
-                                                                                className=f"{med_points_icon} ml-2",
+                                                                                className=f"{med_points_icon} mr-2",
                                                                                 style={
                                                                                     "color": med_points_icon_color,
-                                                                                    "fontSize": "1.2rem",
+                                                                                    "fontSize": "1rem",
                                                                                 },
                                                                                 title=f"{'+' if med_points_trend > 0 else ''}{med_points_trend}% compared to previous period",
                                                                             ),
                                                                             html.Span(
+                                                                                f"{med_weekly_points}",
+                                                                                style={
+                                                                                    "fontSize": "1.3rem",
+                                                                                    "fontWeight": "bold",
+                                                                                    "color": "#6c757d",
+                                                                                },
+                                                                            ),
+                                                                            html.Span(
                                                                                 " points/week",
                                                                                 className="text-muted ml-1",
+                                                                                style={
+                                                                                    "fontSize": "0.85rem"
+                                                                                },
                                                                             ),
                                                                         ],
                                                                         className="text-center",
