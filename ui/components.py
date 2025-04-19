@@ -924,70 +924,30 @@ def create_pert_info_table(
                                     else "none"
                                 },
                             ),
+                            # Added deadline information below progress bars
+                            html.Div(
+                                [
+                                    html.I(
+                                        className="fas fa-calendar-day mr-2",
+                                        style={"color": COLOR_PALETTE["deadline"]},
+                                    ),
+                                    html.Span(
+                                        f"Deadline: {deadline_date_str} ({days_to_deadline} days remaining)",
+                                        style={"fontWeight": "bold"},
+                                    ),
+                                ],
+                                className="mt-3 d-flex align-items-center",
+                            ),
                         ],
                         className="mb-3",
                     ),
                 ],
                 className="p-3 border rounded mb-4",
             ),
-            # Deadline and Forecast Section in two-column layout
+            # Deadline and Forecast Section in one-column layout (removing Deadline Status column)
             dbc.Row(
                 [
-                    # Left column - Deadline Status
-                    dbc.Col(
-                        [
-                            html.H5(
-                                "Deadline Status", className="mb-3 border-bottom pb-2"
-                            ),
-                            html.Div(
-                                [
-                                    # Deadline - reformatted to match other sections
-                                    html.Div(
-                                        [
-                                            html.I(
-                                                className="fas fa-calendar-day mr-2 text-primary"
-                                            ),
-                                            html.Span(
-                                                "Deadline:",
-                                                className="font-weight-bold d-block mb-2",
-                                            ),
-                                            html.Div(
-                                                [
-                                                    html.Span(
-                                                        "Date: ",
-                                                        className="font-weight-bold",
-                                                    ),
-                                                    html.Span(
-                                                        f"{deadline_date_str}",
-                                                    ),
-                                                ],
-                                                className="ml-4 mb-1",
-                                            ),
-                                            html.Div(
-                                                [
-                                                    html.Span(
-                                                        "Remaining: ",
-                                                        className="font-weight-bold",
-                                                    ),
-                                                    html.Span(
-                                                        f"{days_to_deadline} days",
-                                                    ),
-                                                ],
-                                                className="ml-4",
-                                            ),
-                                        ],
-                                        className="mb-1 p-2",
-                                    ),
-                                    # PERT Estimates section removed as requested
-                                ],
-                                className="p-3 border rounded",
-                            ),
-                        ],
-                        width=12,
-                        lg=6,
-                        className="mb-3 mb-lg-0",
-                    ),
-                    # Right column - Completion Estimates
+                    # Right column - Completion Forecast (now full width)
                     dbc.Col(
                         [
                             html.H5(
@@ -1038,7 +998,7 @@ def create_pert_info_table(
                                                 ],
                                                 className="ml-4 mb-1",
                                             ),
-                                            # Add PERT estimate for Items
+                                            # PERT estimate for Items
                                             html.Div(
                                                 [
                                                     html.Span(
