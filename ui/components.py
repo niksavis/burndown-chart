@@ -565,6 +565,7 @@ def create_pert_info_table(
     total_items=0,  # New parameter for total items
     total_points=0,  # New parameter for total points
     deadline_str=None,  # Add parameter for direct deadline string
+    statistics_df=None,  # New parameter for statistics data
 ):
     """
     Create the PERT information table with improved organization and visual grouping.
@@ -581,6 +582,7 @@ def create_pert_info_table(
         total_items: Total remaining items to complete
         total_points: Total remaining points to complete
         deadline_str: The deadline date string from settings
+        statistics_df: DataFrame containing the statistics data
 
     Returns:
         Dash component with improved PERT information display
@@ -704,6 +706,35 @@ def create_pert_info_table(
         deadline_date = current_date + timedelta(days=days_to_deadline)
         deadline_date_str = deadline_date.strftime("%Y-%m-%d")
 
+    # Calculate completed items and points from statistics data
+    completed_items = 0
+    completed_points = 0
+    if statistics_df is not None and not statistics_df.empty:
+        completed_items = int(statistics_df["no_items"].sum())
+        completed_points = int(statistics_df["no_points"].sum())
+
+    # Calculate actual total project items and points
+    actual_total_items = completed_items + total_items
+    actual_total_points = round(completed_points + total_points)
+
+    # Round the remaining points to natural number for display
+    remaining_points = round(total_points)
+
+    # Calculate percentages based on actual project totals
+    items_percentage = (
+        int((completed_items / actual_total_items) * 100)
+        if actual_total_items > 0
+        else 0
+    )
+    points_percentage = (
+        int((completed_points / actual_total_points) * 100)
+        if actual_total_points > 0
+        else 0
+    )
+
+    # Check if percentages are similar (within 2% of each other)
+    similar_percentages = abs(items_percentage - points_percentage) <= 2
+
     return html.Div(
         [
             # PERT Formula Section
@@ -744,6 +775,205 @@ def create_pert_info_table(
                             ),
                             html.Div(
                                 [
+                                    # Project Overview with progress bar
+                                    html.Div(
+                                        [
+                                            html.I(
+                                                className="fas fa-tasks mr-2 text-primary"
+                                            ),
+                                            html.Span(
+                                                "Project Overview:",
+                                                className="font-weight-bold d-block mb-2",
+                                            ),
+                                            # Progress bar with percentage inside
+                                            html.Div(
+                                                [
+                                                    # Combined progress bar - shown when percentages are similar
+                                                    html.Div(
+                                                        [
+                                                            html.Div(
+                                                                className="progress",
+                                                                style={
+                                                                    "height": "24px",
+                                                                    "position": "relative",
+                                                                },
+                                                                children=[
+                                                                    html.Div(
+                                                                        className="progress-bar bg-primary",
+                                                                        style={
+                                                                            "width": f"{items_percentage}%",
+                                                                            "height": "100%",
+                                                                        },
+                                                                    ),
+                                                                    html.Span(
+                                                                        f"{items_percentage}%",
+                                                                        style={
+                                                                            "position": "absolute",
+                                                                            "top": "0",
+                                                                            "left": "0",
+                                                                            "width": "100%",
+                                                                            "height": "100%",
+                                                                            "display": "flex",
+                                                                            "alignItems": "center",
+                                                                            "justifyContent": "center",
+                                                                            "color": "white"
+                                                                            if items_percentage
+                                                                            > 50
+                                                                            else "black",
+                                                                            "fontWeight": "bold",
+                                                                        },
+                                                                    ),
+                                                                ],
+                                                            ),
+                                                            html.Small(
+                                                                [
+                                                                    f"{completed_items} of {actual_total_items} items ({total_items} remaining)",
+                                                                    html.Span(
+                                                                        " • ",
+                                                                        className="mx-2 text-muted",
+                                                                    ),
+                                                                    f"{completed_points} of {actual_total_points} points ({remaining_points} remaining)",
+                                                                ],
+                                                                className="text-muted mt-1 d-block",
+                                                            ),
+                                                        ],
+                                                        style={
+                                                            "display": "block"
+                                                            if similar_percentages
+                                                            else "none"
+                                                        },
+                                                    ),
+                                                    # Separate progress bars - shown when percentages differ
+                                                    html.Div(
+                                                        [
+                                                            # Items progress bar
+                                                            html.Div(
+                                                                [
+                                                                    html.Small(
+                                                                        [
+                                                                            html.I(
+                                                                                className="fas fa-tasks me-1",
+                                                                                style={
+                                                                                    "color": COLOR_PALETTE[
+                                                                                        "items"
+                                                                                    ]
+                                                                                },
+                                                                            ),
+                                                                            "Items",
+                                                                        ],
+                                                                        className="mb-1 d-block",
+                                                                    ),
+                                                                    html.Div(
+                                                                        className="progress",
+                                                                        style={
+                                                                            "height": "24px",
+                                                                            "position": "relative",
+                                                                        },
+                                                                        children=[
+                                                                            html.Div(
+                                                                                className="progress-bar bg-info",
+                                                                                style={
+                                                                                    "width": f"{items_percentage}%",
+                                                                                    "height": "100%",
+                                                                                },
+                                                                            ),
+                                                                            html.Span(
+                                                                                f"{items_percentage}%",
+                                                                                style={
+                                                                                    "position": "absolute",
+                                                                                    "top": "0",
+                                                                                    "left": "0",
+                                                                                    "width": "100%",
+                                                                                    "height": "100%",
+                                                                                    "display": "flex",
+                                                                                    "alignItems": "center",
+                                                                                    "justifyContent": "center",
+                                                                                    "color": "white"
+                                                                                    if items_percentage
+                                                                                    > 50
+                                                                                    else "black",
+                                                                                    "fontWeight": "bold",
+                                                                                },
+                                                                            ),
+                                                                        ],
+                                                                    ),
+                                                                    html.Small(
+                                                                        f"{completed_items} of {actual_total_items} items ({total_items} remaining)",
+                                                                        className="text-muted mt-1 d-block",
+                                                                    ),
+                                                                ],
+                                                                className="mb-3",
+                                                            ),
+                                                            # Points progress bar
+                                                            html.Div(
+                                                                [
+                                                                    html.Small(
+                                                                        [
+                                                                            html.I(
+                                                                                className="fas fa-chart-line me-1",
+                                                                                style={
+                                                                                    "color": COLOR_PALETTE[
+                                                                                        "points"
+                                                                                    ]
+                                                                                },
+                                                                            ),
+                                                                            "Points",
+                                                                        ],
+                                                                        className="mb-1 d-block",
+                                                                    ),
+                                                                    html.Div(
+                                                                        className="progress",
+                                                                        style={
+                                                                            "height": "24px",
+                                                                            "position": "relative",
+                                                                        },
+                                                                        children=[
+                                                                            html.Div(
+                                                                                className="progress-bar bg-warning",
+                                                                                style={
+                                                                                    "width": f"{points_percentage}%",
+                                                                                    "height": "100%",
+                                                                                },
+                                                                            ),
+                                                                            html.Span(
+                                                                                f"{points_percentage}%",
+                                                                                style={
+                                                                                    "position": "absolute",
+                                                                                    "top": "0",
+                                                                                    "left": "0",
+                                                                                    "width": "100%",
+                                                                                    "height": "100%",
+                                                                                    "display": "flex",
+                                                                                    "alignItems": "center",
+                                                                                    "justifyContent": "center",
+                                                                                    "color": "white"
+                                                                                    if points_percentage
+                                                                                    > 50
+                                                                                    else "black",
+                                                                                    "fontWeight": "bold",
+                                                                                },
+                                                                            ),
+                                                                        ],
+                                                                    ),
+                                                                    html.Small(
+                                                                        f"{completed_points} of {actual_total_points} points ({remaining_points} remaining)",
+                                                                        className="text-muted mt-1 d-block",
+                                                                    ),
+                                                                ],
+                                                            ),
+                                                        ],
+                                                        style={
+                                                            "display": "block"
+                                                            if not similar_percentages
+                                                            else "none"
+                                                        },
+                                                    ),
+                                                ],
+                                                className="mb-3",
+                                            ),
+                                        ],
+                                        className="mb-3 p-2 border-bottom",
+                                    ),
                                     # Deadline - reformatted to match other sections
                                     html.Div(
                                         [

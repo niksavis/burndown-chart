@@ -133,6 +133,7 @@ def register(app):
                 total_items=total_items,
                 total_points=total_points,
                 deadline_str=deadline,
+                statistics_df=df,
             )
 
             return fig, project_dashboard_pert_info

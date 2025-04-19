@@ -1417,6 +1417,7 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
                         deadline_str=deadline_str,
                         med_weekly_items=med_weekly_items,
                         med_weekly_points=med_weekly_points,
+                        statistics_df=statistics_df,
                     )
             except Exception as pert_error:
                 pert_info_content = html.P(
