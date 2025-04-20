@@ -702,15 +702,13 @@ svg {
 /* Base tooltip style enhancements */
 .tooltip {
   opacity: 0;
-  transition: opacity 0.2s ease-in-out, transform 0.2s ease-out;
-  transform: translateY(5px);
+  transition: opacity 0.15s ease-out;
   pointer-events: none;
   z-index: 1060;
 }
 
 .tooltip.show {
   opacity: 0.98 !important;
-  transform: translateY(0);
 }
 
 /* Custom-styled tooltips with different variations */
