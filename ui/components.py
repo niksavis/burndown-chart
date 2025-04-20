@@ -2089,3 +2089,53 @@ def create_export_buttons(chart_id=None, statistics_data=None):
         buttons,
         className="d-flex justify-content-end mb-3",
     )
+
+
+#######################################################################
+# FORM VALIDATION COMPONENT
+#######################################################################
+
+
+def create_validation_message(message, show=False, type="invalid"):
+    """
+    Create a validation message for form inputs with consistent styling.
+
+    Args:
+        message (str): The validation message to display
+        show (bool): Whether to show the message (default: False)
+        type (str): The type of validation (valid, invalid, warning)
+
+    Returns:
+        html.Div: A validation message component
+    """
+    from dash import html
+    from ui.styles import create_form_feedback_style
+
+    # Determine the appropriate style class based on validation type
+    class_name = "d-none"
+    if show:
+        if type == "valid":
+            class_name = "valid-feedback d-block"
+        elif type == "warning":
+            class_name = "text-warning d-block"
+        else:
+            class_name = "invalid-feedback d-block"
+
+    # Get the base style from the styling function
+    base_style = create_form_feedback_style(type)
+
+    # Add icon based on the type
+    icon_class = ""
+    if type == "valid":
+        icon_class = "fas fa-check-circle me-1"
+    elif type == "warning":
+        icon_class = "fas fa-exclamation-triangle me-1"
+    elif type == "invalid":
+        icon_class = "fas fa-times-circle me-1"
+
+    # Return the validation message component
+    return html.Div(
+        [html.I(className=icon_class) if icon_class else "", message],
+        className=class_name,
+        style=base_style,
+    )

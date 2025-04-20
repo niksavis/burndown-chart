@@ -25,6 +25,7 @@ from ui.styles import (
     create_input_style,
     create_datepicker_style,
     create_slider_style,
+    create_form_feedback_style,
     NEUTRAL_COLORS,
 )
 
@@ -303,6 +304,14 @@ def create_input_parameters_card(
                                                 style=create_datepicker_style(
                                                     size="md"
                                                 ),
+                                                className="w-100",
+                                            ),
+                                            html.Div(
+                                                id="deadline-feedback",
+                                                className="d-none",
+                                                style=create_form_feedback_style(
+                                                    "invalid"
+                                                ),
                                             ),
                                         ],
                                         width=12,
@@ -333,7 +342,14 @@ def create_input_parameters_card(
                                                     "placement": "bottom",
                                                     "always_visible": True,
                                                 },
-                                                className="my-3",  # Added margin top and bottom instead of style
+                                                className="my-3",  # Added margin top and bottom
+                                            ),
+                                            html.Div(
+                                                id="pert-factor-feedback",
+                                                className="d-none",
+                                                style=create_form_feedback_style(
+                                                    "invalid"
+                                                ),
                                             ),
                                         ],
                                         width=12,
@@ -371,7 +387,7 @@ def create_input_parameters_card(
                                                     "placement": "bottom",
                                                     "always_visible": False,
                                                 },
-                                                className="mb-1 mt-3",  # Added top margin to replace style
+                                                className="mb-1 mt-3",
                                             ),
                                             html.Small(
                                                 id="data-points-info",
@@ -420,6 +436,15 @@ def create_input_parameters_card(
                                                 min=0,
                                                 step=1,
                                                 style=create_input_style(size="md"),
+                                                invalid=False,  # Will be controlled by callback
+                                                className="form-control",
+                                            ),
+                                            html.Div(
+                                                id="estimated-items-feedback",
+                                                className="d-none",
+                                                style=create_form_feedback_style(
+                                                    "invalid"
+                                                ),
                                             ),
                                         ],
                                         width=12,
@@ -444,6 +469,15 @@ def create_input_parameters_card(
                                                 min=0,
                                                 step=1,
                                                 style=create_input_style(size="md"),
+                                                invalid=False,  # Will be controlled by callback
+                                                className="form-control",
+                                            ),
+                                            html.Div(
+                                                id="total-items-feedback",
+                                                className="d-none",
+                                                style=create_form_feedback_style(
+                                                    "invalid"
+                                                ),
                                             ),
                                         ],
                                         width=12,
@@ -476,6 +510,15 @@ def create_input_parameters_card(
                                                 min=0,
                                                 step=1,
                                                 style=create_input_style(size="md"),
+                                                invalid=False,  # Will be controlled by callback
+                                                className="form-control",
+                                            ),
+                                            html.Div(
+                                                id="estimated-points-feedback",
+                                                className="d-none",
+                                                style=create_form_feedback_style(
+                                                    "invalid"
+                                                ),
                                             ),
                                         ],
                                         width=12,
