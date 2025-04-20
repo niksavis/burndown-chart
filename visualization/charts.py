@@ -21,9 +21,6 @@ from data import (
     generate_weekly_forecast,
 )
 
-# Import add_deadline_marker from elements module to avoid duplication
-from visualization.elements import add_deadline_marker
-
 #######################################################################
 # CHART CREATION FUNCTIONS
 #######################################################################
@@ -48,7 +45,7 @@ def create_plot_traces(forecast_data):
 
     traces = []
 
-    # Historical items trace
+    # Historical items trace - enhanced markers
     traces.append(
         {
             "data": go.Scatter(
@@ -57,7 +54,12 @@ def create_plot_traces(forecast_data):
                 mode="lines+markers",
                 name="Items History",
                 line=dict(color=COLOR_PALETTE["items"], width=3),
-                marker=dict(size=8, color=COLOR_PALETTE["items"]),
+                marker=dict(
+                    size=10,
+                    color=COLOR_PALETTE["items"],
+                    symbol="circle",
+                    line=dict(width=2, color="white"),
+                ),
                 hovertemplate=format_hover_template(
                     title="Items History",
                     fields={
@@ -72,15 +74,23 @@ def create_plot_traces(forecast_data):
         }
     )
 
-    # Items forecast traces
+    # Items forecast traces - improved line visibility
     traces.append(
         {
             "data": go.Scatter(
                 x=items_forecasts["avg"][0],
                 y=items_forecasts["avg"][1],
-                mode="lines",
+                mode="lines+markers",  # Added markers for better data point visualization
                 name="Items Forecast (Most Likely)",
-                line=dict(color=COLOR_PALETTE["items"], dash="dash", width=2),
+                line=dict(
+                    color=COLOR_PALETTE["items"], dash="dash", width=3
+                ),  # Increased width
+                marker=dict(
+                    size=8,
+                    symbol="diamond",
+                    color=COLOR_PALETTE["items"],
+                    line=dict(color="white", width=1),
+                ),
                 hovertemplate=format_hover_template(
                     title="Items Forecast",
                     fields={
@@ -100,9 +110,15 @@ def create_plot_traces(forecast_data):
             "data": go.Scatter(
                 x=items_forecasts["opt"][0],
                 y=items_forecasts["opt"][1],
-                mode="lines",
+                mode="lines+markers",  # Added markers
                 name="Items Forecast (Optimistic)",
-                line=dict(color=COLOR_PALETTE["optimistic"], dash="dot", width=2),
+                line=dict(color=COLOR_PALETTE["optimistic"], dash="dot", width=2.5),
+                marker=dict(
+                    size=7,
+                    symbol="triangle-up",
+                    color=COLOR_PALETTE["optimistic"],
+                    line=dict(color="white", width=1),
+                ),
                 hovertemplate=format_hover_template(
                     title="Items Forecast",
                     fields={
@@ -122,9 +138,15 @@ def create_plot_traces(forecast_data):
             "data": go.Scatter(
                 x=items_forecasts["pes"][0],
                 y=items_forecasts["pes"][1],
-                mode="lines",
+                mode="lines+markers",  # Added markers
                 name="Items Forecast (Pessimistic)",
-                line=dict(color=COLOR_PALETTE["pessimistic"], dash="dot", width=2),
+                line=dict(color=COLOR_PALETTE["pessimistic"], dash="dot", width=2.5),
+                marker=dict(
+                    size=7,
+                    symbol="triangle-down",
+                    color=COLOR_PALETTE["pessimistic"],
+                    line=dict(color="white", width=1),
+                ),
                 hovertemplate=format_hover_template(
                     title="Items Forecast",
                     fields={
@@ -139,7 +161,7 @@ def create_plot_traces(forecast_data):
         }
     )
 
-    # Historical points trace
+    # Historical points trace - enhanced markers
     traces.append(
         {
             "data": go.Scatter(
@@ -148,7 +170,12 @@ def create_plot_traces(forecast_data):
                 mode="lines+markers",
                 name="Points History",
                 line=dict(color=COLOR_PALETTE["points"], width=3),
-                marker=dict(size=8, color=COLOR_PALETTE["points"]),
+                marker=dict(
+                    size=10,
+                    color=COLOR_PALETTE["points"],
+                    symbol="circle",
+                    line=dict(width=2, color="white"),
+                ),
                 hovertemplate=format_hover_template(
                     title="Points History",
                     fields={
@@ -163,15 +190,23 @@ def create_plot_traces(forecast_data):
         }
     )
 
-    # Points forecast traces
+    # Points forecast traces - improved line visibility
     traces.append(
         {
             "data": go.Scatter(
                 x=points_forecasts["avg"][0],
                 y=points_forecasts["avg"][1],
-                mode="lines",
+                mode="lines+markers",  # Added markers
                 name="Points Forecast (Most Likely)",
-                line=dict(color=COLOR_PALETTE["points"], dash="dash", width=2),
+                line=dict(
+                    color=COLOR_PALETTE["points"], dash="dash", width=3
+                ),  # Increased width
+                marker=dict(
+                    size=8,
+                    symbol="diamond",
+                    color=COLOR_PALETTE["points"],
+                    line=dict(color="white", width=1),
+                ),
                 hovertemplate=format_hover_template(
                     title="Points Forecast",
                     fields={
@@ -186,14 +221,21 @@ def create_plot_traces(forecast_data):
         }
     )
 
+    # Use consistent colors from COLOR_PALETTE for optimistic and pessimistic points
     traces.append(
         {
             "data": go.Scatter(
                 x=points_forecasts["opt"][0],
                 y=points_forecasts["opt"][1],
-                mode="lines",
+                mode="lines+markers",  # Added markers
                 name="Points Forecast (Optimistic)",
-                line=dict(color="rgb(184, 134, 11)", dash="dot", width=2),
+                line=dict(color=COLOR_PALETTE["optimistic"], dash="dot", width=2.5),
+                marker=dict(
+                    size=7,
+                    symbol="triangle-up",
+                    color=COLOR_PALETTE["optimistic"],
+                    line=dict(color="white", width=1),
+                ),
                 hovertemplate=format_hover_template(
                     title="Points Forecast",
                     fields={
@@ -213,9 +255,15 @@ def create_plot_traces(forecast_data):
             "data": go.Scatter(
                 x=points_forecasts["pes"][0],
                 y=points_forecasts["pes"][1],
-                mode="lines",
+                mode="lines+markers",  # Added markers
                 name="Points Forecast (Pessimistic)",
-                line=dict(color="rgb(165, 42, 42)", dash="dot", width=2),
+                line=dict(color=COLOR_PALETTE["pessimistic"], dash="dot", width=2.5),
+                marker=dict(
+                    size=7,
+                    symbol="triangle-down",
+                    color=COLOR_PALETTE["pessimistic"],
+                    line=dict(color="white", width=1),
+                ),
                 hovertemplate=format_hover_template(
                     title="Points Forecast",
                     fields={
@@ -303,10 +351,14 @@ def apply_layout_settings(fig):
             y=1.0,
             xanchor="center",
             x=0.5,
-            font={"size": 12},
-            bgcolor="rgba(255, 255, 255, 0.8)",
-            bordercolor="lightgray",
+            font={"size": 12, "family": "Arial, sans-serif"},
+            bgcolor="rgba(255, 255, 255, 0.9)",
+            bordercolor="rgba(200, 200, 200, 0.8)",
             borderwidth=1,
+            itemsizing="constant",  # Make legend items consistent size
+            itemwidth=40,  # Control width of legend items
+            itemclick="toggleothers",  # When clicking a legend item, toggle visibility of others
+            groupclick="toggleitem",  # When clicking a group name, toggle visibility
         ),
         hovermode="closest",
         margin=dict(r=70, l=70, t=80, b=70),
@@ -497,22 +549,46 @@ def create_forecast_plot(
         Tuple of (figure, pert_data_dict) where pert_data_dict contains all PERT forecast information
     """
     try:
-        # Validate inputs
-        if df is not None and not isinstance(df, pd.DataFrame):
-            if isinstance(df, list):
-                # Convert list of dictionaries to DataFrame
-                df = pd.DataFrame(df)
+        # Validate inputs with stronger type checking
+        if df is None:
+            df = pd.DataFrame()
+        elif not isinstance(df, pd.DataFrame):
+            if isinstance(df, (list, dict)):
+                # Convert list of dictionaries or dictionary to DataFrame
+                try:
+                    df = pd.DataFrame(df)
+                except Exception:
+                    df = pd.DataFrame()
             else:
-                # If not convertible to DataFrame, create empty DataFrame
                 df = pd.DataFrame()
 
-        # Ensure numeric types for calculations
-        total_items = float(total_items) if total_items is not None else 0
-        total_points = float(total_points) if total_points is not None else 0
-        pert_factor = int(pert_factor) if pert_factor is not None else 3
+        # Ensure numeric types for calculations with explicit conversion and error handling
+        try:
+            total_items = float(total_items) if total_items is not None else 0.0
+        except (ValueError, TypeError):
+            total_items = 0.0
 
-        # Ensure proper date format for deadline
-        deadline = pd.to_datetime(deadline_str)
+        try:
+            total_points = float(total_points) if total_points is not None else 0.0
+        except (ValueError, TypeError):
+            total_points = 0.0
+
+        try:
+            pert_factor = int(pert_factor) if pert_factor is not None else 3
+        except (ValueError, TypeError):
+            pert_factor = 3
+
+        # Ensure proper date format for deadline with robust error handling
+        try:
+            deadline = pd.to_datetime(deadline_str)
+        except (ValueError, TypeError):
+            # Use fallback date 30 days from now if deadline format is invalid
+            deadline = pd.Timestamp.now() + pd.Timedelta(days=30)
+            import logging
+
+            logging.getLogger("burndown_chart").warning(
+                f"Invalid deadline format: {deadline_str}. Using default."
+            )
 
         # Prepare all data needed for the visualization
         forecast_data = prepare_forecast_data(
@@ -532,26 +608,51 @@ def create_forecast_plot(
         fig = configure_axes(fig, forecast_data)
         fig = apply_layout_settings(fig)
 
-        # Calculate days to deadline for metrics
+        # Calculate days to deadline for metrics with proper type handling
         current_date = datetime.now()
-        days_to_deadline = max(0, (deadline - current_date).days)
+        days_to_deadline = max(0, (deadline - pd.Timestamp(current_date)).days)
 
         # Calculate average and median weekly metrics for display
         avg_weekly_items, avg_weekly_points, med_weekly_items, med_weekly_points = (
-            0,
-            0,
-            0,
-            0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
         )
         if not df.empty:
             # Get all four values from calculate_weekly_averages
-            avg_weekly_items, avg_weekly_points, med_weekly_items, med_weekly_points = (
-                calculate_weekly_averages(df.to_dict("records"))
+            results = calculate_weekly_averages(df.to_dict("records"))
+            if isinstance(results, (list, tuple)) and len(results) >= 4:
+                (
+                    avg_weekly_items,
+                    avg_weekly_points,
+                    med_weekly_items,
+                    med_weekly_points,
+                ) = results
+
+            # Ensure all are valid float values
+            avg_weekly_items = (
+                float(avg_weekly_items) if avg_weekly_items is not None else 0.0
+            )
+            avg_weekly_points = (
+                float(avg_weekly_points) if avg_weekly_points is not None else 0.0
+            )
+            med_weekly_items = (
+                float(med_weekly_items) if med_weekly_items is not None else 0.0
+            )
+            med_weekly_points = (
+                float(med_weekly_points) if med_weekly_points is not None else 0.0
             )
 
         # Calculate enhanced formatted strings for PERT estimates
-        pert_time_items = forecast_data["pert_time_items"]
-        pert_time_points = forecast_data["pert_time_points"]
+        pert_time_items = forecast_data.get("pert_time_items", 0.0)
+        pert_time_points = forecast_data.get("pert_time_points", 0.0)
+
+        # Ensure they are valid numbers
+        if not isinstance(pert_time_items, (int, float)):
+            pert_time_items = 0.0
+        if not isinstance(pert_time_points, (int, float)):
+            pert_time_points = 0.0
 
         # Generate the enhanced formatted strings
         items_completion_date = current_date + timedelta(days=pert_time_items)
@@ -575,38 +676,47 @@ def create_forecast_plot(
             "avg_weekly_points": avg_weekly_points,
             "med_weekly_items": med_weekly_items,
             "med_weekly_points": med_weekly_points,
-            "data_points_used": data_points_count
+            "data_points_used": int(data_points_count)
             if data_points_count is not None
+            and isinstance(data_points_count, (int, float))
             else (len(df) if hasattr(df, "__len__") else 0),
             "data_points_available": len(df) if hasattr(df, "__len__") else 0,
-            # Add the enhanced formatted strings
             "items_completion_enhanced": items_completion_enhanced,
             "points_completion_enhanced": points_completion_enhanced,
         }
 
         fig = add_metrics_annotations(fig, metrics_data)
 
-        # Create a complete PERT data dictionary to return - ensure it's a proper Python dict, not a string or other type
+        # Create a complete PERT data dictionary with explicit type conversion to ensure consistent data types
         pert_data = {
-            "pert_time_items": float(forecast_data["pert_time_items"]),
-            "pert_time_points": float(forecast_data["pert_time_points"]),
+            "pert_time_items": float(pert_time_items),
+            "pert_time_points": float(pert_time_points),
             "items_completion_enhanced": str(items_completion_enhanced),
             "points_completion_enhanced": str(points_completion_enhanced),
             "days_to_deadline": int(days_to_deadline),
+            "avg_weekly_items": float(avg_weekly_items),
+            "avg_weekly_points": float(avg_weekly_points),
+            "med_weekly_items": float(med_weekly_items),
+            "med_weekly_points": float(med_weekly_points),
+            "forecast_timestamp": datetime.now().isoformat(),
         }
 
+        # Always return the proper Python dict directly, never convert to string or other format
         return fig, pert_data
 
     except Exception as e:
-        # If any error occurs, return an error message in the figure
+        # Comprehensive error handling with full stack trace
         import traceback
+        import logging
 
         error_trace = traceback.format_exc()
+        logger = logging.getLogger("burndown_chart")
+        logger.error(f"Error in create_forecast_plot: {str(e)}\n{error_trace}")
 
-        # Create an empty figure with error message
+        # Create an empty figure with detailed error message
         fig = go.Figure()
         fig.add_annotation(
-            text=f"Error in forecast plot generation: {str(e)}",
+            text=f"Error in forecast plot generation:<br>{str(e)}",
             xref="paper",
             yref="paper",
             x=0.5,
@@ -615,20 +725,60 @@ def create_forecast_plot(
             font=dict(size=14, color="red"),
         )
 
-        # Log the error for debugging
-        import logging
+        # Add button to show/hide detailed error info
+        fig.update_layout(
+            updatemenus=[
+                dict(
+                    type="buttons",
+                    direction="right",
+                    x=0.5,
+                    y=0.4,
+                    xanchor="center",
+                    yanchor="top",
+                    buttons=[
+                        dict(
+                            label="Show Error Details",
+                            method="update",
+                            args=[
+                                {},
+                                {
+                                    "annotations": [
+                                        {
+                                            "text": f"Error in forecast plot generation:<br>{str(e)}<br><br>Stack trace (for developers):<br>{error_trace.replace(chr(10), '<br>')}",
+                                            "xref": "paper",
+                                            "yref": "paper",
+                                            "x": 0.5,
+                                            "y": 0.5,
+                                            "showarrow": False,
+                                            "font": dict(size=12, color="red"),
+                                            "align": "left",
+                                            "bgcolor": "rgba(255, 255, 255, 0.9)",
+                                            "bordercolor": "red",
+                                            "borderwidth": 1,
+                                            "borderpad": 4,
+                                        }
+                                    ]
+                                },
+                            ],
+                        )
+                    ],
+                )
+            ]
+        )
 
-        logger = logging.getLogger("burndown_chart")
-        logger.error(f"Error in create_forecast_plot: {str(e)}\n{error_trace}")
-
-        # Return safe fallback values
+        # Return safe fallback values with consistent types
         safe_pert_data = {
             "pert_time_items": 0.0,
             "pert_time_points": 0.0,
             "items_completion_enhanced": "Error in calculation",
             "points_completion_enhanced": "Error in calculation",
             "days_to_deadline": 0,
+            "avg_weekly_items": 0.0,
+            "avg_weekly_points": 0.0,
+            "med_weekly_items": 0.0,
+            "med_weekly_points": 0.0,
             "error": str(e),
+            "forecast_timestamp": datetime.now().isoformat(),
         }
 
         return fig, safe_pert_data
@@ -1022,7 +1172,9 @@ def create_weekly_points_chart(
                         type="data",
                         symmetric=False,
                         array=[u - ml for u, ml in zip(upper_bound, most_likely)],
-                        arrayminus=[ml - l for ml, l in zip(most_likely, lower_bound)],
+                        arrayminus=[
+                            ml - lb for ml, lb in zip(most_likely, lower_bound)
+                        ],
                         color="rgba(0, 0, 0, 0.3)",
                     ),
                     hovertemplate=format_hover_template(
@@ -1278,7 +1430,7 @@ def create_weekly_items_forecast_chart(
                     f"<b>Forecast Methodology:</b> Based on PERT analysis using historical data.<br>"
                     f"<b>Most Likely:</b> {forecast_data['items'].get('most_likely_value', 0):.1f} items/week (historical average)<br>"
                     f"<b>Optimistic:</b> {forecast_data['items'].get('optimistic_value', 0):.1f} items/week<br>"
-                    f"<b>Pessimistic:</b> {forecast_data['items'].get('pessimistic_value', 0)::.1f} items/week"
+                    f"<b>Pessimistic:</b> {forecast_data['items'].get('pessimistic_value', 0):.1f} items/week"
                 ),
                 showarrow=False,
                 font=dict(size=12),
@@ -1458,7 +1610,7 @@ def create_weekly_points_forecast_chart(
                     type="data",
                     symmetric=False,
                     array=[u - ml for u, ml in zip(upper_bound, most_likely)],
-                    arrayminus=[ml - l for ml, l in zip(most_likely, lower_bound)],
+                    arrayminus=[ml - lb for ml, lb in zip(most_likely, lower_bound)],
                     color="rgba(0, 0, 0, 0.3)",
                 ),
                 hovertemplate=format_hover_template(
@@ -1801,5 +1953,120 @@ def create_capacity_chart(capacity_data, forecast_data, settings):
             max(max_utilization * 1.1, 110),
         ],  # Set scale to maximum utilization + 10%
     )
+
+    return fig
+
+
+def add_deadline_marker(fig, deadline):
+    """
+    Add a vertical line marking the deadline on the plot.
+
+    Args:
+        fig: Plotly figure object
+        deadline: Deadline date (pandas datetime or datetime object)
+
+    Returns:
+        Updated figure with deadline marker
+    """
+    # Convert pandas Timestamp to a format compatible with Plotly
+    if isinstance(deadline, pd.Timestamp):
+        deadline_datetime = deadline.to_pydatetime()
+    else:
+        deadline_datetime = deadline
+
+    # Instead of using add_vline which has issues with datetime objects,
+    # create a manual vertical line trace that extends beyond the plot area
+    fig.add_trace(
+        go.Scatter(
+            x=[deadline_datetime, deadline_datetime],
+            y=[0, 1],
+            mode="lines",
+            line=dict(color="#FF0000", width=2, dash="dash"),
+            name="Deadline",
+            hoverinfo="none",
+            yaxis="y",
+            showlegend=False,
+        )
+    )
+
+    # Add deadline annotation manually
+    fig.add_annotation(
+        x=deadline_datetime,
+        y=1.03,  # Just above the top of the plot
+        xref="x",
+        yref="paper",
+        text="Deadline",
+        showarrow=False,
+        font=dict(color="#FF0000", size=14),
+        xanchor="center",
+        yanchor="bottom",
+    )
+
+    # Add shaded region before deadline
+    current_date = pd.Timestamp.now()
+
+    # Add a light red shaded region for the critical period (last 14 days before deadline)
+    if current_date < deadline:
+        # Calculate the start of the critical period (14 days before deadline)
+        critical_start = deadline - pd.Timedelta(days=14)
+
+        # Convert to datetime for better compatibility
+        critical_start_datetime = (
+            critical_start.to_pydatetime()
+            if isinstance(critical_start, pd.Timestamp)
+            else critical_start
+        )
+
+        # Use timedelta days property for comparison instead of direct integer subtraction
+        days_until_critical = (critical_start - current_date).days
+
+        # Only add critical period highlight if we're within or approaching that period
+        if current_date < critical_start and days_until_critical < 30:
+            # Use manual fill approach instead of add_vrect
+            fig.add_trace(
+                go.Scatter(
+                    x=[
+                        critical_start_datetime,
+                        critical_start_datetime,
+                        deadline_datetime,
+                        deadline_datetime,
+                    ],
+                    y=[0, 1, 1, 0],
+                    fill="toself",
+                    fillcolor="rgba(255, 0, 0, 0.1)",
+                    line=dict(width=0),
+                    hoverinfo="none",
+                    mode="none",  # No markers or lines
+                    showlegend=False,
+                )
+            )
+
+    # If deadline has passed, shade the region after deadline
+    else:
+        # Convert current_date to datetime for compatibility
+        current_datetime = (
+            current_date.to_pydatetime()
+            if isinstance(current_date, pd.Timestamp)
+            else current_date
+        )
+
+        # Use manual fill approach instead of add_vrect
+        fig.add_trace(
+            go.Scatter(
+                x=[
+                    deadline_datetime,
+                    deadline_datetime,
+                    current_datetime,
+                    current_datetime,
+                ],
+                y=[0, 1, 1, 0],
+                fill="toself",
+                fillcolor="rgba(255, 0, 0, 0.15)",
+                line=dict(width=0),
+                hoverinfo="none",
+                mode="none",  # No markers or lines
+                showlegend=False,
+            )
+        )
 
     return fig
