@@ -1000,7 +1000,6 @@ def create_weekly_items_chart(
         margin=dict(
             b=130
         ),  # Significantly increased bottom margin to prevent info box cutoff
-        height=650,  # Explicitly set height to ensure enough space for the info box
     )
 
     return fig
@@ -1242,7 +1241,6 @@ def create_weekly_points_chart(
         margin=dict(
             b=130
         ),  # Significantly increased bottom margin to prevent info box cutoff
-        height=650,  # Explicitly set height to ensure enough space for the info box
     )
 
     return fig
@@ -1430,7 +1428,7 @@ def create_weekly_items_forecast_chart(
                     f"<b>Forecast Methodology:</b> Based on PERT analysis using historical data.<br>"
                     f"<b>Most Likely:</b> {forecast_data['items'].get('most_likely_value', 0):.1f} items/week (historical average)<br>"
                     f"<b>Optimistic:</b> {forecast_data['items'].get('optimistic_value', 0):.1f} items/week<br>"
-                    f"<b>Pessimistic:</b> {forecast_data['items'].get('pessimistic_value', 0):.1f} items/week"
+                    f"<b>Pessimistic:</b> {forecast_data['items'].get('pessimistic_value', 0)::.1f} items/week"
                 ),
                 showarrow=False,
                 font=dict(size=12),
