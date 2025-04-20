@@ -732,9 +732,7 @@ def create_statistics_data_card(current_statistics):
     body_content = [
         # Add help text at the top
         help_text,
-        # Add the export buttons at the top of the card
-        create_export_buttons(statistics_data=current_statistics),
-        # Add space between buttons and table
+        # Add space between help text and table (removed export buttons from top)
         html.Div(className="mb-3"),
         # Add the table with standardized styling
         statistics_table,
@@ -758,13 +756,28 @@ def create_statistics_data_card(current_statistics):
                     ],
                     className="d-inline-block",
                 ),
-                # Button to clear filters (optional)
+                # Button to clear filters
                 create_button(
                     text="Clear Filters",
                     id="clear-filters-button",
                     variant="outline-secondary",
                     icon_class="fas fa-filter",
                     className="ms-2",
+                ),
+                # Export Statistics Button moved to this row
+                html.Div(
+                    [
+                        create_button(
+                            text="Export Statistics",
+                            id="export-statistics-button",
+                            variant="outline-secondary",
+                            icon_class="fas fa-file-export",
+                            className="ms-2",
+                            tooltip="Export statistics data as CSV",
+                        ),
+                        html.Div(dcc.Download(id="export-statistics-download")),
+                    ],
+                    className="d-inline-block",
                 ),
             ],
             className="d-flex justify-content-center mt-4",

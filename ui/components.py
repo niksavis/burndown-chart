@@ -2233,9 +2233,8 @@ def create_button(
             [
                 button,
                 create_info_tooltip(
-                    id=f"{id}-tooltip" if id else None,
-                    tooltip_text=tooltip,
-                    target=id if id else None,
+                    id_suffix=f"{id}-tooltip" if id else "button-tooltip",
+                    help_text=tooltip,
                 ),
             ],
             className="d-inline-block",

@@ -482,6 +482,58 @@ def register(app):
                     error_df.to_csv, f"export_error_{current_time}.csv", index=False
                 )
 
+    # Add callback for export statistics button
+    @app.callback(
+        Output("export-statistics-download", "data"),
+        Input("export-statistics-button", "n_clicks"),
+        [State("current-statistics", "data")],
+        prevent_initial_call=True,
+    )
+    def export_statistics_data(n_clicks, statistics):
+        """
+        Export statistics data as CSV when the export button is clicked.
+
+        Args:
+            n_clicks: Number of button clicks
+            statistics: Current statistics data
+
+        Returns:
+            Dictionary with CSV download data
+        """
+        if not n_clicks or not statistics:
+            raise PreventUpdate
+
+        try:
+            current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+            # Create pandas DataFrame for CSV export
+            df = pd.DataFrame(statistics)
+
+            # Ensure date column is in proper datetime format for sorting
+            df["date"] = pd.to_datetime(df["date"], errors="coerce")
+
+            # Sort by date in ascending order (oldest first)
+            df = df.sort_values("date", ascending=True)
+
+            # Convert back to string format for display
+            df["date"] = df["date"].dt.strftime("%Y-%m-%d")
+
+            # Create filename with timestamp
+            filename = f"statistics_{current_time}.csv"
+
+            # Return CSV data
+            return dcc.send_data_frame(df.to_csv, filename, index=False)
+
+        except Exception as e:
+            logger.error(f"Error exporting statistics data: {e}")
+            # Return empty CSV with error message
+            error_df = pd.DataFrame(
+                {"Error": [f"Failed to export statistics data: {str(e)}"]}
+            )
+            return dcc.send_data_frame(
+                error_df.to_csv, f"export_error_{current_time}.csv", index=False
+            )
+
 
 def register_loading_callbacks(app):
     """
