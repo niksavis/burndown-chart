@@ -49,7 +49,9 @@ def create_two_column_layout(
 
     return dbc.Row(
         [
-            dbc.Col(left_content, xs=12, md=left_width, className="mb-3 mb-md-0"),
+            dbc.Col(
+                left_content, xs=12, md=left_width, className="mb-4 mb-md-0"
+            ),  # Increased from mb-3 to mb-4
             dbc.Col(right_content, xs=12, md=right_width),
         ],
         className=row_class,
@@ -73,10 +75,12 @@ def create_two_cards_layout(
         A dbc.Row containing the two cards layout
     """
     if equal_height:
-        card1_class = "mb-3 mb-md-0 h-100"
+        card1_class = "mb-4 mb-md-0 h-100"  # Increased mobile margin from mb-3 to mb-4 for consistency
         card2_class = "h-100"
     else:
-        card1_class = "mb-3 mb-md-0"
+        card1_class = (
+            "mb-4 mb-md-0"  # Increased mobile margin from mb-3 to mb-4 for consistency
+        )
         card2_class = ""
 
     # Use our vertical rhythm system for spacing
@@ -115,8 +119,12 @@ def create_three_column_layout(
 
     return dbc.Row(
         [
-            dbc.Col(left, xs=12, md=left_width, className="mb-3 mb-md-0"),
-            dbc.Col(middle, xs=12, md=middle_width, className="mb-3 mb-md-0"),
+            dbc.Col(
+                left, xs=12, md=left_width, className="mb-4 mb-md-0"
+            ),  # Increased from mb-3 to mb-4
+            dbc.Col(
+                middle, xs=12, md=middle_width, className="mb-4 mb-md-0"
+            ),  # Increased from mb-3 to mb-4
             dbc.Col(right, xs=12, md=right_width),
         ],
         className=row_class,
@@ -144,7 +152,9 @@ def create_four_column_layout(cols, widths=None, row_class=None):
 
     col_components = []
     for i, col_content in enumerate(cols):
-        col_class = "mb-3 mb-md-0" if i < len(cols) - 1 else ""
+        col_class = (
+            "mb-4 mb-md-0" if i < len(cols) - 1 else ""
+        )  # Increased from mb-3 to mb-4
         col_components.append(
             dbc.Col(col_content, xs=12, md=widths[i], className=col_class)
         )

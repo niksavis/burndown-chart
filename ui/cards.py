@@ -800,17 +800,21 @@ def create_statistics_data_card(current_statistics):
                             placement="top",
                         ),
                     ],
-                    className="d-inline-block",
+                    className="me-2 mb-2 mb-sm-0",  # Add right margin and bottom margin on mobile
+                    style={"display": "inline-block"},
                 ),
-                # Button to clear filters
-                create_button(
-                    text="Clear Filters",
-                    id="clear-filters-button",
-                    variant="outline-secondary",
-                    icon_class="fas fa-filter",
-                    className="ms-2",
+                # Button to clear filters - resized and repositioned
+                html.Div(
+                    create_button(
+                        text="Clear Filters",
+                        id="clear-filters-button",
+                        variant="outline-secondary",
+                        icon_class="fas fa-filter",
+                    ),
+                    className="me-2 mb-2 mb-sm-0",  # Add right margin and bottom margin on mobile
+                    style={"display": "inline-block"},
                 ),
-                # Export Statistics Button moved to this row
+                # Export Statistics Button with fixed styling
                 html.Div(
                     [
                         create_button(
@@ -818,15 +822,16 @@ def create_statistics_data_card(current_statistics):
                             id="export-statistics-button",
                             variant="outline-secondary",
                             icon_class="fas fa-file-export",
-                            className="ms-2",
                             tooltip="Export statistics data as CSV",
                         ),
                         html.Div(dcc.Download(id="export-statistics-download")),
                     ],
-                    className="d-inline-block",
+                    className="mb-2 mb-sm-0",  # Add bottom margin on mobile
+                    style={"display": "inline-block"},
                 ),
             ],
-            className="d-flex justify-content-center mt-4",
+            className="d-flex flex-wrap justify-content-center align-items-center mt-4",
+            # Use flex-wrap to allow buttons to wrap on mobile
         ),
     ]
 
