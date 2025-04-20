@@ -82,22 +82,197 @@ td.cell--editable:not(.cell-selected) .dash-cell-value::after {
   background-color: rgba(0, 123, 255, 0.05);
 }
 
-/* Better styling for pagination controls */
-.dash-table-container .previous-page,
-.dash-table-container .next-page,
-.dash-table-container .first-page,
-.dash-table-container .last-page {
-  border: 1px solid #dee2e6;
-  background-color: white;
-  transition: all 0.2s ease;
+/* ===== Pagination Controls - Precise Fix Based on HTML Structure ===== */
+
+/* Reset and clean up the pagination-specific styling */
+.dash-table-container .dash-pagination,
+.dash-table-container .dash-pagination-links,
+.dash-table-container .previous-next-container,
+.dash-table-container .page-number,
+.dash-table-container .current-page-container {
+  all: initial;
+  font-family: inherit;
+  box-sizing: border-box;
 }
 
-.dash-table-container .previous-page:hover,
-.dash-table-container .next-page:hover,
-.dash-table-container .first-page:hover,
-.dash-table-container .last-page:hover {
-  background-color: #f8f9fa;
-  border-color: #ced4da;
+/* Style the buttons container */
+.previous-next-container {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 15px auto !important;
+  gap: 5px !important;
+  height: 36px !important;
+}
+
+/* Style navigation buttons consistently */
+.first-page,
+.previous-page,
+.next-page,
+.last-page {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 36px !important;
+  height: 36px !important;
+  border: 1px solid #dee2e6 !important;
+  border-radius: 4px !important;
+  background-color: #f8f9fa !important;
+  color: #495057 !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Style the page number container */
+.page-number {
+  display: flex !important; /* Force flex display */
+  align-items: center !important;
+  justify-content: center !important;
+  height: 36px !important;
+  margin: 0 5px !important;
+  gap: 6px !important; /* Add space between elements */
+  position: relative !important;
+  width: auto !important;
+  min-width: 100px !important; /* Ensure enough space */
+}
+
+/* Style the current page input */
+.current-page {
+  width: 36px !important;
+  height: 36px !important;
+  text-align: center !important;
+  border: 1px solid #dee2e6 !important;
+  border-radius: 4px !important;
+  font-size: 14px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Hide the shadow element that might cause issues */
+.current-page-shadow {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+
+/* Fix the slash and last page number display */
+.page-number > div.last-page,
+.page-number > .current-page-container,
+.page-number {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 14px !important;
+  height: 36px !important;
+  line-height: 36px !important;
+  margin: 0 3px !important;
+}
+
+/* Add proper spacing around the slash */
+.page-number > div:not(.current-page-container):not(.last-page) {
+  margin: 0 4px !important;
+  height: 36px !important;
+  line-height: 36px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
+
+/* Mobile styles */
+@media (max-width: 767px) {
+  .first-page,
+  .previous-page,
+  .next-page,
+  .last-page,
+  .current-page {
+    width: 44px !important;
+    height: 44px !important;
+  }
+  
+  .page-number,
+  .page-number > div {
+    height: 44px !important;
+    line-height: 44px !important;
+  }
+}
+
+/* Fix for overlapping pagination numbers */
+/* Fix the page number container to display elements horizontally with proper spacing */
+.page-number {
+  display: flex !important; /* Force flex display */
+  align-items: center !important;
+  justify-content: center !important;
+  height: 36px !important;
+  margin: 0 5px !important;
+  gap: 6px !important; /* Add space between elements */
+  position: relative !important;
+  width: auto !important;
+  min-width: 100px !important; /* Ensure enough space */
+}
+
+/* Style the current page input to prevent overlap */
+.current-page-container {
+  position: relative !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 36px !important;
+  width: 36px !important;
+  margin: 0 !important;
+  z-index: 2 !important;
+}
+
+/* Make the slash properly aligned and sized */
+.page-number > *:not(.current-page-container):not(.last-page) {
+  margin: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 36px !important;
+}
+
+/* Style the total pages indicator */
+.page-number .last-page {
+  width: 36px !important;
+  height: 36px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 14px !important;
+  position: relative !important;
+  z-index: 1 !important;
+  text-align: center !important;
+  margin: 0 !important;
+}
+
+/* Ensure input is on top with proper spacing */
+.page-number .current-page {
+  position: relative !important;
+  z-index: 3 !important;
+  width: 36px !important;
+  height: 36px !important;
+  border: 1px solid #dee2e6 !important;
+  border-radius: 4px !important;
+  background-color: white !important;
+  text-align: center !important;
+  font-size: 14px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Completely hide the shadow input that causes issues */
+.current-page-shadow {
+  position: absolute !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  min-width: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
 }
 
 /* ===== Tab Navigation Standardization ===== */
@@ -207,6 +382,171 @@ td.cell--editable:not(.cell-selected) .dash-cell-value::after {
   background-repeat: no-repeat;
   background-position: 0.875rem center;
   background-size: 1rem 1rem;
+}
+
+/* ===== Mobile View Optimization ===== */
+
+/* Mobile responsive container adjustments */
+@media (max-width: 767px) {
+  .container-fluid {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+  
+  /* Card padding optimization for small screens */
+  .card-body {
+    padding: 0.75rem !important;
+  }
+  
+  .card-header {
+    padding: 0.75rem !important;
+  }
+  
+  /* Fix heading sizes on mobile */
+  h1, .h1 {
+    font-size: 1.75rem !important;
+  }
+  
+  h2, .h2 {
+    font-size: 1.5rem !important;
+  }
+  
+  h3, .h3 {
+    font-size: 1.25rem !important;
+  }
+  
+  /* Focus states for mobile */
+  .btn:focus, .form-control:focus {
+    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.5) !important;
+  }
+}
+
+/* Responsive table optimizations */
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+.table-responsive::-webkit-scrollbar {
+  height: 6px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+/* Table optimizations for mobile */
+@media (max-width: 767px) {
+  .dash-spreadsheet-container .dash-spreadsheet-inner td,
+  .dash-spreadsheet-container .dash-spreadsheet-inner th {
+    padding: 8px 6px !important;
+    font-size: 14px !important;
+  }
+  
+  /* Prioritize important columns on small screens */
+  .mobile-hidden {
+    display: none !important;
+  }
+  
+  /* Truncate text in tables on mobile */
+  .mobile-truncate {
+    max-width: 120px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+/* Table optimizations for mobile */
+@media (max-width: 767px) {
+  /* Smaller padding for table cells on mobile */
+  .dash-spreadsheet td,
+  .dash-spreadsheet th {
+    padding: 8px 6px !important;
+    font-size: 14px !important;
+  }
+  
+  /* Touch-friendly pagination controls */
+  .previous-page, 
+  .next-page, 
+  .first-page, 
+  .last-page {
+    min-height: 38px !important;
+    min-width: 38px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  
+  /* Hide non-priority columns on mobile */
+  .mobile-hidden {
+    display: none !important;
+  }
+}
+
+/* Text wrapping for mobile */
+.text-wrap {
+  white-space: normal !important;
+  word-break: break-word !important;
+}
+
+.text-truncate-mobile {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 767px) {
+  .mobile-text-center {
+    text-align: center !important;
+  }
+  
+  .mobile-mb-2 {
+    margin-bottom: 0.5rem !important;
+  }
+}
+
+/* Touch-friendly controls */
+@media (max-width: 767px) {
+  /* Larger touch targets for buttons */
+  .btn {
+    padding: 0.5rem 0.75rem !important;
+    min-height: 44px !important;
+    font-size: 1rem !important;
+  }
+  
+  /* Larger form controls for touch */
+  .form-control, 
+  .form-select,
+  .input-group .input-group-text {
+    min-height: 44px !important;
+    font-size: 16px !important; /* Prevents zooming on iOS */
+  }
+  
+  /* Adjust date picker for mobile */
+  .DateInput_input {
+    font-size: 16px !important;
+    padding: 8px !important;
+    height: 44px !important;
+  }
+  
+  /* Increase spacing between form elements */
+  .form-group:not(:last-child) {
+    margin-bottom: 1.25rem !important;
+  }
+  
+  /* Larger checkbox and radio for touch */
+  input[type="checkbox"], 
+  input[type="radio"] {
+    width: 20px !important;
+    height: 20px !important;
+  }
 }
 
 /* ===== General Grid Alignment ===== */

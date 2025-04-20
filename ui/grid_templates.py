@@ -180,12 +180,13 @@ def create_full_width_layout(content, row_class=None):
 #######################################################################
 
 
-def create_standardized_table_style(stripe_color=None):
+def create_standardized_table_style(stripe_color=None, mobile_optimized=True):
     """
     Create standardized styling for data tables.
 
     Args:
         stripe_color: Color for alternating rows (defaults to light gray)
+        mobile_optimized: Whether to apply mobile-specific optimizations
 
     Returns:
         Dictionary with styling properties
@@ -197,12 +198,13 @@ def create_standardized_table_style(stripe_color=None):
     cell_padding_v = COMPONENT_SPACING.get("table_cell_padding", SPACING["xs"])
     cell_padding_h = COMPONENT_SPACING.get("table_cell_padding", SPACING["sm"])
 
-    return {
+    style_dict = {
         "style_table": {
             "overflowX": "auto",
             "borderRadius": "4px",
             "border": f"1px solid {NEUTRAL_COLORS.get('gray-300', '#dee2e6')}",
             "marginBottom": get_vertical_rhythm("section"),
+            "-webkit-overflow-scrolling": "touch",  # Improved scroll on iOS
         },
         "style_header": {
             "backgroundColor": NEUTRAL_COLORS.get("gray-200", "#e9ecef"),
@@ -232,6 +234,22 @@ def create_standardized_table_style(stripe_color=None):
         ],
     }
 
+    # Add mobile optimizations if requested
+    if mobile_optimized:
+        # Add mobile-specific styling for better touch interactions
+        style_dict["css"] = [
+            # Optimize for touch scrolling
+            {
+                "selector": ".dash-spreadsheet-container",
+                "rule": "touch-action: pan-y; -webkit-overflow-scrolling: touch;",
+            }
+        ]
+
+        # We'll handle mobile optimizations through separate CSS classes instead
+        # of using media queries directly in Dash DataTable CSS
+
+    return style_dict
+
 
 def create_data_table(
     data,
@@ -245,6 +263,8 @@ def create_data_table(
     filter_action=None,
     column_alignments=None,
     sort_by=None,
+    mobile_responsive=True,  # New parameter for mobile optimizations
+    priority_columns=None,  # New parameter to specify important columns on mobile
 ):
     """
     Create a standardized data table with consistent styling and behavior.
@@ -261,21 +281,35 @@ def create_data_table(
         filter_action: Filter action ("native" or None)
         column_alignments: Dictionary mapping column IDs to text alignments
         sort_by: Default sorting configuration, e.g. [{'column_id': 'date', 'direction': 'desc'}]
+        mobile_responsive: Whether to apply mobile-specific optimizations
+        priority_columns: List of column IDs that should be prioritized on small screens
 
     Returns:
         A dash_table.DataTable with standardized styling
     """
     # Get base styling
-    table_style = create_standardized_table_style()
+    table_style = create_standardized_table_style(mobile_optimized=mobile_responsive)
 
     # Apply column-specific alignments if provided
+    style_cell_conditional = []
     if column_alignments:
         style_cell_conditional = [
             {"if": {"column_id": col_id}, "textAlign": alignment}
             for col_id, alignment in column_alignments.items()
         ]
-    else:
-        style_cell_conditional = []
+
+    # Add mobile optimization for columns if needed
+    if mobile_responsive and priority_columns:
+        # Create conditional styling for non-priority columns on mobile
+        for col in columns:
+            if col["id"] not in priority_columns:
+                style_cell_conditional.append(
+                    {
+                        "if": {"column_id": col["id"]},
+                        "className": "mobile-hidden",
+                        "media": "screen and (max-width: 767px)",
+                    }
+                )
 
     # Add highlighting for editable cells
     if editable:
@@ -320,6 +354,48 @@ def create_data_table(
     else:
         pagination_settings = {}
 
+    # Additional CSS for mobile optimization
+    css_rules = [
+        # Add modern styling
+        {
+            "selector": ".dash-spreadsheet-menu",
+            "rule": "position: absolute; top: 0.5rem; right: 0.5rem;",
+        },
+        # Improve filter icon appearance
+        {
+            "selector": ".dash-filter",
+            "rule": "padding: 2px 5px; border-radius: 3px; background-color: rgba(0, 0, 0, 0.05);",
+        },
+        # Hide case-sensitive toggle (simplify filtering UI)
+        {"selector": ".dash-filter--case", "rule": "display: none;"},
+        # Add indicator to show field is editable on hover
+        {
+            "selector": "td.cell--editable:hover",
+            "rule": "background-color: rgba(13, 110, 253, 0.08) !important;",
+        },
+        # Improve column sorting indication
+        {
+            "selector": ".dash-header-cell .column-header--sort",
+            "rule": "opacity: 1 !important; color: #0d6efd !important;",
+        },
+        # Add better focus indication for keyboard navigation
+        {
+            "selector": ".dash-cell-value:focus",
+            "rule": "outline: none !important; box-shadow: inset 0 0 0 2px #0d6efd !important;",
+        },
+    ]
+
+    if mobile_responsive:
+        css_rules.extend(
+            [
+                # Ensure text wraps on small screens
+                {
+                    "selector": ".dash-cell-value",
+                    "rule": "white-space: normal !important; word-break: break-word !important;",
+                },
+            ]
+        )
+
     # Create the table
     return dash_table.DataTable(
         id=id,
@@ -337,43 +413,41 @@ def create_data_table(
         style_cell_conditional=style_cell_conditional,
         style_data=table_style["style_data"],
         style_data_conditional=style_data_conditional,
-        css=[
-            # Add modern styling
-            {
-                "selector": ".dash-spreadsheet-menu",
-                "rule": "position: absolute; top: 0.5rem; right: 0.5rem;",
-            },
-            # Improve filter icon appearance
-            {
-                "selector": ".dash-filter",
-                "rule": "padding: 2px 5px; border-radius: 3px; background-color: rgba(0, 0, 0, 0.05);",
-            },
-            # Hide case-sensitive toggle (simplify filtering UI)
-            {"selector": ".dash-filter--case", "rule": "display: none;"},
-            # Add indicator to show field is editable on hover
-            {
-                "selector": "td.cell--editable:hover",
-                "rule": "background-color: rgba(13, 110, 253, 0.08) !important;",
-            },
-            # Improve column sorting indication
-            {
-                "selector": ".dash-header-cell .column-header--sort",
-                "rule": "opacity: 1 !important; color: #0d6efd !important;",
-            },
-            # Add better focus indication for keyboard navigation
-            {
-                "selector": ".dash-cell-value:focus",
-                "rule": "outline: none !important; box-shadow: inset 0 0 0 2px #0d6efd !important;",
-            },
-            # Enhance pagination controls
-            {
-                "selector": ".previous-page, .next-page, .first-page, .last-page",
-                "rule": "border-radius: 4px; margin: 0 4px; color: #495057 !important;",
-            },
-        ],
+        css=css_rules,
         tooltip_delay=0,
         tooltip_duration=None,
         **pagination_settings,
+    )
+
+
+def create_responsive_table_wrapper(table_component, max_height=None, className=""):
+    """
+    Create a mobile-responsive wrapper for tables that handles overflow with scrolling.
+
+    Args:
+        table_component: The table component to wrap
+        max_height: Optional max height for vertical scrolling
+        className: Additional CSS classes
+
+    Returns:
+        html.Div: A responsive container for the table
+    """
+    from dash import html
+
+    container_style = {
+        "overflowX": "auto",
+        "width": "100%",
+        "-webkit-overflow-scrolling": "touch",  # Smooth scrolling on iOS
+    }
+
+    if max_height:
+        container_style["maxHeight"] = max_height
+        container_style["overflowY"] = "auto"
+
+    return html.Div(
+        table_component,
+        className=f"table-responsive {className}",
+        style=container_style,
     )
 
 

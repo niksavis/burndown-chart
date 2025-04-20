@@ -451,7 +451,9 @@ def create_progress_bar(value, max_value=100, color=None, height=None, label=Non
 #######################################################################
 
 
-def create_button_style(variant="primary", size="md", outline=False, disabled=False):
+def create_button_style(
+    variant="primary", size="md", outline=False, disabled=False, touch_friendly=True
+):
     """
     Create a consistent button style based on design system.
 
@@ -460,6 +462,7 @@ def create_button_style(variant="primary", size="md", outline=False, disabled=Fa
         size (str): Button size (sm, md, lg)
         outline (bool): Whether the button should have outline style
         disabled (bool): Whether the button is disabled
+        touch_friendly (bool): Whether to optimize for touch screens (mobile)
 
     Returns:
         dict: Dictionary with button styling properties
@@ -477,24 +480,48 @@ def create_button_style(variant="primary", size="md", outline=False, disabled=Fa
         "boxShadow": "none",
     }
 
-    # Size-specific styles
-    size_styles = {
-        "sm": {
-            "fontSize": "0.875rem",
-            "padding": "0.25rem 0.5rem",
-            "lineHeight": "1.5",
-        },
-        "md": {
-            "fontSize": "1rem",
-            "padding": "0.375rem 0.75rem",
-            "lineHeight": "1.5",
-        },
-        "lg": {
-            "fontSize": "1.25rem",
-            "padding": "0.5rem 1rem",
-            "lineHeight": "1.5",
-        },
-    }
+    # Size-specific styles with mobile optimization
+    if touch_friendly:
+        # Touch-optimized sizes (minimum 44px height for touch targets on mobile)
+        size_styles = {
+            "sm": {
+                "fontSize": "0.875rem",
+                "padding": "0.4rem 0.7rem",  # Increased for better touch targets
+                "lineHeight": "1.5",
+                "minHeight": "38px",  # Minimum height for touch targets
+            },
+            "md": {
+                "fontSize": "1rem",
+                "padding": "0.5rem 0.875rem",  # Increased for better touch targets
+                "lineHeight": "1.5",
+                "minHeight": "44px",  # Optimal touch target size
+            },
+            "lg": {
+                "fontSize": "1.25rem",
+                "padding": "0.625rem 1.1rem",  # Increased for better touch targets
+                "lineHeight": "1.5",
+                "minHeight": "50px",  # Larger touch target
+            },
+        }
+    else:
+        # Standard sizes
+        size_styles = {
+            "sm": {
+                "fontSize": "0.875rem",
+                "padding": "0.25rem 0.5rem",
+                "lineHeight": "1.5",
+            },
+            "md": {
+                "fontSize": "1rem",
+                "padding": "0.375rem 0.75rem",
+                "lineHeight": "1.5",
+            },
+            "lg": {
+                "fontSize": "1.25rem",
+                "padding": "0.5rem 1rem",
+                "lineHeight": "1.5",
+            },
+        }
 
     # Apply size-specific styles
     base_style.update(size_styles.get(size, size_styles["md"]))

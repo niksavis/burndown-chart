@@ -303,6 +303,7 @@ def create_input_parameters_card(
                                     display_format="YYYY-MM-DD",
                                     first_day_of_week=1,
                                     show_outside_days=True,
+                                    # Use a responsive portal approach - will only be used on small screens
                                     with_portal=False,
                                     with_full_screen_portal=False,
                                     placeholder="Select deadline date",
@@ -320,9 +321,11 @@ def create_input_parameters_card(
                                 ),
                             ],
                             width=12,
-                            md=4,  # Keep same width
+                            sm=12,  # Full width on mobile/small screens
+                            md=4,  # 1/3 width on medium and up
+                            className="mb-4 mb-md-0",  # Add bottom margin on mobile only
                         ),
-                        # PERT Factor - directly adjacent to Deadline (removed spacer)
+                        # PERT Factor - directly adjacent to Deadline
                         dbc.Col(
                             [
                                 html.Label(
@@ -353,8 +356,9 @@ def create_input_parameters_card(
                                     style=create_form_feedback_style("invalid"),
                                 ),
                             ],
-                            width=12,
-                            md=8,  # Expanded from 6 to 8 to fill the space
+                            width=12,  # Full width on extra small screens
+                            sm=12,  # Full width on small screens
+                            md=8,  # 2/3 width on medium and up
                         ),
                     ],
                     className="mb-3",  # Keep margin below this row
