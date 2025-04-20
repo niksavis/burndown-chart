@@ -1688,3 +1688,449 @@ def apply_content_spacing(layout_elements):
             spaced_elements.append(create_vertical_spacer("section"))
 
     return spaced_elements
+
+
+#######################################################################
+# LOADING STATE COMPONENTS
+#######################################################################
+
+LOADING_STYLES = {
+    "default": {
+        "spinner_color": get_color("primary"),
+        "overlay_color": "rgba(255, 255, 255, 0.8)",
+        "text_color": get_color("dark"),
+        "size": "md",
+    },
+    "light": {
+        "spinner_color": get_color("primary"),
+        "overlay_color": "rgba(255, 255, 255, 0.9)",
+        "text_color": get_color("dark"),
+        "size": "md",
+    },
+    "dark": {
+        "spinner_color": get_color("white"),
+        "overlay_color": "rgba(0, 0, 0, 0.7)",
+        "text_color": get_color("white"),
+        "size": "md",
+    },
+    "transparent": {
+        "spinner_color": get_color("primary"),
+        "overlay_color": "rgba(255, 255, 255, 0.4)",
+        "text_color": get_color("dark"),
+        "size": "md",
+    },
+    "success": {
+        "spinner_color": get_color("success"),
+        "overlay_color": "rgba(255, 255, 255, 0.8)",
+        "text_color": get_color("success"),
+        "size": "md",
+    },
+    "danger": {
+        "spinner_color": get_color("danger"),
+        "overlay_color": "rgba(255, 255, 255, 0.8)",
+        "text_color": get_color("danger"),
+        "size": "md",
+    },
+    "warning": {
+        "spinner_color": get_color("warning"),
+        "overlay_color": "rgba(255, 255, 255, 0.8)",
+        "text_color": get_color("warning"),
+        "size": "md",
+    },
+    "info": {
+        "spinner_color": get_color("info"),
+        "overlay_color": "rgba(255, 255, 255, 0.8)",
+        "text_color": get_color("info"),
+        "size": "md",
+    },
+}
+
+SPINNER_SIZES = {
+    "xs": {"width": "1rem", "height": "1rem", "border_width": "0.15rem"},
+    "sm": {"width": "1.5rem", "height": "1.5rem", "border_width": "0.2rem"},
+    "md": {"width": "2rem", "height": "2rem", "border_width": "0.25rem"},
+    "lg": {"width": "3rem", "height": "3rem", "border_width": "0.3rem"},
+    "xl": {"width": "4rem", "height": "4rem", "border_width": "0.35rem"},
+}
+
+SKELETON_ANIMATION = "@keyframes skeleton-loading { 0% { background-color: rgba(200, 200, 200, 0.2); } 50% { background-color: rgba(200, 200, 200, 0.6); } 100% { background-color: rgba(200, 200, 200, 0.2); } }"
+
+
+def get_loading_style(style_key="default", size_key="md"):
+    """
+    Get loading spinner styling based on predefined styles.
+
+    Args:
+        style_key (str): Key for loading style (default, light, dark, etc.)
+        size_key (str): Size of the spinner (xs, sm, md, lg, xl)
+
+    Returns:
+        dict: Style configuration for loading spinner
+    """
+    # Get base style
+    base_style = LOADING_STYLES.get(style_key, LOADING_STYLES["default"])
+
+    # Get size configuration
+    size_config = SPINNER_SIZES.get(size_key, SPINNER_SIZES["md"])
+
+    # Return combined configuration
+    return {**base_style, **size_config}
+
+
+def create_spinner_style(style_key="default", size_key="md", custom_style=None):
+    """
+    Create a CSS style dictionary for a spinner component.
+
+    Args:
+        style_key (str): Key for loading style (default, light, dark, etc.)
+        size_key (str): Size of the spinner (xs, sm, md, lg, xl)
+        custom_style (dict, optional): Custom style overrides
+
+    Returns:
+        dict: Style dictionary for spinner element
+    """
+    # Get configuration
+    config = get_loading_style(style_key, size_key)
+
+    # Build spinner style
+    spinner_style = {
+        "display": "inline-block",
+        "width": config["width"],
+        "height": config["height"],
+        "border": f"{config['border_width']} solid {config['spinner_color']}",
+        "borderRightColor": "transparent",
+        "borderRadius": "50%",
+        "animation": "spin 1s linear infinite",
+    }
+
+    # Add custom style overrides
+    if custom_style:
+        spinner_style.update(custom_style)
+
+    return spinner_style
+
+
+def create_loading_overlay_style(style_key="default", custom_style=None):
+    """
+    Create a CSS style dictionary for a loading overlay component.
+
+    Args:
+        style_key (str): Key for loading style (default, light, dark, etc.)
+        custom_style (dict, optional): Custom style overrides
+
+    Returns:
+        dict: Style dictionary for overlay element
+    """
+    # Get configuration
+    config = get_loading_style(style_key)
+
+    # Build overlay style
+    overlay_style = {
+        "position": "absolute",
+        "top": "0",
+        "left": "0",
+        "width": "100%",
+        "height": "100%",
+        "display": "flex",
+        "alignItems": "center",
+        "justifyContent": "center",
+        "flexDirection": "column",
+        "backgroundColor": config["overlay_color"],
+        "zIndex": "1000",
+        "borderRadius": "4px",
+    }
+
+    # Add custom style overrides
+    if custom_style:
+        overlay_style.update(custom_style)
+
+    return overlay_style
+
+
+def create_spinner(
+    style_key="default", size_key="md", text=None, className="", custom_style=None
+):
+    """
+    Create a spinner component with consistent styling.
+
+    Args:
+        style_key (str): Key for loading style (default, light, dark, etc.)
+        size_key (str): Size of the spinner (xs, sm, md, lg, xl)
+        text (str, optional): Text to display below the spinner
+        className (str, optional): Additional CSS classes
+        custom_style (dict, optional): Custom style overrides
+
+    Returns:
+        html.Div: A styled spinner component
+    """
+    # Get configuration
+    config = get_loading_style(style_key, size_key)
+
+    # Build spinner style
+    spinner_style = create_spinner_style(style_key, size_key)
+
+    # Create the spinner content
+    spinner_content = [html.Div(className="spinner", style=spinner_style)]
+
+    # Add text if provided
+    if text:
+        spinner_content.append(
+            html.Div(
+                text,
+                className="mt-2",
+                style={"color": config["text_color"], "fontSize": "0.9rem"},
+            )
+        )
+
+    # Build container style
+    container_style = {
+        "display": "inline-flex",
+        "flexDirection": "column",
+        "alignItems": "center",
+    }
+    if custom_style:
+        container_style.update(custom_style)
+
+    # Return the complete spinner component
+    return html.Div(
+        spinner_content,
+        className=f"spinner-container {className}",
+        style=container_style,
+    )
+
+
+def create_loading_overlay(
+    style_key="default", size_key="md", text=None, is_loading=True, children=None
+):
+    """
+    Create a loading overlay for content with a spinner.
+
+    Args:
+        style_key (str): Key for loading style (default, light, dark, etc.)
+        size_key (str): Size of the spinner (xs, sm, md, lg, xl)
+        text (str, optional): Text to display below the spinner
+        is_loading (bool): Whether the loading state is active
+        children: Content to show when not loading
+
+    Returns:
+        html.Div: A container with loading overlay when is_loading=True
+    """
+    from dash import html
+
+    # Get configuration
+    config = get_loading_style(style_key, size_key)
+
+    # Create the spinner component
+    spinner = create_spinner(style_key, size_key, text)
+
+    # Create the overlay
+    overlay = html.Div(
+        spinner,
+        style=create_loading_overlay_style(style_key)
+        if is_loading
+        else {"display": "none"},
+    )
+
+    # Create content container with relative positioning
+    content_container = html.Div(
+        children if children is not None else [],
+        style={"position": "relative", "width": "100%", "height": "100%"},
+    )
+
+    # Return the combined component
+    return html.Div(
+        [overlay, content_container],
+        style={"position": "relative", "width": "100%", "height": "100%"},
+    )
+
+
+def create_skeleton_loader(
+    type="text", lines=1, width="100%", height=None, className=""
+):
+    """
+    Create a skeleton loader component for content placeholders.
+
+    Args:
+        type (str): Type of skeleton (text, card, image, circle)
+        lines (int): Number of lines for text skeletons
+        width (str): Width of the skeleton
+        height (str): Height of the skeleton (for non-text types)
+        className (str): Additional CSS classes
+
+    Returns:
+        html.Div: A skeleton loader component
+    """
+    from dash import html
+
+    # Create the CSS animation if it doesn't exist
+    animation_style = {"animation": "skeleton-loading 1.5s infinite"}
+    base_styles = {
+        "backgroundColor": "rgba(200, 200, 200, 0.4)",
+        "borderRadius": "4px",
+    }
+
+    # Build skeleton based on type
+    if type == "text":
+        # Create multiple lines
+        skeleton_lines = []
+        for i in range(lines):
+            # Vary width for text lines to make it look more natural
+            line_width = width
+            if lines > 1 and i == lines - 1:
+                # Make last line shorter
+                line_width = "70%" if width == "100%" else width
+
+            skeleton_lines.append(
+                html.Div(
+                    className="skeleton-line",
+                    style={
+                        **base_styles,
+                        **animation_style,
+                        "width": line_width,
+                        "height": "1rem",
+                        "marginBottom": "0.5rem" if i < lines - 1 else "0",
+                    },
+                )
+            )
+        return html.Div(skeleton_lines, className=f"skeleton-loader {className}")
+
+    elif type == "image":
+        return html.Div(
+            className=f"skeleton-loader skeleton-image {className}",
+            style={
+                **base_styles,
+                **animation_style,
+                "width": width,
+                "height": height or "200px",
+            },
+        )
+
+    elif type == "circle":
+        return html.Div(
+            className=f"skeleton-loader skeleton-circle {className}",
+            style={
+                **base_styles,
+                **animation_style,
+                "width": width,
+                "height": height or width,
+                "borderRadius": "50%",
+            },
+        )
+
+    elif type == "card":
+        return html.Div(
+            [
+                # Card header
+                html.Div(
+                    className="skeleton-card-header",
+                    style={
+                        **base_styles,
+                        **animation_style,
+                        "width": "60%",
+                        "height": "2rem",
+                        "marginBottom": "1rem",
+                    },
+                ),
+                # Card content
+                html.Div(
+                    [
+                        html.Div(
+                            style={
+                                **base_styles,
+                                **animation_style,
+                                "width": "100%",
+                                "height": "0.8rem",
+                                "marginBottom": "0.5rem",
+                            }
+                        )
+                        for _ in range(4)  # 4 lines of content
+                    ]
+                ),
+            ],
+            className=f"skeleton-loader skeleton-card {className}",
+            style={
+                "padding": "1rem",
+                "borderRadius": "4px",
+                "border": "1px solid rgba(200, 200, 200, 0.4)",
+                "width": width,
+                "height": height or "auto",
+            },
+        )
+
+    # Default fallback
+    return html.Div(
+        className=f"skeleton-loader {className}",
+        style={
+            **base_styles,
+            **animation_style,
+            "width": width,
+            "height": height or "1rem",
+        },
+    )
+
+
+def create_content_placeholder(
+    type="chart", width="100%", height="300px", text="Loading data...", className=""
+):
+    """
+    Create a placeholder for content that is loading.
+
+    Args:
+        type (str): Type of content placeholder (chart, table, form, card)
+        width (str): Width of the placeholder
+        height (str): Height of the placeholder
+        text (str): Text to display in the placeholder
+        className (str): Additional CSS classes
+
+    Returns:
+        html.Div: A content placeholder component
+    """
+    from dash import html
+
+    # Get appropriate icon and message based on type
+    icon_map = {
+        "chart": "fas fa-chart-bar",
+        "table": "fas fa-table",
+        "form": "fas fa-list-alt",
+        "card": "fas fa-credit-card",
+        "image": "fas fa-image",
+        "data": "fas fa-database",
+    }
+
+    message_map = {
+        "chart": "Chart data is loading...",
+        "table": "Preparing table data...",
+        "form": "Loading form data...",
+        "card": "Loading content...",
+        "image": "Loading image...",
+        "data": "Loading data...",
+    }
+
+    icon_class = icon_map.get(type, "fas fa-spinner")
+    default_message = message_map.get(type, "Loading content...")
+    display_text = text or default_message
+
+    # Create the placeholder component
+    return html.Div(
+        [
+            html.Div(
+                [
+                    html.I(
+                        className=f"{icon_class} fa-2x mb-3 text-muted",
+                    ),
+                    html.Div(display_text, className="text-muted"),
+                    html.Div(
+                        className="spinner-border spinner-border-sm mt-3",
+                        style={"color": get_color("secondary")},
+                    ),
+                ],
+                className="d-flex flex-column align-items-center justify-content-center h-100",
+            )
+        ],
+        className=f"content-placeholder border rounded bg-light {className}",
+        style={
+            "width": width,
+            "height": height,
+            "overflow": "hidden",
+        },
+    )

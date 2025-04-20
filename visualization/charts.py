@@ -2056,3 +2056,69 @@ def add_deadline_marker(fig, deadline):
         )
 
     return fig
+
+
+def create_chart_with_loading(
+    id, figure=None, loading_state=None, type="default", height=None
+):
+    """
+    Create a chart component with built-in loading states.
+
+    Args:
+        id (str): Component ID for the chart
+        figure (dict, optional): Initial Plotly figure
+        loading_state (dict, optional): Loading state information
+        type (str): Chart type (default, bar, line, scatter)
+        height (str, optional): Chart height
+
+    Returns:
+        html.Div: Chart component with loading states
+    """
+    from dash import html, dcc
+    from ui.components import create_loading_wrapper
+
+    # Determine if we're in a loading state
+    is_loading = loading_state is not None and loading_state.get("is_loading", False)
+
+    # Create appropriate loading message based on chart type
+    loading_messages = {
+        "default": "Loading chart...",
+        "bar": "Generating bar chart...",
+        "line": "Preparing line chart...",
+        "scatter": "Creating scatter plot...",
+        "pie": "Building pie chart...",
+        "area": "Creating area chart...",
+    }
+    message = loading_messages.get(type, "Loading chart...")
+
+    # Create the chart component
+    chart = dcc.Graph(
+        id=id,
+        figure=figure or {},
+        config={
+            "displayModeBar": True,
+            "responsive": True,
+            "toImageButtonOptions": {
+                "format": "png",
+                "filename": f"burndown-chart-{id}",
+                "scale": 2,
+            },
+            "modeBarButtonsToRemove": [
+                "lasso2d",
+                "select2d",
+                "toggleSpikelines",
+            ],
+        },
+        style={"height": height or "100%", "width": "100%"},
+    )
+
+    # Wrap the chart with a loading state
+    return create_loading_wrapper(
+        chart,
+        is_loading=is_loading,
+        id=f"{id}-loading-wrapper",
+        type="overlay",
+        color="primary",
+        size="lg",
+        message=message,
+    )

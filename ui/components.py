@@ -2246,3 +2246,330 @@ def create_button(
         )
 
     return button
+
+
+#######################################################################
+# LOADING STATE COMPONENTS
+#######################################################################
+
+
+def create_loading_indicator(
+    id="loading", type="spinner", message="Loading...", color="primary", size="md"
+):
+    """
+    Create a standardized loading indicator component.
+
+    Args:
+        id (str): Component ID
+        type (str): Type of indicator (spinner, growing, skeleton)
+        message (str): Message to display while loading
+        color (str): Bootstrap color variant
+        size (str): Size of the loading indicator (sm, md, lg)
+
+    Returns:
+        Dash component: A loading indicator component
+    """
+    from dash import html
+    from ui.styles import create_spinner, create_skeleton_loader, get_color
+
+    if type == "skeleton":
+        return create_skeleton_loader(
+            type="text", lines=3, className="mb-3", width="100%"
+        )
+
+    elif type == "growing":
+        return html.Div(
+            [
+                html.Div(
+                    className=f"spinner-grow text-{color} mx-1",
+                    style={"width": "1rem", "height": "1rem"},
+                )
+                for _ in range(3)
+            ]
+            + [html.Div(message, className="text-center mt-2 text-muted small")],
+            className="d-flex flex-column align-items-center justify-content-center py-3",
+            id=id,
+        )
+
+    else:  # Default spinner
+        return create_spinner(
+            style_key=color, size_key=size, text=message, className="my-3", id=id
+        )
+
+
+def create_loading_wrapper(
+    children,
+    is_loading=False,
+    id=None,
+    type="overlay",
+    color="primary",
+    size="md",
+    message="Loading...",
+):
+    """
+    Wrap content with a loading indicator.
+
+    Args:
+        children: Content to display when not loading
+        is_loading (bool): Whether to show the loading state
+        id (str): Component ID
+        type (str): Type of loading wrapper (overlay, skeleton, placeholder)
+        color (str): Color variant for the loading indicator
+        size (str): Size of the loading indicator
+        message (str): Loading message to display
+
+    Returns:
+        Dash component: A component that shows a loading state or the children
+    """
+    from dash import html
+    import dash_bootstrap_components as dbc
+    from ui.styles import (
+        create_loading_overlay,
+        create_content_placeholder,
+        create_skeleton_loader,
+    )
+
+    content_id = f"{id}-content" if id else None
+
+    if type == "overlay":
+        return create_loading_overlay(
+            style_key=color,
+            size_key=size,
+            text=message,
+            is_loading=is_loading,
+            children=children,
+        )
+
+    elif type == "skeleton":
+        if is_loading:
+            # For skeleton loading, we'll create multiple lines based on content size estimate
+            return html.Div(
+                [
+                    create_skeleton_loader(type="card", width="100%"),
+                ],
+                id=content_id,
+            )
+        else:
+            return html.Div(children, id=content_id)
+
+    elif type == "placeholder":
+        if is_loading:
+            return create_content_placeholder(
+                type="chart" if "chart" in str(children).lower() else "data",
+                text=message,
+                className="my-3",
+            )
+        else:
+            return html.Div(children, id=content_id)
+
+    else:  # Simple loading indicator without an overlay
+        if is_loading:
+            return html.Div(
+                create_loading_indicator(
+                    type="spinner", message=message, color=color, size=size
+                ),
+                className="d-flex justify-content-center my-4",
+            )
+        else:
+            return html.Div(children, id=content_id)
+
+
+def create_async_content(id, loading_state_id, content_type="chart"):
+    """
+    Create a content area that shows a loading state until data is loaded.
+
+    Args:
+        id (str): ID of the content component
+        loading_state_id (str): ID of the loading state component to update via callback
+        content_type (str): Type of content (chart, table, form, card)
+
+    Returns:
+        dbc.Spinner: A spinner with a container for async content
+    """
+    import dash_bootstrap_components as dbc
+    from dash import html
+
+    # Choose placeholder based on content type
+    placeholder_text = {
+        "chart": "Generating chart...",
+        "table": "Loading data...",
+        "form": "Loading form...",
+        "card": "Loading content...",
+    }.get(content_type, "Loading...")
+
+    # Choose appropriate colors and sizes
+    spinner_colors = {
+        "chart": "primary",
+        "table": "info",
+        "form": "secondary",
+        "card": "primary",
+    }
+
+    spinner_size = "lg" if content_type in ["chart", "table"] else "md"
+
+    return dbc.Spinner(
+        html.Div(id=id),
+        id=loading_state_id,
+        color=spinner_colors.get(content_type, "primary"),
+        size=spinner_size,
+        spinner_style={"width": "3rem", "height": "3rem"},
+        fullscreen=False,
+        fullscreen_style={"backgroundColor": "rgba(255, 255, 255, 0.8)"},
+        delay_show=200,  # Wait 200ms before showing spinner to avoid flicker
+    )
+
+
+def create_lazy_loading_tabs(
+    tabs_data, tab_id_prefix="tab", content_id_prefix="tab-content"
+):
+    """
+    Create tabs that load content lazily when selected.
+
+    Args:
+        tabs_data (list): List of dictionaries with tab properties (label, content, icon, active)
+        tab_id_prefix (str): Prefix for tab IDs
+        content_id_prefix (str): Prefix for content IDs
+
+    Returns:
+        tuple: (tabs, content) components for lazy-loading tabs
+    """
+    import dash_bootstrap_components as dbc
+    from dash import html, dcc
+
+    tabs = []
+    contents = []
+
+    for i, tab_data in enumerate(tabs_data):
+        tab_id = f"{tab_id_prefix}-{i}"
+        content_id = f"{content_id_prefix}-{i}"
+
+        # Create the tab item
+        tab = dbc.Tab(
+            label=tab_data.get("label", f"Tab {i + 1}"),
+            tab_id=tab_id,
+            label_style={"cursor": "pointer"},
+            active_label_style={"font-weight": "bold"},
+        )
+
+        # If icon is provided, add it to the tab label
+        if "icon" in tab_data:
+            from ui.styles import create_icon
+
+            tab.children = html.Div(
+                [
+                    create_icon(tab_data["icon"], size="sm", className="me-2"),
+                    tab_data.get("label", f"Tab {i + 1}"),
+                ],
+                className="d-flex align-items-center",
+            )
+
+        tabs.append(tab)
+
+        # Create the content container with loading state
+        content_component = html.Div(
+            create_loading_wrapper(
+                tab_data.get("content", html.Div("Tab content")),
+                is_loading=False,  # Will be set to True when tab is activated
+                id=f"{content_id}-loader",
+                type="overlay",
+                message=f"Loading {tab_data.get('label', 'tab')} content...",
+            ),
+            id=content_id,
+            style={"display": "none"},  # Initially hidden
+        )
+
+        contents.append(content_component)
+
+    # Combine tabs into a TabList
+    tab_list = dbc.Tabs(
+        tabs,
+        id=f"{tab_id_prefix}-parent",
+        active_tab=f"{tab_id_prefix}-0",  # Default to first tab
+    )
+
+    # Combine contents into a container
+    content_container = html.Div(
+        contents,
+        id=f"{content_id_prefix}-parent",
+    )
+
+    return tab_list, content_container
+
+
+def create_data_loading_section(
+    id,
+    title=None,
+    loading_message="Loading data...",
+    error_message="Failed to load data",
+    retry_button=True,
+):
+    """
+    Create a section that handles loading, error, and success states for data loading.
+
+    Args:
+        id (str): Base ID for components
+        title (str): Section title
+        loading_message (str): Message to show during loading
+        error_message (str): Message to show on error
+        retry_button (bool): Whether to include a retry button on error
+
+    Returns:
+        html.Div: Container with content for each state
+    """
+    import dash_bootstrap_components as dbc
+    from dash import html
+    from ui.styles import create_icon, create_button
+
+    # Create the loading state
+    loading_state = html.Div(
+        [
+            dbc.Spinner(size="lg", color="primary"),
+            html.Div(loading_message, className="text-center text-muted mt-3"),
+        ],
+        id=f"{id}-loading",
+        className="d-flex flex-column justify-content-center align-items-center py-5",
+    )
+
+    # Create the error state
+    error_actions = []
+    if retry_button:
+        error_actions.append(
+            create_button(
+                text="Retry",
+                id=f"{id}-retry-btn",
+                variant="primary",
+                size="sm",
+                icon_class="fas fa-sync",
+                className="mt-3",
+            )
+        )
+
+    error_state = html.Div(
+        [
+            create_icon("danger", size="xl", color="danger"),
+            html.Div(error_message, className="text-center text-danger mt-3"),
+            html.Div(error_actions, className="d-flex justify-content-center"),
+        ],
+        id=f"{id}-error",
+        className="d-none d-flex flex-column justify-content-center align-items-center py-5 border border-danger rounded",
+        style={"backgroundColor": "rgba(220, 53, 69, 0.05)"},
+    )
+
+    # Create the content container (initially empty)
+    content_state = html.Div(
+        id=f"{id}-content",
+        className="d-none",  # Initially hidden
+    )
+
+    # Add title if provided
+    header = html.H5(title, className="mb-3") if title else None
+
+    # Combine everything into a container
+    container = html.Div(
+        [header, loading_state, error_state, content_state]
+        if header
+        else [loading_state, error_state, content_state],
+        id=id,
+    )
+
+    return container

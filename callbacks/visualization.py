@@ -481,3 +481,297 @@ def register(app):
                 return dcc.send_data_frame(
                     error_df.to_csv, f"export_error_{current_time}.csv", index=False
                 )
+
+
+def register_loading_callbacks(app):
+    """
+    Register callbacks that demonstrate loading states.
+
+    Args:
+        app: Dash application instance
+    """
+    from dash import Input, Output, State, callback_context
+    from ui.styles import (
+        create_spinner,
+        create_skeleton_loader,
+        create_content_placeholder,
+    )
+    import time
+    from dash import html
+    import dash_bootstrap_components as dbc
+
+    @app.callback(
+        Output("forecast-chart-container", "children"),
+        Input("generate-forecast-btn", "n_clicks"),
+        [State("data-store", "data")],
+        prevent_initial_call=True,
+    )
+    def update_forecast_chart_with_loading(n_clicks, data):
+        """
+        Update forecast chart with loading indicators while data is processing
+        """
+        if not n_clicks or not data:
+            # Create placeholder when no data is available
+            return create_content_placeholder(
+                type="chart",
+                text="Click 'Generate Forecast' to create chart",
+                height="400px",
+            )
+
+        # Simulate processing delay to show loading state (in real app, this would be actual processing time)
+        time.sleep(1)
+
+        ctx = callback_context
+        if not ctx.triggered:
+            return create_content_placeholder(
+                type="chart",
+                text="Click 'Generate Forecast' to create chart",
+                height="400px",
+            )
+
+        # Process the data to create the forecast chart (simplified for example)
+        from visualization.charts import create_chart_with_loading
+
+        try:
+            # In a real implementation, we would pass this to create_forecast_plot
+            from visualization.charts import create_forecast_plot
+            from dash import dcc
+            import pandas as pd
+
+            # This would normally be properly processed data
+            df = pd.DataFrame(data.get("statistics", []))
+            total_items = data.get("total_items", 0)
+            total_points = data.get("total_points", 0)
+            pert_factor = data.get("pert_factor", 3)
+            deadline_str = data.get("deadline", None)
+
+            # Create the chart (real implementation would call create_forecast_plot)
+            figure, _ = create_forecast_plot(
+                df, total_items, total_points, pert_factor, deadline_str
+            )
+
+            # Return the chart with loading state
+            return create_chart_with_loading(
+                id="forecast-chart",
+                figure=figure,
+                loading_state=None,  # No longer loading
+                type="line",
+                height="500px",
+            )
+
+        except Exception as e:
+            # Show error state with retry button
+            return html.Div(
+                [
+                    html.Div(
+                        [
+                            html.I(
+                                className="fas fa-exclamation-triangle text-danger me-2",
+                                style={"fontSize": "2rem"},
+                            ),
+                            html.H5("Error Generating Chart", className="text-danger"),
+                        ],
+                        className="d-flex align-items-center mb-3",
+                    ),
+                    html.P(f"An error occurred: {str(e)}", className="text-muted mb-3"),
+                    dbc.Button(
+                        [html.I(className="fas fa-sync me-2"), "Retry"],
+                        id="retry-forecast-btn",
+                        color="primary",
+                        className="mt-3",
+                    ),
+                ],
+                className="text-center p-5 border rounded bg-light",
+            )
+
+    @app.callback(
+        Output("statistics-table-container", "children"),
+        [Input("upload-data", "contents"), Input("loading-demo-btn", "n_clicks")],
+        [State("upload-data", "filename"), State("data-store", "data")],
+        prevent_initial_call=True,
+    )
+    def update_statistics_table_with_loading(contents, n_clicks, filename, data):
+        """
+        Update statistics table with various loading state visualizations
+        """
+        ctx = callback_context
+        triggered_id = (
+            ctx.triggered[0]["prop_id"].split(".")[0] if ctx.triggered else None
+        )
+
+        if triggered_id == "loading-demo-btn":
+            # This is a demo to showcase different loading states
+            # Create a tabbed interface showing different loading states
+            from ui.components import create_lazy_loading_tabs
+
+            # Define tabs with different loading state examples
+            tabs_data = [
+                {
+                    "label": "Spinner Overlay",
+                    "icon": "spinner",
+                    "content": html.Div(
+                        [
+                            html.H5("Spinner Overlay Example"),
+                            html.P(
+                                "This demonstrates a spinner overlay on top of content."
+                            ),
+                            create_spinner(
+                                style_key="primary",
+                                size_key="lg",
+                                text="Loading data...",
+                            ),
+                        ],
+                        className="p-4",
+                    ),
+                },
+                {
+                    "label": "Skeleton Loading",
+                    "icon": "skeleton",
+                    "content": html.Div(
+                        [
+                            html.H5("Skeleton Loading Example"),
+                            html.P(
+                                "This demonstrates skeleton loaders that mimic content structure."
+                            ),
+                            html.Div(
+                                [
+                                    create_skeleton_loader(
+                                        type="text", lines=3, width="100%"
+                                    ),
+                                    create_skeleton_loader(
+                                        type="card", width="100%", className="mt-4"
+                                    ),
+                                ]
+                            ),
+                        ],
+                        className="p-4",
+                    ),
+                },
+                {
+                    "label": "Content Placeholders",
+                    "icon": "placeholder",
+                    "content": html.Div(
+                        [
+                            html.H5("Content Placeholders Example"),
+                            html.P(
+                                "These placeholders indicate the type of content being loaded."
+                            ),
+                            html.Div(
+                                [
+                                    create_content_placeholder(
+                                        type="chart",
+                                        width="100%",
+                                        height="150px",
+                                        className="mb-3",
+                                    ),
+                                    create_content_placeholder(
+                                        type="table", width="100%", height="150px"
+                                    ),
+                                ],
+                                className="d-flex flex-column",
+                            ),
+                        ],
+                        className="p-4",
+                    ),
+                },
+            ]
+
+            tabs, contents = create_lazy_loading_tabs(
+                tabs_data, "loading-demo-tab", "loading-demo-content"
+            )
+
+            return html.Div(
+                [
+                    html.H4("Loading State Examples", className="mb-3"),
+                    html.P(
+                        "Click on the tabs below to see different loading state implementations.",
+                        className="text-muted mb-4",
+                    ),
+                    tabs,
+                    contents,
+                ],
+                className="p-3 border rounded",
+            )
+
+        # Regular file upload process with loading indicators
+        elif triggered_id == "upload-data" and contents:
+            # Simulate processing delay
+            time.sleep(1)
+
+            # In a real implementation, parse_contents would be called here
+            from dash import dash_table
+            import pandas as pd
+            import base64
+            import io
+
+            # This would be the actual content processing logic
+            try:
+                content_type, content_string = contents.split(",")
+                decoded = base64.b64decode(content_string)
+
+                # Determine file type and parse accordingly
+                if "csv" in filename:
+                    # Parse CSV
+                    df = pd.read_csv(io.StringIO(decoded.decode("utf-8")))
+                elif "xls" in filename:
+                    # Parse Excel
+                    df = pd.read_excel(io.BytesIO(decoded))
+                else:
+                    return html.Div(
+                        [
+                            html.H5("Unsupported File Type", className="text-danger"),
+                            html.P(
+                                f"File format {filename} is not supported. Please upload a CSV or Excel file."
+                            ),
+                        ],
+                        className="p-3 border border-danger rounded",
+                    )
+
+                # Return the DataTable with the processed data
+                return html.Div(
+                    [
+                        html.H5(
+                            f"Successfully loaded: {filename}",
+                            className="text-success mb-3",
+                        ),
+                        dash_table.DataTable(
+                            data=df.to_dict("records"),
+                            columns=[{"name": i, "id": i} for i in df.columns],
+                            style_table={"overflowX": "auto"},
+                            style_cell={
+                                "height": "auto",
+                                "minWidth": "100px",
+                                "width": "150px",
+                                "maxWidth": "300px",
+                                "whiteSpace": "normal",
+                                "textAlign": "left",
+                            },
+                            style_header={
+                                "backgroundColor": "rgb(230, 230, 230)",
+                                "fontWeight": "bold",
+                            },
+                        ),
+                    ],
+                    className="border rounded p-3",
+                )
+
+            except Exception as e:
+                # Display error message
+                return html.Div(
+                    [
+                        html.H5("Error Processing File", className="text-danger"),
+                        html.P(f"An error occurred: {str(e)}"),
+                        dbc.Button(
+                            [html.I(className="fas fa-upload me-2"), "Try Again"],
+                            id="retry-upload-btn",
+                            color="primary",
+                            className="mt-3",
+                        ),
+                    ],
+                    className="border border-danger rounded p-4 text-center",
+                )
+
+        # Default state with no content yet
+        return create_content_placeholder(
+            type="table", text="Upload a CSV or Excel file to view data", height="200px"
+        )
