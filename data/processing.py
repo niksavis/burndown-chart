@@ -94,8 +94,26 @@ def compute_cumulative_values(df, total_items, total_points):
         DataFrame with added cumulative columns
     """
     df = df.copy()
-    df["cum_items"] = df["no_items"][::-1].cumsum()[::-1] + total_items
-    df["cum_points"] = df["no_points"][::-1].cumsum()[::-1] + total_points
+
+    # Make sure data is sorted by date in ascending order
+    if "date" in df.columns:
+        df["date"] = pd.to_datetime(df["date"])
+        df = df.sort_values("date", ascending=True)
+
+    # Convert to numeric in case there are any string values
+    df["no_items"] = pd.to_numeric(df["no_items"], errors="coerce").fillna(0)
+    df["no_points"] = pd.to_numeric(df["no_points"], errors="coerce").fillna(0)
+
+    # Calculate cumulative sums from the end to the beginning
+    # This gives us the remaining items/points at each data point
+    # We reverse the dataframe, calculate cumulative sum, then reverse back
+    reversed_items = df["no_items"][::-1].cumsum()[::-1]
+    reversed_points = df["no_points"][::-1].cumsum()[::-1]
+
+    # Calculate remaining items and points by adding the total to the reverse cumsum
+    df["cum_items"] = reversed_items + total_items
+    df["cum_points"] = reversed_points + total_points
+
     return df
 
 
@@ -331,18 +349,38 @@ def calculate_weekly_averages(statistics_data):
     df["no_items"] = pd.to_numeric(df["no_items"], errors="coerce").fillna(0)
     df["no_points"] = pd.to_numeric(df["no_points"], errors="coerce").fillna(0)
 
-    # Sort by date to ensure we get the most recent 10 weeks
+    # Convert date to datetime and ensure it's sorted chronologically
     df["date"] = pd.to_datetime(df["date"], errors="coerce")
-    df = df.sort_values("date")
+    df = df.dropna(subset=["date"])  # Remove rows with invalid dates
+    df = df.sort_values("date", ascending=True)
 
-    # Get the last 10 entries or all if less than 10
-    recent_data = df.tail(10)
+    # Group by week to ensure consistent weekly aggregation
+    df["week"] = df["date"].dt.isocalendar().week
+    df["year"] = df["date"].dt.year
+    df["year_week"] = df.apply(lambda r: f"{r['year']}-W{r['week']:02d}", axis=1)
+
+    # Aggregate by week
+    weekly_df = (
+        df.groupby("year_week")
+        .agg(
+            items=("no_items", "sum"),
+            points=("no_points", "sum"),
+            start_date=("date", "min"),
+        )
+        .reset_index()
+    )
+
+    # Sort by date again to ensure chronological order after grouping
+    weekly_df = weekly_df.sort_values("start_date")
+
+    # Get the last 10 weeks or all if less than 10
+    recent_data = weekly_df.tail(10)
 
     # Calculate averages and medians
-    avg_weekly_items = recent_data["no_items"].mean()
-    avg_weekly_points = recent_data["no_points"].mean()
-    med_weekly_items = recent_data["no_items"].median()
-    med_weekly_points = recent_data["no_points"].median()
+    avg_weekly_items = recent_data["items"].mean()
+    avg_weekly_points = recent_data["points"].mean()
+    med_weekly_items = recent_data["items"].median()
+    med_weekly_points = recent_data["points"].median()
 
     return (
         round(avg_weekly_items, 1),
@@ -387,18 +425,17 @@ def prepare_forecast_data(
     df_calc = df.copy()
     df_calc["date"] = pd.to_datetime(df_calc["date"])
 
+    # Ensure data is sorted by date in ascending order
+    df_calc = df_calc.sort_values("date", ascending=True)
+
     # Filter to use only the specified number of most recent data points
     if (
         data_points_count is not None
         and data_points_count > 0
         and len(df_calc) > data_points_count
     ):
-        # Sort by date descending to get most recent first
-        temp_df = df_calc.sort_values("date", ascending=False)
-        # Take only the specified number of rows
-        temp_df = temp_df.head(data_points_count)
-        # Resort by date ascending for calculations
-        df_calc = temp_df.sort_values("date", ascending=True)
+        # Get the most recent data_points_count rows
+        df_calc = df_calc.iloc[-data_points_count:]
 
     # Compute weekly throughput and rates with the filtered data
     grouped = compute_weekly_throughput(df_calc)
@@ -510,6 +547,9 @@ def generate_weekly_forecast(statistics_data, pert_factor=3, forecast_weeks=1):
 
     # Convert date to datetime and ensure proper format
     df["date"] = pd.to_datetime(df["date"])
+
+    # Ensure data is sorted chronologically
+    df = df.sort_values("date", ascending=True)
 
     # Add week and year columns for grouping
     df["week"] = df["date"].dt.isocalendar().week
@@ -678,21 +718,53 @@ def calculate_performance_trend(statistics_data, metric="no_items", weeks_to_com
     # Create DataFrame and ensure proper date format
     df = pd.DataFrame(statistics_data).copy()
     df["date"] = pd.to_datetime(df["date"])
-    df = df.sort_values("date")
+    df = df.dropna(subset=["date"])  # Remove rows with invalid dates
+
+    # Ensure chronological order
+    df = df.sort_values("date", ascending=True)
 
     # Convert metric values to numeric
     df[metric] = pd.to_numeric(df[metric], errors="coerce").fillna(0)
 
+    # Group by week for consistent weekly aggregation
+    df["week"] = df["date"].dt.isocalendar().week
+    df["year"] = df["date"].dt.year
+    df["year_week"] = df.apply(lambda r: f"{r['year']}-W{r['week']:02d}", axis=1)
+
+    # Aggregate by week
+    weekly_df = (
+        df.groupby("year_week")
+        .agg(
+            metric_sum=(metric, "sum"),
+            start_date=("date", "min"),
+        )
+        .reset_index()
+    )
+
+    # Sort by date again to ensure chronological order
+    weekly_df = weekly_df.sort_values("start_date")
+
+    # Make sure we have enough weeks for comparison
+    if len(weekly_df) < weeks_to_compare * 2:
+        return {
+            "trend_direction": "stable",
+            "percent_change": 0,
+            "current_avg": 0,
+            "previous_avg": 0,
+            "is_significant": False,
+            "weeks_compared": len(weekly_df) // 2 if len(weekly_df) > 1 else 1,
+        }
+
     # Get the latest data points for comparison
-    recent_data = df.tail(weeks_to_compare * 2)
+    recent_data = weekly_df.tail(weeks_to_compare * 2)
 
     # Split into current and previous periods
     current_period = recent_data.tail(weeks_to_compare)
     previous_period = recent_data.head(weeks_to_compare)
 
     # Calculate averages for each period
-    current_avg = current_period[metric].mean()
-    previous_avg = previous_period[metric].mean()
+    current_avg = current_period["metric_sum"].mean()
+    previous_avg = previous_period["metric_sum"].mean()
 
     # Calculate percentage change
     if previous_avg > 0:
