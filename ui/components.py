@@ -541,7 +541,11 @@ def create_help_modal():
                     ),
                 ]
             ),
-            dbc.ModalFooter(dbc.Button("Close", id="close-help", className="ml-auto")),
+            dbc.ModalFooter(
+                dbc.Button(
+                    "Close", id="close-help", className="ms-auto", color="secondary"
+                ),
+            ),
         ],
         id="help-modal",
         size="lg",
@@ -2057,32 +2061,50 @@ def create_export_buttons(chart_id=None, statistics_data=None):
     Returns:
         Dash Div component with export buttons
     """
+    from ui.styles import create_button
+
     buttons = []
 
     if chart_id:
-        # Add CSV export button for chart
-        buttons.append(
-            dbc.Button(
-                [html.I(className="fas fa-file-csv mr-2"), "Export CSV"],
-                id=f"{chart_id}-csv-button",
-                color="secondary",
-                size="sm",
-                className="mr-2",
-            )
+        # Add CSV export button for chart using the new button styling system
+        csv_button = create_button(
+            text="Export CSV",
+            id=f"{chart_id}-csv-button",
+            variant="secondary",
+            size="sm",
+            outline=True,
+            icon_class="fas fa-file-csv",
+            className="me-2",
+            tooltip="Export chart data as CSV",
         )
+        buttons.append(csv_button)
         buttons.append(html.Div(dcc.Download(id=f"{chart_id}-csv-download")))
 
-    if statistics_data:
-        # Add button for export stats
-        buttons.append(
-            dbc.Button(
-                [html.I(className="fas fa-file-export mr-2"), "Export Statistics"],
-                id="export-statistics-button",
-                color="secondary",
-                size="sm",
-                className="mr-2",
-            )
+        # Add PNG export button as well
+        png_button = create_button(
+            text="Export Image",
+            id=f"{chart_id}-png-button",
+            variant="secondary",
+            size="sm",
+            outline=True,
+            icon_class="fas fa-file-image",
+            className="me-2",
+            tooltip="Export chart as image",
         )
+        buttons.append(png_button)
+
+    if statistics_data:
+        # Add button for export stats using the new button styling system
+        stats_button = create_button(
+            text="Export Statistics",
+            id="export-statistics-button",
+            variant="secondary",
+            size="sm",
+            outline=True,
+            icon_class="fas fa-file-export",
+            tooltip="Export statistics data",
+        )
+        buttons.append(stats_button)
         buttons.append(html.Div(dcc.Download(id="export-statistics-download")))
 
     return html.Div(

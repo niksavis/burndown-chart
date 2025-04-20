@@ -100,15 +100,19 @@ def create_app_layout(settings, statistics, is_sample_data):
             # Sticky Help Button in top-right corner
             html.Div(
                 [
-                    dbc.Button(
+                    html.Div(
                         [
-                            html.I(className="fas fa-question-circle mr-2"),
+                            html.I(className="fas fa-question-circle me-2"),
                             "How to Use This App",
                         ],
                         id="help-button",
-                        color="info",
-                        size="sm",
-                        className="shadow",
+                        className="btn btn-info btn-sm shadow d-flex align-items-center",
+                        style={
+                            "cursor": "pointer",
+                            "fontWeight": "500",
+                            "transition": "all 0.2s ease",
+                            "borderRadius": "0.375rem",
+                        },
                     ),
                 ],
                 style={

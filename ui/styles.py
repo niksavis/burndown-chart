@@ -352,6 +352,301 @@ def create_progress_bar(value, max_value=100, color=None, height=None, label=Non
 
 
 #######################################################################
+# BUTTON STYLING FUNCTIONS
+#######################################################################
+
+
+def create_button_style(variant="primary", size="md", outline=False, disabled=False):
+    """
+    Create a consistent button style based on design system.
+
+    Args:
+        variant (str): Button variant (primary, secondary, success, danger, warning, info, light, dark)
+        size (str): Button size (sm, md, lg)
+        outline (bool): Whether the button should have outline style
+        disabled (bool): Whether the button is disabled
+
+    Returns:
+        dict: Dictionary with button styling properties
+    """
+    # Base style shared across all buttons
+    base_style = {
+        "fontFamily": TYPOGRAPHY["font_family"],
+        "fontWeight": TYPOGRAPHY["weights"]["medium"],
+        "borderRadius": "0.375rem",
+        "transition": "all 0.2s ease-in-out",
+        "textAlign": "center",
+        "display": "inline-flex",
+        "alignItems": "center",
+        "justifyContent": "center",
+        "boxShadow": "none",
+    }
+
+    # Size-specific styles
+    size_styles = {
+        "sm": {
+            "fontSize": "0.875rem",
+            "padding": "0.25rem 0.5rem",
+            "lineHeight": "1.5",
+        },
+        "md": {
+            "fontSize": "1rem",
+            "padding": "0.375rem 0.75rem",
+            "lineHeight": "1.5",
+        },
+        "lg": {
+            "fontSize": "1.25rem",
+            "padding": "0.5rem 1rem",
+            "lineHeight": "1.5",
+        },
+    }
+
+    # Apply size-specific styles
+    base_style.update(size_styles.get(size, size_styles["md"]))
+
+    if disabled:
+        base_style.update(
+            {
+                "opacity": "0.65",
+                "pointerEvents": "none",
+                "cursor": "not-allowed",
+            }
+        )
+
+    return base_style
+
+
+def create_button(
+    text,
+    id=None,
+    variant="primary",
+    size="md",
+    outline=False,
+    icon_class=None,
+    icon_position="left",
+    tooltip=None,
+    tooltip_placement="top",
+    className="",
+    style=None,
+    **kwargs,
+):
+    """
+    Create a standardized Bootstrap button component with optional icon.
+
+    Args:
+        text (str): Button text content
+        id (str, optional): Button ID for callbacks
+        variant (str): Button variant (primary, secondary, success, danger, warning, info, light, dark)
+        size (str): Button size (sm, md, lg)
+        outline (bool): Whether to use outline style
+        icon_class (str, optional): Font Awesome icon class (e.g., "fas fa-download")
+        icon_position (str): Icon position relative to text ("left" or "right")
+        tooltip (str, optional): Tooltip text
+        tooltip_placement (str): Tooltip placement (top, bottom, left, right)
+        className (str): Additional CSS classes
+        style (dict, optional): Additional inline styles
+        **kwargs: Additional keyword arguments to pass to dbc.Button
+
+    Returns:
+        Component: A styled button component, possibly wrapped in a tooltip
+    """
+    # Determine button color
+    button_color = variant
+    if outline:
+        button_color = f"outline-{variant}"
+
+    # Build icon content if provided
+    icon = (
+        html.I(className=icon_class, style={"marginRight": "0.5rem"})
+        if icon_class and icon_position == "left"
+        else None
+    )
+    icon_right = (
+        html.I(className=icon_class, style={"marginLeft": "0.5rem"})
+        if icon_class and icon_position == "right"
+        else None
+    )
+
+    # Combine base styling with any custom styles
+    button_style = create_button_style(variant, size, outline)
+    if style:
+        button_style.update(style)
+
+    # Build the button content with optional icon
+    if icon and icon_right:
+        button_content = [icon, text, icon_right]
+    elif icon:
+        button_content = [icon, text]
+    elif icon_right:
+        button_content = [text, icon_right]
+    else:
+        button_content = text
+
+    # Create the button component with all styling
+    button = dbc.Button(
+        button_content,
+        id=id,
+        color=button_color,
+        size=size,
+        className=className,
+        style=button_style,
+        **kwargs,
+    )
+
+    # Wrap in tooltip if specified
+    if tooltip:
+        return html.Div(
+            [button, dbc.Tooltip(tooltip, target=id, placement=tooltip_placement)],
+            style={"display": "inline-block"},
+        )
+
+    return button
+
+
+def create_button_group(buttons, vertical=False, className=""):
+    """
+    Create a button group with consistent styling.
+
+    Args:
+        buttons (list): List of button components
+        vertical (bool): Whether to stack buttons vertically
+        className (str): Additional CSS classes
+
+    Returns:
+        dbc.ButtonGroup: A styled button group component
+    """
+    return dbc.ButtonGroup(buttons, vertical=vertical, className=className)
+
+
+def create_action_buttons(
+    primary_action=None, secondary_action=None, tertiary_action=None, alignment="right"
+):
+    """
+    Create a set of action buttons following the button hierarchy pattern.
+
+    Args:
+        primary_action (dict): Primary action button config (text, id, icon, onClick)
+        secondary_action (dict): Secondary action button config
+        tertiary_action (dict): Tertiary action button config (often a text link)
+        alignment (str): Button alignment (left, center, right)
+
+    Returns:
+        html.Div: A div containing the action buttons with appropriate styling
+    """
+    buttons = []
+
+    # Add tertiary action (usually a link-style button)
+    if tertiary_action:
+        tertiary_btn = create_button(
+            tertiary_action.get("text", "Cancel"),
+            id=tertiary_action.get("id"),
+            variant="link",
+            size="md",
+            icon_class=tertiary_action.get("icon"),
+            className="me-2",
+        )
+        buttons.append(tertiary_btn)
+
+    # Add secondary action
+    if secondary_action:
+        secondary_btn = create_button(
+            secondary_action.get("text", "Cancel"),
+            id=secondary_action.get("id"),
+            variant="secondary",
+            size="md",
+            icon_class=secondary_action.get("icon"),
+            className="me-2",
+        )
+        buttons.append(secondary_btn)
+
+    # Add primary action
+    if primary_action:
+        primary_btn = create_button(
+            primary_action.get("text", "Submit"),
+            id=primary_action.get("id"),
+            variant="primary",
+            size="md",
+            icon_class=primary_action.get("icon"),
+        )
+        buttons.append(primary_btn)
+
+    # Set the flex alignment based on the alignment parameter
+    flex_align = {"left": "flex-start", "center": "center", "right": "flex-end"}.get(
+        alignment, "flex-end"
+    )
+
+    return html.Div(
+        buttons, className="d-flex mt-3", style={"justifyContent": flex_align}
+    )
+
+
+def create_icon_button(
+    icon_class,
+    id=None,
+    variant="primary",
+    size="md",
+    tooltip=None,
+    tooltip_placement="top",
+    className="",
+    style=None,
+    **kwargs,
+):
+    """
+    Create a button with only an icon (no text).
+
+    Args:
+        icon_class (str): Font Awesome icon class
+        id (str, optional): Button ID for callbacks
+        variant (str): Button variant (primary, secondary, success, danger, warning, info, light, dark)
+        size (str): Button size (sm, md, lg)
+        tooltip (str, optional): Tooltip text
+        tooltip_placement (str): Tooltip placement (top, bottom, left, right)
+        className (str): Additional CSS classes
+        style (dict, optional): Additional inline styles
+        **kwargs: Additional keyword arguments to pass to dbc.Button
+
+    Returns:
+        Component: An icon button component, possibly wrapped in a tooltip
+    """
+    # Size adjustments for icon-only buttons to make them more square
+    size_padding = {"sm": "0.25rem", "md": "0.375rem", "lg": "0.5rem"}
+
+    button_style = create_button_style(variant, size)
+    button_style.update(
+        {
+            "padding": size_padding.get(size, "0.375rem"),
+            "borderRadius": "0.375rem",
+            "width": "auto",
+            "height": "auto",
+            "minWidth": "36px",
+            "minHeight": "36px",
+        }
+    )
+
+    if style:
+        button_style.update(style)
+
+    button = dbc.Button(
+        html.I(className=icon_class),
+        id=id,
+        color=variant,
+        size=size,
+        className=f"d-flex align-items-center justify-content-center {className}",
+        style=button_style,
+        **kwargs,
+    )
+
+    # Wrap in tooltip if specified
+    if tooltip and id:
+        return html.Div(
+            [button, dbc.Tooltip(tooltip, target=id, placement=tooltip_placement)],
+            style={"display": "inline-block"},
+        )
+
+    return button
+
+
+#######################################################################
 # TOOLTIP STYLING FUNCTIONS
 #######################################################################
 
