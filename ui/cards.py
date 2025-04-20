@@ -281,7 +281,16 @@ def create_input_parameters_card(
         # Project Timeline Section
         html.Div(
             [
-                html.H5("Project Timeline", className="mb-3 border-bottom pb-2"),
+                html.H5(
+                    [
+                        html.I(
+                            className="fas fa-calendar-alt me-2",
+                            style={"color": COLOR_PALETTE["items"]},
+                        ),
+                        "Project Timeline",
+                    ],
+                    className="mb-3 border-bottom pb-2 d-flex align-items-center",
+                ),
                 # First row: Deadline and PERT Factor (swapped and no padding)
                 dbc.Row(
                     [
@@ -295,7 +304,8 @@ def create_input_parameters_card(
                                             "deadline",
                                             HELP_TEXTS["deadline"],
                                         ),
-                                    ]
+                                    ],
+                                    className="fw-medium",
                                 ),
                                 dcc.DatePickerSingle(
                                     id="deadline-picker",
@@ -335,7 +345,8 @@ def create_input_parameters_card(
                                             "pert-factor",
                                             HELP_TEXTS["pert_factor"],
                                         ),
-                                    ]
+                                    ],
+                                    className="fw-medium",
                                 ),
                                 dcc.Slider(
                                     id="pert-factor-slider",
@@ -376,7 +387,8 @@ def create_input_parameters_card(
                                             "data-points-count",
                                             HELP_TEXTS["data_points_count"],
                                         ),
-                                    ]
+                                    ],
+                                    className="fw-medium",
                                 ),
                                 dcc.Slider(
                                     id="data-points-input",
@@ -409,12 +421,21 @@ def create_input_parameters_card(
                     ],
                 ),
             ],
-            className="mb-4",
+            className="mb-4 p-3 bg-light rounded-3",
         ),
         # Project Scope Section - unchanged
         html.Div(
             [
-                html.H5("Project Scope", className="mb-3 border-bottom pb-2"),
+                html.H5(
+                    [
+                        html.I(
+                            className="fas fa-tasks me-2",
+                            style={"color": COLOR_PALETTE["points"]},
+                        ),
+                        "Project Scope",
+                    ],
+                    className="mb-3 border-bottom pb-2 d-flex align-items-center",
+                ),
                 # Items (Estimated and Total) in one row
                 dbc.Row(
                     [
@@ -428,7 +449,8 @@ def create_input_parameters_card(
                                             "estimated-items",
                                             HELP_TEXTS["estimated_items"],
                                         ),
-                                    ]
+                                    ],
+                                    className="fw-medium",
                                 ),
                                 dbc.Input(
                                     id="estimated-items-input",
@@ -459,7 +481,8 @@ def create_input_parameters_card(
                                             "total-items",
                                             HELP_TEXTS["total_items"],
                                         ),
-                                    ]
+                                    ],
+                                    className="fw-medium",
                                 ),
                                 dbc.Input(
                                     id="total-items-input",
@@ -496,7 +519,8 @@ def create_input_parameters_card(
                                             "estimated-points",
                                             HELP_TEXTS["estimated_points"],
                                         ),
-                                    ]
+                                    ],
+                                    className="fw-medium",
                                 ),
                                 dbc.Input(
                                     id="estimated-points-input",
@@ -527,7 +551,8 @@ def create_input_parameters_card(
                                             "total-points",
                                             HELP_TEXTS["total_points"],
                                         ),
-                                    ]
+                                    ],
+                                    className="fw-medium",
                                 ),
                                 dbc.InputGroup(
                                     [
@@ -541,6 +566,11 @@ def create_input_parameters_card(
                                         ),
                                         dbc.InputGroupText(
                                             html.I(className="fas fa-calculator"),
+                                            style={
+                                                "backgroundColor": NEUTRAL_COLORS[
+                                                    "gray-200"
+                                                ]
+                                            },
                                         ),
                                     ]
                                 ),
@@ -558,12 +588,21 @@ def create_input_parameters_card(
                     ],
                 ),
             ],
-            className="mb-4",
+            className="mb-4 p-3 bg-light rounded-3",
         ),
         # Data Import Section
         html.Div(
             [
-                html.H5("Data Import", className="mb-3 border-bottom pb-2"),
+                html.H5(
+                    [
+                        html.I(
+                            className="fas fa-file-import me-2",
+                            style={"color": COLOR_PALETTE["optimistic"]},
+                        ),
+                        "Data Import",
+                    ],
+                    className="mb-3 border-bottom pb-2 d-flex align-items-center",
+                ),
                 # CSV Upload
                 dbc.Row(
                     [
@@ -576,16 +615,21 @@ def create_input_parameters_card(
                                             "csv-upload",
                                             HELP_TEXTS["csv_format"],
                                         ),
-                                    ]
+                                    ],
+                                    className="fw-medium mb-2",
                                 ),
                                 dcc.Upload(
                                     id="upload-data",
                                     children=html.Div(
                                         [
-                                            html.I(className="fas fa-file-upload mr-2"),
+                                            html.I(className="fas fa-file-upload me-2"),
                                             "Drag and Drop or ",
-                                            html.A("Select CSV File"),
-                                        ]
+                                            html.A(
+                                                "Select CSV File",
+                                                className="text-primary",
+                                            ),
+                                        ],
+                                        className="d-flex align-items-center justify-content-center",
                                     ),
                                     style={
                                         "width": "100%",
@@ -597,6 +641,7 @@ def create_input_parameters_card(
                                         "textAlign": "center",
                                         "backgroundColor": NEUTRAL_COLORS["gray-100"],
                                         "transition": "border-color 0.15s ease-in-out, background-color 0.15s ease-in-out",
+                                        "borderColor": COLOR_PALETTE["items"],
                                     },
                                     multiple=False,
                                 ),
@@ -606,6 +651,7 @@ def create_input_parameters_card(
                     ],
                 ),
             ],
+            className="p-3 bg-light rounded-3",
         ),
     ]
 
@@ -613,7 +659,7 @@ def create_input_parameters_card(
     return create_standardized_card(
         header_content=header_content,
         body_content=body_content,
-        className="mb-3 h-100",
+        className="mb-3 h-100 shadow-sm",
         body_className="p-3",
         shadow="sm",
     )
