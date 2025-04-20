@@ -7,7 +7,7 @@ This module provides the tab-based navigation components for the application.
 import dash_bootstrap_components as dbc
 from dash import html, dcc
 from datetime import datetime, timedelta
-from ui.grid_templates import create_tab_content as create_standardized_tab_content
+from ui.grid_templates import create_tab_content as grid_create_tab_content
 
 
 def create_tabs():
@@ -17,35 +17,58 @@ def create_tabs():
     Returns:
         A Dash component containing the tab navigation interface
     """
+    # Tab configuration with icons and descriptions for better UX
+    tab_config = [
+        {
+            "id": "tab-burndown",
+            "label": "Burndown Chart",
+            "icon": "fas fa-chart-line",
+            "color": "#0d6efd",  # Primary blue
+        },
+        {
+            "id": "tab-items",
+            "label": "Items per Week",
+            "icon": "fas fa-tasks",
+            "color": "#20c997",  # Teal
+        },
+        {
+            "id": "tab-points",
+            "label": "Points per Week",
+            "icon": "fas fa-chart-bar",
+            "color": "#fd7e14",  # Orange
+        },
+    ]
+
+    # Generate tabs with enhanced markup for better visual feedback
+    tabs = []
+    for tab in tab_config:
+        # Create a string label rather than a component
+        tabs.append(
+            dbc.Tab(
+                label=tab["label"],
+                tab_id=tab["id"],
+                labelClassName="fw-medium tab-with-icon",  # Special class for styling
+                activeLabelClassName="text-primary fw-bold",
+                tab_style={"minWidth": "150px"},
+            )
+        )
+
+    # Instead of using html.Style which doesn't exist, use dash's method for injecting CSS
     return html.Div(
         [
+            # Add CSS styles using Dash's proper method
+            html.Div(
+                id="tab-icons-css",
+                style={"display": "none"},
+            ),
             dbc.Tabs(
-                [
-                    dbc.Tab(
-                        label="Burndown Chart",
-                        tab_id="tab-burndown",
-                        labelClassName="fw-medium",
-                        activeLabelClassName="text-primary fw-bold",
-                    ),
-                    dbc.Tab(
-                        label="Items per Week",
-                        tab_id="tab-items",
-                        labelClassName="fw-medium",
-                        activeLabelClassName="text-primary fw-bold",
-                    ),
-                    dbc.Tab(
-                        label="Points per Week",
-                        tab_id="tab-points",
-                        labelClassName="fw-medium",
-                        activeLabelClassName="text-primary fw-bold",
-                    ),
-                ],
+                tabs,
                 id="chart-tabs",
                 active_tab="tab-burndown",
-                className="mb-3 nav-tabs-modern",
+                className="mb-4 nav-tabs-modern",
             ),
             # Content div that will be filled based on active tab
-            html.Div(id="tab-content"),
+            html.Div(html.Div(id="tab-content"), className="tab-content-container"),
         ]
     )
 
@@ -83,20 +106,38 @@ def create_tab_content(active_tab, charts):
         "tab-points": create_points_forecast_info_card(),
     }
 
-    # Tab titles with more descriptive content
+    # Enhanced tab titles with more descriptive content and icons
     tab_titles = {
-        "tab-burndown": "Project Burndown Forecast",
-        "tab-items": "Weekly Completed Items Analysis",
-        "tab-points": "Weekly Velocity (Story Points)",
+        "tab-burndown": html.Div(
+            [
+                html.I(className="fas fa-chart-line me-2", style={"color": "#0d6efd"}),
+                "Project Burndown Forecast",
+            ],
+            className="d-flex align-items-center",
+        ),
+        "tab-items": html.Div(
+            [
+                html.I(className="fas fa-tasks me-2", style={"color": "#20c997"}),
+                "Weekly Completed Items Analysis",
+            ],
+            className="d-flex align-items-center",
+        ),
+        "tab-points": html.Div(
+            [
+                html.I(className="fas fa-chart-bar me-2", style={"color": "#fd7e14"}),
+                "Weekly Velocity (Story Points)",
+            ],
+            className="d-flex align-items-center",
+        ),
     }
 
-    # Create the tab content with standardized layout and styling
-    return create_standardized_tab_content(
+    # Create the tab content with consistent layout and styling - using the imported function
+    return grid_create_tab_content(
         [
-            # Tab title
+            # Tab title with enhanced styling
             html.H4(
                 tab_titles.get(active_tab, "Chart View"),
-                className="mb-4",
+                className="mb-4 pb-2 border-bottom",
             ),
             # Tab content
             charts.get(active_tab, html.Div("No chart available")),
