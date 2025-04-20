@@ -210,8 +210,8 @@ def create_app_layout(settings, statistics, is_sample_data):
                         "pert_time_points": 35,  # Provide default value instead of None
                     },
                 ),
-                card1_width=6,  # Left card width
-                card2_width=6,  # Right card width
+                card1_width=4,  # Left card width (changed from 6 to 4 - 1/3 of the space)
+                card2_width=8,  # Right card width (changed from 6 to 8 - 2/3 of the space)
                 equal_height=True,  # Make cards the same height
             ),
             # Statistics Data Table - using full width layout
