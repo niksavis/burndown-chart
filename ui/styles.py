@@ -1299,3 +1299,97 @@ def create_icon_stack(
         style=stack_style,
         id=id,
     )
+
+
+#######################################################################
+# CARD STYLING FUNCTIONS
+#######################################################################
+
+
+def create_standardized_card(
+    header_content,
+    body_content,
+    className="mb-3",
+    card_style=None,
+    body_className="py-3 px-3",
+    header_className="py-2 px-3",
+    footer_content=None,
+    footer_className="py-2 px-3",
+    shadow="sm",
+):
+    """
+    Create a standardized Bootstrap card with consistent padding and spacing.
+
+    Args:
+        header_content: Content for the card header
+        body_content: Content for the card body
+        className (str, optional): Additional classes for the card
+        card_style (dict, optional): Custom styles for the card
+        body_className (str, optional): Additional classes for the card body
+        header_className (str, optional): Additional classes for the card header
+        footer_content (optional): Content for the card footer (if needed)
+        footer_className (str, optional): Additional classes for the card footer
+        shadow (str): Shadow size (sm, md, lg, none)
+
+    Returns:
+        dbc.Card: A standardized Bootstrap card component
+    """
+    import dash_bootstrap_components as dbc
+
+    # Add shadow class if requested
+    if shadow and shadow != "none":
+        if shadow in ["sm", "md", "lg"]:
+            className = f"{className} shadow-{shadow}"
+        else:
+            className = f"{className} shadow-sm"  # Default to small shadow
+
+    # Create the card components
+    card_components = []
+
+    # Add header if content is provided
+    if header_content:
+        card_components.append(
+            dbc.CardHeader(header_content, className=header_className)
+        )
+
+    # Add body content
+    card_components.append(dbc.CardBody(body_content, className=body_className))
+
+    # Add footer if content is provided
+    if footer_content:
+        card_components.append(
+            dbc.CardFooter(footer_content, className=footer_className)
+        )
+
+    # Create the final card with all components
+    return dbc.Card(
+        card_components,
+        className=className,
+        style=card_style,
+    )
+
+
+def create_card_header_with_tooltip(title, tooltip_id=None, tooltip_text=None):
+    """
+    Create a standardized card header with an optional tooltip.
+
+    Args:
+        title (str): Card title text
+        tooltip_id (str, optional): ID for the tooltip
+        tooltip_text (str, optional): Tooltip text content
+
+    Returns:
+        list: Components for card header with tooltip
+    """
+    from dash import html
+
+    # Import the tooltip function from components module if needed
+    from ui.components import create_info_tooltip
+
+    if tooltip_id and tooltip_text:
+        return [
+            html.H4(title, className="d-inline"),
+            create_info_tooltip(tooltip_id, tooltip_text),
+        ]
+    else:
+        return html.H4(title, className="d-inline")
