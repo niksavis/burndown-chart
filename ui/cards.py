@@ -1549,7 +1549,6 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
                         html.H4(
                             "Project Dashboard",
                             className="d-inline",
-                            style={"fontSize": "1.4rem"},  # Increased heading size
                         ),
                         create_info_tooltip(
                             "project-dashboard",
