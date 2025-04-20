@@ -1974,19 +1974,18 @@ def add_deadline_marker(fig, deadline):
     else:
         deadline_datetime = deadline
 
-    # Instead of using add_vline which has issues with datetime objects,
-    # create a manual vertical line trace that extends beyond the plot area
-    fig.add_trace(
-        go.Scatter(
-            x=[deadline_datetime, deadline_datetime],
-            y=[0, 1],
-            mode="lines",
-            line=dict(color="#FF0000", width=2, dash="dash"),
-            name="Deadline",
-            hoverinfo="none",
-            yaxis="y",
-            showlegend=False,
-        )
+    # Create a vertical line shape that spans the entire y-axis
+    # This approach doesn't depend on specific y-values but uses paper coordinates (0-1)
+    # which represent the entire visible area
+    fig.add_shape(
+        type="line",
+        x0=deadline_datetime,
+        x1=deadline_datetime,
+        y0=0,
+        y1=1,
+        yref="paper",
+        line=dict(color="#FF0000", width=2, dash="dash"),
+        layer="above",
     )
 
     # Add deadline annotation manually
@@ -2022,25 +2021,18 @@ def add_deadline_marker(fig, deadline):
 
         # Only add critical period highlight if we're within or approaching that period
         if current_date < critical_start and days_until_critical < 30:
-            # Use manual fill approach instead of add_vrect
-            fig.add_trace(
-                go.Scatter(
-                    x=[
-                        critical_start_datetime,
-                        critical_start_datetime,
-                        deadline_datetime,
-                        deadline_datetime,
-                    ],
-                    y=[0, 1, 1, 0],
-                    fill="toself",
-                    fillcolor="rgba(255, 0, 0, 0.1)",
-                    line=dict(width=0),
-                    hoverinfo="none",
-                    mode="none",  # No markers or lines
-                    showlegend=False,
-                )
+            # Use shape for consistent behavior
+            fig.add_shape(
+                type="rect",
+                x0=critical_start_datetime,
+                x1=deadline_datetime,
+                y0=0,
+                y1=1,
+                yref="paper",
+                fillcolor="rgba(255, 0, 0, 0.1)",
+                line=dict(width=0),
+                layer="below",
             )
-
     # If deadline has passed, shade the region after deadline
     else:
         # Convert current_date to datetime for compatibility
@@ -2050,23 +2042,17 @@ def add_deadline_marker(fig, deadline):
             else current_date
         )
 
-        # Use manual fill approach instead of add_vrect
-        fig.add_trace(
-            go.Scatter(
-                x=[
-                    deadline_datetime,
-                    deadline_datetime,
-                    current_datetime,
-                    current_datetime,
-                ],
-                y=[0, 1, 1, 0],
-                fill="toself",
-                fillcolor="rgba(255, 0, 0, 0.15)",
-                line=dict(width=0),
-                hoverinfo="none",
-                mode="none",  # No markers or lines
-                showlegend=False,
-            )
+        # Use shape for consistent behavior
+        fig.add_shape(
+            type="rect",
+            x0=deadline_datetime,
+            x1=current_datetime,
+            y0=0,
+            y1=1,
+            yref="paper",
+            fillcolor="rgba(255, 0, 0, 0.15)",
+            line=dict(width=0),
+            layer="below",
         )
 
     return fig
