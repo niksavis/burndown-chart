@@ -84,7 +84,13 @@ def create_forecast_info_card():
         Dash Card component with detailed forecast methodology explanation
     """
     # Use the standardized card styling function
-    from ui.styles import create_standardized_card, create_card_header_with_tooltip
+    from ui.styles import (
+        create_standardized_card,
+        create_card_header_with_tooltip,
+        create_rhythm_text,
+        get_vertical_rhythm,
+        apply_vertical_rhythm,
+    )
 
     # Create the card header with tooltip
     header_content = create_card_header_with_tooltip(
@@ -93,17 +99,19 @@ def create_forecast_info_card():
         tooltip_text="Detailed explanation of how to interpret the forecast graph.",
     )
 
-    # Create the card body content
+    # Create the card body content with proper vertical rhythm
     body_content = html.Div(
         [
-            html.P(
+            # Introduction paragraph with proper spacing
+            create_rhythm_text(
                 [
                     html.Strong("Forecast Methodology: "),
                     "PERT (Program Evaluation and Review Technique) estimation based on your historical performance data. ",
                     "The forecast uses three scenarios:",
                 ],
-                className="mb-2",
+                element_type="paragraph",
             ),
+            # List with proper spacing between items and after the list
             html.Ul(
                 [
                     html.Li(
@@ -125,7 +133,8 @@ def create_forecast_info_card():
                                 },
                             ),
                             " for points. Based on your best performance periods (20% confidence level).",
-                        ]
+                        ],
+                        style=apply_vertical_rhythm("list_item"),
                     ),
                     html.Li(
                         [
@@ -146,7 +155,8 @@ def create_forecast_info_card():
                                 },
                             ),
                             " for points. Based on your average performance (50% confidence level).",
-                        ]
+                        ],
+                        style=apply_vertical_rhythm("list_item"),
                     ),
                     html.Li(
                         [
@@ -170,17 +180,19 @@ def create_forecast_info_card():
                         ]
                     ),
                 ],
-                className="mb-2",
+                style=apply_vertical_rhythm("list"),
             ),
-            html.P(
+            # Second paragraph with proper spacing
+            create_rhythm_text(
                 [
                     html.Strong("Reading the Graph: "),
                     "Solid lines show historical data. Dashed and dotted lines show forecasts. ",
                     "Where these lines cross zero indicates estimated completion dates.",
                 ],
-                className="mb-2",
+                element_type="paragraph",
             ),
-            html.P(
+            # Final paragraph with no bottom margin since it's the last element
+            create_rhythm_text(
                 [
                     html.Strong("Color Coding for Estimates: "),
                     "Estimated days appear in ",
@@ -195,7 +207,7 @@ def create_forecast_info_card():
                     ),
                     " when at risk of missing the deadline. The red vertical line represents your deadline date.",
                 ],
-                className="mb-0",
+                element_type="paragraph",
             ),
         ],
         style={"textAlign": "left"},
@@ -205,7 +217,7 @@ def create_forecast_info_card():
     return create_standardized_card(
         header_content=header_content,
         body_content=body_content,
-        body_className="py-3 px-3",  # Slightly more padding for better readability
+        body_className="py-3 px-3",  # Using standardized padding
         shadow="sm",
     )
 

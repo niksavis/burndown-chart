@@ -12,7 +12,15 @@ from dash import html, dash_table
 import dash_bootstrap_components as dbc
 
 # Import styling functions from ui.styles
-from ui.styles import SPACING, NEUTRAL_COLORS
+from ui.styles import (
+    SPACING,
+    NEUTRAL_COLORS,
+    COMPONENT_SPACING,
+    VERTICAL_RHYTHM,
+    get_vertical_rhythm,
+    create_vertical_spacer,
+    apply_vertical_rhythm,
+)
 
 #######################################################################
 # GRID TEMPLATES
@@ -20,7 +28,7 @@ from ui.styles import SPACING, NEUTRAL_COLORS
 
 
 def create_two_column_layout(
-    left_content, right_content, left_width=6, right_width=6, row_class="mb-4"
+    left_content, right_content, left_width=6, right_width=6, row_class=None
 ):
     """
     Creates a standardized two-column layout with responsive behavior.
@@ -35,6 +43,10 @@ def create_two_column_layout(
     Returns:
         A dbc.Row containing the two-column layout
     """
+    # Use our vertical rhythm system for consistent spacing
+    if row_class is None:
+        row_class = f"mb-{COMPONENT_SPACING['section_margin'].replace('rem', '')}"
+
     return dbc.Row(
         [
             dbc.Col(left_content, xs=12, md=left_width, className="mb-3 mb-md-0"),
@@ -67,17 +79,20 @@ def create_two_cards_layout(
         card1_class = "mb-3 mb-md-0"
         card2_class = ""
 
+    # Use our vertical rhythm system for spacing
+    row_class = f"mb-{VERTICAL_RHYTHM['section'].replace('rem', '')}"
+
     return dbc.Row(
         [
             dbc.Col(html.Div(card1, className=card1_class), xs=12, md=card1_width),
             dbc.Col(html.Div(card2, className=card2_class), xs=12, md=card2_width),
         ],
-        className="mb-4",
+        className=row_class,
     )
 
 
 def create_three_column_layout(
-    left, middle, right, left_width=4, middle_width=4, right_width=4, row_class="mb-4"
+    left, middle, right, left_width=4, middle_width=4, right_width=4, row_class=None
 ):
     """
     Creates a standardized three-column layout with responsive behavior.
@@ -94,6 +109,10 @@ def create_three_column_layout(
     Returns:
         A dbc.Row containing the three-column layout
     """
+    # Use vertical rhythm system for consistent spacing
+    if row_class is None:
+        row_class = f"mb-{COMPONENT_SPACING['section_margin'].replace('rem', '')}"
+
     return dbc.Row(
         [
             dbc.Col(left, xs=12, md=left_width, className="mb-3 mb-md-0"),
@@ -104,7 +123,7 @@ def create_three_column_layout(
     )
 
 
-def create_four_column_layout(cols, widths=None, row_class="mb-4"):
+def create_four_column_layout(cols, widths=None, row_class=None):
     """
     Creates a standardized four-column layout with responsive behavior.
 
@@ -119,6 +138,10 @@ def create_four_column_layout(cols, widths=None, row_class="mb-4"):
     if widths is None:
         widths = [3, 3, 3, 3]
 
+    # Use vertical rhythm system for consistent spacing
+    if row_class is None:
+        row_class = f"mb-{COMPONENT_SPACING['section_margin'].replace('rem', '')}"
+
     col_components = []
     for i, col_content in enumerate(cols):
         col_class = "mb-3 mb-md-0" if i < len(cols) - 1 else ""
@@ -129,7 +152,7 @@ def create_four_column_layout(cols, widths=None, row_class="mb-4"):
     return dbc.Row(col_components, className=row_class)
 
 
-def create_full_width_layout(content, row_class="mb-4"):
+def create_full_width_layout(content, row_class=None):
     """
     Creates a standardized full-width layout.
 
@@ -140,6 +163,10 @@ def create_full_width_layout(content, row_class="mb-4"):
     Returns:
         A dbc.Row containing the full-width layout
     """
+    # Use vertical rhythm system for consistent spacing
+    if row_class is None:
+        row_class = f"mb-{COMPONENT_SPACING['section_margin'].replace('rem', '')}"
+
     return dbc.Row(
         [
             dbc.Col(content, width=12),
@@ -166,21 +193,26 @@ def create_standardized_table_style(stripe_color=None):
     if stripe_color is None:
         stripe_color = NEUTRAL_COLORS.get("gray-100", "#f8f9fa")
 
+    # Use our vertical rhythm system for consistent table spacing
+    cell_padding_v = COMPONENT_SPACING.get("table_cell_padding", SPACING["xs"])
+    cell_padding_h = COMPONENT_SPACING.get("table_cell_padding", SPACING["sm"])
+
     return {
         "style_table": {
             "overflowX": "auto",
             "borderRadius": "4px",
             "border": f"1px solid {NEUTRAL_COLORS.get('gray-300', '#dee2e6')}",
+            "marginBottom": get_vertical_rhythm("section"),
         },
         "style_header": {
             "backgroundColor": NEUTRAL_COLORS.get("gray-200", "#e9ecef"),
             "fontWeight": "bold",
             "textAlign": "center",
-            "padding": f"{SPACING.get('sm', '0.5rem')} {SPACING.get('md', '1rem')}",
+            "padding": f"{cell_padding_v} {cell_padding_h}",
             "borderBottom": f"2px solid {NEUTRAL_COLORS.get('gray-400', '#ced4da')}",
         },
         "style_cell": {
-            "padding": f"{SPACING.get('xs', '0.25rem')} {SPACING.get('sm', '0.5rem')}",
+            "padding": f"{cell_padding_v} {cell_padding_h}",
             "fontFamily": "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
             "textAlign": "left",
             "whiteSpace": "normal",
@@ -433,6 +465,9 @@ def create_form_group(
     Returns:
         A form group div with proper spacing and alignment
     """
+    # Use vertical rhythm spacing for form elements
+    margin_bottom = get_vertical_rhythm("form_element")
+
     components = [
         html.Label(label, className="mb-2"),
         input_component,
@@ -445,7 +480,7 @@ def create_form_group(
         feedback_class = "invalid-feedback d-block" if invalid else "invalid-feedback"
         components.append(html.Div(feedback, className=feedback_class))
 
-    return html.Div(components, className="mb-3")
+    return html.Div(components, style={"marginBottom": margin_bottom})
 
 
 def create_form_row(form_groups, columns=None):
@@ -468,7 +503,10 @@ def create_form_row(form_groups, columns=None):
     for i, form_group in enumerate(form_groups):
         cols.append(dbc.Col(form_group, width=12, md=columns[i]))
 
-    return dbc.Row(cols, className="mb-3")
+    # Use our vertical rhythm system for form spacing
+    margin_bottom = get_vertical_rhythm("form_element")
+
+    return dbc.Row(cols, style={"marginBottom": margin_bottom})
 
 
 def create_form_section(title, components, help_text=None):
@@ -484,15 +522,28 @@ def create_form_section(title, components, help_text=None):
         A section div with title and components
     """
     section_components = [
-        html.H5(title, className="mb-3 border-bottom pb-2"),
+        html.H5(
+            title,
+            className="border-bottom pb-2",
+            style={"marginBottom": get_vertical_rhythm("heading.h5")},
+        ),
     ]
 
     if help_text:
-        section_components.append(html.P(help_text, className="text-muted mb-3"))
+        section_components.append(
+            html.P(
+                help_text,
+                className="text-muted",
+                style={"marginBottom": get_vertical_rhythm("paragraph")},
+            )
+        )
 
     section_components.extend(components)
 
-    return html.Div(section_components, className="mb-4")
+    # Use section margin from our vertical rhythm system
+    margin_bottom = get_vertical_rhythm("section")
+
+    return html.Div(section_components, style={"marginBottom": margin_bottom})
 
 
 #######################################################################
@@ -500,7 +551,7 @@ def create_form_section(title, components, help_text=None):
 #######################################################################
 
 
-def create_content_section(title, body, footer=None, section_class="mb-5"):
+def create_content_section(title, body, footer=None, section_class=None):
     """
     Create a standardized content section with title, body, and optional footer.
 
@@ -515,23 +566,35 @@ def create_content_section(title, body, footer=None, section_class="mb-5"):
     """
     components = []
 
-    # Add title
+    # Calculate margins using our vertical rhythm system
+    title_margin = get_vertical_rhythm("after_title")
+    section_margin = get_vertical_rhythm("section")
+
+    # Add title with proper spacing
     if isinstance(title, str):
-        components.append(html.H3(title, className="mb-4"))
+        components.append(html.H3(title, style={"marginBottom": title_margin}))
     else:
-        components.append(html.Div(title, className="mb-4"))
+        components.append(html.Div(title, style={"marginBottom": title_margin}))
 
     # Add body
     components.append(html.Div(body))
 
     # Add footer if provided
     if footer:
-        components.append(html.Div(footer, className="mt-3 pt-3 border-top"))
+        footer_style = {
+            "marginTop": get_vertical_rhythm("paragraph"),
+            "paddingTop": get_vertical_rhythm("paragraph"),
+            "borderTop": f"1px solid {NEUTRAL_COLORS['gray-300']}",
+        }
+        components.append(html.Div(footer, style=footer_style))
 
-    return html.Div(components, className=section_class)
+    # Combine any additional classes with our section margin
+    section_style = {"marginBottom": section_margin}
+
+    return html.Div(components, className=section_class, style=section_style)
 
 
-def create_tab_content(content, padding="p-3"):
+def create_tab_content(content, padding=None):
     """
     Create standardized tab content with consistent padding.
 
@@ -542,4 +605,8 @@ def create_tab_content(content, padding="p-3"):
     Returns:
         A div with the tab content and consistent styling
     """
+    # Use consistent padding from our spacing system
+    if padding is None:
+        padding = f"p-{COMPONENT_SPACING['card_padding'].replace('rem', '')}"
+
     return html.Div(content, className=f"{padding} border border-top-0 rounded-bottom")

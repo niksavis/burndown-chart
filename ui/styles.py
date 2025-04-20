@@ -71,6 +71,43 @@ SPACING = {
     "xxl": "3rem",  # 48px
 }
 
+# Vertical Rhythm System - Controls spacing between text elements
+VERTICAL_RHYTHM = {
+    # Base spacing
+    "base": SPACING["md"],  # 16px - Default paragraph spacing
+    # Heading margins (bottom spacing)
+    "heading": {
+        "h1": SPACING["lg"],  # 24px
+        "h2": SPACING["md"],  # 16px
+        "h3": SPACING["md"],  # 16px
+        "h4": SPACING["sm"],  # 8px
+        "h5": SPACING["sm"],  # 8px
+        "h6": SPACING["xs"],  # 4px
+    },
+    # Text element spacing
+    "paragraph": SPACING["md"],  # 16px - Space after paragraphs
+    "list": SPACING["md"],  # 16px - Space after lists
+    "list_item": SPACING["xs"],  # 4px - Space between list items
+    # Component spacing
+    "section": SPACING["xl"],  # 32px - Space between major sections
+    "card": SPACING["lg"],  # 24px - Space after cards
+    "form_element": SPACING["md"],  # 16px - Space between form elements
+    # Text block spacing
+    "after_title": SPACING["md"],  # 16px - Space after page/section title
+    "before_title": SPACING["lg"],  # 24px - Space before page/section title
+}
+
+# Component spacing for standard layout patterns
+COMPONENT_SPACING = {
+    "card_margin": SPACING["md"],  # 16px - External card margins
+    "card_padding": SPACING["md"],  # 16px - Internal card padding
+    "section_margin": SPACING["lg"],  # 24px - Section margins
+    "content_block": SPACING["xl"],  # 32px - Space between major content blocks
+    "form_group": SPACING["md"],  # 16px - Space between form groups
+    "button_group": SPACING["md"],  # 16px - Space after button groups
+    "table_cell_padding": SPACING["sm"],  # 8px - Table cell padding
+}
+
 # Bootstrap spacing mapping for reference
 BOOTSTRAP_SPACING = {
     "0": "0",
@@ -351,8 +388,11 @@ def create_heading_style(level, color=None, weight="bold"):
         "fontSize": get_font_size(size_key),
         "fontWeight": get_font_weight(weight),
         "fontFamily": TYPOGRAPHY["font_family"],
-        "margin": f"{get_spacing('md')} 0 {get_spacing('sm')} 0",
     }
+
+    # Apply vertical rhythm for margins
+    style["marginBottom"] = get_vertical_rhythm(f"heading.{size_key}", "heading.h6")
+    style["marginTop"] = get_vertical_rhythm("before_title") if level <= 2 else "0"
 
     if color:
         style["color"] = (
@@ -1309,12 +1349,12 @@ def create_icon_stack(
 def create_standardized_card(
     header_content,
     body_content,
-    className="mb-3",
+    className="",
     card_style=None,
-    body_className="py-3 px-3",
-    header_className="py-2 px-3",
+    body_className="",
+    header_className="",
     footer_content=None,
-    footer_className="py-2 px-3",
+    footer_className="",
     shadow="sm",
 ):
     """
@@ -1335,6 +1375,14 @@ def create_standardized_card(
         dbc.Card: A standardized Bootstrap card component
     """
     import dash_bootstrap_components as dbc
+
+    # Add vertical rhythm spacing using our component spacing
+    className = f"{className} mb-{BOOTSTRAP_SPACING['3']}"
+
+    # Apply consistent internal padding
+    body_className = f"{body_className} py-3 px-3"
+    header_className = f"{header_className} py-2 px-3"
+    footer_className = f"{footer_className} py-2 px-3"
 
     # Add shadow class if requested
     if shadow and shadow != "none":
@@ -1393,3 +1441,250 @@ def create_card_header_with_tooltip(title, tooltip_id=None, tooltip_text=None):
         ]
     else:
         return html.H4(title, className="d-inline")
+
+
+#######################################################################
+# VERTICAL RHYTHM FUNCTIONS
+#######################################################################
+
+
+def get_vertical_rhythm(key, fallback="base"):
+    """
+    Get spacing value from vertical rhythm system.
+
+    Args:
+        key (str): Key in format 'category' or 'category.subcategory'.
+                   Example: 'paragraph' or 'heading.h1'
+        fallback (str): Fallback key if the requested key is not found
+
+    Returns:
+        str: CSS spacing value
+    """
+    parts = key.split(".", 1)
+    if len(parts) == 1:
+        # Simple key like 'paragraph'
+        return VERTICAL_RHYTHM.get(key, VERTICAL_RHYTHM.get(fallback, SPACING["md"]))
+    else:
+        # Nested key like 'heading.h1'
+        category, subkey = parts
+        if category in VERTICAL_RHYTHM and isinstance(VERTICAL_RHYTHM[category], dict):
+            return VERTICAL_RHYTHM[category].get(
+                subkey, VERTICAL_RHYTHM.get(fallback, SPACING["md"])
+            )
+        return VERTICAL_RHYTHM.get(fallback, SPACING["md"])
+
+
+def apply_vertical_rhythm(element_type="paragraph", style=None):
+    """
+    Add vertical rhythm spacing to a style dictionary.
+
+    Args:
+        element_type (str): Type of element ('paragraph', 'heading.h1', etc.)
+        style (dict, optional): Existing style dictionary to extend
+
+    Returns:
+        dict: Style dictionary with vertical rhythm applied
+    """
+    rhythm_style = {}
+    base_style = style or {}
+
+    if element_type.startswith("heading."):
+        _, level = element_type.split(".")
+        rhythm_style["marginBottom"] = get_vertical_rhythm(
+            f"heading.{level}", "heading.h6"
+        )
+        rhythm_style["marginTop"] = get_vertical_rhythm("before_title")
+    elif element_type == "paragraph":
+        rhythm_style["marginBottom"] = get_vertical_rhythm("paragraph")
+    elif element_type == "list":
+        rhythm_style["marginBottom"] = get_vertical_rhythm("list")
+    elif element_type == "list_item":
+        rhythm_style["marginBottom"] = get_vertical_rhythm("list_item")
+    elif element_type == "section":
+        rhythm_style["marginBottom"] = get_vertical_rhythm("section")
+    elif element_type == "card":
+        rhythm_style["marginBottom"] = get_vertical_rhythm("card")
+
+    return {**rhythm_style, **base_style}
+
+
+def create_rhythm_text(
+    text, element_type, size=None, weight=None, color=None, className=""
+):
+    """
+    Create text elements with proper vertical rhythm applied.
+
+    Args:
+        text (str or list): Text content
+        element_type (str): Type of element ('paragraph', 'heading.h1', etc.)
+        size (str, optional): Text size
+        weight (str, optional): Text weight
+        color (str, optional): Text color
+        className (str, optional): Additional CSS classes
+
+    Returns:
+        html.Div: Text element with proper rhythm
+    """
+    text_style = create_text_style(
+        size=size or "md", weight=weight or "regular", color=color or "dark"
+    )
+
+    rhythm_style = apply_vertical_rhythm(element_type, text_style)
+
+    return html.Div(text, className=className, style=rhythm_style)
+
+
+def create_vertical_spacer(size="md"):
+    """
+    Create a vertical spacing element of a specific size.
+
+    Args:
+        size (str): Size key from SPACING or a specific rhythm key
+
+    Returns:
+        html.Div: A div that acts as a spacer
+    """
+    if size in SPACING:
+        height = SPACING[size]
+    elif "." in size:
+        height = get_vertical_rhythm(size)
+    else:
+        height = get_vertical_rhythm(size, "base")
+
+    return html.Div(style={"height": height})
+
+
+def update_heading_style(level, color=None, weight="bold"):
+    """
+    Update create_heading_style to use the vertical rhythm system.
+
+    Args:
+        level (int): Heading level (1-6)
+        color (str, optional): Color key or value
+        weight (str, optional): Weight key from typography weights
+
+    Returns:
+        dict: Style dictionary for heading with proper rhythm
+    """
+    # Map level to h1, h2, etc.
+    size_key = f"h{level}" if 1 <= level <= 6 else "h1"
+
+    style = {
+        "fontSize": get_font_size(size_key),
+        "fontWeight": get_font_weight(weight),
+        "fontFamily": TYPOGRAPHY["font_family"],
+    }
+
+    # Apply vertical rhythm margin
+    style["marginBottom"] = get_vertical_rhythm(f"heading.{size_key}", "heading.h6")
+    style["marginTop"] = get_vertical_rhythm("before_title") if level <= 2 else "0"
+
+    if color:
+        style["color"] = (
+            get_color(color)
+            if color in COLOR_PALETTE
+            or color in SEMANTIC_COLORS
+            or color in NEUTRAL_COLORS
+            else color
+        )
+
+    return style
+
+
+def create_content_section(
+    content,
+    title=None,
+    title_level=2,
+    title_color=None,
+    className="",
+    style=None,
+    section_type="section",
+    id=None,
+):
+    """
+    Create a content section with proper vertical rhythm spacing.
+
+    Args:
+        content: The main content of the section
+        title (str, optional): Section title
+        title_level (int): Heading level for title (1-6)
+        title_color (str, optional): Color for the title
+        className (str): Additional CSS classes
+        style (dict, optional): Additional inline styles
+        section_type (str): Type of section for rhythm ('section', 'subsection', etc.)
+        id (str, optional): ID for the section
+
+    Returns:
+        html.Div: A section with proper vertical rhythm
+    """
+    from dash import html
+
+    # Get section margin based on type
+    margin_bottom = get_vertical_rhythm(section_type, "section")
+
+    # Start with base section styles
+    section_style = {
+        "marginBottom": margin_bottom,
+    }
+
+    # Add any custom styles
+    if style:
+        section_style.update(style)
+
+    # Create content elements
+    elements = []
+
+    # Add title if provided
+    if title:
+        title_style = update_heading_style(title_level, color=title_color)
+        elements.append(
+            html.H2(title, style=title_style)
+            if title_level == 2
+            else html.H1(title, style=title_style)
+            if title_level == 1
+            else html.H3(title, style=title_style)
+            if title_level == 3
+            else html.H4(title, style=title_style)
+            if title_level == 4
+            else html.H5(title, style=title_style)
+            if title_level == 5
+            else html.H6(title, style=title_style)
+        )
+
+    # Add main content
+    if isinstance(content, list):
+        elements.extend(content)
+    else:
+        elements.append(content)
+
+    # Create the section container
+    return html.Div(elements, className=className, style=section_style, id=id)
+
+
+def apply_content_spacing(layout_elements):
+    """
+    Apply consistent spacing between layout elements.
+
+    This function wraps multiple content elements with proper vertical spacing.
+
+    Args:
+        layout_elements (list): List of layout elements to space properly
+
+    Returns:
+        list: Elements with proper spacing applied
+    """
+    from dash import html
+
+    if not layout_elements or not isinstance(layout_elements, list):
+        return layout_elements
+
+    spaced_elements = []
+
+    for i, element in enumerate(layout_elements):
+        spaced_elements.append(element)
+
+        # Add spacer between elements, but not after the last one
+        if i < len(layout_elements) - 1:
+            spaced_elements.append(create_vertical_spacer("section"))
+
+    return spaced_elements
