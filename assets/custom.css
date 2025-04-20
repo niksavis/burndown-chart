@@ -36,9 +36,36 @@
   border: 1px solid #f0f0f0;
 }
 
-/* Consistent styling for editable cells */
+/* Enhanced styling for editable cells */
 .dash-cell-value.dash-cell-value--editing {
   background-color: rgba(13, 110, 253, 0.1) !important;
+  box-shadow: inset 0 0 0 2px rgba(13, 110, 253, 0.5) !important;
+  transition: all 0.2s ease !important;
+  border-radius: 3px !important;
+  outline: none !important;
+}
+
+/* Visual indication for editable fields even before clicking */
+td.cell--editable:not(.cell-selected) .dash-cell-value {
+  position: relative;
+}
+
+td.cell--editable:not(.cell-selected) .dash-cell-value::after {
+  content: "";
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  background-color: rgba(13, 110, 253, 0.15);
+  border-radius: 50%;
+}
+
+/* Focus indication */
+.dash-cell-value.focused {
+  box-shadow: inset 0 0 0 2px rgba(13, 110, 253, 0.8) !important;
+  background-color: rgba(13, 110, 253, 0.15) !important;
 }
 
 /* Table row alternating colors */

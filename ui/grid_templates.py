@@ -282,7 +282,27 @@ def create_data_table(
                 "if": {"column_editable": True},
                 "backgroundColor": "rgba(0, 123, 255, 0.05)",
                 "cursor": "pointer",
-            }
+            },
+            # Add more visual feedback for selected cell
+            {
+                "if": {"state": "selected"},
+                "backgroundColor": "rgba(13, 110, 253, 0.15)",
+                "border": "1px solid #0d6efd",
+            },
+            # Show validation indicators for numeric columns - using correct syntax
+            # Apply to individual numeric columns instead of using a generic filter
+            *[
+                {
+                    "if": {
+                        "column_id": col["id"],
+                        "filter_query": f"{{{col['id']}}} < 0",
+                    },
+                    "backgroundColor": "rgba(220, 53, 69, 0.1)",
+                    "color": "#dc3545",
+                }
+                for col in columns
+                if col.get("type") == "numeric"
+            ],
         ]
     else:
         style_data_conditional = table_style["style_data_conditional"]
@@ -320,8 +340,36 @@ def create_data_table(
                 "selector": ".dash-spreadsheet-menu",
                 "rule": "position: absolute; top: 0.5rem; right: 0.5rem;",
             },
+            # Improve filter icon appearance
+            {
+                "selector": ".dash-filter",
+                "rule": "padding: 2px 5px; border-radius: 3px; background-color: rgba(0, 0, 0, 0.05);",
+            },
+            # Hide case-sensitive toggle (simplify filtering UI)
             {"selector": ".dash-filter--case", "rule": "display: none;"},
+            # Add indicator to show field is editable on hover
+            {
+                "selector": "td.cell--editable:hover",
+                "rule": "background-color: rgba(13, 110, 253, 0.08) !important;",
+            },
+            # Improve column sorting indication
+            {
+                "selector": ".dash-header-cell .column-header--sort",
+                "rule": "opacity: 1 !important; color: #0d6efd !important;",
+            },
+            # Add better focus indication for keyboard navigation
+            {
+                "selector": ".dash-cell-value:focus",
+                "rule": "outline: none !important; box-shadow: inset 0 0 0 2px #0d6efd !important;",
+            },
+            # Enhance pagination controls
+            {
+                "selector": ".previous-page, .next-page, .first-page, .last-page",
+                "rule": "border-radius: 4px; margin: 0 4px; color: #495057 !important;",
+            },
         ],
+        tooltip_delay=0,
+        tooltip_duration=None,
         **pagination_settings,
     )
 

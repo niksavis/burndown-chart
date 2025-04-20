@@ -2161,3 +2161,88 @@ def create_validation_message(message, show=False, type="invalid"):
         className=class_name,
         style=base_style,
     )
+
+
+def create_button(
+    text=None,
+    id=None,
+    variant="primary",
+    size="md",
+    outline=False,
+    icon_class=None,
+    className="",
+    tooltip=None,
+    disabled=False,
+):
+    """
+    Create a standardized button with consistent styling and optional icon.
+
+    Args:
+        text: Button text (optional if icon_class provided)
+        id: Component ID
+        variant: Bootstrap color variant (primary, secondary, success, etc.)
+        size: Button size (sm, md, lg)
+        outline: Whether to use outline style
+        icon_class: FontAwesome icon class (e.g., "fas fa-plus")
+        className: Additional CSS classes
+        tooltip: Optional tooltip text
+        disabled: Whether the button is disabled
+
+    Returns:
+        A dbc.Button component with standardized styling
+    """
+    import dash_bootstrap_components as dbc
+    from dash import html
+
+    # Determine button style based on parameters
+    color = variant
+    if outline:
+        color = f"outline-{variant}"
+
+    # Determine size class
+    size_class = ""
+    if size == "sm":
+        size_class = "btn-sm"
+    elif size == "lg":
+        size_class = "btn-lg"
+
+    # Create button content with optional icon
+    content = []
+
+    # Add icon if specified
+    if icon_class:
+        content.append(html.I(className=f"{icon_class} me-1"))
+
+    # Add text if specified
+    if text:
+        content.append(text)
+
+    # Combine classes
+    full_class_name = f"{size_class} {className}".strip()
+
+    # Create the button
+    button = dbc.Button(
+        children=content,
+        id=id,
+        color=color,
+        disabled=disabled,
+        className=full_class_name,
+    )
+
+    # Wrap with tooltip if specified
+    if tooltip:
+        from ui.components import create_info_tooltip
+
+        return html.Div(
+            [
+                button,
+                create_info_tooltip(
+                    id=f"{id}-tooltip" if id else None,
+                    tooltip_text=tooltip,
+                    target=id if id else None,
+                ),
+            ],
+            className="d-inline-block",
+        )
+
+    return button

@@ -627,7 +627,8 @@ def create_statistics_data_card(current_statistics):
     """
     import pandas as pd
     from dash import dash_table, html
-    from ui.components import create_export_buttons
+    import dash_bootstrap_components as dbc
+    from ui.components import create_export_buttons, create_info_tooltip, create_button
     from ui.styles import create_standardized_card, create_card_header_with_tooltip
     from ui.grid_templates import create_aligned_datatable, create_data_table
 
@@ -698,28 +699,61 @@ def create_statistics_data_card(current_statistics):
             column_alignments=column_alignments,
         )
 
+    # Create help text for data input
+    help_text = html.Div(
+        [
+            html.Small(
+                [
+                    html.I(className="fas fa-info-circle me-1 text-info"),
+                    "Enter your weekly completed items and points. Use the ",
+                    html.Code("Add Row"),
+                    " button to add new entries.",
+                ],
+                className="text-muted",
+            ),
+            html.Small(
+                [
+                    html.I(className="fas fa-calendar-alt me-1 text-info"),
+                    "Dates should be in ",
+                    html.Code("YYYY-MM-DD"),
+                    " format.",
+                ],
+                className="text-muted d-block mt-1",
+            ),
+        ],
+        className="mb-3",
+    )
+
     # Create the card body content
     body_content = [
+        # Add help text at the top
+        help_text,
         # Add the export buttons at the top of the card
         create_export_buttons(statistics_data=current_statistics),
         # Add space between buttons and table
         html.Div(className="mb-3"),
         # Add the table with standardized styling
         statistics_table,
+        # Create a row for table actions with better styling
         html.Div(
             [
                 # Button for adding rows
-                dbc.Button(
-                    [
-                        html.I(className="fas fa-plus me-2"),
-                        "Add Row",
-                    ],
+                create_button(
+                    text="Add Row",
                     id="add-row-button",
-                    color="primary",
-                    className="mt-3",
+                    variant="primary",
+                    icon_class="fas fa-plus",
+                ),
+                # Button to clear filters (optional)
+                create_button(
+                    text="Clear Filters",
+                    id="clear-filters-button",
+                    variant="outline-secondary",
+                    icon_class="fas fa-filter",
+                    className="ms-2",
                 ),
             ],
-            className="d-flex justify-content-center",
+            className="d-flex justify-content-center mt-4",
         ),
     ]
 
