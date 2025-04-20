@@ -244,6 +244,7 @@ def create_data_table(
     sort_action=None,
     filter_action=None,
     column_alignments=None,
+    sort_by=None,
 ):
     """
     Create a standardized data table with consistent styling and behavior.
@@ -259,6 +260,7 @@ def create_data_table(
         sort_action: Sort action ("native" or None)
         filter_action: Filter action ("native" or None)
         column_alignments: Dictionary mapping column IDs to text alignments
+        sort_by: Default sorting configuration, e.g. [{'column_id': 'date', 'direction': 'desc'}]
 
     Returns:
         A dash_table.DataTable with standardized styling
@@ -328,6 +330,7 @@ def create_data_table(
         row_deletable=editable,
         sort_action=sort_action,
         filter_action=filter_action,
+        sort_by=sort_by,  # Set default sorting
         style_table=table_style["style_table"],
         style_header=table_style["style_header"],
         style_cell=table_style["style_cell"],
@@ -447,6 +450,7 @@ def create_aligned_datatable(
     filter_action="native",
     sort_action="native",
     override_alignments=None,
+    sort_by=None,
 ):
     """
     Create a DataTable with optimal column alignments based on data types.
@@ -460,6 +464,7 @@ def create_aligned_datatable(
         filter_action: Filter action ("native" or None)
         sort_action: Sort action ("native" or None)
         override_alignments: Optional dict to override automatic alignments
+        sort_by: Default sorting configuration, e.g. [{'column_id': 'date', 'direction': 'desc'}]
 
     Returns:
         dash_table.DataTable: A properly aligned data table
@@ -477,6 +482,10 @@ def create_aligned_datatable(
     if override_alignments:
         alignments.update(override_alignments)
 
+    # Use default sorting by date in descending order for statistics table
+    if sort_by is None and id == "statistics-table":
+        sort_by = [{"column_id": "date", "direction": "desc"}]
+
     # Create the DataTable with aligned columns
     return create_data_table(
         data=dataframe.to_dict("records"),
@@ -489,6 +498,7 @@ def create_aligned_datatable(
         sort_action=sort_action,
         filter_action=filter_action,
         column_alignments=alignments,
+        sort_by=sort_by,
     )
 
 

@@ -737,12 +737,22 @@ def create_statistics_data_card(current_statistics):
         # Create a row for table actions with better styling
         html.Div(
             [
-                # Button for adding rows
-                create_button(
-                    text="Add Row",
-                    id="add-row-button",
-                    variant="primary",
-                    icon_class="fas fa-plus",
+                # Button for adding rows with tooltip
+                html.Div(
+                    [
+                        create_button(
+                            text="Add Row",
+                            id="add-row-button",
+                            variant="primary",
+                            icon_class="fas fa-plus",
+                        ),
+                        dbc.Tooltip(
+                            "Adds a new row with date 7 days after the most recent entry",
+                            target="add-row-button",
+                            placement="top",
+                        ),
+                    ],
+                    className="d-inline-block",
                 ),
                 # Button to clear filters (optional)
                 create_button(

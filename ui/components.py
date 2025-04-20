@@ -50,6 +50,151 @@ def create_info_tooltip(id_suffix, help_text):
 
 
 #######################################################################
+# ENHANCED TOOLTIP COMPONENTS
+#######################################################################
+
+
+def create_enhanced_tooltip(
+    id_suffix,
+    help_text,
+    target=None,
+    variant="primary",
+    placement="top",
+    trigger_text=None,
+    icon_class=None,
+    delay={"show": 200, "hide": 100},
+):
+    """
+    Create an enhanced tooltip component with consistent styling and animations.
+
+    Args:
+        id_suffix: Suffix for component ID
+        help_text: Text to display in the tooltip (can be string or Dash component)
+        target: Optional target ID (if not provided, will use info-icon)
+        variant: Style variant (primary, info, success, warning, danger)
+        placement: Tooltip placement (top, bottom, left, right)
+        trigger_text: Optional text to show as the tooltip trigger
+        icon_class: FontAwesome icon class for custom icon (defaults to info circle)
+        delay: Show/hide delay in milliseconds
+
+    Returns:
+        Dash component with enhanced tooltip
+    """
+    import dash_bootstrap_components as dbc
+    from dash import html
+
+    # Set up the tooltip target
+    tooltip_target = f"tooltip-{id_suffix}"
+
+    # Create the trigger element based on parameters
+    if target:
+        # If a target is specified, we just return the tooltip
+        trigger = None
+        tooltip_target = target
+    elif trigger_text:
+        # If trigger text is provided, create a span with the tooltip indicator class
+        trigger = html.Span(
+            [trigger_text],
+            id=tooltip_target,
+            className="tooltip-indicator",
+            style={"cursor": "help"},
+        )
+    else:
+        # Default to an info icon
+        icon = icon_class or "fas fa-info-circle"
+        trigger = html.I(
+            className=f"{icon} text-info",
+            id=tooltip_target,
+            style={"cursor": "help", "marginLeft": "5px", "fontSize": "1rem"},
+        )
+
+    # Create the tooltip with the enhanced styling
+    tooltip = dbc.Tooltip(
+        help_text,
+        target=tooltip_target,
+        placement=placement,
+        delay=delay,
+        className=f"tooltip-{variant}",
+        style={"maxWidth": "300px"},
+    )
+
+    # Return the combined component
+    if trigger:
+        return html.Div(
+            [trigger, tooltip],
+            style={"display": "inline-block"},
+        )
+    else:
+        return tooltip
+
+
+def create_form_help_tooltip(id_suffix, field_label, help_text, variant="info"):
+    """
+    Create a form field label with integrated help tooltip.
+
+    Args:
+        id_suffix: Suffix for tooltip ID
+        field_label: Label text for the form field
+        help_text: Help text to display in the tooltip
+        variant: Tooltip variant (primary, info, success, warning, danger)
+
+    Returns:
+        Dash component with label and tooltip
+    """
+    from dash import html
+
+    return html.Label(
+        [
+            field_label,
+            create_enhanced_tooltip(
+                id_suffix=id_suffix,
+                help_text=help_text,
+                variant=variant,
+                placement="right",
+                delay={"show": 300, "hide": 100},
+            ),
+        ],
+        className="form-label d-flex align-items-center",
+        style={"gap": "4px"},
+    )
+
+
+def create_contextual_help(id_suffix, help_text, trigger_text=None, variant="primary"):
+    """
+    Create a contextual help text with underline indicator for inline help.
+
+    Args:
+        id_suffix: Suffix for tooltip ID
+        help_text: Help text to display in tooltip
+        trigger_text: Text that triggers the tooltip (underlined with dotted line)
+        variant: Tooltip variant
+
+    Returns:
+        Dash component with inline help
+    """
+    from dash import html
+
+    trigger_text = trigger_text or "Learn more"
+
+    return html.Span(
+        [
+            html.Span(
+                trigger_text,
+                id=f"context-help-{id_suffix}",
+                className="text-primary",
+                style={"borderBottom": "1px dotted #0d6efd", "cursor": "help"},
+            ),
+            create_enhanced_tooltip(
+                id_suffix=id_suffix,
+                help_text=help_text,
+                target=f"context-help-{id_suffix}",
+                variant=variant,
+            ),
+        ],
+    )
+
+
+#######################################################################
 # HELP MODAL COMPONENT
 #######################################################################
 
@@ -60,153 +205,6 @@ def create_help_modal():
 
     Returns:
         Dash Modal component
-    """
-    return dbc.Modal(
-        [
-            dbc.ModalHeader("How to Use the Project Burndown Forecast App"),
-            dbc.ModalBody(
-                [
-                    # Overview section
-                    html.Div(
-                        [
-                            html.H5("Overview", className="border-bottom pb-2 mb-3"),
-                            html.P(
-                                [
-                                    "This application helps you forecast project completion based on historical progress.",
-                                    html.Br(),
-                                    "It uses the ",
-                                    html.Strong("PERT methodology"),
-                                    " to estimate when your project will be completed based on optimistic, pessimistic, and most likely scenarios.",
-                                ],
-                                className="ml-3",
-                            ),
-                        ],
-                        className="mb-4",
-                    ),
-                    # Input Parameters section
-                    html.Div(
-                        [
-                            html.H5(
-                                "Input Parameters", className="border-bottom pb-2 mb-3"
-                            ),
-                            html.Div(
-                                [
-                                    html.H6(
-                                        html.Strong("PERT Factor:"), className="mt-3"
-                                    ),
-                                    html.Ul(
-                                        [
-                                            html.Li(
-                                                "Determines how many data points to use for optimistic and pessimistic estimates"
-                                            ),
-                                            html.Li(
-                                                "Higher value considers more historical data points"
-                                            ),
-                                            html.Li(
-                                                [
-                                                    html.Strong("Range:"),
-                                                    " 3-15 (default: 3)",
-                                                ]
-                                            ),
-                                        ],
-                                        className="mb-3",
-                                    ),
-                                    html.H6(html.Strong("Deadline:"), className="mt-3"),
-                                    html.Ul(
-                                        [
-                                            html.Li("Set your project deadline here"),
-                                            html.Li(
-                                                "The app will show if you're on track to meet it"
-                                            ),
-                                            html.Li(
-                                                [html.Strong("Format:"), " YYYY-MM-DD"]
-                                            ),
-                                        ],
-                                        className="mb-3",
-                                    ),
-                                    html.H6(
-                                        html.Strong("Total Items:"), className="mt-3"
-                                    ),
-                                    html.Ul(
-                                        [
-                                            html.Li(
-                                                "The total number of items (tasks, stories, etc.) to be completed"
-                                            ),
-                                            html.Li(
-                                                [
-                                                    html.Em(
-                                                        "This represents work quantity"
-                                                    )
-                                                ]
-                                            ),
-                                        ],
-                                        className="mb-3",
-                                    ),
-                                    html.H6(
-                                        html.Strong("Total Points:"), className="mt-3"
-                                    ),
-                                    html.Ul(
-                                        [
-                                            html.Li(
-                                                "The total number of points (effort, complexity) to be completed"
-                                            ),
-                                            html.Li(
-                                                [
-                                                    html.Em(
-                                                        "This represents work effort/complexity"
-                                                    )
-                                                ]
-                                            ),
-                                        ],
-                                        className="mb-3",
-                                    ),
-                                    html.H6(
-                                        html.Strong("Estimated Items:"),
-                                        className="mt-3",
-                                    ),
-                                    html.Ul(
-                                        [
-                                            html.Li(
-                                                "The number of items that have been estimated with points"
-                                            ),
-                                            html.Li(
-                                                "Used to calculate average points per item and the total points"
-                                            ),
-                                        ],
-                                        className="mb-3",
-                                    ),
-                                    html.H6(
-                                        html.Strong("Estimated Points:"),
-                                        className="mt-3",
-                                    ),
-                                    html.Ul(
-                                        [
-                                            html.Li(
-                                                "The sum of points for the items that have been estimated"
-                                            ),
-                                            html.Li(
-                                                "Used along with Estimated Items to calculate the average"
-                                            ),
-                                        ],
-                                        className="mb-3",
-                                    ),
-                                ],
-                                className="ml-3",
-                            ),
-                        ],
-                        className="mb-4",
-                    ),
-                    # CSV Upload section with improved formatting
-                    html.Div(
-                        [
-                            html.H5(
-                                "CSV Upload Format", className="border-bottom pb-2 mb-3"
-                            ),
-                            html.Div(
-                                [
-                                    html.P(
-                                        [
-                                            html.Strong(
                                                 "Your CSV file should contain the following columns:"
                                             ),
                                         ],
@@ -247,9 +245,6 @@ def create_help_modal():
                                     ),
                                     html.P(html.Strong("Example:"), className="mb-1"),
                                     html.Pre(
-                                        """date;no_items;no_points
-2025-03-01;5;50
-2025-03-02;7;70""",
                                         className="bg-light p-3 border rounded",
                                     ),
                                 ],
@@ -550,6 +545,7 @@ def create_help_modal():
         id="help-modal",
         size="lg",
     )
+    """
 
 
 #######################################################################
