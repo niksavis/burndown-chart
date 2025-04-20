@@ -1,0 +1,148 @@
+/* 
+   Burndown Chart Application Custom CSS
+   This file contains standardized styling for the application
+   including table layouts, grid alignment, and other UI components.
+*/
+
+/* ===== Table Standardization ===== */
+
+/* DataTable standardization */
+.dash-table-container {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+.dash-spreadsheet-container .dash-spreadsheet-inner table {
+  border-collapse: collapse;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.dash-spreadsheet-container .dash-spreadsheet-inner th {
+  background-color: #f8f9fa;
+  color: #212529;
+  font-weight: 600;
+  text-align: center;
+  padding: 12px 10px;
+  border-bottom: 2px solid #dee2e6;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.dash-spreadsheet-container .dash-spreadsheet-inner td {
+  padding: 10px;
+  vertical-align: middle;
+  border: 1px solid #f0f0f0;
+}
+
+/* Consistent styling for editable cells */
+.dash-cell-value.dash-cell-value--editing {
+  background-color: rgba(13, 110, 253, 0.1) !important;
+}
+
+/* Table row alternating colors */
+.dash-spreadsheet-container .dash-spreadsheet-inner tr:nth-child(odd) {
+  background-color: #ffffff;
+}
+
+.dash-spreadsheet-container .dash-spreadsheet-inner tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+/* Hover effect for table rows */
+.dash-spreadsheet-container .dash-spreadsheet-inner tr:hover {
+  background-color: rgba(0, 123, 255, 0.05);
+}
+
+/* Better styling for pagination controls */
+.dash-table-container .previous-page,
+.dash-table-container .next-page,
+.dash-table-container .first-page,
+.dash-table-container .last-page {
+  border: 1px solid #dee2e6;
+  background-color: white;
+  transition: all 0.2s ease;
+}
+
+.dash-table-container .previous-page:hover,
+.dash-table-container .next-page:hover,
+.dash-table-container .first-page:hover,
+.dash-table-container .last-page:hover {
+  background-color: #f8f9fa;
+  border-color: #ced4da;
+}
+
+/* ===== Tab Navigation Standardization ===== */
+
+/* Modern tab styling */
+.nav-tabs-modern .nav-item .nav-link {
+  color: #6c757d;
+  border: 1px solid transparent;
+  border-top-left-radius: 0.25rem;
+  border-top-right-radius: 0.25rem;
+  padding: 0.75rem 1.25rem;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+}
+
+.nav-tabs-modern .nav-item .nav-link:hover {
+  color: #495057;
+  background-color: #f8f9fa;
+  border-color: #e9ecef #e9ecef #dee2e6;
+}
+
+.nav-tabs-modern .nav-item .nav-link.active {
+  color: #0d6efd;
+  background-color: #fff;
+  border-color: #dee2e6 #dee2e6 #fff;
+  border-bottom: 2px solid #0d6efd;
+}
+
+/* Tab content transition animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tab-content-container {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+/* ===== General Grid Alignment ===== */
+
+/* Consistent card styling */
+.card {
+  border-radius: 0.375rem;
+  transition: box-shadow 0.2s ease-in-out;
+}
+
+.card:hover {
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+}
+
+.card-header {
+  background-color: #f8f9fa;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+.card-body {
+  padding: 1.25rem;
+}
+
+/* Ensure consistent form element spacing */
+.form-group:not(:last-child) {
+  margin-bottom: 1rem;
+}
+
+/* Ensure SVG elements align properly */
+svg {
+  vertical-align: middle;
+}

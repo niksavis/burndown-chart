@@ -27,6 +27,7 @@ app = dash.Dash(
     external_stylesheets=[
         dbc.themes.FLATLY,
         "https://use.fontawesome.com/releases/v5.15.4/css/all.css",  # Font Awesome for icons
+        "/assets/custom.css",  # Our custom CSS for standardized styling
     ],
     suppress_callback_exceptions=True,  # Suppress exceptions for components created by callbacks
 )

@@ -20,7 +20,7 @@ from data import (
     calculate_total_points,
 )
 
-# Import UI components
+# Import UI components and grid templates
 from ui.components import create_help_modal
 from ui.cards import (
     create_forecast_graph_card,
@@ -28,8 +28,16 @@ from ui.cards import (
     create_input_parameters_card,
     create_statistics_data_card,
     create_project_summary_card,
+    create_pert_analysis_card,
+    create_project_status_card,
 )
 from ui.tabs import create_tabs
+from ui.grid_templates import (
+    create_full_width_layout,
+    create_two_column_layout,
+    create_two_cards_layout,
+    create_content_section,
+)
 
 #######################################################################
 # LAYOUT FUNCTION
@@ -55,6 +63,11 @@ def create_app_layout(settings, statistics, is_sample_data):
     """
     Serve a fresh layout with the latest data from disk.
     This is crucial for proper browser refresh behavior.
+
+    Args:
+        settings: Dictionary with application settings
+        statistics: List of dictionaries with statistics data
+        is_sample_data: Boolean indicating if the data is sample data
 
     Returns:
         Dash Container component with complete application layout
@@ -127,7 +140,7 @@ def create_app_layout(settings, statistics, is_sample_data):
                 [
                     dbc.Alert(
                         [
-                            html.I(className="fas fa-info-circle mr-2"),
+                            html.I(className="fas fa-info-circle me-2"),
                             html.Strong("Using Sample Data: "),
                             "You're currently viewing demo data. ",
                             "Upload your own data using the form below or add entries manually to start tracking your project.",
@@ -136,7 +149,7 @@ def create_app_layout(settings, statistics, is_sample_data):
                                 id="dismiss-sample-alert",
                                 color="link",
                                 size="sm",
-                                className="ml-3",
+                                className="ms-3",
                             ),
                         ],
                         id="sample-data-alert",
@@ -155,114 +168,78 @@ def create_app_layout(settings, statistics, is_sample_data):
                 },
                 id="sample-data-banner",
             ),
-            # App header
-            dbc.Row(
-                [
-                    dbc.Col(
-                        [
-                            html.H1(
-                                "Project Burndown Forecast",
-                                className="text-center my-4",
-                            ),
-                        ],
-                        width=12,
-                    ),
-                ]
+            # App header with consistent styling
+            create_full_width_layout(
+                html.H1(
+                    "Project Burndown Forecast",
+                    className="text-center my-4",
+                ),
+                row_class="mb-3",
             ),
             # Help modal
             create_help_modal(),
-            # Tab Navigation and Charts Row
-            dbc.Row(
-                [
-                    dbc.Col(
-                        [
-                            dbc.Card(
-                                [
-                                    dbc.CardBody(
-                                        [
-                                            # Tabbed interface
-                                            create_tabs(),
-                                        ]
-                                    ),
-                                ],
-                                className="shadow-sm mb-4",
-                            ),
-                        ],
-                        width=12,
-                    ),
-                ]
+            # Tab Navigation and Charts Row - using full width template
+            create_full_width_layout(
+                dbc.Card(
+                    [
+                        dbc.CardBody(
+                            [
+                                # Tabbed interface
+                                create_tabs(),
+                            ]
+                        ),
+                    ],
+                    className="shadow-sm",
+                ),
+                row_class="mb-4",
             ),
-            # Note: Forecast Info Card has been moved to tab-specific content
-            # Project Dashboard and Input Parameters Cards in a side-by-side layout
-            dbc.Row(
-                [
-                    # Input Parameters (on the left on medium+ screens)
-                    dbc.Col(
-                        [
-                            create_input_parameters_card(
-                                settings,
-                                avg_points_per_item,
-                                estimated_total_points,
-                            ),
-                        ],
-                        width=12,
-                        md=6,  # Half width on medium screens and up
-                    ),
-                    # Project Dashboard (on the right on medium+ screens)
-                    dbc.Col(
-                        [
-                            create_project_summary_card(
-                                statistics_df,
-                                settings,
-                                pert_data={
-                                    "pert_time_items": None,  # Will be populated by callback
-                                    "pert_time_points": None,  # Will be populated by callback
-                                },
-                            ),
-                        ],
-                        width=12,
-                        md=6,  # Half width on medium screens and up
-                    ),
-                ],
-                className="mb-4",
+            # Project Dashboard and Input Parameters Cards - using two cards layout
+            create_two_cards_layout(
+                # Left card - Input Parameters
+                create_input_parameters_card(
+                    settings,
+                    avg_points_per_item,
+                    estimated_total_points,
+                ),
+                # Right card - Project Dashboard
+                create_project_summary_card(
+                    statistics_df,
+                    settings,
+                    pert_data={
+                        "pert_time_items": 30,  # Provide default value instead of None
+                        "pert_time_points": 35,  # Provide default value instead of None
+                    },
+                ),
+                card1_width=6,  # Left card width
+                card2_width=6,  # Right card width
+                equal_height=True,  # Make cards the same height
             ),
-            # Spacer
-            html.Div(className="mb-3"),
-            # Fourth row: Statistics Data Table
-            dbc.Row(
-                [
-                    dbc.Col(
-                        [
-                            create_statistics_data_card(statistics),
-                        ],
-                        width=12,
-                    ),
-                ]
+            # Statistics Data Table - using full width layout
+            create_full_width_layout(
+                create_statistics_data_card(statistics),
+                row_class="mb-4",
             ),
             # Footer
-            dbc.Row(
-                [
-                    dbc.Col(
+            create_content_section(
+                title="",
+                body=[
+                    html.Hr(),
+                    html.P(
                         [
-                            html.Hr(),
-                            html.P(
-                                [
-                                    f"© {current_year} ",
-                                    html.A(
-                                        "Project Burndown Forecast",
-                                        href="#",
-                                        className="text-decoration-none",
-                                    ),
-                                    " - All rights reserved. ",
-                                ],
-                                className="text-muted small mb-1",
+                            f"© {current_year} ",
+                            html.A(
+                                "Project Burndown Forecast",
+                                href="#",
+                                className="text-decoration-none",
                             ),
+                            " - All rights reserved.",
                         ],
-                        width=12,
+                        className="text-muted small mb-1",
                     ),
                 ],
-                className="mt-4",
+                section_class="mt-5 mb-3",
             ),
         ],
         fluid=True,
+        className="px-3 py-3",  # Add consistent container padding
     )

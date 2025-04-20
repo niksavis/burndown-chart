@@ -605,7 +605,7 @@ def create_input_parameters_card(
 
 def create_statistics_data_card(current_statistics):
     """
-    Create the statistics data card component.
+    Create the statistics data card component with standardized table styling.
 
     Args:
         current_statistics: List of dictionaries containing current statistics data
@@ -613,9 +613,11 @@ def create_statistics_data_card(current_statistics):
     Returns:
         Dash Card component for statistics data
     """
-    from dash import dash_table
+    import pandas as pd
+    from dash import dash_table, html
     from ui.components import create_export_buttons
     from ui.styles import create_standardized_card, create_card_header_with_tooltip
+    from ui.grid_templates import create_aligned_datatable, create_data_table
 
     # Create the card header with tooltip
     header_content = create_card_header_with_tooltip(
@@ -624,81 +626,80 @@ def create_statistics_data_card(current_statistics):
         tooltip_text=HELP_TEXTS["statistics_table"],
     )
 
+    # Convert to DataFrame for automatic column type detection
+    statistics_df = pd.DataFrame(current_statistics)
+
+    # Use automatic column alignment if we have data
+    if not statistics_df.empty:
+        # Create an automatically aligned table
+        statistics_table = create_aligned_datatable(
+            dataframe=statistics_df,
+            id="statistics-table",
+            editable=True,
+            page_size=10,
+            include_pagination=True,
+            filter_action="native",
+            sort_action="native",
+            # Override automatic alignments if needed
+            override_alignments={
+                "date": "center",  # Ensure dates are centered
+            },
+        )
+    else:
+        # Define column configuration for empty table
+        columns = [
+            {
+                "name": "Date (YYYY-MM-DD)",
+                "id": "date",
+                "type": "text",
+            },
+            {
+                "name": "Items Completed",
+                "id": "no_items",
+                "type": "numeric",
+            },
+            {
+                "name": "Points Completed",
+                "id": "no_points",
+                "type": "numeric",
+            },
+        ]
+
+        # Set column alignments based on data type
+        column_alignments = {
+            "date": "center",
+            "no_items": "right",
+            "no_points": "right",
+        }
+
+        # Create the standardized table with manual alignments
+        statistics_table = create_data_table(
+            data=current_statistics,
+            columns=columns,
+            id="statistics-table",
+            editable=True,
+            row_selectable=False,
+            page_size=10,
+            include_pagination=True,
+            sort_action="native",
+            filter_action="native",
+            column_alignments=column_alignments,
+        )
+
     # Create the card body content
     body_content = [
         # Add the export buttons at the top of the card
         create_export_buttons(statistics_data=current_statistics),
-        dash_table.DataTable(
-            id="statistics-table",
-            columns=[
-                {
-                    "name": "Date (YYYY-MM-DD)",
-                    "id": "date",
-                    "type": "text",
-                },
-                {
-                    "name": "Items Completed",
-                    "id": "no_items",
-                    "type": "numeric",
-                },
-                {
-                    "name": "Points Completed",
-                    "id": "no_points",
-                    "type": "numeric",
-                },
-            ],
-            data=current_statistics,
-            editable=True,
-            row_deletable=True,
-            sort_action="native",
-            # Add default sorting by date, descending order (newest first)
-            sort_by=[
-                {
-                    "column_id": "date",
-                    "direction": "desc",
-                }
-            ],
-            # Add pagination
-            page_size=10,
-            page_action="native",
-            style_table={"overflowX": "auto"},
-            style_cell={
-                "textAlign": "center",
-                "minWidth": "100px",
-                "padding": "10px",
-            },
-            style_header={
-                "backgroundColor": "#f8f9fa",
-                "fontWeight": "bold",
-                "border": "1px solid #ddd",
-            },
-            style_data={
-                "border": "1px solid #ddd",
-            },
-            style_data_conditional=[
-                {
-                    "if": {"row_index": "odd"},
-                    "backgroundColor": "#f9f9f9",
-                }
-            ],
-            tooltip_data=[
-                {
-                    column: {
-                        "value": "Click to edit",
-                        "type": "text",
-                    }
-                    for column in ["date", "no_items", "no_points"]
-                }
-                for _ in range(len(current_statistics))
-            ],
-            tooltip_duration=None,
-        ),
+        # Add space between buttons and table
+        html.Div(className="mb-3"),
+        # Add the table with standardized styling
+        statistics_table,
         html.Div(
             [
                 # Button for adding rows
                 dbc.Button(
                     [
-                        html.I(className="fas fa-plus mr-2"),
+                        html.I(className="fas fa-plus me-2"),
                         "Add Row",
                     ],
                     id="add-row-button",
@@ -706,7 +707,7 @@ def create_statistics_data_card(current_statistics):
                     className="mt-3",
                 ),
             ],
-            style={"textAlign": "center"},
+            className="d-flex justify-content-center",
         ),
     ]
 
