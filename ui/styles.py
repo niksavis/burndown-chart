@@ -2134,3 +2134,250 @@ def create_content_placeholder(
             "overflow": "hidden",
         },
     )
+
+
+#######################################################################
+# ERROR STYLING FUNCTIONS
+#######################################################################
+
+
+def create_error_style(
+    variant="danger", size="md", border=True, background=True, custom_style=None
+):
+    """
+    Create consistent error state styling.
+
+    Args:
+        variant (str): Error severity (danger, warning, info)
+        size (str): Size of the error container (sm, md, lg)
+        border (bool): Whether to show a border
+        background (bool): Whether to show a background
+        custom_style (dict, optional): Custom style overrides
+
+    Returns:
+        dict: Dictionary with error styling properties
+    """
+    # Map variants to colors
+    color_map = {
+        "danger": SEMANTIC_COLORS["danger"],
+        "warning": SEMANTIC_COLORS["warning"],
+        "info": SEMANTIC_COLORS["info"],
+        "success": SEMANTIC_COLORS["success"],
+    }
+
+    # Get color based on variant
+    color = color_map.get(variant, color_map["danger"])
+
+    # Create the RGB values for background with transparency
+    rgb_values = color.replace("rgb(", "").replace(")", "").split(",")
+    r, g, b = [int(val.strip()) for val in rgb_values]
+
+    # Base style for error container
+    base_style = {
+        "borderRadius": "0.25rem",
+        "transition": "all 0.2s ease-in-out",
+    }
+
+    # Apply size styles
+    size_map = {
+        "sm": {
+            "padding": "0.5rem",
+        },
+        "md": {
+            "padding": "1rem",
+        },
+        "lg": {
+            "padding": "1.5rem",
+        },
+    }
+    base_style.update(size_map.get(size, size_map["md"]))
+
+    # Apply border if requested
+    if border:
+        base_style["border"] = f"1px solid {color}"
+
+    # Apply background if requested
+    if background:
+        base_style["backgroundColor"] = f"rgba({r}, {g}, {b}, 0.1)"
+
+    # Add custom styles
+    if custom_style:
+        base_style.update(custom_style)
+
+    return base_style
+
+
+def create_error_message_style(
+    variant="danger", size="md", bold=False, custom_style=None
+):
+    """
+    Create consistent error message text styling.
+
+    Args:
+        variant (str): Error severity (danger, warning, info)
+        size (str): Size of the text (sm, md, lg)
+        bold (bool): Whether the text should be bold
+        custom_style (dict, optional): Custom style overrides
+
+    Returns:
+        dict: Dictionary with error message styling properties
+    """
+    # Map variants to colors
+    color_map = {
+        "danger": SEMANTIC_COLORS["danger"],
+        "warning": SEMANTIC_COLORS["warning"],
+        "info": SEMANTIC_COLORS["info"],
+        "success": SEMANTIC_COLORS["success"],
+    }
+
+    # Get color based on variant
+    color = color_map.get(variant, color_map["danger"])
+
+    # Base style for error message
+    base_style = {
+        "color": color,
+        "marginBottom": "0.5rem",
+    }
+
+    # Apply size
+    size_map = {
+        "sm": {
+            "fontSize": "0.875rem",
+        },
+        "md": {
+            "fontSize": "1rem",
+        },
+        "lg": {
+            "fontSize": "1.25rem",
+        },
+    }
+    base_style.update(size_map.get(size, size_map["md"]))
+
+    # Apply bold if requested
+    if bold:
+        base_style["fontWeight"] = "bold"
+
+    # Add custom styles
+    if custom_style:
+        base_style.update(custom_style)
+
+    return base_style
+
+
+def create_form_error_style(variant="danger", custom_style=None):
+    """
+    Create consistent form field error styling.
+
+    Args:
+        variant (str): Error severity (danger, warning, info)
+        custom_style (dict, optional): Custom style overrides
+
+    Returns:
+        dict: Dictionary with form error styling properties
+    """
+    # Map variants to colors
+    color_map = {
+        "danger": SEMANTIC_COLORS["danger"],
+        "warning": SEMANTIC_COLORS["warning"],
+        "info": SEMANTIC_COLORS["info"],
+    }
+
+    # Get color based on variant
+    color = color_map.get(variant, color_map["danger"])
+
+    # Base style for form error
+    base_style = {
+        "color": color,
+        "fontSize": "0.875rem",
+        "marginTop": "0.25rem",
+    }
+
+    # Add custom styles
+    if custom_style:
+        base_style.update(custom_style)
+
+    return base_style
+
+
+def create_empty_state_style(
+    variant="default", size="md", border=True, custom_style=None
+):
+    """
+    Create consistent empty state styling.
+
+    Args:
+        variant (str): Empty state variant (default, info, warning, error)
+        size (str): Size of the empty state (sm, md, lg)
+        border (bool): Whether to show a border
+        custom_style (dict, optional): Custom style overrides
+
+    Returns:
+        dict: Dictionary with empty state styling properties
+    """
+    # Map variants to styles
+    variant_styles = {
+        "default": {
+            "bg_color": "#f8f9fa",
+            "border": "1px solid #dee2e6",
+            "icon_color": "#6c757d",
+            "text_color": "#6c757d",
+        },
+        "info": {
+            "bg_color": "rgba(13, 202, 240, 0.1)",
+            "border": "1px solid rgba(13, 202, 240, 0.5)",
+            "icon_color": SEMANTIC_COLORS["info"],
+            "text_color": "#0dcaf0",
+        },
+        "warning": {
+            "bg_color": "rgba(255, 193, 7, 0.1)",
+            "border": "1px solid rgba(255, 193, 7, 0.5)",
+            "icon_color": SEMANTIC_COLORS["warning"],
+            "text_color": "#ffc107",
+        },
+        "error": {
+            "bg_color": "rgba(220, 53, 69, 0.1)",
+            "border": "1px solid rgba(220, 53, 69, 0.5)",
+            "icon_color": SEMANTIC_COLORS["danger"],
+            "text_color": "#dc3545",
+        },
+    }
+
+    # Get style based on variant
+    style = variant_styles.get(variant, variant_styles["default"])
+
+    # Size map for padding
+    size_map = {
+        "sm": {
+            "padding": "1rem",
+            "minHeight": "100px",
+        },
+        "md": {
+            "padding": "2rem",
+            "minHeight": "200px",
+        },
+        "lg": {
+            "padding": "3rem",
+            "minHeight": "300px",
+        },
+    }
+    padding_style = size_map.get(size, size_map["md"])
+
+    # Base style for empty state
+    base_style = {
+        "backgroundColor": style["bg_color"],
+        "border": style["border"] if border else "none",
+        "borderRadius": "0.25rem",
+        "display": "flex",
+        "flexDirection": "column",
+        "justifyContent": "center",
+        "alignItems": "center",
+        "textAlign": "center",
+        "width": "100%",
+        **padding_style,
+    }
+
+    # Add custom styles
+    if custom_style:
+        base_style.update(custom_style)
+
+    return base_style
