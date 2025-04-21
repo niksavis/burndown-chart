@@ -20,6 +20,9 @@ from data import (
     calculate_total_points,
 )
 
+# Import the version from configuration
+from configuration import __version__
+
 # Import UI components and grid templates
 from ui.cards import (
     create_forecast_graph_card,
@@ -187,6 +190,62 @@ def create_app_layout(settings, statistics, is_sample_data):
             create_full_width_layout(
                 create_statistics_data_card(statistics),
                 row_class="mb-4",
+            ),
+            # Minimal footer with useful information
+            html.Div(
+                [
+                    html.Hr(className="my-3"),
+                    dbc.Row(
+                        [
+                            # Left column - app info
+                            dbc.Col(
+                                html.Small(
+                                    [
+                                        html.I(
+                                            className="fas fa-chart-line me-2 text-muted"
+                                        ),
+                                        "Burndown Chart ",
+                                        html.Span(
+                                            f"v{__version__}", className="text-muted"
+                                        ),
+                                    ],
+                                    className="text-secondary",
+                                ),
+                                width={"size": "auto"},
+                            ),
+                            # Center column - GitHub link only
+                            dbc.Col(
+                                html.Small(
+                                    dbc.Button(
+                                        [
+                                            html.I(className="fas fa-code me-1"),
+                                            "GitHub",
+                                        ],
+                                        color="link",
+                                        size="sm",
+                                        className="text-decoration-none px-2",
+                                        href="https://github.com/niksavis/burndown-chart",
+                                        target="_blank",
+                                    ),
+                                ),
+                                className="text-center",
+                                width=True,
+                            ),
+                            # Right column - Data info
+                            dbc.Col(
+                                html.Small(
+                                    [
+                                        f"Last updated: {datetime.now().strftime('%b %d, %Y')}",
+                                    ],
+                                    className="text-muted text-end",
+                                ),
+                                width={"size": "auto"},
+                            ),
+                        ],
+                        className="d-flex justify-content-between align-items-center",
+                    ),
+                ],
+                className="mt-4 mb-2",
             ),
         ],
         fluid=True,

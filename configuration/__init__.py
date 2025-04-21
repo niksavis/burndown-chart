@@ -1,8 +1,12 @@
 """
-Configuration package.
+Configuration Module
 
-This package contains all configuration related modules.
+This module contains configuration settings for the burndown chart application.
 """
+
+# Application version - used in the UI and for tracking
+# Follow semantic versioning (MAJOR.MINOR.PATCH)
+__version__ = "1.0.0"
 
 from configuration.settings import (
     # Constants
@@ -24,6 +28,13 @@ from configuration.settings import (
     logger,
 )
 
+from configuration.server import (
+    get_server_config,
+    DEFAULT_HOST,
+    DEFAULT_PORT,
+    DEFAULT_SERVER_MODE,
+)
+
 # Define public API
 __all__ = [
     "DEFAULT_PERT_FACTOR",
@@ -39,4 +50,10 @@ __all__ = [
     "COLOR_PALETTE",
     "HELP_TEXTS",
     "logger",
+    "__version__",
+    # Server configuration
+    "get_server_config",
+    "DEFAULT_HOST",
+    "DEFAULT_PORT",
+    "DEFAULT_SERVER_MODE",
 ]
