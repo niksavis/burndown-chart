@@ -546,7 +546,15 @@ def create_input_parameters_card(
                             [
                                 html.Label(
                                     [
-                                        "Remaining Total Points (calculated):",
+                                        "Remaining Total Points:",
+                                        html.Span(
+                                            "auto",
+                                            className="badge bg-secondary ms-1",
+                                            style={
+                                                "fontSize": "0.7rem",
+                                                "verticalAlign": "text-top",
+                                            },
+                                        ),
                                         create_info_tooltip(
                                             "total-points",
                                             HELP_TEXTS["total_points"],
