@@ -970,27 +970,6 @@ def create_weekly_items_chart(
                 annotation_position="top",
             )
 
-            # Add methodology annotation
-            fig.add_annotation(
-                x=0.5,
-                y=-0.35,  # Changed from -0.32 to -0.35 to match the Weekly Completed Points chart
-                xref="paper",
-                yref="paper",
-                text=(
-                    f"<b>Next Week Forecast:</b> Based on PERT analysis with weighted average of historical data.<br>"
-                    f"Most Likely: {forecast_data['items'].get('most_likely_value', 0):.1f} items/week | "
-                    f"Optimistic: {forecast_data['items'].get('optimistic_value', 0):.1f} items/week | "
-                    f"Pessimistic: {forecast_data['items'].get('pessimistic_value', 0):.1f} items/week"
-                ),
-                showarrow=False,
-                font=dict(size=12),
-                align="center",
-                bordercolor="rgba(200, 200, 200, 0.5)",
-                borderwidth=1,
-                borderpad=6,
-                bgcolor="rgba(250, 250, 250, 0.8)",
-            )
-
     # Update layout with grid lines and styling
     fig.update_layout(
         title=None,  # Remove chart title
@@ -1217,27 +1196,6 @@ def create_weekly_points_chart(
                 line_color="rgba(0, 0, 0, 0.5)",
                 annotation_text="Forecast starts",
                 annotation_position="top",
-            )
-
-            # Add methodology annotation
-            fig.add_annotation(
-                x=0.5,
-                y=-0.35,  # Moved down from -0.25 to prevent covering x-axis label
-                xref="paper",
-                yref="paper",
-                text=(
-                    f"<b>Next Week Forecast:</b> Based on PERT analysis with weighted average of historical data.<br>"
-                    f"Most Likely: {forecast_data['points'].get('most_likely_value', 0):.1f} points/week | "
-                    f"Optimistic: {forecast_data['points'].get('optimistic_value', 0):.1f} points/week | "
-                    f"Pessimistic: {forecast_data['points'].get('pessimistic_value', 0):.1f} points/week"
-                ),
-                showarrow=False,
-                font=dict(size=12),
-                align="center",
-                bordercolor="rgba(200, 200, 200, 0.5)",
-                borderwidth=1,
-                borderpad=6,
-                bgcolor="rgba(250, 250, 250, 0.8)",
             )
 
     # Update layout with grid lines and styling
