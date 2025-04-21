@@ -335,71 +335,103 @@ def register(app):
                                     create_compact_trend_indicator(
                                         items_trend, "Items"
                                     ),
-                                    # Add most likely forecast
+                                    # Add forecast information - all in a single row using flex layout
                                     html.Div(
                                         [
-                                            html.I(
-                                                className="fas fa-chart-line me-1",
-                                                style={"color": "#0d6efd"},
-                                            ),
-                                            html.Small(
+                                            # Most likely forecast
+                                            html.Div(
                                                 [
-                                                    "Most likely: ",
-                                                    html.Strong(
-                                                        f"{items_trend.get('most_likely_forecast', 0):.1f} items/week",
+                                                    html.I(
+                                                        className="fas fa-chart-line me-1",
                                                         style={"color": "#0d6efd"},
                                                     ),
+                                                    html.Small(
+                                                        [
+                                                            "Most likely: ",
+                                                            html.Strong(
+                                                                f"{items_trend.get('most_likely_forecast', 0):.1f}",
+                                                                style={
+                                                                    "color": "#0d6efd"
+                                                                },
+                                                            ),
+                                                        ],
+                                                    ),
                                                 ],
-                                            ),
-                                        ],
-                                        className="mt-2 ps-2 small",
-                                        style={"borderLeft": "3px solid #0d6efd"},
-                                    )
-                                    if "most_likely_forecast" in items_trend
-                                    else None,
-                                    # Add optimistic forecast
-                                    html.Div(
-                                        [
-                                            html.I(
-                                                className="fas fa-chart-line me-1 text-success"
-                                            ),
-                                            html.Small(
+                                                className="forecast-pill",
+                                                style={
+                                                    "borderLeft": "3px solid #0d6efd",
+                                                    "paddingLeft": "0.5rem",
+                                                    "marginRight": "0.75rem",
+                                                },
+                                            )
+                                            if "most_likely_forecast" in items_trend
+                                            else None,
+                                            # Optimistic forecast
+                                            html.Div(
                                                 [
-                                                    "Optimistic: ",
-                                                    html.Strong(
-                                                        f"{items_trend.get('optimistic_forecast', 0):.1f} items/week",
+                                                    html.I(
+                                                        className="fas fa-chart-line me-1",
                                                         style={"color": "#28a745"},
                                                     ),
-                                                ],
-                                            ),
-                                        ],
-                                        className="mt-2 ps-2 small",
-                                        style={"borderLeft": "3px solid #28a745"},
-                                    )
-                                    if "optimistic_forecast" in items_trend
-                                    else None,
-                                    # Add pessimistic forecast
-                                    html.Div(
-                                        [
-                                            html.I(
-                                                className="fas fa-chart-line me-1",
-                                                style={"color": "#6610f2"},
-                                            ),
-                                            html.Small(
-                                                [
-                                                    "Pessimistic: ",
-                                                    html.Strong(
-                                                        f"{items_trend.get('pessimistic_forecast', 0):.1f} items/week",
-                                                        style={"color": "#6610f2"},
+                                                    html.Small(
+                                                        [
+                                                            "Optimistic: ",
+                                                            html.Strong(
+                                                                f"{items_trend.get('optimistic_forecast', 0):.1f}",
+                                                                style={
+                                                                    "color": "#28a745"
+                                                                },
+                                                            ),
+                                                        ],
                                                     ),
                                                 ],
-                                            ),
+                                                className="forecast-pill",
+                                                style={
+                                                    "borderLeft": "3px solid #28a745",
+                                                    "paddingLeft": "0.5rem",
+                                                    "marginRight": "0.75rem",
+                                                },
+                                            )
+                                            if "optimistic_forecast" in items_trend
+                                            else None,
+                                            # Pessimistic forecast
+                                            html.Div(
+                                                [
+                                                    html.I(
+                                                        className="fas fa-chart-line me-1",
+                                                        style={"color": "#6610f2"},
+                                                    ),
+                                                    html.Small(
+                                                        [
+                                                            "Pessimistic: ",
+                                                            html.Strong(
+                                                                f"{items_trend.get('pessimistic_forecast', 0):.1f}",
+                                                                style={
+                                                                    "color": "#6610f2"
+                                                                },
+                                                            ),
+                                                        ],
+                                                    ),
+                                                ],
+                                                className="forecast-pill",
+                                                style={
+                                                    "borderLeft": "3px solid #6610f2",
+                                                    "paddingLeft": "0.5rem",
+                                                },
+                                            )
+                                            if "pessimistic_forecast" in items_trend
+                                            else None,
                                         ],
-                                        className="mt-2 ps-2 small",
-                                        style={"borderLeft": "3px solid #6610f2"},
-                                    )
-                                    if "pessimistic_forecast" in items_trend
-                                    else None,
+                                        className="d-flex flex-wrap mt-2 align-items-center",
+                                        style={"gap": "0.25rem"},
+                                    ),
+                                    # Add small text showing items/week at the bottom
+                                    html.Div(
+                                        html.Small(
+                                            "items/week", className="text-muted"
+                                        ),
+                                        className="mt-1 text-center",
+                                    ),
                                 ],
                                 className="col-md-6 col-12 mb-3 pe-md-2",
                             ),
@@ -423,71 +455,103 @@ def register(app):
                                     create_compact_trend_indicator(
                                         points_trend, "Points"
                                     ),
-                                    # Add most likely forecast
+                                    # Add forecast information - all in a single row using flex layout
                                     html.Div(
                                         [
-                                            html.I(
-                                                className="fas fa-chart-line me-1",
-                                                style={"color": "#fd7e14"},
-                                            ),
-                                            html.Small(
+                                            # Most likely forecast
+                                            html.Div(
                                                 [
-                                                    "Most likely: ",
-                                                    html.Strong(
-                                                        f"{points_trend.get('most_likely_forecast', 0):.1f} points/week",
+                                                    html.I(
+                                                        className="fas fa-chart-line me-1",
                                                         style={"color": "#fd7e14"},
                                                     ),
+                                                    html.Small(
+                                                        [
+                                                            "Most likely: ",
+                                                            html.Strong(
+                                                                f"{points_trend.get('most_likely_forecast', 0):.1f}",
+                                                                style={
+                                                                    "color": "#fd7e14"
+                                                                },
+                                                            ),
+                                                        ],
+                                                    ),
                                                 ],
-                                            ),
-                                        ],
-                                        className="mt-2 ps-2 small",
-                                        style={"borderLeft": "3px solid #fd7e14"},
-                                    )
-                                    if "most_likely_forecast" in points_trend
-                                    else None,
-                                    # Add optimistic forecast
-                                    html.Div(
-                                        [
-                                            html.I(
-                                                className="fas fa-chart-line me-1 text-success"
-                                            ),
-                                            html.Small(
+                                                className="forecast-pill",
+                                                style={
+                                                    "borderLeft": "3px solid #fd7e14",
+                                                    "paddingLeft": "0.5rem",
+                                                    "marginRight": "0.75rem",
+                                                },
+                                            )
+                                            if "most_likely_forecast" in points_trend
+                                            else None,
+                                            # Optimistic forecast
+                                            html.Div(
                                                 [
-                                                    "Optimistic: ",
-                                                    html.Strong(
-                                                        f"{points_trend.get('optimistic_forecast', 0):.1f} points/week",
+                                                    html.I(
+                                                        className="fas fa-chart-line me-1",
                                                         style={"color": "#28a745"},
                                                     ),
-                                                ],
-                                            ),
-                                        ],
-                                        className="mt-2 ps-2 small",
-                                        style={"borderLeft": "3px solid #28a745"},
-                                    )
-                                    if "optimistic_forecast" in points_trend
-                                    else None,
-                                    # Add pessimistic forecast
-                                    html.Div(
-                                        [
-                                            html.I(
-                                                className="fas fa-chart-line me-1",
-                                                style={"color": "#a52a2a"},
-                                            ),
-                                            html.Small(
-                                                [
-                                                    "Pessimistic: ",
-                                                    html.Strong(
-                                                        f"{points_trend.get('pessimistic_forecast', 0):.1f} points/week",
-                                                        style={"color": "#a52a2a"},
+                                                    html.Small(
+                                                        [
+                                                            "Optimistic: ",
+                                                            html.Strong(
+                                                                f"{points_trend.get('optimistic_forecast', 0):.1f}",
+                                                                style={
+                                                                    "color": "#28a745"
+                                                                },
+                                                            ),
+                                                        ],
                                                     ),
                                                 ],
-                                            ),
+                                                className="forecast-pill",
+                                                style={
+                                                    "borderLeft": "3px solid #28a745",
+                                                    "paddingLeft": "0.5rem",
+                                                    "marginRight": "0.75rem",
+                                                },
+                                            )
+                                            if "optimistic_forecast" in points_trend
+                                            else None,
+                                            # Pessimistic forecast
+                                            html.Div(
+                                                [
+                                                    html.I(
+                                                        className="fas fa-chart-line me-1",
+                                                        style={"color": "#a52a2a"},
+                                                    ),
+                                                    html.Small(
+                                                        [
+                                                            "Pessimistic: ",
+                                                            html.Strong(
+                                                                f"{points_trend.get('pessimistic_forecast', 0):.1f}",
+                                                                style={
+                                                                    "color": "#a52a2a"
+                                                                },
+                                                            ),
+                                                        ],
+                                                    ),
+                                                ],
+                                                className="forecast-pill",
+                                                style={
+                                                    "borderLeft": "3px solid #a52a2a",
+                                                    "paddingLeft": "0.5rem",
+                                                },
+                                            )
+                                            if "pessimistic_forecast" in points_trend
+                                            else None,
                                         ],
-                                        className="mt-2 ps-2 small",
-                                        style={"borderLeft": "3px solid #a52a2a"},
-                                    )
-                                    if "pessimistic_forecast" in points_trend
-                                    else None,
+                                        className="d-flex flex-wrap mt-2 align-items-center",
+                                        style={"gap": "0.25rem"},
+                                    ),
+                                    # Add small text showing points/week at the bottom
+                                    html.Div(
+                                        html.Small(
+                                            "points/week", className="text-muted"
+                                        ),
+                                        className="mt-1 text-center",
+                                    ),
                                 ],
                                 className="col-md-6 col-12 mb-3 ps-md-2",
                             ),
