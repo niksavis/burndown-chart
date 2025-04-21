@@ -785,14 +785,14 @@ def create_forecast_plot(
 
 
 def create_weekly_items_chart(
-    statistics_data, date_range_weeks=None, pert_factor=3, include_forecast=True
+    statistics_data, date_range_weeks=12, pert_factor=3, include_forecast=True
 ):
     """
     Create a bar chart showing weekly completed items with optional forecast for the next week.
 
     Args:
         statistics_data: List of dictionaries containing statistics data
-        date_range_weeks: Number of weeks to display (None for all)
+        date_range_weeks: Number of weeks to display (default: 12 weeks)
         pert_factor: PERT factor for calculations (for forecast)
         include_forecast: Whether to include forecast data (default: True)
 
@@ -817,11 +817,19 @@ def create_weekly_items_chart(
     # Convert date to datetime and ensure proper format
     df["date"] = pd.to_datetime(df["date"])
 
-    # Filter by date range if specified
-    if date_range_weeks:
-        latest_date = df["date"].max()
-        start_date = latest_date - timedelta(weeks=date_range_weeks)
-        df = df[df["date"] >= start_date]
+    # Always filter by date range for better visualization
+    # Ensure date_range_weeks is not None and is a positive number
+    weeks = 12  # Default to 12 weeks
+    if (
+        date_range_weeks is not None
+        and isinstance(date_range_weeks, (int, float))
+        and date_range_weeks > 0
+    ):
+        weeks = int(date_range_weeks)
+
+    latest_date = df["date"].max()
+    start_date = latest_date - timedelta(weeks=weeks)
+    df = df[df["date"] >= start_date]
 
     # Add week and year columns for grouping
     df["week"] = df["date"].dt.isocalendar().week
@@ -1006,14 +1014,14 @@ def create_weekly_items_chart(
 
 
 def create_weekly_points_chart(
-    statistics_data, date_range_weeks=None, pert_factor=3, include_forecast=True
+    statistics_data, date_range_weeks=12, pert_factor=3, include_forecast=True
 ):
     """
     Create a bar chart showing weekly completed points with a weighted moving average line and optional forecast for next week.
 
     Args:
         statistics_data: List of dictionaries containing statistics data
-        date_range_weeks: Number of weeks to display (None for all)
+        date_range_weeks: Number of weeks to display (default: 12 weeks)
         pert_factor: PERT factor for calculations (for forecast)
         include_forecast: Whether to include forecast data (default: True)
 
@@ -1038,11 +1046,19 @@ def create_weekly_points_chart(
     # Convert date to datetime and ensure proper format
     df["date"] = pd.to_datetime(df["date"])
 
-    # Filter by date range if specified
-    if date_range_weeks:
-        latest_date = df["date"].max()
-        start_date = latest_date - timedelta(weeks=date_range_weeks)
-        df = df[df["date"] >= start_date]
+    # Always filter by date range for better visualization
+    # Ensure date_range_weeks is not None and is a positive number
+    weeks = 12  # Default to 12 weeks
+    if (
+        date_range_weeks is not None
+        and isinstance(date_range_weeks, (int, float))
+        and date_range_weeks > 0
+    ):
+        weeks = int(date_range_weeks)
+
+    latest_date = df["date"].max()
+    start_date = latest_date - timedelta(weeks=weeks)
+    df = df[df["date"] >= start_date]
 
     # Add week and year columns for grouping
     df["week"] = df["date"].dt.isocalendar().week
@@ -1247,7 +1263,7 @@ def create_weekly_points_chart(
 
 
 def create_weekly_items_forecast_chart(
-    statistics_data, pert_factor=3, date_range_weeks=None
+    statistics_data, pert_factor=3, date_range_weeks=12
 ):
     """
     Create a chart showing weekly completed items with a 4-week forecast.
@@ -1255,7 +1271,7 @@ def create_weekly_items_forecast_chart(
     Args:
         statistics_data: List of dictionaries containing statistics data
         pert_factor: Number of data points to use for optimistic/pessimistic scenarios
-        date_range_weeks: Number of weeks of historical data to display (None for all)
+        date_range_weeks: Number of weeks of historical data to display (default: 12 weeks)
 
     Returns:
         Plotly figure object with the weekly items forecast chart
@@ -1278,11 +1294,19 @@ def create_weekly_items_forecast_chart(
     # Convert date to datetime and ensure proper format
     df["date"] = pd.to_datetime(df["date"])
 
-    # Filter by date range if specified
-    if date_range_weeks:
-        latest_date = df["date"].max()
-        start_date = latest_date - timedelta(weeks=date_range_weeks)
-        df = df[df["date"] >= start_date]
+    # Always filter by date range for better visualization
+    # Ensure date_range_weeks is not None and is a positive number
+    weeks = 12  # Default to 12 weeks
+    if (
+        date_range_weeks is not None
+        and isinstance(date_range_weeks, (int, float))
+        and date_range_weeks > 0
+    ):
+        weeks = int(date_range_weeks)
+
+    latest_date = df["date"].max()
+    start_date = latest_date - timedelta(weeks=weeks)
+    df = df[df["date"] >= start_date]
 
     # Add week and year columns for grouping
     df["week"] = df["date"].dt.isocalendar().week
@@ -1446,7 +1470,7 @@ def create_weekly_items_forecast_chart(
 
 
 def create_weekly_points_forecast_chart(
-    statistics_data, pert_factor=3, date_range_weeks=None
+    statistics_data, pert_factor=3, date_range_weeks=12
 ):
     """
     Create a chart showing weekly completed points with a 4-week forecast.
@@ -1454,7 +1478,7 @@ def create_weekly_points_forecast_chart(
     Args:
         statistics_data: List of dictionaries containing statistics data
         pert_factor: Number of data points to use for optimistic/pessimistic scenarios
-        date_range_weeks: Number of weeks of historical data to display (None for all)
+        date_range_weeks: Number of weeks of historical data to display (default: 12 weeks)
 
     Returns:
         Plotly figure object with the weekly points forecast chart
@@ -1477,11 +1501,19 @@ def create_weekly_points_forecast_chart(
     # Convert date to datetime and ensure proper format
     df["date"] = pd.to_datetime(df["date"])
 
-    # Filter by date range if specified
-    if date_range_weeks:
-        latest_date = df["date"].max()
-        start_date = latest_date - timedelta(weeks=date_range_weeks)
-        df = df[df["date"] >= start_date]
+    # Always filter by date range for better visualization
+    # Ensure date_range_weeks is not None and is a positive number
+    weeks = 12  # Default to 12 weeks
+    if (
+        date_range_weeks is not None
+        and isinstance(date_range_weeks, (int, float))
+        and date_range_weeks > 0
+    ):
+        weeks = int(date_range_weeks)
+
+    latest_date = df["date"].max()
+    start_date = latest_date - timedelta(weeks=weeks)
+    df = df[df["date"] >= start_date]
 
     # Add week and year columns for grouping
     df["week"] = df["date"].dt.isocalendar().week
@@ -1703,7 +1735,7 @@ def create_weekly_points_forecast_chart(
                 yref="paper",
                 text=(
                     f"<b>Forecast Methodology:</b> Based on PERT analysis using historical data.<br>"
-                    f"<b>Most Likely:</b> {forecast_data['points'].get('most_likely_value', 0):.1f} points/week (historical average)<br>"
+                    f"<b>Most Likely:</b> {forecast_data['points'].get('most_likely_value', 0)::.1f} points/week (historical average)<br>"
                     f"<b>Optimistic:</b> {forecast_data['points'].get('optimistic_value', 0):.1f} points/week<br>"
                     f"<b>Pessimistic:</b> {forecast_data['points'].get('pessimistic_value', 0):.1f} points/week<br>"
                     f"<b>Weighted Average:</b> More weight given to recent data (40% for most recent week, 30%, 20%, 10% for earlier weeks)"
