@@ -13,7 +13,6 @@ from ui.tabs import create_tabs, create_tab_content
 # Import from components.py
 from ui.components import (
     create_info_tooltip,
-    create_help_modal,
     create_pert_info_table,
     create_trend_indicator,
     create_export_buttons,
@@ -35,7 +34,6 @@ from ui.cards import (
 __all__ = [
     # Components
     "create_info_tooltip",
-    "create_help_modal",
     "create_pert_info_table",
     "create_trend_indicator",
     "create_export_buttons",

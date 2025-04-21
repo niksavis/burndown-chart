@@ -21,7 +21,6 @@ from data import (
 )
 
 # Import UI components and grid templates
-from ui.components import create_help_modal
 from ui.cards import (
     create_forecast_graph_card,
     create_forecast_info_card,
@@ -110,31 +109,6 @@ def create_app_layout(settings, statistics, is_sample_data):
                 dcc.Graph(id="forecast-graph", style={"display": "none"}),
                 id="forecast-graph-container",
             ),
-            # Sticky Help Button in top-right corner
-            html.Div(
-                [
-                    html.Div(
-                        [
-                            html.I(className="fas fa-question-circle me-2"),
-                            "How to Use This App",
-                        ],
-                        id="help-button",
-                        className="btn btn-info btn-sm shadow d-flex align-items-center",
-                        style={
-                            "cursor": "pointer",
-                            "fontWeight": "500",
-                            "transition": "all 0.2s ease",
-                            "borderRadius": "0.375rem",
-                        },
-                    ),
-                ],
-                style={
-                    "position": "fixed",
-                    "top": "20px",
-                    "right": "20px",
-                    "zIndex": "1000",
-                },
-            ),
             # Sample data notification banner (shown only when using sample data)
             html.Div(
                 [
@@ -176,8 +150,6 @@ def create_app_layout(settings, statistics, is_sample_data):
                 ),
                 row_class="mb-3",
             ),
-            # Help modal
-            create_help_modal(),
             # Tab Navigation and Charts Row - using full width template
             create_full_width_layout(
                 dbc.Card(

@@ -151,19 +151,6 @@ def register(app):
         return fig, project_dashboard_pert_info
 
     @app.callback(
-        Output("help-modal", "is_open"),
-        [Input("help-button", "n_clicks"), Input("close-help", "n_clicks")],
-        [State("help-modal", "is_open")],
-    )
-    def toggle_help_modal(n1, n2, is_open):
-        """
-        Toggle the help modal visibility.
-        """
-        if n1 or n2:
-            return not is_open
-        return is_open
-
-    @app.callback(
         Output("tab-content", "children"),
         [
             Input("chart-tabs", "active_tab"),
