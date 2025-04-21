@@ -567,7 +567,9 @@ def register(app):
                         id="forecast-graph",
                         figure=burndown_fig,
                         config={"displayModeBar": True, "responsive": True},
-                        style={"height": "600px"},
+                        style={
+                            "height": "700px"
+                        },  # Updated from 600px to 700px for consistency
                     ),
                 ]
             )
@@ -713,7 +715,9 @@ def register(app):
                         id="items-chart",
                         figure=items_fig,
                         config={"displayModeBar": True, "responsive": True},
-                        style={"height": "600px"},
+                        style={
+                            "height": "700px"
+                        },  # Updated from 600px to 700px for consistency
                     ),
                 ]
             )
@@ -859,7 +863,9 @@ def register(app):
                         id="points-chart",
                         figure=points_fig,
                         config={"displayModeBar": True, "responsive": True},
-                        style={"height": "600px"},
+                        style={
+                            "height": "700px"
+                        },  # Updated from 600px to 700px for consistency
                     ),
                 ]
             )

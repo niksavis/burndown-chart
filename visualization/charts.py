@@ -370,6 +370,7 @@ def apply_layout_settings(fig):
         plot_bgcolor="white",
         paper_bgcolor="white",
         font={"family": "Arial, sans-serif"},
+        height=700,  # Add explicit height in pixels to make chart taller
     )
 
     return fig

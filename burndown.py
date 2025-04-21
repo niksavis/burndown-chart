@@ -158,7 +158,7 @@ def generate_burndown_chart(
     )
     deadline = data["deadline"]
 
-    plt.figure(figsize=(10, 6))
+    plt.figure(figsize=(10, 8))  # Increased height from 6 to 8
     texts = plot_lines(data)
 
     plt.title(f"Project Burndown For {today.strftime('%Y-%m-%d')}")
@@ -241,7 +241,7 @@ def generate_multiple_burndown_charts(
     """
     Generates multiple burndown charts on a single figure.
     """
-    plt.figure(figsize=(10, 6))
+    plt.figure(figsize=(10, 8))  # Increased height from 6 to 8
     execution_date = today.strftime("%Y-%m-%d")
     plt.title(f"Project Burndowns For {execution_date}")
 

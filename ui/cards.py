@@ -58,7 +58,9 @@ def create_forecast_graph_card():
     # Create the card body content
     body_content = dcc.Graph(
         id="forecast-graph",
-        style={"height": "650px"},
+        style={
+            "height": "700px"
+        },  # Updated from 650px to match the height in apply_layout_settings
         config={
             # Only specify the filename, let Plotly handle the rest of the export settings
             "toImageButtonOptions": {
@@ -288,7 +290,7 @@ def create_forecast_info_card():
                 is_open=False,
             ),
         ],
-        className="mb-3 shadow-sm",
+        className="mb-3 shadow-sm mt-4",  # Added mt-4 to create space between the chart and info card
     )
 
 
