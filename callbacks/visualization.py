@@ -258,7 +258,46 @@ def register(app):
             # Prepare charts for each tab
             charts = {}
 
-            # Burndown chart (existing)
+            # Calculate trend indicators for items and points for reuse
+            items_trend = calculate_performance_trend(statistics, "no_items", 4)
+            points_trend = calculate_performance_trend(statistics, "no_points", 4)
+
+            # Generate weekly forecast data for optimistic trends
+            forecast_data = None
+            if statistics:
+                forecast_data = generate_weekly_forecast(statistics, pert_factor)
+
+            # Add forecast info to trend data if available
+            if forecast_data:
+                if "items" in forecast_data:
+                    if "optimistic_value" in forecast_data["items"]:
+                        items_trend["optimistic_forecast"] = forecast_data["items"][
+                            "optimistic_value"
+                        ]
+                    if "most_likely_value" in forecast_data["items"]:
+                        items_trend["most_likely_forecast"] = forecast_data["items"][
+                            "most_likely_value"
+                        ]
+                    if "pessimistic_value" in forecast_data["items"]:
+                        items_trend["pessimistic_forecast"] = forecast_data["items"][
+                            "pessimistic_value"
+                        ]
+
+                if "points" in forecast_data:
+                    if "optimistic_value" in forecast_data["points"]:
+                        points_trend["optimistic_forecast"] = forecast_data["points"][
+                            "optimistic_value"
+                        ]
+                    if "most_likely_value" in forecast_data["points"]:
+                        points_trend["most_likely_forecast"] = forecast_data["points"][
+                            "most_likely_value"
+                        ]
+                    if "pessimistic_value" in forecast_data["points"]:
+                        points_trend["pessimistic_forecast"] = forecast_data["points"][
+                            "pessimistic_value"
+                        ]
+
+            # Burndown chart
             burndown_fig, _ = create_forecast_plot(
                 df=compute_cumulative_values(df, total_items, total_points)
                 if not df.empty
@@ -267,11 +306,195 @@ def register(app):
                 total_points=total_points,
                 pert_factor=pert_factor,
                 deadline_str=deadline,
-                data_points_count=data_points_count,  # Pass the data_points_count parameter
+                data_points_count=data_points_count,
             )
+
+            # Enhanced burndown tab with weekly trend boxes
             charts["tab-burndown"] = html.Div(
                 [
-                    # Burndown chart (removed export buttons)
+                    # Weekly trend indicators in a row
+                    html.Div(
+                        [
+                            # Items trend box
+                            html.Div(
+                                [
+                                    # Add compact trend indicator with icon and title
+                                    html.Div(
+                                        [
+                                            html.I(
+                                                className="fas fa-tasks me-2",
+                                                style={"color": "#20c997"},
+                                            ),
+                                            html.Span(
+                                                "Weekly Items Trend",
+                                                className="fw-medium",
+                                            ),
+                                        ],
+                                        className="d-flex align-items-center mb-2",
+                                    ),
+                                    create_compact_trend_indicator(
+                                        items_trend, "Items"
+                                    ),
+                                    # Add most likely forecast
+                                    html.Div(
+                                        [
+                                            html.I(
+                                                className="fas fa-chart-line me-1",
+                                                style={"color": "#0d6efd"},
+                                            ),
+                                            html.Small(
+                                                [
+                                                    "Most likely: ",
+                                                    html.Strong(
+                                                        f"{items_trend.get('most_likely_forecast', 0):.1f} items/week",
+                                                        style={"color": "#0d6efd"},
+                                                    ),
+                                                ],
+                                            ),
+                                        ],
+                                        className="mt-2 ps-2 small",
+                                        style={"borderLeft": "3px solid #0d6efd"},
+                                    )
+                                    if "most_likely_forecast" in items_trend
+                                    else None,
+                                    # Add optimistic forecast
+                                    html.Div(
+                                        [
+                                            html.I(
+                                                className="fas fa-chart-line me-1 text-success"
+                                            ),
+                                            html.Small(
+                                                [
+                                                    "Optimistic: ",
+                                                    html.Strong(
+                                                        f"{items_trend.get('optimistic_forecast', 0):.1f} items/week",
+                                                        style={"color": "#28a745"},
+                                                    ),
+                                                ],
+                                            ),
+                                        ],
+                                        className="mt-2 ps-2 small",
+                                        style={"borderLeft": "3px solid #28a745"},
+                                    )
+                                    if "optimistic_forecast" in items_trend
+                                    else None,
+                                    # Add pessimistic forecast
+                                    html.Div(
+                                        [
+                                            html.I(
+                                                className="fas fa-chart-line me-1",
+                                                style={"color": "#6610f2"},
+                                            ),
+                                            html.Small(
+                                                [
+                                                    "Pessimistic: ",
+                                                    html.Strong(
+                                                        f"{items_trend.get('pessimistic_forecast', 0):.1f} items/week",
+                                                        style={"color": "#6610f2"},
+                                                    ),
+                                                ],
+                                            ),
+                                        ],
+                                        className="mt-2 ps-2 small",
+                                        style={"borderLeft": "3px solid #6610f2"},
+                                    )
+                                    if "pessimistic_forecast" in items_trend
+                                    else None,
+                                ],
+                                className="col-md-6 col-12 mb-3 pe-md-2",
+                            ),
+                            # Points trend box
+                            html.Div(
+                                [
+                                    # Add compact trend indicator with icon and title
+                                    html.Div(
+                                        [
+                                            html.I(
+                                                className="fas fa-chart-bar me-2",
+                                                style={"color": "#fd7e14"},
+                                            ),
+                                            html.Span(
+                                                "Weekly Points Trend",
+                                                className="fw-medium",
+                                            ),
+                                        ],
+                                        className="d-flex align-items-center mb-2",
+                                    ),
+                                    create_compact_trend_indicator(
+                                        points_trend, "Points"
+                                    ),
+                                    # Add most likely forecast
+                                    html.Div(
+                                        [
+                                            html.I(
+                                                className="fas fa-chart-line me-1",
+                                                style={"color": "#fd7e14"},
+                                            ),
+                                            html.Small(
+                                                [
+                                                    "Most likely: ",
+                                                    html.Strong(
+                                                        f"{points_trend.get('most_likely_forecast', 0):.1f} points/week",
+                                                        style={"color": "#fd7e14"},
+                                                    ),
+                                                ],
+                                            ),
+                                        ],
+                                        className="mt-2 ps-2 small",
+                                        style={"borderLeft": "3px solid #fd7e14"},
+                                    )
+                                    if "most_likely_forecast" in points_trend
+                                    else None,
+                                    # Add optimistic forecast
+                                    html.Div(
+                                        [
+                                            html.I(
+                                                className="fas fa-chart-line me-1 text-success"
+                                            ),
+                                            html.Small(
+                                                [
+                                                    "Optimistic: ",
+                                                    html.Strong(
+                                                        f"{points_trend.get('optimistic_forecast', 0):.1f} points/week",
+                                                        style={"color": "#28a745"},
+                                                    ),
+                                                ],
+                                            ),
+                                        ],
+                                        className="mt-2 ps-2 small",
+                                        style={"borderLeft": "3px solid #28a745"},
+                                    )
+                                    if "optimistic_forecast" in points_trend
+                                    else None,
+                                    # Add pessimistic forecast
+                                    html.Div(
+                                        [
+                                            html.I(
+                                                className="fas fa-chart-line me-1",
+                                                style={"color": "#a52a2a"},
+                                            ),
+                                            html.Small(
+                                                [
+                                                    "Pessimistic: ",
+                                                    html.Strong(
+                                                        f"{points_trend.get('pessimistic_forecast', 0):.1f} points/week",
+                                                        style={"color": "#a52a2a"},
+                                                    ),
+                                                ],
+                                            ),
+                                        ],
+                                        className="mt-2 ps-2 small",
+                                        style={"borderLeft": "3px solid #a52a2a"},
+                                    )
+                                    if "pessimistic_forecast" in points_trend
+                                    else None,
+                                ],
+                                className="col-md-6 col-12 mb-3 ps-md-2",
+                            ),
+                        ],
+                        className="row mb-3",
+                    ),
+                    # Main burndown chart
                     dcc.Graph(
                         id="forecast-graph",
                         figure=burndown_fig,
@@ -285,8 +508,6 @@ def register(app):
             items_fig = create_weekly_items_chart(
                 statistics, date_range_weeks, pert_factor
             )
-            # Calculate trend indicators for items
-            items_trend = calculate_performance_trend(statistics, "no_items", 4)
 
             charts["tab-items"] = html.Div(
                 [
@@ -312,8 +533,6 @@ def register(app):
             points_fig = create_weekly_points_chart(
                 statistics, date_range_weeks, pert_factor
             )
-            # Calculate trend indicators for points
-            points_trend = calculate_performance_trend(statistics, "no_points", 4)
 
             charts["tab-points"] = html.Div(
                 [
