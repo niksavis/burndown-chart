@@ -221,7 +221,7 @@ def create_plot_traces(forecast_data):
         }
     )
 
-    # Use consistent colors from COLOR_PALETTE for optimistic and pessimistic points
+    # Use gold color for optimistic points forecast (matching info card description)
     traces.append(
         {
             "data": go.Scatter(
@@ -229,11 +229,13 @@ def create_plot_traces(forecast_data):
                 y=points_forecasts["opt"][1],
                 mode="lines+markers",  # Added markers
                 name="Points Forecast (Optimistic)",
-                line=dict(color=COLOR_PALETTE["optimistic"], dash="dot", width=2.5),
+                line=dict(
+                    color="rgb(184, 134, 11)", dash="dot", width=2.5
+                ),  # Gold color for optimistic points
                 marker=dict(
                     size=7,
                     symbol="triangle-up",
-                    color=COLOR_PALETTE["optimistic"],
+                    color="rgb(184, 134, 11)",  # Gold color for marker
                     line=dict(color="white", width=1),
                 ),
                 hovertemplate=format_hover_template(
@@ -250,6 +252,7 @@ def create_plot_traces(forecast_data):
         }
     )
 
+    # Use brown color for pessimistic points forecast (matching info card description)
     traces.append(
         {
             "data": go.Scatter(
@@ -257,11 +260,13 @@ def create_plot_traces(forecast_data):
                 y=points_forecasts["pes"][1],
                 mode="lines+markers",  # Added markers
                 name="Points Forecast (Pessimistic)",
-                line=dict(color=COLOR_PALETTE["pessimistic"], dash="dot", width=2.5),
+                line=dict(
+                    color="rgb(165, 42, 42)", dash="dot", width=2.5
+                ),  # Brown color for pessimistic points
                 marker=dict(
                     size=7,
                     symbol="triangle-down",
-                    color=COLOR_PALETTE["pessimistic"],
+                    color="rgb(165, 42, 42)",  # Brown color for marker
                     line=dict(color="white", width=1),
                 ),
                 hovertemplate=format_hover_template(
