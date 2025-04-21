@@ -990,8 +990,8 @@ def create_weekly_items_chart(
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
         plot_bgcolor="rgba(255, 255, 255, 0.9)",
         margin=dict(
-            b=130
-        ),  # Significantly increased bottom margin to prevent info box cutoff
+            b=70  # Reduced from 130 to 70
+        ),
     )
 
     return fig
@@ -1218,8 +1218,8 @@ def create_weekly_points_chart(
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
         plot_bgcolor="rgba(255, 255, 255, 0.9)",
         margin=dict(
-            b=130
-        ),  # Significantly increased bottom margin to prevent info box cutoff
+            b=60  # Reduced from 130 to 60
+        ),
     )
 
     return fig
@@ -1408,14 +1408,14 @@ def create_weekly_items_forecast_chart(
         annotations=[
             dict(
                 x=0.5,
-                y=-0.3,
+                y=-0.25,  # Adjusted from -0.3 to -0.25
                 xref="paper",
                 yref="paper",
                 text=(
                     f"<b>Forecast Methodology:</b> Based on PERT analysis using historical data.<br>"
                     f"<b>Most Likely:</b> {forecast_data['items'].get('most_likely_value', 0):.1f} items/week (historical average)<br>"
                     f"<b>Optimistic:</b> {forecast_data['items'].get('optimistic_value', 0):.1f} items/week<br>"
-                    f"<b>Pessimistic:</b> {forecast_data['items'].get('pessimistic_value', 0):.1f} items/week"
+                    f"<b>Pessimistic:</b> {forecast_data['items'].get('pessimistic_value', 0)::.1f} items/week"
                 ),
                 showarrow=False,
                 font=dict(size=12),
@@ -1426,7 +1426,7 @@ def create_weekly_items_forecast_chart(
                 bgcolor="rgba(250, 250, 250, 0.8)",
             )
         ],
-        margin=dict(b=100),  # Add more bottom margin for the forecast explanation
+        margin=dict(b=70),  # Reduced from 100 to 70
     )
 
     return fig
@@ -1693,7 +1693,7 @@ def create_weekly_points_forecast_chart(
         annotations=[
             dict(
                 x=0.5,
-                y=-0.3,
+                y=-0.25,  # Adjusted from -0.3 to -0.25
                 xref="paper",
                 yref="paper",
                 text=(
@@ -1712,7 +1712,7 @@ def create_weekly_points_forecast_chart(
                 bgcolor="rgba(250, 250, 250, 0.8)",
             )
         ],
-        margin=dict(b=120),  # More bottom margin for the forecast explanation
+        margin=dict(b=70),  # Reduced from 120 to 70
     )
 
     return fig

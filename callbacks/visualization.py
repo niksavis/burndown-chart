@@ -1366,3 +1366,67 @@ def register_loading_callbacks(app):
         return create_content_placeholder(
             type="table", text="Upload a CSV or Excel file to view data", height="200px"
         )
+
+
+from dash import Input, Output, State, callback, html, dcc, ctx
+import dash_bootstrap_components as dbc
+import pandas as pd
+from dash.exceptions import PreventUpdate
+import logging
+
+# Import local modules
+from visualization.charts import (
+    create_weekly_items_chart,
+    create_weekly_points_chart,
+    create_weekly_items_forecast_chart,
+    create_weekly_points_forecast_chart,
+)
+
+# Setup logging
+logger = logging.getLogger("burndown_chart")
+
+
+# New callbacks for collapsible forecast info cards
+@callback(
+    Output("items-forecast-info-collapse", "is_open"),
+    Input("items-forecast-info-collapse-button", "n_clicks"),
+    State("items-forecast-info-collapse", "is_open"),
+)
+def toggle_items_forecast_info_collapse(n_clicks, is_open):
+    """Toggle the collapse state of the items forecast information card."""
+    if n_clicks is None:
+        # Initial state - collapsed
+        return False
+
+    # Toggle the state when button is clicked
+    return not is_open
+
+
+@callback(
+    Output("points-forecast-info-collapse", "is_open"),
+    Input("points-forecast-info-collapse-button", "n_clicks"),
+    State("points-forecast-info-collapse", "is_open"),
+)
+def toggle_points_forecast_info_collapse(n_clicks, is_open):
+    """Toggle the collapse state of the points forecast information card."""
+    if n_clicks is None:
+        # Initial state - collapsed
+        return False
+
+    # Toggle the state when button is clicked
+    return not is_open
+
+
+@callback(
+    Output("forecast-info-collapse", "is_open"),
+    Input("forecast-info-collapse-button", "n_clicks"),
+    State("forecast-info-collapse", "is_open"),
+)
+def toggle_forecast_info_collapse(n_clicks, is_open):
+    """Toggle the collapse state of the forecast information card."""
+    if n_clicks is None:
+        # Initial state - collapsed
+        return False
+
+    # Toggle the state when button is clicked
+    return not is_open

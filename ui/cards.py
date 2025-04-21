@@ -91,12 +91,8 @@ def create_forecast_info_card():
         apply_vertical_rhythm,
     )
 
-    # Create the card header with tooltip
-    header_content = create_card_header_with_tooltip(
-        "Forecast Information",
-        tooltip_id="forecast-info",
-        tooltip_text="How to interpret the forecast graph.",
-    )
+    # Generate a unique ID for this collapse component
+    collapse_id = "forecast-info-collapse"
 
     # Create the card body content with optimized layout
     body_content = html.Div(
@@ -247,12 +243,52 @@ def create_forecast_info_card():
         style={"textAlign": "left"},
     )
 
-    # Return the standardized card with reduced padding
-    return create_standardized_card(
-        header_content=header_content,
-        body_content=body_content,
-        body_className="py-2 px-3",  # Reduced padding
-        shadow="sm",
+    # Return a card with collapsible body content
+    return dbc.Card(
+        [
+            dbc.CardHeader(
+                dbc.Row(
+                    [
+                        dbc.Col(
+                            html.H5(
+                                "Forecast Information",
+                                className="d-inline mb-0",
+                                style={"fontSize": "0.875rem", "fontWeight": "600"},
+                            ),
+                            width=10,
+                        ),
+                        dbc.Col(
+                            html.Div(
+                                [
+                                    dbc.Button(
+                                        html.I(className="fas fa-chevron-down"),
+                                        id=f"{collapse_id}-button",
+                                        color="link",
+                                        size="sm",
+                                        className="p-0 border-0",
+                                    ),
+                                    create_info_tooltip(
+                                        "forecast-info",
+                                        "How to interpret the forecast graph.",
+                                    ),
+                                ],
+                                className="d-flex justify-content-end align-items-center",
+                            ),
+                            width=2,
+                        ),
+                    ],
+                    align="center",
+                    className="g-0",
+                ),
+                className="py-2 px-3 d-flex justify-content-between align-items-center",
+            ),
+            dbc.Collapse(
+                dbc.CardBody(body_content, className="py-2 px-3"),
+                id=collapse_id,
+                is_open=False,
+            ),
+        ],
+        className="mb-3 shadow-sm",
     )
 
 
@@ -951,30 +987,39 @@ def create_project_status_card(statistics_df, settings):
         # Create a copy of the DataFrame to avoid SettingWithCopyWarning
         recent_df = statistics_df.copy() if not statistics_df.empty else pd.DataFrame()
 
+        # Default values if no data is available
+        avg_weekly_items = 0
+        avg_weekly_points = 0
+        stability_status = "Unknown"
+        stability_color = "secondary"
+        stability_icon = "fa-question-circle"
+
         # Convert to datetime to ensure proper week grouping
         if not recent_df.empty:
             # Use proper pandas assignment with .loc to avoid SettingWithCopyWarning
             recent_df.loc[:, "date"] = pd.to_datetime(recent_df["date"])
+
+            # Add week and year columns
             recent_df.loc[:, "week"] = recent_df["date"].dt.isocalendar().week
             recent_df.loc[:, "year"] = recent_df["date"].dt.isocalendar().year
 
-            # Use tail(10) after assigning week and year columns
-            recent_df = recent_df.tail(10)
-
+            # Group by week to get weekly data
             weekly_data = (
                 recent_df.groupby(["year", "week"])
                 .agg({"no_items": "sum", "no_points": "sum"})
                 .reset_index()
+                .tail(10)  # Consider only the last 10 weeks
             )
 
-            # Calculate metrics
+            # Calculate average weekly velocity
             avg_weekly_items = weekly_data["no_items"].mean()
             avg_weekly_points = weekly_data["no_points"].mean()
 
-            # Calculate coefficient of variation (CV = stdev / mean)
+            # Calculate standard deviation for coefficient of variation
             std_weekly_items = weekly_data["no_items"].std()
             std_weekly_points = weekly_data["no_points"].std()
 
+            # Calculate coefficient of variation (CV = std/mean)
             cv_items = (
                 (std_weekly_items / avg_weekly_items * 100)
                 if avg_weekly_items > 0
@@ -986,10 +1031,9 @@ def create_project_status_card(statistics_df, settings):
                 else 0
             )
 
-            # Calculate stability metrics (weeks with 0 or > 2x average)
+            # Count zero weeks and high weeks (outliers)
             zero_item_weeks = len(weekly_data[weekly_data["no_items"] == 0])
             zero_point_weeks = len(weekly_data[weekly_data["no_points"] == 0])
-
             high_item_weeks = len(
                 weekly_data[weekly_data["no_items"] > avg_weekly_items * 2]
             )
@@ -1023,13 +1067,6 @@ def create_project_status_card(statistics_df, settings):
                 stability_status = "Variable"
                 stability_color = "danger"
                 stability_icon = "fa-times-circle"
-        else:
-            # Default values if no data is available
-            avg_weekly_items = 0
-            avg_weekly_points = 0
-            stability_status = "Unknown"
-            stability_color = "secondary"
-            stability_icon = "fa-question-circle"
 
         # Calculate days of data available
         if not statistics_df.empty:
@@ -1715,8 +1752,8 @@ def create_items_forecast_info_card(statistics_df=None, pert_data=None):
     Returns:
         Dash Card component with items forecast explanation
     """
-    import pandas as pd
     from datetime import datetime, timedelta
+    import dash_bootstrap_components as dbc
 
     # Calculate weekly metrics if statistics_df is provided
     avg_weekly_items = 0
@@ -1763,7 +1800,10 @@ def create_items_forecast_info_card(statistics_df=None, pert_data=None):
             items_days = f"{int(pert_time_items)}"
             items_weeks = f"{round(pert_time_items / 7, 1)}"
 
-    # The original card content with chart elements and forecast method
+    # Generate a unique ID for this collapse component
+    collapse_id = "items-forecast-info-collapse"
+
+    # The card content with chart elements and forecast method
     chart_info = html.Div(
         className="row g-3",
         children=[
@@ -1773,7 +1813,11 @@ def create_items_forecast_info_card(statistics_df=None, pert_data=None):
                 children=html.Div(
                     className="border rounded p-2 h-100",
                     children=[
-                        html.H6("Chart Elements", className="mb-2"),
+                        html.H6(
+                            "Chart Elements",
+                            className="mb-2",
+                            style={"fontSize": "0.875rem", "fontWeight": "600"},
+                        ),
                         html.Ul(
                             [
                                 html.Li(
@@ -1814,7 +1858,7 @@ def create_items_forecast_info_card(statistics_df=None, pert_data=None):
                                 ),
                             ],
                             className="mb-0 ps-3",
-                            style={"fontSize": "0.9rem"},
+                            style={"fontSize": "0.85rem"},
                         ),
                     ],
                 ),
@@ -1825,30 +1869,40 @@ def create_items_forecast_info_card(statistics_df=None, pert_data=None):
                 children=html.Div(
                     className="border rounded p-2 h-100",
                     children=[
-                        html.H6("PERT Forecast Method", className="mb-2"),
+                        html.H6(
+                            "PERT Forecast Method",
+                            className="mb-2",
+                            style={"fontSize": "0.875rem", "fontWeight": "600"},
+                        ),
                         html.Ul(
                             [
                                 html.Li(
                                     [
                                         html.Strong("Most Likely: "),
-                                        "Average of all data (50% confidence)",
+                                        "Average of recent weekly data",
                                     ]
                                 ),
                                 html.Li(
                                     [
                                         html.Strong("Optimistic: "),
-                                        "Highest weeks average (20% confidence)",
+                                        "Average of highest performing weeks",
                                     ]
                                 ),
                                 html.Li(
                                     [
                                         html.Strong("Pessimistic: "),
-                                        "Lowest weeks average (80% confidence)",
+                                        "Average of lowest performing weeks",
+                                    ]
+                                ),
+                                html.Li(
+                                    [
+                                        html.Strong("Weighted Average: "),
+                                        "Recent weeks weighted [10%, 20%, 30%, 40%]",
                                     ]
                                 ),
                             ],
                             className="mb-0 ps-3",
-                            style={"fontSize": "0.9rem"},
+                            style={"fontSize": "0.85rem"},
                         ),
                     ],
                 ),
@@ -1859,24 +1913,48 @@ def create_items_forecast_info_card(statistics_df=None, pert_data=None):
     return dbc.Card(
         [
             dbc.CardHeader(
-                [
-                    html.H4("Items Forecast Information", className="d-inline"),
-                    create_info_tooltip(
-                        "items-forecast-info",
-                        "Understanding the weekly items forecast chart and trends.",
-                    ),
-                ],
-                className="py-2 px-3",  # Added padding classes to match Burndown chart
+                dbc.Row(
+                    [
+                        dbc.Col(
+                            html.H5(
+                                "Items Forecast Information",
+                                className="d-inline mb-0",
+                                style={"fontSize": "0.875rem", "fontWeight": "600"},
+                            ),
+                            width=10,
+                        ),
+                        dbc.Col(
+                            html.Div(
+                                [
+                                    dbc.Button(
+                                        html.I(className="fas fa-chevron-down"),
+                                        id=f"{collapse_id}-button",
+                                        color="link",
+                                        size="sm",
+                                        className="p-0 border-0",
+                                    ),
+                                    create_info_tooltip(
+                                        "items-forecast-info",
+                                        "Understanding the weekly items forecast chart and trends.",
+                                    ),
+                                ],
+                                className="d-flex justify-content-end align-items-center",
+                            ),
+                            width=2,
+                        ),
+                    ],
+                    align="center",
+                    className="g-0",
+                ),
+                className="py-2 px-3 d-flex justify-content-between align-items-center",
             ),
-            dbc.CardBody(
-                [
-                    # Original content follows
-                    chart_info
-                ],
-                className="p-3",
+            dbc.Collapse(
+                dbc.CardBody(chart_info, className="p-3"),
+                id=collapse_id,
+                is_open=False,
             ),
         ],
-        className="mt-4 mb-3 shadow-sm",
+        className="mt-3 mb-2 shadow-sm",  # Reduced margin
     )
 
 
@@ -1891,8 +1969,8 @@ def create_points_forecast_info_card(statistics_df=None, pert_data=None):
     Returns:
         Dash Card component with points forecast explanation
     """
-    import pandas as pd
     from datetime import datetime, timedelta
+    import dash_bootstrap_components as dbc
 
     # Calculate weekly metrics if statistics_df is provided
     avg_weekly_points = 0
@@ -1939,7 +2017,10 @@ def create_points_forecast_info_card(statistics_df=None, pert_data=None):
             points_days = f"{int(pert_time_points)}"
             points_weeks = f"{round(pert_time_points / 7, 1)}"
 
-    # The original card content with chart elements and forecast method
+    # Generate a unique ID for this collapse component
+    collapse_id = "points-forecast-info-collapse"
+
+    # The card content with chart elements and forecast method
     chart_info = html.Div(
         className="row g-3",
         children=[
@@ -1949,7 +2030,11 @@ def create_points_forecast_info_card(statistics_df=None, pert_data=None):
                 children=html.Div(
                     className="border rounded p-2 h-100",
                     children=[
-                        html.H6("Chart Elements", className="mb-2"),
+                        html.H6(
+                            "Chart Elements",
+                            className="mb-2",
+                            style={"fontSize": "0.875rem", "fontWeight": "600"},
+                        ),
                         html.Ul(
                             [
                                 html.Li(
@@ -1967,7 +2052,7 @@ def create_points_forecast_info_card(statistics_df=None, pert_data=None):
                                 html.Li(
                                     [
                                         html.Span(
-                                            "Red Line",
+                                            "Tomato Line",
                                             style={
                                                 "color": "#FF6347",
                                                 "fontWeight": "bold",
@@ -1979,18 +2064,18 @@ def create_points_forecast_info_card(statistics_df=None, pert_data=None):
                                 html.Li(
                                     [
                                         html.Span(
-                                            "Error Bars",
+                                            "Patterned Bar",
                                             style={
                                                 "color": COLOR_PALETTE["points"],
                                                 "fontWeight": "bold",
                                             },
                                         ),
-                                        ": Confidence interval for forecast",
+                                        ": Next week's forecast with confidence interval",
                                     ]
                                 ),
                             ],
                             className="mb-0 ps-3",
-                            style={"fontSize": "0.9rem"},
+                            style={"fontSize": "0.85rem"},
                         ),
                     ],
                 ),
@@ -2001,30 +2086,40 @@ def create_points_forecast_info_card(statistics_df=None, pert_data=None):
                 children=html.Div(
                     className="border rounded p-2 h-100",
                     children=[
-                        html.H6("PERT Forecast Method", className="mb-2"),
+                        html.H6(
+                            "PERT Forecast Method",
+                            className="mb-2",
+                            style={"fontSize": "0.875rem", "fontWeight": "600"},
+                        ),
                         html.Ul(
                             [
                                 html.Li(
                                     [
                                         html.Strong("Most Likely: "),
-                                        "Average of all data (50% confidence)",
+                                        "Average of recent weekly data",
                                     ]
                                 ),
                                 html.Li(
                                     [
                                         html.Strong("Optimistic: "),
-                                        "Highest weeks average (20% confidence)",
+                                        "Average of highest performing weeks",
                                     ]
                                 ),
                                 html.Li(
                                     [
                                         html.Strong("Pessimistic: "),
-                                        "Lowest weeks average (80% confidence)",
+                                        "Average of lowest performing weeks",
+                                    ]
+                                ),
+                                html.Li(
+                                    [
+                                        html.Strong("Weighted Average: "),
+                                        "Recent weeks weighted [10%, 20%, 30%, 40%]",
                                     ]
                                 ),
                             ],
                             className="mb-0 ps-3",
-                            style={"fontSize": "0.9rem"},
+                            style={"fontSize": "0.85rem"},
                         ),
                     ],
                 ),
@@ -2035,165 +2130,46 @@ def create_points_forecast_info_card(statistics_df=None, pert_data=None):
     return dbc.Card(
         [
             dbc.CardHeader(
-                [
-                    html.H4("Points Forecast Information", className="d-inline"),
-                    create_info_tooltip(
-                        "points-forecast-info",
-                        "Understanding the weekly points forecast chart and trends.",
-                    ),
-                ],
-                className="py-2 px-3",  # Added padding classes to match Burndown chart
+                dbc.Row(
+                    [
+                        dbc.Col(
+                            html.H5(
+                                "Points Forecast Information",
+                                className="d-inline mb-0",
+                                style={"fontSize": "0.875rem", "fontWeight": "600"},
+                            ),
+                            width=10,
+                        ),
+                        dbc.Col(
+                            html.Div(
+                                [
+                                    dbc.Button(
+                                        html.I(className="fas fa-chevron-down"),
+                                        id=f"{collapse_id}-button",
+                                        color="link",
+                                        size="sm",
+                                        className="p-0 border-0",
+                                    ),
+                                    create_info_tooltip(
+                                        "points-forecast-info",
+                                        "Understanding the weekly points forecast chart and trends.",
+                                    ),
+                                ],
+                                className="d-flex justify-content-end align-items-center",
+                            ),
+                            width=2,
+                        ),
+                    ],
+                    align="center",
+                    className="g-0",
+                ),
+                className="py-2 px-3 d-flex justify-content-between align-items-center",
             ),
-            dbc.CardBody(
-                [
-                    # Original content follows
-                    chart_info
-                ],
-                className="p-3",
+            dbc.Collapse(
+                dbc.CardBody(chart_info, className="p-3"),
+                id=collapse_id,
+                is_open=False,
             ),
         ],
-        className="mt-4 mb-3 shadow-sm",
-    )
-
-
-def debug_pert_data(pert_data):
-    """Simple utility to display pert_data contents for debugging"""
-    import json
-    from dash import html
-
-    if pert_data is None:
-        return html.Pre("pert_data is None")
-
-    try:
-        # Format as pretty JSON with indentation
-        json_str = json.dumps(pert_data, indent=2, default=str)
-        return html.Pre(json_str)
-    except Exception as e:
-        return html.Pre(f"Error serializing pert_data: {str(e)}")
-
-
-def create_simple_pert_forecast_section(pert_data):
-    """
-    Create a simple PERT forecast section that directly displays the values.
-    This is a simplified version that avoids complex conditional formatting.
-
-    Args:
-        pert_data: Dictionary containing PERT analysis data
-
-    Returns:
-        Dash component with PERT forecast information
-    """
-    import dash_bootstrap_components as dbc
-    from dash import html
-    from datetime import datetime, timedelta
-
-    # Default values
-    items_completion_str = "Unknown"
-    points_completion_str = "Unknown"
-    items_days = "Unknown"
-    points_days = "Unknown"
-    items_weeks = "Unknown"
-    points_weeks = "Unknown"
-
-    # Extract values if available
-    if pert_data and isinstance(pert_data, dict):
-        pert_time_items = pert_data.get("pert_time_items")
-        pert_time_points = pert_data.get("pert_time_points")
-
-        # Check if we have pre-formatted completion strings in pert_data
-        items_completion_enhanced = pert_data.get("items_completion_enhanced")
-        points_completion_enhanced = pert_data.get("points_completion_enhanced")
-
-        if items_completion_enhanced is not None:
-            # Use pre-formatted string directly
-            items_completion_str_with_details = items_completion_enhanced
-        elif pert_time_items is not None:
-            # Format values if they exist but we don't have pre-formatted strings
-            current_date = datetime.now()
-            items_completion_date = current_date + timedelta(days=pert_time_items)
-            items_completion_str = items_completion_date.strftime("%Y-%m-%d")
-            items_days = f"{pert_time_items:.1f}"
-            items_weeks = f"{pert_time_items / 7:.1f}"
-            items_completion_str_with_details = (
-                f"{items_completion_str} ({items_days} days, {items_weeks} weeks)"
-            )
-        else:
-            items_completion_str_with_details = "Unknown"
-
-        if points_completion_enhanced is not None:
-            # Use pre-formatted string directly
-            points_completion_str_with_details = points_completion_enhanced
-        elif pert_time_points is not None:
-            # Format values if they exist but we don't have pre-formatted strings
-            current_date = datetime.now()
-            points_completion_date = current_date + timedelta(days=pert_time_points)
-            points_completion_str = points_completion_date.strftime("%Y-%m-%d")
-            points_days = f"{pert_time_points:.1f}"
-            points_weeks = f"{pert_time_points / 7:.1f}"
-            points_completion_str_with_details = (
-                f"{points_completion_str} ({points_days} days, {points_weeks} weeks)"
-            )
-        else:
-            points_completion_str_with_details = "Unknown"
-
-    return dbc.Card(
-        [
-            dbc.CardHeader("PERT Forecast"),
-            dbc.CardBody(
-                [
-                    html.Div(
-                        [
-                            html.P(
-                                [
-                                    html.Strong("Items completion (PERT): "),
-                                    items_completion_str_with_details,
-                                ]
-                            ),
-                            html.P(
-                                [
-                                    html.Strong("Points completion (PERT): "),
-                                    points_completion_str_with_details,
-                                ]
-                            ),
-                        ]
-                    )
-                ]
-            ),
-        ]
-    )
-
-
-def create_pert_forecast_display():
-    """
-    Create a simplified PERT forecast display with hardcoded values for testing.
-
-    Returns:
-        Dash component with PERT forecast information
-    """
-    import dash_bootstrap_components as dbc
-    from dash import html
-
-    return html.Div(
-        [
-            # Header with tooltip
-            html.H5("PERT Forecast"),
-            # Directly show hardcoded values for testing
-            html.Div(
-                [
-                    html.P(
-                        [
-                            html.Strong("Items completion (PERT): "),
-                            "2025-05-15 (55.5 days, 7.9 weeks)",
-                        ]
-                    ),
-                    html.P(
-                        [
-                            html.Strong("Points completion (PERT): "),
-                            "2025-05-20 (60.2 days, 8.6 weeks)",
-                        ]
-                    ),
-                ],
-                className="border p-2 rounded",
-            ),
-        ],
+        className="mt-3 mb-2 shadow-sm",
     )
