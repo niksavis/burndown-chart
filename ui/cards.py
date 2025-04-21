@@ -78,17 +78,16 @@ def create_forecast_graph_card():
 
 def create_forecast_info_card():
     """
-    Create the forecast methodology information card component with enhanced explanations.
+    Create the forecast methodology information card component with concise explanation.
 
     Returns:
-        Dash Card component with detailed forecast methodology explanation
+        Dash Card component with concise forecast methodology explanation
     """
     # Use the standardized card styling function
     from ui.styles import (
         create_standardized_card,
         create_card_header_with_tooltip,
         create_rhythm_text,
-        get_vertical_rhythm,
         apply_vertical_rhythm,
     )
 
@@ -96,128 +95,156 @@ def create_forecast_info_card():
     header_content = create_card_header_with_tooltip(
         "Forecast Information",
         tooltip_id="forecast-info",
-        tooltip_text="Detailed explanation of how to interpret the forecast graph.",
+        tooltip_text="How to interpret the forecast graph.",
     )
 
-    # Create the card body content with proper vertical rhythm
+    # Create the card body content with optimized layout
     body_content = html.Div(
         [
-            # Introduction paragraph with proper spacing
+            # Concise introduction paragraph
             create_rhythm_text(
                 [
-                    html.Strong("Forecast Methodology: "),
-                    "PERT (Program Evaluation and Review Technique) estimation based on your historical performance data. ",
-                    "The forecast uses three scenarios:",
+                    html.Strong("PERT Forecast: "),
+                    "Estimates based on optimistic, most likely, and pessimistic scenarios from your historical data.",
                 ],
                 element_type="paragraph",
             ),
-            # List with proper spacing between items and after the list
-            html.Ul(
-                [
-                    html.Li(
-                        [
-                            html.Strong("Optimistic: "),
-                            html.Span(
-                                "Teal",
-                                style={
-                                    "color": COLOR_PALETTE["optimistic"],
-                                    "fontWeight": "bold",
-                                },
-                            ),
-                            " for items, ",
-                            html.Span(
-                                "Gold",
-                                style={
-                                    "color": "rgb(184, 134, 11)",
-                                    "fontWeight": "bold",
-                                },
-                            ),
-                            " for points. Based on your best performance periods (20% confidence level).",
-                        ],
-                        style=apply_vertical_rhythm("list_item"),
+            # Compact list with less styling and more concise descriptions
+            html.Div(
+                className="row g-2 mb-2",
+                children=[
+                    html.Div(
+                        className="col-12 col-md-6",
+                        children=html.Div(
+                            className="border rounded p-2",
+                            children=[
+                                html.Strong("Line Colors:"),
+                                html.Ul(
+                                    [
+                                        html.Li(
+                                            [
+                                                html.Span(
+                                                    "Blue",
+                                                    style={
+                                                        "color": COLOR_PALETTE["items"],
+                                                        "fontWeight": "bold",
+                                                    },
+                                                ),
+                                                "/",
+                                                html.Span(
+                                                    "Orange",
+                                                    style={
+                                                        "color": COLOR_PALETTE[
+                                                            "points"
+                                                        ],
+                                                        "fontWeight": "bold",
+                                                    },
+                                                ),
+                                                ": Most likely",
+                                            ]
+                                        ),
+                                        html.Li(
+                                            [
+                                                html.Span(
+                                                    "Teal",
+                                                    style={
+                                                        "color": COLOR_PALETTE[
+                                                            "optimistic"
+                                                        ],
+                                                        "fontWeight": "bold",
+                                                    },
+                                                ),
+                                                "/",
+                                                html.Span(
+                                                    "Gold",
+                                                    style={
+                                                        "color": "rgb(184, 134, 11)",
+                                                        "fontWeight": "bold",
+                                                    },
+                                                ),
+                                                ": Optimistic",
+                                            ]
+                                        ),
+                                        html.Li(
+                                            [
+                                                html.Span(
+                                                    "Indigo",
+                                                    style={
+                                                        "color": COLOR_PALETTE[
+                                                            "pessimistic"
+                                                        ],
+                                                        "fontWeight": "bold",
+                                                    },
+                                                ),
+                                                "/",
+                                                html.Span(
+                                                    "Brown",
+                                                    style={
+                                                        "color": "rgb(165, 42, 42)",
+                                                        "fontWeight": "bold",
+                                                    },
+                                                ),
+                                                ": Pessimistic",
+                                            ]
+                                        ),
+                                    ],
+                                    className="mb-0 ps-3",
+                                    style={"fontSize": "0.9rem"},
+                                ),
+                            ],
+                        ),
                     ),
-                    html.Li(
-                        [
-                            html.Strong("Most Likely: "),
-                            html.Span(
-                                "Blue",
-                                style={
-                                    "color": COLOR_PALETTE["items"],
-                                    "fontWeight": "bold",
-                                },
-                            ),
-                            " for items, ",
-                            html.Span(
-                                "Orange",
-                                style={
-                                    "color": COLOR_PALETTE["points"],
-                                    "fontWeight": "bold",
-                                },
-                            ),
-                            " for points. Based on your average performance (50% confidence level).",
-                        ],
-                        style=apply_vertical_rhythm("list_item"),
-                    ),
-                    html.Li(
-                        [
-                            html.Strong("Pessimistic: "),
-                            html.Span(
-                                "Purple",
-                                style={
-                                    "color": COLOR_PALETTE["pessimistic"],
-                                    "fontWeight": "bold",
-                                },
-                            ),
-                            " for items, ",
-                            html.Span(
-                                "Brown",
-                                style={
-                                    "color": "rgb(165, 42, 42)",
-                                    "fontWeight": "bold",
-                                },
-                            ),
-                            " for points. Based on your slowest performance periods (80% confidence level).",
-                        ]
+                    html.Div(
+                        className="col-12 col-md-6",
+                        children=html.Div(
+                            className="border rounded p-2",
+                            children=[
+                                html.Strong("Reading Guide:"),
+                                html.Ul(
+                                    [
+                                        html.Li("Solid lines: Historical data"),
+                                        html.Li("Dashed/dotted: Forecasts"),
+                                        html.Li(
+                                            [
+                                                "Dates in ",
+                                                html.Span(
+                                                    "green", style={"color": "green"}
+                                                ),
+                                                ": On track",
+                                            ]
+                                        ),
+                                        html.Li(
+                                            [
+                                                "Dates in ",
+                                                html.Span(
+                                                    "red", style={"color": "red"}
+                                                ),
+                                                ": At risk",
+                                            ]
+                                        ),
+                                    ],
+                                    className="mb-0 ps-3",
+                                    style={"fontSize": "0.9rem"},
+                                ),
+                            ],
+                        ),
                     ),
                 ],
-                style=apply_vertical_rhythm("list"),
             ),
-            # Second paragraph with proper spacing
-            create_rhythm_text(
-                [
-                    html.Strong("Reading the Graph: "),
-                    "Solid lines show historical data. Dashed and dotted lines show forecasts. ",
-                    "Where these lines cross zero indicates estimated completion dates.",
-                ],
-                element_type="paragraph",
-            ),
-            # Final paragraph with no bottom margin since it's the last element
-            create_rhythm_text(
-                [
-                    html.Strong("Color Coding for Estimates: "),
-                    "Estimated days appear in ",
-                    html.Span(
-                        "green",
-                        style={"color": "green", "fontWeight": "bold"},
-                    ),
-                    " when on track to meet the deadline, and in ",
-                    html.Span(
-                        "red",
-                        style={"color": "red", "fontWeight": "bold"},
-                    ),
-                    " when at risk of missing the deadline. The red vertical line represents your deadline date.",
-                ],
-                element_type="paragraph",
+            # Footnote on forecast dates
+            html.Small(
+                "Where forecast lines cross zero indicates estimated completion dates. Red vertical line shows deadline.",
+                className="text-muted d-block mt-2",
             ),
         ],
         style={"textAlign": "left"},
     )
 
-    # Return the standardized card
+    # Return the standardized card with reduced padding
     return create_standardized_card(
         header_content=header_content,
         body_content=body_content,
-        body_className="py-3 px-3",  # Using standardized padding
+        body_className="py-2 px-3",  # Reduced padding
         shadow="sm",
     )
 
@@ -1672,7 +1699,7 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
 
 def create_items_forecast_info_card():
     """
-    Create a forecast information card specifically for the Items per Week tab.
+    Create a concise forecast information card for the Items per Week tab.
 
     Returns:
         Dash Card component with items forecast explanation
@@ -1684,149 +1711,137 @@ def create_items_forecast_info_card():
                     html.H4("Items Forecast Information", className="d-inline"),
                     create_info_tooltip(
                         "items-forecast-info",
-                        "Explanation of how to interpret the weekly items forecast.",
+                        "Understanding the weekly items forecast chart.",
                     ),
                 ]
             ),
             dbc.CardBody(
                 [
+                    # Two-column layout for more efficient space usage
                     html.Div(
-                        [
-                            html.P(
-                                [
-                                    html.Strong("Weekly Items Chart: "),
-                                    "This chart shows your historical weekly completed items as blue bars and forecasts the next week's expected completion.",
-                                ],
-                                className="mb-2",
+                        className="row g-3",
+                        children=[
+                            # Column 1: Chart Elements
+                            html.Div(
+                                className="col-12 col-md-6",
+                                children=html.Div(
+                                    className="border rounded p-2 h-100",
+                                    children=[
+                                        html.H6("Chart Elements", className="mb-2"),
+                                        html.Ul(
+                                            [
+                                                html.Li(
+                                                    [
+                                                        html.Span(
+                                                            "Blue Bars",
+                                                            style={
+                                                                "color": COLOR_PALETTE[
+                                                                    "items"
+                                                                ],
+                                                                "fontWeight": "bold",
+                                                            },
+                                                        ),
+                                                        ": Historical weekly completed items",
+                                                    ]
+                                                ),
+                                                html.Li(
+                                                    [
+                                                        html.Span(
+                                                            "Dark Blue Line",
+                                                            style={
+                                                                "color": "#0047AB",
+                                                                "fontWeight": "bold",
+                                                            },
+                                                        ),
+                                                        ": Weighted 4-week moving average",
+                                                    ]
+                                                ),
+                                                html.Li(
+                                                    [
+                                                        html.Span(
+                                                            "Patterned Bar",
+                                                            style={
+                                                                "color": COLOR_PALETTE[
+                                                                    "items"
+                                                                ],
+                                                                "fontWeight": "bold",
+                                                            },
+                                                        ),
+                                                        ": Next week's forecast",
+                                                    ]
+                                                ),
+                                            ],
+                                            className="mb-0 ps-3",
+                                            style={"fontSize": "0.9rem"},
+                                        ),
+                                    ],
+                                ),
                             ),
-                            html.P(
-                                [
-                                    html.Strong("Chart Components: "),
-                                    "The chart includes several visual elements:",
-                                ],
-                                className="mb-1",
-                            ),
-                            html.Ul(
-                                [
-                                    html.Li(
-                                        [
-                                            html.Strong("Blue Bars: "),
-                                            html.Span(
-                                                "Historical weekly completed items",
-                                                style={
-                                                    "color": COLOR_PALETTE["items"],
-                                                    "fontWeight": "normal",
-                                                },
-                                            ),
-                                            ". These represent your actual completed work each week.",
-                                        ]
-                                    ),
-                                    html.Li(
-                                        [
-                                            html.Strong("Dark Blue Line: "),
-                                            html.Span(
-                                                "Weighted 4-week moving average",
-                                                style={
-                                                    "color": "#0047AB",
-                                                    "fontWeight": "bold",
-                                                },
-                                            ),
-                                            " that prioritizes recent performance (40% latest week, 30%, 20%, 10% for earlier weeks).",
-                                        ]
-                                    ),
-                                    html.Li(
-                                        [
-                                            html.Strong("Patterned Bar: "),
-                                            html.Span(
-                                                "Next week forecast",
-                                                style={
-                                                    "color": COLOR_PALETTE["items"],
-                                                    "fontWeight": "bold",
-                                                },
-                                            ),
-                                            " based on PERT estimation using your historical data.",
-                                        ]
-                                    ),
-                                ],
-                                className="mb-3",  # Increased spacing
-                            ),
-                            html.P(
-                                [
-                                    html.Strong("Forecast Methodology: "),
-                                    "The next week forecast is calculated using PERT (Program Evaluation and Review Technique) methodology:",
-                                ],
-                                className="mb-1",
-                            ),
-                            html.Ul(
-                                [
-                                    html.Li(
-                                        [
-                                            html.Strong("Most Likely: "),
-                                            html.Span(
-                                                "Average of all historical weekly items data",
-                                                style={
-                                                    "color": COLOR_PALETTE["items"],
-                                                    "fontWeight": "normal",
-                                                },
-                                            ),
-                                            " (50% confidence level).",
-                                        ]
-                                    ),
-                                    html.Li(
-                                        [
-                                            html.Strong("Optimistic: "),
-                                            html.Span(
-                                                "Average of your best performing weeks",
-                                                style={
-                                                    "color": COLOR_PALETTE[
-                                                        "optimistic"
-                                                    ],
-                                                    "fontWeight": "normal",
-                                                },
-                                            ),
-                                            " (highest item counts, 20% confidence level).",
-                                        ]
-                                    ),
-                                    html.Li(
-                                        [
-                                            html.Strong("Pessimistic: "),
-                                            html.Span(
-                                                "Average of your lowest performing weeks",
-                                                style={
-                                                    "color": COLOR_PALETTE[
-                                                        "pessimistic"
-                                                    ],
-                                                    "fontWeight": "normal",
-                                                },
-                                            ),
-                                            " (excluding zero values, 80% confidence level).",
-                                        ]
-                                    ),
-                                ],
-                                className="mb-3",  # Increased spacing
-                            ),
-                            html.P(
-                                [
-                                    html.Strong("Interpreting the Forecast: "),
-                                    "This forecast helps you predict how many items you're likely to complete next week based on your historical performance patterns. "
-                                    "Use this to plan sprint capacities and adjust resource allocation.",
-                                ],
-                                className="mb-0",
+                            # Column 2: Forecast Method
+                            html.Div(
+                                className="col-12 col-md-6",
+                                children=html.Div(
+                                    className="border rounded p-2 h-100",
+                                    children=[
+                                        html.H6(
+                                            "PERT Forecast Method", className="mb-2"
+                                        ),
+                                        html.Ul(
+                                            [
+                                                html.Li(
+                                                    [
+                                                        html.Strong("Most Likely: "),
+                                                        "Average of all data (50% confidence)",
+                                                    ]
+                                                ),
+                                                html.Li(
+                                                    [
+                                                        html.Strong("Optimistic: "),
+                                                        "Best weeks average (20% confidence)",
+                                                    ]
+                                                ),
+                                                html.Li(
+                                                    [
+                                                        html.Strong("Pessimistic: "),
+                                                        "Lowest weeks average (80% confidence)",
+                                                    ]
+                                                ),
+                                            ],
+                                            className="mb-0 ps-3",
+                                            style={"fontSize": "0.9rem"},
+                                        ),
+                                    ],
+                                ),
                             ),
                         ],
-                        style={"textAlign": "left"},
-                    )
+                    ),
+                    # Footer with practical use
+                    html.Div(
+                        className="mt-3 pt-2 border-top",
+                        children=[
+                            html.Small(
+                                [
+                                    html.I(
+                                        className="fas fa-info-circle me-1",
+                                        style={"color": "#6c757d"},
+                                    ),
+                                    "The weighted average prioritizes recent weeks (40%, 30%, 20%, 10%). Use this forecast to plan sprint capacity.",
+                                ],
+                                className="text-muted",
+                            ),
+                        ],
+                    ),
                 ],
-                className="py-4",  # Increased padding for better readability and more space from chart
+                className="p-3",
             ),
         ],
-        className="mt-5 mb-3 shadow-sm",  # Added top margin to create more space from the chart
+        className="mt-4 mb-3 shadow-sm",
     )
 
 
 def create_points_forecast_info_card():
     """
-    Create a forecast information card specifically for the Points per Week tab.
+    Create a concise forecast information card for the Points per Week tab.
 
     Returns:
         Dash Card component with points forecast explanation
@@ -1838,190 +1853,163 @@ def create_points_forecast_info_card():
                     html.H4("Points Forecast Information", className="d-inline"),
                     create_info_tooltip(
                         "points-forecast-info",
-                        "Explanation of how to interpret the weekly points forecast.",
+                        "Understanding the weekly points forecast chart.",
                     ),
                 ]
             ),
             dbc.CardBody(
                 [
+                    # Two-column layout for more efficient space usage
                     html.Div(
-                        [
-                            html.P(
-                                [
-                                    html.Strong("Weekly Points Chart: "),
-                                    "This chart visualizes your historical weekly completed points as orange bars and provides a statistical forecast for next week.",
-                                ],
-                                className="mb-2",
+                        className="row g-3",
+                        children=[
+                            # Column 1: Chart Elements
+                            html.Div(
+                                className="col-12 col-md-6",
+                                children=html.Div(
+                                    className="border rounded p-2 h-100",
+                                    children=[
+                                        html.H6("Chart Elements", className="mb-2"),
+                                        html.Ul(
+                                            [
+                                                html.Li(
+                                                    [
+                                                        html.Span(
+                                                            "Orange Bars",
+                                                            style={
+                                                                "color": COLOR_PALETTE[
+                                                                    "points"
+                                                                ],
+                                                                "fontWeight": "bold",
+                                                            },
+                                                        ),
+                                                        ": Historical weekly completed points",
+                                                    ]
+                                                ),
+                                                html.Li(
+                                                    [
+                                                        html.Span(
+                                                            "Red Line",
+                                                            style={
+                                                                "color": "#FF6347",
+                                                                "fontWeight": "bold",
+                                                            },
+                                                        ),
+                                                        ": Weighted 4-week moving average",
+                                                    ]
+                                                ),
+                                                html.Li(
+                                                    [
+                                                        html.Span(
+                                                            "Error Bars",
+                                                            style={
+                                                                "color": COLOR_PALETTE[
+                                                                    "points"
+                                                                ],
+                                                                "fontWeight": "bold",
+                                                            },
+                                                        ),
+                                                        ": Confidence interval for forecast",
+                                                    ]
+                                                ),
+                                            ],
+                                            className="mb-0 ps-3",
+                                            style={"fontSize": "0.9rem"},
+                                        ),
+                                    ],
+                                ),
                             ),
-                            html.P(
-                                [
-                                    html.Strong("Chart Components: "),
-                                    "The chart includes several visual elements:",
-                                ],
-                                className="mb-1",
-                            ),
-                            html.Ul(
-                                [
-                                    html.Li(
-                                        [
-                                            html.Strong("Orange Bars: "),
-                                            html.Span(
-                                                "Historical weekly completed points",
-                                                style={
-                                                    "color": COLOR_PALETTE["points"],
-                                                    "fontWeight": "normal",
-                                                },
-                                            ),
-                                            ". These represent your actual completed story points each week.",
-                                        ]
-                                    ),
-                                    html.Li(
-                                        [
-                                            html.Strong("Red Trend Line: "),
-                                            html.Span(
-                                                "Weighted 4-week moving average",
-                                                style={
-                                                    "color": "#FF6347",
-                                                    "fontWeight": "bold",
-                                                },
-                                            ),
-                                            " with exponential weighting (40% for most recent week, 30%, 20%, 10% for earlier weeks).",
-                                        ]
-                                    ),
-                                    html.Li(
-                                        [
-                                            html.Strong(
-                                                "Patterned Bar with Error Bars: "
-                                            ),
-                                            html.Span(
-                                                "Next week forecast",
-                                                style={
-                                                    "color": COLOR_PALETTE["points"],
-                                                    "fontWeight": "bold",
-                                                },
-                                            ),
-                                            " with confidence interval showing the range of likely outcomes.",
-                                        ]
-                                    ),
-                                ],
-                                className="mb-3",  # Increased spacing
-                            ),
-                            html.P(
-                                [
-                                    html.Strong(
-                                        "Understanding the Confidence Interval: "
-                                    ),
-                                    "The forecast bar includes error bars representing a statistical confidence interval:",
-                                ],
-                                className="mb-1",
-                            ),
-                            html.Ul(
-                                [
-                                    html.Li(
-                                        [
-                                            html.Strong("Upper Bound: "),
-                                            html.Span(
-                                                "25% of the difference between Most Likely and Optimistic estimates",
-                                                style={
-                                                    "color": COLOR_PALETTE[
-                                                        "optimistic"
-                                                    ],
-                                                    "fontWeight": "normal",
-                                                },
-                                            ),
-                                            ".",
-                                        ]
-                                    ),
-                                    html.Li(
-                                        [
-                                            html.Strong("Lower Bound: "),
-                                            html.Span(
-                                                "25% of the difference between Most Likely and Pessimistic estimates",
-                                                style={
-                                                    "color": COLOR_PALETTE[
-                                                        "pessimistic"
-                                                    ],
-                                                    "fontWeight": "normal",
-                                                },
-                                            ),
-                                            ".",
-                                        ]
-                                    ),
-                                    html.Li(
-                                        [
-                                            "This gives you a reasonable range of expected performance for planning purposes."
-                                        ]
-                                    ),
-                                ],
-                                className="mb-3",  # Increased spacing
-                            ),
-                            html.P(
-                                [
-                                    html.Strong("Forecast Method: "),
-                                    "The forecast uses historical data with different weights for three scenarios:",
-                                ],
-                                className="mb-1",
-                            ),
-                            html.Ul(
-                                [
-                                    html.Li(
-                                        [
-                                            html.Strong("Most Likely: "),
-                                            html.Span(
-                                                "Average of all historical weekly points data",
-                                                style={
-                                                    "color": COLOR_PALETTE["points"],
-                                                    "fontWeight": "normal",
-                                                },
-                                            ),
-                                            " (50% confidence level).",
-                                        ]
-                                    ),
-                                    html.Li(
-                                        [
-                                            html.Strong("Optimistic: "),
-                                            html.Span(
-                                                "Average of weeks with highest point completions",
-                                                style={
-                                                    "color": "rgb(184, 134, 11)",
-                                                    "fontWeight": "normal",
-                                                },
-                                            ),
-                                            " (20% confidence level).",
-                                        ]
-                                    ),
-                                    html.Li(
-                                        [
-                                            html.Strong("Pessimistic: "),
-                                            html.Span(
-                                                "Average of weeks with lowest non-zero point completions",
-                                                style={
-                                                    "color": "rgb(165, 42, 42)",
-                                                    "fontWeight": "normal",
-                                                },
-                                            ),
-                                            " (80% confidence level).",
-                                        ]
-                                    ),
-                                ],
-                                className="mb-3",  # Increased spacing
-                            ),
-                            html.P(
-                                [
-                                    html.Strong("Practical Use: "),
-                                    "Use the points forecast to estimate sprint capacity and project velocity. "
-                                    "Consider the confidence interval for risk assessment and establishing delivery commitments.",
-                                ],
-                                className="mb-0",
+                            # Column 2: Forecast Method
+                            html.Div(
+                                className="col-12 col-md-6",
+                                children=html.Div(
+                                    className="border rounded p-2 h-100",
+                                    children=[
+                                        html.H6(
+                                            "PERT Forecast Method", className="mb-2"
+                                        ),
+                                        html.Ul(
+                                            [
+                                                html.Li(
+                                                    [
+                                                        html.Strong("Most Likely: "),
+                                                        "Average of all data (50% confidence)",
+                                                    ]
+                                                ),
+                                                html.Li(
+                                                    [
+                                                        html.Strong("Optimistic: "),
+                                                        "Highest weeks average (20% confidence)",
+                                                    ]
+                                                ),
+                                                html.Li(
+                                                    [
+                                                        html.Strong("Pessimistic: "),
+                                                        "Lowest non-zero average (80% confidence)",
+                                                    ]
+                                                ),
+                                            ],
+                                            className="mb-0 ps-3",
+                                            style={"fontSize": "0.9rem"},
+                                        ),
+                                    ],
+                                ),
                             ),
                         ],
-                        style={"textAlign": "left"},
-                    )
+                    ),
+                    # Compact confidence interval explanation
+                    html.Div(
+                        className="border rounded p-2 mt-3",
+                        children=[
+                            html.H6("Confidence Interval", className="mb-2"),
+                            html.Div(
+                                className="d-flex",
+                                children=[
+                                    html.Div(
+                                        className="flex-grow-1",
+                                        children=html.Small(
+                                            [
+                                                html.Strong("Upper: "),
+                                                "25% of difference between Most Likely and Optimistic",
+                                            ],
+                                            className="d-block mb-1",
+                                        ),
+                                    ),
+                                    html.Div(
+                                        className="flex-grow-1",
+                                        children=html.Small(
+                                            [
+                                                html.Strong("Lower: "),
+                                                "25% of difference between Most Likely and Pessimistic",
+                                            ],
+                                            className="d-block mb-1",
+                                        ),
+                                    ),
+                                ],
+                            ),
+                        ],
+                    ),
+                    # Footer with practical use
+                    html.Div(
+                        className="mt-3 pt-2 border-top",
+                        children=[
+                            html.Small(
+                                [
+                                    html.I(
+                                        className="fas fa-info-circle me-1",
+                                        style={"color": "#6c757d"},
+                                    ),
+                                    "Use this forecast to estimate sprint capacity and establish delivery commitments with confidence intervals.",
+                                ],
+                                className="text-muted",
+                            ),
+                        ],
+                    ),
                 ],
-                className="py-4",  # Increased padding for better readability and more space from chart
+                className="p-3",
             ),
         ],
-        className="mt-5 mb-3 shadow-sm",  # Added top margin to create more space from the chart
+        className="mt-4 mb-3 shadow-sm",
     )
 
 
