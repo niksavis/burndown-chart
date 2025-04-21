@@ -357,9 +357,18 @@ def create_input_parameters_card(
                                     step=1,
                                     tooltip={
                                         "placement": "bottom",
-                                        "always_visible": True,
+                                        "always_visible": False,
                                     },
                                     className="my-3",  # Added margin top and bottom
+                                ),
+                                html.Small(
+                                    id="pert-factor-info",
+                                    children="PERT Factor determines forecast confidence range",
+                                    className="text-muted mt-1 d-block text-center",
+                                    style={
+                                        "cursor": "pointer"
+                                    },  # Make it look clickable
+                                    title="Click to see PERT Factor details",  # Add hover title
                                 ),
                                 html.Div(
                                     id="pert-factor-feedback",

@@ -370,3 +370,33 @@ def register(app):
             dash.Input("data-points-input", "max"),
         ],
     )
+
+    # Add a clientside callback for the PERT Factor slider to enhance tooltip behavior
+    app.clientside_callback(
+        """
+        function(value) {
+            // Format the info text based on the PERT Factor value
+            let infoText = "";
+            
+            if (value <= 5) {
+                infoText = "Low confidence range (value: " + value + ")";
+            } else if (value <= 10) {
+                infoText = "Medium confidence range (value: " + value + ")";
+            } else {
+                infoText = "High confidence range (value: " + value + ")";
+            }
+            
+            // Also trigger slider tooltip display when slider is updated automatically
+            const slider = document.getElementById('pert-factor-slider');
+            if (slider) {
+                // Force the tooltip to update its position and value
+                const event = new Event('mousemove');
+                slider.dispatchEvent(event);
+            }
+            
+            return infoText;
+        }
+        """,
+        dash.Output("pert-factor-info", "children"),
+        [dash.Input("pert-factor-slider", "value")],
+    )
