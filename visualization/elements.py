@@ -415,18 +415,6 @@ def create_metrics_background(fig, y_position=-0.2):
         line=dict(color="rgba(200, 200, 200, 0.5)", width=1),
     )
 
-    # Add title for the metrics section
-    fig.add_annotation(
-        xref="paper",
-        yref="paper",
-        x=0.02,  # Left aligned
-        y=y_position + 0.04,  # Position at the top of the metrics area
-        text="<b>Project Metrics</b>",
-        showarrow=False,
-        font=dict(size=16, color="#505050", family="Arial, sans-serif"),
-        align="left",
-    )
-
     return fig
 
 

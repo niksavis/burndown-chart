@@ -388,7 +388,7 @@ def add_metrics_annotations(fig, metrics_data):
         Updated figure with metrics annotations
     """
     # Define styles for metrics display
-    base_y_position = -0.22
+    base_y_position = -0.24
     font_color = "#505050"
     title_font_size = 16
     value_font_size = 14
@@ -404,18 +404,6 @@ def add_metrics_annotations(fig, metrics_data):
         y1=base_y_position + 0.03,  # Background top position
         fillcolor="rgba(245, 245, 245, 0.8)",
         line=dict(color="rgba(200, 200, 200, 0.5)", width=1),
-    )
-
-    # Create a title for the metrics section
-    fig.add_annotation(
-        xref="paper",
-        yref="paper",
-        x=0.02,  # Left aligned
-        y=base_y_position + 0.04,  # Position at the top of the metrics area
-        text="<b>Project Metrics</b>",
-        showarrow=False,
-        font=dict(size=title_font_size, color=font_color, family="Arial, sans-serif"),
-        align="left",
     )
 
     # Define the metrics to display in columns
