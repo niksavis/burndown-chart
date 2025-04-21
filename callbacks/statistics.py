@@ -292,6 +292,28 @@ def register(app):
         return rows, is_sample_data
 
     @app.callback(
+        Output("statistics-table", "filter_query"),
+        [Input("clear-filters-button", "n_clicks")],
+        prevent_initial_call=True,
+    )
+    def clear_table_filters(n_clicks):
+        """
+        Clear all filters from the statistics table when the clear filters button is clicked.
+
+        Args:
+            n_clicks: Number of times the clear-filters button has been clicked
+
+        Returns:
+            Empty string to clear all filters
+        """
+        if n_clicks:
+            # Return empty string to clear all filters from the table
+            return ""
+
+        # This should not be reached due to prevent_initial_call=True
+        raise PreventUpdate
+
+    @app.callback(
         Output("sample-data-alert", "is_open"),
         [
             Input("dismiss-sample-alert", "n_clicks"),
