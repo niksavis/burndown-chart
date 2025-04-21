@@ -980,7 +980,7 @@ def create_weekly_items_chart(
 
     # Update layout with grid lines and styling
     fig.update_layout(
-        title="Weekly Completed Items with Next Week Forecast",
+        title=None,  # Remove chart title
         xaxis_title="Week",
         yaxis_title="Items Completed",
         hovermode="x unified",
@@ -1221,7 +1221,7 @@ def create_weekly_points_chart(
 
     # Update layout with grid lines and styling
     fig.update_layout(
-        title="Weekly Completed Points with Next Week Forecast",
+        title=None,  # Remove chart title
         xaxis_title="Week",
         yaxis_title="Points Completed",
         hovermode="x unified",

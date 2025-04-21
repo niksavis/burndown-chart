@@ -108,26 +108,26 @@ def create_tab_content(active_tab, charts):
 
     # Enhanced tab titles with more descriptive content and icons
     tab_titles = {
-        "tab-burndown": html.Div(
+        "tab-burndown": html.H5(
             [
                 html.I(className="fas fa-chart-line me-2", style={"color": "#0d6efd"}),
                 "Project Burndown Forecast",
             ],
-            className="d-flex align-items-center",
+            className="mb-3 border-bottom pb-2 d-flex align-items-center",
         ),
-        "tab-items": html.Div(
+        "tab-items": html.H5(
             [
                 html.I(className="fas fa-tasks me-2", style={"color": "#20c997"}),
-                "Weekly Completed Items Analysis",
+                "Weekly Completed Items",
             ],
-            className="d-flex align-items-center",
+            className="mb-3 border-bottom pb-2 d-flex align-items-center",
         ),
-        "tab-points": html.Div(
+        "tab-points": html.H5(
             [
                 html.I(className="fas fa-chart-bar me-2", style={"color": "#fd7e14"}),
-                "Weekly Velocity (Story Points)",
+                "Weekly Completed Points",
             ],
-            className="d-flex align-items-center",
+            className="mb-3 border-bottom pb-2 d-flex align-items-center",
         ),
     }
 
