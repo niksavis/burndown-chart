@@ -417,20 +417,22 @@ def register(app):
                                                 style={
                                                     "borderLeft": "3px solid #6610f2",
                                                     "paddingLeft": "0.5rem",
+                                                    "marginRight": "0.75rem",
                                                 },
                                             )
                                             if "pessimistic_forecast" in items_trend
                                             else None,
+                                            # Units indicator (items/week)
+                                            html.Div(
+                                                html.Small(
+                                                    "items/week",
+                                                    className="text-muted fst-italic",
+                                                ),
+                                                style={"paddingTop": "2px"},
+                                            ),
                                         ],
                                         className="d-flex flex-wrap mt-2 align-items-center",
                                         style={"gap": "0.25rem"},
-                                    ),
-                                    # Add small text showing items/week at the bottom
-                                    html.Div(
-                                        html.Small(
-                                            "items/week", className="text-muted"
-                                        ),
-                                        className="mt-1 text-center",
                                     ),
                                 ],
                                 className="col-md-6 col-12 mb-3 pe-md-2",
@@ -537,20 +539,22 @@ def register(app):
                                                 style={
                                                     "borderLeft": "3px solid #a52a2a",
                                                     "paddingLeft": "0.5rem",
+                                                    "marginRight": "0.75rem",
                                                 },
                                             )
                                             if "pessimistic_forecast" in points_trend
                                             else None,
+                                            # Units indicator (points/week)
+                                            html.Div(
+                                                html.Small(
+                                                    "points/week",
+                                                    className="text-muted fst-italic",
+                                                ),
+                                                style={"paddingTop": "2px"},
+                                            ),
                                         ],
                                         className="d-flex flex-wrap mt-2 align-items-center",
                                         style={"gap": "0.25rem"},
-                                    ),
-                                    # Add small text showing points/week at the bottom
-                                    html.Div(
-                                        html.Small(
-                                            "points/week", className="text-muted"
-                                        ),
-                                        className="mt-1 text-center",
                                     ),
                                 ],
                                 className="col-md-6 col-12 mb-3 ps-md-2",
