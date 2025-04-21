@@ -255,7 +255,7 @@ def create_forecast_info_card():
                                 className="d-inline mb-0",
                                 style={"fontSize": "0.875rem", "fontWeight": "600"},
                             ),
-                            width=10,
+                            className="col-10 col-lg-11",  # Explicit Bootstrap column classes
                         ),
                         dbc.Col(
                             html.Div(
@@ -274,7 +274,7 @@ def create_forecast_info_card():
                                 ],
                                 className="d-flex justify-content-end align-items-center",
                             ),
-                            width=2,
+                            className="col-2 col-lg-1",  # Explicit Bootstrap column classes
                         ),
                     ],
                     align="center",
@@ -1921,7 +1921,7 @@ def create_items_forecast_info_card(statistics_df=None, pert_data=None):
                                 className="d-inline mb-0",
                                 style={"fontSize": "0.875rem", "fontWeight": "600"},
                             ),
-                            width=10,
+                            className="col-10 col-lg-11",  # Explicit Bootstrap column classes
                         ),
                         dbc.Col(
                             html.Div(
@@ -1940,7 +1940,7 @@ def create_items_forecast_info_card(statistics_df=None, pert_data=None):
                                 ],
                                 className="d-flex justify-content-end align-items-center",
                             ),
-                            width=2,
+                            className="col-2 col-lg-1",  # Explicit Bootstrap column classes
                         ),
                     ],
                     align="center",
@@ -2138,7 +2138,7 @@ def create_points_forecast_info_card(statistics_df=None, pert_data=None):
                                 className="d-inline mb-0",
                                 style={"fontSize": "0.875rem", "fontWeight": "600"},
                             ),
-                            width=10,
+                            className="col-10 col-lg-11",  # Explicit Bootstrap column classes
                         ),
                         dbc.Col(
                             html.Div(
@@ -2157,7 +2157,7 @@ def create_points_forecast_info_card(statistics_df=None, pert_data=None):
                                 ],
                                 className="d-flex justify-content-end align-items-center",
                             ),
-                            width=2,
+                            className="col-2 col-lg-1",  # Explicit Bootstrap column classes
                         ),
                     ],
                     align="center",
