@@ -388,7 +388,7 @@ def add_metrics_annotations(fig, metrics_data):
         Updated figure with metrics annotations
     """
     # Define styles for metrics display
-    base_y_position = -0.28  # Changed from -0.2 to -0.28 to move metrics box lower
+    base_y_position = -0.22
     font_color = "#505050"
     title_font_size = 16
     value_font_size = 14
