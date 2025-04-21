@@ -1756,92 +1756,7 @@ def create_items_forecast_info_card(statistics_df=None, pert_data=None):
             items_days = f"{int(pert_time_items)}"
             items_weeks = f"{round(pert_time_items / 7, 1)}"
 
-    # Create the trend metrics section
-    weekly_trend_section = html.Div(
-        [
-            html.H6(
-                "Weekly Item Trends",
-                className="border-bottom pb-1 mb-3",
-                style={"fontSize": "1.1rem", "fontWeight": "bold"},
-            ),
-            dbc.Row(
-                [
-                    # Items velocity
-                    dbc.Col(
-                        [
-                            html.Div(
-                                [
-                                    html.I(
-                                        className="fas fa-tasks me-1",
-                                        style={
-                                            "color": COLOR_PALETTE["items"],
-                                            "fontSize": "1rem",
-                                        },
-                                    ),
-                                    html.Span(
-                                        f"{avg_weekly_items:.1f}",
-                                        className="fw-bold",
-                                        style={
-                                            "fontSize": "1.1rem",
-                                            "color": COLOR_PALETTE["items"],
-                                        },
-                                    ),
-                                    html.Small(
-                                        " items/week",
-                                        style={"fontSize": "0.9rem"},
-                                    ),
-                                ],
-                                className="mb-2",
-                            ),
-                        ],
-                        width=12,
-                        className="px-2",
-                    ),
-                ],
-                className="mb-3",
-            ),
-            # Items forecast section if PERT data is available
-            html.Div(
-                [
-                    html.H6(
-                        "Items Completion Forecast",
-                        className="border-bottom pb-1 mb-3",
-                        style={"fontSize": "1.1rem", "fontWeight": "bold"},
-                    ),
-                    html.Div(
-                        [
-                            html.Div(
-                                [
-                                    html.Span(
-                                        f"{items_completion_str}",
-                                        className="fw-bold",
-                                        style={
-                                            "fontSize": "1rem",
-                                            "color": COLOR_PALETTE["items"],
-                                        },
-                                    ),
-                                ],
-                                className="mb-1",
-                            ),
-                            html.Div(
-                                [
-                                    html.Span(
-                                        f"{items_days} days ({items_weeks} weeks)",
-                                        style={"fontSize": "0.9rem"},
-                                    ),
-                                ],
-                            ),
-                        ],
-                    ),
-                ],
-            )
-            if pert_data
-            else html.Div(),
-        ],
-        className="border rounded p-2 mb-4",
-    )
-
-    # The original card content
+    # The original card content with chart elements and forecast method
     chart_info = html.Div(
         className="row g-3",
         children=[
@@ -1964,8 +1879,6 @@ def create_items_forecast_info_card(statistics_df=None, pert_data=None):
             ),
             dbc.CardBody(
                 [
-                    # Add weekly trend section at the top
-                    weekly_trend_section,
                     # Original content follows
                     chart_info,
                     footer,
@@ -2035,91 +1948,6 @@ def create_points_forecast_info_card(statistics_df=None, pert_data=None):
             points_completion_str = points_completion_date.strftime("%Y-%m-%d")
             points_days = f"{int(pert_time_points)}"
             points_weeks = f"{round(pert_time_points / 7, 1)}"
-
-    # Create the trend metrics section
-    weekly_trend_section = html.Div(
-        [
-            html.H6(
-                "Weekly Point Trends",
-                className="border-bottom pb-1 mb-3",
-                style={"fontSize": "1.1rem", "fontWeight": "bold"},
-            ),
-            dbc.Row(
-                [
-                    # Points velocity
-                    dbc.Col(
-                        [
-                            html.Div(
-                                [
-                                    html.I(
-                                        className="fas fa-chart-line me-1",
-                                        style={
-                                            "color": COLOR_PALETTE["points"],
-                                            "fontSize": "1rem",
-                                        },
-                                    ),
-                                    html.Span(
-                                        f"{avg_weekly_points:.1f}",
-                                        className="fw-bold",
-                                        style={
-                                            "fontSize": "1.1rem",
-                                            "color": COLOR_PALETTE["points"],
-                                        },
-                                    ),
-                                    html.Small(
-                                        " points/week",
-                                        style={"fontSize": "0.9rem"},
-                                    ),
-                                ],
-                                className="mb-2",
-                            ),
-                        ],
-                        width=12,
-                        className="px-2",
-                    ),
-                ],
-                className="mb-3",
-            ),
-            # Points forecast section if PERT data is available
-            html.Div(
-                [
-                    html.H6(
-                        "Points Completion Forecast",
-                        className="border-bottom pb-1 mb-3",
-                        style={"fontSize": "1.1rem", "fontWeight": "bold"},
-                    ),
-                    html.Div(
-                        [
-                            html.Div(
-                                [
-                                    html.Span(
-                                        f"{points_completion_str}",
-                                        className="fw-bold",
-                                        style={
-                                            "fontSize": "1rem",
-                                            "color": COLOR_PALETTE["points"],
-                                        },
-                                    ),
-                                ],
-                                className="mb-1",
-                            ),
-                            html.Div(
-                                [
-                                    html.Span(
-                                        f"{points_days} days ({points_weeks} weeks)",
-                                        style={"fontSize": "0.9rem"},
-                                    ),
-                                ],
-                            ),
-                        ],
-                    ),
-                ],
-            )
-            if pert_data
-            else html.Div(),
-        ],
-        className="border rounded p-2 mb-4",
-    )
 
     # The original card content with chart elements and forecast method
     chart_info = html.Div(
@@ -2277,8 +2105,6 @@ def create_points_forecast_info_card(statistics_df=None, pert_data=None):
             ),
             dbc.CardBody(
                 [
-                    # Add weekly trend section at the top
-                    weekly_trend_section,
                     # Original content follows
                     chart_info,
                     confidence_interval,
