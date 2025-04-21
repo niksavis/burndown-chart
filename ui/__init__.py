@@ -17,6 +17,7 @@ from ui.components import (
     create_trend_indicator,
     create_export_buttons,
     create_validation_message,
+    create_compact_trend_indicator,
 )
 
 # Import from cards.py
@@ -38,6 +39,7 @@ __all__ = [
     "create_trend_indicator",
     "create_export_buttons",
     "create_validation_message",
+    "create_compact_trend_indicator",
     # Cards
     "create_forecast_graph_card",
     "create_forecast_info_card",

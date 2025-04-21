@@ -1587,37 +1587,155 @@ def create_pert_info_table(
 #######################################################################
 
 
-def create_trend_indicator(trend_data, metric_name="Items"):
+def create_compact_trend_indicator(trend_data, metric_name="Items"):
     """
-    Create a trend indicator component with arrow and percentage change.
+    Create a compact trend indicator component that shows performance trends in a space-efficient way.
 
     Args:
-        trend_data: Dictionary with trend information from calculate_performance_trend
-        metric_name: Name of the metric being displayed ("Items" or "Points")
+        trend_data: Dictionary containing trend information
+        metric_name: Name of the metric being shown (Items or Points)
 
     Returns:
-        A Dash component with the trend indicator
+        Dash component for displaying trend information in a compact format
     """
-    # Define colors and icons based on trend direction
-    trend_colors = {
-        "up": "#28a745",  # Green for positive trend
-        "down": "#dc3545",  # Red for negative trend
-        "stable": "#6c757d",  # Gray for stable trend
-    }
+    import dash_bootstrap_components as dbc
+    from dash import html
 
-    trend_icons = {
-        "up": "fas fa-arrow-up",
-        "down": "fas fa-arrow-down",
-        "stable": "fas fa-arrows-alt-h",
-    }
+    # Extract values from trend data or use defaults
+    percent_change = trend_data.get("percent_change", 0)
+    current_avg = trend_data.get("current_avg", 0)
+    previous_avg = trend_data.get("previous_avg", 0)
 
-    # Get direction, value and significance
-    direction = trend_data.get("trend_direction", "stable")
+    # Determine trend direction and colors
+    if abs(percent_change) < 5:
+        direction = "stable"
+        icon_class = "fas fa-equals"
+        text_color = "#6c757d"  # Gray
+        bg_color = "rgba(108, 117, 125, 0.1)"
+        border_color = "rgba(108, 117, 125, 0.2)"
+    elif percent_change > 0:
+        direction = "up"
+        icon_class = "fas fa-arrow-up"
+        text_color = "#28a745"  # Green
+        bg_color = "rgba(40, 167, 69, 0.1)"
+        border_color = "rgba(40, 167, 69, 0.2)"
+    else:
+        direction = "down"
+        icon_class = "fas fa-arrow-down"
+        text_color = "#dc3545"  # Red
+        bg_color = "rgba(220, 53, 69, 0.1)"
+        border_color = "rgba(220, 53, 69, 0.2)"
+
+    # Create the compact trend indicator
+    return html.Div(
+        className="compact-trend-indicator d-flex align-items-center p-2 rounded mb-3",
+        style={
+            "backgroundColor": bg_color,
+            "border": f"1px solid {border_color}",
+            "maxWidth": "100%",
+        },
+        children=[
+            # Trend icon with circle background
+            html.Div(
+                className="trend-icon me-3 d-flex align-items-center justify-content-center rounded-circle",
+                style={
+                    "width": "36px",
+                    "height": "36px",
+                    "backgroundColor": "white",
+                    "boxShadow": "0 2px 4px rgba(0,0,0,0.1)",
+                    "flexShrink": 0,
+                },
+                children=html.I(
+                    className=f"{icon_class}",
+                    style={"color": text_color, "fontSize": "1rem"},
+                ),
+            ),
+            # Trend information
+            html.Div(
+                className="trend-info",
+                style={"flexGrow": 1, "minWidth": 0},
+                children=[
+                    html.Div(
+                        className="d-flex justify-content-between align-items-baseline",
+                        children=[
+                            html.Span(
+                                f"Weekly {metric_name} Trend",
+                                className="fw-medium",
+                                style={"fontSize": "0.9rem"},
+                            ),
+                            html.Span(
+                                f"{abs(percent_change)}% {direction.capitalize()}",
+                                style={
+                                    "color": text_color,
+                                    "fontWeight": "500",
+                                    "fontSize": "0.9rem",
+                                },
+                            ),
+                        ],
+                    ),
+                    html.Div(
+                        className="d-flex justify-content-between align-items-baseline mt-1",
+                        style={"fontSize": "0.8rem", "color": "#6c757d"},
+                        children=[
+                            html.Span(
+                                f"4-week avg: {current_avg} {metric_name.lower()}/week"
+                            ),
+                            html.Span(
+                                f"Previous: {previous_avg} {metric_name.lower()}/week"
+                            ),
+                        ],
+                    ),
+                ],
+            ),
+        ],
+    )
+
+
+def create_trend_indicator(trend_data, metric_name="Items"):
+    """
+    Create a trend indicator component that shows performance trends.
+
+    Args:
+        trend_data: Dictionary containing trend information
+        metric_name: Name of the metric being shown (Items or Points)
+
+    Returns:
+        Dash component for displaying trend information
+    """
+    from dash import html
+
+    # Extract values from trend data or use defaults
     percent_change = trend_data.get("percent_change", 0)
     is_significant = trend_data.get("is_significant", False)
     weeks = trend_data.get("weeks_compared", 4)
     current_avg = trend_data.get("current_avg", 0)
     previous_avg = trend_data.get("previous_avg", 0)
+
+    # Determine trend direction and set appropriate icon and color
+    if abs(percent_change) < 5:
+        direction = "stable"
+        trend_icons = {
+            "stable": "fas fa-equals",
+            "up": "fas fa-arrow-up",
+            "down": "fas fa-arrow-down",
+        }
+        trend_colors = {"stable": "#6c757d", "up": "#28a745", "down": "#dc3545"}
+    elif percent_change > 0:
+        direction = "up"
+        trend_icons = {
+            "stable": "fas fa-equals",
+            "up": "fas fa-arrow-up",
+            "down": "fas fa-arrow-down",
+        }
+        trend_colors = {"stable": "#6c757d", "up": "#28a745", "down": "#dc3545"}
+    else:
+        direction = "down"
+        trend_icons = {
+            "stable": "fas fa-equals",
+            "up": "fas fa-arrow-up",
+            "down": "fas fa-arrow-down",
+        }
+        trend_colors = {"stable": "#6c757d", "up": "#28a745", "down": "#dc3545"}
 
     # Determine text color and font weight based on significance
     text_color = trend_colors.get(direction, "#6c757d")
@@ -1671,18 +1789,18 @@ def create_trend_indicator(trend_data, metric_name="Items"):
             # Add warning/celebration message for significant changes
             html.Div(
                 html.Span(
-                    "Significant change detected!" if is_significant else "",
-                    className="font-italic small",
-                    style={"color": text_color},
+                    f"This {'increase' if direction == 'up' else 'decrease' if direction == 'down' else 'trend'} is {'statistically significant' if is_significant else 'not statistically significant'}.",
+                    className=f"{'text-success' if direction == 'up' and is_significant else 'text-danger' if direction == 'down' and is_significant else 'text-muted'}",
                 ),
-                className="mt-1",
+                className="mt-2 small",
+                style={"display": "block" if is_significant else "none"},
             ),
         ],
-        className="trend-indicator p-3 border rounded",
+        className="trend-indicator mb-4 p-3 border rounded",
         style={
-            "backgroundColor": f"rgba({','.join(map(str, [int(c[1:3], 16), int(c[3:5], 16), int(c[5:7], 16)]))}, 0.1)"
-            if (c := trend_colors.get(direction, "#6c757d"))
-            else "rgba(108, 117, 125, 0.1)"
+            "backgroundColor": f"rgba({text_color.replace('#', '')}, 0.05)"
+            if text_color.startswith("#")
+            else "rgba(108, 117, 125, 0.05)",
         },
     )
 

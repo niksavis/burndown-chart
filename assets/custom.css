@@ -928,3 +928,109 @@ input[type="radio"]:checked {
 .success-animation {
   animation: success-indicator 0.5s ease-out;
 }
+
+/* Enhanced slider styling for better visibility and interaction */
+.rc-slider {
+    margin: 10px 0;
+    min-width: 150px;
+}
+
+.rc-slider-track {
+    background-color: #0d6efd;
+    height: 4px;
+}
+
+.rc-slider-rail {
+    height: 4px;
+    background-color: #e9ecef;
+}
+
+.rc-slider-handle {
+    border: solid 2px #0d6efd;
+    background-color: #fff;
+    width: 16px;
+    height: 16px;
+    margin-top: -6px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    cursor: pointer !important;
+}
+
+.rc-slider-handle:hover {
+    border-color: #0b5ed7;
+    box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+}
+
+.rc-slider-handle:active {
+    border-color: #0a58ca;
+    box-shadow: 0 1px 7px rgba(0,0,0,0.5);
+    cursor: grabbing;
+}
+
+.rc-slider-mark {
+    font-size: 12px;
+    top: 16px;
+}
+
+.rc-slider-mark-text {
+    color: #6c757d;
+}
+
+.rc-slider-mark-text-active {
+    color: #212529;
+}
+
+/* Compact trend indicator styling */
+.compact-trend-indicator {
+    transition: all 0.2s ease-in-out;
+}
+
+.compact-trend-indicator:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+/* Fix sparkline display in trend components */
+.trend-sparkline {
+    height: 30px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+}
+
+.trend-sparkline-bar {
+    width: 5px;
+    border-radius: 1px;
+    margin: 0 1px;
+    transition: height 0.3s ease;
+}
+
+/* Improve input range slider functionality */
+input[type=range] {
+    -webkit-appearance: none;
+    height: 4px;
+    border-radius: 2px;
+    background: #e9ecef;
+    outline: none;
+}
+
+input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #0d6efd;
+    border: 2px solid #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    cursor: pointer;
+}
+
+input[type=range]::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #0d6efd;
+    border: 2px solid #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    cursor: pointer;
+}

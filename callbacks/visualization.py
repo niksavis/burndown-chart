@@ -36,6 +36,7 @@ from ui import (
     create_trend_indicator,
     create_export_buttons,
     create_project_summary_card,
+    create_compact_trend_indicator,
 )
 
 #######################################################################
@@ -62,32 +63,34 @@ def register(app):
         return True
 
     @app.callback(
-        [
-            Output("forecast-graph", "figure"),
-            Output("project-dashboard-pert-content", "children"),
-        ],
+        Output("forecast-graph", "figure"),
         [
             Input("current-settings", "modified_timestamp"),
             Input("current-statistics", "modified_timestamp"),
             Input("calculation-results", "data"),
+            Input("chart-tabs", "active_tab"),
         ],
         [State("current-settings", "data"), State("current-statistics", "data")],
     )
-    def update_graph_and_pert_info(
-        settings_ts, statistics_ts, calc_results, settings, statistics
+    def update_forecast_graph(
+        settings_ts, statistics_ts, calc_results, active_tab, settings, statistics
     ):
-        """Update the forecast graph and PERT information when settings or statistics change."""
+        """Update the forecast graph when settings or statistics change."""
         # Get context to see which input triggered the callback
         ctx = callback_context
         if not ctx.triggered:
             raise PreventUpdate
 
-        # Get triggered input ID
-        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+        # Only proceed if we're on the burndown tab
+        if active_tab != "tab-burndown":
+            raise PreventUpdate  # Don't update when not on burndown tab
 
         # Validate inputs
         if settings is None or statistics is None:
             raise PreventUpdate
+
+        # Get triggered input ID
+        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
         # If triggered by calculation_results but data is None, prevent update
         if trigger_id == "calculation-results" and calc_results is None:
@@ -113,7 +116,67 @@ def register(app):
             df = compute_cumulative_values(df, total_items, total_points)
 
         # Create forecast plot and get PERT values
-        fig, pert_data = create_forecast_plot(
+        fig, _ = create_forecast_plot(
+            df=df,
+            total_items=total_items,
+            total_points=total_points,
+            pert_factor=pert_factor,
+            deadline_str=deadline,
+            data_points_count=data_points_count,
+        )
+
+        return fig
+
+    @app.callback(
+        Output("project-dashboard-pert-content", "children"),
+        [
+            Input("current-settings", "modified_timestamp"),
+            Input("current-statistics", "modified_timestamp"),
+            Input("calculation-results", "data"),
+        ],
+        [State("current-settings", "data"), State("current-statistics", "data")],
+    )
+    def update_pert_info(
+        settings_ts, statistics_ts, calc_results, settings, statistics
+    ):
+        """Update the PERT information when settings or statistics change."""
+        # Get context to see which input triggered the callback
+        ctx = callback_context
+        if not ctx.triggered:
+            raise PreventUpdate
+
+        # Validate inputs
+        if settings is None or statistics is None:
+            raise PreventUpdate
+
+        # Get triggered input ID
+        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+
+        # If triggered by calculation_results but data is None, prevent update
+        if trigger_id == "calculation-results" and calc_results is None:
+            raise PreventUpdate
+
+        # Process the settings and statistics data
+        df = pd.DataFrame(statistics)
+        if len(df) > 0:  # Check if there's any data
+            df["date"] = pd.to_datetime(df["date"])
+            df = df.sort_values("date")
+
+        # Get necessary values
+        total_items = settings.get("total_items", 100)
+        total_points = settings.get("total_points", 500)
+        pert_factor = settings.get("pert_factor", 3)
+        deadline = settings.get("deadline", None)
+        data_points_count = settings.get(
+            "data_points_count", len(df)
+        )  # Get selected data points count
+
+        # Process data for calculations
+        if not df.empty:
+            df = compute_cumulative_values(df, total_items, total_points)
+
+        # Create forecast plot and get PERT values
+        _, pert_data = create_forecast_plot(
             df=df,
             total_items=total_items,
             total_points=total_points,
@@ -148,7 +211,7 @@ def register(app):
             statistics_df=df,
         )
 
-        return fig, project_dashboard_pert_info
+        return project_dashboard_pert_info
 
     @app.callback(
         Output("tab-content", "children"),
@@ -227,32 +290,42 @@ def register(app):
 
             charts["tab-items"] = html.Div(
                 [
-                    # Date range selector for items chart
+                    # Date range selector for items chart with improved styling
                     html.Div(
                         [
-                            html.Label(
-                                "Show data for last:", className="mr-2 font-weight-bold"
+                            html.Div(
+                                [
+                                    html.Label(
+                                        "Show data for last:",
+                                        className="fw-medium mb-0 me-3",
+                                        style={"minWidth": "120px"},
+                                    ),
+                                    dcc.Slider(
+                                        id={
+                                            "type": "date-range-slider",
+                                            "tab": "items",
+                                        },
+                                        min=4,
+                                        max=52,
+                                        step=4,
+                                        value=date_range_weeks or 24,
+                                        marks={
+                                            4: "4w",
+                                            12: "12w",
+                                            24: "24w",
+                                            36: "36w",
+                                            52: "All",
+                                        },
+                                        className="flex-grow-1",
+                                    ),
+                                ],
+                                className="d-flex align-items-center",
+                                style={"maxWidth": "500px"},
                             ),
-                            dcc.Slider(
-                                id={"type": "date-range-slider", "tab": "items"},
-                                min=4,
-                                max=52,
-                                step=4,
-                                value=date_range_weeks or 24,
-                                marks={
-                                    4: "4 weeks",
-                                    12: "12 weeks",
-                                    24: "24 weeks",
-                                    52: "All",
-                                },
-                                className="mb-4",
-                            ),
+                            # Add compact trend indicator
+                            create_compact_trend_indicator(items_trend, "Items"),
                         ],
-                        className="mb-3",
-                    ),
-                    # Performance trend indicator
-                    html.Div(
-                        [create_trend_indicator(items_trend, "Items")], className="mb-4"
+                        className="mb-4 d-flex justify-content-between align-items-center flex-wrap gap-3",
                     ),
                     # Consolidated items weekly chart with forecast
                     dcc.Graph(
@@ -273,33 +346,42 @@ def register(app):
 
             charts["tab-points"] = html.Div(
                 [
-                    # Date range selector for points chart
+                    # Date range selector for points chart with improved styling
                     html.Div(
                         [
-                            html.Label(
-                                "Show data for last:", className="mr-2 font-weight-bold"
+                            html.Div(
+                                [
+                                    html.Label(
+                                        "Show data for last:",
+                                        className="fw-medium mb-0 me-3",
+                                        style={"minWidth": "120px"},
+                                    ),
+                                    dcc.Slider(
+                                        id={
+                                            "type": "date-range-slider",
+                                            "tab": "points",
+                                        },
+                                        min=4,
+                                        max=52,
+                                        step=4,
+                                        value=date_range_weeks or 24,
+                                        marks={
+                                            4: "4w",
+                                            12: "12w",
+                                            24: "24w",
+                                            36: "36w",
+                                            52: "All",
+                                        },
+                                        className="flex-grow-1",
+                                    ),
+                                ],
+                                className="d-flex align-items-center",
+                                style={"maxWidth": "500px"},
                             ),
-                            dcc.Slider(
-                                id={"type": "date-range-slider", "tab": "points"},
-                                min=4,
-                                max=52,
-                                step=4,
-                                value=date_range_weeks or 24,
-                                marks={
-                                    4: "4 weeks",
-                                    12: "12 weeks",
-                                    24: "24 weeks",
-                                    52: "All",
-                                },
-                                className="mb-4",
-                            ),
+                            # Add compact trend indicator
+                            create_compact_trend_indicator(points_trend, "Points"),
                         ],
-                        className="mb-3",
-                    ),
-                    # Performance trend indicator
-                    html.Div(
-                        [create_trend_indicator(points_trend, "Points")],
-                        className="mb-4",
+                        className="mb-4 d-flex justify-content-between align-items-center flex-wrap gap-3",
                     ),
                     # Consolidated points weekly chart with forecast
                     dcc.Graph(
@@ -323,7 +405,7 @@ def register(app):
                 ]
             )
 
-    # Replace the previous update_date_range callback with this pattern-matching callback
+    # Enhance the existing update_date_range callback to immediately trigger chart updates
     @app.callback(
         Output("date-range-weeks", "data"),
         [
@@ -342,7 +424,6 @@ def register(app):
 
         # Get the ID and value of the slider that was changed
         trigger = ctx.triggered[0]
-        prop_id = trigger["prop_id"]
         value = trigger["value"]
 
         # If no valid value, use default
