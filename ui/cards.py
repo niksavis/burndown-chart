@@ -1837,7 +1837,7 @@ def create_items_forecast_info_card(statistics_df=None, pert_data=None):
                                 html.Li(
                                     [
                                         html.Strong("Optimistic: "),
-                                        "Best weeks average (20% confidence)",
+                                        "Highest weeks average (20% confidence)",
                                     ]
                                 ),
                                 html.Li(
@@ -1865,12 +1865,13 @@ def create_items_forecast_info_card(statistics_df=None, pert_data=None):
                         "items-forecast-info",
                         "Understanding the weekly items forecast chart and trends.",
                     ),
-                ]
+                ],
+                className="py-2 px-3",  # Added padding classes to match Burndown chart
             ),
             dbc.CardBody(
                 [
                     # Original content follows
-                    chart_info,
+                    chart_info
                 ],
                 className="p-3",
             ),
@@ -2018,7 +2019,7 @@ def create_points_forecast_info_card(statistics_df=None, pert_data=None):
                                 html.Li(
                                     [
                                         html.Strong("Pessimistic: "),
-                                        "Lowest non-zero average (80% confidence)",
+                                        "Lowest weeks average (80% confidence)",
                                     ]
                                 ),
                             ],
@@ -2027,39 +2028,6 @@ def create_points_forecast_info_card(statistics_df=None, pert_data=None):
                         ),
                     ],
                 ),
-            ),
-        ],
-    )
-
-    # Confidence interval explanation
-    confidence_interval = html.Div(
-        className="border rounded p-2 mt-3",
-        children=[
-            html.H6("Confidence Interval", className="mb-2"),
-            html.Div(
-                className="d-flex",
-                children=[
-                    html.Div(
-                        className="flex-grow-1",
-                        children=html.Small(
-                            [
-                                html.Strong("Upper: "),
-                                "25% of difference between Most Likely and Optimistic",
-                            ],
-                            className="d-block mb-1",
-                        ),
-                    ),
-                    html.Div(
-                        className="flex-grow-1",
-                        children=html.Small(
-                            [
-                                html.Strong("Lower: "),
-                                "25% of difference between Most Likely and Pessimistic",
-                            ],
-                            className="d-block mb-1",
-                        ),
-                    ),
-                ],
             ),
         ],
     )
@@ -2073,13 +2041,13 @@ def create_points_forecast_info_card(statistics_df=None, pert_data=None):
                         "points-forecast-info",
                         "Understanding the weekly points forecast chart and trends.",
                     ),
-                ]
+                ],
+                className="py-2 px-3",  # Added padding classes to match Burndown chart
             ),
             dbc.CardBody(
                 [
                     # Original content follows
-                    chart_info,
-                    confidence_interval,
+                    chart_info
                 ],
                 className="p-3",
             ),
