@@ -82,9 +82,6 @@ def create_app_layout(settings, statistics, is_sample_data):
     # Create dataframe from statistics
     statistics_df = pd.DataFrame(statistics)
 
-    # Get the current year for footer copyright
-    current_year = datetime.now().year
-
     return dbc.Container(
         [
             # Page initialization complete flag (hidden)
@@ -190,26 +187,6 @@ def create_app_layout(settings, statistics, is_sample_data):
             create_full_width_layout(
                 create_statistics_data_card(statistics),
                 row_class="mb-4",
-            ),
-            # Footer
-            create_content_section(
-                title="",
-                body=[
-                    html.Hr(),
-                    html.P(
-                        [
-                            f"© {current_year} ",
-                            html.A(
-                                "Project Burndown Forecast",
-                                href="#",
-                                className="text-decoration-none",
-                            ),
-                            " - All rights reserved.",
-                        ],
-                        className="text-muted small mb-1",
-                    ),
-                ],
-                section_class="mt-5 mb-3",
             ),
         ],
         fluid=True,
