@@ -579,13 +579,134 @@ def register(app):
 
             charts["tab-items"] = html.Div(
                 [
-                    # Simplified header with just trend indicator
+                    # Enhanced header with trend indicator and forecast pills (similar to burndown tab)
                     html.Div(
                         [
-                            # Add compact trend indicator
-                            create_compact_trend_indicator(items_trend, "Items"),
+                            # Column for items trend
+                            html.Div(
+                                [
+                                    # Add header with icon and title
+                                    html.Div(
+                                        [
+                                            html.I(
+                                                className="fas fa-tasks me-2",
+                                                style={"color": "#20c997"},
+                                            ),
+                                            html.Span(
+                                                "Weekly Items Trend",
+                                                className="fw-medium",
+                                            ),
+                                        ],
+                                        className="d-flex align-items-center mb-2",
+                                    ),
+                                    # Add compact trend indicator
+                                    create_compact_trend_indicator(
+                                        items_trend, "Items"
+                                    ),
+                                    # Add forecast information - all in a single row using flex layout
+                                    html.Div(
+                                        [
+                                            # Most likely forecast
+                                            html.Div(
+                                                [
+                                                    html.I(
+                                                        className="fas fa-chart-line me-1",
+                                                        style={"color": "#0d6efd"},
+                                                    ),
+                                                    html.Small(
+                                                        [
+                                                            "Most likely: ",
+                                                            html.Strong(
+                                                                f"{items_trend.get('most_likely_forecast', 0):.1f}",
+                                                                style={
+                                                                    "color": "#0d6efd"
+                                                                },
+                                                            ),
+                                                        ],
+                                                    ),
+                                                ],
+                                                className="forecast-pill",
+                                                style={
+                                                    "borderLeft": "3px solid #0d6efd",
+                                                    "paddingLeft": "0.5rem",
+                                                    "marginRight": "0.75rem",
+                                                },
+                                            )
+                                            if "most_likely_forecast" in items_trend
+                                            else None,
+                                            # Optimistic forecast
+                                            html.Div(
+                                                [
+                                                    html.I(
+                                                        className="fas fa-chart-line me-1",
+                                                        style={"color": "#28a745"},
+                                                    ),
+                                                    html.Small(
+                                                        [
+                                                            "Optimistic: ",
+                                                            html.Strong(
+                                                                f"{items_trend.get('optimistic_forecast', 0):.1f}",
+                                                                style={
+                                                                    "color": "#28a745"
+                                                                },
+                                                            ),
+                                                        ],
+                                                    ),
+                                                ],
+                                                className="forecast-pill",
+                                                style={
+                                                    "borderLeft": "3px solid #28a745",
+                                                    "paddingLeft": "0.5rem",
+                                                    "marginRight": "0.75rem",
+                                                },
+                                            )
+                                            if "optimistic_forecast" in items_trend
+                                            else None,
+                                            # Pessimistic forecast
+                                            html.Div(
+                                                [
+                                                    html.I(
+                                                        className="fas fa-chart-line me-1",
+                                                        style={"color": "#6610f2"},
+                                                    ),
+                                                    html.Small(
+                                                        [
+                                                            "Pessimistic: ",
+                                                            html.Strong(
+                                                                f"{items_trend.get('pessimistic_forecast', 0):.1f}",
+                                                                style={
+                                                                    "color": "#6610f2"
+                                                                },
+                                                            ),
+                                                        ],
+                                                    ),
+                                                ],
+                                                className="forecast-pill",
+                                                style={
+                                                    "borderLeft": "3px solid #6610f2",
+                                                    "paddingLeft": "0.5rem",
+                                                    "marginRight": "0.75rem",
+                                                },
+                                            )
+                                            if "pessimistic_forecast" in items_trend
+                                            else None,
+                                            # Units indicator (items/week)
+                                            html.Div(
+                                                html.Small(
+                                                    "items/week",
+                                                    className="text-muted fst-italic",
+                                                ),
+                                                style={"paddingTop": "2px"},
+                                            ),
+                                        ],
+                                        className="d-flex flex-wrap mt-2 align-items-center",
+                                        style={"gap": "0.25rem"},
+                                    ),
+                                ],
+                                className="col-md-6 col-12 mb-3",
+                            ),
                         ],
-                        className="mb-4 d-flex justify-content-between align-items-center flex-wrap gap-3",
+                        className="mb-4",
                     ),
                     # Consolidated items weekly chart with forecast
                     dcc.Graph(
@@ -604,13 +725,134 @@ def register(app):
 
             charts["tab-points"] = html.Div(
                 [
-                    # Simplified header with just trend indicator
+                    # Enhanced header with trend indicator and forecast pills (similar to burndown tab)
                     html.Div(
                         [
-                            # Add compact trend indicator
-                            create_compact_trend_indicator(points_trend, "Points"),
+                            # Column for points trend
+                            html.Div(
+                                [
+                                    # Add header with icon and title
+                                    html.Div(
+                                        [
+                                            html.I(
+                                                className="fas fa-chart-bar me-2",
+                                                style={"color": "#fd7e14"},
+                                            ),
+                                            html.Span(
+                                                "Weekly Points Trend",
+                                                className="fw-medium",
+                                            ),
+                                        ],
+                                        className="d-flex align-items-center mb-2",
+                                    ),
+                                    # Add compact trend indicator
+                                    create_compact_trend_indicator(
+                                        points_trend, "Points"
+                                    ),
+                                    # Add forecast information - all in a single row using flex layout
+                                    html.Div(
+                                        [
+                                            # Most likely forecast
+                                            html.Div(
+                                                [
+                                                    html.I(
+                                                        className="fas fa-chart-line me-1",
+                                                        style={"color": "#fd7e14"},
+                                                    ),
+                                                    html.Small(
+                                                        [
+                                                            "Most likely: ",
+                                                            html.Strong(
+                                                                f"{points_trend.get('most_likely_forecast', 0):.1f}",
+                                                                style={
+                                                                    "color": "#fd7e14"
+                                                                },
+                                                            ),
+                                                        ],
+                                                    ),
+                                                ],
+                                                className="forecast-pill",
+                                                style={
+                                                    "borderLeft": "3px solid #fd7e14",
+                                                    "paddingLeft": "0.5rem",
+                                                    "marginRight": "0.75rem",
+                                                },
+                                            )
+                                            if "most_likely_forecast" in points_trend
+                                            else None,
+                                            # Optimistic forecast
+                                            html.Div(
+                                                [
+                                                    html.I(
+                                                        className="fas fa-chart-line me-1",
+                                                        style={"color": "#28a745"},
+                                                    ),
+                                                    html.Small(
+                                                        [
+                                                            "Optimistic: ",
+                                                            html.Strong(
+                                                                f"{points_trend.get('optimistic_forecast', 0):.1f}",
+                                                                style={
+                                                                    "color": "#28a745"
+                                                                },
+                                                            ),
+                                                        ],
+                                                    ),
+                                                ],
+                                                className="forecast-pill",
+                                                style={
+                                                    "borderLeft": "3px solid #28a745",
+                                                    "paddingLeft": "0.5rem",
+                                                    "marginRight": "0.75rem",
+                                                },
+                                            )
+                                            if "optimistic_forecast" in points_trend
+                                            else None,
+                                            # Pessimistic forecast
+                                            html.Div(
+                                                [
+                                                    html.I(
+                                                        className="fas fa-chart-line me-1",
+                                                        style={"color": "#a52a2a"},
+                                                    ),
+                                                    html.Small(
+                                                        [
+                                                            "Pessimistic: ",
+                                                            html.Strong(
+                                                                f"{points_trend.get('pessimistic_forecast', 0):.1f}",
+                                                                style={
+                                                                    "color": "#a52a2a"
+                                                                },
+                                                            ),
+                                                        ],
+                                                    ),
+                                                ],
+                                                className="forecast-pill",
+                                                style={
+                                                    "borderLeft": "3px solid #a52a2a",
+                                                    "paddingLeft": "0.5rem",
+                                                    "marginRight": "0.75rem",
+                                                },
+                                            )
+                                            if "pessimistic_forecast" in points_trend
+                                            else None,
+                                            # Units indicator (points/week)
+                                            html.Div(
+                                                html.Small(
+                                                    "points/week",
+                                                    className="text-muted fst-italic",
+                                                ),
+                                                style={"paddingTop": "2px"},
+                                            ),
+                                        ],
+                                        className="d-flex flex-wrap mt-2 align-items-center",
+                                        style={"gap": "0.25rem"},
+                                    ),
+                                ],
+                                className="col-md-6 col-12 mb-3",
+                            ),
                         ],
-                        className="mb-4 d-flex justify-content-between align-items-center flex-wrap gap-3",
+                        className="mb-4",
                     ),
                     # Consolidated points weekly chart with forecast
                     dcc.Graph(

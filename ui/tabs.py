@@ -73,13 +73,15 @@ def create_tabs():
     )
 
 
-def create_tab_content(active_tab, charts):
+def create_tab_content(active_tab, charts, statistics_df=None, pert_data=None):
     """
     Generate content for the active tab using standardized layout.
 
     Args:
         active_tab: ID of the currently active tab
         charts: Dictionary of chart components for each tab
+        statistics_df: DataFrame containing the project statistics (optional)
+        pert_data: Dictionary containing PERT analysis data (optional)
 
     Returns:
         Dash component containing the active tab's content with consistent styling
@@ -102,8 +104,8 @@ def create_tab_content(active_tab, charts):
     # Tab-specific forecast info cards
     tab_info_cards = {
         "tab-burndown": create_forecast_info_card(),
-        "tab-items": create_items_forecast_info_card(),
-        "tab-points": create_points_forecast_info_card(),
+        "tab-items": create_items_forecast_info_card(statistics_df, pert_data),
+        "tab-points": create_points_forecast_info_card(statistics_df, pert_data),
     }
 
     # Enhanced tab titles with more descriptive content and icons

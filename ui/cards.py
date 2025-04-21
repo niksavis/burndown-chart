@@ -1697,13 +1697,260 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
         )
 
 
-def create_items_forecast_info_card():
+def create_items_forecast_info_card(statistics_df=None, pert_data=None):
     """
     Create a concise forecast information card for the Items per Week tab.
+
+    Args:
+        statistics_df: DataFrame containing the project statistics (optional)
+        pert_data: Dictionary containing PERT analysis data (optional)
 
     Returns:
         Dash Card component with items forecast explanation
     """
+    import pandas as pd
+    from datetime import datetime, timedelta
+
+    # Calculate weekly metrics if statistics_df is provided
+    avg_weekly_items = 0
+    pert_time_items = None
+    items_completion_str = "Unknown"
+    items_days = "--"
+    items_weeks = "--"
+
+    # Extract metrics from statistics if available
+    if statistics_df is not None and not statistics_df.empty:
+        try:
+            # Convert to datetime to ensure proper week grouping
+            recent_df = statistics_df.copy()
+            recent_df["date"] = pd.to_datetime(recent_df["date"])
+            recent_df["week"] = recent_df["date"].dt.isocalendar().week
+            recent_df["year"] = recent_df["date"].dt.isocalendar().year
+
+            # Use tail(10) to focus on recent data
+            recent_df = recent_df.tail(10)
+
+            weekly_data = (
+                recent_df.groupby(["year", "week"])
+                .agg({"no_items": "sum"})
+                .reset_index()
+            )
+
+            # Calculate metrics
+            avg_weekly_items = weekly_data["no_items"].mean()
+        except Exception:
+            avg_weekly_items = 0
+
+    # Extract PERT data if available
+    if pert_data and isinstance(pert_data, dict):
+        pert_time_items = pert_data.get("pert_time_items")
+        items_completion_enhanced = pert_data.get("items_completion_enhanced")
+
+        if items_completion_enhanced is not None:
+            items_completion_str_with_details = items_completion_enhanced
+        elif pert_time_items is not None:
+            # Format values if they exist but we don't have pre-formatted strings
+            current_date = datetime.now()
+            items_completion_date = current_date + timedelta(days=pert_time_items)
+            items_completion_str = items_completion_date.strftime("%Y-%m-%d")
+            items_days = f"{int(pert_time_items)}"
+            items_weeks = f"{round(pert_time_items / 7, 1)}"
+
+    # Create the trend metrics section
+    weekly_trend_section = html.Div(
+        [
+            html.H6(
+                "Weekly Item Trends",
+                className="border-bottom pb-1 mb-3",
+                style={"fontSize": "1.1rem", "fontWeight": "bold"},
+            ),
+            dbc.Row(
+                [
+                    # Items velocity
+                    dbc.Col(
+                        [
+                            html.Div(
+                                [
+                                    html.I(
+                                        className="fas fa-tasks me-1",
+                                        style={
+                                            "color": COLOR_PALETTE["items"],
+                                            "fontSize": "1rem",
+                                        },
+                                    ),
+                                    html.Span(
+                                        f"{avg_weekly_items:.1f}",
+                                        className="fw-bold",
+                                        style={
+                                            "fontSize": "1.1rem",
+                                            "color": COLOR_PALETTE["items"],
+                                        },
+                                    ),
+                                    html.Small(
+                                        " items/week",
+                                        style={"fontSize": "0.9rem"},
+                                    ),
+                                ],
+                                className="mb-2",
+                            ),
+                        ],
+                        width=12,
+                        className="px-2",
+                    ),
+                ],
+                className="mb-3",
+            ),
+            # Items forecast section if PERT data is available
+            html.Div(
+                [
+                    html.H6(
+                        "Items Completion Forecast",
+                        className="border-bottom pb-1 mb-3",
+                        style={"fontSize": "1.1rem", "fontWeight": "bold"},
+                    ),
+                    html.Div(
+                        [
+                            html.Div(
+                                [
+                                    html.Span(
+                                        f"{items_completion_str}",
+                                        className="fw-bold",
+                                        style={
+                                            "fontSize": "1rem",
+                                            "color": COLOR_PALETTE["items"],
+                                        },
+                                    ),
+                                ],
+                                className="mb-1",
+                            ),
+                            html.Div(
+                                [
+                                    html.Span(
+                                        f"{items_days} days ({items_weeks} weeks)",
+                                        style={"fontSize": "0.9rem"},
+                                    ),
+                                ],
+                            ),
+                        ],
+                    ),
+                ],
+            )
+            if pert_data
+            else html.Div(),
+        ],
+        className="border rounded p-2 mb-4",
+    )
+
+    # The original card content
+    chart_info = html.Div(
+        className="row g-3",
+        children=[
+            # Column 1: Chart Elements
+            html.Div(
+                className="col-12 col-md-6",
+                children=html.Div(
+                    className="border rounded p-2 h-100",
+                    children=[
+                        html.H6("Chart Elements", className="mb-2"),
+                        html.Ul(
+                            [
+                                html.Li(
+                                    [
+                                        html.Span(
+                                            "Blue Bars",
+                                            style={
+                                                "color": COLOR_PALETTE["items"],
+                                                "fontWeight": "bold",
+                                            },
+                                        ),
+                                        ": Historical weekly completed items",
+                                    ]
+                                ),
+                                html.Li(
+                                    [
+                                        html.Span(
+                                            "Dark Blue Line",
+                                            style={
+                                                "color": "#0047AB",
+                                                "fontWeight": "bold",
+                                            },
+                                        ),
+                                        ": Weighted 4-week moving average",
+                                    ]
+                                ),
+                                html.Li(
+                                    [
+                                        html.Span(
+                                            "Patterned Bar",
+                                            style={
+                                                "color": COLOR_PALETTE["items"],
+                                                "fontWeight": "bold",
+                                            },
+                                        ),
+                                        ": Next week's forecast",
+                                    ]
+                                ),
+                            ],
+                            className="mb-0 ps-3",
+                            style={"fontSize": "0.9rem"},
+                        ),
+                    ],
+                ),
+            ),
+            # Column 2: Forecast Method
+            html.Div(
+                className="col-12 col-md-6",
+                children=html.Div(
+                    className="border rounded p-2 h-100",
+                    children=[
+                        html.H6("PERT Forecast Method", className="mb-2"),
+                        html.Ul(
+                            [
+                                html.Li(
+                                    [
+                                        html.Strong("Most Likely: "),
+                                        "Average of all data (50% confidence)",
+                                    ]
+                                ),
+                                html.Li(
+                                    [
+                                        html.Strong("Optimistic: "),
+                                        "Best weeks average (20% confidence)",
+                                    ]
+                                ),
+                                html.Li(
+                                    [
+                                        html.Strong("Pessimistic: "),
+                                        "Lowest weeks average (80% confidence)",
+                                    ]
+                                ),
+                            ],
+                            className="mb-0 ps-3",
+                            style={"fontSize": "0.9rem"},
+                        ),
+                    ],
+                ),
+            ),
+        ],
+    )
+
+    # Footer with practical use
+    footer = html.Div(
+        className="mt-3 pt-2 border-top",
+        children=[
+            html.Small(
+                [
+                    html.I(
+                        className="fas fa-info-circle me-1",
+                        style={"color": "#6c757d"},
+                    ),
+                    "The weighted average prioritizes recent weeks (40%, 30%, 20%, 10%). Use this forecast to plan sprint capacity.",
+                ],
+                className="text-muted",
+            ),
+        ],
+    )
+
     return dbc.Card(
         [
             dbc.CardHeader(
@@ -1711,126 +1958,17 @@ def create_items_forecast_info_card():
                     html.H4("Items Forecast Information", className="d-inline"),
                     create_info_tooltip(
                         "items-forecast-info",
-                        "Understanding the weekly items forecast chart.",
+                        "Understanding the weekly items forecast chart and trends.",
                     ),
                 ]
             ),
             dbc.CardBody(
                 [
-                    # Two-column layout for more efficient space usage
-                    html.Div(
-                        className="row g-3",
-                        children=[
-                            # Column 1: Chart Elements
-                            html.Div(
-                                className="col-12 col-md-6",
-                                children=html.Div(
-                                    className="border rounded p-2 h-100",
-                                    children=[
-                                        html.H6("Chart Elements", className="mb-2"),
-                                        html.Ul(
-                                            [
-                                                html.Li(
-                                                    [
-                                                        html.Span(
-                                                            "Blue Bars",
-                                                            style={
-                                                                "color": COLOR_PALETTE[
-                                                                    "items"
-                                                                ],
-                                                                "fontWeight": "bold",
-                                                            },
-                                                        ),
-                                                        ": Historical weekly completed items",
-                                                    ]
-                                                ),
-                                                html.Li(
-                                                    [
-                                                        html.Span(
-                                                            "Dark Blue Line",
-                                                            style={
-                                                                "color": "#0047AB",
-                                                                "fontWeight": "bold",
-                                                            },
-                                                        ),
-                                                        ": Weighted 4-week moving average",
-                                                    ]
-                                                ),
-                                                html.Li(
-                                                    [
-                                                        html.Span(
-                                                            "Patterned Bar",
-                                                            style={
-                                                                "color": COLOR_PALETTE[
-                                                                    "items"
-                                                                ],
-                                                                "fontWeight": "bold",
-                                                            },
-                                                        ),
-                                                        ": Next week's forecast",
-                                                    ]
-                                                ),
-                                            ],
-                                            className="mb-0 ps-3",
-                                            style={"fontSize": "0.9rem"},
-                                        ),
-                                    ],
-                                ),
-                            ),
-                            # Column 2: Forecast Method
-                            html.Div(
-                                className="col-12 col-md-6",
-                                children=html.Div(
-                                    className="border rounded p-2 h-100",
-                                    children=[
-                                        html.H6(
-                                            "PERT Forecast Method", className="mb-2"
-                                        ),
-                                        html.Ul(
-                                            [
-                                                html.Li(
-                                                    [
-                                                        html.Strong("Most Likely: "),
-                                                        "Average of all data (50% confidence)",
-                                                    ]
-                                                ),
-                                                html.Li(
-                                                    [
-                                                        html.Strong("Optimistic: "),
-                                                        "Best weeks average (20% confidence)",
-                                                    ]
-                                                ),
-                                                html.Li(
-                                                    [
-                                                        html.Strong("Pessimistic: "),
-                                                        "Lowest weeks average (80% confidence)",
-                                                    ]
-                                                ),
-                                            ],
-                                            className="mb-0 ps-3",
-                                            style={"fontSize": "0.9rem"},
-                                        ),
-                                    ],
-                                ),
-                            ),
-                        ],
-                    ),
-                    # Footer with practical use
-                    html.Div(
-                        className="mt-3 pt-2 border-top",
-                        children=[
-                            html.Small(
-                                [
-                                    html.I(
-                                        className="fas fa-info-circle me-1",
-                                        style={"color": "#6c757d"},
-                                    ),
-                                    "The weighted average prioritizes recent weeks (40%, 30%, 20%, 10%). Use this forecast to plan sprint capacity.",
-                                ],
-                                className="text-muted",
-                            ),
-                        ],
-                    ),
+                    # Add weekly trend section at the top
+                    weekly_trend_section,
+                    # Original content follows
+                    chart_info,
+                    footer,
                 ],
                 className="p-3",
             ),
@@ -1839,13 +1977,293 @@ def create_items_forecast_info_card():
     )
 
 
-def create_points_forecast_info_card():
+def create_points_forecast_info_card(statistics_df=None, pert_data=None):
     """
     Create a concise forecast information card for the Points per Week tab.
+
+    Args:
+        statistics_df: DataFrame containing the project statistics (optional)
+        pert_data: Dictionary containing PERT analysis data (optional)
 
     Returns:
         Dash Card component with points forecast explanation
     """
+    import pandas as pd
+    from datetime import datetime, timedelta
+
+    # Calculate weekly metrics if statistics_df is provided
+    avg_weekly_points = 0
+    pert_time_points = None
+    points_completion_str = "Unknown"
+    points_days = "--"
+    points_weeks = "--"
+
+    # Extract metrics from statistics if available
+    if statistics_df is not None and not statistics_df.empty:
+        try:
+            # Convert to datetime to ensure proper week grouping
+            recent_df = statistics_df.copy()
+            recent_df["date"] = pd.to_datetime(recent_df["date"])
+            recent_df["week"] = recent_df["date"].dt.isocalendar().week
+            recent_df["year"] = recent_df["date"].dt.isocalendar().year
+
+            # Use tail(10) to focus on recent data
+            recent_df = recent_df.tail(10)
+
+            weekly_data = (
+                recent_df.groupby(["year", "week"])
+                .agg({"no_points": "sum"})
+                .reset_index()
+            )
+
+            # Calculate metrics
+            avg_weekly_points = weekly_data["no_points"].mean()
+        except Exception:
+            avg_weekly_points = 0
+
+    # Extract PERT data if available
+    if pert_data and isinstance(pert_data, dict):
+        pert_time_points = pert_data.get("pert_time_points")
+        points_completion_enhanced = pert_data.get("points_completion_enhanced")
+
+        if points_completion_enhanced is not None:
+            points_completion_str_with_details = points_completion_enhanced
+        elif pert_time_points is not None:
+            # Format values if they exist but we don't have pre-formatted strings
+            current_date = datetime.now()
+            points_completion_date = current_date + timedelta(days=pert_time_points)
+            points_completion_str = points_completion_date.strftime("%Y-%m-%d")
+            points_days = f"{int(pert_time_points)}"
+            points_weeks = f"{round(pert_time_points / 7, 1)}"
+
+    # Create the trend metrics section
+    weekly_trend_section = html.Div(
+        [
+            html.H6(
+                "Weekly Point Trends",
+                className="border-bottom pb-1 mb-3",
+                style={"fontSize": "1.1rem", "fontWeight": "bold"},
+            ),
+            dbc.Row(
+                [
+                    # Points velocity
+                    dbc.Col(
+                        [
+                            html.Div(
+                                [
+                                    html.I(
+                                        className="fas fa-chart-line me-1",
+                                        style={
+                                            "color": COLOR_PALETTE["points"],
+                                            "fontSize": "1rem",
+                                        },
+                                    ),
+                                    html.Span(
+                                        f"{avg_weekly_points:.1f}",
+                                        className="fw-bold",
+                                        style={
+                                            "fontSize": "1.1rem",
+                                            "color": COLOR_PALETTE["points"],
+                                        },
+                                    ),
+                                    html.Small(
+                                        " points/week",
+                                        style={"fontSize": "0.9rem"},
+                                    ),
+                                ],
+                                className="mb-2",
+                            ),
+                        ],
+                        width=12,
+                        className="px-2",
+                    ),
+                ],
+                className="mb-3",
+            ),
+            # Points forecast section if PERT data is available
+            html.Div(
+                [
+                    html.H6(
+                        "Points Completion Forecast",
+                        className="border-bottom pb-1 mb-3",
+                        style={"fontSize": "1.1rem", "fontWeight": "bold"},
+                    ),
+                    html.Div(
+                        [
+                            html.Div(
+                                [
+                                    html.Span(
+                                        f"{points_completion_str}",
+                                        className="fw-bold",
+                                        style={
+                                            "fontSize": "1rem",
+                                            "color": COLOR_PALETTE["points"],
+                                        },
+                                    ),
+                                ],
+                                className="mb-1",
+                            ),
+                            html.Div(
+                                [
+                                    html.Span(
+                                        f"{points_days} days ({points_weeks} weeks)",
+                                        style={"fontSize": "0.9rem"},
+                                    ),
+                                ],
+                            ),
+                        ],
+                    ),
+                ],
+            )
+            if pert_data
+            else html.Div(),
+        ],
+        className="border rounded p-2 mb-4",
+    )
+
+    # The original card content with chart elements and forecast method
+    chart_info = html.Div(
+        className="row g-3",
+        children=[
+            # Column 1: Chart Elements
+            html.Div(
+                className="col-12 col-md-6",
+                children=html.Div(
+                    className="border rounded p-2 h-100",
+                    children=[
+                        html.H6("Chart Elements", className="mb-2"),
+                        html.Ul(
+                            [
+                                html.Li(
+                                    [
+                                        html.Span(
+                                            "Orange Bars",
+                                            style={
+                                                "color": COLOR_PALETTE["points"],
+                                                "fontWeight": "bold",
+                                            },
+                                        ),
+                                        ": Historical weekly completed points",
+                                    ]
+                                ),
+                                html.Li(
+                                    [
+                                        html.Span(
+                                            "Red Line",
+                                            style={
+                                                "color": "#FF6347",
+                                                "fontWeight": "bold",
+                                            },
+                                        ),
+                                        ": Weighted 4-week moving average",
+                                    ]
+                                ),
+                                html.Li(
+                                    [
+                                        html.Span(
+                                            "Error Bars",
+                                            style={
+                                                "color": COLOR_PALETTE["points"],
+                                                "fontWeight": "bold",
+                                            },
+                                        ),
+                                        ": Confidence interval for forecast",
+                                    ]
+                                ),
+                            ],
+                            className="mb-0 ps-3",
+                            style={"fontSize": "0.9rem"},
+                        ),
+                    ],
+                ),
+            ),
+            # Column 2: Forecast Method
+            html.Div(
+                className="col-12 col-md-6",
+                children=html.Div(
+                    className="border rounded p-2 h-100",
+                    children=[
+                        html.H6("PERT Forecast Method", className="mb-2"),
+                        html.Ul(
+                            [
+                                html.Li(
+                                    [
+                                        html.Strong("Most Likely: "),
+                                        "Average of all data (50% confidence)",
+                                    ]
+                                ),
+                                html.Li(
+                                    [
+                                        html.Strong("Optimistic: "),
+                                        "Highest weeks average (20% confidence)",
+                                    ]
+                                ),
+                                html.Li(
+                                    [
+                                        html.Strong("Pessimistic: "),
+                                        "Lowest non-zero average (80% confidence)",
+                                    ]
+                                ),
+                            ],
+                            className="mb-0 ps-3",
+                            style={"fontSize": "0.9rem"},
+                        ),
+                    ],
+                ),
+            ),
+        ],
+    )
+
+    # Confidence interval explanation
+    confidence_interval = html.Div(
+        className="border rounded p-2 mt-3",
+        children=[
+            html.H6("Confidence Interval", className="mb-2"),
+            html.Div(
+                className="d-flex",
+                children=[
+                    html.Div(
+                        className="flex-grow-1",
+                        children=html.Small(
+                            [
+                                html.Strong("Upper: "),
+                                "25% of difference between Most Likely and Optimistic",
+                            ],
+                            className="d-block mb-1",
+                        ),
+                    ),
+                    html.Div(
+                        className="flex-grow-1",
+                        children=html.Small(
+                            [
+                                html.Strong("Lower: "),
+                                "25% of difference between Most Likely and Pessimistic",
+                            ],
+                            className="d-block mb-1",
+                        ),
+                    ),
+                ],
+            ),
+        ],
+    )
+
+    # Footer with practical use
+    footer = html.Div(
+        className="mt-3 pt-2 border-top",
+        children=[
+            html.Small(
+                [
+                    html.I(
+                        className="fas fa-info-circle me-1",
+                        style={"color": "#6c757d"},
+                    ),
+                    "Use this forecast to estimate sprint capacity and establish delivery commitments with confidence intervals.",
+                ],
+                className="text-muted",
+            ),
+        ],
+    )
+
     return dbc.Card(
         [
             dbc.CardHeader(
@@ -1853,158 +2271,18 @@ def create_points_forecast_info_card():
                     html.H4("Points Forecast Information", className="d-inline"),
                     create_info_tooltip(
                         "points-forecast-info",
-                        "Understanding the weekly points forecast chart.",
+                        "Understanding the weekly points forecast chart and trends.",
                     ),
                 ]
             ),
             dbc.CardBody(
                 [
-                    # Two-column layout for more efficient space usage
-                    html.Div(
-                        className="row g-3",
-                        children=[
-                            # Column 1: Chart Elements
-                            html.Div(
-                                className="col-12 col-md-6",
-                                children=html.Div(
-                                    className="border rounded p-2 h-100",
-                                    children=[
-                                        html.H6("Chart Elements", className="mb-2"),
-                                        html.Ul(
-                                            [
-                                                html.Li(
-                                                    [
-                                                        html.Span(
-                                                            "Orange Bars",
-                                                            style={
-                                                                "color": COLOR_PALETTE[
-                                                                    "points"
-                                                                ],
-                                                                "fontWeight": "bold",
-                                                            },
-                                                        ),
-                                                        ": Historical weekly completed points",
-                                                    ]
-                                                ),
-                                                html.Li(
-                                                    [
-                                                        html.Span(
-                                                            "Red Line",
-                                                            style={
-                                                                "color": "#FF6347",
-                                                                "fontWeight": "bold",
-                                                            },
-                                                        ),
-                                                        ": Weighted 4-week moving average",
-                                                    ]
-                                                ),
-                                                html.Li(
-                                                    [
-                                                        html.Span(
-                                                            "Error Bars",
-                                                            style={
-                                                                "color": COLOR_PALETTE[
-                                                                    "points"
-                                                                ],
-                                                                "fontWeight": "bold",
-                                                            },
-                                                        ),
-                                                        ": Confidence interval for forecast",
-                                                    ]
-                                                ),
-                                            ],
-                                            className="mb-0 ps-3",
-                                            style={"fontSize": "0.9rem"},
-                                        ),
-                                    ],
-                                ),
-                            ),
-                            # Column 2: Forecast Method
-                            html.Div(
-                                className="col-12 col-md-6",
-                                children=html.Div(
-                                    className="border rounded p-2 h-100",
-                                    children=[
-                                        html.H6(
-                                            "PERT Forecast Method", className="mb-2"
-                                        ),
-                                        html.Ul(
-                                            [
-                                                html.Li(
-                                                    [
-                                                        html.Strong("Most Likely: "),
-                                                        "Average of all data (50% confidence)",
-                                                    ]
-                                                ),
-                                                html.Li(
-                                                    [
-                                                        html.Strong("Optimistic: "),
-                                                        "Highest weeks average (20% confidence)",
-                                                    ]
-                                                ),
-                                                html.Li(
-                                                    [
-                                                        html.Strong("Pessimistic: "),
-                                                        "Lowest non-zero average (80% confidence)",
-                                                    ]
-                                                ),
-                                            ],
-                                            className="mb-0 ps-3",
-                                            style={"fontSize": "0.9rem"},
-                                        ),
-                                    ],
-                                ),
-                            ),
-                        ],
-                    ),
-                    # Compact confidence interval explanation
-                    html.Div(
-                        className="border rounded p-2 mt-3",
-                        children=[
-                            html.H6("Confidence Interval", className="mb-2"),
-                            html.Div(
-                                className="d-flex",
-                                children=[
-                                    html.Div(
-                                        className="flex-grow-1",
-                                        children=html.Small(
-                                            [
-                                                html.Strong("Upper: "),
-                                                "25% of difference between Most Likely and Optimistic",
-                                            ],
-                                            className="d-block mb-1",
-                                        ),
-                                    ),
-                                    html.Div(
-                                        className="flex-grow-1",
-                                        children=html.Small(
-                                            [
-                                                html.Strong("Lower: "),
-                                                "25% of difference between Most Likely and Pessimistic",
-                                            ],
-                                            className="d-block mb-1",
-                                        ),
-                                    ),
-                                ],
-                            ),
-                        ],
-                    ),
-                    # Footer with practical use
-                    html.Div(
-                        className="mt-3 pt-2 border-top",
-                        children=[
-                            html.Small(
-                                [
-                                    html.I(
-                                        className="fas fa-info-circle me-1",
-                                        style={"color": "#6c757d"},
-                                    ),
-                                    "Use this forecast to estimate sprint capacity and establish delivery commitments with confidence intervals.",
-                                ],
-                                className="text-muted",
-                            ),
-                        ],
-                    ),
+                    # Add weekly trend section at the top
+                    weekly_trend_section,
+                    # Original content follows
+                    chart_info,
+                    confidence_interval,
+                    footer,
                 ],
                 className="p-3",
             ),
