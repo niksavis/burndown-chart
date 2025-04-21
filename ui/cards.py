@@ -830,7 +830,11 @@ def create_statistics_data_card(current_statistics):
                             id="export-statistics-button",
                             variant="outline-secondary",
                             icon_class="fas fa-file-export",
-                            tooltip="Export statistics data as CSV",
+                        ),
+                        dbc.Tooltip(
+                            "Export statistics data as CSV",
+                            target="export-statistics-button",
+                            placement="top",
                         ),
                         html.Div(dcc.Download(id="export-statistics-download")),
                     ],
