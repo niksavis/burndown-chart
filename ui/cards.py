@@ -285,12 +285,14 @@ def create_forecast_info_card():
                 className="py-2 px-3 d-flex justify-content-between align-items-center",
             ),
             dbc.Collapse(
-                dbc.CardBody(body_content, className="py-2 px-3"),
+                dbc.CardBody(
+                    body_content, className="p-3"
+                ),  # Changed from "py-2 px-3" to "p-3" to match other cards
                 id=collapse_id,
                 is_open=False,
             ),
         ],
-        className="mb-3 shadow-sm mt-4",  # Added mt-4 to create space between the chart and info card
+        className="mb-3 shadow-sm mt-3",  # Changed from mt-4 to mt-3 to match other forecast info cards
     )
 
 
