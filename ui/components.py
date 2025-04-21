@@ -1678,10 +1678,14 @@ def create_compact_trend_indicator(trend_data, metric_name="Items"):
                         style={"fontSize": "0.8rem", "color": "#6c757d"},
                         children=[
                             html.Span(
-                                f"4-week avg: {current_avg} {metric_name.lower()}/week"
+                                f"4-week avg: {current_avg} {metric_name.lower()}/week",
+                                style={
+                                    "marginRight": "15px"
+                                },  # Add explicit right margin
                             ),
                             html.Span(
-                                f"Previous: {previous_avg} {metric_name.lower()}/week"
+                                f"Previous: {previous_avg} {metric_name.lower()}/week",
+                                style={"marginLeft": "5px"},  # Add explicit left margin
                             ),
                         ],
                     ),
