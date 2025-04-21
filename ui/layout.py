@@ -142,13 +142,43 @@ def create_app_layout(settings, statistics, is_sample_data):
                 },
                 id="sample-data-banner",
             ),
-            # App header with consistent styling
+            # App header with minimal design to maximize content space
             create_full_width_layout(
-                html.H1(
-                    "Project Burndown Forecast",
-                    className="text-center my-4",
+                html.Div(
+                    [
+                        dbc.Row(
+                            [
+                                # Logo and title on the left
+                                dbc.Col(
+                                    [
+                                        html.Div(
+                                            [
+                                                html.I(
+                                                    className="fas fa-tachometer-alt",
+                                                    style={
+                                                        "fontSize": "1.1rem",
+                                                        "color": "#0d6efd",
+                                                        "marginRight": "0.5rem",
+                                                    },
+                                                ),
+                                                html.H5(
+                                                    "Project Metrics",
+                                                    className="mb-0 d-inline",
+                                                    style={"fontWeight": "500"},
+                                                ),
+                                            ],
+                                            className="d-flex align-items-center",
+                                        )
+                                    ],
+                                    width="auto",
+                                ),
+                            ],
+                            className="align-items-center",
+                        )
+                    ],
+                    className="py-1 border-bottom mb-3",
                 ),
-                row_class="mb-3",
+                row_class="",
             ),
             # Tab Navigation and Charts Row - using full width template
             create_full_width_layout(
