@@ -243,11 +243,6 @@ def create_forecast_info_card():
                     ),
                 ],
             ),
-            # Footnote on forecast dates
-            html.Small(
-                "Where forecast lines cross zero indicates estimated completion dates. Red vertical line shows deadline.",
-                className="text-muted d-block mt-2",
-            ),
         ],
         style={"textAlign": "left"},
     )
@@ -1861,23 +1856,6 @@ def create_items_forecast_info_card(statistics_df=None, pert_data=None):
         ],
     )
 
-    # Footer with practical use
-    footer = html.Div(
-        className="mt-3 pt-2 border-top",
-        children=[
-            html.Small(
-                [
-                    html.I(
-                        className="fas fa-info-circle me-1",
-                        style={"color": "#6c757d"},
-                    ),
-                    "The weighted average prioritizes recent weeks (40%, 30%, 20%, 10%). Use this forecast to plan iteration capacity.",
-                ],
-                className="text-muted",
-            ),
-        ],
-    )
-
     return dbc.Card(
         [
             dbc.CardHeader(
@@ -1893,7 +1871,6 @@ def create_items_forecast_info_card(statistics_df=None, pert_data=None):
                 [
                     # Original content follows
                     chart_info,
-                    footer,
                 ],
                 className="p-3",
             ),
@@ -2087,23 +2064,6 @@ def create_points_forecast_info_card(statistics_df=None, pert_data=None):
         ],
     )
 
-    # Footer with practical use
-    footer = html.Div(
-        className="mt-3 pt-2 border-top",
-        children=[
-            html.Small(
-                [
-                    html.I(
-                        className="fas fa-info-circle me-1",
-                        style={"color": "#6c757d"},
-                    ),
-                    "Use this forecast to estimate iteration capacity and establish delivery commitments with confidence intervals.",
-                ],
-                className="text-muted",
-            ),
-        ],
-    )
-
     return dbc.Card(
         [
             dbc.CardHeader(
@@ -2120,7 +2080,6 @@ def create_points_forecast_info_card(statistics_df=None, pert_data=None):
                     # Original content follows
                     chart_info,
                     confidence_interval,
-                    footer,
                 ],
                 className="p-3",
             ),
