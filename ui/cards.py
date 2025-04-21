@@ -285,14 +285,12 @@ def create_forecast_info_card():
                 className="py-2 px-3 d-flex justify-content-between align-items-center",
             ),
             dbc.Collapse(
-                dbc.CardBody(
-                    body_content, className="p-3"
-                ),  # Changed from "py-2 px-3" to "p-3" to match other cards
+                dbc.CardBody(body_content, className="p-3"),
                 id=collapse_id,
                 is_open=False,
             ),
         ],
-        className="mb-3 shadow-sm mt-3",  # Changed from mt-4 to mt-3 to match other forecast info cards
+        className="my-2 shadow-sm",  # Changed from "mb-3 shadow-sm mt-3" to "my-2" for consistent 8px margins
     )
 
 
@@ -1958,7 +1956,7 @@ def create_items_forecast_info_card(statistics_df=None, pert_data=None):
                 is_open=False,
             ),
         ],
-        className="mt-3 mb-2 shadow-sm",  # Reduced margin
+        className="my-2 shadow-sm",  # Changed from "mt-3 mb-2 shadow-sm" to "my-2" for consistent 8px margins
     )
 
 
@@ -2175,5 +2173,5 @@ def create_points_forecast_info_card(statistics_df=None, pert_data=None):
                 is_open=False,
             ),
         ],
-        className="mt-3 mb-2 shadow-sm",
+        className="my-2 shadow-sm",
     )
