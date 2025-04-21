@@ -164,7 +164,10 @@ def create_app_layout(settings, statistics, is_sample_data):
                                                 html.H5(
                                                     "Project Metrics",
                                                     className="mb-0 d-inline",
-                                                    style={"fontWeight": "500"},
+                                                    style={
+                                                        "fontWeight": "500",
+                                                        "fontSize": "1.6rem",
+                                                    },
                                                 ),
                                             ],
                                             className="d-flex align-items-center",
