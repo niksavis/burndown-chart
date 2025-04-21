@@ -187,6 +187,18 @@ def create_forecast_info_card():
                                                 ": Pessimistic",
                                             ]
                                         ),
+                                        html.Li(
+                                            [
+                                                html.Span(
+                                                    "Red",
+                                                    style={
+                                                        "color": "red",
+                                                        "fontWeight": "bold",
+                                                    },
+                                                ),
+                                                ": Deadline",
+                                            ]
+                                        ),
                                     ],
                                     className="mb-0 ps-3",
                                     style={"fontSize": "0.9rem"},
