@@ -290,38 +290,9 @@ def register(app):
 
             charts["tab-items"] = html.Div(
                 [
-                    # Date range selector for items chart with improved styling
+                    # Simplified header with just trend indicator
                     html.Div(
                         [
-                            html.Div(
-                                [
-                                    html.Label(
-                                        "Show data for last:",
-                                        className="fw-medium mb-0 me-3",
-                                        style={"minWidth": "120px"},
-                                    ),
-                                    dcc.Slider(
-                                        id={
-                                            "type": "date-range-slider",
-                                            "tab": "items",
-                                        },
-                                        min=4,
-                                        max=52,
-                                        step=4,
-                                        value=date_range_weeks or 24,
-                                        marks={
-                                            4: "4w",
-                                            12: "12w",
-                                            24: "24w",
-                                            36: "36w",
-                                            52: "All",
-                                        },
-                                        className="flex-grow-1",
-                                    ),
-                                ],
-                                className="d-flex align-items-center",
-                                style={"maxWidth": "500px"},
-                            ),
                             # Add compact trend indicator
                             create_compact_trend_indicator(items_trend, "Items"),
                         ],
@@ -346,38 +317,9 @@ def register(app):
 
             charts["tab-points"] = html.Div(
                 [
-                    # Date range selector for points chart with improved styling
+                    # Simplified header with just trend indicator
                     html.Div(
                         [
-                            html.Div(
-                                [
-                                    html.Label(
-                                        "Show data for last:",
-                                        className="fw-medium mb-0 me-3",
-                                        style={"minWidth": "120px"},
-                                    ),
-                                    dcc.Slider(
-                                        id={
-                                            "type": "date-range-slider",
-                                            "tab": "points",
-                                        },
-                                        min=4,
-                                        max=52,
-                                        step=4,
-                                        value=date_range_weeks or 24,
-                                        marks={
-                                            4: "4w",
-                                            12: "12w",
-                                            24: "24w",
-                                            36: "36w",
-                                            52: "All",
-                                        },
-                                        className="flex-grow-1",
-                                    ),
-                                ],
-                                className="d-flex align-items-center",
-                                style={"maxWidth": "500px"},
-                            ),
                             # Add compact trend indicator
                             create_compact_trend_indicator(points_trend, "Points"),
                         ],

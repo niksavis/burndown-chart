@@ -299,6 +299,40 @@ def register(app):
 
         return min_value, max_value, marks
 
+    @app.callback(
+        Output("data-points-input", "value"),
+        [
+            Input("pert-factor-slider", "value"),
+            Input("data-points-input", "min"),
+        ],
+        [State("data-points-input", "value")],
+    )
+    def update_data_points_value(pert_factor, min_required, current_value):
+        """
+        Update the data points value when PERT factor changes, ensuring it's at least 2x the PERT Factor.
+
+        Args:
+            pert_factor: Current PERT factor value
+            min_required: Minimum required data points (already calculated as 2x PERT Factor)
+            current_value: Current value of the data points slider
+
+        Returns:
+            Updated value for the data points slider
+        """
+        if current_value is None or min_required is None:
+            # Use safe default values
+            return min_required or (pert_factor * 2 if pert_factor else 6)
+
+        # Check if current value is below the new minimum
+        if current_value < min_required:
+            logger.info(
+                f"Updating data points from {current_value} to minimum {min_required}"
+            )
+            return min_required
+
+        # Current value is already valid
+        return current_value
+
     # Add a clientside callback to enhance slider interactions and synchronize slider value with the displayed text
     app.clientside_callback(
         """
