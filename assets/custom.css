@@ -1034,3 +1034,25 @@ input[type=range]::-moz-range-thumb {
     box-shadow: 0 1px 3px rgba(0,0,0,0.3);
     cursor: pointer;
 }
+
+/* ===== Disable Transition for Weekly Trend Boxes ===== */
+
+/* Prevent transition for trend boxes to ensure snappy loading */
+.forecast-pill,
+.compact-trend-indicator,
+.tab-content [class*="tab-"] .row:first-child {
+    transition: none !important;
+}
+
+/* Override any Bootstrap transitions that might be causing the animation */
+#tab-burndown .row, 
+#tab-burndown .col-md-6,
+#tab-burndown .col-12,
+.d-flex.flex-wrap.mt-2.align-items-center {
+    transition: none !important;
+}
+
+/* Ensure immediate display of trend content when switching tabs */
+[role="tabpanel"] {
+    transition: none !important;
+}
