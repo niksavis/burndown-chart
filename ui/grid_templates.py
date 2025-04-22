@@ -1,9 +1,14 @@
 """
-Grid Templates Module
+Grid Templates Module (Legacy)
 
 This module provides standardized grid layout components and templates
 for consistent layout and alignment throughout the application.
+
+DEPRECATED: This module is maintained for backward compatibility.
+New code should use ui.grid_utils instead.
 """
+
+import warnings
 
 #######################################################################
 # IMPORTS
@@ -22,8 +27,18 @@ from ui.styles import (
     apply_vertical_rhythm,
 )
 
+# Import new grid utilities
+from ui.grid_utils import (
+    create_two_column_layout as new_create_two_column_layout,
+    create_three_column_layout as new_create_three_column_layout,
+    create_multi_column_layout,
+    create_responsive_table_wrapper as new_create_responsive_table_wrapper,
+    create_form_row as new_create_form_row,
+    create_form_section as new_create_form_section,
+)
+
 #######################################################################
-# GRID TEMPLATES
+# GRID TEMPLATES (DEPRECATED)
 #######################################################################
 
 
@@ -32,6 +47,8 @@ def create_two_column_layout(
 ):
     """
     Creates a standardized two-column layout with responsive behavior.
+
+    DEPRECATED: Use ui.grid_utils.create_two_column_layout() instead.
 
     Args:
         left_content: Content for the left column
@@ -43,17 +60,17 @@ def create_two_column_layout(
     Returns:
         A dbc.Row containing the two-column layout
     """
-    # Use our vertical rhythm system for consistent spacing
-    if row_class is None:
-        row_class = f"mb-{COMPONENT_SPACING['section_margin'].replace('rem', '')}"
+    warnings.warn(
+        "This function is deprecated. Use ui.grid_utils.create_two_column_layout() instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
 
-    return dbc.Row(
-        [
-            dbc.Col(
-                left_content, xs=12, md=left_width, className="mb-4 mb-md-0"
-            ),  # Increased from mb-3 to mb-4
-            dbc.Col(right_content, xs=12, md=right_width),
-        ],
+    return new_create_two_column_layout(
+        left_content=left_content,
+        right_content=right_content,
+        left_width=left_width,
+        right_width=right_width,
         className=row_class,
     )
 
@@ -63,6 +80,8 @@ def create_two_cards_layout(
 ):
     """
     Creates a standardized layout for two cards side by side with responsive behavior.
+
+    DEPRECATED: Use ui.grid_utils.create_two_column_layout() with card content instead.
 
     Args:
         card1: First card component
@@ -74,24 +93,27 @@ def create_two_cards_layout(
     Returns:
         A dbc.Row containing the two cards layout
     """
+    warnings.warn(
+        "This function is deprecated. Use ui.grid_utils.create_two_column_layout() with card content instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+
     if equal_height:
-        card1_class = "mb-4 mb-md-0 h-100"  # Increased mobile margin from mb-3 to mb-4 for consistency
+        card1_class = "h-100"
         card2_class = "h-100"
     else:
-        card1_class = (
-            "mb-4 mb-md-0"  # Increased mobile margin from mb-3 to mb-4 for consistency
-        )
+        card1_class = ""
         card2_class = ""
 
-    # Use our vertical rhythm system for spacing
-    row_class = f"mb-{VERTICAL_RHYTHM['section'].replace('rem', '')}"
+    card1 = html.Div(card1, className=card1_class)
+    card2 = html.Div(card2, className=card2_class)
 
-    return dbc.Row(
-        [
-            dbc.Col(html.Div(card1, className=card1_class), xs=12, md=card1_width),
-            dbc.Col(html.Div(card2, className=card2_class), xs=12, md=card2_width),
-        ],
-        className=row_class,
+    return new_create_two_column_layout(
+        left_content=card1,
+        right_content=card2,
+        left_width=card1_width,
+        right_width=card2_width,
     )
 
 
@@ -100,6 +122,8 @@ def create_three_column_layout(
 ):
     """
     Creates a standardized three-column layout with responsive behavior.
+
+    DEPRECATED: Use ui.grid_utils.create_three_column_layout() instead.
 
     Args:
         left: Content for the left column
@@ -113,20 +137,19 @@ def create_three_column_layout(
     Returns:
         A dbc.Row containing the three-column layout
     """
-    # Use vertical rhythm system for consistent spacing
-    if row_class is None:
-        row_class = f"mb-{COMPONENT_SPACING['section_margin'].replace('rem', '')}"
+    warnings.warn(
+        "This function is deprecated. Use ui.grid_utils.create_three_column_layout() instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
 
-    return dbc.Row(
-        [
-            dbc.Col(
-                left, xs=12, md=left_width, className="mb-4 mb-md-0"
-            ),  # Increased from mb-3 to mb-4
-            dbc.Col(
-                middle, xs=12, md=middle_width, className="mb-4 mb-md-0"
-            ),  # Increased from mb-3 to mb-4
-            dbc.Col(right, xs=12, md=right_width),
-        ],
+    return new_create_three_column_layout(
+        left=left,
+        middle=middle,
+        right=right,
+        left_width=left_width,
+        middle_width=middle_width,
+        right_width=right_width,
         className=row_class,
     )
 
@@ -134,6 +157,8 @@ def create_three_column_layout(
 def create_four_column_layout(cols, widths=None, row_class=None):
     """
     Creates a standardized four-column layout with responsive behavior.
+
+    DEPRECATED: Use ui.grid_utils.create_multi_column_layout() instead.
 
     Args:
         cols: List of content for the columns
@@ -143,28 +168,22 @@ def create_four_column_layout(cols, widths=None, row_class=None):
     Returns:
         A dbc.Row containing the four-column layout
     """
-    if widths is None:
-        widths = [3, 3, 3, 3]
+    warnings.warn(
+        "This function is deprecated. Use ui.grid_utils.create_multi_column_layout() instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
 
-    # Use vertical rhythm system for consistent spacing
-    if row_class is None:
-        row_class = f"mb-{COMPONENT_SPACING['section_margin'].replace('rem', '')}"
-
-    col_components = []
-    for i, col_content in enumerate(cols):
-        col_class = (
-            "mb-4 mb-md-0" if i < len(cols) - 1 else ""
-        )  # Increased from mb-3 to mb-4
-        col_components.append(
-            dbc.Col(col_content, xs=12, md=widths[i], className=col_class)
-        )
-
-    return dbc.Row(col_components, className=row_class)
+    return create_multi_column_layout(
+        columns_content=cols, column_widths=widths, className=row_class
+    )
 
 
 def create_full_width_layout(content, row_class=None):
     """
     Creates a standardized full-width layout.
+
+    DEPRECATED: Use dbc.Row(dbc.Col(content, width=12), className=row_class) directly.
 
     Args:
         content: Content for the full-width column
@@ -173,6 +192,12 @@ def create_full_width_layout(content, row_class=None):
     Returns:
         A dbc.Row containing the full-width layout
     """
+    warnings.warn(
+        "This function is deprecated. Use dbc.Row(dbc.Col(content, width=12), className=row_class) directly.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+
     # Use vertical rhythm system for consistent spacing
     if row_class is None:
         row_class = f"mb-{COMPONENT_SPACING['section_margin'].replace('rem', '')}"
@@ -434,6 +459,8 @@ def create_responsive_table_wrapper(table_component, max_height=None, className=
     """
     Create a mobile-responsive wrapper for tables that handles overflow with scrolling.
 
+    DEPRECATED: Use ui.grid_utils.create_responsive_table_wrapper() instead.
+
     Args:
         table_component: The table component to wrap
         max_height: Optional max height for vertical scrolling
@@ -442,22 +469,14 @@ def create_responsive_table_wrapper(table_component, max_height=None, className=
     Returns:
         html.Div: A responsive container for the table
     """
-    from dash import html
+    warnings.warn(
+        "This function is deprecated. Use ui.grid_utils.create_responsive_table_wrapper() instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
 
-    container_style = {
-        "overflowX": "auto",
-        "width": "100%",
-        "-webkit-overflow-scrolling": "touch",  # Smooth scrolling on iOS
-    }
-
-    if max_height:
-        container_style["maxHeight"] = max_height
-        container_style["overflowY"] = "auto"
-
-    return html.Div(
-        table_component,
-        className=f"table-responsive {className}",
-        style=container_style,
+    return new_create_responsive_table_wrapper(
+        table_component=table_component, max_height=max_height, className=className
     )
 
 
@@ -623,6 +642,53 @@ def create_form_group(
         components.append(html.Div(feedback, className=feedback_class))
 
     return html.Div(components, style={"marginBottom": margin_bottom})
+
+
+def create_form_row(form_groups, columns=None):
+    """
+    Create a form row with form groups in columns.
+
+    DEPRECATED: Use ui.grid_utils.create_form_row() instead.
+
+    Args:
+        form_groups: List of form group components
+        columns: List of column widths for each form group
+
+    Returns:
+        A row with form groups in columns
+    """
+    warnings.warn(
+        "This function is deprecated. Use ui.grid_utils.create_form_row() instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+
+    return new_create_form_row(form_groups=form_groups, columns=columns)
+
+
+def create_form_section(title, components, help_text=None):
+    """
+    Create a form section with a title and components.
+
+    DEPRECATED: Use ui.grid_utils.create_form_section() instead.
+
+    Args:
+        title: Section title
+        components: List of components to include in the section
+        help_text: Optional help text to display below the title
+
+    Returns:
+        A section div with title and components
+    """
+    warnings.warn(
+        "This function is deprecated. Use ui.grid_utils.create_form_section() instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+
+    return new_create_form_section(
+        title=title, components=components, help_text=help_text
+    )
 
 
 def create_form_row(form_groups, columns=None):

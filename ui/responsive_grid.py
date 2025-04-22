@@ -1,9 +1,14 @@
 """
-Responsive Grid Module
+Responsive Grid Module (Legacy)
 
 This module provides advanced responsive grid components that utilize all Bootstrap breakpoints
 (xs, sm, md, lg, xl, xxl) for fine-grained responsive layouts.
+
+DEPRECATED: This module is maintained for backward compatibility.
+New code should use ui.grid_utils instead.
 """
+
+import warnings
 
 #######################################################################
 # IMPORTS
@@ -21,8 +26,20 @@ from ui.styles import (
     create_responsive_style,
 )
 
+# Import new grid utilities
+from ui.grid_utils import (
+    create_responsive_row as new_create_responsive_row,
+    create_responsive_column as new_create_responsive_column,
+    create_responsive_grid as new_create_responsive_grid,
+    create_stacked_to_horizontal as new_create_stacked_to_horizontal,
+    create_card_grid,
+    create_dashboard_layout,
+    create_mobile_container as new_create_mobile_container,
+    create_breakpoint_visibility_examples as new_create_breakpoint_visibility_examples,
+)
+
 #######################################################################
-# RESPONSIVE GRID TEMPLATES
+# RESPONSIVE GRID TEMPLATES (DEPRECATED)
 #######################################################################
 
 
@@ -37,6 +54,8 @@ def create_responsive_row(
     """
     Create a responsive row with different properties at different breakpoints.
 
+    DEPRECATED: Use ui.grid_utils.create_responsive_row() instead.
+
     Args:
         children: Content for the row
         className: Base class name for the row
@@ -50,37 +69,20 @@ def create_responsive_row(
     Returns:
         A dbc.Row with responsive behavior
     """
-    # Build class name with breakpoint-specific classes
-    classes = [className] if className else []
+    warnings.warn(
+        "This function is deprecated. Use ui.grid_utils.create_responsive_row() instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
 
-    # Add responsive classes
-    if row_class_by_breakpoint:
-        for bp, cls in row_class_by_breakpoint.items():
-            if bp == "xs":
-                classes.append(cls)
-            else:
-                classes.append(f"{cls}-{bp}")
-
-    # Add alignment classes
-    if alignment_by_breakpoint:
-        for bp, align in alignment_by_breakpoint.items():
-            if bp == "xs":
-                classes.append(align)
-            else:
-                classes.append(f"{align}-{bp}")
-
-    # Add gutter classes
-    if gutters_by_breakpoint:
-        for bp, gutter in gutters_by_breakpoint.items():
-            if bp == "xs":
-                classes.append(f"g-{gutter}")
-            else:
-                classes.append(f"g-{bp}-{gutter}")
-
-    # Join all classes
-    row_class = " ".join(classes)
-
-    return dbc.Row(children, className=row_class, style=style)
+    return new_create_responsive_row(
+        children=children,
+        className=className,
+        style=style,
+        row_class_by_breakpoint=row_class_by_breakpoint,
+        alignment_by_breakpoint=alignment_by_breakpoint,
+        gutters_by_breakpoint=gutters_by_breakpoint,
+    )
 
 
 def create_responsive_column(
@@ -98,65 +100,42 @@ def create_responsive_column(
     padding_by_breakpoint=None,
 ):
     """
-    Create a column with different widths at different breakpoints.
+    Create a responsive column with different widths and properties at different breakpoints.
+
+    DEPRECATED: Use ui.grid_utils.create_responsive_column() instead.
 
     Args:
-        content: Content for the column
-        xs, sm, md, lg, xl, xxl: Column width (1-12) at each breakpoint
+        content: Column content
+        xs, sm, md, lg, xl, xxl: Column widths at different breakpoints (1-12)
         className: Additional CSS classes
-        style: Additional styles
-        order_by_breakpoint: Dict mapping breakpoints to order values (e.g. {'xs': '2', 'lg': '1'})
-        visibility_by_breakpoint: Dict mapping breakpoints to visibility (e.g. {'xs': True, 'md': False})
-        padding_by_breakpoint: Dict mapping breakpoints to padding (e.g. {'xs': '2', 'md': '4'})
+        style: Additional inline styles
+        order_by_breakpoint: Dict mapping breakpoints to order values (e.g. {'xs': '2', 'md': '1'})
+        visibility_by_breakpoint: Dict mapping breakpoints to visibility boolean (e.g. {'xs': True, 'md': False})
+        padding_by_breakpoint: Dict mapping breakpoints to padding values (e.g. {'xs': '1', 'md': '3'})
 
     Returns:
         A dbc.Col with responsive behavior
     """
-    # Create the width configuration for each breakpoint
-    width_config = {}
-    if xs is not None:
-        width_config["xs"] = xs
-    if sm is not None:
-        width_config["sm"] = sm
-    if md is not None:
-        width_config["md"] = md
-    if lg is not None:
-        width_config["lg"] = lg
-    if xl is not None:
-        width_config["xl"] = xl
-    if xxl is not None:
-        width_config["xxl"] = xxl
+    warnings.warn(
+        "This function is deprecated. Use ui.grid_utils.create_responsive_column() instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
 
-    # Build class name with additional responsive classes
-    classes = [className] if className else []
-
-    # Add order classes for reordering content at different breakpoints
-    if order_by_breakpoint:
-        for bp, order in order_by_breakpoint.items():
-            if bp == "xs":
-                classes.append(f"order-{order}")
-            else:
-                classes.append(f"order-{bp}-{order}")
-
-    # Add visibility classes
-    if visibility_by_breakpoint:
-        for bp, visible in visibility_by_breakpoint.items():
-            if bp == "xs":
-                classes.append(f"d-{'block' if visible else 'none'}")
-            else:
-                classes.append(f"d-{bp}-{'block' if visible else 'none'}")
-
-    # Add padding classes
-    if padding_by_breakpoint:
-        for bp, padding in padding_by_breakpoint.items():
-            if bp == "xs":
-                classes.append(f"p-{padding}")
-            else:
-                classes.append(f"p-{bp}-{padding}")
-
-    col_class = " ".join(classes)
-
-    return dbc.Col(content, **width_config, className=col_class, style=style)
+    return new_create_responsive_column(
+        content=content,
+        xs=xs,
+        sm=sm,
+        md=md,
+        lg=lg,
+        xl=xl,
+        xxl=xxl,
+        className=className,
+        style=style,
+        order_by_breakpoint=order_by_breakpoint,
+        visibility_by_breakpoint=visibility_by_breakpoint,
+        padding_by_breakpoint=padding_by_breakpoint,
+    )
 
 
 def create_responsive_grid(
@@ -168,47 +147,36 @@ def create_responsive_grid(
     container_class="",
 ):
     """
-    Create a responsive grid layout with a configurable number of columns at different breakpoints.
+    Create a responsive grid with a configurable number of columns at different breakpoints.
+
+    DEPRECATED: Use ui.grid_utils.create_responsive_grid() instead.
 
     Args:
         items: List of content items to place in the grid
         cols_by_breakpoint: Dict mapping breakpoints to number of columns
-                           (e.g. {'xs': 1, 'sm': 2, 'md': 3, 'lg': 4, 'xl': 6})
-        breakpoints: List of breakpoints to include in the grid (default: all Bootstrap breakpoints)
-        item_class: Class to apply to each item
-        row_class: Class to apply to each row
-        container_class: Class to apply to the container
+                           (e.g. {'xs': 1, 'md': 2, 'lg': 3})
+        breakpoints: List of breakpoints to include in the grid
+        item_class: Additional classes for item containers
+        row_class: Additional classes for the row
+        container_class: Additional classes for the container
 
     Returns:
-        A responsively laid out grid of items with different column counts at different breakpoints
+        A responsive grid with the items
     """
-    if not items:
-        return html.Div()
+    warnings.warn(
+        "This function is deprecated. Use ui.grid_utils.create_responsive_grid() instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
 
-    if cols_by_breakpoint is None:
-        cols_by_breakpoint = {"xs": 1, "md": 2, "lg": 3, "xl": 4}
-
-    # Calculate column width for each breakpoint
-    col_widths = {}
-    for bp in breakpoints:
-        if bp in cols_by_breakpoint:
-            col_widths[bp] = 12 // cols_by_breakpoint[bp]
-
-    # Create columns with responsive widths
-    columns = []
-    for item in items:
-        columns.append(
-            create_responsive_column(
-                html.Div(item, className=item_class),
-                **{bp: width for bp, width in col_widths.items()},
-                className="mb-3",
-            )
-        )
-
-    # Create row with items
-    row = dbc.Row(columns, className=row_class)
-
-    return html.Div(row, className=container_class)
+    return new_create_responsive_grid(
+        items=items,
+        cols_by_breakpoint=cols_by_breakpoint,
+        breakpoints=breakpoints,
+        item_class=item_class,
+        row_class=row_class,
+        container_class=container_class,
+    )
 
 
 def create_stacked_to_horizontal(
@@ -225,64 +193,36 @@ def create_stacked_to_horizontal(
     Create a layout that stacks vertically until a specified breakpoint,
     then displays horizontally side-by-side.
 
+    DEPRECATED: Use ui.grid_utils.create_stacked_to_horizontal() instead.
+
     Args:
         left_content: Content for the left column
         right_content: Content for the right column
         stack_until: Stack vertically until this breakpoint ('sm', 'md', 'lg', 'xl')
         left_width: Width of left column (1-12) for non-stacked view
         right_width: Width of right column (1-12) for non-stacked view
-        breakpoints: List of breakpoints to include
+        breakpoints: List of breakpoints to consider
         row_class: Additional classes for the row
         equal_height: Whether to make columns equal height when side-by-side
 
     Returns:
         A layout that stacks vertically on small screens and horizontally on larger screens
     """
-    # Find the index of the stack_until breakpoint
-    bp_order = ["xs", "sm", "md", "lg", "xl", "xxl"]
-    try:
-        stack_index = bp_order.index(stack_until)
-    except ValueError:
-        stack_index = 1  # Default to 'sm' if not found
-
-    # Create width configurations for each column
-    left_widths = {}
-    right_widths = {}
-
-    # Set full width for breakpoints before stack_until
-    for bp in bp_order[: stack_index + 1]:
-        if bp in breakpoints:
-            left_widths[bp] = 12
-            right_widths[bp] = 12
-
-    # Set specified widths for breakpoints after stack_until
-    for bp in bp_order[stack_index + 1 :]:
-        if bp in breakpoints:
-            left_widths[bp] = left_width
-            right_widths[bp] = right_width
-
-    # Create columns
-    left_margin_classes = ["mb-3"]
-    for bp in bp_order[stack_index + 1 :]:
-        if bp in breakpoints:
-            left_margin_classes.append(f"mb-{bp}-0")
-
-    left_column = create_responsive_column(
-        left_content,
-        **left_widths,
-        className=" ".join(left_margin_classes) + (" h-100" if equal_height else ""),
+    warnings.warn(
+        "This function is deprecated. Use ui.grid_utils.create_stacked_to_horizontal() instead.",
+        DeprecationWarning,
+        stacklevel=2,
     )
 
-    right_column = create_responsive_column(
-        right_content, **right_widths, className=("h-100" if equal_height else "")
+    return new_create_stacked_to_horizontal(
+        left_content=left_content,
+        right_content=right_content,
+        stack_until=stack_until,
+        left_width=left_width,
+        right_width=right_width,
+        equal_height=equal_height,
+        className=row_class,
     )
-
-    # Create row
-    base_classes = ["mb-4"]
-    if row_class:
-        base_classes.append(row_class)
-
-    return dbc.Row([left_column, right_column], className=" ".join(base_classes))
 
 
 def create_responsive_card_deck(
@@ -292,38 +232,28 @@ def create_responsive_card_deck(
     equal_height=True,
 ):
     """
-    Create a responsive card deck layout with different numbers of columns at different breakpoints.
+    Create a responsive card deck that changes columns based on screen size.
+
+    DEPRECATED: Use ui.grid_utils.create_card_grid() instead.
 
     Args:
         cards: List of card components to display
         cols_by_breakpoint: Dict mapping breakpoints to number of columns
-        card_class: Additional class to apply to each card container
-        equal_height: Whether to make all cards the same height within a row
+        card_class: Additional classes for card containers
+        equal_height: Whether to make all cards in a row the same height
 
     Returns:
-        A responsive card deck layout
+        A responsive grid of cards
     """
-    if not cards:
-        return html.Div()
+    warnings.warn(
+        "This function is deprecated. Use ui.grid_utils.create_card_grid() instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
 
-    # Calculate column width for each breakpoint
-    col_widths = {}
-    for bp, cols in cols_by_breakpoint.items():
-        col_widths[bp] = 12 // cols
-
-    # Create columns with cards
-    columns = []
-    for card in cards:
-        card_container_class = f"{card_class} mb-4" + (" h-100" if equal_height else "")
-
-        columns.append(
-            create_responsive_column(
-                html.Div(card, className=card_container_class), **col_widths
-            )
-        )
-
-    # Create row with cards
-    return dbc.Row(columns, className="card-deck")
+    return create_card_grid(
+        cards=cards, cols_by_breakpoint=cols_by_breakpoint, equal_height=equal_height
+    )
 
 
 def create_responsive_dashboard_layout(
@@ -338,6 +268,8 @@ def create_responsive_dashboard_layout(
     """
     Create a responsive dashboard layout with main content and sidebars.
 
+    DEPRECATED: Use ui.grid_utils.create_dashboard_layout() instead.
+
     Args:
         main_content: Primary content area
         side_content: Side panel content
@@ -350,75 +282,21 @@ def create_responsive_dashboard_layout(
     Returns:
         A responsive dashboard layout
     """
-    # Create main column with responsive behavior
-    main_column_props = {
-        "xs": 12,  # Full width on mobile
-    }
-
-    # Set specified widths for breakpoints after stack_until
-    bp_order = ["xs", "sm", "md", "lg", "xl", "xxl"]
-    try:
-        stack_index = bp_order.index(stack_until)
-        for bp in bp_order[stack_index + 1 :]:
-            main_column_props[bp] = main_width
-    except ValueError:
-        main_column_props["lg"] = main_width  # Default behavior
-
-    # Create side column with responsive behavior
-    side_column_props = {
-        "xs": 12,  # Full width on mobile
-    }
-
-    # Set specified widths for breakpoints after stack_until
-    try:
-        for bp in bp_order[stack_index + 1 :]:
-            side_column_props[bp] = side_width
-    except ValueError:
-        side_column_props["lg"] = side_width  # Default behavior
-
-    # Create visibility settings for secondary content
-    secondary_visibility = {}
-    secondary_column = None
-
-    if secondary_content:
-        try:
-            sec_index = bp_order.index(secondary_display_breakpoint)
-            for i, bp in enumerate(bp_order):
-                secondary_visibility[bp] = i >= sec_index
-        except ValueError:
-            # Default to show on xl and above if breakpoint not found
-            secondary_visibility = {
-                "xs": False,
-                "sm": False,
-                "md": False,
-                "lg": False,
-                "xl": True,
-                "xxl": True,
-            }
-
-        # Create secondary column
-        secondary_column = create_responsive_column(
-            secondary_content,
-            xs=12,
-            className="mb-4",
-            visibility_by_breakpoint=secondary_visibility,
-        )
-
-    # Create main and side columns
-    main_column = create_responsive_column(
-        main_content, **main_column_props, className="mb-4"
+    warnings.warn(
+        "This function is deprecated. Use ui.grid_utils.create_dashboard_layout() instead.",
+        DeprecationWarning,
+        stacklevel=2,
     )
 
-    side_column = create_responsive_column(
-        side_content, **side_column_props, className="mb-4"
+    return create_dashboard_layout(
+        main_content=main_content,
+        side_content=side_content,
+        secondary_content=secondary_content,
+        stack_until=stack_until,
+        main_width=main_width,
+        side_width=side_width,
+        secondary_display_breakpoint=secondary_display_breakpoint,
     )
-
-    # Create the row with all columns
-    columns = [main_column, side_column]
-    if secondary_column:
-        columns.append(secondary_column)
-
-    return dbc.Row(columns)
 
 
 def create_responsive_tabs_layout(
@@ -429,30 +307,40 @@ def create_responsive_tabs_layout(
     tab_content_class="p-3",
 ):
     """
-    Create a responsive tabs layout that switches between horizontal and vertical tabs.
+    Create a responsive tabs layout that switches between horizontal tabs and vertical
+    accordion-style tabs based on screen size.
 
     Args:
-        tabs_content: List of tab content components
-        tabs_labels: List of tab labels
-        stack_tabs_at: Stack tabs vertically at this breakpoint and below
-        tab_card_class: Class for the outer card container
-        tab_content_class: Class for the tab content container
+        tabs_content: List of content for each tab
+        tabs_labels: List of labels for each tab
+        stack_tabs_at: Breakpoint at which to switch to vertical layout ('sm', 'md', 'lg')
+        tab_card_class: Additional classes for the tab container
+        tab_content_class: Classes for the tab content area
 
     Returns:
-        A responsive tabs layout
+        A responsive tabs layout with appropriate callbacks
     """
-    from dash import dcc
-
     # Create horizontal tabs for larger screens
-    horizontal_tabs = dcc.Tabs(
+    horizontal_tabs = dbc.Tabs(
+        [
+            dbc.Tab(
+                label=label,
+                tab_id=f"tab-{i}",
+                label_style={"cursor": "pointer"},
+                active_label_style={
+                    "fontWeight": "bold",
+                    "borderBottom": "2px solid #0d6efd",
+                },
+            )
+            for i, label in enumerate(tabs_labels)
+        ],
         id="responsive-horizontal-tabs",
-        value=0,
-        children=[dcc.Tab(label=label, value=i) for i, label in enumerate(tabs_labels)],
-        className="d-none d-sm-block"
+        active_tab="tab-0",
+        className="d-none d-sm-flex nav-tabs-clean"
         if stack_tabs_at == "sm"
-        else "d-none d-md-block"
+        else "d-none d-md-flex nav-tabs-clean"
         if stack_tabs_at == "md"
-        else "d-none d-lg-block",
+        else "d-none d-lg-flex nav-tabs-clean",
     )
 
     # Create vertical tabs/accordion for smaller screens
@@ -494,87 +382,42 @@ def create_responsive_tabs_layout(
 
 def create_mobile_container(content, expanded_height="auto", className=""):
     """
-    Create a container that can expand/collapse for better mobile viewing.
+    Create a container that collapses/expands on mobile devices.
+
+    DEPRECATED: Use ui.grid_utils.create_mobile_container() instead.
 
     Args:
-        content: The content to place in the container
+        content: Content to place in the container
         expanded_height: Height when expanded
         className: Additional CSS classes
 
     Returns:
-        A collapsible container optimized for mobile
+        A collapsible container for mobile devices
     """
-    collapse_id = f"collapse-{id(content)}"
-
-    container = html.Div(
-        [
-            # Header that's always visible
-            html.Div(
-                [
-                    html.Button(
-                        html.I(className="fas fa-chevron-down"),
-                        id=f"{collapse_id}-toggle",
-                        className="btn btn-link p-0",
-                        n_clicks=0,
-                    )
-                ],
-                className="d-flex justify-content-between align-items-center mb-2",
-            ),
-            # Collapsible content
-            dbc.Collapse(
-                html.Div(
-                    content, style={"maxHeight": expanded_height, "overflow": "auto"}
-                ),
-                id=collapse_id,
-                is_open=False,
-            ),
-        ],
-        className=f"mobile-collapsible-container d-md-block {className}",
+    warnings.warn(
+        "This function is deprecated. Use ui.grid_utils.create_mobile_container() instead.",
+        DeprecationWarning,
+        stacklevel=2,
     )
 
-    return container
+    return new_create_mobile_container(
+        content=content, expanded_height=expanded_height, className=className
+    )
 
 
 def create_breakpoint_visibility_examples():
     """
     Create examples demonstrating how content can be shown/hidden at different breakpoints.
 
+    DEPRECATED: Use ui.grid_utils.create_breakpoint_visibility_examples() instead.
+
     Returns:
         A component with examples of responsive visibility
     """
-    examples = [
-        html.Div(
-            "Visible on extra small screens only (xs)",
-            className="bg-primary text-white p-2 d-block d-sm-none",
-        ),
-        html.Div(
-            "Visible on small screens and up (sm+)",
-            className="bg-secondary text-white p-2 d-none d-sm-block",
-        ),
-        html.Div(
-            "Visible on medium screens and up (md+)",
-            className="bg-success text-white p-2 d-none d-md-block",
-        ),
-        html.Div(
-            "Visible on large screens and up (lg+)",
-            className="bg-info text-white p-2 d-none d-lg-block",
-        ),
-        html.Div(
-            "Visible on extra large screens and up (xl+)",
-            className="bg-warning p-2 d-none d-xl-block",
-        ),
-        html.Div(
-            "Visible on extra extra large screens only (xxl)",
-            className="bg-danger text-white p-2 d-none d-xxl-block",
-        ),
-        html.Div(
-            "Visible on mobile only (xs and sm)",
-            className="bg-dark text-white p-2 d-block d-md-none",
-        ),
-        html.Div(
-            "Visible on tablet only (md)",
-            className="bg-light p-2 d-none d-md-block d-lg-none",
-        ),
-    ]
+    warnings.warn(
+        "This function is deprecated. Use ui.grid_utils.create_breakpoint_visibility_examples() instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
 
-    return html.Div(examples, className="mb-4")
+    return new_create_breakpoint_visibility_examples()
