@@ -21,11 +21,11 @@ from plotly.subplots import make_subplots
 # Application imports
 from configuration import COLOR_PALETTE
 from data import (
-    prepare_forecast_data,
     calculate_weekly_averages,
     generate_weekly_forecast,
+    prepare_forecast_data,
 )
-from ui.styles import format_hover_template, create_hoverlabel_config
+from ui.styles import create_hoverlabel_config, format_hover_template
 
 #######################################################################
 # CHART CREATION FUNCTIONS

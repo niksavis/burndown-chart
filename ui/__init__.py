@@ -13,32 +13,26 @@ This module contains UI components for the Burndown Chart application.
 # Third-party library imports
 # None required
 
-# Application imports - Layout components
-from ui.layout import serve_layout, create_app_layout
-
-# Application imports - Tab components
-from ui.tabs import create_tabs, create_tab_content
-
-# Application imports - UI components
-from ui.components import (
-    create_info_tooltip,
-    create_pert_info_table,
-    create_trend_indicator,
-    create_export_buttons,
-    create_validation_message,
-    create_compact_trend_indicator,
-)
-
-# Application imports - Card components
+# Application imports
 from ui.cards import (
     create_forecast_graph_card,
     create_forecast_info_card,
-    create_pert_analysis_card,
     create_input_parameters_card,
-    create_statistics_data_card,
+    create_pert_analysis_card,
     create_project_status_card,
     create_project_summary_card,
+    create_statistics_data_card,
 )
+from ui.components import (
+    create_compact_trend_indicator,
+    create_export_buttons,
+    create_info_tooltip,
+    create_pert_info_table,
+    create_trend_indicator,
+    create_validation_message,
+)
+from ui.layout import create_app_layout, serve_layout
+from ui.tabs import create_tab_content, create_tabs
 
 #######################################################################
 # PUBLIC API

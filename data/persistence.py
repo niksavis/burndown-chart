@@ -8,24 +8,27 @@ It provides functions for managing settings (JSON) and statistics (CSV).
 #######################################################################
 # IMPORTS
 #######################################################################
-import os
+# Standard library imports
 import json
-import pandas as pd
+import os
 from datetime import datetime, timedelta
 
-# Import from configuration
+# Third-party library imports
+import pandas as pd
+
+# Application imports
 from configuration import (
-    logger,
-    SETTINGS_FILE,
-    STATISTICS_FILE,
-    SAMPLE_DATA,
-    DEFAULT_PERT_FACTOR,
-    DEFAULT_TOTAL_ITEMS,
-    DEFAULT_TOTAL_POINTS,
+    DEFAULT_DATA_POINTS_COUNT,
     DEFAULT_DEADLINE,
     DEFAULT_ESTIMATED_ITEMS,
     DEFAULT_ESTIMATED_POINTS,
-    DEFAULT_DATA_POINTS_COUNT,
+    DEFAULT_PERT_FACTOR,
+    DEFAULT_TOTAL_ITEMS,
+    DEFAULT_TOTAL_POINTS,
+    SAMPLE_DATA,
+    SETTINGS_FILE,
+    STATISTICS_FILE,
+    logger,
 )
 
 #######################################################################
