@@ -8,10 +8,15 @@ markers, and styling elements used to build the complete forecast visualization.
 #######################################################################
 # IMPORTS
 #######################################################################
+# Standard library imports
+# None
+
+# Third-party library imports
 import plotly.graph_objects as go
 
-# Import from configuration
+# Application imports
 from configuration import COLOR_PALETTE
+from ui.styles import create_hoverlabel_config, format_hover_template
 
 #######################################################################
 # EMPTY FIGURE FUNCTION
@@ -66,9 +71,6 @@ def create_historical_trace(df, column_name, name, color, secondary_y=False):
     Returns:
         Dictionary with trace data and axis specification
     """
-    # Import tooltip styling utilities
-    from ui.styles import format_hover_template, create_hoverlabel_config
-
     return {
         "data": go.Scatter(
             x=df["date"],
@@ -108,9 +110,6 @@ def create_forecast_trace(
     Returns:
         Dictionary with trace data and axis specification
     """
-    # Import tooltip styling utilities
-    from ui.styles import format_hover_template, create_hoverlabel_config
-
     # Determine tooltip variant based on name
     variant = "default"
     if "Optimistic" in name:

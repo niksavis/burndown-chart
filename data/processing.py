@@ -8,8 +8,12 @@ forecasting algorithms for the burndown chart application.
 #######################################################################
 # IMPORTS
 #######################################################################
-import pandas as pd
+# Standard library imports
 from datetime import datetime, timedelta
+
+# Third-party library imports
+import pandas as pd
+import numpy as np
 
 #######################################################################
 # DATA PROCESSING FUNCTIONS

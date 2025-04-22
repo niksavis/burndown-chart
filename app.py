@@ -8,17 +8,19 @@ and serves as the main entry point for running the server.
 #######################################################################
 # IMPORTS
 #######################################################################
+# Standard library imports
+import os
+import sys
+from pathlib import Path
+
+# Third-party library imports
 import dash
 import dash_bootstrap_components as dbc
-from waitress import serve  # Import Waitress for production server
+from waitress import serve
 
-# Import UI components
+# Application imports
 from ui import serve_layout
-
-# Import callback registration
 from callbacks import register_all_callbacks
-
-# Import server configuration
 from configuration.server import get_server_config
 
 #######################################################################

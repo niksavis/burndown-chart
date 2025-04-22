@@ -7,36 +7,40 @@ This module handles callbacks related to visualization updates and interactions.
 #######################################################################
 # IMPORTS
 #######################################################################
-from dash import html, Input, Output, State, dcc, callback_context
-from dash.exceptions import PreventUpdate
-import plotly.graph_objects as go
-import pandas as pd
+# Standard library imports
+import logging
 from datetime import datetime
-import dash_bootstrap_components as dbc
 
-# Import from application modules
+# Third-party library imports
+import dash_bootstrap_components as dbc
+import pandas as pd
+import plotly.graph_objects as go
+from dash import Input, Output, State, callback, callback_context, dcc, html
+from dash.exceptions import PreventUpdate
+
+# Application imports
 from configuration import logger
 from data import (
-    compute_cumulative_values,
-    calculate_weekly_averages,
     calculate_performance_trend,
+    calculate_weekly_averages,
+    compute_cumulative_values,
     generate_weekly_forecast,
+)
+from ui import (
+    create_compact_trend_indicator,
+    create_export_buttons,
+    create_pert_info_table,
+    create_project_summary_card,
+    create_tab_content,
+    create_trend_indicator,
 )
 from visualization import (
     create_forecast_plot,
     create_weekly_items_chart,
-    create_weekly_points_chart,
     create_weekly_items_forecast_chart,
+    create_weekly_points_chart,
     create_weekly_points_forecast_chart,
     empty_figure,
-)
-from ui import (
-    create_pert_info_table,
-    create_tab_content,
-    create_trend_indicator,
-    create_export_buttons,
-    create_project_summary_card,
-    create_compact_trend_indicator,
 )
 
 #######################################################################

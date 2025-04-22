@@ -7,20 +7,23 @@ This module handles callbacks related to application settings and parameters.
 #######################################################################
 # IMPORTS
 #######################################################################
-import dash
-from dash import html, Input, Output, State
-from dash.exceptions import PreventUpdate
+# Standard library imports
 from datetime import datetime
 
-# Import from application modules
+# Third-party library imports
+import dash
+from dash import Input, Output, State, html
+from dash.exceptions import PreventUpdate
+
+# Application imports
 from configuration import (
-    logger,
-    DEFAULT_PERT_FACTOR,
-    DEFAULT_TOTAL_POINTS,
     DEFAULT_ESTIMATED_ITEMS,
     DEFAULT_ESTIMATED_POINTS,
+    DEFAULT_PERT_FACTOR,
+    DEFAULT_TOTAL_POINTS,
+    logger,
 )
-from data import save_settings, calculate_total_points
+from data import calculate_total_points, save_settings
 
 #######################################################################
 # HELPER FUNCTIONS

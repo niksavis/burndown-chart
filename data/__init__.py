@@ -4,22 +4,31 @@ Data Package
 This package provides data processing and persistence utilities.
 """
 
-from data.persistence import (
-    load_settings,
-    save_settings,
-    load_statistics,
-    save_statistics,
-    generate_realistic_sample_data,
-    read_and_clean_data,
-)
+#######################################################################
+# IMPORTS
+#######################################################################
+# Standard library imports
+# None
 
+# Third-party library imports
+# None
+
+# Application imports
+from data.persistence import (
+    generate_realistic_sample_data,
+    load_settings,
+    load_statistics,
+    read_and_clean_data,
+    save_settings,
+    save_statistics,
+)
 from data.processing import (
-    calculate_total_points,
-    compute_cumulative_values,
-    calculate_weekly_averages,
-    prepare_forecast_data,
-    generate_weekly_forecast,
     calculate_performance_trend,
+    calculate_total_points,
+    calculate_weekly_averages,
+    compute_cumulative_values,
+    generate_weekly_forecast,
+    prepare_forecast_data,
 )
 
 # Define public API

@@ -4,36 +4,44 @@ Configuration Module
 This module contains configuration settings for the burndown chart application.
 """
 
-# Application version - used in the UI and for tracking
-# Follow semantic versioning (MAJOR.MINOR.PATCH)
-__version__ = "1.0.0"
+#######################################################################
+# IMPORTS
+#######################################################################
+# Standard library imports
+# None
 
+# Third-party library imports
+# None
+
+# Application imports
+from configuration.server import (
+    DEFAULT_HOST,
+    DEFAULT_PORT,
+    DEFAULT_SERVER_MODE,
+    get_server_config,
+)
 from configuration.settings import (
     # Constants
-    DEFAULT_PERT_FACTOR,
-    DEFAULT_TOTAL_ITEMS,
-    DEFAULT_TOTAL_POINTS,
+    COLOR_PALETTE,
+    DEFAULT_DATA_POINTS_COUNT,
     DEFAULT_DEADLINE,
     DEFAULT_ESTIMATED_ITEMS,
     DEFAULT_ESTIMATED_POINTS,
-    DEFAULT_DATA_POINTS_COUNT,
+    DEFAULT_PERT_FACTOR,
+    DEFAULT_TOTAL_ITEMS,
+    DEFAULT_TOTAL_POINTS,
     # File paths
+    HELP_TEXTS,
+    SAMPLE_DATA,
     SETTINGS_FILE,
     STATISTICS_FILE,
-    # Data structures
-    SAMPLE_DATA,
-    COLOR_PALETTE,
-    HELP_TEXTS,
     # Logging
     logger,
 )
 
-from configuration.server import (
-    get_server_config,
-    DEFAULT_HOST,
-    DEFAULT_PORT,
-    DEFAULT_SERVER_MODE,
-)
+# Application version - used in the UI and for tracking
+# Follow semantic versioning (MAJOR.MINOR.PATCH)
+__version__ = "1.0.0"
 
 # Define public API
 __all__ = [

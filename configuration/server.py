@@ -8,9 +8,15 @@ including development vs production mode settings.
 #######################################################################
 # IMPORTS
 #######################################################################
-import os
+# Standard library imports
 import argparse
-from configuration import logger
+import os
+
+# Third-party library imports
+# None
+
+# Application imports
+from configuration.settings import logger
 
 #######################################################################
 # SERVER SETTINGS

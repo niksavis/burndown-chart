@@ -8,18 +8,24 @@ with all its components like traces, markers, and metrics annotations.
 #######################################################################
 # IMPORTS
 #######################################################################
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
-import pandas as pd
+# Standard library imports
+import logging
+import traceback
 from datetime import datetime, timedelta
 
-# Import from other modules
+# Third-party library imports
+import pandas as pd
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+
+# Application imports
 from configuration import COLOR_PALETTE
 from data import (
     prepare_forecast_data,
     calculate_weekly_averages,
     generate_weekly_forecast,
 )
+from ui.styles import format_hover_template, create_hoverlabel_config
 
 #######################################################################
 # CHART CREATION FUNCTIONS
@@ -39,9 +45,6 @@ def create_plot_traces(forecast_data):
     df_calc = forecast_data["df_calc"]
     items_forecasts = forecast_data["items_forecasts"]
     points_forecasts = forecast_data["points_forecasts"]
-
-    # Import tooltip styling utilities
-    from ui.styles import format_hover_template, create_hoverlabel_config
 
     traces = []
 
@@ -578,8 +581,6 @@ def create_forecast_plot(
         except (ValueError, TypeError):
             # Use fallback date 30 days from now if deadline format is invalid
             deadline = pd.Timestamp.now() + pd.Timedelta(days=30)
-            import logging
-
             logging.getLogger("burndown_chart").warning(
                 f"Invalid deadline format: {deadline_str}. Using default."
             )
@@ -700,9 +701,6 @@ def create_forecast_plot(
 
     except Exception as e:
         # Comprehensive error handling with full stack trace
-        import traceback
-        import logging
-
         error_trace = traceback.format_exc()
         logger = logging.getLogger("burndown_chart")
         logger.error(f"Error in create_forecast_plot: {str(e)}\n{error_trace}")
@@ -793,9 +791,6 @@ def create_weekly_items_chart(
     Returns:
         Plotly figure object with the weekly items chart
     """
-    # Import tooltip styling utilities
-    from ui.styles import format_hover_template, create_hoverlabel_config
-
     # Create DataFrame from statistics data
     df = pd.DataFrame(statistics_data).copy()
     if df.empty:
@@ -1001,9 +996,6 @@ def create_weekly_points_chart(
     Returns:
         Plotly figure object with the weekly points chart
     """
-    # Import tooltip styling utilities
-    from ui.styles import format_hover_template, create_hoverlabel_config
-
     # Create DataFrame from statistics data
     df = pd.DataFrame(statistics_data).copy()
     if df.empty:
@@ -1228,9 +1220,6 @@ def create_weekly_items_forecast_chart(
     Returns:
         Plotly figure object with the weekly items forecast chart
     """
-    # Import tooltip styling utilities
-    from ui.styles import format_hover_template, create_hoverlabel_config
-
     # Create DataFrame from statistics data
     df = pd.DataFrame(statistics_data).copy()
     if df.empty:
@@ -1435,9 +1424,6 @@ def create_weekly_points_forecast_chart(
     Returns:
         Plotly figure object with the weekly points forecast chart
     """
-    # Import tooltip styling utilities
-    from ui.styles import format_hover_template, create_hoverlabel_config
-
     # Create DataFrame from statistics data
     df = pd.DataFrame(statistics_data).copy()
     if df.empty:
@@ -1719,9 +1705,6 @@ def create_capacity_chart(capacity_data, forecast_data, settings):
     Returns:
         plotly.graph_objects.Figure: Capacity chart
     """
-    # Import tooltip styling utilities
-    from ui.styles import format_hover_template, create_hoverlabel_config
-
     # Create figure with secondary y-axis
     fig = make_subplots(specs=[[{"secondary_y": True}]])
 
