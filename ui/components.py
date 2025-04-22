@@ -1939,6 +1939,9 @@ def create_button(
     disabled=False,
 ):
     """
+    DEPRECATED: Use ui.button_utils.create_button instead.
+    This function will be removed in a future release.
+
     Create a standardized button with consistent styling and optional icon.
 
     Args:
@@ -1955,60 +1958,26 @@ def create_button(
     Returns:
         A dbc.Button component with standardized styling
     """
-    import dash_bootstrap_components as dbc
-    from dash import html
+    import warnings
 
-    # Determine button style based on parameters
-    color = variant
-    if outline:
-        color = f"outline-{variant}"
-
-    # Determine size class
-    size_class = ""
-    if size == "sm":
-        size_class = "btn-sm"
-    elif size == "lg":
-        size_class = "btn-lg"
-
-    # Create button content with optional icon
-    content = []
-
-    # Add icon if specified
-    if icon_class:
-        content.append(html.I(className=f"{icon_class} me-1"))
-
-    # Add text if specified
-    if text:
-        content.append(text)
-
-    # Combine classes
-    full_class_name = f"{size_class} {className}".strip()
-
-    # Create the button
-    button = dbc.Button(
-        children=content,
-        id=id,
-        color=color,
-        disabled=disabled,
-        className=full_class_name,
+    warnings.warn(
+        "This function is deprecated. Use ui.button_utils.create_button instead.",
+        DeprecationWarning,
+        stacklevel=2,
     )
+    from ui.button_utils import create_button as new_create_button
 
-    # Wrap with tooltip if specified
-    if tooltip:
-        from ui.components import create_info_tooltip
-
-        return html.Div(
-            [
-                button,
-                create_info_tooltip(
-                    id_suffix=f"{id}-tooltip" if id else "button-tooltip",
-                    help_text=tooltip,
-                ),
-            ],
-            className="d-inline-block",
-        )
-
-    return button
+    return new_create_button(
+        text=text,
+        id=id,
+        variant=variant,
+        size=size,
+        outline=outline,
+        icon_class=icon_class,
+        className=className,
+        tooltip=tooltip,
+        disabled=disabled,
+    )
 
 
 #######################################################################

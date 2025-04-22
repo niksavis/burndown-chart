@@ -7,6 +7,12 @@ It implements consistent patterns for form validation, empty states, error bound
 
 from dash import html, dcc
 import dash_bootstrap_components as dbc
+import traceback
+import json
+import uuid
+
+# Updated import path to use the new button_utils module
+from ui.button_utils import create_button
 from ui.styles import (
     create_error_style,
     create_error_message_style,
@@ -16,7 +22,6 @@ from ui.styles import (
     create_heading_style,
     create_icon,
 )
-from ui.components import create_button
 
 
 def create_error_alert(

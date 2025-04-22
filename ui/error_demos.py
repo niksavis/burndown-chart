@@ -1,12 +1,20 @@
 """
-Error states demonstration page.
+Error Demonstration Module
 
-This module provides a demonstration page for the error states components,
-allowing developers to see and interact with the various error handling patterns.
+This module contains example error states and demos for the application.
 """
 
 import dash_bootstrap_components as dbc
-from dash import html, dcc
+from dash import html, dcc, callback, Input, Output, State
+import pandas as pd
+import numpy as np
+import traceback
+import time
+import os
+from datetime import datetime
+
+# Updated import path to use the new button_utils module
+from ui.button_utils import create_button
 from ui.error_states import (
     create_error_alert,
     create_validation_message,
@@ -15,7 +23,6 @@ from ui.error_states import (
     create_error_boundary,
     create_error_recovery_button,
 )
-from ui.components import create_button
 from ui.styles import create_heading_style
 
 
