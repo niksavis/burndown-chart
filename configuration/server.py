@@ -17,7 +17,7 @@ from configuration import logger
 #######################################################################
 
 # Default values
-DEFAULT_HOST = "0.0.0.0"
+DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8050
 DEFAULT_SERVER_MODE = "production"  # Default to production for safety
 
