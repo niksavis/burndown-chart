@@ -1,12 +1,18 @@
+#######################################################################
+# IMPORTS
+#######################################################################
+# Standard library imports
 import sys
 import argparse
 import datetime
 import math
 import os
 import contextlib
+from typing import List, Dict, Any, Tuple
+
+# Third-party library imports
 import matplotlib.pyplot as plt
 from adjustText import adjust_text
-from typing import List, Dict, Any, Tuple
 
 
 def truncate_at_zero(

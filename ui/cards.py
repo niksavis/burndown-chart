@@ -8,12 +8,15 @@ of the application, such as the forecast graph card, info card, etc.
 #######################################################################
 # IMPORTS
 #######################################################################
-from dash import html, dcc
-import dash_bootstrap_components as dbc
+# Standard library imports
 from datetime import datetime, timedelta
+
+# Third-party library imports
+import dash_bootstrap_components as dbc
+from dash import html, dcc, dash_table
 import pandas as pd
 
-# Import from other modules
+# Application imports
 from configuration import HELP_TEXTS, COLOR_PALETTE
 from visualization import empty_figure
 
