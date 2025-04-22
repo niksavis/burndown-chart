@@ -5,9 +5,19 @@ This module handles team capacity data and calculations for visualizing
 and forecasting team workload against capacity.
 """
 
-import pandas as pd
-import numpy as np
+#######################################################################
+# IMPORTS
+#######################################################################
+# Standard library imports
 from datetime import datetime, timedelta
+
+# Third-party library imports
+import numpy as np
+import pandas as pd
+
+#######################################################################
+# CLASSES
+#######################################################################
 
 
 class CapacityManager:

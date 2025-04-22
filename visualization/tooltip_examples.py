@@ -4,16 +4,25 @@ This file provides examples and best practices for implementing consistent
 tooltips across all charts in the application.
 """
 
+#######################################################################
+# IMPORTS
+#######################################################################
+# Standard library imports
+import random
+
+# Third-party library imports
 import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
+
+# Application imports
 from ui.styles import (
     format_hover_template,
     create_hoverlabel_config,
     get_tooltip_style,
     create_chart_layout_config,
     TOOLTIP_STYLES,
-    COLORS,
+    COLOR_PALETTE,
 )
 
 
@@ -89,7 +98,7 @@ def create_complex_tooltip_example():
             y=values,
             mode="lines+markers",
             name="Progress",
-            line=dict(color=COLORS["primary"], width=3),
+            line=dict(color=COLOR_PALETTE["primary"], width=3),
             marker=dict(size=8),
             hovertemplate=format_hover_template(
                 title="Daily Progress",
