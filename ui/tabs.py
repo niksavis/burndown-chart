@@ -4,9 +4,17 @@ Tab Navigation Module
 This module provides the tab-based navigation components for the application.
 """
 
+#######################################################################
+# IMPORTS
+#######################################################################
+# Standard library imports
+from datetime import datetime, timedelta
+
+# Third-party library imports
 import dash_bootstrap_components as dbc
 from dash import html, dcc
-from datetime import datetime, timedelta
+
+# Application imports
 from ui.grid_templates import create_tab_content as grid_create_tab_content
 
 

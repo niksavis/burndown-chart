@@ -9,10 +9,14 @@ into a layered API that offers flexibility for different use cases.
 #######################################################################
 # IMPORTS
 #######################################################################
+# Standard library imports
+# (none currently needed)
+
+# Third-party library imports
 from dash import html
 import dash_bootstrap_components as dbc
 
-# Import from styles module
+# Application imports
 from ui.styles import (
     SPACING,
     NEUTRAL_COLORS,

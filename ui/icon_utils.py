@@ -8,9 +8,13 @@ It contains functions for creating and styling icons with consistent appearance.
 #######################################################################
 # IMPORTS
 #######################################################################
+# Standard library imports
+# (none currently needed)
+
+# Third-party library imports
 from dash import html
 
-# Import from styles for color and spacing utilities
+# Application imports
 from ui.styles import get_color, SPACING
 
 #######################################################################
