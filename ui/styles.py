@@ -1318,6 +1318,9 @@ def create_datepicker_style(size="md", disabled=False, error=False):
 
 def get_icon_class(icon_key):
     """
+    DEPRECATED: Use ui.icon_utils.get_icon_class instead.
+    This function will be removed in a future release.
+
     Get Font Awesome icon class from semantic icon key.
 
     Args:
@@ -1326,7 +1329,16 @@ def get_icon_class(icon_key):
     Returns:
         str: Font Awesome icon class
     """
-    return SEMANTIC_ICONS.get(icon_key, icon_key)
+    import warnings
+
+    warnings.warn(
+        "This function is deprecated. Use ui.icon_utils.get_icon_class instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    from ui.icon_utils import get_icon_class as new_get_icon_class
+
+    return new_get_icon_class(icon_key)
 
 
 def create_icon(
@@ -1341,6 +1353,9 @@ def create_icon(
     id=None,
 ):
     """
+    DEPRECATED: Use ui.icon_utils.create_icon instead.
+    This function will be removed in a future release.
+
     Create a standardized icon component with consistent styling.
 
     Args:
@@ -1357,44 +1372,24 @@ def create_icon(
     Returns:
         html.I: Icon component with standardized styling
     """
-    icon_class = get_icon_class(icon)
+    import warnings
 
-    # Apply fixed width class if needed
-    if with_fixed_width and "fa-fw" not in icon_class:
-        icon_class = f"{icon_class} fa-fw"
+    warnings.warn(
+        "This function is deprecated. Use ui.icon_utils.create_icon instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    from ui.icon_utils import create_icon as new_create_icon
 
-    # Apply spacing classes
-    if with_space_right:
-        className = f"{className} me-2"
-    if with_space_left:
-        className = f"{className} ms-2"
-
-    # Ensure icon has proper base class (font awesome)
-    if not any(
-        prefix in icon_class for prefix in ["fas ", "far ", "fab ", "fal ", "fad "]
-    ):
-        icon_class = f"fas {icon_class}"
-
-    # Build icon style
-    icon_style = dict(DEFAULT_ICON_STYLES)
-
-    # Add color if provided
-    if color:
-        icon_style["color"] = get_color(color)
-
-    # Add size if provided
-    if size in ICON_SIZES:
-        icon_style["fontSize"] = ICON_SIZES[size]
-    elif size:  # direct CSS value
-        icon_style["fontSize"] = size
-
-    # Add custom styles
-    if style:
-        icon_style.update(style)
-
-    return html.I(
-        className=icon_class + (f" {className}" if className else ""),
-        style=icon_style,
+    return new_create_icon(
+        icon=icon,
+        color=color,
+        size=size,
+        className=className,
+        style=style,
+        with_fixed_width=with_fixed_width,
+        with_space_right=with_space_right,
+        with_space_left=with_space_left,
         id=id,
     )
 
@@ -1413,6 +1408,9 @@ def create_icon_text(
     id=None,
 ):
     """
+    DEPRECATED: Use ui.icon_utils.create_icon_text instead.
+    This function will be removed in a future release.
+
     Create a standardized icon + text combination with proper alignment.
 
     Args:
@@ -1431,49 +1429,28 @@ def create_icon_text(
     Returns:
         html.Div: Icon + text combination with standardized alignment
     """
-    # Set alignment style
-    alignment_class = {
-        "top": "align-items-start",
-        "center": "align-items-center",
-        "bottom": "align-items-end",
-    }.get(alignment, "align-items-center")
+    import warnings
 
-    # Create the basic container
-    container_class = f"d-flex {alignment_class} {className}"
-
-    # Handle icon color (icon_color overrides color)
-    used_icon_color = icon_color if icon_color is not None else color
-
-    # Handle icon size (icon_size overrides size)
-    used_icon_size = icon_size if icon_size is not None else size
-
-    # Create the icon
-    icon_element = create_icon(
-        icon=icon,
-        color=used_icon_color,
-        size=used_icon_size,
-        with_fixed_width=True,
+    warnings.warn(
+        "This function is deprecated. Use ui.icon_utils.create_icon_text instead.",
+        DeprecationWarning,
+        stacklevel=2,
     )
+    from ui.icon_utils import create_icon_text as new_create_icon_text
 
-    # Build text style
-    text_element_style = {}
-    if text_style:
-        text_element_style.update(text_style)
-
-    if color:
-        text_element_style["color"] = get_color(color)
-
-    # Create text element
-    text_element = html.Span(text, style=text_element_style)
-
-    # Position icon and text based on icon_position
-    if icon_position == "right":
-        content = [text_element, html.Span(icon_element, className="ms-2")]
-    else:  # left is default
-        content = [html.Span(icon_element, className="me-2"), text_element]
-
-    # Return combined element
-    return html.Div(content, className=container_class, id=id)
+    return new_create_icon_text(
+        icon=icon,
+        text=text,
+        color=color,
+        icon_color=icon_color,
+        size=size,
+        icon_size=icon_size,
+        icon_position=icon_position,
+        className=className,
+        text_style=text_style,
+        alignment=alignment,
+        id=id,
+    )
 
 
 def create_icon_stack(
@@ -1486,6 +1463,9 @@ def create_icon_stack(
     id=None,
 ):
     """
+    DEPRECATED: Use ui.icon_utils.create_icon_stack instead.
+    This function will be removed in a future release.
+
     Create a stacked icon combination (one icon overlaying another).
 
     Args:
@@ -1500,54 +1480,22 @@ def create_icon_stack(
     Returns:
         html.Span: Stacked icon combination
     """
-    # Convert size key to numerical value for calculations
-    size_value = ICON_SIZES.get(size, ICON_SIZES["md"])
-    stack_size = f"calc({size_value} * 2)"
+    import warnings
 
-    # Adjust secondary icon size to be slightly smaller
-    secondary_size = f"calc({size_value} * 0.65)"
+    warnings.warn(
+        "This function is deprecated. Use ui.icon_utils.create_icon_stack instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    from ui.icon_utils import create_icon_stack as new_create_icon_stack
 
-    # Get icon classes
-    primary_icon_class = get_icon_class(primary_icon)
-    secondary_icon_class = get_icon_class(secondary_icon)
-
-    stack_style = {
-        "position": "relative",
-        "display": "inline-block",
-        "width": stack_size,
-        "height": stack_size,
-    }
-
-    primary_style = {
-        "position": "absolute",
-        "top": "0",
-        "left": "0",
-        "fontSize": size_value,
-    }
-
-    secondary_style = {
-        "position": "absolute",
-        "bottom": "0",
-        "right": "0",
-        "fontSize": secondary_size,
-        "backgroundColor": "white",
-        "borderRadius": "50%",
-        "padding": "1px",
-    }
-
-    if primary_color:
-        primary_style["color"] = get_color(primary_color)
-
-    if secondary_color:
-        secondary_style["color"] = get_color(secondary_color)
-
-    return html.Span(
-        [
-            html.I(className=primary_icon_class, style=primary_style),
-            html.I(className=secondary_icon_class, style=secondary_style),
-        ],
-        className=f"icon-stack {className}",
-        style=stack_style,
+    return new_create_icon_stack(
+        primary_icon=primary_icon,
+        secondary_icon=secondary_icon,
+        primary_color=primary_color,
+        secondary_color=secondary_color,
+        size=size,
+        className=className,
         id=id,
     )
 
