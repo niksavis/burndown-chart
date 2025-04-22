@@ -8,13 +8,34 @@ that are used across the application.
 #######################################################################
 # IMPORTS
 #######################################################################
-from dash import html, dcc
-import dash_bootstrap_components as dbc
+# Standard library imports
 import warnings
 from datetime import datetime, timedelta
 
-# Import from configuration
+# Third-party library imports
+from dash import html, dcc
+import dash_bootstrap_components as dbc
+
+# Application imports
 from configuration import COLOR_PALETTE
+from ui.styles import get_color, SPACING, TYPOGRAPHY
+from ui.tooltip_utils import (
+    create_info_tooltip as new_create_info_tooltip,
+    create_enhanced_tooltip as new_create_enhanced_tooltip,
+    create_form_help_tooltip as new_create_form_help_tooltip,
+    create_contextual_help as new_create_contextual_help,
+)
+from ui.button_utils import create_button as new_create_button
+from ui.loading_utils import (
+    create_spinner,
+    create_growing_spinner,
+    create_skeleton_loader,
+    create_loading_overlay,
+    create_content_placeholder,
+    create_async_content as new_create_async_content,
+    create_lazy_loading_tabs as new_create_lazy_loading_tabs,
+    create_data_loading_section as new_create_data_loading_section,
+)
 
 #######################################################################
 # INFO TOOLTIP COMPONENT
