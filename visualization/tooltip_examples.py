@@ -16,14 +16,13 @@ import pandas as pd
 import numpy as np
 
 # Application imports
-from ui.styles import (
+from ui.tooltip_utils import (
     format_hover_template,
     create_hoverlabel_config,
     get_tooltip_style,
     create_chart_layout_config,
-    TOOLTIP_STYLES,
-    COLOR_PALETTE,
 )
+from ui.styles import TOOLTIP_STYLES, COLOR_PALETTE
 
 
 def create_tooltip_demo_chart():
