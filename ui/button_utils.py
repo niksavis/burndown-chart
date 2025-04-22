@@ -8,10 +8,14 @@ for consistent button appearance and behavior across the application.
 #######################################################################
 # IMPORTS
 #######################################################################
-from dash import html
-import dash_bootstrap_components as dbc
+# Standard library imports
+# (none currently needed)
 
-# Import from other utility modules
+# Third-party library imports
+import dash_bootstrap_components as dbc
+from dash import html
+
+# Application imports
 from ui.icon_utils import create_icon
 from ui.styles import get_color, SPACING, TYPOGRAPHY
 

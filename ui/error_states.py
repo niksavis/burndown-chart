@@ -5,15 +5,22 @@ This module provides standardized error state components for the application.
 It implements consistent patterns for form validation, empty states, error boundaries, etc.
 """
 
-from dash import html, dcc
-import dash_bootstrap_components as dbc
-import traceback
-import json
-import uuid
+#######################################################################
+# IMPORTS
+#######################################################################
+# Standard library imports
 import datetime
+import json
+import traceback
+import uuid
 
-# Updated import path to use the new button_utils module
+# Third-party library imports
+import dash_bootstrap_components as dbc
+from dash import html, dcc
+
+# Application imports
 from ui.button_utils import create_button
+from ui.icon_utils import create_icon
 from ui.styles import (
     get_color,
     create_heading_style,
@@ -22,7 +29,6 @@ from ui.styles import (
     SEMANTIC_COLORS,
     NEUTRAL_COLORS,
 )
-from ui.icon_utils import create_icon
 
 #######################################################################
 # ERROR STYLING FUNCTIONS
