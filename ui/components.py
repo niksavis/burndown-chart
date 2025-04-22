@@ -2057,53 +2057,39 @@ def create_loading_wrapper(
 
 def create_async_content(id, loading_state_id, content_type="chart"):
     """
-    Create a content area that shows a loading state until data is loaded.
+    DEPRECATED: Use ui.loading_utils.create_async_content instead.
+    This function will be removed in a future release.
+
+    Create a component that will show content when it's loaded asynchronously.
 
     Args:
-        id (str): ID of the content component
-        loading_state_id (str): ID of the loading state component to update via callback
-        content_type (str): Type of content (chart, table, form, card)
+        id (str): ID of the content element
+        loading_state_id (str): ID for the loading state element
+        content_type (str): Type of content (chart, table, data, etc.)
 
     Returns:
-        dbc.Spinner: A spinner with a container for async content
+        dbc.Spinner: A spinner that wraps the content container
     """
-    import dash_bootstrap_components as dbc
-    from dash import html
+    import warnings
 
-    # Choose placeholder based on content type
-    placeholder_text = {
-        "chart": "Generating chart...",
-        "table": "Loading data...",
-        "form": "Loading form...",
-        "card": "Loading content...",
-    }.get(content_type, "Loading...")
-
-    # Choose appropriate colors and sizes
-    spinner_colors = {
-        "chart": "primary",
-        "table": "info",
-        "form": "secondary",
-        "card": "primary",
-    }
-
-    spinner_size = "lg" if content_type in ["chart", "table"] else "md"
-
-    return dbc.Spinner(
-        html.Div(id=id),
-        id=loading_state_id,
-        color=spinner_colors.get(content_type, "primary"),
-        size=spinner_size,
-        spinner_style={"width": "3rem", "height": "3rem"},
-        fullscreen=False,
-        fullscreen_style={"backgroundColor": "rgba(255, 255, 255, 0.8)"},
-        delay_show=200,  # Wait 200ms before showing spinner to avoid flicker
+    warnings.warn(
+        "This function is deprecated. Use ui.loading_utils.create_async_content instead.",
+        DeprecationWarning,
+        stacklevel=2,
     )
+
+    from ui.loading_utils import create_async_content as new_create_async_content
+
+    return new_create_async_content(id, loading_state_id, content_type)
 
 
 def create_lazy_loading_tabs(
     tabs_data, tab_id_prefix="tab", content_id_prefix="tab-content"
 ):
     """
+    DEPRECATED: Use ui.loading_utils.create_lazy_loading_tabs instead.
+    This function will be removed in a future release.
+
     Create tabs that load content lazily when selected.
 
     Args:
@@ -2114,67 +2100,17 @@ def create_lazy_loading_tabs(
     Returns:
         tuple: (tabs, content) components for lazy-loading tabs
     """
-    import dash_bootstrap_components as dbc
-    from dash import html, dcc
-
-    tabs = []
-    contents = []
-
-    for i, tab_data in enumerate(tabs_data):
-        tab_id = f"{tab_id_prefix}-{i}"
-        content_id = f"{content_id_prefix}-{i}"
-
-        # Create the tab item
-        tab = dbc.Tab(
-            label=tab_data.get("label", f"Tab {i + 1}"),
-            tab_id=tab_id,
-            label_style={"cursor": "pointer"},
-            active_label_style={"font-weight": "bold"},
-        )
-
-        # If icon is provided, add it to the tab label
-        if "icon" in tab_data:
-            from ui.styles import create_icon
-
-            tab.children = html.Div(
-                [
-                    create_icon(tab_data["icon"], size="sm", className="me-2"),
-                    tab_data.get("label", f"Tab {i + 1}"),
-                ],
-                className="d-flex align-items-center",
-            )
-
-        tabs.append(tab)
-
-        # Create the content container with loading state
-        content_component = html.Div(
-            create_loading_wrapper(
-                tab_data.get("content", html.Div("Tab content")),
-                is_loading=False,  # Will be set to True when tab is activated
-                id=f"{content_id}-loader",
-                type="overlay",
-                message=f"Loading {tab_data.get('label', 'tab')} content...",
-            ),
-            id=content_id,
-            style={"display": "none"},  # Initially hidden
-        )
-
-        contents.append(content_component)
-
-    # Combine tabs into a TabList
-    tab_list = dbc.Tabs(
-        tabs,
-        id=f"{tab_id_prefix}-parent",
-        active_tab=f"{tab_id_prefix}-0",  # Default to first tab
+    warnings.warn(
+        "This function is deprecated. Use ui.loading_utils.create_lazy_loading_tabs instead.",
+        DeprecationWarning,
+        stacklevel=2,
     )
 
-    # Combine contents into a container
-    content_container = html.Div(
-        contents,
-        id=f"{content_id_prefix}-parent",
+    from ui.loading_utils import (
+        create_lazy_loading_tabs as new_create_lazy_loading_tabs,
     )
 
-    return tab_list, content_container
+    return new_create_lazy_loading_tabs(tabs_data, tab_id_prefix, content_id_prefix)
 
 
 def create_data_loading_section(
@@ -2185,6 +2121,9 @@ def create_data_loading_section(
     retry_button=True,
 ):
     """
+    DEPRECATED: Use ui.loading_utils.create_data_loading_section instead.
+    This function will be removed in a future release.
+
     Create a section that handles loading, error, and success states for data loading.
 
     Args:
@@ -2197,60 +2136,20 @@ def create_data_loading_section(
     Returns:
         html.Div: Container with content for each state
     """
-    import dash_bootstrap_components as dbc
-    from dash import html
-    from ui.styles import create_icon, create_button
-
-    # Create the loading state
-    loading_state = html.Div(
-        [
-            dbc.Spinner(size="lg", color="primary"),
-            html.Div(loading_message, className="text-center text-muted mt-3"),
-        ],
-        id=f"{id}-loading",
-        className="d-flex flex-column justify-content-center align-items-center py-5",
+    warnings.warn(
+        "This function is deprecated. Use ui.loading_utils.create_data_loading_section instead.",
+        DeprecationWarning,
+        stacklevel=2,
     )
 
-    # Create the error state
-    error_actions = []
-    if retry_button:
-        error_actions.append(
-            create_button(
-                text="Retry",
-                id=f"{id}-retry-btn",
-                variant="primary",
-                size="sm",
-                icon_class="fas fa-sync",
-                className="mt-3",
-            )
-        )
-
-    error_state = html.Div(
-        [
-            create_icon("danger", size="xl", color="danger"),
-            html.Div(error_message, className="text-center text-danger mt-3"),
-            html.Div(error_actions, className="d-flex justify-content-center"),
-        ],
-        id=f"{id}-error",
-        className="d-none d-flex flex-column justify-content-center align-items-center py-5 border border-danger rounded",
-        style={"backgroundColor": "rgba(220, 53, 69, 0.05)"},
+    from ui.loading_utils import (
+        create_data_loading_section as new_create_data_loading_section,
     )
 
-    # Create the content container (initially empty)
-    content_state = html.Div(
-        id=f"{id}-content",
-        className="d-none",  # Initially hidden
-    )
-
-    # Add title if provided
-    header = html.H5(title, className="mb-3") if title else None
-
-    # Combine everything into a container
-    container = html.Div(
-        [header, loading_state, error_state, content_state]
-        if header
-        else [loading_state, error_state, content_state],
+    return new_create_data_loading_section(
         id=id,
+        title=title,
+        loading_message=loading_message,
+        error_message=error_message,
+        retry_button=retry_button,
     )
-
-    return container

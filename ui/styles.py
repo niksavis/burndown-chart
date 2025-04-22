@@ -1866,168 +1866,184 @@ def get_loading_style(style_key="default", size_key="md"):
 
 def create_spinner_style(style_key="default", size_key="md", custom_style=None):
     """
-    Create a CSS style dictionary for a spinner component.
+    DEPRECATED: Use loading_utils.create_spinner_style instead.
+    This function will be removed in a future release.
+
+    Create CSS style for spinner components.
 
     Args:
-        style_key (str): Key for loading style (default, light, dark, etc.)
-        size_key (str): Size of the spinner (xs, sm, md, lg, xl)
-        custom_style (dict, optional): Custom style overrides
+        style_key (str): Color style key
+        size_key (str): Size key (sm, md, lg)
+        custom_style (dict): Additional custom styles to apply
 
     Returns:
-        dict: Style dictionary for spinner element
+        dict: Dictionary of CSS styles for the spinner
     """
-    # Get configuration
-    config = get_loading_style(style_key, size_key)
+    import warnings
 
-    # Build spinner style
-    spinner_style = {
-        "display": "inline-block",
-        "width": config["width"],
-        "height": config["height"],
-        "border": f"{config['border_width']} solid {config['spinner_color']}",
-        "borderRightColor": "transparent",
-        "borderRadius": "50%",
-        "animation": "spin 1s linear infinite",
-    }
+    warnings.warn(
+        "create_spinner_style is deprecated. Use loading_utils.create_spinner_style instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
 
-    # Add custom style overrides
-    if custom_style:
-        spinner_style.update(custom_style)
+    from ui.loading_utils import create_spinner_style as new_create_spinner_style
 
-    return spinner_style
+    return new_create_spinner_style(style_key, size_key, custom_style)
 
 
 def create_loading_overlay_style(style_key="default", custom_style=None):
     """
-    Create a CSS style dictionary for a loading overlay component.
+    DEPRECATED: Use loading_utils module instead.
+    This function will be removed in a future release.
+
+    Create CSS style for loading overlays.
 
     Args:
-        style_key (str): Key for loading style (default, light, dark, etc.)
-        custom_style (dict, optional): Custom style overrides
+        style_key (str): Color style key
+        custom_style (dict): Additional custom styles to apply
 
     Returns:
-        dict: Style dictionary for overlay element
+        dict: Dictionary of CSS styles for the loading overlay
     """
-    # Get configuration
-    config = get_loading_style(style_key)
+    import warnings
 
-    # Build overlay style
-    overlay_style = {
-        "position": "absolute",
-        "top": "0",
-        "left": "0",
-        "width": "100%",
-        "height": "100%",
-        "display": "flex",
-        "alignItems": "center",
-        "justifyContent": "center",
-        "flexDirection": "column",
-        "backgroundColor": config["overlay_color"],
-        "zIndex": "1000",
-        "borderRadius": "4px",
-    }
+    warnings.warn(
+        "create_loading_overlay_style is deprecated. Use loading_utils module instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
 
-    # Add custom style overrides
-    if custom_style:
-        overlay_style.update(custom_style)
+    # Return styles from loading_utils if possible, otherwise use original implementation
+    try:
+        from ui.loading_utils import LOADING_STYLES
 
-    return overlay_style
+        # Default styles
+        overlay_style = {
+            "position": "absolute",
+            "top": "0",
+            "left": "0",
+            "width": "100%",
+            "height": "100%",
+            "backgroundColor": LOADING_STYLES.get(style_key, LOADING_STYLES["default"])[
+                "overlay_color"
+            ],
+            "display": "flex",
+            "justifyContent": "center",
+            "alignItems": "center",
+            "zIndex": "1000",
+        }
+
+        # Add any custom styles
+        if custom_style:
+            overlay_style.update(custom_style)
+
+        return overlay_style
+    except (ImportError, KeyError):
+        # Fallback to original implementation
+        # Base color mapping
+        colors = {
+            "default": "rgba(255, 255, 255, 0.8)",
+            "light": "rgba(255, 255, 255, 0.9)",
+            "dark": "rgba(0, 0, 0, 0.7)",
+            "transparent": "rgba(255, 255, 255, 0.4)",
+        }
+
+        # Get color from mapping or use default
+        overlay_color = colors.get(style_key, colors["default"])
+
+        # Default overlay styles
+        overlay_style = {
+            "position": "absolute",
+            "top": "0",
+            "left": "0",
+            "width": "100%",
+            "height": "100%",
+            "backgroundColor": overlay_color,
+            "display": "flex",
+            "justifyContent": "center",
+            "alignItems": "center",
+            "zIndex": "1000",
+        }
+
+        # Add any custom styles
+        if custom_style:
+            overlay_style.update(custom_style)
+
+        return overlay_style
 
 
 def create_spinner(
-    style_key="default", size_key="md", text=None, className="", custom_style=None
+    style_key="primary", size_key="md", text=None, className="", id=None
 ):
     """
-    Create a spinner component with consistent styling.
+    DEPRECATED: Use loading_utils.create_spinner instead.
+    This function will be removed in a future release.
+
+    Create a spinner loading indicator with optional text.
 
     Args:
-        style_key (str): Key for loading style (default, light, dark, etc.)
-        size_key (str): Size of the spinner (xs, sm, md, lg, xl)
-        text (str, optional): Text to display below the spinner
-        className (str, optional): Additional CSS classes
-        custom_style (dict, optional): Custom style overrides
+        style_key (str): Color style key (primary, secondary, etc.)
+        size_key (str): Size key (sm, md, lg)
+        text (str): Optional text to display under the spinner
+        className (str): Additional CSS classes
+        id (str): Component ID
 
     Returns:
-        html.Div: A styled spinner component
+        html.Div: A spinner component
     """
-    # Get configuration
-    config = get_loading_style(style_key, size_key)
+    import warnings
 
-    # Build spinner style
-    spinner_style = create_spinner_style(style_key, size_key)
-
-    # Create the spinner content
-    spinner_content = [html.Div(className="spinner", style=spinner_style)]
-
-    # Add text if provided
-    if text:
-        spinner_content.append(
-            html.Div(
-                text,
-                className="mt-2",
-                style={"color": config["text_color"], "fontSize": "0.9rem"},
-            )
-        )
-
-    # Build container style
-    container_style = {
-        "display": "inline-flex",
-        "flexDirection": "column",
-        "alignItems": "center",
-    }
-    if custom_style:
-        container_style.update(custom_style)
-
-    # Return the complete spinner component
-    return html.Div(
-        spinner_content,
-        className=f"spinner-container {className}",
-        style=container_style,
+    warnings.warn(
+        "create_spinner is deprecated. Use loading_utils.create_spinner instead.",
+        DeprecationWarning,
+        stacklevel=2,
     )
+
+    from ui.loading_utils import create_spinner as new_create_spinner
+
+    return new_create_spinner(style_key, size_key, text, className, id)
 
 
 def create_loading_overlay(
-    style_key="default", size_key="md", text=None, is_loading=True, children=None
+    children,
+    style_key="primary",
+    size_key="md",
+    text=None,
+    is_loading=False,
+    opacity=0.7,
+    className="",
 ):
     """
-    Create a loading overlay for content with a spinner.
+    DEPRECATED: Use loading_utils.create_loading_overlay instead.
+    This function will be removed in a future release.
+
+    Create a loading overlay that covers content while loading.
 
     Args:
-        style_key (str): Key for loading style (default, light, dark, etc.)
-        size_key (str): Size of the spinner (xs, sm, md, lg, xl)
-        text (str, optional): Text to display below the spinner
-        is_loading (bool): Whether the loading state is active
-        children: Content to show when not loading
+        children: Content to display when not loading
+        style_key (str): Color style for the spinner
+        size_key (str): Size of the spinner
+        text (str): Optional text to display during loading
+        is_loading (bool): Whether to show the loading state
+        opacity (float): Opacity of the overlay background
+        className (str): Additional CSS classes
 
     Returns:
-        html.Div: A container with loading overlay when is_loading=True
+        html.Div: A component with loading overlay
     """
-    from dash import html
+    import warnings
 
-    # Get configuration
-    config = get_loading_style(style_key, size_key)
-
-    # Create the spinner component
-    spinner = create_spinner(style_key, size_key, text)
-
-    # Create the overlay
-    overlay = html.Div(
-        spinner,
-        style=create_loading_overlay_style(style_key)
-        if is_loading
-        else {"display": "none"},
+    warnings.warn(
+        "create_loading_overlay is deprecated. Use loading_utils.create_loading_overlay instead.",
+        DeprecationWarning,
+        stacklevel=2,
     )
 
-    # Create content container with relative positioning
-    content_container = html.Div(
-        children if children is not None else [],
-        style={"position": "relative", "width": "100%", "height": "100%"},
-    )
+    from ui.loading_utils import create_loading_overlay as new_create_loading_overlay
 
-    # Return the combined component
-    return html.Div(
-        [overlay, content_container],
-        style={"position": "relative", "width": "100%", "height": "100%"},
+    return new_create_loading_overlay(
+        children, style_key, size_key, text, is_loading, opacity, className
     )
 
 
@@ -2035,436 +2051,143 @@ def create_skeleton_loader(
     type="text", lines=1, width="100%", height=None, className=""
 ):
     """
-    Create a skeleton loader component for content placeholders.
+    DEPRECATED: Use loading_utils.create_skeleton_loader instead.
+    This function will be removed in a future release.
+
+    Create skeleton loading placeholders for content.
 
     Args:
-        type (str): Type of skeleton (text, card, image, circle)
+        type (str): Type of skeleton ('text', 'card', 'circle', 'chart', 'image')
         lines (int): Number of lines for text skeletons
         width (str): Width of the skeleton
-        height (str): Height of the skeleton (for non-text types)
+        height (str): Height of the skeleton (optional)
         className (str): Additional CSS classes
 
     Returns:
-        html.Div: A skeleton loader component
+        html.Div: Skeleton loader component
     """
-    from dash import html
+    import warnings
 
-    # Create the CSS animation if it doesn't exist
-    animation_style = {"animation": "skeleton-loading 1.5s infinite"}
-    base_styles = {
-        "backgroundColor": "rgba(200, 200, 200, 0.4)",
-        "borderRadius": "4px",
-    }
-
-    # Build skeleton based on type
-    if type == "text":
-        # Create multiple lines
-        skeleton_lines = []
-        for i in range(lines):
-            # Vary width for text lines to make it look more natural
-            line_width = width
-            if lines > 1 and i == lines - 1:
-                # Make last line shorter
-                line_width = "70%" if width == "100%" else width
-
-            skeleton_lines.append(
-                html.Div(
-                    className="skeleton-line",
-                    style={
-                        **base_styles,
-                        **animation_style,
-                        "width": line_width,
-                        "height": "1rem",
-                        "marginBottom": "0.5rem" if i < lines - 1 else "0",
-                    },
-                )
-            )
-        return html.Div(skeleton_lines, className=f"skeleton-loader {className}")
-
-    elif type == "image":
-        return html.Div(
-            className=f"skeleton-loader skeleton-image {className}",
-            style={
-                **base_styles,
-                **animation_style,
-                "width": width,
-                "height": height or "200px",
-            },
-        )
-
-    elif type == "circle":
-        return html.Div(
-            className=f"skeleton-loader skeleton-circle {className}",
-            style={
-                **base_styles,
-                **animation_style,
-                "width": width,
-                "height": height or width,
-                "borderRadius": "50%",
-            },
-        )
-
-    elif type == "card":
-        return html.Div(
-            [
-                # Card header
-                html.Div(
-                    className="skeleton-card-header",
-                    style={
-                        **base_styles,
-                        **animation_style,
-                        "width": "60%",
-                        "height": "2rem",
-                        "marginBottom": "1rem",
-                    },
-                ),
-                # Card content
-                html.Div(
-                    [
-                        html.Div(
-                            style={
-                                **base_styles,
-                                **animation_style,
-                                "width": "100%",
-                                "height": "0.8rem",
-                                "marginBottom": "0.5rem",
-                            }
-                        )
-                        for _ in range(4)  # 4 lines of content
-                    ]
-                ),
-            ],
-            className=f"skeleton-loader skeleton-card {className}",
-            style={
-                "padding": "1rem",
-                "borderRadius": "4px",
-                "border": "1px solid rgba(200, 200, 200, 0.4)",
-                "width": width,
-                "height": height or "auto",
-            },
-        )
-
-    # Default fallback
-    return html.Div(
-        className=f"skeleton-loader {className}",
-        style={
-            **base_styles,
-            **animation_style,
-            "width": width,
-            "height": height or "1rem",
-        },
+    warnings.warn(
+        "create_skeleton_loader is deprecated. Use loading_utils.create_skeleton_loader instead.",
+        DeprecationWarning,
+        stacklevel=2,
     )
 
+    from ui.loading_utils import create_skeleton_loader as new_create_skeleton_loader
 
-def create_content_placeholder(
-    type="chart", width="100%", height="300px", text="Loading data...", className=""
-):
-    """
-    Create a placeholder for content that is loading.
-
-    Args:
-        type (str): Type of content placeholder (chart, table, form, card)
-        width (str): Width of the placeholder
-        height (str): Height of the placeholder
-        text (str): Text to display in the placeholder
-        className (str): Additional CSS classes
-
-    Returns:
-        html.Div: A content placeholder component
-    """
-    from dash import html
-
-    # Get appropriate icon and message based on type
-    icon_map = {
-        "chart": "fas fa-chart-bar",
-        "table": "fas fa-table",
-        "form": "fas fa-list-alt",
-        "card": "fas fa-credit-card",
-        "image": "fas fa-image",
-        "data": "fas fa-database",
-    }
-
-    message_map = {
-        "chart": "Chart data is loading...",
-        "table": "Preparing table data...",
-        "form": "Loading form data...",
-        "card": "Loading content...",
-        "image": "Loading image...",
-        "data": "Loading data...",
-    }
-
-    icon_class = icon_map.get(type, "fas fa-spinner")
-    default_message = message_map.get(type, "Loading content...")
-    display_text = text or default_message
-
-    # Create the placeholder component
-    return html.Div(
-        [
-            html.Div(
-                [
-                    html.I(
-                        className=f"{icon_class} fa-2x mb-3 text-muted",
-                    ),
-                    html.Div(display_text, className="text-muted"),
-                    html.Div(
-                        className="spinner-border spinner-border-sm mt-3",
-                        style={"color": get_color("secondary")},
-                    ),
-                ],
-                className="d-flex flex-column align-items-center justify-content-center h-100",
-            )
-        ],
-        className=f"content-placeholder border rounded bg-light {className}",
-        style={
-            "width": width,
-            "height": height,
-            "overflow": "hidden",
-        },
-    )
+    return new_create_skeleton_loader(type, lines, width, height, className)
 
 
 #######################################################################
-# ERROR STYLING FUNCTIONS
+# ERROR STYLE FUNCTIONS
 #######################################################################
 
 
-def create_error_style(
-    variant="danger", size="md", border=True, background=True, custom_style=None
-):
+def create_error_style(variant="danger", background=True):
     """
-    Create consistent error state styling.
+    Create a consistent error style dictionary.
 
     Args:
-        variant (str): Error severity (danger, warning, info)
-        size (str): Size of the error container (sm, md, lg)
-        border (bool): Whether to show a border
-        background (bool): Whether to show a background
-        custom_style (dict, optional): Custom style overrides
+        variant (str): Error variant (danger, warning, info)
+        background (bool): Whether to include background styling
 
     Returns:
-        dict: Dictionary with error styling properties
+        Dictionary with error styling properties
     """
-    # Map variants to colors
-    color_map = {
-        "danger": SEMANTIC_COLORS["danger"],
-        "warning": SEMANTIC_COLORS["warning"],
-        "info": SEMANTIC_COLORS["info"],
-        "success": SEMANTIC_COLORS["success"],
-    }
-
-    # Get color based on variant
-    color = color_map.get(variant, color_map["danger"])
-
-    # Create the RGB values for background with transparency
-    rgb_values = color.replace("rgb(", "").replace(")", "").split(",")
-    r, g, b = [int(val.strip()) for val in rgb_values]
-
-    # Base style for error container
     base_style = {
-        "borderRadius": "0.25rem",
-        "transition": "all 0.2s ease-in-out",
+        "borderRadius": "0.375rem",
+        "border": f"1px solid {get_color(variant)}",
     }
 
-    # Apply size styles
-    size_map = {
-        "sm": {
-            "padding": "0.5rem",
-        },
-        "md": {
-            "padding": "1rem",
-        },
-        "lg": {
-            "padding": "1.5rem",
-        },
-    }
-    base_style.update(size_map.get(size, size_map["md"]))
-
-    # Apply border if requested
-    if border:
-        base_style["border"] = f"1px solid {color}"
-
-    # Apply background if requested
     if background:
-        base_style["backgroundColor"] = f"rgba({r}, {g}, {b}, 0.1)"
-
-    # Add custom styles
-    if custom_style:
-        base_style.update(custom_style)
-
-    return base_style
-
-
-def create_error_message_style(
-    variant="danger", size="md", bold=False, custom_style=None
-):
-    """
-    Create consistent error message text styling.
-
-    Args:
-        variant (str): Error severity (danger, warning, info)
-        size (str): Size of the text (sm, md, lg)
-        bold (bool): Whether the text should be bold
-        custom_style (dict, optional): Custom style overrides
-
-    Returns:
-        dict: Dictionary with error message styling properties
-    """
-    # Map variants to colors
-    color_map = {
-        "danger": SEMANTIC_COLORS["danger"],
-        "warning": SEMANTIC_COLORS["warning"],
-        "info": SEMANTIC_COLORS["info"],
-        "success": SEMANTIC_COLORS["success"],
-    }
-
-    # Get color based on variant
-    color = color_map.get(variant, color_map["danger"])
-
-    # Base style for error message
-    base_style = {
-        "color": color,
-        "marginBottom": "0.5rem",
-    }
-
-    # Apply size
-    size_map = {
-        "sm": {
-            "fontSize": "0.875rem",
-        },
-        "md": {
-            "fontSize": "1rem",
-        },
-        "lg": {
-            "fontSize": "1.25rem",
-        },
-    }
-    base_style.update(size_map.get(size, size_map["md"]))
-
-    # Apply bold if requested
-    if bold:
-        base_style["fontWeight"] = "bold"
-
-    # Add custom styles
-    if custom_style:
-        base_style.update(custom_style)
+        base_style["backgroundColor"] = (
+            f"rgba({int(SEMANTIC_COLORS[variant].split(',')[0].replace('rgb(', ''))}, "
+            + f"{int(SEMANTIC_COLORS[variant].split(',')[1])}, "
+            + f"{int(SEMANTIC_COLORS[variant].split(',')[2].replace(')', ''))}, 0.1)"
+        )
 
     return base_style
 
 
-def create_form_error_style(variant="danger", custom_style=None):
+def create_error_message_style(color="danger", size="md"):
     """
-    Create consistent form field error styling.
+    Create a consistent error message style.
 
     Args:
-        variant (str): Error severity (danger, warning, info)
-        custom_style (dict, optional): Custom style overrides
+        color (str): Error color variant
+        size (str): Text size
 
     Returns:
-        dict: Dictionary with form error styling properties
+        Dictionary with error message styling
     """
-    # Map variants to colors
-    color_map = {
-        "danger": SEMANTIC_COLORS["danger"],
-        "warning": SEMANTIC_COLORS["warning"],
-        "info": SEMANTIC_COLORS["info"],
+    return {
+        "color": get_color(color),
+        "fontSize": get_font_size(size),
+        "fontWeight": get_font_weight("medium"),
     }
 
-    # Get color based on variant
-    color = color_map.get(variant, color_map["danger"])
 
-    # Base style for form error
-    base_style = {
-        "color": color,
-        "fontSize": "0.875rem",
+def create_form_error_style(size="sm"):
+    """
+    Create a consistent form validation error style.
+
+    Args:
+        size (str): Text size for the error
+
+    Returns:
+        Dictionary with form error styling
+    """
+    return {
+        "color": get_color("danger"),
+        "fontSize": get_font_size(size),
         "marginTop": "0.25rem",
+        "display": "block",
     }
 
-    # Add custom styles
-    if custom_style:
-        base_style.update(custom_style)
 
-    return base_style
-
-
-def create_empty_state_style(
-    variant="default", size="md", border=True, custom_style=None
-):
+def create_empty_state_style(variant="default"):
     """
-    Create consistent empty state styling.
+    Create a consistent empty state style.
 
     Args:
         variant (str): Empty state variant (default, info, warning, error)
-        size (str): Size of the empty state (sm, md, lg)
-        border (bool): Whether to show a border
-        custom_style (dict, optional): Custom style overrides
 
     Returns:
-        dict: Dictionary with empty state styling properties
+        Dictionary with empty state styling
     """
-    # Map variants to styles
-    variant_styles = {
+    base_style = {
+        "padding": "2rem",
+        "textAlign": "center",
+        "borderRadius": "0.375rem",
+        "border": f"1px dashed {get_color('gray-400')}",
+        "backgroundColor": get_color("gray-100"),
+    }
+
+    variant_map = {
         "default": {
-            "bg_color": "#f8f9fa",
-            "border": "1px solid #dee2e6",
-            "icon_color": "#6c757d",
-            "text_color": "#6c757d",
+            "border": f"1px dashed {get_color('gray-400')}",
+            "backgroundColor": get_color("gray-100"),
         },
         "info": {
-            "bg_color": "rgba(13, 202, 240, 0.1)",
-            "border": "1px solid rgba(13, 202, 240, 0.5)",
-            "icon_color": SEMANTIC_COLORS["info"],
-            "text_color": "#0dcaf0",
+            "border": f"1px dashed {get_color('info')}",
+            "backgroundColor": "rgba(13, 202, 240, 0.1)",
         },
         "warning": {
-            "bg_color": "rgba(255, 193, 7, 0.1)",
-            "border": "1px solid rgba(255, 193, 7, 0.5)",
-            "icon_color": SEMANTIC_COLORS["warning"],
-            "text_color": "#ffc107",
+            "border": f"1px dashed {get_color('warning')}",
+            "backgroundColor": "rgba(255, 193, 7, 0.1)",
         },
-        "error": {
-            "bg_color": "rgba(220, 53, 69, 0.1)",
-            "border": "1px solid rgba(220, 53, 69, 0.5)",
-            "icon_color": SEMANTIC_COLORS["danger"],
-            "text_color": "#dc3545",
+        "danger": {
+            "border": f"1px dashed {get_color('danger')}",
+            "backgroundColor": "rgba(220, 53, 69, 0.1)",
         },
-    }
-
-    # Get style based on variant
-    style = variant_styles.get(variant, variant_styles["default"])
-
-    # Size map for padding
-    size_map = {
-        "sm": {
-            "padding": "1rem",
-            "minHeight": "100px",
-        },
-        "md": {
-            "padding": "2rem",
-            "minHeight": "200px",
-        },
-        "lg": {
-            "padding": "3rem",
-            "minHeight": "300px",
+        "success": {
+            "border": f"1px dashed {get_color('success')}",
+            "backgroundColor": "rgba(40, 167, 69, 0.1)",
         },
     }
-    padding_style = size_map.get(size, size_map["md"])
 
-    # Base style for empty state
-    base_style = {
-        "backgroundColor": style["bg_color"],
-        "border": style["border"] if border else "none",
-        "borderRadius": "0.25rem",
-        "display": "flex",
-        "flexDirection": "column",
-        "justifyContent": "center",
-        "alignItems": "center",
-        "textAlign": "center",
-        "width": "100%",
-        **padding_style,
-    }
-
-    # Add custom styles
-    if custom_style:
-        base_style.update(custom_style)
+    if variant in variant_map:
+        base_style.update(variant_map[variant])
 
     return base_style

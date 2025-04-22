@@ -27,6 +27,86 @@ except ImportError:
     }
 
 #######################################################################
+# CONSTANTS
+#######################################################################
+
+# Loading styles configuration
+LOADING_STYLES = {
+    "default": {
+        "spinner_color": COLOR_PALETTE.get("primary", "#0d6efd"),
+        "overlay_color": "rgba(255, 255, 255, 0.8)",
+        "text_color": "#212529",  # dark text
+        "size": "md",
+    },
+    "light": {
+        "spinner_color": COLOR_PALETTE.get("primary", "#0d6efd"),
+        "overlay_color": "rgba(255, 255, 255, 0.9)",
+        "text_color": "#212529",  # dark text
+        "size": "md",
+    },
+    "dark": {
+        "spinner_color": "#ffffff",  # white
+        "overlay_color": "rgba(0, 0, 0, 0.7)",
+        "text_color": "#ffffff",  # white
+        "size": "md",
+    },
+    "transparent": {
+        "spinner_color": COLOR_PALETTE.get("primary", "#0d6efd"),
+        "overlay_color": "rgba(255, 255, 255, 0.4)",
+        "text_color": "#212529",  # dark text
+        "size": "md",
+    },
+    "success": {
+        "spinner_color": COLOR_PALETTE.get("success", "#198754"),
+        "overlay_color": "rgba(255, 255, 255, 0.8)",
+        "text_color": COLOR_PALETTE.get("success", "#198754"),
+        "size": "md",
+    },
+    "danger": {
+        "spinner_color": COLOR_PALETTE.get("danger", "#dc3545"),
+        "overlay_color": "rgba(255, 255, 255, 0.8)",
+        "text_color": COLOR_PALETTE.get("danger", "#dc3545"),
+        "size": "md",
+    },
+    "warning": {
+        "spinner_color": COLOR_PALETTE.get("warning", "#ffc107"),
+        "overlay_color": "rgba(255, 255, 255, 0.8)",
+        "text_color": COLOR_PALETTE.get("warning", "#ffc107"),
+        "size": "md",
+    },
+    "info": {
+        "spinner_color": COLOR_PALETTE.get("info", "#0dcaf0"),
+        "overlay_color": "rgba(255, 255, 255, 0.8)",
+        "text_color": COLOR_PALETTE.get("info", "#0dcaf0"),
+        "size": "md",
+    },
+    "primary": {
+        "spinner_color": COLOR_PALETTE.get("primary", "#0d6efd"),
+        "overlay_color": "rgba(255, 255, 255, 0.8)",
+        "text_color": COLOR_PALETTE.get("primary", "#0d6efd"),
+        "size": "md",
+    },
+    "secondary": {
+        "spinner_color": COLOR_PALETTE.get("secondary", "#6c757d"),
+        "overlay_color": "rgba(255, 255, 255, 0.8)",
+        "text_color": COLOR_PALETTE.get("secondary", "#6c757d"),
+        "size": "md",
+    },
+}
+
+# Spinner size configuration
+SPINNER_SIZES = {
+    "xs": {"width": "1rem", "height": "1rem", "border_width": "0.15rem"},
+    "sm": {"width": "1.5rem", "height": "1.5rem", "border_width": "0.2rem"},
+    "md": {"width": "2rem", "height": "2rem", "border_width": "0.25rem"},
+    "lg": {"width": "3rem", "height": "3rem", "border_width": "0.3rem"},
+    "xl": {"width": "4rem", "height": "4rem", "border_width": "0.35rem"},
+}
+
+# CSS animation for skeleton loaders
+SKELETON_ANIMATION = "@keyframes skeleton-loading { 0% { background-color: rgba(200, 200, 200, 0.2); } 50% { background-color: rgba(200, 200, 200, 0.6); } 100% { background-color: rgba(200, 200, 200, 0.2); } }"
+
+#######################################################################
 # LOADING STYLE UTILITIES
 #######################################################################
 
@@ -901,3 +981,277 @@ def create_loading_wrapper(
             )
         else:
             return html.Div(children, id=content_id)
+
+
+def create_loading_state(
+    children=None,
+    is_loading=False,
+    type="spinner",  # spinner, growing, skeleton, overlay, placeholder
+    style_key="primary",
+    size_key="md",
+    message="Loading...",
+    className="",
+    id=None,
+):
+    """
+    Unified loading state component that provides a consistent interface
+    for all loading state types.
+
+    Args:
+        children: Content to display when not loading (required for overlay type)
+        is_loading (bool): Whether to show the loading state
+        type (str): Type of loading component ('spinner', 'growing', 'skeleton', 'overlay', 'placeholder')
+        style_key (str): Color style key (primary, secondary, success, etc.)
+        size_key (str): Size key (xs, sm, md, lg, xl)
+        message (str): Message to display with the loading indicator
+        className (str): Additional CSS classes
+        id (str): Component ID
+
+    Returns:
+        Dash component: A loading state component of the specified type
+    """
+    # If not loading and we have children, just return the children
+    if not is_loading and children is not None:
+        return html.Div(children, className=className, id=id)
+
+    if type == "spinner":
+        return create_spinner(
+            style_key=style_key,
+            size_key=size_key,
+            text=message,
+            className=className,
+            id=id,
+        )
+
+    elif type == "growing":
+        return create_growing_spinner(
+            style_key=style_key,
+            size_key=size_key,
+            text=message,
+            className=className,
+            id=id,
+        )
+
+    elif type == "skeleton":
+        # Determine skeleton type based on children or default to "text"
+        skeleton_type = "text"
+        if children is not None:
+            children_str = str(children).lower()
+            if "chart" in children_str or "graph" in children_str:
+                skeleton_type = "chart"
+            elif "card" in children_str:
+                skeleton_type = "card"
+            elif "img" in children_str or "image" in children_str:
+                skeleton_type = "image"
+
+        return create_skeleton_loader(
+            type=skeleton_type,
+            lines=3 if skeleton_type == "text" else 1,
+            className=className,
+        )
+
+    elif type == "overlay":
+        if children is None:
+            raise ValueError("Children must be provided when using 'overlay' type")
+
+        return create_loading_overlay(
+            children=children,
+            style_key=style_key,
+            size_key=size_key,
+            text=message,
+            is_loading=is_loading,
+            className=className,
+        )
+
+    elif type == "placeholder":
+        # Determine placeholder type based on children or default to "data"
+        placeholder_type = "data"
+        if children is not None:
+            children_str = str(children).lower()
+            if "chart" in children_str or "graph" in children_str:
+                placeholder_type = "chart"
+            elif "table" in children_str:
+                placeholder_type = "table"
+            elif "img" in children_str or "image" in children_str:
+                placeholder_type = "image"
+
+        return create_content_placeholder(
+            type=placeholder_type, text=message, className=className
+        )
+
+    else:
+        # Invalid type, return default spinner
+        warnings.warn(
+            f"Invalid loading type '{type}'. Using default spinner.",
+            UserWarning,
+            stacklevel=2,
+        )
+        return create_spinner(
+            style_key=style_key,
+            size_key=size_key,
+            text=message,
+            className=className,
+            id=id,
+        )
+
+
+def create_async_content(id, loading_state_id=None, content_type="chart"):
+    """
+    Create a container for async content with proper loading states.
+
+    Args:
+        id (str): ID for the component
+        loading_state_id (str): ID for the loading state indicator, defaults to {id}-loading
+        content_type (str): Type of content ('chart', 'data', 'table', etc.)
+
+    Returns:
+        html.Div: Container with loading placeholder
+    """
+    if loading_state_id is None:
+        loading_state_id = f"{id}-loading"
+
+    # Determine appropriate loading message
+    loading_messages = {
+        "chart": "Loading chart data...",
+        "table": "Loading table data...",
+        "data": "Loading data...",
+        "image": "Loading image...",
+    }
+
+    message = loading_messages.get(content_type, "Loading...")
+
+    return html.Div(
+        [
+            # Hidden loading state that can be triggered by callbacks
+            html.Div(id=loading_state_id, style={"display": "none"}),
+            # Initial placeholder
+            create_content_placeholder(type=content_type, text=message),
+            # Container for the actual content (empty initially)
+            html.Div(id=id),
+        ]
+    )
+
+
+def create_lazy_loading_tabs(
+    tabs_data, tab_id_prefix="tab", content_id_prefix="tab-content"
+):
+    """
+    Create tabs that load their content only when activated.
+
+    Args:
+        tabs_data (list): List of dictionaries with tab information:
+                          [{"label": "Tab1", "content": content1, "active": True}, ...]
+        tab_id_prefix (str): Prefix for tab IDs
+        content_id_prefix (str): Prefix for content IDs
+
+    Returns:
+        list: A list containing the tabs component and the tab content div
+    """
+    tabs = []
+    contents = []
+
+    # Create each tab
+    for i, tab in enumerate(tabs_data):
+        tab_id = f"{tab_id_prefix}-{i}"
+        content_id = f"{content_id_prefix}-{i}"
+
+        # Create the tab
+        tabs.append(
+            dbc.Tab(
+                label=tab["label"],
+                tab_id=tab_id,
+                active=tab.get("active", i == 0),
+                id=tab_id,
+            )
+        )
+
+        # Create the content container
+        content_div = html.Div(
+            # If it's the active tab, show content, otherwise show a placeholder
+            tab["content"]
+            if tab.get("active", i == 0)
+            else create_content_placeholder(
+                type=tab.get("content_type", "data"),
+                text=f"Loading {tab['label']}...",
+            ),
+            id=content_id,
+            style={"display": "block" if tab.get("active", i == 0) else "none"},
+        )
+
+        contents.append(content_div)
+
+    return [
+        dbc.Tabs(tabs, id=f"{tab_id_prefix}-container"),
+        html.Div(contents, id=f"{content_id_prefix}-container"),
+    ]
+
+
+def create_data_loading_section(
+    id,
+    title=None,
+    loading_message="Loading data...",
+    error_message="Failed to load data",
+    retry_button=True,
+):
+    """
+    Create a section that handles data loading states including error handling.
+
+    Args:
+        id (str): Base ID for the section
+        title (str): Optional title for the section
+        loading_message (str): Message to display during loading
+        error_message (str): Message to display on error
+        retry_button (bool): Whether to show a retry button on error
+
+    Returns:
+        html.Div: A complete section with loading and error states
+    """
+    section_id = f"{id}-section"
+    loading_id = f"{id}-loading"
+    content_id = f"{id}-content"
+    error_id = f"{id}-error"
+    retry_id = f"{id}-retry"
+
+    header = html.H5(title) if title else None
+
+    return html.Div(
+        [
+            header,
+            # Loading state (hidden initially)
+            html.Div(
+                create_loading_state(
+                    message=loading_message, type="spinner", style_key="primary"
+                ),
+                id=loading_id,
+                style={"display": "none"},
+            ),
+            # Content container (empty initially)
+            html.Div(id=content_id),
+            # Error state (hidden initially)
+            html.Div(
+                [
+                    html.Div(
+                        [
+                            html.I(
+                                className="fas fa-exclamation-triangle text-danger me-2"
+                            ),
+                            html.Span(error_message),
+                        ],
+                        className="d-flex align-items-center mb-3",
+                    ),
+                    html.Button(
+                        "Retry",
+                        id=retry_id,
+                        className="btn btn-outline-primary btn-sm",
+                    )
+                    if retry_button
+                    else None,
+                ],
+                id=error_id,
+                className="my-4 p-3 border border-danger rounded",
+                style={"display": "none"},
+            ),
+        ],
+        id=section_id,
+        className="mb-4",
+    )
