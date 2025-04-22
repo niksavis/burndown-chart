@@ -1957,6 +1957,9 @@ def create_loading_indicator(
     id="loading", type="spinner", message="Loading...", color="primary", size="md"
 ):
     """
+    DEPRECATED: Use ui.loading_utils.create_spinner or ui.loading_utils.create_growing_spinner instead.
+    This function will be removed in a future release.
+
     Create a standardized loading indicator component.
 
     Args:
@@ -1969,28 +1972,30 @@ def create_loading_indicator(
     Returns:
         Dash component: A loading indicator component
     """
-    from dash import html
-    from ui.styles import create_spinner, create_skeleton_loader, get_color
+    import warnings
 
+    warnings.warn(
+        "This function is deprecated. Use ui.loading_utils.create_spinner or "
+        "ui.loading_utils.create_growing_spinner instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+
+    from ui.loading_utils import (
+        create_spinner,
+        create_growing_spinner,
+        create_skeleton_loader,
+    )
+
+    # Map the old parameters to the new function calls
     if type == "skeleton":
         return create_skeleton_loader(
             type="text", lines=3, className="mb-3", width="100%"
         )
-
     elif type == "growing":
-        return html.Div(
-            [
-                html.Div(
-                    className=f"spinner-grow text-{color} mx-1",
-                    style={"width": "1rem", "height": "1rem"},
-                )
-                for _ in range(3)
-            ]
-            + [html.Div(message, className="text-center mt-2 text-muted small")],
-            className="d-flex flex-column align-items-center justify-content-center py-3",
-            id=id,
+        return create_growing_spinner(
+            style_key=color, size_key=size, text=message, id=id
         )
-
     else:  # Default spinner
         return create_spinner(
             style_key=color, size_key=size, text=message, className="my-3", id=id
@@ -2007,71 +2012,47 @@ def create_loading_wrapper(
     message="Loading...",
 ):
     """
-    Wrap content with a loading indicator.
+    DEPRECATED: Use ui.loading_utils.create_loading_overlay or ui.loading_utils.create_content_placeholder instead.
+    This function will be removed in a future release.
+
+    Create a wrapper that shows loading state over content.
 
     Args:
-        children: Content to display when not loading
-        is_loading (bool): Whether to show the loading state
-        id (str): Component ID
-        type (str): Type of loading wrapper (overlay, skeleton, placeholder)
-        color (str): Color variant for the loading indicator
-        size (str): Size of the loading indicator
-        message (str): Loading message to display
+        children: Child components to wrap
+        is_loading: Whether the loading state is active
+        id: Component ID
+        type: Type of loading indicator (overlay, spinner, skeleton)
+        color: Bootstrap color variant
+        size: Size of the loading indicator
+        message: Message to display while loading
 
     Returns:
-        Dash component: A component that shows a loading state or the children
+        Dash component with loading indication
     """
-    from dash import html
-    import dash_bootstrap_components as dbc
-    from ui.styles import (
-        create_loading_overlay,
-        create_content_placeholder,
-        create_skeleton_loader,
+    import warnings
+
+    warnings.warn(
+        "This function is deprecated. Use ui.loading_utils.create_loading_overlay or "
+        "ui.loading_utils.create_content_placeholder instead.",
+        DeprecationWarning,
+        stacklevel=2,
     )
 
-    content_id = f"{id}-content" if id else None
+    from ui.loading_utils import create_loading_overlay, create_content_placeholder
 
-    if type == "overlay":
-        return create_loading_overlay(
-            style_key=color,
-            size_key=size,
-            text=message,
-            is_loading=is_loading,
-            children=children,
-        )
-
-    elif type == "skeleton":
-        if is_loading:
-            # For skeleton loading, we'll create multiple lines based on content size estimate
-            return html.Div(
-                [
-                    create_skeleton_loader(type="card", width="100%"),
-                ],
-                id=content_id,
-            )
-        else:
-            return html.Div(children, id=content_id)
-
-    elif type == "placeholder":
-        if is_loading:
-            return create_content_placeholder(
-                type="chart" if "chart" in str(children).lower() else "data",
+    # Map the old parameters to the new function calls
+    if is_loading:
+        if type == "skeleton":
+            return create_content_placeholder(placeholder_type="card", lines=3)
+        else:  # Default to overlay
+            return create_loading_overlay(
+                children,
+                is_loading=True,
+                spinner_props={"style_key": color, "size_key": size},
                 text=message,
-                className="my-3",
+                id=id,
             )
-        else:
-            return html.Div(children, id=content_id)
-
-    else:  # Simple loading indicator without an overlay
-        if is_loading:
-            return html.Div(
-                create_loading_indicator(
-                    type="spinner", message=message, color=color, size=size
-                ),
-                className="d-flex justify-content-center my-4",
-            )
-        else:
-            return html.Div(children, id=content_id)
+    return children
 
 
 def create_async_content(id, loading_state_id, content_type="chart"):
