@@ -20,14 +20,22 @@ from visualization import empty_figure
 # Fix circular import issue - import directly from components instead of ui
 from ui.components import create_info_tooltip, create_pert_info_table
 
-# Import styling functions from ui.styles
+# Import styling functions from utility modules
 from ui.styles import (
-    create_input_style,
-    create_datepicker_style,
-    create_slider_style,
-    create_form_feedback_style,
     NEUTRAL_COLORS,
+    create_standardized_card,
+    create_card_header_with_tooltip,
+    create_rhythm_text,
+    apply_vertical_rhythm,
+    create_datepicker_style,
+    create_form_feedback_style,
+    create_input_style,
 )
+from ui.button_utils import create_button
+from ui.icon_utils import create_icon, create_icon_text
+from ui.tooltip_utils import create_info_tooltip
+from ui.loading_utils import create_spinner
+from ui.grid_templates import create_aligned_datatable, create_data_table
 
 #######################################################################
 # CARD COMPONENTS
@@ -44,9 +52,6 @@ def create_forecast_graph_card():
     # Generate the current date for the filename
     current_date = datetime.now().strftime("%Y%m%d")
     default_filename = f"burndown_forecast_{current_date}"
-
-    # Use the standardized card styling function
-    from ui.styles import create_standardized_card, create_card_header_with_tooltip
 
     # Create the card header with tooltip
     header_content = create_card_header_with_tooltip(
@@ -85,14 +90,6 @@ def create_forecast_info_card():
     Returns:
         Dash Card component with concise forecast methodology explanation
     """
-    # Use the standardized card styling function
-    from ui.styles import (
-        create_standardized_card,
-        create_card_header_with_tooltip,
-        create_rhythm_text,
-        apply_vertical_rhythm,
-    )
-
     # Generate a unique ID for this collapse component
     collapse_id = "forecast-info-collapse"
 
@@ -301,9 +298,6 @@ def create_pert_analysis_card():
     Returns:
         Dash Card component for PERT analysis
     """
-    # Use the standardized card styling function
-    from ui.styles import create_standardized_card, create_card_header_with_tooltip
-
     # Create the card header with tooltip
     header_content = create_card_header_with_tooltip(
         "PERT Analysis",
@@ -338,9 +332,6 @@ def create_input_parameters_card(
     Returns:
         Dash Card component for input parameters
     """
-    # Use the standardized card styling function
-    from ui.styles import create_standardized_card, create_card_header_with_tooltip
-
     # Create the card header with tooltip
     header_content = create_card_header_with_tooltip(
         "Input Parameters",
@@ -767,9 +758,6 @@ def create_statistics_data_card(current_statistics):
     import pandas as pd
     from dash import dash_table, html
     import dash_bootstrap_components as dbc
-    from ui.components import create_export_buttons, create_info_tooltip, create_button
-    from ui.styles import create_standardized_card, create_card_header_with_tooltip
-    from ui.grid_templates import create_aligned_datatable, create_data_table
 
     # Create the card header with tooltip
     header_content = create_card_header_with_tooltip(

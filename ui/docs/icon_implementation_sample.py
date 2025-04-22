@@ -9,7 +9,12 @@ to the new standardized approach.
 """
 
 from dash import html
-from ui.styles import create_icon, create_icon_text, create_icon_stack, get_icon_class
+from ui.icon_utils import (
+    create_icon,
+    create_icon_text,
+    create_icon_stack,
+    get_icon_class,
+)
 
 
 def example_before_refactoring():
