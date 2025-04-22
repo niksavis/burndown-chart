@@ -19,18 +19,18 @@ Our application uses the standard Bootstrap breakpoint system:
 
 ## Using Responsive Components
 
-### Responsive Grid Templates
+### Responsive Grid System
 
-The `ui.responsive_grid` module provides advanced components for creating responsive layouts:
+The `ui.grid_utils` module provides a unified grid system with components for creating responsive layouts:
 
 ```python
-from ui.responsive_grid import (
+from ui.grid_utils import (
     create_responsive_column, 
     create_responsive_row,
     create_responsive_grid,
     create_stacked_to_horizontal,
-    create_responsive_card_deck,
-    create_responsive_dashboard_layout
+    create_card_grid,
+    create_dashboard_layout
 )
 ```
 
@@ -82,10 +82,10 @@ create_stacked_to_horizontal(
 
 ### Creating Card Grids
 
-Use the `create_responsive_card_deck` function to create card grids with different numbers of columns at different breakpoints:
+Use the `create_card_grid` function to create card grids with different numbers of columns at different breakpoints:
 
 ```python
-create_responsive_card_deck(
+create_card_grid(
     cards,                # List of card components
     cols_by_breakpoint={  # Number of columns at each breakpoint
         'xs': 1, 
@@ -100,10 +100,10 @@ create_responsive_card_deck(
 
 ### Creating Dashboard Layouts
 
-Use the `create_responsive_dashboard_layout` function to create dashboard layouts with main content and sidebars:
+Use the `create_dashboard_layout` function to create dashboard layouts with main content and sidebars:
 
 ```python
-create_responsive_dashboard_layout(
+create_dashboard_layout(
     main_content,         # Primary content area
     side_content,         # Side panel content
     secondary_content,    # Optional secondary content (visible at larger breakpoints)
@@ -196,7 +196,7 @@ Example:
 ### Complex Dashboard Layout
 
 ```python
-layout = create_responsive_dashboard_layout(
+layout = create_dashboard_layout(
     main_content=html.Div([
         html.H2("Main Dashboard"),
         # Charts, tables, etc.
@@ -222,7 +222,7 @@ layout = create_responsive_dashboard_layout(
 ```python
 cards = [create_card(...) for _ in range(8)]  # 8 cards
 
-card_grid = create_responsive_card_deck(
+card_grid = create_card_grid(
     cards=cards,
     cols_by_breakpoint={
         'xs': 1,  # 1 card per row on mobile
@@ -239,11 +239,11 @@ card_grid = create_responsive_card_deck(
 You can use `create_breakpoint_visibility_examples()` to display test elements showing when different breakpoints are active:
 
 ```python
-import ui.responsive_grid as rg
+import ui.grid_utils as grid
 
 layout = html.Div([
     html.H2("Breakpoint Test"),
-    rg.create_breakpoint_visibility_examples()
+    grid.create_breakpoint_visibility_examples()
 ])
 ```
 
