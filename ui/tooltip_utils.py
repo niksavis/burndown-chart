@@ -8,10 +8,14 @@ for consistent tooltip appearance and behavior across the application.
 #######################################################################
 # IMPORTS
 #######################################################################
+# Standard library imports
+# (none currently needed)
+
+# Third-party library imports
 from dash import html
 import dash_bootstrap_components as dbc
 
-# Import from other utility modules
+# Application imports
 from ui.icon_utils import create_icon
 from ui.styles import get_color, TYPOGRAPHY
 

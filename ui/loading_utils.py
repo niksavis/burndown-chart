@@ -9,10 +9,14 @@ when content is loading, processing, or waiting for data.
 #######################################################################
 # IMPORTS
 #######################################################################
-from dash import html, dcc
-import dash_bootstrap_components as dbc
+# Standard library imports
 import warnings
 
+# Third-party library imports
+from dash import html, dcc
+import dash_bootstrap_components as dbc
+
+# Application imports
 # Import from configuration if available
 try:
     from configuration import COLOR_PALETTE

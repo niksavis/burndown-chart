@@ -7,17 +7,20 @@ This module handles callbacks related to statistics data management.
 #######################################################################
 # IMPORTS
 #######################################################################
+# Standard library imports
+import io
+import base64
+from datetime import datetime, timedelta
+
+# Third-party library imports
 import dash
 from dash import Input, Output, State, html
 from dash.exceptions import PreventUpdate
 import pandas as pd
-from datetime import datetime, timedelta
-import io
-import base64
 import plotly.graph_objects as go
 import dash_bootstrap_components as dbc
 
-# Import from application modules
+# Application imports
 from configuration import logger
 from data import save_statistics, read_and_clean_data
 from data.capacity import CapacityManager
