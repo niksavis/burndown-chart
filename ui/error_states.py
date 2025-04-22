@@ -10,18 +10,117 @@ import dash_bootstrap_components as dbc
 import traceback
 import json
 import uuid
+import datetime
 
 # Updated import path to use the new button_utils module
 from ui.button_utils import create_button
 from ui.styles import (
-    create_error_style,
-    create_error_message_style,
-    create_form_error_style,
-    create_empty_state_style,
     get_color,
     create_heading_style,
-    create_icon,
+    get_font_size,
+    get_font_weight,
+    SEMANTIC_COLORS,
+    NEUTRAL_COLORS,
 )
+from ui.icon_utils import create_icon
+
+#######################################################################
+# ERROR STYLING FUNCTIONS
+#######################################################################
+
+
+def create_error_style(variant="danger", background=True):
+    """
+    Create a consistent error style dictionary.
+
+    Args:
+        variant (str): Error variant (danger, warning, info)
+        background (bool): Whether to include background styling
+
+    Returns:
+        Dictionary with error styling properties
+    """
+    base_style = {
+        "borderRadius": "0.375rem",
+        "border": f"1px solid {get_color(variant)}",
+    }
+
+    if background:
+        base_style["backgroundColor"] = (
+            f"rgba({int(SEMANTIC_COLORS[variant].split(',')[0].replace('rgb(', ''))}, "
+            + f"{int(SEMANTIC_COLORS[variant].split(',')[1])}, "
+            + f"{int(SEMANTIC_COLORS[variant].split(',')[2].replace(')', ''))}, 0.1)"
+        )
+
+    return base_style
+
+
+def create_error_message_style(color="danger", size="md"):
+    """
+    Create a consistent error message style.
+
+    Args:
+        color (str): Error color variant
+        size (str): Text size
+
+    Returns:
+        Dictionary with error message styling
+    """
+    return {
+        "color": get_color(color),
+        "fontSize": get_font_size(size),
+        "fontWeight": get_font_weight("medium"),
+    }
+
+
+def create_form_error_style(size="sm"):
+    """
+    Create a consistent form validation error style.
+
+    Args:
+        size (str): Text size for the error
+
+    Returns:
+        Dictionary with form error styling
+    """
+    return {
+        "color": get_color("danger"),
+        "fontSize": get_font_size(size),
+        "marginTop": "0.25rem",
+        "display": "block",
+    }
+
+
+def create_empty_state_style(variant="default"):
+    """
+    Create consistent styling for empty state components.
+
+    Args:
+        variant (str): Empty state variant (default, info, warning, error)
+
+    Returns:
+        dict: Dictionary with empty state styling properties
+    """
+    base_style = {
+        "padding": "2rem",
+        "borderRadius": "0.5rem",
+        "textAlign": "center",
+    }
+
+    if variant != "default":
+        base_style.update(create_error_style(variant, background=True))
+    else:
+        base_style.update(
+            {
+                "backgroundColor": NEUTRAL_COLORS["gray-100"],
+                "border": f"1px solid {NEUTRAL_COLORS['gray-300']}",
+            }
+        )
+
+    return base_style
+
+
+# Original functions start here
 
 
 def create_error_alert(
@@ -439,3 +538,223 @@ def create_error_boundary(
         id=id,
         className=f"error-boundary {className}",
     )
+
+
+def create_loading_error(
+    message="Failed to load data",
+    retry_callback=None,
+    id=None,
+    className="",
+):
+    """
+    Create a standardized loading error component.
+
+    Args:
+        message (str): The error message
+        retry_callback (function, optional): Callback function for retry button
+        id (str, optional): Component ID
+        className (str, optional): Additional CSS classes
+
+    Returns:
+        html.Div: A loading error component
+    """
+    retry_button = None
+    if retry_callback:
+        button_id = f"{id}-retry" if id else "loading-error-retry"
+        retry_button = create_error_recovery_button(
+            id=button_id,
+            text="Retry",
+            icon="refresh",
+            variant="outline-primary",
+        )
+
+    return html.Div(
+        [
+            html.Div(
+                create_icon("danger", size="lg", color="danger"),
+                className="mb-2",
+            ),
+            html.Div(
+                message,
+                className="mb2",
+                style=create_error_message_style("danger", "md"),
+            ),
+            html.Div(retry_button) if retry_button else None,
+        ],
+        className=f"text-center p-4 {className}",
+        style=create_error_style("danger", background=True),
+        id=id,
+    )
+
+
+def create_inline_error(
+    message,
+    id=None,
+    className="",
+    size="sm",
+):
+    """
+    Create a small inline error message.
+
+    Args:
+        message (str): The error message
+        id (str, optional): Component ID
+        className (str, optional): Additional CSS classes
+        size (str): Text size (sm, md, lg)
+
+    Returns:
+        html.Div: An inline error message component
+    """
+    return html.Div(
+        [
+            create_icon("danger", size=size, color="danger", with_space_right=True),
+            html.Span(message),
+        ],
+        className=f"d-flex align-items-center {className}",
+        style=create_error_message_style("danger", size),
+        id=id,
+    )
+
+
+def create_error_card(
+    title,
+    message,
+    details=None,
+    action_button=None,
+    id=None,
+    className="",
+    collapsible_details=True,
+):
+    """
+    Create a card with error information.
+
+    Args:
+        title (str): Error title
+        message (str): Error message
+        details (str, optional): Technical error details
+        action_button (component, optional): Action button component
+        id (str, optional): Component ID
+        className (str, optional): Additional CSS classes
+        collapsible_details (bool): Whether technical details are collapsible
+
+    Returns:
+        dbc.Card: An error card component
+    """
+    details_id = f"{id}-details" if id else f"error-details-{str(uuid.uuid4())[:8]}"
+    collapse_id = f"{details_id}-collapse"
+
+    card_content = [
+        dbc.CardHeader(
+            html.H5(
+                [create_icon("danger", with_space_right=True), title],
+                className="mb-0 d-flex align-items-center",
+            ),
+            className="bg-danger text-white",
+        ),
+        dbc.CardBody(
+            [
+                html.P(message, className="card-text"),
+                html.Div(
+                    [
+                        dbc.Button(
+                            "Show Technical Details",
+                            id=details_id,
+                            color="link",
+                            size="sm",
+                            className="p-0 text-decoration-none",
+                        )
+                        if collapsible_details and details
+                        else None,
+                        dbc.Collapse(
+                            dbc.Card(
+                                dbc.CardBody(
+                                    html.Pre(
+                                        details,
+                                        className="mb-0 text-danger",
+                                        style={
+                                            "whiteSpace": "pre-wrap",
+                                            "fontSize": "0.875rem",
+                                        },
+                                    )
+                                ),
+                                className="mt-2 border-danger",
+                            ),
+                            id=collapse_id,
+                            is_open=False,
+                        )
+                        if collapsible_details and details
+                        else None,
+                        html.Pre(
+                            details,
+                            className="mb-0 mt-3 p-2 bg-light border text-danger",
+                            style={"whiteSpace": "pre-wrap", "fontSize": "0.875rem"},
+                        )
+                        if not collapsible_details and details
+                        else None,
+                    ]
+                ),
+                html.Div(
+                    action_button,
+                    className="mt-3",
+                )
+                if action_button
+                else None,
+            ]
+        ),
+    ]
+
+    return dbc.Card(
+        card_content,
+        className=f"border-danger {className}",
+        id=id,
+    )
+
+
+def format_exception(exception):
+    """
+    Format an exception for display.
+
+    Args:
+        exception: The exception to format
+
+    Returns:
+        str: Formatted exception text
+    """
+    if isinstance(exception, str):
+        return exception
+
+    try:
+        return "".join(
+            traceback.format_exception(
+                type(exception), exception, exception.__traceback__
+            )
+        )
+    except:
+        return str(exception)
+
+
+def log_error(error, additional_context=None):
+    """
+    Log an error to the application's error log.
+
+    Args:
+        error: The error or exception
+        additional_context (dict, optional): Additional context information
+
+    Returns:
+        None
+    """
+    try:
+        error_data = {
+            "timestamp": str(datetime.datetime.now()),
+            "error": format_exception(error),
+        }
+
+        if additional_context:
+            error_data["context"] = additional_context
+
+        with open("burndown_errors.log", "a") as f:
+            f.write(json.dumps(error_data) + "\n")
+    except Exception as log_error:
+        print(f"Failed to log error: {log_error}")
+        print(f"Original error: {error}")

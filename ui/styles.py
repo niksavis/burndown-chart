@@ -2084,110 +2084,79 @@ def create_skeleton_loader(
 #######################################################################
 
 
+# These functions have been moved to ui.error_states
+# Use the equivalent functions from error_states.py instead:
+# - create_error_style
+# - create_error_message_style
+# - create_form_error_style
+# - create_empty_state_style
+
+
 def create_error_style(variant="danger", background=True):
     """
-    Create a consistent error style dictionary.
-
-    Args:
-        variant (str): Error variant (danger, warning, info)
-        background (bool): Whether to include background styling
-
-    Returns:
-        Dictionary with error styling properties
+    DEPRECATED: Use ui.error_states.create_error_style instead.
+    This function will be removed in a future release.
     """
-    base_style = {
-        "borderRadius": "0.375rem",
-        "border": f"1px solid {get_color(variant)}",
-    }
+    import warnings
 
-    if background:
-        base_style["backgroundColor"] = (
-            f"rgba({int(SEMANTIC_COLORS[variant].split(',')[0].replace('rgb(', ''))}, "
-            + f"{int(SEMANTIC_COLORS[variant].split(',')[1])}, "
-            + f"{int(SEMANTIC_COLORS[variant].split(',')[2].replace(')', ''))}, 0.1)"
-        )
+    warnings.warn(
+        "This function is deprecated. Use ui.error_states.create_error_style instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    from ui.error_states import create_error_style as new_create_error_style
 
-    return base_style
+    return new_create_error_style(variant=variant, background=background)
 
 
 def create_error_message_style(color="danger", size="md"):
     """
-    Create a consistent error message style.
-
-    Args:
-        color (str): Error color variant
-        size (str): Text size
-
-    Returns:
-        Dictionary with error message styling
+    DEPRECATED: Use ui.error_states.create_error_message_style instead.
+    This function will be removed in a future release.
     """
-    return {
-        "color": get_color(color),
-        "fontSize": get_font_size(size),
-        "fontWeight": get_font_weight("medium"),
-    }
+    import warnings
+
+    warnings.warn(
+        "This function is deprecated. Use ui.error_states.create_error_message_style instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    from ui.error_states import (
+        create_error_message_style as new_create_error_message_style,
+    )
+
+    return new_create_error_message_style(color=color, size=size)
 
 
 def create_form_error_style(size="sm"):
     """
-    Create a consistent form validation error style.
-
-    Args:
-        size (str): Text size for the error
-
-    Returns:
-        Dictionary with form error styling
+    DEPRECATED: Use ui.error_states.create_form_error_style instead.
+    This function will be removed in a future release.
     """
-    return {
-        "color": get_color("danger"),
-        "fontSize": get_font_size(size),
-        "marginTop": "0.25rem",
-        "display": "block",
-    }
+    import warnings
+
+    warnings.warn(
+        "This function is deprecated. Use ui.error_states.create_form_error_style instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    from ui.error_states import create_form_error_style as new_create_form_error_style
+
+    return new_create_form_error_style(size=size)
 
 
 def create_empty_state_style(variant="default"):
     """
-    Create a consistent empty state style.
-
-    Args:
-        variant (str): Empty state variant (default, info, warning, error)
-
-    Returns:
-        Dictionary with empty state styling
+    DEPRECATED: Use ui.error_states.create_empty_state_style instead.
+    This function will be removed in a future release.
     """
-    base_style = {
-        "padding": "2rem",
-        "textAlign": "center",
-        "borderRadius": "0.375rem",
-        "border": f"1px dashed {get_color('gray-400')}",
-        "backgroundColor": get_color("gray-100"),
-    }
+    import warnings
 
-    variant_map = {
-        "default": {
-            "border": f"1px dashed {get_color('gray-400')}",
-            "backgroundColor": get_color("gray-100"),
-        },
-        "info": {
-            "border": f"1px dashed {get_color('info')}",
-            "backgroundColor": "rgba(13, 202, 240, 0.1)",
-        },
-        "warning": {
-            "border": f"1px dashed {get_color('warning')}",
-            "backgroundColor": "rgba(255, 193, 7, 0.1)",
-        },
-        "danger": {
-            "border": f"1px dashed {get_color('danger')}",
-            "backgroundColor": "rgba(220, 53, 69, 0.1)",
-        },
-        "success": {
-            "border": f"1px dashed {get_color('success')}",
-            "backgroundColor": "rgba(40, 167, 69, 0.1)",
-        },
-    }
+    warnings.warn(
+        "This function is deprecated. Use ui.error_states.create_empty_state_style instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    from ui.error_states import create_empty_state_style as new_create_empty_state_style
 
-    if variant in variant_map:
-        base_style.update(variant_map[variant])
-
-    return base_style
+    return new_create_empty_state_style(variant=variant)
