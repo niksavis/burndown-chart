@@ -253,4 +253,4 @@ app.layout = html.Div(
 
 if __name__ == "__main__":
     print("Starting Button Utils Demo server on http://127.0.0.1:8050/")
-    app.run_server(debug=True)
+    app.run(debug=True)

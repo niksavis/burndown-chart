@@ -61,9 +61,7 @@ if __name__ == "__main__":
         print(
             f"Starting development server in DEBUG mode on {server_config['host']}:{server_config['port']}..."
         )
-        app.run_server(
-            debug=True, host=server_config["host"], port=server_config["port"]
-        )
+        app.run(debug=True, host=server_config["host"], port=server_config["port"])
     else:
         print(
             f"Starting Waitress production server on {server_config['host']}:{server_config['port']}..."
