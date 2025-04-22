@@ -8,7 +8,7 @@ tooltips across all charts in the application.
 # IMPORTS
 #######################################################################
 # Standard library imports
-import random
+# None
 
 # Third-party library imports
 import plotly.graph_objects as go
@@ -21,8 +21,9 @@ from ui.tooltip_utils import (
     create_hoverlabel_config,
     get_tooltip_style,
     create_chart_layout_config,
+    TOOLTIP_STYLES,
 )
-from ui.styles import TOOLTIP_STYLES, COLOR_PALETTE
+from configuration import COLOR_PALETTE
 
 
 def create_tooltip_demo_chart():
