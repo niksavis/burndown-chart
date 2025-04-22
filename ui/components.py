@@ -10,6 +10,7 @@ that are used across the application.
 #######################################################################
 from dash import html, dcc
 import dash_bootstrap_components as dbc
+import warnings
 from datetime import datetime, timedelta
 
 # Import from configuration
@@ -22,31 +23,26 @@ from configuration import COLOR_PALETTE
 
 def create_info_tooltip(id_suffix, help_text):
     """
-    Create an information tooltip component.
+    DEPRECATED: Use ui.tooltip_utils.create_info_tooltip instead.
+    This function will be removed in a future release.
+
+    Create an information tooltip component with an info icon.
 
     Args:
         id_suffix: Suffix for the component ID
         help_text: Text to display in the tooltip
 
     Returns:
-        Dash component with tooltip
+        Component with info icon and tooltip
     """
-    return html.Div(
-        [
-            html.I(
-                className="fas fa-info-circle text-info ml-2",
-                id=f"info-tooltip-{id_suffix}",
-                style={"cursor": "pointer", "marginLeft": "5px"},
-            ),
-            dbc.Tooltip(
-                help_text,
-                target=f"info-tooltip-{id_suffix}",
-                placement="right",
-                style={"maxWidth": "300px"},
-            ),
-        ],
-        style={"display": "inline-block"},
+    warnings.warn(
+        "This function is deprecated. Use ui.tooltip_utils.create_info_tooltip instead.",
+        DeprecationWarning,
+        stacklevel=2,
     )
+    from ui.tooltip_utils import create_info_tooltip as new_create_info_tooltip
+
+    return new_create_info_tooltip(id_suffix, help_text)
 
 
 #######################################################################
@@ -65,6 +61,9 @@ def create_enhanced_tooltip(
     delay={"show": 200, "hide": 100},
 ):
     """
+    DEPRECATED: Use ui.tooltip_utils.create_enhanced_tooltip instead.
+    This function will be removed in a future release.
+
     Create an enhanced tooltip component with consistent styling and animations.
 
     Args:
@@ -80,56 +79,30 @@ def create_enhanced_tooltip(
     Returns:
         Dash component with enhanced tooltip
     """
-    import dash_bootstrap_components as dbc
-    from dash import html
-
-    # Set up the tooltip target
-    tooltip_target = f"tooltip-{id_suffix}"
-
-    # Create the trigger element based on parameters
-    if target:
-        # If a target is specified, we just return the tooltip
-        trigger = None
-        tooltip_target = target
-    elif trigger_text:
-        # If trigger text is provided, create a span with the tooltip indicator class
-        trigger = html.Span(
-            [trigger_text],
-            id=tooltip_target,
-            className="tooltip-indicator",
-            style={"cursor": "help"},
-        )
-    else:
-        # Default to an info icon
-        icon = icon_class or "fas fa-info-circle"
-        trigger = html.I(
-            className=f"{icon} text-info",
-            id=tooltip_target,
-            style={"cursor": "help", "marginLeft": "5px", "fontSize": "1rem"},
-        )
-
-    # Create the tooltip with the enhanced styling
-    tooltip = dbc.Tooltip(
-        help_text,
-        target=tooltip_target,
-        placement=placement,
-        delay=delay,
-        className=f"tooltip-{variant}",
-        style={"maxWidth": "300px"},
+    warnings.warn(
+        "This function is deprecated. Use ui.tooltip_utils.create_enhanced_tooltip instead.",
+        DeprecationWarning,
+        stacklevel=2,
     )
+    from ui.tooltip_utils import create_enhanced_tooltip as new_create_enhanced_tooltip
 
-    # Return the combined component
-    if trigger:
-        return html.Div(
-            [trigger, tooltip],
-            style={"display": "inline-block"},
-        )
-    else:
-        return tooltip
+    return new_create_enhanced_tooltip(
+        id_suffix=id_suffix,
+        help_text=help_text,
+        target=target,
+        variant=variant,
+        placement=placement,
+        trigger_text=trigger_text,
+        icon_class=icon_class,
+        delay=delay,
+    )
 
 
 def create_form_help_tooltip(id_suffix, field_label, help_text, variant="info"):
     """
+    DEPRECATED: Use ui.tooltip_utils.create_form_help_tooltip instead.
+    This function will be removed in a future release.
+
     Create a form field label with integrated help tooltip.
 
     Args:
@@ -141,26 +114,28 @@ def create_form_help_tooltip(id_suffix, field_label, help_text, variant="info"):
     Returns:
         Dash component with label and tooltip
     """
-    from dash import html
+    warnings.warn(
+        "This function is deprecated. Use ui.tooltip_utils.create_form_help_tooltip instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    from ui.tooltip_utils import (
+        create_form_help_tooltip as new_create_form_help_tooltip,
+    )
 
-    return html.Label(
-        [
-            field_label,
-            create_enhanced_tooltip(
-                id_suffix=id_suffix,
-                help_text=help_text,
-                variant=variant,
-                placement="right",
-                delay={"show": 300, "hide": 100},
-            ),
-        ],
-        className="form-label d-flex align-items-center",
-        style={"gap": "4px"},
+    return new_create_form_help_tooltip(
+        id_suffix=id_suffix,
+        field_label=field_label,
+        help_text=help_text,
+        variant=variant,
     )
 
 
 def create_contextual_help(id_suffix, help_text, trigger_text=None, variant="primary"):
     """
+    DEPRECATED: Use ui.tooltip_utils.create_contextual_help instead.
+    This function will be removed in a future release.
+
     Create a contextual help text with underline indicator for inline help.
 
     Args:
@@ -172,25 +147,18 @@ def create_contextual_help(id_suffix, help_text, trigger_text=None, variant="pri
     Returns:
         Dash component with inline help
     """
-    from dash import html
+    warnings.warn(
+        "This function is deprecated. Use ui.tooltip_utils.create_contextual_help instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    from ui.tooltip_utils import create_contextual_help as new_create_contextual_help
 
-    trigger_text = trigger_text or "Learn more"
-
-    return html.Span(
-        [
-            html.Span(
-                trigger_text,
-                id=f"context-help-{id_suffix}",
-                className="text-primary",
-                style={"borderBottom": "1px dotted #0d6efd", "cursor": "help"},
-            ),
-            create_enhanced_tooltip(
-                id_suffix=id_suffix,
-                help_text=help_text,
-                target=f"context-help-{id_suffix}",
-                variant=variant,
-            ),
-        ],
+    return new_create_contextual_help(
+        id_suffix=id_suffix,
+        help_text=help_text,
+        trigger_text=trigger_text,
+        variant=variant,
     )
 
 

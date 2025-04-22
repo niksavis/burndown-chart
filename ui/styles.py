@@ -858,6 +858,9 @@ def create_icon_button(
 
 def get_tooltip_style(variant="default"):
     """
+    DEPRECATED: Use ui.tooltip_utils.get_tooltip_style instead.
+    This function will be removed in a future release.
+
     Get tooltip styling configuration for a specific variant.
 
     Args:
@@ -866,13 +869,23 @@ def get_tooltip_style(variant="default"):
     Returns:
         dict: Style configuration for the tooltip
     """
-    if variant in TOOLTIP_STYLES:
-        return TOOLTIP_STYLES[variant]
-    return TOOLTIP_STYLES["default"]
+    import warnings
+
+    warnings.warn(
+        "This function is deprecated. Use ui.tooltip_utils.get_tooltip_style instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    from ui.tooltip_utils import get_tooltip_style as new_get_tooltip_style
+
+    return new_get_tooltip_style(variant)
 
 
 def create_hoverlabel_config(variant="default"):
     """
+    DEPRECATED: Use ui.tooltip_utils.create_hoverlabel_config instead.
+    This function will be removed in a future release.
+
     Create a consistent hoverlabel configuration for Plotly charts.
 
     Args:
@@ -881,21 +894,25 @@ def create_hoverlabel_config(variant="default"):
     Returns:
         dict: hoverlabel configuration for Plotly
     """
-    style = get_tooltip_style(variant)
+    import warnings
 
-    return {
-        "bgcolor": style["bgcolor"],
-        "bordercolor": style["bordercolor"],
-        "font": {
-            "family": TYPOGRAPHY["font_family"],
-            "size": style["fontsize"],
-            "color": style["fontcolor"],
-        },
-    }
+    warnings.warn(
+        "This function is deprecated. Use ui.tooltip_utils.create_hoverlabel_config instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    from ui.tooltip_utils import (
+        create_hoverlabel_config as new_create_hoverlabel_config,
+    )
+
+    return new_create_hoverlabel_config(variant)
 
 
 def get_hover_mode(mode_key="standard"):
     """
+    DEPRECATED: Use ui.tooltip_utils.get_hover_mode instead.
+    This function will be removed in a future release.
+
     Get the appropriate hover mode setting for Plotly charts.
 
     Args:
@@ -904,13 +921,25 @@ def get_hover_mode(mode_key="standard"):
     Returns:
         str: Plotly hover mode setting
     """
-    return HOVER_MODES.get(mode_key, HOVER_MODES["standard"])
+    import warnings
+
+    warnings.warn(
+        "This function is deprecated. Use ui.tooltip_utils.get_hover_mode instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    from ui.tooltip_utils import get_hover_mode as new_get_hover_mode
+
+    return new_get_hover_mode(mode_key)
 
 
 def format_hover_template(
     title=None, fields=None, extra_info=None, include_extra_tag=True
 ):
     """
+    DEPRECATED: Use ui.tooltip_utils.format_hover_template instead.
+    This function will be removed in a future release.
+
     Create a consistent hover template string for Plotly charts.
 
     Args:
@@ -922,33 +951,30 @@ def format_hover_template(
     Returns:
         str: Formatted hover template string for Plotly
     """
-    template = []
+    import warnings
 
-    # Add title if provided
-    if title:
-        template.append(f"<b>{title}</b><br>")
+    warnings.warn(
+        "This function is deprecated. Use ui.tooltip_utils.format_hover_template instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    from ui.tooltip_utils import format_hover_template as new_format_hover_template
 
-    # Add fields if provided
-    if fields:
-        for label, value in fields.items():
-            template.append(f"{label}: {value}<br>")
-
-    # Join all template parts
-    hover_text = "".join(template)
-
-    # Add extra tag if requested
-    if include_extra_tag:
-        if extra_info:
-            return f"{hover_text}<extra>{extra_info}</extra>"
-        return f"{hover_text}<extra></extra>"
-
-    return hover_text
+    return new_format_hover_template(
+        title=title,
+        fields=fields,
+        extra_info=extra_info,
+        include_extra_tag=include_extra_tag,
+    )
 
 
 def create_chart_layout_config(
     title=None, hover_mode="unified", tooltip_variant="default"
 ):
     """
+    DEPRECATED: Use ui.tooltip_utils.create_chart_layout_config instead.
+    This function will be removed in a future release.
+
     Create a consistent layout configuration for Plotly charts.
 
     Args:
@@ -959,17 +985,20 @@ def create_chart_layout_config(
     Returns:
         dict: Layout configuration for Plotly charts
     """
-    layout = {
-        "hovermode": get_hover_mode(hover_mode),
-        "hoverlabel": create_hoverlabel_config(tooltip_variant),
-        "paper_bgcolor": "white",
-        "plot_bgcolor": "rgba(255, 255, 255, 0.9)",
-    }
+    import warnings
 
-    if title:
-        layout["title"] = title
+    warnings.warn(
+        "This function is deprecated. Use ui.tooltip_utils.create_chart_layout_config instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    from ui.tooltip_utils import (
+        create_chart_layout_config as new_create_chart_layout_config,
+    )
 
-    return layout
+    return new_create_chart_layout_config(
+        title=title, hover_mode=hover_mode, tooltip_variant=tooltip_variant
+    )
 
 
 #######################################################################
