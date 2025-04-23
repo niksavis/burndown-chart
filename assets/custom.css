@@ -1007,6 +1007,7 @@ input[type="radio"]:checked {
 /* Improve input range slider functionality */
 input[type=range] {
     -webkit-appearance: none;
+    appearance: none;
     height: 4px;
     border-radius: 2px;
     background: #e9ecef;
