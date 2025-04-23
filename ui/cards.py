@@ -19,9 +19,6 @@ import pandas as pd
 # Application imports
 from configuration import HELP_TEXTS, COLOR_PALETTE
 
-# Fix circular import issue - import directly from components instead of ui
-from ui.components import create_info_tooltip
-
 # Import styling functions from utility modules
 from ui.styles import (
     NEUTRAL_COLORS,
@@ -1746,10 +1743,6 @@ def create_items_forecast_info_card(statistics_df=None, pert_data=None):
 
     # Calculate weekly metrics if statistics_df is provided
     avg_weekly_items = 0
-    pert_time_items = None
-    items_completion_str = "Unknown"
-    items_days = "--"
-    items_weeks = "--"
 
     # Extract metrics from statistics if available
     if statistics_df is not None and not statistics_df.empty:
@@ -1773,21 +1766,6 @@ def create_items_forecast_info_card(statistics_df=None, pert_data=None):
             avg_weekly_items = weekly_data["no_items"].mean()
         except Exception:
             avg_weekly_items = 0
-
-    # Extract PERT data if available
-    if pert_data and isinstance(pert_data, dict):
-        pert_time_items = pert_data.get("pert_time_items")
-        items_completion_enhanced = pert_data.get("items_completion_enhanced")
-
-        if items_completion_enhanced is not None:
-            items_completion_str_with_details = items_completion_enhanced
-        elif pert_time_items is not None:
-            # Format values if they exist but we don't have pre-formatted strings
-            current_date = datetime.now()
-            items_completion_date = current_date + timedelta(days=pert_time_items)
-            items_completion_str = items_completion_date.strftime("%Y-%m-%d")
-            items_days = f"{int(pert_time_items)}"
-            items_weeks = f"{round(pert_time_items / 7, 1)}"
 
     # Generate a unique ID for this collapse component
     collapse_id = "items-forecast-info-collapse"
@@ -1963,10 +1941,6 @@ def create_points_forecast_info_card(statistics_df=None, pert_data=None):
 
     # Calculate weekly metrics if statistics_df is provided
     avg_weekly_points = 0
-    pert_time_points = None
-    points_completion_str = "Unknown"
-    points_days = "--"
-    points_weeks = "--"
 
     # Extract metrics from statistics if available
     if statistics_df is not None and not statistics_df.empty:
@@ -1990,21 +1964,6 @@ def create_points_forecast_info_card(statistics_df=None, pert_data=None):
             avg_weekly_points = weekly_data["no_points"].mean()
         except Exception:
             avg_weekly_points = 0
-
-    # Extract PERT data if available
-    if pert_data and isinstance(pert_data, dict):
-        pert_time_points = pert_data.get("pert_time_points")
-        points_completion_enhanced = pert_data.get("points_completion_enhanced")
-
-        if points_completion_enhanced is not None:
-            points_completion_str_with_details = points_completion_enhanced
-        elif pert_time_points is not None:
-            # Format values if they exist but we don't have pre-formatted strings
-            current_date = datetime.now()
-            points_completion_date = current_date + timedelta(days=pert_time_points)
-            points_completion_str = points_completion_date.strftime("%Y-%m-%d")
-            points_days = f"{int(pert_time_points)}"
-            points_weeks = f"{round(pert_time_points / 7, 1)}"
 
     # Generate a unique ID for this collapse component
     collapse_id = "points-forecast-info-collapse"
