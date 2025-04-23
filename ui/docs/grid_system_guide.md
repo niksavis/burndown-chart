@@ -176,7 +176,7 @@ Some parameters have been renamed or reorganized:
 
 Run the test script (`ui/test_grid.py`) to see examples of the new grid system in action:
 
-```
+```sh
 python ui/test_grid.py
 ```
 

@@ -268,44 +268,12 @@ def create_pert_info_table(
     avg_points_completion_str = avg_points_completion_date.strftime("%Y-%m-%d")
     med_points_completion_str = med_points_completion_date.strftime("%Y-%m-%d")
 
-    # Enhanced formatted strings with days and weeks
-    items_completion_enhanced = f"{items_completion_str} ({pert_time_items:.1f} days, {pert_time_items / 7:.1f} weeks)"
-    points_completion_enhanced = f"{points_completion_str} ({pert_time_points:.1f} days, {pert_time_points / 7:.1f} weeks)"
-
     # Enhanced formatted strings for average and median
     avg_items_days = weeks_avg_items * 7
     med_items_days = weeks_med_items * 7
     avg_points_days = weeks_avg_points * 7
     med_points_days = weeks_med_points * 7
 
-    avg_items_completion_enhanced = (
-        f"{avg_items_completion_str} ({avg_items_days:.1f} days, {weeks_avg_items:.1f} weeks)"
-        if weeks_avg_items != float("inf")
-        else "∞"
-    )
-    med_items_completion_enhanced = (
-        f"{med_items_completion_str} ({med_items_days:.1f} days, {weeks_med_items:.1f} weeks)"
-        if weeks_med_items != float("inf")
-        else "∞"
-    )
-    avg_points_completion_enhanced = (
-        f"{avg_points_completion_str} ({avg_points_days:.1f} days, {weeks_avg_points:.1f} weeks)"
-        if weeks_avg_points != float("inf")
-        else "∞"
-    )
-    med_points_completion_enhanced = (
-        f"{med_points_completion_str} ({med_points_days:.1f} days, {weeks_med_points:.1f} weeks)"
-        if weeks_med_points != float("inf")
-        else "∞"
-    )
-
-    # Define trend indicators (simplified version from performance trend)
-    # These would normally come from calculate_performance_trend but we'll simulate it here
-    # In a real implementation, you would pass trend data from the parent component
-
-    # Simulate trend data for demonstration - these would normally be calculated and passed in
-    # Positive values indicate an upward trend compared to previous period
-    # Negative values indicate a downward trend compared to previous period
     avg_items_trend = 10  # sample value: 10% increase from previous period
     med_items_trend = -5  # sample value: 5% decrease from previous period
     avg_points_trend = 0  # sample value: no change
@@ -1993,7 +1961,6 @@ def create_loading_indicator(
         stacklevel=2,
     )
 
-
     # Map the old parameters to the new function calls
     if type == "skeleton":
         return create_skeleton_loader(
@@ -2045,7 +2012,6 @@ def create_loading_wrapper(
         stacklevel=2,
     )
 
-
     # Map the old parameters to the new function calls
     if is_loading:
         if type == "skeleton":
@@ -2084,7 +2050,6 @@ def create_async_content(id, loading_state_id, content_type="chart"):
         stacklevel=2,
     )
 
-
     return new_create_async_content(id, loading_state_id, content_type)
 
 
@@ -2110,7 +2075,6 @@ def create_lazy_loading_tabs(
         DeprecationWarning,
         stacklevel=2,
     )
-
 
     return new_create_lazy_loading_tabs(tabs_data, tab_id_prefix, content_id_prefix)
 
@@ -2143,7 +2107,6 @@ def create_data_loading_section(
         DeprecationWarning,
         stacklevel=2,
     )
-
 
     return new_create_data_loading_section(
         id=id,

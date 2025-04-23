@@ -688,69 +688,6 @@ def create_form_section(title, components, help_text=None):
     )
 
 
-def create_form_row(form_groups, columns=None):
-    """
-    Create a form row with form groups in columns.
-
-    Args:
-        form_groups: List of form group components
-        columns: List of column widths for each form group
-
-    Returns:
-        A row with form groups in columns
-    """
-    if columns is None:
-        # Distribute columns evenly
-        col_width = 12 // len(form_groups)
-        columns = [col_width] * len(form_groups)
-
-    cols = []
-    for i, form_group in enumerate(form_groups):
-        cols.append(dbc.Col(form_group, width=12, md=columns[i]))
-
-    # Use our vertical rhythm system for form spacing
-    margin_bottom = get_vertical_rhythm("form_element")
-
-    return dbc.Row(cols, style={"marginBottom": margin_bottom})
-
-
-def create_form_section(title, components, help_text=None):
-    """
-    Create a form section with a title and components.
-
-    Args:
-        title: Section title
-        components: List of components to include in the section
-        help_text: Optional help text to display below the title
-
-    Returns:
-        A section div with title and components
-    """
-    section_components = [
-        html.H5(
-            title,
-            className="border-bottom pb-2",
-            style={"marginBottom": get_vertical_rhythm("heading.h5")},
-        ),
-    ]
-
-    if help_text:
-        section_components.append(
-            html.P(
-                help_text,
-                className="text-muted",
-                style={"marginBottom": get_vertical_rhythm("paragraph")},
-            )
-        )
-
-    section_components.extend(components)
-
-    # Use section margin from our vertical rhythm system
-    margin_bottom = get_vertical_rhythm("section")
-
-    return html.Div(section_components, style={"marginBottom": margin_bottom})
-
-
 #######################################################################
 # CONTENT LAYOUT TEMPLATES
 #######################################################################

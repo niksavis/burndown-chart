@@ -502,43 +502,6 @@ def create_error_boundary(
     Returns:
         html.Div: An error boundary component
     """
-    # The actual error boundary functionality would be implemented
-    # with React ErrorBoundary, but this is a styling placeholder
-
-    # Create the fallback UI that would be shown on error
-    fallback_ui = html.Div(
-        [
-            html.Div(
-                create_icon("danger", size="xl", color="danger"),
-                className="mb-3",
-                style={"fontSize": "3rem"},
-            ),
-            html.H5(
-                fallback_title or "An error occurred",
-                className="mb-2",
-                style=create_heading_style(5, color="danger"),
-            ),
-            html.P(
-                fallback_message,
-                className="mb-3",
-            ),
-            html.Div(
-                fallback_action
-                or create_error_recovery_button(
-                    id=f"{id}-reset" if id else "error-boundary-reset",
-                    text="Reset",
-                ),
-                className="mt-2",
-            ),
-        ],
-        style=create_error_style("danger", background=True),
-        className="p-4 text-center",
-    )
-
-    # In a real implementation, we would use a custom React component
-    # that catches errors and switches between children and fallback_ui
-    # For now, we'll just show the children since we can't catch errors
-    # In a production environment, you'd use fallback_ui when an error is detected
 
     return html.Div(
         children,

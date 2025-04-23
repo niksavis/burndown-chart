@@ -966,9 +966,6 @@ def create_project_status_card(statistics_df, settings):
             int((completed_points / total_points) * 100) if total_points > 0 else 0
         )
 
-        # Check if percentages are similar (within 2% of each other)
-        similar_percentages = abs(items_percentage - points_percentage) <= 2
-
         # Calculate average weekly velocity and coefficient of variation (last 10 weeks)
         # Create a copy of the DataFrame to avoid SettingWithCopyWarning
         recent_df = statistics_df.copy() if not statistics_df.empty else pd.DataFrame()
@@ -1324,18 +1321,6 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
         if not statistics_df.empty and "date" in statistics_df.columns:
             statistics_df["date"] = pd.to_datetime(statistics_df["date"])
 
-        # Extract key metrics from settings (these represent remaining work)
-        remaining_items = settings.get("total_items", 0)
-        remaining_points = settings.get("total_points", 0)
-
-        # Calculate completed items and points from statistics
-        completed_items = (
-            int(statistics_df["no_items"].sum()) if not statistics_df.empty else 0
-        )
-        completed_points = (
-            int(statistics_df["no_points"].sum()) if not statistics_df.empty else 0
-        )
-
         # Calculate values needed for the dashboard
         if not statistics_df.empty:
             # Add week and year columns
@@ -1352,13 +1337,9 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
             # Calculate metrics needed for PERT table
             avg_weekly_items = weekly_data["no_items"].mean()
             avg_weekly_points = weekly_data["no_points"].mean()
-            med_weekly_items = weekly_data["no_items"].median()
-            med_weekly_points = weekly_data["no_points"].median()
         else:
             avg_weekly_items = 0
             avg_weekly_points = 0
-            med_weekly_items = 0
-            med_weekly_points = 0
 
         # Format deadline string for display
         deadline_date = settings.get("deadline")
@@ -1738,34 +1719,17 @@ def create_items_forecast_info_card(statistics_df=None, pert_data=None):
     Returns:
         Dash Card component with items forecast explanation
     """
-    from datetime import datetime, timedelta
-    import dash_bootstrap_components as dbc
-
-    # Calculate weekly metrics if statistics_df is provided
-    avg_weekly_items = 0
 
     # Extract metrics from statistics if available
     if statistics_df is not None and not statistics_df.empty:
-        try:
-            # Convert to datetime to ensure proper week grouping
-            recent_df = statistics_df.copy()
-            recent_df["date"] = pd.to_datetime(recent_df["date"])
-            recent_df["week"] = recent_df["date"].dt.isocalendar().week
-            recent_df["year"] = recent_df["date"].dt.isocalendar().year
+        # Convert to datetime to ensure proper week grouping
+        recent_df = statistics_df.copy()
+        recent_df["date"] = pd.to_datetime(recent_df["date"])
+        recent_df["week"] = recent_df["date"].dt.isocalendar().week
+        recent_df["year"] = recent_df["date"].dt.isocalendar().year
 
-            # Use tail(10) to focus on recent data
-            recent_df = recent_df.tail(10)
-
-            weekly_data = (
-                recent_df.groupby(["year", "week"])
-                .agg({"no_items": "sum"})
-                .reset_index()
-            )
-
-            # Calculate metrics
-            avg_weekly_items = weekly_data["no_items"].mean()
-        except Exception:
-            avg_weekly_items = 0
+        # Use tail(10) to focus on recent data
+        recent_df = recent_df.tail(10)
 
     # Generate a unique ID for this collapse component
     collapse_id = "items-forecast-info-collapse"
@@ -1936,34 +1900,17 @@ def create_points_forecast_info_card(statistics_df=None, pert_data=None):
     Returns:
         Dash Card component with points forecast explanation
     """
-    from datetime import datetime, timedelta
-    import dash_bootstrap_components as dbc
-
-    # Calculate weekly metrics if statistics_df is provided
-    avg_weekly_points = 0
 
     # Extract metrics from statistics if available
     if statistics_df is not None and not statistics_df.empty:
-        try:
-            # Convert to datetime to ensure proper week grouping
-            recent_df = statistics_df.copy()
-            recent_df["date"] = pd.to_datetime(recent_df["date"])
-            recent_df["week"] = recent_df["date"].dt.isocalendar().week
-            recent_df["year"] = recent_df["date"].dt.isocalendar().year
+        # Convert to datetime to ensure proper week grouping
+        recent_df = statistics_df.copy()
+        recent_df["date"] = pd.to_datetime(recent_df["date"])
+        recent_df["week"] = recent_df["date"].dt.isocalendar().week
+        recent_df["year"] = recent_df["date"].dt.isocalendar().year
 
-            # Use tail(10) to focus on recent data
-            recent_df = recent_df.tail(10)
-
-            weekly_data = (
-                recent_df.groupby(["year", "week"])
-                .agg({"no_points": "sum"})
-                .reset_index()
-            )
-
-            # Calculate metrics
-            avg_weekly_points = weekly_data["no_points"].mean()
-        except Exception:
-            avg_weekly_points = 0
+        # Use tail(10) to focus on recent data
+        recent_df = recent_df.tail(10)
 
     # Generate a unique ID for this collapse component
     collapse_id = "points-forecast-info-collapse"

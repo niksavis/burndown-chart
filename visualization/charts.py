@@ -393,7 +393,6 @@ def add_metrics_annotations(fig, metrics_data):
     # Define styles for metrics display
     base_y_position = -0.24
     font_color = "#505050"
-    title_font_size = 16
     value_font_size = 14
 
     # Create background shape for metrics area
