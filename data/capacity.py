@@ -12,7 +12,6 @@ and forecasting team workload against capacity.
 from datetime import datetime, timedelta
 
 # Third-party library imports
-import numpy as np
 import pandas as pd
 
 #######################################################################

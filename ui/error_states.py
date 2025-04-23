@@ -16,7 +16,7 @@ import uuid
 
 # Third-party library imports
 import dash_bootstrap_components as dbc
-from dash import html, dcc
+from dash import html
 
 # Application imports
 from ui.button_utils import create_button
@@ -505,7 +505,7 @@ def create_error_boundary(
     # The actual error boundary functionality would be implemented
     # with React ErrorBoundary, but this is a styling placeholder
 
-    # Create the fallback UI
+    # Create the fallback UI that would be shown on error
     fallback_ui = html.Div(
         [
             html.Div(
@@ -538,11 +538,13 @@ def create_error_boundary(
     # In a real implementation, we would use a custom React component
     # that catches errors and switches between children and fallback_ui
     # For now, we'll just show the children since we can't catch errors
+    # In a production environment, you'd use fallback_ui when an error is detected
 
     return html.Div(
         children,
         id=id,
         className=f"error-boundary {className}",
+        # Actual implementation would include: data-fallback=fallback_ui
     )
 
 
@@ -735,7 +737,7 @@ def format_exception(exception):
                 type(exception), exception, exception.__traceback__
             )
         )
-    except:
+    except Exception:
         return str(exception)
 
 

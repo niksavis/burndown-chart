@@ -16,8 +16,7 @@ from dash import html
 import dash_bootstrap_components as dbc
 
 # Application imports
-from ui.icon_utils import create_icon
-from ui.styles import get_color, TYPOGRAPHY
+from ui.styles import TYPOGRAPHY
 
 #######################################################################
 # CONSTANTS

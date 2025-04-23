@@ -8,16 +8,10 @@ This module contains example error states and demos for the application.
 # IMPORTS
 #######################################################################
 # Standard library imports
-import os
-import time
-import traceback
-from datetime import datetime
 
 # Third-party library imports
 import dash_bootstrap_components as dbc
-import numpy as np
-import pandas as pd
-from dash import Input, Output, State, callback, dcc, html
+from dash import html
 
 # Application imports
 from ui.button_utils import create_button
@@ -27,7 +21,6 @@ from ui.error_states import (
     create_error_boundary,
     create_error_recovery_button,
     create_form_field_with_validation,
-    create_validation_message,
 )
 from ui.styles import create_heading_style
 

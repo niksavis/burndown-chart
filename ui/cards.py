@@ -13,15 +13,14 @@ from datetime import datetime, timedelta
 
 # Third-party library imports
 import dash_bootstrap_components as dbc
-from dash import html, dcc, dash_table
+from dash import html, dcc
 import pandas as pd
 
 # Application imports
 from configuration import HELP_TEXTS, COLOR_PALETTE
-from visualization import empty_figure
 
 # Fix circular import issue - import directly from components instead of ui
-from ui.components import create_info_tooltip, create_pert_info_table
+from ui.components import create_info_tooltip
 
 # Import styling functions from utility modules
 from ui.styles import (
@@ -29,15 +28,12 @@ from ui.styles import (
     create_standardized_card,
     create_card_header_with_tooltip,
     create_rhythm_text,
-    apply_vertical_rhythm,
     create_datepicker_style,
     create_form_feedback_style,
     create_input_style,
 )
 from ui.button_utils import create_button
-from ui.icon_utils import create_icon, create_icon_text
 from ui.tooltip_utils import create_info_tooltip
-from ui.loading_utils import create_spinner
 from ui.grid_templates import create_aligned_datatable, create_data_table
 
 #######################################################################
@@ -759,7 +755,7 @@ def create_statistics_data_card(current_statistics):
         Dash Card component for statistics data
     """
     import pandas as pd
-    from dash import dash_table, html
+    from dash import html
     import dash_bootstrap_components as dbc
 
     # Create the card header with tooltip

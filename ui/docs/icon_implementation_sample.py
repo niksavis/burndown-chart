@@ -13,7 +13,6 @@ from ui.icon_utils import (
     create_icon,
     create_icon_text,
     create_icon_stack,
-    get_icon_class,
 )
 
 

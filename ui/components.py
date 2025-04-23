@@ -18,7 +18,6 @@ import dash_bootstrap_components as dbc
 
 # Application imports
 from configuration import COLOR_PALETTE
-from ui.styles import get_color, SPACING, TYPOGRAPHY
 from ui.tooltip_utils import (
     create_info_tooltip as new_create_info_tooltip,
     create_enhanced_tooltip as new_create_enhanced_tooltip,
@@ -61,7 +60,6 @@ def create_info_tooltip(id_suffix, help_text):
         DeprecationWarning,
         stacklevel=2,
     )
-    from ui.tooltip_utils import create_info_tooltip as new_create_info_tooltip
 
     return new_create_info_tooltip(id_suffix, help_text)
 
@@ -105,7 +103,6 @@ def create_enhanced_tooltip(
         DeprecationWarning,
         stacklevel=2,
     )
-    from ui.tooltip_utils import create_enhanced_tooltip as new_create_enhanced_tooltip
 
     return new_create_enhanced_tooltip(
         id_suffix=id_suffix,
@@ -140,9 +137,6 @@ def create_form_help_tooltip(id_suffix, field_label, help_text, variant="info"):
         DeprecationWarning,
         stacklevel=2,
     )
-    from ui.tooltip_utils import (
-        create_form_help_tooltip as new_create_form_help_tooltip,
-    )
 
     return new_create_form_help_tooltip(
         id_suffix=id_suffix,
@@ -173,7 +167,6 @@ def create_contextual_help(id_suffix, help_text, trigger_text=None, variant="pri
         DeprecationWarning,
         stacklevel=2,
     )
-    from ui.tooltip_utils import create_contextual_help as new_create_contextual_help
 
     return new_create_contextual_help(
         id_suffix=id_suffix,
@@ -1587,7 +1580,6 @@ def create_compact_trend_indicator(trend_data, metric_name="Items"):
     Returns:
         Dash component for displaying trend information in a compact format
     """
-    import dash_bootstrap_components as dbc
     from dash import html
 
     # Extract values from trend data or use defaults
@@ -1954,7 +1946,6 @@ def create_button(
         DeprecationWarning,
         stacklevel=2,
     )
-    from ui.button_utils import create_button as new_create_button
 
     return new_create_button(
         text=text,
@@ -2002,11 +1993,6 @@ def create_loading_indicator(
         stacklevel=2,
     )
 
-    from ui.loading_utils import (
-        create_spinner,
-        create_growing_spinner,
-        create_skeleton_loader,
-    )
 
     # Map the old parameters to the new function calls
     if type == "skeleton":
@@ -2059,7 +2045,6 @@ def create_loading_wrapper(
         stacklevel=2,
     )
 
-    from ui.loading_utils import create_loading_overlay, create_content_placeholder
 
     # Map the old parameters to the new function calls
     if is_loading:
@@ -2099,7 +2084,6 @@ def create_async_content(id, loading_state_id, content_type="chart"):
         stacklevel=2,
     )
 
-    from ui.loading_utils import create_async_content as new_create_async_content
 
     return new_create_async_content(id, loading_state_id, content_type)
 
@@ -2127,9 +2111,6 @@ def create_lazy_loading_tabs(
         stacklevel=2,
     )
 
-    from ui.loading_utils import (
-        create_lazy_loading_tabs as new_create_lazy_loading_tabs,
-    )
 
     return new_create_lazy_loading_tabs(tabs_data, tab_id_prefix, content_id_prefix)
 
@@ -2163,9 +2144,6 @@ def create_data_loading_section(
         stacklevel=2,
     )
 
-    from ui.loading_utils import (
-        create_data_loading_section as new_create_data_loading_section,
-    )
 
     return new_create_data_loading_section(
         id=id,

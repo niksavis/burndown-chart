@@ -25,7 +25,6 @@ from configuration import (
     DEFAULT_PERT_FACTOR,
     DEFAULT_TOTAL_ITEMS,
     DEFAULT_TOTAL_POINTS,
-    SAMPLE_DATA,
     SETTINGS_FILE,
     STATISTICS_FILE,
     logger,

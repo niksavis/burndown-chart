@@ -9,9 +9,6 @@ and serves as the main entry point for running the server.
 # IMPORTS
 #######################################################################
 # Standard library imports
-import os
-import sys
-from pathlib import Path
 
 # Third-party library imports
 import dash

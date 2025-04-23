@@ -2039,7 +2039,7 @@ def create_chart_with_loading(
     Returns:
         html.Div: Chart component with loading states
     """
-    from dash import html, dcc
+    from dash import dcc
     from ui.components import create_loading_wrapper
 
     # Determine if we're in a loading state

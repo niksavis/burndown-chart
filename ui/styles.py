@@ -728,9 +728,7 @@ def create_input_style(
         base_style.update(
             {
                 "borderColor": SEMANTIC_COLORS["danger"],
-                "boxShadow": f"0 0 0 0.2rem rgba({int(SEMANTIC_COLORS['danger'].split(',')[0].replace('rgb(', ''))}, "
-                + f"{int(SEMANTIC_COLORS['danger'].split(',')[1])}, "
-                + f"{int(SEMANTIC_COLORS['danger'].split(',')[2].replace(')', ''))}, 0.25)",
+                "boxShadow": "0 0 0 0.2rem rgba(220, 53, 69, 0.25)",
             }
         )
         return base_style
@@ -740,19 +738,19 @@ def create_input_style(
         "default": {},
         "success": {
             "borderColor": SEMANTIC_COLORS["success"],
-            "boxShadow": f"0 0 0 0.2rem rgba(40, 167, 69, 0.25)",
+            "boxShadow": "0 0 0 0.2rem rgba(40, 167, 69, 0.25)",
         },
         "warning": {
             "borderColor": SEMANTIC_COLORS["warning"],
-            "boxShadow": f"0 0 0 0.2rem rgba(255, 193, 7, 0.25)",
+            "boxShadow": "0 0 0 0.2rem rgba(255, 193, 7, 0.25)",
         },
         "danger": {
             "borderColor": SEMANTIC_COLORS["danger"],
-            "boxShadow": f"0 0 0 0.2rem rgba(220, 53, 69, 0.25)",
+            "boxShadow": "0 0 0 0.2rem rgba(220, 53, 69, 0.25)",
         },
         "info": {
             "borderColor": SEMANTIC_COLORS["info"],
-            "boxShadow": f"0 0 0 0.2rem rgba(13, 202, 240, 0.25)",
+            "boxShadow": "0 0 0 0.2rem rgba(13, 202, 240, 0.25)",
         },
     }
 
@@ -1238,7 +1236,6 @@ def apply_content_spacing(layout_elements):
     Returns:
         list: Elements with proper spacing applied
     """
-    from dash import html
 
     if not layout_elements or not isinstance(layout_elements, list):
         return layout_elements
@@ -1361,3 +1358,23 @@ def get_loading_style(style_key="default", size_key="md"):
 # - create_error_message_style
 # - create_form_error_style
 # - create_empty_state_style
+
+# Apply form validation colors
+FORM_VALIDATION_STATES = {
+    "valid": {
+        "borderColor": SEMANTIC_COLORS["success"],
+        "boxShadow": "0 0 0 0.2rem rgba(40, 167, 69, 0.25)",
+    },
+    "warning": {
+        "borderColor": SEMANTIC_COLORS["warning"],
+        "boxShadow": "0 0 0 0.2rem rgba(255, 193, 7, 0.25)",
+    },
+    "danger": {
+        "borderColor": SEMANTIC_COLORS["danger"],
+        "boxShadow": "0 0 0 0.2rem rgba(220, 53, 69, 0.25)",
+    },
+    "info": {
+        "borderColor": SEMANTIC_COLORS["info"],
+        "boxShadow": "0 0 0 0.2rem rgba(13, 202, 240, 0.25)",
+    },
+}

@@ -18,16 +18,7 @@ import dash_bootstrap_components as dbc
 
 # Application imports
 from ui.styles import (
-    SPACING,
-    NEUTRAL_COLORS,
-    BREAKPOINTS,
-    MEDIA_QUERIES,
-    COMPONENT_SPACING,
-    VERTICAL_RHYTHM,
     get_vertical_rhythm,
-    apply_vertical_rhythm,
-    get_breakpoint_value,
-    create_responsive_style,
 )
 
 #######################################################################

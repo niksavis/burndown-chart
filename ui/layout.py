@@ -24,19 +24,13 @@ from data import (
     load_statistics,
 )
 from ui.cards import (
-    create_forecast_graph_card,
-    create_forecast_info_card,
     create_input_parameters_card,
-    create_pert_analysis_card,
-    create_project_status_card,
     create_project_summary_card,
     create_statistics_data_card,
 )
 from ui.grid_templates import (
-    create_content_section,
     create_full_width_layout,
     create_two_cards_layout,
-    create_two_column_layout,
 )
 from ui.tabs import create_tabs
 

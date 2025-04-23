@@ -9,12 +9,12 @@ This module handles callbacks related to visualization updates and interactions.
 #######################################################################
 # Standard library imports
 import logging
+import time
 from datetime import datetime
 
 # Third-party library imports
 import dash_bootstrap_components as dbc
 import pandas as pd
-import plotly.graph_objects as go
 from dash import Input, Output, State, callback, callback_context, dcc, html
 from dash.exceptions import PreventUpdate
 
@@ -28,20 +28,23 @@ from data import (
 )
 from ui import (
     create_compact_trend_indicator,
-    create_export_buttons,
     create_pert_info_table,
-    create_project_summary_card,
     create_tab_content,
-    create_trend_indicator,
+)
+from ui.loading_utils import (
+    create_spinner,
+    create_skeleton_loader,
+    create_content_placeholder,
 )
 from visualization import (
     create_forecast_plot,
     create_weekly_items_chart,
-    create_weekly_items_forecast_chart,
     create_weekly_points_chart,
-    create_weekly_points_forecast_chart,
-    empty_figure,
 )
+from visualization.charts import create_chart_with_loading
+
+# Setup logging
+logger = logging.getLogger("burndown_chart")
 
 #######################################################################
 # CALLBACKS
@@ -1092,14 +1095,7 @@ def register_loading_callbacks(app):
         app: Dash application instance
     """
     from dash import Input, Output, State, callback_context
-    from ui.styles import (
-        create_spinner,
-        create_skeleton_loader,
-        create_content_placeholder,
-    )
-    import time
     from dash import html
-    import dash_bootstrap_components as dbc
 
     @app.callback(
         Output("forecast-chart-container", "children"),
@@ -1131,12 +1127,10 @@ def register_loading_callbacks(app):
             )
 
         # Process the data to create the forecast chart (simplified for example)
-        from visualization.charts import create_chart_with_loading
 
         try:
             # In a real implementation, we would pass this to create_forecast_plot
             from visualization.charts import create_forecast_plot
-            from dash import dcc
             import pandas as pd
 
             # This would normally be properly processed data
@@ -1376,24 +1370,6 @@ def register_loading_callbacks(app):
         return create_content_placeholder(
             type="table", text="Upload a CSV or Excel file to view data", height="200px"
         )
-
-
-from dash import Input, Output, State, callback, html, dcc, ctx
-import dash_bootstrap_components as dbc
-import pandas as pd
-from dash.exceptions import PreventUpdate
-import logging
-
-# Import local modules
-from visualization.charts import (
-    create_weekly_items_chart,
-    create_weekly_points_chart,
-    create_weekly_items_forecast_chart,
-    create_weekly_points_forecast_chart,
-)
-
-# Setup logging
-logger = logging.getLogger("burndown_chart")
 
 
 # New callbacks for collapsible forecast info cards

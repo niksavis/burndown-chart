@@ -13,7 +13,7 @@ when content is loading, processing, or waiting for data.
 import warnings
 
 # Third-party library imports
-from dash import html, dcc
+from dash import html
 import dash_bootstrap_components as dbc
 
 # Application imports
@@ -236,53 +236,77 @@ def create_spinner(
 
 
 def create_growing_spinner(
-    style_key="primary", size_key="md", text=None, count=3, className="", id=None
+    style_key="primary",
+    size_key="md",
+    grow_size=None,
+    count=3,
+    variant="circle",
+    className="",
 ):
     """
-    Create a growing spinner with multiple dots for loading indication.
+    Create multiple spinner components with a "growing" effect.
 
     Args:
-        style_key (str): Color style key
-        size_key (str): Size key (sm, md, lg)
-        text (str): Optional text to display with spinners
-        count (int): Number of spinner dots to show
+        style_key (str): Style/color variant
+        size_key (str): Size of the spinners (sm, md, lg)
+        grow_size (str): Size of the growing effect (overrides size_key)
+        count (int): Number of spinners to show
+        variant (str): Spinner variant (circle, dot)
         className (str): Additional CSS classes
-        id (str): Component ID
 
     Returns:
         html.Div: A component with multiple growing spinners
     """
-    base_style = get_loading_style(style_key, size_key)
+    # Size mapping is handled by Bootstrap's grow classes
+    # We don't need base_style here since we're using Bootstrap's classes directly
 
     # Size mapping for growing spinners
-    size_map = {
-        "sm": "spinner-grow-sm",
-        "md": "",
-        "lg": "",  # Apply custom styling for large
+    size_mapping = {
+        "xs": {
+            "className": "spinner-grow spinner-grow-sm",
+            "style": {"width": "0.5rem", "height": "0.5rem"},
+        },
+        "sm": {"className": "spinner-grow spinner-grow-sm", "style": {}},
+        "md": {"className": "spinner-grow", "style": {}},
+        "lg": {
+            "className": "spinner-grow",
+            "style": {"width": "2rem", "height": "2rem"},
+        },
+        "xl": {
+            "className": "spinner-grow",
+            "style": {"width": "3rem", "height": "3rem"},
+        },
     }
 
-    spinner_class = f"spinner-grow text-{style_key} mx-1 {size_map[size_key]}"
+    # Use provided size or default based on size_key
+    spinner_props = size_mapping.get(size_key, size_mapping["md"])
+    spinner_class = spinner_props["className"]
+    spinner_style = spinner_props["style"].copy()
 
-    custom_style = None
-    if size_key == "lg":
-        custom_style = {"width": "1.5rem", "height": "1.5rem"}
+    # Override style with grow_size if provided
+    if grow_size:
+        spinner_style.update({"width": grow_size, "height": grow_size})
 
-    spinners = [
-        html.Div(className=spinner_class, style=custom_style) for _ in range(count)
-    ]
+    # Create multiple spinners with staggered animation
+    spinners = []
+    for i in range(count):
+        # Add animation delay based on index
+        delay = f"{i * 0.15}s"
+        spinner_style_with_delay = {**spinner_style, "animationDelay": delay}
 
-    if text:
-        return html.Div(
-            spinners + [html.Div(text, className="text-center mt-2 text-muted small")],
-            className=f"d-flex flex-column align-items-center justify-content-center py-3 {className}",
-            id=id,
+        spinners.append(
+            html.Div(
+                className=f"{spinner_class} text-{style_key}",
+                style=spinner_style_with_delay,
+                role="status",
+            )
         )
-    else:
-        return html.Div(
-            spinners,
-            className=f"d-flex justify-content-center align-items-center py-3 {className}",
-            id=id,
-        )
+
+    # Return container with spinners
+    return html.Div(
+        spinners,
+        className=f"d-flex align-items-center justify-content-center gap-2 {className}",
+    )
 
 
 def create_bootstrap_spinner(

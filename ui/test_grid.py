@@ -12,7 +12,7 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 # Import required modules
-from dash import Dash, html, dcc
+from dash import Dash, html
 import dash_bootstrap_components as dbc
 
 # Import the new grid utilities
@@ -20,13 +20,8 @@ from ui.grid_utils import (
     # Low-level functions
     create_responsive_row,
     create_responsive_column,
-    apply_grid_rhythm,
-    # Mid-level functions
-    create_multi_column_layout,
     create_two_column_layout,
     create_three_column_layout,
-    create_stacked_to_horizontal,
-    # High-level pattern functions
     create_content_sidebar_layout,
     create_dashboard_layout,
     # Specialized grid functions
@@ -35,7 +30,6 @@ from ui.grid_utils import (
     create_responsive_table_wrapper,
     create_form_section,
     create_breakpoint_visibility_examples,
-    create_mobile_container,
 )
 
 app = Dash(

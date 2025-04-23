@@ -21,10 +21,7 @@ from ui.styles import (
     SPACING,
     NEUTRAL_COLORS,
     COMPONENT_SPACING,
-    VERTICAL_RHYTHM,
     get_vertical_rhythm,
-    create_vertical_spacer,
-    apply_vertical_rhythm,
 )
 
 # Import new grid utilities

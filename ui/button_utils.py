@@ -16,8 +16,7 @@ import dash_bootstrap_components as dbc
 from dash import html
 
 # Application imports
-from ui.icon_utils import create_icon
-from ui.styles import get_color, SPACING, TYPOGRAPHY
+from ui.styles import TYPOGRAPHY
 
 #######################################################################
 # BUTTON STYLING FUNCTIONS

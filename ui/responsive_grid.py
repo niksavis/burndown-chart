@@ -17,14 +17,6 @@ from dash import html
 import dash_bootstrap_components as dbc
 
 # Import from styles
-from ui.styles import (
-    BREAKPOINTS,
-    MEDIA_QUERIES,
-    SPACING,
-    get_breakpoint_value,
-    create_responsive_container,
-    create_responsive_style,
-)
 
 # Import new grid utilities
 from ui.grid_utils import (

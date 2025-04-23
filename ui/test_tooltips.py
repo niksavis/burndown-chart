@@ -15,7 +15,6 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 # Now we can import from ui modules
 from dash import Dash, html, dcc
 import dash_bootstrap_components as dbc
-import plotly.graph_objects as go
 
 from ui.tooltip_utils import (
     create_tooltip,
