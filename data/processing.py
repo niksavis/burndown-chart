@@ -666,7 +666,7 @@ def generate_weekly_forecast(statistics_data, pert_factor=3, forecast_weeks=1):
             "points": {
                 "dates": [formatted_date],
                 "most_likely": most_likely_points_forecast,
-                "optimistic": most_likely_points_forecast,
+                "optimistic": optimistic_points_forecast,  # Fixed: use optimistic_points_forecast instead of most_likely_points_forecast
                 "pessimistic": pessimistic_points_forecast,
                 "most_likely_value": most_likely_points,
                 "optimistic_value": optimistic_points,

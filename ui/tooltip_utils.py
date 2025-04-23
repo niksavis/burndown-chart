@@ -16,65 +16,7 @@ from dash import html
 import dash_bootstrap_components as dbc
 
 # Application imports
-from ui.styles import TYPOGRAPHY
-
-#######################################################################
-# CONSTANTS
-#######################################################################
-
-# Tooltip styles configuration
-TOOLTIP_STYLES = {
-    "default": {
-        "bgcolor": "rgba(255, 255, 255, 0.95)",
-        "bordercolor": "rgba(200, 200, 200, 0.8)",
-        "fontcolor": "#343a40",  # gray-800
-        "fontsize": 14,
-    },
-    "success": {
-        "bgcolor": "rgba(240, 255, 240, 0.95)",
-        "bordercolor": "rgb(40, 167, 69)",  # success color
-        "fontcolor": "#343a40",  # gray-800
-        "fontsize": 14,
-    },
-    "warning": {
-        "bgcolor": "rgba(255, 252, 235, 0.95)",
-        "bordercolor": "rgb(255, 193, 7)",  # warning color
-        "fontcolor": "#343a40",  # gray-800
-        "fontsize": 14,
-    },
-    "error": {
-        "bgcolor": "rgba(255, 235, 235, 0.95)",
-        "bordercolor": "rgb(220, 53, 69)",  # danger color
-        "fontcolor": "#343a40",  # gray-800
-        "fontsize": 14,
-    },
-    "info": {
-        "bgcolor": "rgba(235, 250, 255, 0.95)",
-        "bordercolor": "rgb(13, 202, 240)",  # info color
-        "fontcolor": "#343a40",  # gray-800
-        "fontsize": 14,
-    },
-    "primary": {
-        "bgcolor": "rgba(235, 245, 255, 0.95)",
-        "bordercolor": "rgb(13, 110, 253)",  # primary blue
-        "fontcolor": "#343a40",  # gray-800
-        "fontsize": 14,
-    },
-    "dark": {
-        "bgcolor": "rgba(33, 37, 41, 0.95)",  # dark background
-        "bordercolor": "rgba(100, 100, 100, 0.8)",
-        "fontcolor": "#f8f9fa",  # light text
-        "fontsize": 14,
-    },
-}
-
-# Plotly hover mode settings
-HOVER_MODES = {
-    "standard": "closest",  # Default Plotly hover mode
-    "unified": "x unified",  # Unified x-axis hover
-    "compare": "x",  # Compare data points
-    "y_unified": "y unified",  # Unified y-axis hover
-}
+from ui.style_constants import TYPOGRAPHY, TOOLTIP_STYLES, HOVER_MODES
 
 #######################################################################
 # TOOLTIP STYLING FUNCTIONS
@@ -138,6 +80,9 @@ def format_hover_template(
     """
     Create a consistent hover template string for Plotly charts.
 
+    This function formats hover templates for Plotly charts, properly handling
+    Plotly's special syntax for format specifiers like %{y:.1f}.
+
     Args:
         title (str, optional): Title to display at the top of the tooltip
         fields (dict, optional): Dictionary of {label: value_template} pairs
@@ -156,6 +101,7 @@ def format_hover_template(
     # Add fields if provided
     if fields:
         for label, value in fields.items():
+            # Don't process the value string, pass it directly to Plotly
             template.append(f"{label}: {value}<br>")
 
     # Join all template parts

@@ -14,7 +14,7 @@ import dash_bootstrap_components as dbc
 from dash import html
 
 # Application imports
-from ui.grid_templates import create_tab_content as grid_create_tab_content
+from ui.grid_utils import create_tab_content as grid_create_tab_content
 
 
 def create_tabs():

@@ -524,14 +524,6 @@ def create_content_sidebar_layout(
         left_width = content_width
         right_width = sidebar_width
 
-    # Set up gutters based on spacing parameter
-    if spacing == "compact":
-        gutter = {"xs": "1", stack_until: "2"}
-    elif spacing == "wide":
-        gutter = {"xs": "2", stack_until: "4"}
-    else:  # standard
-        gutter = {"xs": "2", stack_until: "3"}
-
     # Create the layout
     return create_stacked_to_horizontal(
         left_content=left_content,
@@ -833,3 +825,21 @@ def create_mobile_container(content, expanded_height="auto", className=""):
     )
 
     return container
+
+
+def create_tab_content(content, padding=None):
+    """
+    Create standardized tab content with consistent padding.
+
+    Args:
+        content: The content to display in the tab
+        padding: Padding class to apply
+
+    Returns:
+        A div with the tab content and consistent styling
+    """
+    # Use consistent padding from our spacing system
+    if padding is None:
+        padding = "p-3"  # Default padding
+
+    return html.Div(content, className=f"{padding} border border-top-0 rounded-bottom")

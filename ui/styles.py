@@ -14,52 +14,16 @@ import dash_bootstrap_components as dbc
 # Import from configuration
 from configuration import COLOR_PALETTE
 
+# Import constants from style_constants.py
+from ui.style_constants import (
+    TYPOGRAPHY,
+    SEMANTIC_COLORS,
+    NEUTRAL_COLORS,
+)
+
 #######################################################################
 # CONSTANTS
 #######################################################################
-
-# Extended semantic color mappings
-SEMANTIC_COLORS = {
-    "success": "rgb(40, 167, 69)",  # Bootstrap green
-    "warning": "rgb(255, 193, 7)",  # Bootstrap yellow
-    "danger": "rgb(220, 53, 69)",  # Bootstrap red
-    "info": "rgb(13, 202, 240)",  # Bootstrap cyan
-    "secondary": "rgb(108, 117, 125)",  # Bootstrap gray
-    "light": "rgb(248, 249, 250)",  # Bootstrap light
-    "dark": "rgb(33, 37, 41)",  # Bootstrap dark
-}
-
-# Neutral color palette
-NEUTRAL_COLORS = {
-    "white": "#ffffff",
-    "gray-100": "#f8f9fa",
-    "gray-200": "#e9ecef",
-    "gray-300": "#dee2e6",
-    "gray-400": "#ced4da",
-    "gray-500": "#adb5bd",
-    "gray-600": "#6c757d",
-    "gray-700": "#495057",
-    "gray-800": "#343a40",
-    "gray-900": "#212529",
-    "black": "#000000",
-}
-
-# Typography system
-TYPOGRAPHY = {
-    "font_family": "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
-    "base_size": "1rem",  # 16px
-    "scale": {
-        "h1": "2rem",  # 32px
-        "h2": "1.75rem",  # 28px
-        "h3": "1.5rem",  # 24px
-        "h4": "1.25rem",  # 20px
-        "h5": "1.1rem",  # ~18px
-        "h6": "1rem",  # 16px
-        "small": "0.875rem",  # 14px
-        "xs": "0.75rem",  # 12px
-    },
-    "weights": {"light": 300, "regular": 400, "medium": 500, "bold": 700},
-}
 
 # Spacing standards
 SPACING = {
@@ -143,48 +107,6 @@ BOOTSTRAP_SPACING = {
     "3": SPACING["md"],
     "4": SPACING["lg"],
     "5": SPACING["xl"],
-}
-
-# Tooltip styles configuration
-TOOLTIP_STYLES = {
-    "default": {
-        "bgcolor": "rgba(255, 255, 255, 0.95)",
-        "bordercolor": "rgba(200, 200, 200, 0.8)",
-        "fontcolor": NEUTRAL_COLORS["gray-800"],
-        "fontsize": 14,
-    },
-    "success": {
-        "bgcolor": "rgba(240, 255, 240, 0.95)",
-        "bordercolor": SEMANTIC_COLORS["success"],
-        "fontcolor": NEUTRAL_COLORS["gray-800"],
-        "fontsize": 14,
-    },
-    "warning": {
-        "bgcolor": "rgba(255, 252, 235, 0.95)",
-        "bordercolor": SEMANTIC_COLORS["warning"],
-        "fontcolor": NEUTRAL_COLORS["gray-800"],
-        "fontsize": 14,
-    },
-    "error": {
-        "bgcolor": "rgba(255, 235, 235, 0.95)",
-        "bordercolor": SEMANTIC_COLORS["danger"],
-        "fontcolor": NEUTRAL_COLORS["gray-800"],
-        "fontsize": 14,
-    },
-    "info": {
-        "bgcolor": "rgba(235, 250, 255, 0.95)",
-        "bordercolor": SEMANTIC_COLORS["info"],
-        "fontcolor": NEUTRAL_COLORS["gray-800"],
-        "fontsize": 14,
-    },
-}
-
-# Plotly hovermode settings
-HOVER_MODES = {
-    "standard": "closest",  # Default Plotly hover mode
-    "unified": "x unified",  # Unified x-axis hover
-    "compare": "x",  # Compare data points
-    "y_unified": "y unified",  # Unified y-axis hover
 }
 
 # Icon system constants
@@ -995,7 +917,7 @@ def create_card_header_with_tooltip(title, tooltip_id=None, tooltip_text=None):
     from dash import html
 
     # Import the tooltip function from components module if needed
-    from ui.components import create_info_tooltip
+    from ui.tooltip_utils import create_info_tooltip
 
     if tooltip_id and tooltip_text:
         return [

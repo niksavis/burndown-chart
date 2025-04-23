@@ -2039,7 +2039,7 @@ def create_chart_with_loading(
         html.Div: Chart component with loading states
     """
     from dash import dcc
-    from ui.components import create_loading_wrapper
+    from ui.loading_utils import create_loading_overlay
 
     # Determine if we're in a loading state
     is_loading = loading_state is not None and loading_state.get("is_loading", False)
@@ -2077,12 +2077,50 @@ def create_chart_with_loading(
     )
 
     # Wrap the chart with a loading state
-    return create_loading_wrapper(
+    return create_loading_overlay(
         chart,
         is_loading=is_loading,
         id=f"{id}-loading-wrapper",
-        type="overlay",
-        color="primary",
-        size="lg",
+        spinner_props={"color": "primary", "size": "lg"},
+        overlay_style={"backgroundColor": "rgba(255, 255, 255, 0.7)"},
         message=message,
     )
+
+
+def format_hover_template_fix(
+    title=None, fields=None, extra_info=None, include_extra_tag=True
+):
+    """
+    Create a consistent hover template string for Plotly charts.
+    This version properly escapes format specifiers for Plotly.
+
+    Args:
+        title (str, optional): Title to display at the top of the tooltip
+        fields (dict, optional): Dictionary of {label: value_template} pairs
+        extra_info (str, optional): Additional information for the <extra> tag
+        include_extra_tag (bool, optional): Whether to include the <extra> tag
+
+    Returns:
+        str: Formatted hover template string for Plotly
+    """
+    template = []
+
+    # Add title if provided
+    if title:
+        template.append(f"<b>{title}</b><br>")
+
+    # Add fields if provided
+    if fields:
+        for label, value in fields.items():
+            template.append(f"{label}: {value}<br>")
+
+    # Join all template parts
+    hover_text = "".join(template)
+
+    # Add extra tag if requested
+    if include_extra_tag:
+        if extra_info:
+            return f"{hover_text}<extra>{extra_info}</extra>"
+        return f"{hover_text}<extra></extra>"
+
+    return hover_text

@@ -530,9 +530,6 @@ def create_skeleton_loader(
         )
 
     elif type == "card":
-        # Card skeleton with header and content
-        card_height = height or "200px"
-
         return html.Div(
             [
                 # Card header

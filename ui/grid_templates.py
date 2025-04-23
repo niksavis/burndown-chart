@@ -1,14 +1,21 @@
 """
-Grid Templates Module (Legacy)
+Grid Templates Module (DEPRECATED)
 
-This module provides standardized grid layout components and templates
-for consistent layout and alignment throughout the application.
+This module is DEPRECATED and should not be used for new code.
+Use ui.grid_utils module instead for all grid and layout functionality.
 
-DEPRECATED: This module is maintained for backward compatibility.
-New code should use ui.grid_utils instead.
+The functions in this module are maintained only for backward compatibility
+and may be removed in a future release.
+
+Migration Guide:
+1. Replace imports from ui.grid_templates with imports from ui.grid_utils
+2. For table-related functions, either use the functions from ui.grid_utils or
+   implement your own version within your component as needed
+3. Test thoroughly after migration as some parameter names may have changed
 """
 
 import warnings
+import functools
 
 #######################################################################
 # IMPORTS
@@ -34,11 +41,31 @@ from ui.grid_utils import (
     create_form_section as new_create_form_section,
 )
 
+
+def _deprecation_warning(func):
+    """
+    Decorator to add deprecation warnings to functions.
+    """
+
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        warnings.warn(
+            f"Function {func.__name__} is deprecated and will be removed in a future release. "
+            f"Use equivalent functions from ui.grid_utils instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
 #######################################################################
 # GRID TEMPLATES (DEPRECATED)
 #######################################################################
 
 
+@_deprecation_warning
 def create_two_column_layout(
     left_content, right_content, left_width=6, right_width=6, row_class=None
 ):
@@ -57,12 +84,6 @@ def create_two_column_layout(
     Returns:
         A dbc.Row containing the two-column layout
     """
-    warnings.warn(
-        "This function is deprecated. Use ui.grid_utils.create_two_column_layout() instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-
     return new_create_two_column_layout(
         left_content=left_content,
         right_content=right_content,
@@ -72,6 +93,7 @@ def create_two_column_layout(
     )
 
 
+@_deprecation_warning
 def create_two_cards_layout(
     card1, card2, card1_width=6, card2_width=6, equal_height=True
 ):
@@ -90,12 +112,6 @@ def create_two_cards_layout(
     Returns:
         A dbc.Row containing the two cards layout
     """
-    warnings.warn(
-        "This function is deprecated. Use ui.grid_utils.create_two_column_layout() with card content instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-
     if equal_height:
         card1_class = "h-100"
         card2_class = "h-100"
@@ -114,6 +130,7 @@ def create_two_cards_layout(
     )
 
 
+@_deprecation_warning
 def create_three_column_layout(
     left, middle, right, left_width=4, middle_width=4, right_width=4, row_class=None
 ):
@@ -134,12 +151,6 @@ def create_three_column_layout(
     Returns:
         A dbc.Row containing the three-column layout
     """
-    warnings.warn(
-        "This function is deprecated. Use ui.grid_utils.create_three_column_layout() instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-
     return new_create_three_column_layout(
         left=left,
         middle=middle,
@@ -151,6 +162,7 @@ def create_three_column_layout(
     )
 
 
+@_deprecation_warning
 def create_four_column_layout(cols, widths=None, row_class=None):
     """
     Creates a standardized four-column layout with responsive behavior.
@@ -165,17 +177,12 @@ def create_four_column_layout(cols, widths=None, row_class=None):
     Returns:
         A dbc.Row containing the four-column layout
     """
-    warnings.warn(
-        "This function is deprecated. Use ui.grid_utils.create_multi_column_layout() instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-
     return create_multi_column_layout(
         columns_content=cols, column_widths=widths, className=row_class
     )
 
 
+@_deprecation_warning
 def create_full_width_layout(content, row_class=None):
     """
     Creates a standardized full-width layout.
@@ -189,12 +196,6 @@ def create_full_width_layout(content, row_class=None):
     Returns:
         A dbc.Row containing the full-width layout
     """
-    warnings.warn(
-        "This function is deprecated. Use dbc.Row(dbc.Col(content, width=12), className=row_class) directly.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-
     # Use vertical rhythm system for consistent spacing
     if row_class is None:
         row_class = f"mb-{COMPONENT_SPACING['section_margin'].replace('rem', '')}"
@@ -452,6 +453,7 @@ def create_data_table(
     )
 
 
+@_deprecation_warning
 def create_responsive_table_wrapper(table_component, max_height=None, className=""):
     """
     Create a mobile-responsive wrapper for tables that handles overflow with scrolling.
@@ -466,12 +468,6 @@ def create_responsive_table_wrapper(table_component, max_height=None, className=
     Returns:
         html.Div: A responsive container for the table
     """
-    warnings.warn(
-        "This function is deprecated. Use ui.grid_utils.create_responsive_table_wrapper() instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-
     return new_create_responsive_table_wrapper(
         table_component=table_component, max_height=max_height, className=className
     )
@@ -641,6 +637,7 @@ def create_form_group(
     return html.Div(components, style={"marginBottom": margin_bottom})
 
 
+@_deprecation_warning
 def create_form_row(form_groups, columns=None):
     """
     Create a form row with form groups in columns.
@@ -654,15 +651,10 @@ def create_form_row(form_groups, columns=None):
     Returns:
         A row with form groups in columns
     """
-    warnings.warn(
-        "This function is deprecated. Use ui.grid_utils.create_form_row() instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-
     return new_create_form_row(form_groups=form_groups, columns=columns)
 
 
+@_deprecation_warning
 def create_form_section(title, components, help_text=None):
     """
     Create a form section with a title and components.
@@ -677,12 +669,6 @@ def create_form_section(title, components, help_text=None):
     Returns:
         A section div with title and components
     """
-    warnings.warn(
-        "This function is deprecated. Use ui.grid_utils.create_form_section() instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-
     return new_create_form_section(
         title=title, components=components, help_text=help_text
     )

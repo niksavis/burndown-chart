@@ -19,7 +19,6 @@ from dash import Input, Output, State, callback, callback_context, dcc, html
 from dash.exceptions import PreventUpdate
 
 # Application imports
-from configuration import logger
 from data import (
     calculate_performance_trend,
     calculate_weekly_averages,
@@ -1197,7 +1196,7 @@ def register_loading_callbacks(app):
         if triggered_id == "loading-demo-btn":
             # This is a demo to showcase different loading states
             # Create a tabbed interface showing different loading states
-            from ui.components import create_lazy_loading_tabs
+            from ui.loading_utils import create_lazy_loading_tabs
 
             # Define tabs with different loading state examples
             tabs_data = [
