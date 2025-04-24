@@ -41,9 +41,9 @@
 .dash-spreadsheet-container .dash-spreadsheet-inner td {
   padding: 10px;
   vertical-align: middle;
-  border: 1px solid #f0f0f0; /* Lighter border for cells */
-  border-bottom: none; /* Remove double border with row */
-  border-right: none; /* Remove double border with next cell */
+  border: 1px solid #f0f0f0;
+  border-bottom: none;
+  border-right: none;
 }
 /* Add right border back to last cell */
 .dash-spreadsheet-container .dash-spreadsheet-inner td:last-child {
@@ -102,6 +102,7 @@ td.cell--editable:not(.cell-selected) .dash-cell-value::after {
 }
 
 /* ===== Pagination Controls ===== */
+/* Consolidated pagination styling in one place */
 
 /* Reset and clean up pagination styling */
 .dash-table-container .dash-pagination,
@@ -150,6 +151,8 @@ td.cell--editable:not(.cell-selected) .dash-cell-value::after {
   background-color: #e9ecef !important;
   border-color: #ced4da !important;
   color: #0d6efd !important;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 /* Disabled state for pagination buttons */
@@ -161,13 +164,21 @@ td.cell--editable:not(.cell-selected) .dash-cell-value::after {
   opacity: 0.65 !important;
   background-color: #f8f9fa !important; /* Keep background consistent */
   color: #6c757d !important; /* Muted color */
+  transform: none !important;
+  box-shadow: none !important;
 }
 
 /* Page number input/display */
 .page-number {
-  display: inline-flex !important;
+  display: flex !important; /* Force flex display */
   align-items: center !important;
+  justify-content: center !important;
+  height: 36px !important;
   margin: 0 5px !important; /* Spacing around page number */
+  gap: 6px !important; /* Add space between elements */
+  position: relative !important;
+  width: auto !important;
+  min-width: 100px !important; /* Ensure enough space */
 }
 
 .page-number input[type=number] {
@@ -181,6 +192,7 @@ td.cell--editable:not(.cell-selected) .dash-cell-value::after {
   color: #495057;
   background-color: #fff;
   /* Remove spinner arrows */
+  appearance: textfield;
   -moz-appearance: textfield;
 }
 .page-number input[type=number]::-webkit-outer-spin-button,
@@ -196,51 +208,8 @@ td.cell--editable:not(.cell-selected) .dash-cell-value::after {
   font-size: 0.9rem;
 }
 
-/* Mobile styles */
-@media (max-width: 767px) {
-  .first-page,
-  .previous-page,
-  .next-page,
-  .last-page,
-  .current-page {
-    width: 44px !important;
-    height: 44px !important;
-  }
-  
-  .page-number,
-  .page-number > div {
-    height: 44px !important;
-    line-height: 44px !important;
-  }
-}
-
 /* Fix for overlapping pagination numbers */
 /* Fix the page number container to display elements horizontally with proper spacing */
-.page-number {
-  display: flex !important; /* Force flex display */
-  align-items: center !important;
-  justify-content: center !important;
-  height: 36px !important;
-  margin: 0 5px !important;
-  gap: 6px !important; /* Add space between elements */
-  position: relative !important;
-  width: auto !important;
-  min-width: 100px !important; /* Ensure enough space */
-}
-
-/* Style the current page input to prevent overlap */
-.current-page-container {
-  position: relative !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  height: 36px !important;
-  width: 36px !important;
-  margin: 0 !important;
-  z-index: 2 !important;
-}
-
-/* Make the slash properly aligned and sized */
 .page-number > *:not(.current-page-container):not(.last-page) {
   margin: 0 !important;
   display: flex !important;
@@ -249,22 +218,8 @@ td.cell--editable:not(.cell-selected) .dash-cell-value::after {
   height: 36px !important;
 }
 
-/* Style the total pages indicator */
-.page-number .last-page {
-  width: 36px !important;
-  height: 36px !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  font-size: 14px !important;
-  position: relative !important;
-  z-index: 1 !important;
-  text-align: center !important;
-  margin: 0 !important;
-}
-
-/* Ensure input is on top with proper spacing */
-.page-number .current-page {
+/* Style the current page input to prevent overlap */
+.current-page {
   position: relative !important;
   z-index: 3 !important;
   width: 36px !important;
@@ -290,6 +245,20 @@ td.cell--editable:not(.cell-selected) .dash-cell-value::after {
   padding: 0 !important;
   margin: 0 !important;
   border: none !important;
+}
+
+/* Style the total pages indicator */
+.page-number .last-page {
+  width: 36px !important;
+  height: 36px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 14px !important;
+  position: relative !important;
+  z-index: 1 !important;
+  text-align: center !important;
+  margin: 0 !important;
 }
 
 /* ===== Tab Navigation Standardization ===== */
@@ -401,262 +370,6 @@ td.cell--editable:not(.cell-selected) .dash-cell-value::after {
   background-size: 1rem 1rem;
 }
 
-/* ===== Mobile View Optimization ===== */
-
-/* Mobile responsive container adjustments */
-@media (max-width: 767px) {
-  .container-fluid {
-    padding-left: 12px !important;
-    padding-right: 12px !important;
-  }
-  
-  /* Card padding optimization for small screens */
-  .card-body {
-    padding: 0.75rem !important;
-  }
-  
-  .card-header {
-    padding: 0.75rem !important;
-  }
-  
-  /* Fix heading sizes on mobile */
-  h1, .h1 {
-    font-size: 1.75rem !important;
-  }
-  
-  h2, .h2 {
-    font-size: 1.5rem !important;
-  }
-  
-  h3, .h3 {
-    font-size: 1.25rem !important;
-  }
-  
-  h4, .h4 { font-size: 1.1rem !important; } /* Added h4 */
-  h5, .h5 { font-size: 1rem !important; }   /* Added h5 */
-  h6, .h6 { font-size: 0.9rem !important; } /* Added h6 */
-  
-  /* Remove empty focus state rule */
-  /* .btn:focus, .form-control:focus {} */
-
-  /* Ensure modals are well-behaved on mobile */
-  .modal-dialog {
-      margin: 0.5rem; /* Reduce margin */
-      max-width: calc(100% - 1rem); /* Ensure some spacing from edge */
-  }
-  .modal-content {
-      font-size: 0.95rem; /* Slightly smaller font in modals */
-  }
-  .modal-header, .modal-body, .modal-footer {
-      padding: 0.75rem !important; /* Consistent padding with cards */
-  }
-
-  /* Table optimizations for mobile */
-  .dash-table-container {
-      /* Ensure horizontal scrollbar is easily accessible */
-      -webkit-overflow-scrolling: touch; 
-  }
-
-  .dash-spreadsheet td,
-  .dash-spreadsheet th {
-    padding: 8px 6px !important;
-    font-size: 14px !important;
-    /* Consider text-align: left for data cells on mobile */
-    /* text-align: left !important; */ 
-  }
-  
-  /* Touch-friendly pagination controls */
-  .previous-next-container {
-    gap: 3px !important; 
-    margin: 10px auto !important; 
-  }
-
-  .previous-page, 
-  .next-page, 
-  .first-page, 
-  .last-page {
-    min-height: 40px !important; /* Increased touch target */
-    min-width: 40px !important;  /* Increased touch target */
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    padding: 0.3rem !important; 
-  }
-
-  .page-number input[type=number] {
-    max-width: 50px; 
-    padding: 0.3rem 0.5rem !important; 
-    height: 40px !important; /* Match button height */
-    font-size: 0.9rem !important; 
-  }
-  
-  /* Hide non-priority columns/elements on mobile */
-  .mobile-hidden {
-    display: none !important;
-  }
-
-  /* Apply text truncation on mobile */
-  .mobile-truncate {
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    max-width: 120px; /* Example max-width, adjust as needed */
-  }
-}
-
-/* Text wrapping and truncation utilities */
-.text-wrap {
-  white-space: normal !important;
-  word-break: break-word !important;
-}
-
-/* General text truncation utility */
-.text-truncate {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Keep existing .text-truncate-mobile for potential specific uses, but prefer .mobile-truncate */
-.text-truncate-mobile {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Focus states for mobile */
-.btn:focus, .form-control:focus {
-  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.5) !important;
-}
-
-/* Responsive table optimizations */
-.table-responsive {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: thin;
-}
-
-.table-responsive::-webkit-scrollbar {
-  height: 6px;
-}
-
-.table-responsive::-webkit-scrollbar-track {
-  background: #f1f1f1;
-}
-
-.table-responsive::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 3px;
-}
-
-/* Table optimizations for mobile */
-@media (max-width: 767px) {
-  .dash-spreadsheet-container .dash-spreadsheet-inner td,
-  .dash-spreadsheet-container .dash-spreadsheet-inner th {
-    padding: 8px 6px !important;
-    font-size: 14px !important;
-  }
-  
-  /* Prioritize important columns on small screens */
-  .mobile-hidden {
-    display: none !important;
-  }
-  
-  /* Truncate text in tables on mobile */
-  .mobile-truncate {
-    max-width: 120px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-}
-
-/* Table optimizations for mobile */
-@media (max-width: 767px) {
-  /* Smaller padding for table cells on mobile */
-  .dash-spreadsheet td,
-  .dash-spreadsheet th {
-    padding: 8px 6px !important;
-    font-size: 14px !important;
-  }
-  
-  /* Touch-friendly pagination controls */
-  .previous-page, 
-  .next-page, 
-  .first-page, 
-  .last-page {
-    min-height: 38px !important;
-    min-width: 38px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-  }
-  
-  /* Hide non-priority columns on mobile */
-  .mobile-hidden {
-    display: none !important;
-  }
-}
-
-/* Text wrapping for mobile */
-.text-wrap {
-  white-space: normal !important;
-  word-break: break-word !important;
-}
-
-.text-truncate-mobile {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-@media (max-width: 767px) {
-  .mobile-text-center {
-    text-align: center !important;
-  }
-  
-  .mobile-mb-2 {
-    margin-bottom: 0.5rem !important;
-  }
-}
-
-/* Touch-friendly controls */
-@media (max-width: 767px) {
-  /* Larger touch targets for buttons */
-  .btn {
-    padding: 0.5rem 0.75rem !important;
-    min-height: 44px !important;
-    font-size: 1rem !important;
-  }
-  
-  /* Larger form controls for touch */
-  .form-control, 
-  .form-select,
-  .input-group .input-group-text {
-    min-height: 44px !important;
-    font-size: 16px !important; /* Prevents zooming on iOS */
-  }
-  
-  /* Adjust date picker for mobile */
-  .DateInput_input {
-    font-size: 16px !important;
-    padding: 8px !important;
-    height: 44px !important;
-  }
-  
-  /* Increase spacing between form elements */
-  .form-group:not(:last-child) {
-    margin-bottom: 1.25rem !important;
-  }
-  
-  /* Larger checkbox and radio for touch */
-  input[type="checkbox"], 
-  input[type="radio"] {
-    width: 20px !important;
-    height: 20px !important;
-  }
-}
-
 /* ===== General Grid Alignment ===== */
 
 /* Consistent card styling */
@@ -752,12 +465,16 @@ input[type="number"]:focus-visible {
 .btn-secondary:hover {
   background-color: #5c636a !important;
   border-color: #565e64 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 /* Success button hover enhancement */
 .btn-success:hover {
   background-color: #157347 !important;
   border-color: #146c43 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 /* Subtle hover effects for cards with actions */
@@ -1165,3 +882,159 @@ input[type=range]::-moz-range-thumb {
 [role="tabpanel"] {
     transition: none !important;
 }
+
+/* ===== Responsive Table Styling ===== */
+/* Simplified and consolidated styles */
+
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+.table-responsive::-webkit-scrollbar {
+  height: 6px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+/* ===== CONSOLIDATED MOBILE STYLES ===== */
+/* All mobile-specific styles consolidated in one place for better maintainability */
+
+@media (max-width: 767px) {
+  /* General layout adjustments */
+  .container-fluid {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+  
+  /* Typography adjustments */
+  h1, .h1 { font-size: 1.75rem !important; }
+  h2, .h2 { font-size: 1.5rem !important; }
+  h3, .h3 { font-size: 1.25rem !important; }
+  h4, .h4 { font-size: 1.1rem !important; }
+  h5, .h5 { font-size: 1rem !important; }
+  h6, .h6 { font-size: 0.9rem !important; }
+  
+  /* Card adjustments */
+  .card-body { padding: 0.75rem !important; }
+  .card-header { padding: 0.75rem !important; }
+  
+  /* Form elements */
+  .btn {
+    padding: 0.5rem 0.75rem !important;
+    min-height: 44px !important;
+    font-size: 1rem !important;
+  }
+  
+  .form-control, 
+  .form-select,
+  .input-group .input-group-text {
+    min-height: 44px !important;
+    font-size: 16px !important; /* Prevents zooming on iOS */
+  }
+  
+  .DateInput_input {
+    font-size: 16px !important;
+    padding: 8px !important;
+    height: 44px !important;
+  }
+  
+  .form-group:not(:last-child) {
+    margin-bottom: 1.25rem !important;
+  }
+  
+  input[type="checkbox"], 
+  input[type="radio"] {
+    width: 20px !important;
+    height: 20px !important;
+  }
+  
+  /* Table styles */
+  .dash-table-container {
+    -webkit-overflow-scrolling: touch; 
+  }
+  
+  .dash-spreadsheet td,
+  .dash-spreadsheet th {
+    padding: 8px 6px !important;
+    font-size: 14px !important;
+  }
+  
+  /* Pagination controls */
+  .previous-next-container {
+    gap: 3px !important; 
+    margin: 10px auto !important; 
+  }
+  
+  .first-page,
+  .previous-page,
+  .next-page,
+  .last-page,
+  .current-page {
+    min-height: 44px !important;
+    min-width: 44px !important;
+    width: 44px !important;
+    height: 44px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0.3rem !important;
+  }
+  
+  .page-number input[type=number] {
+    max-width: 50px; 
+    padding: 0.3rem 0.5rem !important; 
+    height: 44px !important;
+    font-size: 0.9rem !important; 
+  }
+  
+  .page-number,
+  .page-number > div {
+    height: 44px !important;
+    line-height: 44px !important;
+  }
+  
+  /* Visibility & text handling */
+  .mobile-hidden {
+    display: none !important;
+  }
+  
+  .mobile-text-center {
+    text-align: center !important;
+  }
+  
+  .mobile-truncate {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-width: 120px;
+  }
+  
+  .mobile-mb-2 {
+    margin-bottom: 0.5rem !important;
+  }
+  
+  /* Modal adjustments */
+  .modal-dialog {
+    margin: 0.5rem;
+    max-width: calc(100% - 1rem);
+  }
+  
+  .modal-content {
+    font-size: 0.95rem;
+  }
+  
+  .modal-header, .modal-body, .modal-footer {
+    padding: 0.75rem !important;
+  }
+}
+
+/* Special case styles for devices that should remain outside the consolidated block */
