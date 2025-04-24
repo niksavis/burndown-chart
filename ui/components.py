@@ -18,10 +18,77 @@ import dash_bootstrap_components as dbc
 # Application imports
 from configuration import COLOR_PALETTE
 from .icon_utils import create_icon  # Assuming icon_utils is in the same directory
+from ui.icon_utils import create_icon, create_icon_text
 
 #######################################################################
 # PERT INFO TABLE COMPONENT
 #######################################################################
+
+
+# Add these utility functions to help with PERT table components without breaking existing functionality
+def _create_header_with_icon(icon_class, title, color="#20c997"):
+    """Create a header with an icon for PERT info sections."""
+    return html.H5(
+        [
+            html.I(
+                className=f"{icon_class} me-2",
+                style={"color": color},
+            ),
+            title,
+        ],
+        className="mb-3 border-bottom pb-2 d-flex align-items-center",
+    )
+
+
+def _create_forecast_row(
+    label, completion_date, timeframe, bg_color, is_highlighted=False, icon=None
+):
+    """Create a standardized forecast row for PERT tables."""
+    row_style = {
+        "backgroundColor": bg_color,
+        "borderRadius": "4px",
+    }
+
+    # Add border for highlighted rows
+    if is_highlighted:
+        border_color = "green" if "40,167,69" in bg_color else "red"
+        row_style["border"] = f"1px solid {border_color}"
+
+    label_content = [
+        html.Span(label, className="fw-bold" if is_highlighted else "fw-medium")
+    ]
+    if icon and is_highlighted:
+        label_content.append(
+            html.I(
+                className=f"{icon} ms-2",
+                style={"fontSize": "0.7rem", "color": border_color},
+            )
+        )
+
+    return html.Div(
+        className="d-flex align-items-center p-2 mb-1",
+        style=row_style,
+        children=[
+            html.Div(
+                label_content,
+                style={"width": "25%"},
+                className="d-flex align-items-center",
+            ),
+            html.Div(
+                html.Span(
+                    completion_date,
+                    className="fw-medium",
+                ),
+                style={"width": "45%"},
+                className="text-center",
+            ),
+            html.Div(
+                html.Small(timeframe),
+                style={"width": "30%"},
+                className="text-end",
+            ),
+        ],
+    )
 
 
 def create_pert_info_table(
@@ -179,15 +246,9 @@ def create_pert_info_table(
             # Project Overview section at the top - full width (100%)
             html.Div(
                 [
-                    html.H5(
-                        [
-                            html.I(
-                                className="fas fa-project-diagram me-2",
-                                style={"color": "#20c997"},
-                            ),
-                            "Project Overview",
-                        ],
-                        className="mb-3 border-bottom pb-2 d-flex align-items-center",
+                    # Replace direct icon definition with utility function
+                    _create_header_with_icon(
+                        "fas fa-project-diagram", "Project Overview", "#20c997"
                     ),
                     html.Div(
                         [
@@ -496,15 +557,11 @@ def create_pert_info_table(
                     # Left column - Completion Forecast
                     dbc.Col(
                         [
-                            html.H5(
-                                [
-                                    html.I(
-                                        className="fas fa-calendar-check me-2",
-                                        style={"color": "#20c997"},
-                                    ),
-                                    "Completion Forecast",
-                                ],
-                                className="mb-3 border-bottom pb-2 d-flex align-items-center",
+                            # Replace direct icon definition with utility function
+                            _create_header_with_icon(
+                                "fas fa-calendar-check",
+                                "Completion Forecast",
+                                "#20c997",
                             ),
                             html.Div(
                                 [
@@ -560,138 +617,35 @@ def create_pert_info_table(
                                                 ],
                                             ),
                                             # PERT row
-                                            html.Div(
-                                                className="d-flex align-items-center p-2 mb-1",
-                                                style={
-                                                    "backgroundColor": f"rgba({items_color == 'green' and '40,167,69' or '220,53,69'},0.08)",
-                                                    "borderRadius": "4px",
-                                                    "border": f"1px solid {items_color}",
-                                                },
-                                                children=[
-                                                    html.Div(
-                                                        [
-                                                            html.Span(
-                                                                "PERT",
-                                                                className="fw-bold",
-                                                            ),
-                                                            html.I(
-                                                                className="fas fa-star-of-life ms-2",
-                                                                style={
-                                                                    "fontSize": "0.7rem",
-                                                                    "color": items_color,
-                                                                },
-                                                            ),
-                                                        ],
-                                                        style={"width": "25%"},
-                                                        className="d-flex align-items-center",
-                                                    ),
-                                                    html.Div(
-                                                        html.Span(
-                                                            items_completion_str,
-                                                            style={
-                                                                "color": items_color
-                                                            },
-                                                            className="fw-medium",
-                                                        ),
-                                                        style={"width": "45%"},
-                                                        className="text-center",
-                                                    ),
-                                                    html.Div(
-                                                        html.Small(
-                                                            f"{pert_time_items:.1f}d ({pert_time_items / 7:.1f}w)",
-                                                        ),
-                                                        style={"width": "30%"},
-                                                        className="text-end",
-                                                    ),
-                                                ],
+                                            _create_forecast_row(
+                                                "PERT",
+                                                items_completion_str,
+                                                f"{pert_time_items:.1f}d ({pert_time_items / 7:.1f}w)",
+                                                f"rgba({items_color == 'green' and '40,167,69' or '220,53,69'},0.08)",
+                                                is_highlighted=True,
+                                                icon="fas fa-star-of-life",
                                             ),
                                             # Average row
-                                            html.Div(
-                                                className="d-flex align-items-center p-2 mb-1",
-                                                style={
-                                                    "backgroundColor": f"rgba({weeks_avg_items_color == 'green' and '40,167,69' or '220,53,69'},0.05)",
-                                                    "borderRadius": "4px",
-                                                }
-                                                if weeks_avg_items != float("inf")
-                                                else {},
-                                                children=[
-                                                    html.Div(
-                                                        html.Span(
-                                                            "Average",
-                                                            className="fw-medium",
-                                                        ),
-                                                        style={"width": "25%"},
-                                                    ),
-                                                    html.Div(
-                                                        html.Span(
-                                                            avg_items_completion_str,
-                                                            style={
-                                                                "color": weeks_avg_items_color
-                                                            }
-                                                            if weeks_avg_items
-                                                            != float("inf")
-                                                            else {},
-                                                            className="fw-medium",
-                                                        ),
-                                                        style={"width": "45%"},
-                                                        className="text-center",
-                                                    ),
-                                                    html.Div(
-                                                        html.Small(
-                                                            f"{avg_items_days:.1f}d ({weeks_avg_items:.1f}w)"
-                                                            if weeks_avg_items
-                                                            != float("inf")
-                                                            else "∞",
-                                                            className="text-muted",
-                                                        ),
-                                                        style={"width": "30%"},
-                                                        className="text-end",
-                                                    ),
-                                                ],
+                                            _create_forecast_row(
+                                                "Average",
+                                                avg_items_completion_str,
+                                                (
+                                                    f"{avg_items_days:.1f}d ({weeks_avg_items:.1f}w)"
+                                                    if weeks_avg_items != float("inf")
+                                                    else "∞"
+                                                ),
+                                                f"rgba({weeks_avg_items_color == 'green' and '40,167,69' or '220,53,69'},0.05)",
                                             ),
                                             # Median row
-                                            html.Div(
-                                                className="d-flex align-items-center p-2",
-                                                style={
-                                                    "backgroundColor": f"rgba({weeks_med_items_color == 'green' and '40,167,69' or '220,53,69'},0.05)",
-                                                    "borderRadius": "4px",
-                                                }
-                                                if weeks_med_items != float("inf")
-                                                else {},
-                                                children=[
-                                                    html.Div(
-                                                        html.Span(
-                                                            "Median",
-                                                            className="fw-medium",
-                                                        ),
-                                                        style={"width": "25%"},
-                                                    ),
-                                                    html.Div(
-                                                        html.Span(
-                                                            med_items_completion_str,
-                                                            style={
-                                                                "color": weeks_med_items_color
-                                                            }
-                                                            if weeks_med_items
-                                                            != float("inf")
-                                                            else {},
-                                                            className="fw-medium",
-                                                        ),
-                                                        style={"width": "45%"},
-                                                        className="text-center",
-                                                    ),
-                                                    html.Div(
-                                                        html.Small(
-                                                            f"{med_items_days:.1f}d ({weeks_med_items:.1f}w)"
-                                                            if weeks_med_items
-                                                            != float("inf")
-                                                            else "∞",
-                                                            className="text-muted",
-                                                        ),
-                                                        style={"width": "30%"},
-                                                        className="text-end",
-                                                    ),
-                                                ],
+                                            _create_forecast_row(
+                                                "Median",
+                                                med_items_completion_str,
+                                                (
+                                                    f"{med_items_days:.1f}d ({weeks_med_items:.1f}w)"
+                                                    if weeks_med_items != float("inf")
+                                                    else "∞"
+                                                ),
+                                                f"rgba({weeks_med_items_color == 'green' and '40,167,69' or '220,53,69'},0.05)",
                                             ),
                                         ],
                                         className="mb-4 p-3 border rounded",
@@ -744,138 +698,35 @@ def create_pert_info_table(
                                                 ],
                                             ),
                                             # PERT row
-                                            html.Div(
-                                                className="d-flex align-items-center p-2 mb-1",
-                                                style={
-                                                    "backgroundColor": f"rgba({points_color == 'green' and '40,167,69' or '220,53,69'},0.08)",
-                                                    "borderRadius": "4px",
-                                                    "border": f"1px solid {points_color}",
-                                                },
-                                                children=[
-                                                    html.Div(
-                                                        [
-                                                            html.Span(
-                                                                "PERT",
-                                                                className="fw-bold",
-                                                            ),
-                                                            html.I(
-                                                                className="fas fa-star-of-life ms-2",
-                                                                style={
-                                                                    "fontSize": "0.7rem",
-                                                                    "color": points_color,
-                                                                },
-                                                            ),
-                                                        ],
-                                                        style={"width": "25%"},
-                                                        className="d-flex align-items-center",
-                                                    ),
-                                                    html.Div(
-                                                        html.Span(
-                                                            points_completion_str,
-                                                            style={
-                                                                "color": points_color
-                                                            },
-                                                            className="fw-medium",
-                                                        ),
-                                                        style={"width": "45%"},
-                                                        className="text-center",
-                                                    ),
-                                                    html.Div(
-                                                        html.Small(
-                                                            f"{pert_time_points:.1f}d ({pert_time_points / 7:.1f}w)",
-                                                        ),
-                                                        style={"width": "30%"},
-                                                        className="text-end",
-                                                    ),
-                                                ],
+                                            _create_forecast_row(
+                                                "PERT",
+                                                points_completion_str,
+                                                f"{pert_time_points:.1f}d ({pert_time_points / 7:.1f}w)",
+                                                f"rgba({points_color == 'green' and '40,167,69' or '220,53,69'},0.08)",
+                                                is_highlighted=True,
+                                                icon="fas fa-star-of-life",
                                             ),
                                             # Average row
-                                            html.Div(
-                                                className="d-flex align-items-center p-2 mb-1",
-                                                style={
-                                                    "backgroundColor": f"rgba({weeks_avg_points_color == 'green' and '40,167,69' or '220,53,69'},0.05)",
-                                                    "borderRadius": "4px",
-                                                }
-                                                if weeks_avg_points != float("inf")
-                                                else {},
-                                                children=[
-                                                    html.Div(
-                                                        html.Span(
-                                                            "Average",
-                                                            className="fw-medium",
-                                                        ),
-                                                        style={"width": "25%"},
-                                                    ),
-                                                    html.Div(
-                                                        html.Span(
-                                                            avg_points_completion_str,
-                                                            style={
-                                                                "color": weeks_avg_points_color
-                                                            }
-                                                            if weeks_avg_points
-                                                            != float("inf")
-                                                            else {},
-                                                            className="fw-medium",
-                                                        ),
-                                                        style={"width": "45%"},
-                                                        className="text-center",
-                                                    ),
-                                                    html.Div(
-                                                        html.Small(
-                                                            f"{avg_points_days:.1f}d ({weeks_avg_points:.1f}w)"
-                                                            if weeks_avg_points
-                                                            != float("inf")
-                                                            else "∞",
-                                                            className="text-muted",
-                                                        ),
-                                                        style={"width": "30%"},
-                                                        className="text-end",
-                                                    ),
-                                                ],
+                                            _create_forecast_row(
+                                                "Average",
+                                                avg_points_completion_str,
+                                                (
+                                                    f"{avg_points_days:.1f}d ({weeks_avg_points:.1f}w)"
+                                                    if weeks_avg_points != float("inf")
+                                                    else "∞"
+                                                ),
+                                                f"rgba({weeks_avg_points_color == 'green' and '40,167,69' or '220,53,69'},0.05)",
                                             ),
                                             # Median row
-                                            html.Div(
-                                                className="d-flex align-items-center p-2",
-                                                style={
-                                                    "backgroundColor": f"rgba({weeks_med_points_color == 'green' and '40,167,69' or '220,53,69'},0.05)",
-                                                    "borderRadius": "4px",
-                                                }
-                                                if weeks_med_points != float("inf")
-                                                else {},
-                                                children=[
-                                                    html.Div(
-                                                        html.Span(
-                                                            "Median",
-                                                            className="fw-medium",
-                                                        ),
-                                                        style={"width": "25%"},
-                                                    ),
-                                                    html.Div(
-                                                        html.Span(
-                                                            med_points_completion_str,
-                                                            style={
-                                                                "color": weeks_med_points_color
-                                                            }
-                                                            if weeks_med_points
-                                                            != float("inf")
-                                                            else {},
-                                                            className="fw-medium",
-                                                        ),
-                                                        style={"width": "45%"},
-                                                        className="text-center",
-                                                    ),
-                                                    html.Div(
-                                                        html.Small(
-                                                            f"{med_points_days:.1f}d ({weeks_med_points:.1f}w)"
-                                                            if weeks_med_points
-                                                            != float("inf")
-                                                            else "∞",
-                                                            className="text-muted",
-                                                        ),
-                                                        style={"width": "30%"},
-                                                        className="text-end",
-                                                    ),
-                                                ],
+                                            _create_forecast_row(
+                                                "Median",
+                                                med_points_completion_str,
+                                                (
+                                                    f"{med_points_days:.1f}d ({weeks_med_points:.1f}w)"
+                                                    if weeks_med_points != float("inf")
+                                                    else "∞"
+                                                ),
+                                                f"rgba({weeks_med_points_color == 'green' and '40,167,69' or '220,53,69'},0.05)",
                                             ),
                                         ],
                                         className="mb-3 p-3 border rounded",
@@ -887,13 +738,11 @@ def create_pert_info_table(
                                     # Legend
                                     html.Div(
                                         html.Small(
-                                            [
-                                                html.I(
-                                                    className="fas fa-star-of-life me-1",
-                                                    style={"fontSize": "0.6rem"},
-                                                ),
+                                            create_icon_text(
+                                                "fas fa-star-of-life",
                                                 "PERT forecast combines optimistic, most likely, and pessimistic estimates",
-                                            ],
+                                                size="xs",
+                                            ),
                                             className="text-muted fst-italic text-center",
                                         ),
                                         className="mt-2",
@@ -1740,7 +1589,7 @@ def create_error_alert(
     """
     children = [
         html.H4(
-            [create_icon("fas fa-exclamation-triangle", className="me-2"), title],
+            create_icon_text("error", title, size="md"),
             className="alert-heading d-flex align-items-center",
         ),
         html.P(message),
@@ -1750,7 +1599,6 @@ def create_error_alert(
             [
                 html.Hr(),
                 html.P(f"Details: {error_details}", className="mb-0 small text-muted"),
-                # Or use a collapsible component for long details
             ]
         )
 
@@ -1758,5 +1606,5 @@ def create_error_alert(
         children,
         color="danger",
         dismissable=True,
-        className="error-alert",  # Add class for potential specific styling
+        className="error-alert",
     )
