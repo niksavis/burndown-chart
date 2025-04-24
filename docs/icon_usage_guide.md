@@ -1,4 +1,4 @@
-# Icon Usage Guide
+# Icon System Usage Guide
 
 This guide explains how to use the standardized icon system in the Burndown Chart application.
 
@@ -49,9 +49,9 @@ The icon system uses standardized sizes:
 - **lg**: Large (1.25em) - For primary interface elements
 - **xl**: Extra large (1.5em) - For section headers
 
-## Semantic Icon Names
+## Available Semantic Names
 
-Instead of using Font Awesome class names directly, use the semantic names:
+Instead of using Font Awesome class names directly, use semantic names:
 
 | Semantic Name | Description           | Font Awesome Class      |
 | ------------- | --------------------- | ----------------------- |
@@ -70,9 +70,8 @@ Instead of using Font Awesome class names directly, use the semantic names:
 | points        | Story points          | fa-chart-bar            |
 | items         | Work items            | fa-tasks                |
 | forecast      | Forecast data         | fa-chart-line           |
-| close         | Close or dismiss      | fa-times                |
 
-## Accessibility Guidelines
+## Accessibility Best Practices
 
 1. **Never use icon-only buttons without tooltips** - Always add tooltips to icon-only buttons
 2. **Use appropriate semantic icon names** - Choose names that convey meaning
@@ -111,4 +110,20 @@ tooltip = dbc.Tooltip(
 
 ```python
 html.Th(create_icon_text("chart", "Statistics", size="sm"))
+```
+
+## Component Extraction
+
+For complex components, extract icon-related patterns into helper functions:
+
+```python
+def _create_header_with_icon(icon_name, title, color="#20c997"):
+    """Create a header with an icon."""
+    return html.H5(
+        [
+            create_icon(icon_name, color=color),
+            html.Span(title, className="ms-2"),
+        ],
+        className="mb-3 border-bottom pb-2 d-flex align-items-center",
+    )
 ```
