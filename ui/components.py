@@ -17,6 +17,8 @@ import dash_bootstrap_components as dbc
 
 # Application imports
 from configuration import COLOR_PALETTE
+from .icon_utils import create_icon  # Assuming icon_utils is in the same directory
+import logging  # Import logging
 
 #######################################################################
 # PERT INFO TABLE COMPONENT
@@ -1712,4 +1714,50 @@ def create_validation_message(message, show=False, type="invalid"):
         [html.I(className=icon_class) if icon_class else "", message],
         className=class_name,
         style=base_style,
+    )
+
+
+#######################################################################
+# ERROR ALERT COMPONENT
+#######################################################################
+
+
+def create_error_alert(
+    message="An unexpected error occurred. Please try again later.",
+    title="Error",
+    error_details=None,
+):
+    """
+    Creates a standardized Bootstrap Alert component for displaying errors.
+
+    Args:
+        message (str): The main user-friendly error message.
+        title (str): The title for the alert.
+        error_details (str, optional): Additional technical details to display,
+                                       potentially hidden by default.
+
+    Returns:
+        dbc.Alert: A Dash Bootstrap Components Alert.
+    """
+    children = [
+        html.H4(
+            [create_icon("fas fa-exclamation-triangle", className="me-2"), title],
+            className="alert-heading d-flex align-items-center",
+        ),
+        html.P(message),
+    ]
+    if error_details:
+        children.extend(
+            [
+                html.Hr(),
+                html.P(f"Details: {error_details}", className="mb-0 small text-muted"),
+                # Or use a collapsible component for long details
+            ]
+        )
+
+    return dbc.Alert(
+        children,
+        color="danger",
+        dismissable=True,
+        className="error-alert",  # Add class for potential specific styling
     )
