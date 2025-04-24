@@ -2,16 +2,16 @@
 
 ## Overview
 
-This guide explains the new unified grid system in the Burndown Chart application. The new system combines functionality from both `grid_templates.py` and `responsive_grid.py` into a single cohesive API in `grid_utils.py`.
+This guide explains the unified grid system in the Burndown Chart application. The system provides a cohesive API in `grid_utils.py` for all layout needs.
 
-## Why We Unified the Grid System
+## Background
 
-Previously, our application had two separate modules for creating grid layouts:
+The current grid system was developed to consolidate previously separate approaches:
 
-1. `grid_templates.py` - Focused on simpler Bootstrap layouts with mainly xs/md breakpoints, and integrated with the vertical rhythm system.
-2. `responsive_grid.py` - Provided advanced responsive behaviors across all breakpoints with conditional visibility and reordering capabilities.
+1. Simple Bootstrap layouts with mainly xs/md breakpoints and vertical rhythm integration
+2. Advanced responsive behaviors across all breakpoints with conditional visibility and reordering
 
-This dual approach led to inconsistencies and duplication. The new unified system:
+The unified system:
 
 - Provides a single source of truth for grid layouts
 - Organizes functions into logical layers based on complexity
@@ -141,40 +141,40 @@ create_breakpoint_visibility_examples()
 create_mobile_container(content, expanded_height="auto", className="")
 ```
 
-## Migration Guide
+## Grid System Usage
 
-### Step 1: Update Imports
+All components in the burndown chart application use this unified grid system. This section provides guidance on working with the existing implementation.
 
-Replace imports from the old modules with imports from the new unified module:
+### Import Pattern
+
+Use the standard import pattern:
 
 ```python
-# Old imports
-from ui.grid_templates import create_two_column_layout
-from ui.responsive_grid import create_responsive_dashboard_layout
-
-# New imports
 from ui.grid_utils import create_two_column_layout, create_dashboard_layout
 ```
 
-### Step 2: Update Function Names
+### Function Naming Convention
 
-Some functions have been renamed for clarity and consistency:
+The unified grid system uses consistent function naming:
 
-| Old Function                         | New Function              |
-| ------------------------------------ | ------------------------- |
-| `create_responsive_dashboard_layout` | `create_dashboard_layout` |
-| `create_responsive_card_deck`        | `create_card_grid`        |
+| Pattern               | Purpose                        | Examples                                              |
+| --------------------- | ------------------------------ | ----------------------------------------------------- |
+| `create_*_layout`     | General layout patterns        | `create_two_column_layout`, `create_dashboard_layout` |
+| `create_*_grid`       | Content grid arrangements      | `create_card_grid`                                    |
+| `create_responsive_*` | Low-level responsive utilities | `create_responsive_row`, `create_responsive_column`   |
 
-### Step 3: Update Parameter Names
+### Function Selection Guide
 
-Some parameters have been renamed or reorganized:
+When adding new layouts or components, select the appropriate grid function:
 
-- Breakpoint parameters are now consistent (e.g., `stack_until` instead of varying names)
-- Use `breakpoint` to specify when layouts change from stacked to side-by-side
+1. For simple side-by-side content: `create_two_column_layout` or `create_three_column_layout`
+2. For dashboard-style interfaces: `create_dashboard_layout`
+3. For card collections: `create_card_grid`
+4. For custom complex layouts: Use the low-level functions directly
 
-### Step 4: Use the Test Suite
+### Testing Grid Components
 
-Run the test script (`ui/test_grid.py`) to see examples of the new grid system in action:
+Run the test script (`ui/test_grid.py`) to see examples of the grid system in action:
 
 ```sh
 python ui/test_grid.py
