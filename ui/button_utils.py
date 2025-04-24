@@ -17,6 +17,7 @@ from dash import html
 
 # Application imports
 from ui.styles import TYPOGRAPHY
+from ui.aria_utils import add_aria_label_to_icon_button
 
 #######################################################################
 # BUTTON STYLING FUNCTIONS
@@ -284,71 +285,20 @@ def create_action_buttons(
 
 def create_icon_button(
     icon_class,
+    label,
     id=None,
-    variant="primary",
-    size="md",
-    tooltip=None,
-    tooltip_placement="top",
-    className="",
-    style=None,
-    disabled=False,
+    color="primary",
     **kwargs,
 ):
-    """
-    Create a button with only an icon (no text).
-
-    Args:
-        icon_class (str): Font Awesome icon class
-        id (str, optional): Button ID for callbacks
-        variant (str): Button variant (primary, secondary, success, danger, warning, info, light, dark)
-        size (str): Button size (sm, md, lg)
-        tooltip (str, optional): Tooltip text
-        tooltip_placement (str): Tooltip placement (top, bottom, left, right)
-        className (str): Additional CSS classes
-        style (dict, optional): Additional inline styles
-        disabled (bool): Whether the button is disabled
-        **kwargs: Additional keyword arguments to pass to dbc.Button
-
-    Returns:
-        Component: An icon button component, possibly wrapped in a tooltip
-    """
-    # Size adjustments for icon-only buttons to make them more square
-    size_padding = {"sm": "0.25rem", "md": "0.375rem", "lg": "0.5rem"}
-
-    button_style = create_button_style(variant, size, disabled=disabled)
-    button_style.update(
-        {
-            "padding": size_padding.get(size, "0.375rem"),
-            "borderRadius": "0.375rem",
-            "width": "auto",
-            "height": "auto",
-            "minWidth": "36px",
-            "minHeight": "36px",
-        }
-    )
-
-    if style:
-        button_style.update(style)
-
-    button = dbc.Button(
+    """Create an icon-only button with accessibility features."""
+    button = html.Button(
         html.I(className=icon_class),
         id=id,
-        color=variant,
-        size=size,
-        className=f"d-flex align-items-center justify-content-center {className}",
-        style=button_style,
-        disabled=disabled,
+        className=f"btn btn-{color} icon-only",
         **kwargs,
     )
 
-    # Wrap in tooltip if specified
-    if tooltip and id:
-        return html.Div(
-            [button, dbc.Tooltip(tooltip, target=id, placement=tooltip_placement)],
-            style={"display": "inline-block"},
-        )
-
-    return button
+    return add_aria_label_to_icon_button(button, label)
 
 
 def create_close_button(

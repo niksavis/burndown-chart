@@ -10,6 +10,7 @@ import dash_bootstrap_components as dbc
 from typing import List, Dict, Any, Optional, Union
 
 from ui.error_utils import try_except_callback
+from ui.aria_utils import enhance_data_table
 
 
 def create_basic_table(
@@ -79,6 +80,7 @@ def create_data_table(
     filterable: bool = False,
     export_format: Optional[List[str]] = None,
     mobile_responsive: bool = True,
+    caption: Optional[str] = None,
 ) -> html.Div:
     """
     Create an advanced data table with pagination, sorting, and filtering.
@@ -92,6 +94,7 @@ def create_data_table(
         filterable: Whether to include filters
         export_format: List of export formats to include (e.g., ["csv", "excel"])
         mobile_responsive: Whether to optimize for mobile
+        caption: Optional caption for accessibility
 
     Returns:
         A Dash DataTable wrapped in a container
@@ -154,12 +157,19 @@ def create_data_table(
 
     # Apply mobile optimizations if requested
     if mobile_responsive:
-        return html.Div(
+        table_container = html.Div(
             export_buttons + [table],
             className="table-responsive mobile-optimized-table",
         )
+    else:
+        table_container = html.Div(export_buttons + [table])
 
-    return html.Div(export_buttons + [table])
+    # Add accessibility features
+    options = {}
+    if caption:
+        options["caption"] = caption
+
+    return enhance_data_table(table_container, options)
 
 
 # Placeholder for future migration of existing table components
