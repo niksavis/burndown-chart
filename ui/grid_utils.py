@@ -843,3 +843,60 @@ def create_tab_content(content, padding=None):
         padding = "p-3"  # Default padding
 
     return html.Div(content, className=f"{padding} border border-top-0 rounded-bottom")
+
+
+def create_full_width_layout(content, row_class=None):
+    """
+    Creates a standardized full-width layout.
+
+    Args:
+        content: Content for the full-width column
+        row_class: Additional classes to apply to the row
+
+    Returns:
+        A dbc.Row containing the full-width layout
+    """
+    # Use vertical rhythm system for consistent spacing
+    margin_bottom = get_vertical_rhythm("section")
+    row_style = {"marginBottom": margin_bottom}
+
+    # Apply custom class if provided
+    combined_class = row_class if row_class else ""
+
+    return dbc.Row(
+        [
+            dbc.Col(content, width=12),
+        ],
+        className=combined_class,
+        style=row_style,
+    )
+
+
+def create_two_cards_layout(
+    card1, card2, card1_width=6, card2_width=6, equal_height=True
+):
+    """
+    Creates a standardized layout for two cards side by side with responsive behavior.
+
+    Args:
+        card1: First card component
+        card2: Second card component
+        card1_width: Width of first card (1-12) for medium screens and up
+        card2_width: Width of second card (1-12) for medium screens and up
+        equal_height: Whether to make the cards the same height
+
+    Returns:
+        A dbc.Row containing the two cards layout
+    """
+    card1_class = "h-100" if equal_height else ""
+    card2_class = "h-100" if equal_height else ""
+
+    card1 = html.Div(card1, className=card1_class)
+    card2 = html.Div(card2, className=card2_class)
+
+    return create_two_column_layout(
+        left_content=card1,
+        right_content=card2,
+        left_width=card1_width,
+        right_width=card2_width,
+    )

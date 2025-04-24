@@ -28,7 +28,7 @@ from ui.cards import (
     create_project_summary_card,
     create_statistics_data_card,
 )
-from ui.grid_templates import (
+from ui.grid_utils import (
     create_full_width_layout,
     create_two_cards_layout,
 )

@@ -888,47 +888,6 @@ def create_content_placeholder(type="data", text=None, icon=None, className=""):
 #######################################################################
 
 
-def create_loading_indicator(
-    id="loading", type="spinner", message="Loading...", color="primary", size="md"
-):
-    """
-    DEPRECATED: Use the specific loading components instead.
-    This function will be removed in a future release.
-
-    Create a standardized loading indicator component.
-
-    Args:
-        id (str): Component ID
-        type (str): Type of indicator (spinner, growing, skeleton)
-        message (str): Message to display while loading
-        color (str): Bootstrap color variant
-        size (str): Size of the loading indicator (sm, md, lg)
-
-    Returns:
-        Dash component: A loading indicator component
-    """
-    warnings.warn(
-        "create_loading_indicator is deprecated. Use create_spinner, create_growing_spinner, or create_skeleton_loader instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-
-    if type == "skeleton":
-        return create_skeleton_loader(
-            type="text", lines=3, className="mb-3", width="100%"
-        )
-
-    elif type == "growing":
-        return create_growing_spinner(
-            style_key=color, size_key=size, text=message, id=id
-        )
-
-    else:  # Default spinner
-        return create_spinner(
-            style_key=color, size_key=size, text=message, className="my-3", id=id
-        )
-
-
 def create_loading_wrapper(
     children,
     is_loading=False,
@@ -999,9 +958,7 @@ def create_loading_wrapper(
     else:  # Simple loading indicator without an overlay
         if is_loading:
             return html.Div(
-                create_loading_indicator(
-                    type="spinner", message=message, color=color, size=size
-                ),
+                create_spinner(style_key=color, size_key=size, text=message),
                 className="d-flex justify-content-center my-4",
             )
         else:

@@ -26,7 +26,6 @@ from ui.cards import (
 from ui.components import (
     create_compact_trend_indicator,
     create_export_buttons,
-    create_info_tooltip,
     create_pert_info_table,
     create_trend_indicator,
     create_validation_message,
@@ -39,7 +38,6 @@ from ui.tabs import create_tab_content, create_tabs
 #######################################################################
 __all__ = [
     # Components
-    "create_info_tooltip",
     "create_pert_info_table",
     "create_trend_indicator",
     "create_export_buttons",
