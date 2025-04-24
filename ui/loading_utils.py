@@ -201,17 +201,17 @@ def create_spinner(
     style_key="primary", size_key="md", text=None, className="", id=None
 ):
     """
-    Create a spinner loading indicator with optional text.
+    Creates a Bootstrap spinner component.
 
     Args:
-        style_key (str): Color style key (primary, secondary, etc.)
-        size_key (str): Size key (sm, md, lg)
-        text (str): Optional text to display under the spinner
-        className (str): Additional CSS classes
-        id (str): Component ID
+        style_key (str, optional): The color style of the spinner (e.g., "primary", "secondary").
+                                   Defaults to "primary".
+        size_key (str, optional): The size of the spinner ("sm", "md", "lg"). Defaults to "md".
+        text (str, optional): Optional text to display alongside the spinner. Defaults to None.
+        className (str, optional): Additional CSS classes to apply. Defaults to "".
 
     Returns:
-        html.Div: A spinner component
+        html.Div: A Div containing the spinner and optional text.
     """
     spinner_style = create_spinner_style(style_key, size_key)
 
@@ -478,17 +478,18 @@ def create_skeleton_loader(
     type="text", lines=1, width="100%", height=None, className=""
 ):
     """
-    Create skeleton loading placeholders for content.
+    Creates a skeleton loading placeholder element.
 
     Args:
-        type (str): Type of skeleton ('text', 'card', 'circle', 'chart', 'image')
-        lines (int): Number of lines for text skeletons
-        width (str): Width of the skeleton
-        height (str): Height of the skeleton (optional)
-        className (str): Additional CSS classes
+        type (str, optional): The type of skeleton element ("text", "card", "avatar", etc.).
+                              Defaults to "text". Determines base styling.
+        lines (int, optional): Number of lines for text-type skeletons. Defaults to 1.
+        width (str, optional): CSS width of the skeleton element. Defaults to "100%".
+        height (str, optional): CSS height of the skeleton element. Defaults to None (auto).
+        className (str, optional): Additional CSS classes to apply. Defaults to "".
 
     Returns:
-        html.Div: Skeleton loader component
+        html.Div: A Div representing the skeleton loader.
     """
     base_style = {
         "backgroundColor": "#e9ecef",
@@ -811,18 +812,24 @@ def create_skeleton_chart(type="bar", width="100%", height="300px", className=""
 #######################################################################
 
 
-def create_content_placeholder(type="data", text=None, icon=None, className=""):
+def create_content_placeholder(
+    type="table", text=None, icon=None, height="100px", className=""
+):
     """
-    Create a placeholder for content that hasn't loaded yet.
+    Creates a placeholder indicating the type of content being loaded.
 
     Args:
-        type (str): Type of content ('data', 'chart', 'table', 'image')
-        text (str): Message to display in the placeholder
-        icon (str): FontAwesome icon class (overrides default icon)
-        className (str): Additional CSS classes
+        type (str, optional): The type of content ("table", "chart", "text", "data", "image", "file", "form").
+                              Defaults to "table". Determines default icon and text.
+        text (str, optional): Custom text to display in the placeholder.
+                              Overrides default text if provided. Defaults to None.
+        icon (str, optional): Custom Font Awesome icon class (e.g., "fas fa-cog") to display.
+                              Overrides default icon if provided. Defaults to None.
+        height (str, optional): CSS height of the placeholder container. Defaults to "100px".
+        className (str, optional): Additional CSS classes to apply. Defaults to "".
 
     Returns:
-        html.Div: A content placeholder component
+        html.Div: A Div containing the placeholder icon and text.
     """
     # Default settings by type
     type_defaults = {
@@ -878,7 +885,8 @@ def create_content_placeholder(type="data", text=None, icon=None, className=""):
             "backgroundColor": "#f8f9fa",
             "border": "1px dashed #dee2e6",
             "borderRadius": "0.5rem",
-            "minHeight": "200px",
+            "minHeight": "200px",  # Keep a minimum height
+            "height": height,  # Allow overriding height
         },
     )
 
