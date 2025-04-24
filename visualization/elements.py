@@ -417,61 +417,6 @@ def create_metrics_background(fig, y_position=-0.2):
     return fig
 
 
-def add_metric_annotation(
-    fig,
-    x_pos,
-    y_pos,
-    label,
-    value,
-    format_str,
-    is_estimate=False,
-    estimate_value=None,
-    deadline_days=None,
-):
-    """
-    Add a single metric annotation to the figure.
-
-    Args:
-        fig: Plotly figure object
-        x_pos: X position (paper coordinates)
-        y_pos: Y position (paper coordinates)
-        label: Label for the metric
-        value: Value of the metric
-        format_str: Format string for the value
-        is_estimate: Whether this is an estimate that should be color-coded
-        estimate_value: Value of the estimate (used for color coding)
-        deadline_days: Days to deadline (used for color coding)
-
-    Returns:
-        Updated figure object
-    """
-    # Format the value according to the format string
-    formatted_value = format_str.format(value)
-
-    # Default text color
-    text_color = "#505050"
-
-    # Color coding for estimates
-    if is_estimate and estimate_value is not None and deadline_days is not None:
-        if estimate_value > deadline_days:
-            text_color = "red"  # At risk of missing deadline
-
-    # Add the annotation
-    fig.add_annotation(
-        xref="paper",
-        yref="paper",
-        x=x_pos,
-        y=y_pos,
-        text=f"<b>{label}:</b> {formatted_value}",
-        showarrow=False,
-        font=dict(size=14, color=text_color, family="Arial, sans-serif"),
-        align="left",
-        xanchor="left",
-    )
-
-    return fig
-
-
 #######################################################################
 # LAYOUT STYLING FUNCTIONS
 #######################################################################
