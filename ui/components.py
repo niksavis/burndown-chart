@@ -17,7 +17,22 @@ import dash_bootstrap_components as dbc
 
 # Application imports
 from configuration import COLOR_PALETTE
-from ui.icon_utils import create_icon, create_icon_text
+from ui.icon_utils import create_icon_text
+from ui.styles import create_form_feedback_style
+from ui.button_utils import create_button
+
+# Define common trend icons and colors
+TREND_ICONS = {
+    "stable": "fas fa-equals",
+    "up": "fas fa-arrow-up",
+    "down": "fas fa-arrow-down",
+}
+
+TREND_COLORS = {
+    "stable": "#6c757d",  # Gray
+    "up": "#28a745",  # Green
+    "down": "#dc3545",  # Red
+}
 
 #######################################################################
 # PERT INFO TABLE COMPONENT
@@ -1169,8 +1184,6 @@ def create_compact_trend_indicator(trend_data, metric_name="Items"):
     Returns:
         Dash component for displaying trend information in a compact format
     """
-    from dash import html
-
     # Extract values from trend data or use defaults
     percent_change = trend_data.get("percent_change", 0)
     current_avg = trend_data.get("current_avg", 0)
@@ -1179,20 +1192,20 @@ def create_compact_trend_indicator(trend_data, metric_name="Items"):
     # Determine trend direction and colors
     if abs(percent_change) < 5:
         direction = "stable"
-        icon_class = "fas fa-equals"
-        text_color = "#6c757d"  # Gray
+        icon_class = TREND_ICONS["stable"]
+        text_color = TREND_COLORS["stable"]
         bg_color = "rgba(108, 117, 125, 0.1)"
         border_color = "rgba(108, 117, 125, 0.2)"
     elif percent_change > 0:
         direction = "up"
-        icon_class = "fas fa-arrow-up"
-        text_color = "#28a745"  # Green
+        icon_class = TREND_ICONS["up"]
+        text_color = TREND_COLORS["up"]
         bg_color = "rgba(40, 167, 69, 0.1)"
         border_color = "rgba(40, 167, 69, 0.2)"
     else:
         direction = "down"
-        icon_class = "fas fa-arrow-down"
-        text_color = "#dc3545"  # Red
+        icon_class = TREND_ICONS["down"]
+        text_color = TREND_COLORS["down"]
         bg_color = "rgba(220, 53, 69, 0.1)"
         border_color = "rgba(220, 53, 69, 0.2)"
 
@@ -1249,13 +1262,11 @@ def create_compact_trend_indicator(trend_data, metric_name="Items"):
                         children=[
                             html.Span(
                                 f"4-week avg: {current_avg} {metric_name.lower()}/week",
-                                style={
-                                    "marginRight": "15px"
-                                },  # Add explicit right margin
+                                style={"marginRight": "15px"},
                             ),
                             html.Span(
                                 f"Previous: {previous_avg} {metric_name.lower()}/week",
-                                style={"marginLeft": "5px"},  # Add explicit left margin
+                                style={"marginLeft": "5px"},
                             ),
                         ],
                     ),
@@ -1276,8 +1287,6 @@ def create_trend_indicator(trend_data, metric_name="Items"):
     Returns:
         Dash component for displaying trend information
     """
-    from dash import html
-
     # Extract values from trend data or use defaults
     percent_change = trend_data.get("percent_change", 0)
     is_significant = trend_data.get("is_significant", False)
@@ -1285,34 +1294,19 @@ def create_trend_indicator(trend_data, metric_name="Items"):
     current_avg = trend_data.get("current_avg", 0)
     previous_avg = trend_data.get("previous_avg", 0)
 
-    # Determine trend direction and set appropriate icon and color
+    # Determine trend direction based on percent change
     if abs(percent_change) < 5:
         direction = "stable"
-        trend_icons = {
-            "stable": "fas fa-equals",
-            "up": "fas fa-arrow-up",
-            "down": "fas fa-arrow-down",
-        }
-        trend_colors = {"stable": "#6c757d", "up": "#28a745", "down": "#dc3545"}
     elif percent_change > 0:
         direction = "up"
-        trend_icons = {
-            "stable": "fas fa-equals",
-            "up": "fas fa-arrow-up",
-            "down": "fas fa-arrow-down",
-        }
-        trend_colors = {"stable": "#6c757d", "up": "#28a745", "down": "#dc3545"}
     else:
         direction = "down"
-        trend_icons = {
-            "stable": "fas fa-equals",
-            "up": "fas fa-arrow-up",
-            "down": "fas fa-arrow-down",
-        }
-        trend_colors = {"stable": "#6c757d", "up": "#28a745", "down": "#dc3545"}
 
-    # Determine text color and font weight based on significance
-    text_color = trend_colors.get(direction, "#6c757d")
+    # Use global constants for icons and colors
+    text_color = TREND_COLORS[direction]
+    icon_class = TREND_ICONS[direction]
+
+    # Determine font weight based on significance
     font_weight = "bold" if is_significant else "normal"
 
     # Build the component
@@ -1322,7 +1316,7 @@ def create_trend_indicator(trend_data, metric_name="Items"):
             html.Div(
                 [
                     html.I(
-                        className=trend_icons.get(direction, "fas fa-arrows-alt-h"),
+                        className=icon_class,
                         style={
                             "color": text_color,
                             "fontSize": "1.5rem",
@@ -1395,8 +1389,6 @@ def create_export_buttons(chart_id=None, statistics_data=None):
     Returns:
         Dash Div component with export buttons
     """
-    from ui.button_utils import create_button
-
     buttons = []
 
     if chart_id:
@@ -1461,9 +1453,6 @@ def create_validation_message(message, show=False, type="invalid"):
     Returns:
         html.Div: A validation message component
     """
-    from dash import html
-    from ui.styles import create_form_feedback_style
-
     # Determine the appropriate style class based on validation type
     class_name = "d-none"
     if show:
