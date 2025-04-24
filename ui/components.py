@@ -17,7 +17,6 @@ import dash_bootstrap_components as dbc
 
 # Application imports
 from configuration import COLOR_PALETTE
-from .icon_utils import create_icon  # Assuming icon_utils is in the same directory
 from ui.icon_utils import create_icon, create_icon_text
 
 #######################################################################
@@ -44,49 +43,43 @@ def _create_forecast_row(
     label, completion_date, timeframe, bg_color, is_highlighted=False, icon=None
 ):
     """Create a standardized forecast row for PERT tables."""
-    row_style = {
-        "backgroundColor": bg_color,
-        "borderRadius": "4px",
-    }
+    # Create appropriate class names based on highlight status and bg_color
+    row_classes = ["forecast-row"]
+    label_classes = ["label-text"]
+    icon_classes = ["forecast-row-icon"]
 
-    # Add border for highlighted rows
     if is_highlighted:
-        border_color = "green" if "40,167,69" in bg_color else "red"
-        row_style["border"] = f"1px solid {border_color}"
+        row_classes.append("highlighted")
+        label_classes.append("highlighted")
+        # Determine if this is a success or danger highlighted row
+        if "40,167,69" in bg_color:  # Check if it's green
+            row_classes.append("success")
+            icon_classes.append("success")
+        else:
+            row_classes.append("danger")
+            icon_classes.append("danger")
 
-    label_content = [
-        html.Span(label, className="fw-bold" if is_highlighted else "fw-medium")
-    ]
+    # Style attribute for the background color only
+    row_style = {"backgroundColor": bg_color}
+
+    label_content = [html.Span(label, className=" ".join(label_classes))]
+
     if icon and is_highlighted:
-        label_content.append(
-            html.I(
-                className=f"{icon} ms-2",
-                style={"fontSize": "0.7rem", "color": border_color},
-            )
-        )
+        label_content.append(html.I(className=f"{icon} ms-2 {' '.join(icon_classes)}"))
 
     return html.Div(
-        className="d-flex align-items-center p-2 mb-1",
+        className=" ".join(row_classes),
         style=row_style,
         children=[
-            html.Div(
-                label_content,
-                style={"width": "25%"},
-                className="d-flex align-items-center",
-            ),
+            html.Div(label_content, className="forecast-row-label"),
             html.Div(
                 html.Span(
                     completion_date,
                     className="fw-medium",
                 ),
-                style={"width": "45%"},
-                className="text-center",
+                className="forecast-row-date",
             ),
-            html.Div(
-                html.Small(timeframe),
-                style={"width": "30%"},
-                className="text-end",
-            ),
+            html.Div(html.Small(timeframe), className="forecast-row-timeframe"),
         ],
     )
 
@@ -259,14 +252,7 @@ def create_pert_info_table(
                                     html.Div(
                                         [
                                             html.Div(
-                                                className="progress",
-                                                style={
-                                                    "height": "24px",
-                                                    "position": "relative",
-                                                    "borderRadius": "6px",
-                                                    "overflow": "hidden",
-                                                    "boxShadow": "inset 0 1px 2px rgba(0,0,0,.1)",
-                                                },
+                                                className="progress-container",
                                                 children=[
                                                     html.Div(
                                                         className="progress-bar bg-primary",
@@ -278,23 +264,7 @@ def create_pert_info_table(
                                                     ),
                                                     html.Span(
                                                         f"{items_percentage}% Complete",
-                                                        style={
-                                                            "position": "absolute",
-                                                            "top": "0",
-                                                            "left": "0",
-                                                            "width": "100%",
-                                                            "height": "100%",
-                                                            "display": "flex",
-                                                            "alignItems": "center",
-                                                            "justifyContent": "center",
-                                                            "color": "white"
-                                                            if items_percentage > 40
-                                                            else "black",
-                                                            "fontWeight": "bold",
-                                                            "textShadow": "0 0 2px rgba(0,0,0,0.2)"
-                                                            if items_percentage > 40
-                                                            else "none",
-                                                        },
+                                                        className=f"progress-label {'dark-text' if items_percentage > 40 else 'light-text'}",
                                                     ),
                                                 ],
                                             ),
