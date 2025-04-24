@@ -1252,9 +1252,9 @@ SPINNER_SIZES = {
 SKELETON_ANIMATION = "@keyframes skeleton-loading { 0% { background-color: rgba(200, 200, 200, 0.2); } 50% { background-color: rgba(200, 200, 200, 0.6); } 100% { background-color: rgba(200, 200, 200, 0.2); } }"
 
 
-def get_loading_style(style_key="default", size_key="md"):
+def create_loading_style(style_key="default", size_key="md"):
     """
-    Get loading spinner styling based on predefined styles.
+    Create loading spinner styling based on predefined styles.
 
     Args:
         style_key (str): Key for loading style (default, light, dark, etc.)

@@ -24,7 +24,7 @@ import dash_bootstrap_components as dbc
 from configuration import logger
 from data import save_statistics, read_and_clean_data
 from data.capacity import CapacityManager
-from visualization import empty_figure
+from visualization import create_empty_figure
 
 #######################################################################
 # HELPER FUNCTIONS
@@ -375,7 +375,7 @@ def register(app):
         """
         if not statistics_data or not team_members or not hours_per_member:
             # Return empty visualizations if no data or invalid settings
-            return html.Div("No capacity metrics available"), empty_figure(
+            return html.Div("No capacity metrics available"), create_empty_figure(
                 "No data available"
             )
 
@@ -455,13 +455,13 @@ def register(app):
             A Plotly figure object
         """
         if not forecast_data:
-            return empty_figure("No forecast data available")
+            return create_empty_figure("No forecast data available")
 
         # Extract weekly forecast data from the new structure
         weekly_forecast = forecast_data.get("weekly_forecast")
 
         if weekly_forecast is None or weekly_forecast.empty:
-            return empty_figure("Insufficient forecast data")
+            return create_empty_figure("Insufficient forecast data")
 
         # Create figure with capacity forecast
         fig = go.Figure()

@@ -78,7 +78,7 @@ def format_hover_template(
     title=None, fields=None, extra_info=None, include_extra_tag=True
 ):
     """
-    Create a consistent hover template string for Plotly charts.
+    Format a consistent hover template string for Plotly charts.
 
     This function formats hover templates for Plotly charts, properly handling
     Plotly's special syntax for format specifiers like %{y:.1f}.

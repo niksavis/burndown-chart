@@ -23,7 +23,7 @@ from ui.tooltip_utils import create_hoverlabel_config, format_hover_template
 #######################################################################
 
 
-def empty_figure(message="No data available"):
+def create_empty_figure(message="No data available"):
     """
     Create an empty figure with a message.
 

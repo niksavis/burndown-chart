@@ -24,9 +24,9 @@ from visualization.charts import (
 from visualization.elements import (
     add_deadline_marker,
     add_metric_annotation,
+    create_empty_figure,
     create_forecast_trace,
     create_historical_trace,
-    empty_figure,
 )
 
 # Define public API
@@ -40,5 +40,5 @@ __all__ = [
     "create_forecast_trace",
     "add_deadline_marker",
     "add_metric_annotation",
-    "empty_figure",
+    "create_empty_figure",
 ]

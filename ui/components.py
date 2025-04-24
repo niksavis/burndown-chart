@@ -110,11 +110,11 @@ def _get_trend_icon_and_color(trend_value):
         tuple: (icon_class, color_hex)
     """
     if abs(trend_value) < 5:  # Less than 5% change is considered stable
-        return "fas fa-equals", "#6c757d"  # Equals sign, gray color
+        return TREND_ICONS["stable"], TREND_COLORS["stable"]  # Equals sign, gray color
     elif trend_value > 0:
-        return "fas fa-arrow-up", "#28a745"  # Up arrow, green color
+        return TREND_ICONS["up"], TREND_COLORS["up"]  # Up arrow, green color
     else:
-        return "fas fa-arrow-down", "#dc3545"  # Down arrow, red color
+        return TREND_ICONS["down"], TREND_COLORS["down"]  # Down arrow, red color
 
 
 def _create_project_overview_section(
@@ -493,7 +493,6 @@ def _create_forecast_card(
                     ),
                 ],
             ),
-            # PERT row
             _create_forecast_row(
                 "PERT",
                 completion_str,
