@@ -1623,40 +1623,37 @@ def create_export_buttons(chart_id=None, statistics_data=None):
     if chart_id:
         # Add CSV export button for chart using the new button styling system
         csv_button = create_button(
-            text="Export CSV",
+            children=[html.I(className="fas fa-file-csv me-2"), "Export CSV"],
             id=f"{chart_id}-csv-button",
             variant="secondary",
             size="sm",
             outline=True,
-            icon_class="fas fa-file-csv",
-            className="me-2",
             tooltip="Export chart data as CSV",
+            className="me-2",
         )
         buttons.append(csv_button)
         buttons.append(html.Div(dcc.Download(id=f"{chart_id}-csv-download")))
 
         # Add PNG export button as well
         png_button = create_button(
-            text="Export Image",
+            children=[html.I(className="fas fa-file-image me-2"), "Export Image"],
             id=f"{chart_id}-png-button",
             variant="secondary",
             size="sm",
             outline=True,
-            icon_class="fas fa-file-image",
-            className="me-2",
             tooltip="Export chart as image",
+            className="me-2",
         )
         buttons.append(png_button)
 
     if statistics_data:
         # Add button for export stats using the new button styling system
         stats_button = create_button(
-            text="Export Statistics",
+            children=[html.I(className="fas fa-file-export me-2"), "Export Statistics"],
             id="export-statistics-button",
             variant="secondary",
             size="sm",
             outline=True,
-            icon_class="fas fa-file-export",
             tooltip="Export statistics data",
         )
         buttons.append(stats_button)

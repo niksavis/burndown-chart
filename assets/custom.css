@@ -415,10 +415,96 @@ td.cell--editable:not(.cell-selected) .dash-cell-value::after {
     font-size: 1.25rem !important;
   }
   
-  /* Focus states for mobile */
-  .btn:focus, .form-control:focus {
-    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.5) !important;
+  h4, .h4 { font-size: 1.1rem !important; } /* Added h4 */
+  h5, .h5 { font-size: 1rem !important; }   /* Added h5 */
+  h6, .h6 { font-size: 0.9rem !important; } /* Added h6 */
+  
+  /* Remove empty focus state rule */
+  /* .btn:focus, .form-control:focus {} */
+
+  /* Ensure modals are well-behaved on mobile */
+  .modal-dialog {
+      margin: 0.5rem; /* Reduce margin */
+      max-width: calc(100% - 1rem); /* Ensure some spacing from edge */
   }
+  .modal-content {
+      font-size: 0.95rem; /* Slightly smaller font in modals */
+  }
+  .modal-header, .modal-body, .modal-footer {
+      padding: 0.75rem !important; /* Consistent padding with cards */
+  }
+
+  /* Table optimizations for mobile */
+  /* Smaller padding for table cells on mobile */
+  .dash-spreadsheet td,
+  .dash-spreadsheet th {
+    padding: 8px 6px !important;
+    font-size: 14px !important;
+  }
+  
+  /* Touch-friendly pagination controls */
+  .previous-next-container {
+    gap: 3px !important; /* Slightly reduce gap on mobile */
+    margin: 10px auto !important; /* Reduce top/bottom margin */
+  }
+
+  .previous-page, 
+  .next-page, 
+  .first-page, 
+  .last-page {
+    min-height: 40px !important; /* Ensure minimum touch target size */
+    min-width: 40px !important; /* Ensure minimum touch target size */
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0.3rem !important; /* Adjust padding */
+  }
+
+  /* Style the page number input/display for mobile if necessary */
+  .page-number input[type=number] {
+    max-width: 50px; /* Limit width of page input */
+    padding: 0.3rem 0.5rem !important; /* Adjust padding */
+    height: 40px !important; /* Match button height */
+    font-size: 0.9rem !important; /* Adjust font size */
+  }
+  
+  /* Hide non-priority columns/elements on mobile */
+  .mobile-hidden {
+    display: none !important;
+  }
+
+  /* Apply text truncation on mobile */
+  .mobile-truncate {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    /* Consider adding max-width if needed, e.g. max-width: 150px; */
+  }
+}
+
+/* Text wrapping and truncation utilities */
+.text-wrap {
+  white-space: normal !important;
+  word-break: break-word !important;
+}
+
+/* General text truncation utility */
+.text-truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Keep existing .text-truncate-mobile for potential specific uses, but prefer .mobile-truncate */
+.text-truncate-mobile {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Focus states for mobile */
+.btn:focus, .form-control:focus {
+  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.5) !important;
 }
 
 /* Responsive table optimizations */
