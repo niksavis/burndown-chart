@@ -18,7 +18,6 @@ import dash_bootstrap_components as dbc
 # Application imports
 from configuration import COLOR_PALETTE
 from .icon_utils import create_icon  # Assuming icon_utils is in the same directory
-import logging  # Import logging
 
 #######################################################################
 # PERT INFO TABLE COMPONENT
