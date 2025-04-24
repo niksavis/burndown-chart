@@ -17,18 +17,12 @@ from dash import html
 import dash_bootstrap_components as dbc
 
 # Application imports
-# Import from configuration if available
-try:
-    from configuration import COLOR_PALETTE
-except ImportError:
-    COLOR_PALETTE = {
-        "primary": "#0d6efd",
-        "secondary": "#6c757d",
-        "success": "#198754",
-        "info": "#0dcaf0",
-        "warning": "#ffc107",
-        "danger": "#dc3545",
-    }
+from ui.style_constants import (
+    PRIMARY_COLORS,
+    SEMANTIC_COLORS,
+    NEUTRAL_COLORS,
+    rgb_to_rgba,
+)
 
 #######################################################################
 # CONSTANTS
@@ -37,63 +31,63 @@ except ImportError:
 # Loading styles configuration
 LOADING_STYLES = {
     "default": {
-        "spinner_color": COLOR_PALETTE.get("primary", "#0d6efd"),
+        "spinner_color": PRIMARY_COLORS.get("primary"),
         "overlay_color": "rgba(255, 255, 255, 0.8)",
-        "text_color": "#212529",  # dark text
+        "text_color": NEUTRAL_COLORS.get("gray-900"),  # dark text
         "size": "md",
     },
     "light": {
-        "spinner_color": COLOR_PALETTE.get("primary", "#0d6efd"),
+        "spinner_color": PRIMARY_COLORS.get("primary"),
         "overlay_color": "rgba(255, 255, 255, 0.9)",
-        "text_color": "#212529",  # dark text
+        "text_color": NEUTRAL_COLORS.get("gray-900"),  # dark text
         "size": "md",
     },
     "dark": {
-        "spinner_color": "#ffffff",  # white
+        "spinner_color": NEUTRAL_COLORS.get("white"),  # white
         "overlay_color": "rgba(0, 0, 0, 0.7)",
-        "text_color": "#ffffff",  # white
+        "text_color": NEUTRAL_COLORS.get("white"),  # white
         "size": "md",
     },
     "transparent": {
-        "spinner_color": COLOR_PALETTE.get("primary", "#0d6efd"),
+        "spinner_color": PRIMARY_COLORS.get("primary"),
         "overlay_color": "rgba(255, 255, 255, 0.4)",
-        "text_color": "#212529",  # dark text
+        "text_color": NEUTRAL_COLORS.get("gray-900"),  # dark text
         "size": "md",
     },
     "success": {
-        "spinner_color": COLOR_PALETTE.get("success", "#198754"),
+        "spinner_color": SEMANTIC_COLORS.get("success"),
         "overlay_color": "rgba(255, 255, 255, 0.8)",
-        "text_color": COLOR_PALETTE.get("success", "#198754"),
+        "text_color": SEMANTIC_COLORS.get("success"),
         "size": "md",
     },
     "danger": {
-        "spinner_color": COLOR_PALETTE.get("danger", "#dc3545"),
+        "spinner_color": SEMANTIC_COLORS.get("danger"),
         "overlay_color": "rgba(255, 255, 255, 0.8)",
-        "text_color": COLOR_PALETTE.get("danger", "#dc3545"),
+        "text_color": SEMANTIC_COLORS.get("danger"),
         "size": "md",
     },
     "warning": {
-        "spinner_color": COLOR_PALETTE.get("warning", "#ffc107"),
+        "spinner_color": SEMANTIC_COLORS.get("warning"),
         "overlay_color": "rgba(255, 255, 255, 0.8)",
-        "text_color": COLOR_PALETTE.get("warning", "#ffc107"),
+        "text_color": SEMANTIC_COLORS.get("warning"),
         "size": "md",
     },
     "info": {
-        "spinner_color": COLOR_PALETTE.get("info", "#0dcaf0"),
+        "spinner_color": SEMANTIC_COLORS.get("info"),
         "overlay_color": "rgba(255, 255, 255, 0.8)",
-        "text_color": COLOR_PALETTE.get("info", "#0dcaf0"),
+        "text_color": SEMANTIC_COLORS.get("info"),
         "size": "md",
     },
     "primary": {
-        "spinner_color": COLOR_PALETTE.get("primary", "#0d6efd"),
+        "spinner_color": PRIMARY_COLORS.get("primary"),
         "overlay_color": "rgba(255, 255, 255, 0.8)",
-        "text_color": COLOR_PALETTE.get("primary", "#0d6efd"),
+        "text_color": PRIMARY_COLORS.get("primary"),
         "size": "md",
     },
     "secondary": {
-        "spinner_color": COLOR_PALETTE.get("secondary", "#6c757d"),
+        "spinner_color": SEMANTIC_COLORS.get("secondary"),
         "overlay_color": "rgba(255, 255, 255, 0.8)",
-        "text_color": COLOR_PALETTE.get("secondary", "#6c757d"),
+        "text_color": SEMANTIC_COLORS.get("secondary"),
         "size": "md",
     },
 }
@@ -126,20 +120,19 @@ def get_loading_style(style_key="primary", size_key="md"):
     Returns:
         dict: Dictionary of style attributes
     """
-    # Base color mapping
+    # Use centralized color constants
     colors = {
-        "primary": "#0d6efd",
-        "secondary": "#6c757d",
-        "success": "#198754",
-        "info": "#0dcaf0",
-        "warning": "#ffc107",
-        "danger": "#dc3545",
-        "light": "#f8f9fa",
-        "dark": "#212529",
+        "primary": PRIMARY_COLORS.get("primary"),
+        "secondary": SEMANTIC_COLORS.get("secondary"),
+        "success": SEMANTIC_COLORS.get("success"),
+        "info": SEMANTIC_COLORS.get("info"),
+        "warning": SEMANTIC_COLORS.get("warning"),
+        "danger": SEMANTIC_COLORS.get("danger"),
+        "light": NEUTRAL_COLORS.get("gray-100"),
+        "dark": NEUTRAL_COLORS.get("gray-900"),
     }
 
-    # Use COLOR_PALETTE if available
-    color = COLOR_PALETTE.get(style_key, colors.get(style_key, colors["primary"]))
+    color = colors.get(style_key, colors["primary"])
 
     # Size mapping
     sizes = {
@@ -492,7 +485,7 @@ def create_skeleton_loader(
         html.Div: A Div representing the skeleton loader.
     """
     base_style = {
-        "backgroundColor": "#e9ecef",
+        "backgroundColor": NEUTRAL_COLORS.get("gray-200"),
         "borderRadius": "0.25rem",
         "animation": "skeleton-loading 1.5s infinite ease-in-out",
     }
@@ -569,7 +562,7 @@ def create_skeleton_loader(
             style={
                 "width": width,
                 "padding": "1rem",
-                "border": "1px solid #e9ecef",
+                "border": f"1px solid {NEUTRAL_COLORS.get('gray-200')}",
                 "borderRadius": "0.5rem",
             },
             className=className,
@@ -836,32 +829,32 @@ def create_content_placeholder(
         "data": {
             "icon": "fas fa-database",
             "message": "Loading data...",
-            "color": "#6c757d",  # secondary
+            "color": SEMANTIC_COLORS.get("secondary"),
         },
         "chart": {
             "icon": "fas fa-chart-bar",
             "message": "Preparing chart...",
-            "color": "#0d6efd",  # primary
+            "color": PRIMARY_COLORS.get("primary"),
         },
         "table": {
             "icon": "fas fa-table",
             "message": "Loading table data...",
-            "color": "#198754",  # success
+            "color": SEMANTIC_COLORS.get("success"),
         },
         "image": {
             "icon": "fas fa-image",
             "message": "Loading image...",
-            "color": "#0dcaf0",  # info
+            "color": SEMANTIC_COLORS.get("info"),
         },
         "file": {
             "icon": "fas fa-file-alt",
             "message": "Loading file...",
-            "color": "#ffc107",  # warning
+            "color": SEMANTIC_COLORS.get("warning"),
         },
         "form": {
             "icon": "fas fa-wpforms",
             "message": "Preparing form...",
-            "color": "#6c757d",  # secondary
+            "color": SEMANTIC_COLORS.get("secondary"),
         },
     }
 
@@ -882,8 +875,8 @@ def create_content_placeholder(
         ],
         className=f"d-flex flex-column justify-content-center align-items-center py-5 {className}",
         style={
-            "backgroundColor": "#f8f9fa",
-            "border": "1px dashed #dee2e6",
+            "backgroundColor": NEUTRAL_COLORS.get("gray-100"),
+            "border": f"1px dashed {NEUTRAL_COLORS.get('gray-300')}",
             "borderRadius": "0.5rem",
             "minHeight": "200px",  # Keep a minimum height
             "height": height,  # Allow overriding height

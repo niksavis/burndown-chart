@@ -21,13 +21,12 @@ from dash import html
 # Application imports
 from ui.button_utils import create_button
 from ui.icon_utils import create_icon
+from ui.style_constants import SEMANTIC_COLORS, NEUTRAL_COLORS, rgb_to_rgba
 from ui.styles import (
     get_color,
     create_heading_style,
     get_font_size,
     get_font_weight,
-    SEMANTIC_COLORS,
-    NEUTRAL_COLORS,
 )
 
 #######################################################################
@@ -52,11 +51,7 @@ def create_error_style(variant="danger", background=True):
     }
 
     if background:
-        base_style["backgroundColor"] = (
-            f"rgba({int(SEMANTIC_COLORS[variant].split(',')[0].replace('rgb(', ''))}, "
-            + f"{int(SEMANTIC_COLORS[variant].split(',')[1])}, "
-            + f"{int(SEMANTIC_COLORS[variant].split(',')[2].replace(')', ''))}, 0.1)"
-        )
+        base_style["backgroundColor"] = rgb_to_rgba(SEMANTIC_COLORS[variant], 0.1)
 
     return base_style
 

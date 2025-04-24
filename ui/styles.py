@@ -19,6 +19,9 @@ from ui.style_constants import (
     TYPOGRAPHY,
     SEMANTIC_COLORS,
     NEUTRAL_COLORS,
+    PRIMARY_COLORS,
+    CHART_COLORS,
+    rgb_to_rgba,
 )
 
 #######################################################################
@@ -424,24 +427,24 @@ def create_card_style(variant="default"):
 
     variant_styles = {
         "default": {
-            "backgroundColor": get_color("light"),
-            "border": f"1px solid {get_color('gray-300')}",
+            "backgroundColor": NEUTRAL_COLORS.get("gray-100"),
+            "border": f"1px solid {NEUTRAL_COLORS.get('gray-300')}",
         },
         "info": {
-            "backgroundColor": "rgba(13, 202, 240, 0.1)",  # Light info background
-            "border": f"1px solid {get_color('info')}",
+            "backgroundColor": rgb_to_rgba(SEMANTIC_COLORS.get("info"), 0.1),
+            "border": f"1px solid {SEMANTIC_COLORS.get('info')}",
         },
         "success": {
-            "backgroundColor": "rgba(40, 167, 69, 0.1)",  # Light success background
-            "border": f"1px solid {get_color('success')}",
+            "backgroundColor": rgb_to_rgba(SEMANTIC_COLORS.get("success"), 0.1),
+            "border": f"1px solid {SEMANTIC_COLORS.get('success')}",
         },
         "warning": {
-            "backgroundColor": "rgba(255, 193, 7, 0.1)",  # Light warning background
-            "border": f"1px solid {get_color('warning')}",
+            "backgroundColor": rgb_to_rgba(SEMANTIC_COLORS.get("warning"), 0.1),
+            "border": f"1px solid {SEMANTIC_COLORS.get('warning')}",
         },
         "danger": {
-            "backgroundColor": "rgba(220, 53, 69, 0.1)",  # Light danger background
-            "border": f"1px solid {get_color('danger')}",
+            "backgroundColor": rgb_to_rgba(SEMANTIC_COLORS.get("danger"), 0.1),
+            "border": f"1px solid {SEMANTIC_COLORS.get('danger')}",
         },
     }
 
@@ -650,7 +653,7 @@ def create_input_style(
         base_style.update(
             {
                 "borderColor": SEMANTIC_COLORS["danger"],
-                "boxShadow": "0 0 0 0.2rem rgba(220, 53, 69, 0.25)",
+                "boxShadow": f"0 0 0 0.2rem {rgb_to_rgba(SEMANTIC_COLORS['danger'], 0.25)}",
             }
         )
         return base_style
@@ -660,19 +663,19 @@ def create_input_style(
         "default": {},
         "success": {
             "borderColor": SEMANTIC_COLORS["success"],
-            "boxShadow": "0 0 0 0.2rem rgba(40, 167, 69, 0.25)",
+            "boxShadow": f"0 0 0 0.2rem {rgb_to_rgba(SEMANTIC_COLORS['success'], 0.25)}",
         },
         "warning": {
             "borderColor": SEMANTIC_COLORS["warning"],
-            "boxShadow": "0 0 0 0.2rem rgba(255, 193, 7, 0.25)",
+            "boxShadow": f"0 0 0 0.2rem {rgb_to_rgba(SEMANTIC_COLORS['warning'], 0.25)}",
         },
         "danger": {
             "borderColor": SEMANTIC_COLORS["danger"],
-            "boxShadow": "0 0 0 0.2rem rgba(220, 53, 69, 0.25)",
+            "boxShadow": f"0 0 0 0.2rem {rgb_to_rgba(SEMANTIC_COLORS['danger'], 0.25)}",
         },
         "info": {
             "borderColor": SEMANTIC_COLORS["info"],
-            "boxShadow": "0 0 0 0.2rem rgba(13, 202, 240, 0.25)",
+            "boxShadow": f"0 0 0 0.2rem {rgb_to_rgba(SEMANTIC_COLORS['info'], 0.25)}",
         },
     }
 
@@ -1285,18 +1288,18 @@ def get_loading_style(style_key="default", size_key="md"):
 FORM_VALIDATION_STATES = {
     "valid": {
         "borderColor": SEMANTIC_COLORS["success"],
-        "boxShadow": "0 0 0 0.2rem rgba(40, 167, 69, 0.25)",
+        "boxShadow": f"0 0 0 0.2rem {rgb_to_rgba(SEMANTIC_COLORS['success'], 0.25)}",
     },
     "warning": {
         "borderColor": SEMANTIC_COLORS["warning"],
-        "boxShadow": "0 0 0 0.2rem rgba(255, 193, 7, 0.25)",
+        "boxShadow": f"0 0 0 0.2rem {rgb_to_rgba(SEMANTIC_COLORS['warning'], 0.25)}",
     },
     "danger": {
         "borderColor": SEMANTIC_COLORS["danger"],
-        "boxShadow": "0 0 0 0.2rem rgba(220, 53, 69, 0.25)",
+        "boxShadow": f"0 0 0 0.2rem {rgb_to_rgba(SEMANTIC_COLORS['danger'], 0.25)}",
     },
     "info": {
         "borderColor": SEMANTIC_COLORS["info"],
-        "boxShadow": "0 0 0 0.2rem rgba(13, 202, 240, 0.25)",
+        "boxShadow": f"0 0 0 0.2rem {rgb_to_rgba(SEMANTIC_COLORS['info'], 0.25)}",
     },
 }
