@@ -2124,3 +2124,313 @@ def format_hover_template_fix(
         return f"{hover_text}<extra></extra>"
 
     return hover_text
+
+
+def create_burnup_chart(
+    df, total_items, total_points, pert_factor, deadline_str, data_points_count=None
+):
+    """
+    Create a burnup chart showing both completed work and total scope over time.
+
+    Args:
+        df: DataFrame with statistics data
+        total_items: Total number of items to complete
+        total_points: Total number of story points
+        pert_factor: PERT factor for calculations
+        deadline_str: Deadline date as string (YYYY-MM-DD)
+        data_points_count: Number of most recent data points to use (defaults to all)
+
+    Returns:
+        Tuple of (figure, data_dict) where data_dict contains all chart information
+    """
+    try:
+        # Ensure numeric types for calculations with explicit conversion and error handling
+        try:
+            total_items = float(total_items) if total_items is not None else 0.0
+        except (ValueError, TypeError):
+            total_items = 0.0
+
+        try:
+            total_points = float(total_points) if total_points is not None else 0.0
+        except (ValueError, TypeError):
+            total_points = 0.0
+
+        try:
+            pert_factor = int(pert_factor) if pert_factor is not None else 3
+        except (ValueError, TypeError):
+            pert_factor = 3
+
+        # Ensure proper date format for deadline
+        try:
+            deadline = pd.to_datetime(deadline_str)
+        except (ValueError, TypeError):
+            # Use fallback date 30 days from now if deadline format is invalid
+            deadline = pd.Timestamp.now() + pd.Timedelta(days=30)
+            logging.getLogger("burndown_chart").warning(
+                f"Invalid deadline format: {deadline_str}. Using default."
+            )
+
+        # Create subplot with secondary y-axis
+        fig = make_subplots(specs=[[{"secondary_y": True}]])
+
+        # Create empty figure if no data
+        if df is None or df.empty:
+            fig.add_annotation(
+                text="No data available for burnup chart",
+                xref="paper",
+                yref="paper",
+                x=0.5,
+                y=0.5,
+                showarrow=False,
+                font=dict(size=16),
+            )
+            return fig, {}
+
+        # Ensure DataFrame has required columns
+        df = df.copy()
+        df["date"] = pd.to_datetime(df["date"])
+
+        # Sort by date
+        df = df.sort_values("date")
+
+        # Calculate cumulative completed work
+        if "completed_items" not in df.columns:
+            df["completed_items"] = 0
+        if "completed_points" not in df.columns:
+            df["completed_points"] = 0
+        if "created_items" not in df.columns:
+            df["created_items"] = 0
+        if "created_points" not in df.columns:
+            df["created_points"] = 0
+
+        df["cum_completed_items"] = df["completed_items"].cumsum()
+        df["cum_completed_points"] = df["completed_points"].cumsum()
+
+        # Calculate cumulative scope (baseline + created items/points)
+        baseline_items = total_items
+        baseline_points = total_points
+
+        df["cum_created_items"] = df["created_items"].cumsum()
+        df["cum_created_points"] = df["created_points"].cumsum()
+
+        df["cum_scope_items"] = baseline_items + df["cum_created_items"]
+        df["cum_scope_points"] = baseline_points + df["cum_created_points"]
+
+        # Create traces for completed work
+        completed_items_trace = go.Scatter(
+            x=df["date"],
+            y=df["cum_completed_items"],
+            mode="lines+markers",
+            name="Completed Items",
+            line=dict(color=COLOR_PALETTE["items"], width=3),
+            marker=dict(
+                size=8,
+                color=COLOR_PALETTE["items"],
+                symbol="circle",
+                line=dict(width=2, color="white"),
+            ),
+            hovertemplate=format_hover_template(
+                title="Completed Items",
+                fields={
+                    "Date": "%{x|%Y-%m-%d}",
+                    "Items": "%{y}",
+                },
+            ),
+            hoverlabel=create_hoverlabel_config("default"),
+        )
+
+        completed_points_trace = go.Scatter(
+            x=df["date"],
+            y=df["cum_completed_points"],
+            mode="lines+markers",
+            name="Completed Points",
+            line=dict(color=COLOR_PALETTE["points"], width=3),
+            marker=dict(
+                size=8,
+                color=COLOR_PALETTE["points"],
+                symbol="circle",
+                line=dict(width=2, color="white"),
+            ),
+            hovertemplate=format_hover_template(
+                title="Completed Points",
+                fields={
+                    "Date": "%{x|%Y-%m-%d}",
+                    "Points": "%{y}",
+                },
+            ),
+            hoverlabel=create_hoverlabel_config("default"),
+            visible="legendonly",  # Hidden by default
+        )
+
+        # Create traces for total scope
+        scope_items_trace = go.Scatter(
+            x=df["date"],
+            y=df["cum_scope_items"],
+            mode="lines+markers",
+            name="Total Items Scope",
+            line=dict(color=COLOR_PALETTE["items"], width=3, dash="dot"),
+            marker=dict(
+                size=8,
+                color=COLOR_PALETTE["items"],
+                symbol="square",
+                line=dict(width=2, color="white"),
+            ),
+            hovertemplate=format_hover_template(
+                title="Total Items Scope",
+                fields={
+                    "Date": "%{x|%Y-%m-%d}",
+                    "Items": "%{y}",
+                },
+            ),
+            hoverlabel=create_hoverlabel_config("default"),
+        )
+
+        scope_points_trace = go.Scatter(
+            x=df["date"],
+            y=df["cum_scope_points"],
+            mode="lines+markers",
+            name="Total Points Scope",
+            line=dict(color=COLOR_PALETTE["points"], width=3, dash="dot"),
+            marker=dict(
+                size=8,
+                color=COLOR_PALETTE["points"],
+                symbol="square",
+                line=dict(width=2, color="white"),
+            ),
+            hovertemplate=format_hover_template(
+                title="Total Points Scope",
+                fields={
+                    "Date": "%{x|%Y-%m-%d}",
+                    "Points": "%{y}",
+                },
+            ),
+            hoverlabel=create_hoverlabel_config("default"),
+            visible="legendonly",  # Hidden by default
+        )
+
+        # Add traces to figure
+        fig.add_trace(completed_items_trace, secondary_y=False)
+        fig.add_trace(scope_items_trace, secondary_y=False)
+        fig.add_trace(completed_points_trace, secondary_y=True)
+        fig.add_trace(scope_points_trace, secondary_y=True)
+
+        # Add deadline marker
+        fig = add_deadline_marker(fig, deadline)
+
+        # Configure axes
+        fig.update_layout(
+            title="Project Burnup Chart",
+            xaxis_title="Date",
+            yaxis_title="Items",
+            yaxis2_title="Points",
+            legend=dict(
+                orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5
+            ),
+            hovermode="x unified",
+            margin=dict(l=60, r=60, t=80, b=50),
+            height=700,
+            template="plotly_white",
+        )
+
+        # Highlight periods of significant scope increase
+        scope_growth_periods = identify_significant_scope_growth(df)
+        for period in scope_growth_periods:
+            fig.add_vrect(
+                x0=period["start_date"],
+                x1=period["end_date"],
+                fillcolor="rgba(255, 0, 0, 0.1)",
+                opacity=0.5,
+                layer="below",
+                line_width=0,
+                annotation_text="Significant scope increase",
+                annotation_position="top right",
+            )
+
+        return fig, {
+            "baseline_items": baseline_items,
+            "baseline_points": baseline_points,
+            "current_scope_items": df["cum_scope_items"].iloc[-1]
+            if not df.empty
+            else baseline_items,
+            "current_scope_points": df["cum_scope_points"].iloc[-1]
+            if not df.empty
+            else baseline_points,
+            "completed_items": df["cum_completed_items"].iloc[-1]
+            if not df.empty
+            else 0,
+            "completed_points": df["cum_completed_points"].iloc[-1]
+            if not df.empty
+            else 0,
+        }
+
+    except Exception as e:
+        # Comprehensive error handling with full stack trace
+        error_trace = traceback.format_exc()
+        logger = logging.getLogger("burndown_chart")
+        logger.error(f"Error in create_burnup_chart: {str(e)}\n{error_trace}")
+
+        # Create an empty figure with error message
+        fig = go.Figure()
+        fig.add_annotation(
+            text=f"Error in burnup chart generation:<br>{str(e)}",
+            xref="paper",
+            yref="paper",
+            x=0.5,
+            y=0.5,
+            showarrow=False,
+            font=dict(size=14, color="red"),
+        )
+
+        return fig, {}
+
+
+def identify_significant_scope_growth(df, threshold_pct=10):
+    """
+    Identify periods with significant scope growth.
+
+    Args:
+        df: DataFrame with statistics data including cum_scope_items and cum_scope_points
+        threshold_pct: Percentage threshold for significant growth (default: 10%)
+
+    Returns:
+        List of dictionaries with start_date and end_date for periods of significant growth
+    """
+    if df.empty:
+        return []
+
+    significant_periods = []
+    current_period = None
+
+    # Calculate percentage changes
+    df = df.copy().sort_values("date")
+    df["items_pct_change"] = df["cum_scope_items"].pct_change() * 100
+    df["points_pct_change"] = df["cum_scope_points"].pct_change() * 100
+
+    # Find periods with significant growth
+    for i, row in df.iterrows():
+        if (
+            row["items_pct_change"] > threshold_pct
+            or row["points_pct_change"] > threshold_pct
+        ):
+            if current_period is None:
+                # Start a new period
+                current_period = {"start_date": row["date"], "end_date": row["date"]}
+            else:
+                # Extend current period
+                current_period["end_date"] = row["date"]
+        else:
+            if current_period is not None:
+                # End the current period
+                # Extend end_date by 1 day for better visibility
+                current_period["end_date"] = current_period["end_date"] + pd.Timedelta(
+                    days=1
+                )
+                significant_periods.append(current_period)
+                current_period = None
+
+    # Handle case where last row is part of a significant period
+    if current_period is not None:
+        current_period["end_date"] = current_period["end_date"] + pd.Timedelta(days=1)
+        significant_periods.append(current_period)
+
+    return significant_periods

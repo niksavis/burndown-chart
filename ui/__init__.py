@@ -33,6 +33,15 @@ from ui.components import (
 from ui.layout import create_app_layout, serve_layout
 from ui.tabs import create_tab_content, create_tabs
 
+# Import scope metrics components
+from ui.scope_metrics import (
+    create_scope_creep_indicator,
+    create_scope_growth_chart,
+    create_enhanced_stability_gauge,
+    create_scope_creep_alert,
+    create_scope_metrics_dashboard,
+)
+
 #######################################################################
 # PUBLIC API
 #######################################################################
@@ -57,4 +66,10 @@ __all__ = [
     # Tabs
     "create_tabs",
     "create_tab_content",
+    # Scope Metrics Components
+    "create_scope_creep_indicator",
+    "create_scope_growth_chart",
+    "create_enhanced_stability_gauge",
+    "create_scope_creep_alert",
+    "create_scope_metrics_dashboard",
 ]

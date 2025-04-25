@@ -44,6 +44,12 @@ def create_tabs():
             "icon": "fas fa-chart-bar",
             "color": "#fd7e14",  # Orange
         },
+        {
+            "id": "tab-scope-tracking",
+            "label": "Scope Tracking",
+            "icon": "fas fa-project-diagram",
+            "color": "#6f42c1",  # Purple
+        },
     ]
 
     # Generate tabs with enhanced markup for better visual feedback
@@ -105,6 +111,7 @@ def create_tab_content(active_tab, charts, statistics_df=None, pert_data=None):
         "tab-burndown",
         "tab-items",
         "tab-points",
+        "tab-scope-tracking",
     ]:
         active_tab = "tab-burndown"
 
@@ -113,6 +120,7 @@ def create_tab_content(active_tab, charts, statistics_df=None, pert_data=None):
         "tab-burndown": create_forecast_info_card(),
         "tab-items": create_items_forecast_info_card(statistics_df, pert_data),
         "tab-points": create_points_forecast_info_card(statistics_df, pert_data),
+        "tab-scope-tracking": None,  # No info card needed for scope tracking tab
     }
 
     # Enhanced tab titles with more descriptive content and icons
@@ -135,6 +143,15 @@ def create_tab_content(active_tab, charts, statistics_df=None, pert_data=None):
             [
                 html.I(className="fas fa-chart-bar me-2", style={"color": "#fd7e14"}),
                 "Weekly Completed Points",
+            ],
+            className="mb-3 border-bottom pb-2 d-flex align-items-center",
+        ),
+        "tab-scope-tracking": html.H5(
+            [
+                html.I(
+                    className="fas fa-project-diagram me-2", style={"color": "#6f42c1"}
+                ),
+                "Scope Tracking Dashboard",
             ],
             className="mb-3 border-bottom pb-2 d-flex align-items-center",
         ),

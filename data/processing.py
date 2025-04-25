@@ -813,3 +813,86 @@ def calculate_performance_trend(
         "is_significant": is_significant,
         "weeks_compared": weeks_to_compare,
     }
+
+
+import pandas as pd
+from datetime import datetime
+
+
+def process_statistics_data(data, settings):
+    """Process statistics data for visualization and analysis."""
+    # Convert data to DataFrame if not already
+    if isinstance(data, list):
+        if not data:  # Empty list
+            return pd.DataFrame(
+                columns=[
+                    "date",
+                    "completed_items",
+                    "completed_points",
+                    "created_items",
+                    "created_points",
+                ]
+            )
+        df = pd.DataFrame(data)
+    else:
+        df = data.copy()
+
+    # Ensure all required columns exist
+    for col in ["date", "completed_items", "completed_points"]:
+        if col not in df.columns:
+            df[col] = 0 if col != "date" else ""
+
+    # Add scope tracking columns if they don't exist
+    for col in ["created_items", "created_points"]:
+        if col not in df.columns:
+            df[col] = 0
+
+    # Convert date to datetime
+    df["date"] = pd.to_datetime(df["date"])
+
+    # Sort by date
+    df = df.sort_values("date")
+
+    # Fill missing values with 0
+    numeric_cols = [
+        "completed_items",
+        "completed_points",
+        "created_items",
+        "created_points",
+    ]
+    df[numeric_cols] = df[numeric_cols].fillna(0).astype(int)
+
+    # Add cumulative columns for both completed and created items/points
+    df["cum_completed_items"] = df["completed_items"].cumsum()
+    df["cum_completed_points"] = df["completed_points"].cumsum()
+    df["cum_created_items"] = df["created_items"].cumsum()
+    df["cum_created_points"] = df["created_points"].cumsum()
+
+    # Calculate total scope (baseline + created)
+    baseline_items = settings.get("baseline", {}).get("items", 0) or 0
+    baseline_points = settings.get("baseline", {}).get("points", 0) or 0
+
+    df["total_scope_items"] = baseline_items + df["cum_created_items"]
+    df["total_scope_points"] = baseline_points + df["cum_created_points"]
+
+    return df
+
+
+def establish_baseline(statistics_data):
+    """Establish a baseline from initial scope."""
+    if not statistics_data or not statistics_data.get("data"):
+        return {"items": 0, "points": 0, "date": datetime.now().strftime("%Y-%m-%d")}
+
+    # Get the earliest date in the dataset
+    df = pd.DataFrame(statistics_data["data"])
+    if "date" not in df.columns or df.empty:
+        return {"items": 0, "points": 0, "date": datetime.now().strftime("%Y-%m-%d")}
+
+    earliest_date = pd.to_datetime(df["date"]).min()
+
+    # Return baseline info
+    return {
+        "items": statistics_data.get("baseline", {}).get("items", 0),
+        "points": statistics_data.get("baseline", {}).get("points", 0),
+        "date": earliest_date.strftime("%Y-%m-%d"),
+    }

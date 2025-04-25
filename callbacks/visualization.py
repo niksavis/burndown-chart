@@ -15,6 +15,7 @@ from datetime import datetime
 # Third-party library imports
 import dash_bootstrap_components as dbc
 import pandas as pd
+import plotly.graph_objects as go
 from dash import Input, Output, State, callback, callback_context, dcc, html
 from dash.exceptions import PreventUpdate
 
@@ -402,21 +403,46 @@ def register(app):
         )
 
     def _create_burndown_tab_content(
-        df, items_trend, points_trend, burndown_fig, settings
+        df, items_trend, points_trend, burndown_fig, burnup_fig, settings
     ):
         """
-        Create content for the burndown tab.
+        Create content for the burndown tab with toggle between burndown and burnup views.
 
         Args:
             df: DataFrame with statistics data
             items_trend: Dictionary with items trend and forecast data
             points_trend: Dictionary with points trend and forecast data
             burndown_fig: Burndown chart figure
+            burnup_fig: Burnup chart figure
             settings: Settings dictionary
 
         Returns:
             html.Div: Burndown tab content
         """
+        # Create a toggle switch between burndown and burnup charts
+        chart_toggle = html.Div(
+            [
+                dbc.RadioItems(
+                    id="chart-type-toggle",
+                    className="btn-group",
+                    inputClassName="btn-check",
+                    labelClassName="btn btn-outline-primary",
+                    labelCheckedClassName="active",
+                    options=[
+                        {"label": "Burndown", "value": "burndown"},
+                        {"label": "Burnup", "value": "burnup"},
+                    ],
+                    value="burndown",
+                ),
+                dbc.Tooltip(
+                    "Toggle between burndown view (showing work remaining) and burnup view (showing work completed and total scope)",
+                    target="chart-type-toggle",
+                ),
+            ],
+            className="mb-3 d-flex justify-content-center",
+            style={"gap": "5px"},
+        )
+
         return html.Div(
             [
                 # Weekly trend indicators in a row
@@ -439,14 +465,17 @@ def register(app):
                     ],
                     className="row mb-3",
                 ),
-                # Main burndown chart
-                dcc.Graph(
-                    id="forecast-graph",
-                    figure=burndown_fig,
-                    config={"displayModeBar": True, "responsive": True},
-                    style={
-                        "height": "700px"
-                    },  # Updated from 600px to 700px for consistency
+                # Chart type toggle
+                chart_toggle,
+                # Chart container - will be updated by the toggle callback
+                html.Div(
+                    dcc.Graph(
+                        id="forecast-graph",
+                        figure=burndown_fig,
+                        config={"displayModeBar": True, "responsive": True},
+                        style={"height": "700px"},
+                    ),
+                    id="chart-container",
                 ),
             ]
         )
@@ -523,6 +552,104 @@ def register(app):
             ]
         )
 
+    def _create_scope_tracking_tab_content(df, settings):
+        """
+        Create content for the scope tracking tab.
+
+        Args:
+            df: DataFrame with statistics data
+            settings: Settings dictionary
+
+        Returns:
+            html.Div: Scope tracking tab content
+        """
+        from data.scope_metrics import (
+            calculate_scope_creep_rate,
+            calculate_weekly_scope_growth,
+            calculate_scope_stability_index,
+        )
+        from ui.scope_metrics import create_scope_metrics_dashboard
+
+        # Get threshold from settings or use default
+        scope_creep_threshold = settings.get("scope_creep_threshold", 15)
+
+        if df.empty:
+            return html.Div(
+                [
+                    html.Div(
+                        className="alert alert-info",
+                        children=[
+                            html.I(className="fas fa-info-circle me-2"),
+                            "No data available to display scope metrics.",
+                        ],
+                    )
+                ]
+            )
+
+        # Ensure datetime format for date
+        df["date"] = pd.to_datetime(df["date"])
+
+        # Get baseline values
+        baseline_items = settings.get("total_items", 100)
+        baseline_points = settings.get("total_points", 500)
+
+        # Ensure required columns exist with default values of 0 if they don't
+        if "created_items" not in df.columns:
+            df["created_items"] = 0
+        if "created_points" not in df.columns:
+            df["created_points"] = 0
+
+        # Make sure data types are appropriate
+        df["completed_items"] = pd.to_numeric(
+            df["completed_items"], errors="coerce"
+        ).fillna(0)
+        df["completed_points"] = pd.to_numeric(
+            df["completed_points"], errors="coerce"
+        ).fillna(0)
+        df["created_items"] = pd.to_numeric(
+            df["created_items"], errors="coerce"
+        ).fillna(0)
+        df["created_points"] = pd.to_numeric(
+            df["created_points"], errors="coerce"
+        ).fillna(0)
+
+        # Calculate scope creep rate
+        scope_creep_rate = calculate_scope_creep_rate(
+            df, baseline_items, baseline_points
+        )
+
+        # Calculate weekly scope growth - ensure the function returns a DataFrame
+        try:
+            weekly_growth_data = calculate_weekly_scope_growth(df)
+            # Verify the result is a DataFrame
+            if not isinstance(weekly_growth_data, pd.DataFrame):
+                logger.warning(
+                    f"weekly_growth_data is not a DataFrame: {type(weekly_growth_data)}"
+                )
+                weekly_growth_data = pd.DataFrame(
+                    columns=[
+                        "week_label",
+                        "items_growth",
+                        "points_growth",
+                        "start_date",
+                    ]
+                )
+        except Exception as e:
+            logger.error(f"Error calculating weekly scope growth: {str(e)}")
+            weekly_growth_data = pd.DataFrame(
+                columns=["week_label", "items_growth", "points_growth", "start_date"]
+            )
+
+        # Calculate scope stability index
+        stability_index = calculate_scope_stability_index(
+            df, baseline_items, baseline_points
+        )
+
+        # Create the scope metrics dashboard
+        return create_scope_metrics_dashboard(
+            scope_creep_rate, weekly_growth_data, stability_index, scope_creep_threshold
+        )
+
     @app.callback(
         Output("tab-content", "children"),
         [
@@ -583,9 +710,21 @@ def register(app):
                 data_points_count=data_points_count,
             )
 
-            # Create burndown tab content
+            # Burnup chart
+            from visualization import create_burnup_chart
+
+            burnup_fig, _ = create_burnup_chart(
+                df=df.copy() if not df.empty else df,
+                total_items=total_items,
+                total_points=total_points,
+                pert_factor=pert_factor,
+                deadline_str=deadline,
+                data_points_count=data_points_count,
+            )
+
+            # Create burndown tab content with both chart types
             charts["tab-burndown"] = _create_burndown_tab_content(
-                df, items_trend, points_trend, burndown_fig, settings
+                df, items_trend, points_trend, burndown_fig, burnup_fig, settings
             )
 
             # Weekly items chart with forecast
@@ -603,6 +742,11 @@ def register(app):
 
             # Create points tab content
             charts["tab-points"] = _create_points_tab_content(points_trend, points_fig)
+
+            # Create scope tracking tab content
+            charts["tab-scope-tracking"] = _create_scope_tracking_tab_content(
+                df, settings
+            )
 
             # Create content for the active tab
             return create_tab_content(active_tab, charts)
@@ -816,6 +960,132 @@ def register(app):
             )
             return dcc.send_data_frame(
                 error_df.to_csv, f"export_error_{current_time}.csv", index=False
+            )
+
+    @app.callback(
+        Output("chart-container", "children"),
+        [Input("chart-type-toggle", "value")],
+        [State("current-settings", "data"), State("current-statistics", "data")],
+    )
+    def update_chart_type(chart_type, settings, statistics):
+        """
+        Update the chart based on selected chart type (burndown or burnup).
+
+        Args:
+            chart_type: Selected chart type ('burndown' or 'burnup')
+            settings: Current settings data
+            statistics: Current statistics data
+
+        Returns:
+            html.Div: Updated chart container with selected chart type
+        """
+        if not settings or not statistics:
+            raise PreventUpdate
+
+        # Convert statistics to DataFrame
+        df = pd.DataFrame(statistics)
+        if df.empty:
+            # Return empty placeholder chart if no data
+            return dcc.Graph(
+                id="forecast-graph",
+                figure=go.Figure().update_layout(
+                    title="No Data Available",
+                    annotations=[
+                        dict(
+                            text="No data available to display chart",
+                            showarrow=False,
+                            xref="paper",
+                            yref="paper",
+                            x=0.5,
+                            y=0.5,
+                        )
+                    ],
+                ),
+                config={"displayModeBar": True, "responsive": True},
+                style={"height": "700px"},
+            )
+
+        try:
+            # Get necessary values
+            total_items = settings.get("total_items", 100)
+            total_points = settings.get("total_points", 500)
+            pert_factor = settings.get("pert_factor", 3)
+            deadline = settings.get("deadline", None)
+            data_points_count = settings.get("data_points_count", len(df))
+
+            # Get appropriate chart based on selection
+            if chart_type == "burndown":
+                # For burndown chart
+                from visualization import create_forecast_plot
+
+                # Process data for calculations
+                if not df.empty:
+                    df["date"] = pd.to_datetime(df["date"])
+                    df = compute_cumulative_values(df, total_items, total_points)
+
+                figure, _ = create_forecast_plot(
+                    df=df,
+                    total_items=total_items,
+                    total_points=total_points,
+                    pert_factor=pert_factor,
+                    deadline_str=deadline,
+                    data_points_count=data_points_count,
+                )
+
+                title = "Project Burndown Chart"
+            else:
+                # For burnup chart
+                from visualization import create_burnup_chart
+
+                # Ensure proper date format
+                if not df.empty:
+                    df["date"] = pd.to_datetime(df["date"])
+
+                figure, _ = create_burnup_chart(
+                    df=df,
+                    total_items=total_items,
+                    total_points=total_points,
+                    pert_factor=pert_factor,
+                    deadline_str=deadline,
+                    data_points_count=data_points_count,
+                )
+
+                title = "Project Burnup Chart"
+
+            # Update chart title
+            if figure and hasattr(figure, "layout"):
+                figure.update_layout(title=title)
+
+            return dcc.Graph(
+                id="forecast-graph",
+                figure=figure,
+                config={"displayModeBar": True, "responsive": True},
+                style={"height": "700px"},
+            )
+
+        except Exception as e:
+            # Log the error
+            logger.error(f"Error updating chart type: {str(e)}")
+
+            # Return error message
+            return html.Div(
+                [
+                    html.Div(
+                        className="alert alert-danger",
+                        children=[
+                            html.I(className="fas fa-exclamation-triangle me-2"),
+                            f"Error displaying chart: {str(e)}",
+                        ],
+                    ),
+                    dcc.Graph(
+                        id="forecast-graph",
+                        figure=go.Figure().update_layout(
+                            title=f"Error: {str(e)}",
+                        ),
+                        config={"displayModeBar": True, "responsive": True},
+                        style={"height": "700px"},
+                    ),
+                ]
             )
 
 

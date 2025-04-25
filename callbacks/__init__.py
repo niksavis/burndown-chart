@@ -1,36 +1,22 @@
 """
-Callbacks Package
-
-This package contains all callback functions organized by functionality.
+Callbacks module for the burndown chart application.
 """
 
-#######################################################################
-# IMPORTS
-#######################################################################
-# Standard library imports
-# None required
-
-# Third-party library imports
-# None required
-
-# Application imports
-from callbacks.settings import register as register_settings_callbacks
-from callbacks.statistics import register as register_statistics_callbacks
-from callbacks.visualization import register as register_visualization_callbacks
-from callbacks.error_examples import register as register_error_examples_callbacks
+from callbacks import (
+    statistics,
+    visualization,
+    settings,
+    # The 'export' module doesn't seem to exist and is causing an error
+    # export,
+    scope_metrics,  # Add the new scope_metrics module
+)
 
 
-#######################################################################
-# CALLBACK REGISTRATION
-#######################################################################
 def register_all_callbacks(app):
-    """
-    Register all callbacks with the application.
-
-    Args:
-        app: Dash application instance
-    """
-    register_settings_callbacks(app)
-    register_statistics_callbacks(app)
-    register_visualization_callbacks(app)
-    register_error_examples_callbacks(app)
+    """Register all callbacks for the application."""
+    statistics.register(app)
+    visualization.register(app)
+    settings.register(app)
+    # Remove this line since 'export' module doesn't exist
+    # export.register(app)
+    scope_metrics.register(app)  # Register the new callbacks
