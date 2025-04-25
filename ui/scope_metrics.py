@@ -124,7 +124,7 @@ def create_scope_growth_chart(weekly_growth_data):
 
 
 def create_enhanced_stability_gauge(
-    stability_value, title="Scope Stability Index", height=250
+    stability_value, title="Scope Stability Index", height=280
 ):
     """
     Create an enhanced gauge visualization for the scope stability index with better visual indicators.
@@ -154,17 +154,16 @@ def create_enhanced_stability_gauge(
         color = "rgb(220, 0, 0)"  # Bright Red
         status_text = "Highly Unstable"
 
-    # Create gauge
+    # Create gauge with improved layout - gauge in top section, text below
     figure = go.Figure(
         go.Indicator(
-            mode="gauge+number+delta",
+            mode="gauge+number",  # Only gauge and number
             value=stability_value,
-            domain={"x": [0, 1], "y": [0, 1]},
-            title={"text": f"<b>{title}</b>", "font": {"size": 18}, "align": "center"},
-            delta={
-                "reference": 0.7,  # Reference value (good stability threshold)
-                "increasing": {"color": "green"},
-                "decreasing": {"color": "red"},
+            domain={"x": [0, 1], "y": [0.15, 0.85]},  # Adjusted to center the gauge
+            title={
+                "text": f"<b>{title}</b>",
+                "font": {"size": 18},
+                "align": "center",
             },
             gauge={
                 "axis": {
@@ -193,28 +192,53 @@ def create_enhanced_stability_gauge(
                 },
             },
             number={
-                "font": {"size": 28, "color": color},
-                "suffix": "",
+                "font": {"size": 24, "color": color},
                 "valueformat": ".2f",
+                "suffix": "",  # No suffix to avoid overlap
             },
         )
     )
 
-    # Add status text annotation
+    # Add status text annotation BELOW the gauge (not overlapping)
     figure.add_annotation(
-        text=f"<b>{status_text}</b>",
+        text=f"<b>Status: {status_text}</b>",
         x=0.5,
-        y=0.18,
+        y=0.02,  # Position at the bottom
         xref="paper",
         yref="paper",
         showarrow=False,
-        font=dict(size=16, color=color),
+        font=dict(size=15, color=color),
+        align="center",
     )
 
-    # Update layout
+    # Add reference line annotation (adjusted position)
+    figure.add_annotation(
+        text="Reference: 0.7",
+        x=0.85,
+        y=0.1,
+        xref="paper",
+        yref="paper",
+        showarrow=False,
+        font=dict(size=10, color="gray"),
+        align="right",
+    )
+
+    # Add reference line
+    figure.add_shape(
+        type="line",
+        x0=0.7,
+        x1=0.7,
+        y0=0.15,
+        y1=0.85,
+        xref="x",
+        yref="paper",
+        line=dict(color="gray", width=1, dash="dot"),
+    )
+
+    # Update layout with more appropriate margins
     figure.update_layout(
-        height=height,
-        margin={"l": 30, "r": 30, "t": 50, "b": 30},
+        height=height,  # Increased height to accommodate the status text below
+        margin={"l": 30, "r": 30, "t": 40, "b": 60},  # Increased bottom margin
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
     )

@@ -122,6 +122,7 @@ def create_plot_traces(forecast_data):
                     color=COLOR_PALETTE["optimistic"],
                     line=dict(color="white", width=1),
                 ),
+                visible="legendonly",  # Hidden by default, matching burnup chart behavior
                 hovertemplate=format_hover_template(
                     title="Items Forecast",
                     fields={
@@ -150,6 +151,7 @@ def create_plot_traces(forecast_data):
                     color=COLOR_PALETTE["pessimistic"],
                     line=dict(color="white", width=1),
                 ),
+                visible="legendonly",  # Hidden by default, matching burnup chart behavior
                 hovertemplate=format_hover_template(
                     title="Items Forecast",
                     fields={
@@ -193,7 +195,7 @@ def create_plot_traces(forecast_data):
         }
     )
 
-    # Points forecast traces - improved line visibility
+    # Points forecast traces - improving visibility
     traces.append(
         {
             "data": go.Scatter(
@@ -241,6 +243,7 @@ def create_plot_traces(forecast_data):
                     color="rgb(184, 134, 11)",  # Gold color for marker
                     line=dict(color="white", width=1),
                 ),
+                visible="legendonly",  # Hidden by default, matching burnup chart behavior
                 hovertemplate=format_hover_template(
                     title="Points Forecast",
                     fields={
@@ -272,6 +275,7 @@ def create_plot_traces(forecast_data):
                     color="rgb(165, 42, 42)",  # Brown color for marker
                     line=dict(color="white", width=1),
                 ),
+                visible="legendonly",  # Hidden by default, matching burnup chart behavior
                 hovertemplate=format_hover_template(
                     title="Points Forecast",
                     fields={
@@ -343,39 +347,15 @@ def configure_axes(fig, forecast_data):
 
 
 def apply_layout_settings(fig):
-    """
-    Apply final layout settings to the figure.
-
-    Args:
-        fig: Plotly figure object
-
-    Returns:
-        Figure with finalized layout settings
-    """
+    """Apply common layout settings to the forecast plot."""
     fig.update_layout(
-        legend=dict(
-            orientation="h",
-            yanchor="top",
-            y=1.0,
-            xanchor="center",
-            x=0.5,
-            font={"size": 12, "family": "Arial, sans-serif"},
-            bgcolor="rgba(255, 255, 255, 0.9)",
-            bordercolor="rgba(200, 200, 200, 0.8)",
-            borderwidth=1,
-            itemsizing="constant",  # Make legend items consistent size
-            itemwidth=40,  # Control width of legend items
-            itemclick="toggleothers",  # When clicking a legend item, toggle visibility of others
-            groupclick="toggleitem",  # When clicking a group name, toggle visibility
-        ),
-        hovermode="closest",
-        margin=dict(r=70, l=70, t=80, b=70),
-        plot_bgcolor="white",
-        paper_bgcolor="white",
-        font={"family": "Arial, sans-serif"},
-        height=700,  # Add explicit height in pixels to make chart taller
+        title="Project Burndown Chart",
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
+        hovermode="x unified",  # Changed from "closest" to "x unified" for vertical guideline
+        margin=dict(l=60, r=60, t=80, b=50),
+        height=700,
+        template="plotly_white",
     )
-
     return fig
 
 
@@ -2270,6 +2250,35 @@ def create_burnup_chart(
         df["cum_scope_items"] = baseline_items + df["cum_created_items"]
         df["cum_scope_points"] = baseline_points + df["cum_created_points"]
 
+        # Create a copy of the dataframe with column names expected by prepare_forecast_data
+        df_forecast = df.copy()
+        df_forecast["cum_items"] = df_forecast["cum_completed_items"]
+        df_forecast["cum_points"] = df_forecast["cum_completed_points"]
+
+        # Get final scope values for forecasting target
+        final_scope_items = (
+            df["cum_scope_items"].iloc[-1] if not df.empty else baseline_items
+        )
+        final_scope_points = (
+            df["cum_scope_points"].iloc[-1] if not df.empty else baseline_points
+        )
+
+        # Calculate forecast data using the prepare_forecast_data function with burnup=True
+        forecast_data = prepare_forecast_data(
+            df_forecast,
+            total_items,
+            total_points,
+            pert_factor,
+            data_points_count,
+            is_burnup=True,
+            scope_items=final_scope_items,
+            scope_points=final_scope_points,
+        )
+
+        # Get forecast information
+        items_forecasts = forecast_data["items_forecasts"]
+        points_forecasts = forecast_data["points_forecasts"]
+
         # Create traces for completed work
         completed_items_trace = go.Scatter(
             x=df["date"],
@@ -2321,10 +2330,12 @@ def create_burnup_chart(
             y=df["cum_scope_items"],
             mode="lines+markers",
             name="Total Items Scope",
-            line=dict(color=COLOR_PALETTE["items"], width=3, dash="dot"),
+            line=dict(
+                color="#0047AB", width=4, dash="dot"
+            ),  # Darker blue and thicker line
             marker=dict(
-                size=8,
-                color=COLOR_PALETTE["items"],
+                size=10,  # Increased marker size
+                color="#0047AB",  # Matching darker blue color
                 symbol="square",
                 line=dict(width=2, color="white"),
             ),
@@ -2343,10 +2354,12 @@ def create_burnup_chart(
             y=df["cum_scope_points"],
             mode="lines+markers",
             name="Total Points Scope",
-            line=dict(color=COLOR_PALETTE["points"], width=3, dash="dot"),
+            line=dict(
+                color="#B22222", width=4, dash="dot"
+            ),  # Firebrick red and thicker line
             marker=dict(
-                size=8,
-                color=COLOR_PALETTE["points"],
+                size=10,  # Increased marker size
+                color="#B22222",  # Matching firebrick red color
                 symbol="square",
                 line=dict(width=2, color="white"),
             ),
@@ -2359,6 +2372,156 @@ def create_burnup_chart(
             ),
             hoverlabel=create_hoverlabel_config("default"),
         )
+
+        # Add PERT forecast traces for items if available
+        if items_forecasts:
+            # Items forecast - Most likely
+            fig.add_trace(
+                go.Scatter(
+                    x=items_forecasts["avg"][0],
+                    y=items_forecasts["avg"][1],
+                    mode="lines+markers",
+                    name="Items Completion Forecast",
+                    line=dict(color=COLOR_PALETTE["items"], dash="dash", width=3),
+                    marker=dict(
+                        size=8,
+                        symbol="diamond",
+                        color=COLOR_PALETTE["items"],
+                        line=dict(color="white", width=1),
+                    ),
+                    hovertemplate=format_hover_template(
+                        title="Items Forecast",
+                        fields={
+                            "Date": "%{x|%Y-%m-%d}",
+                            "Items": "%{y:.1f}",
+                            "Type": "Most Likely",
+                        },
+                    ),
+                    hoverlabel=create_hoverlabel_config("info"),
+                ),
+                secondary_y=False,
+            )
+
+            # Items forecast - Optimistic (dotted line)
+            fig.add_trace(
+                go.Scatter(
+                    x=items_forecasts["opt"][0],
+                    y=items_forecasts["opt"][1],
+                    mode="lines",
+                    name="Items (Optimistic)",
+                    line=dict(color=COLOR_PALETTE["optimistic"], dash="dot", width=2),
+                    hovertemplate=format_hover_template(
+                        title="Items Forecast",
+                        fields={
+                            "Date": "%{x|%Y-%m-%d}",
+                            "Items": "%{y:.1f}",
+                            "Type": "Optimistic",
+                        },
+                    ),
+                    hoverlabel=create_hoverlabel_config("success"),
+                    visible="legendonly",  # Hidden by default
+                ),
+                secondary_y=False,
+            )
+
+            # Items forecast - Pessimistic (dotted line)
+            fig.add_trace(
+                go.Scatter(
+                    x=items_forecasts["pes"][0],
+                    y=items_forecasts["pes"][1],
+                    mode="lines",
+                    name="Items (Pessimistic)",
+                    line=dict(color=COLOR_PALETTE["pessimistic"], dash="dot", width=2),
+                    hovertemplate=format_hover_template(
+                        title="Items Forecast",
+                        fields={
+                            "Date": "%{x|%Y-%m-%d}",
+                            "Items": "%{y:.1f}",
+                            "Type": "Pessimistic",
+                        },
+                    ),
+                    hoverlabel=create_hoverlabel_config("warning"),
+                    visible="legendonly",  # Hidden by default
+                ),
+                secondary_y=False,
+            )
+
+        # Add PERT forecast traces for points if available
+        if points_forecasts:
+            # Points forecast - Most likely
+            fig.add_trace(
+                go.Scatter(
+                    x=points_forecasts["avg"][0],
+                    y=points_forecasts["avg"][1],
+                    mode="lines+markers",
+                    name="Points Completion Forecast",
+                    line=dict(color=COLOR_PALETTE["points"], dash="dash", width=3),
+                    marker=dict(
+                        size=8,
+                        symbol="diamond",
+                        color=COLOR_PALETTE["points"],
+                        line=dict(color="white", width=1),
+                    ),
+                    hovertemplate=format_hover_template(
+                        title="Points Forecast",
+                        fields={
+                            "Date": "%{x|%Y-%m-%d}",
+                            "Points": "%{y:.1f}",
+                            "Type": "Most Likely",
+                        },
+                    ),
+                    hoverlabel=create_hoverlabel_config("info"),
+                ),
+                secondary_y=True,
+            )
+
+            # Points forecast - Optimistic (dotted line)
+            fig.add_trace(
+                go.Scatter(
+                    x=points_forecasts["opt"][0],
+                    y=points_forecasts["opt"][1],
+                    mode="lines",
+                    name="Points (Optimistic)",
+                    line=dict(
+                        color="rgb(184, 134, 11)", dash="dot", width=2
+                    ),  # Gold color
+                    hovertemplate=format_hover_template(
+                        title="Points Forecast",
+                        fields={
+                            "Date": "%{x|%Y-%m-%d}",
+                            "Points": "%{y:.1f}",
+                            "Type": "Optimistic",
+                        },
+                    ),
+                    hoverlabel=create_hoverlabel_config("success"),
+                    visible="legendonly",  # Hidden by default
+                ),
+                secondary_y=True,
+            )
+
+            # Points forecast - Pessimistic (dotted line)
+            fig.add_trace(
+                go.Scatter(
+                    x=points_forecasts["pes"][0],
+                    y=points_forecasts["pes"][1],
+                    mode="lines",
+                    name="Points (Pessimistic)",
+                    line=dict(
+                        color="rgb(165, 42, 42)", dash="dot", width=2
+                    ),  # Brown color
+                    hovertemplate=format_hover_template(
+                        title="Points Forecast",
+                        fields={
+                            "Date": "%{x|%Y-%m-%d}",
+                            "Points": "%{y:.1f}",
+                            "Type": "Pessimistic",
+                        },
+                    ),
+                    hoverlabel=create_hoverlabel_config("warning"),
+                    visible="legendonly",  # Hidden by default
+                ),
+                secondary_y=True,
+            )
 
         # Add traces to figure - all visible by default
         fig.add_trace(completed_items_trace, secondary_y=False)
@@ -2424,6 +2587,61 @@ def create_burnup_chart(
                 annotation_position="top right",
             )
 
+        # Calculate PERT time estimates for the metrics
+        current_date = datetime.now()
+        days_to_deadline = max(0, (deadline - pd.Timestamp(current_date)).days)
+        pert_time_items = forecast_data.get("pert_time_items", 0.0)
+        pert_time_points = forecast_data.get("pert_time_points", 0.0)
+
+        # Calculate average and median weekly metrics for display
+        avg_weekly_items, avg_weekly_points, med_weekly_items, med_weekly_points = (
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+        )
+        if not df.empty:
+            # Get all four values from calculate_weekly_averages
+            results = calculate_weekly_averages(df.to_dict("records"))
+            if isinstance(results, (list, tuple)) and len(results) >= 4:
+                (
+                    avg_weekly_items,
+                    avg_weekly_points,
+                    med_weekly_items,
+                    med_weekly_points,
+                ) = results
+
+        # Add tooltip with PERT estimates at the top of the chart
+        formatted_items_completion = (
+            current_date + timedelta(days=pert_time_items)
+        ).strftime("%Y-%m-%d")
+        formatted_points_completion = (
+            current_date + timedelta(days=pert_time_points)
+        ).strftime("%Y-%m-%d")
+
+        forecast_tooltip_text = (
+            f"<b>PERT Forecast Estimates:</b><br>"
+            f"Items completion: {formatted_items_completion} ({pert_time_items:.1f} days)<br>"
+            f"Points completion: {formatted_points_completion} ({pert_time_points:.1f} days)<br>"
+            f"Project deadline: {deadline.strftime('%Y-%m-%d')} ({days_to_deadline} days)"
+        )
+
+        fig.add_annotation(
+            x=0.5,
+            y=1.06,
+            xref="paper",
+            yref="paper",
+            text=forecast_tooltip_text,
+            showarrow=False,
+            font=dict(size=12),
+            bgcolor="rgba(255, 255, 255, 0.8)",
+            bordercolor="rgba(0, 0, 0, 0.2)",
+            borderwidth=1,
+            borderpad=4,
+            align="center",
+        )
+
+        # Return more comprehensive data for dashboard metrics
         return fig, {
             "baseline_items": baseline_items,
             "baseline_points": baseline_points,
@@ -2439,6 +2657,13 @@ def create_burnup_chart(
             "completed_points": df["cum_completed_points"].iloc[-1]
             if not df.empty
             else 0,
+            "pert_time_items": pert_time_items,
+            "pert_time_points": pert_time_points,
+            "days_to_deadline": days_to_deadline,
+            "avg_weekly_items": avg_weekly_items,
+            "avg_weekly_points": avg_weekly_points,
+            "med_weekly_items": med_weekly_items,
+            "med_weekly_points": med_weekly_points,
         }
 
     except Exception as e:

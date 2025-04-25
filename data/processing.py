@@ -346,6 +346,87 @@ def daily_forecast(start_val, daily_rate, start_date):
     return x_vals, y_vals
 
 
+def daily_forecast_burnup(start_val, daily_rate, start_date, target_val):
+    """
+    Generate daily forecast values from start to target value (for burnup charts).
+
+    Unlike the regular daily_forecast which decreases values toward zero,
+    this function increases values toward a target value (scope line).
+
+    Args:
+        start_val: Starting value (completed items/points so far)
+        daily_rate: Daily completion rate
+        start_date: Starting date for the forecast
+        target_val: Target value to reach (total scope)
+
+    Returns:
+        Tuple of (x_values, y_values) for plotting
+    """
+    # If rate is too small, we'll hit timestamp limits; enforce a minimum
+    if daily_rate < 0.001:
+        daily_rate = 0.001
+
+    # If rate is still effectively zero, return just the start point
+    if daily_rate <= 0:
+        return [start_date], [start_val]
+
+    # Ensure target is at least equal to start value
+    target_val = max(target_val, start_val)
+
+    x_vals, y_vals = [], []
+    val = start_val
+    current_date = start_date
+
+    # Calculate expected days needed to reach target
+    remaining = target_val - start_val
+    days_needed = remaining / daily_rate if daily_rate > 0 else 0
+
+    # Cap forecast at 10 years (3650 days) to prevent timestamp overflow
+    MAX_FORECAST_DAYS = 3650
+    if days_needed > MAX_FORECAST_DAYS:
+        # Create a capped forecast
+        num_points = min(
+            100, MAX_FORECAST_DAYS
+        )  # Use at most 100 points for the forecast
+        day_step = MAX_FORECAST_DAYS / num_points
+
+        for i in range(num_points):
+            days_elapsed = i * day_step
+            if days_elapsed > MAX_FORECAST_DAYS:
+                break
+
+            forecast_date = start_date + timedelta(days=days_elapsed)
+            forecast_val = min(target_val, val + (daily_rate * days_elapsed))
+
+            x_vals.append(forecast_date)
+            y_vals.append(forecast_val)
+
+        # Add final point at the maximum forecast date
+        final_date = start_date + timedelta(days=MAX_FORECAST_DAYS)
+        final_val = min(target_val, val + (daily_rate * MAX_FORECAST_DAYS))
+        x_vals.append(final_date)
+        y_vals.append(final_val)
+
+        return x_vals, y_vals
+
+    # Normal case - forecast until target reached
+    while val < target_val:
+        x_vals.append(current_date)
+        y_vals.append(val)
+        val += daily_rate
+        current_date += timedelta(days=1)
+
+        # Safety check to prevent infinite loops
+        if len(x_vals) > MAX_FORECAST_DAYS:
+            break
+
+    # Add final point at target value
+    x_vals.append(current_date)
+    y_vals.append(target_val)
+
+    return x_vals, y_vals
+
+
 def calculate_weekly_averages(statistics_data):
     """
     Calculate average and median weekly items and points for the last 10 weeks.
@@ -410,7 +491,14 @@ def calculate_weekly_averages(statistics_data):
 
 
 def prepare_forecast_data(
-    df, total_items, total_points, pert_factor, data_points_count=None
+    df,
+    total_items,
+    total_points,
+    pert_factor,
+    data_points_count=None,
+    is_burnup=False,
+    scope_items=None,
+    scope_points=None,
 ):
     """
     Prepare all necessary data for the forecast visualization.
@@ -421,6 +509,9 @@ def prepare_forecast_data(
         total_points: Total number of points to complete
         pert_factor: PERT factor for calculations
         data_points_count: Number of most recent data points to use (defaults to all)
+        is_burnup: Whether this is for a burnup chart (True) or burndown chart (False)
+        scope_items: Total scope of items (required for burnup charts)
+        scope_points: Total scope of points (required for burnup charts)
 
     Returns:
         Dictionary containing all data needed for visualization
@@ -487,18 +578,45 @@ def prepare_forecast_data(
     last_items = df_calc["cum_items"].iloc[-1] if not df_calc.empty else total_items
     last_points = df_calc["cum_points"].iloc[-1] if not df_calc.empty else total_points
 
-    # Generate forecast data
-    items_forecasts = {
-        "avg": daily_forecast(last_items, items_daily_rate, start_date),
-        "opt": daily_forecast(last_items, optimistic_items_rate, start_date),
-        "pes": daily_forecast(last_items, pessimistic_items_rate, start_date),
-    }
+    # Generate forecast data based on chart type
+    if is_burnup:
+        # For burnup charts, we use daily_forecast_burnup which increases towards scope
+        items_forecasts = {
+            "avg": daily_forecast_burnup(
+                last_items, items_daily_rate, start_date, scope_items
+            ),
+            "opt": daily_forecast_burnup(
+                last_items, optimistic_items_rate, start_date, scope_items
+            ),
+            "pes": daily_forecast_burnup(
+                last_items, pessimistic_items_rate, start_date, scope_items
+            ),
+        }
 
-    points_forecasts = {
-        "avg": daily_forecast(last_points, points_daily_rate, start_date),
-        "opt": daily_forecast(last_points, optimistic_points_rate, start_date),
-        "pes": daily_forecast(last_points, pessimistic_points_rate, start_date),
-    }
+        points_forecasts = {
+            "avg": daily_forecast_burnup(
+                last_points, points_daily_rate, start_date, scope_points
+            ),
+            "opt": daily_forecast_burnup(
+                last_points, optimistic_points_rate, start_date, scope_points
+            ),
+            "pes": daily_forecast_burnup(
+                last_points, pessimistic_points_rate, start_date, scope_points
+            ),
+        }
+    else:
+        # For burndown charts, we use the original daily_forecast which decreases towards zero
+        items_forecasts = {
+            "avg": daily_forecast(last_items, items_daily_rate, start_date),
+            "opt": daily_forecast(last_items, optimistic_items_rate, start_date),
+            "pes": daily_forecast(last_items, pessimistic_items_rate, start_date),
+        }
+
+        points_forecasts = {
+            "avg": daily_forecast(last_points, points_daily_rate, start_date),
+            "opt": daily_forecast(last_points, optimistic_points_rate, start_date),
+            "pes": daily_forecast(last_points, pessimistic_points_rate, start_date),
+        }
 
     # Calculate max values for axis scaling
     max_items = max(

@@ -1077,25 +1077,31 @@ def register(app):
             )
 
         try:
-            # Get necessary values
+            # Get necessary values - ensure all parameters are normalized for both charts
             total_items = settings.get("total_items", 100)
             total_points = settings.get("total_points", 500)
             pert_factor = settings.get("pert_factor", 3)
             deadline = settings.get("deadline", None)
             data_points_count = settings.get("data_points_count", len(df))
 
+            # Prepare data consistently for both charts
+            if not df.empty:
+                df["date"] = pd.to_datetime(df["date"])
+
+            # Create processed dataframe - used for burndown chart
+            processed_df = (
+                compute_cumulative_values(df.copy(), total_items, total_points)
+                if not df.empty
+                else df.copy()
+            )
+
             # Get appropriate chart based on selection
             if chart_type == "burndown":
                 # For burndown chart
                 from visualization import create_forecast_plot
 
-                # Process data for calculations
-                if not df.empty:
-                    df["date"] = pd.to_datetime(df["date"])
-                    df = compute_cumulative_values(df, total_items, total_points)
-
                 figure, _ = create_forecast_plot(
-                    df=df,
+                    df=processed_df,
                     total_items=total_items,
                     total_points=total_points,
                     pert_factor=pert_factor,
@@ -1108,12 +1114,8 @@ def register(app):
                 # For burnup chart
                 from visualization import create_burnup_chart
 
-                # Ensure proper date format
-                if not df.empty:
-                    df["date"] = pd.to_datetime(df["date"])
-
                 figure, _ = create_burnup_chart(
-                    df=df,
+                    df=df.copy(),
                     total_items=total_items,
                     total_points=total_points,
                     pert_factor=pert_factor,
