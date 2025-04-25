@@ -422,25 +422,51 @@ def register(app):
         # Create a toggle switch between burndown and burnup charts
         chart_toggle = html.Div(
             [
-                dbc.RadioItems(
-                    id="chart-type-toggle",
-                    className="btn-group",
-                    inputClassName="btn-check",
-                    labelClassName="btn btn-outline-primary",
-                    labelCheckedClassName="active",
-                    options=[
-                        {"label": "Burndown", "value": "burndown"},
-                        {"label": "Burnup", "value": "burnup"},
+                html.Div(
+                    [
+                        dbc.RadioItems(
+                            id="chart-type-toggle",
+                            className="chart-toggle-buttons",
+                            options=[
+                                {"label": "Burndown", "value": "burndown"},
+                                {"label": "Burnup", "value": "burnup"},
+                            ],
+                            value="burndown",
+                            inline=True,
+                            labelStyle={
+                                "display": "inline-block",
+                                "padding": "8px 15px",
+                                "border": "1px solid #dee2e6",
+                                "borderRadius": "4px",
+                                "margin": "0 5px",
+                                "background": "rgba(255, 255, 255, 0.8)",
+                                "boxShadow": "0 1px 3px rgba(0,0,0,0.1)",
+                                "cursor": "pointer",
+                                "transition": "all 0.3s ease",
+                            },
+                            labelCheckedStyle={
+                                "background": "#20c997",
+                                "borderColor": "#20c997",
+                                "color": "white",
+                                "fontWeight": "bold",
+                                "boxShadow": "0 2px 5px rgba(0,0,0,0.2)",
+                            },
+                            inputStyle={"display": "none"},
+                        ),
                     ],
-                    value="burndown",
+                    style={
+                        "display": "flex",
+                        "justifyContent": "center",
+                        "marginBottom": "15px",
+                    },
                 ),
                 dbc.Tooltip(
                     "Toggle between burndown view (showing work remaining) and burnup view (showing work completed and total scope)",
                     target="chart-type-toggle",
                 ),
             ],
-            className="mb-3 d-flex justify-content-center",
-            style={"gap": "5px"},
+            className="chart-toggle-container",
+            style={"marginBottom": "20px"},
         )
 
         return html.Div(
@@ -937,6 +963,35 @@ def register(app):
             # Create pandas DataFrame for CSV export
             df = pd.DataFrame(statistics)
 
+            # Ensure required columns exist
+            required_columns = [
+                "date",
+                "completed_items",
+                "completed_points",
+                "created_items",
+                "created_points",
+            ]
+            for col in required_columns:
+                if col not in df.columns:
+                    if col == "date":
+                        # Date is special - can't be missing
+                        raise ValueError(
+                            "Statistics data is missing required 'date' column"
+                        )
+                    else:
+                        # For other columns, add with default value 0
+                        df[col] = 0
+
+            # Ensure numeric columns are properly formatted
+            numeric_columns = [
+                "completed_items",
+                "completed_points",
+                "created_items",
+                "created_points",
+            ]
+            for col in numeric_columns:
+                df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0).astype(int)
+
             # Ensure date column is in proper datetime format for sorting
             df["date"] = pd.to_datetime(df["date"], errors="coerce")
 
@@ -945,6 +1000,22 @@ def register(app):
 
             # Convert back to string format for display
             df["date"] = df["date"].dt.strftime("%Y-%m-%d")
+
+            # Reorder columns to ensure consistent format
+            column_order = [
+                "date",
+                "completed_items",
+                "completed_points",
+                "created_items",
+                "created_points",
+            ]
+            # Add any additional columns that might be present
+            for col in df.columns:
+                if col not in column_order:
+                    column_order.append(col)
+
+            # Apply the column ordering
+            df = df[column_order]
 
             # Create filename with timestamp
             filename = f"statistics_{current_time}.csv"

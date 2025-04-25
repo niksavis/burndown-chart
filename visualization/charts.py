@@ -2134,8 +2134,8 @@ def create_burnup_chart(
 
     Args:
         df: DataFrame with statistics data
-        total_items: Total number of items to complete
-        total_points: Total number of story points
+        total_items: Total number of remaining items to complete (not the original baseline)
+        total_points: Total number of remaining points to complete (not the original baseline)
         pert_factor: PERT factor for calculations
         deadline_str: Deadline date as string (YYYY-MM-DD)
         data_points_count: Number of most recent data points to use (defaults to all)
@@ -2206,13 +2206,24 @@ def create_burnup_chart(
         df["cum_completed_items"] = df["completed_items"].cumsum()
         df["cum_completed_points"] = df["completed_points"].cumsum()
 
-        # Calculate cumulative scope (baseline + created items/points)
-        baseline_items = total_items
-        baseline_points = total_points
+        # Calculate baseline - consider that total_items is the REMAINING items, not the original baseline
+        # So baseline = remaining items + completed items
+        if not df.empty:
+            total_completed_items = df["cum_completed_items"].iloc[-1]
+            total_completed_points = df["cum_completed_points"].iloc[-1]
+        else:
+            total_completed_items = 0
+            total_completed_points = 0
 
+        # Baseline is the remaining items (from parameters) plus the completed items (from statistics)
+        baseline_items = total_items + total_completed_items
+        baseline_points = total_points + total_completed_points
+
+        # Calculate scope changes over time
         df["cum_created_items"] = df["created_items"].cumsum()
         df["cum_created_points"] = df["created_points"].cumsum()
 
+        # Total scope at each point = baseline + cumulative created items/points
         df["cum_scope_items"] = baseline_items + df["cum_created_items"]
         df["cum_scope_points"] = baseline_points + df["cum_created_points"]
 
@@ -2259,7 +2270,6 @@ def create_burnup_chart(
                 },
             ),
             hoverlabel=create_hoverlabel_config("default"),
-            visible="legendonly",  # Hidden by default
         )
 
         # Create traces for total scope
@@ -2305,10 +2315,9 @@ def create_burnup_chart(
                 },
             ),
             hoverlabel=create_hoverlabel_config("default"),
-            visible="legendonly",  # Hidden by default
         )
 
-        # Add traces to figure
+        # Add traces to figure - all visible by default
         fig.add_trace(completed_items_trace, secondary_y=False)
         fig.add_trace(scope_items_trace, secondary_y=False)
         fig.add_trace(completed_points_trace, secondary_y=True)
@@ -2317,12 +2326,37 @@ def create_burnup_chart(
         # Add deadline marker
         fig = add_deadline_marker(fig, deadline)
 
-        # Configure axes
+        # Configure axes with consistent grid styling matching burndown chart
+        # Configure x-axis
+        fig.update_xaxes(
+            title={"text": "Date", "font": {"size": 16}},
+            tickmode="auto",
+            nticks=20,
+            gridcolor="rgba(200, 200, 200, 0.2)",
+            automargin=True,
+        )
+
+        # Configure primary y-axis (items) with items grid color
+        fig.update_yaxes(
+            title={"text": "Items", "font": {"size": 16}},
+            gridcolor=COLOR_PALETTE["items_grid"],
+            zeroline=True,
+            zerolinecolor="black",
+            secondary_y=False,
+        )
+
+        # Configure secondary y-axis (points) with points grid color
+        fig.update_yaxes(
+            title={"text": "Points", "font": {"size": 16}},
+            gridcolor=COLOR_PALETTE["points_grid"],
+            zeroline=True,
+            zerolinecolor="black",
+            secondary_y=True,
+        )
+
+        # Update layout
         fig.update_layout(
             title="Project Burnup Chart",
-            xaxis_title="Date",
-            yaxis_title="Items",
-            yaxis2_title="Points",
             legend=dict(
                 orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5
             ),
@@ -2330,6 +2364,7 @@ def create_burnup_chart(
             margin=dict(l=60, r=60, t=80, b=50),
             height=700,
             template="plotly_white",
+            plot_bgcolor="white",  # Match burndown chart background
         )
 
         # Highlight periods of significant scope increase

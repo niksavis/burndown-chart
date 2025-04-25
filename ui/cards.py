@@ -751,6 +751,7 @@ def create_statistics_data_card(current_statistics):
         Dash Card component for statistics data
     """
     import pandas as pd
+    import numpy as np
     from dash import html, dash_table
     import dash_bootstrap_components as dbc
     from ui.styles import NEUTRAL_COLORS, get_vertical_rhythm
@@ -765,13 +766,44 @@ def create_statistics_data_card(current_statistics):
     # Convert to DataFrame for automatic column type detection
     statistics_df = pd.DataFrame(current_statistics)
 
+    # Ensure required columns exist in the DataFrame
+    required_columns = [
+        "date",
+        "completed_items",
+        "completed_points",
+        "created_items",
+        "created_points",
+    ]
+    for col in required_columns:
+        if col not in statistics_df.columns:
+            statistics_df[col] = 0  # Add missing columns with default values
+
+    # Function to create a responsive table wrapper
+    def create_responsive_table_wrapper(table_component, max_height=None, className=""):
+        """
+        Create a mobile-responsive wrapper for tables that handles overflow with scrolling.
+        """
+        container_style = {
+            "overflowX": "auto",
+            "width": "100%",
+            "-webkit-overflow-scrolling": "touch",  # Smooth scrolling on iOS
+        }
+
+        if max_height:
+            container_style["maxHeight"] = max_height
+            container_style["overflowY"] = "auto"
+
+        return html.Div(
+            table_component,
+            className=f"table-responsive {className}",
+            style=container_style,
+        )
+
     # Function to detect appropriate column alignment based on data type
     def detect_column_alignment(dataframe, column_name):
         """
         Automatically detect appropriate alignment for a column based on its data type.
         """
-        import numpy as np
-
         if column_name not in dataframe.columns:
             return "left"  # Default to left alignment
 
@@ -1006,132 +1038,58 @@ def create_statistics_data_card(current_statistics):
             **pagination_settings,
         )
 
-    # Function to create a responsive table wrapper
-    def create_responsive_table_wrapper(table_component, max_height=None, className=""):
-        """
-        Create a mobile-responsive wrapper for tables that handles overflow with scrolling.
-        """
-        container_style = {
-            "overflowX": "auto",
-            "width": "100%",
-            "-webkit-overflow-scrolling": "touch",  # Smooth scrolling on iOS
-        }
+    # Define standard column configuration to ensure consistent columns
+    columns = [
+        {
+            "name": "Date (YYYY-MM-DD)",
+            "id": "date",
+            "type": "text",
+        },
+        {
+            "name": "Items Completed",
+            "id": "completed_items",
+            "type": "numeric",
+        },
+        {
+            "name": "Points Completed",
+            "id": "completed_points",
+            "type": "numeric",
+        },
+        {
+            "name": "Items Created",
+            "id": "created_items",
+            "type": "numeric",
+        },
+        {
+            "name": "Points Created",
+            "id": "created_points",
+            "type": "numeric",
+        },
+    ]
 
-        if max_height:
-            container_style["maxHeight"] = max_height
-            container_style["overflowY"] = "auto"
+    # Set column alignments based on data type
+    column_alignments = {
+        "date": "center",
+        "completed_items": "right",
+        "completed_points": "right",
+        "created_items": "right",
+        "created_points": "right",
+    }
 
-        return html.Div(
-            table_component,
-            className=f"table-responsive {className}",
-            style=container_style,
-        )
-
-    # Create a data table with optimal column alignments
-    def create_aligned_datatable(
-        dataframe,
-        id,
-        editable=False,
+    # Create the enhanced table with consistent columns
+    statistics_table = create_enhanced_data_table(
+        data=statistics_df.to_dict("records"),
+        columns=columns,
+        id="statistics-table",
+        editable=True,
+        row_selectable=False,
         page_size=10,
         include_pagination=True,
-        filter_action="native",
         sort_action="native",
-        override_alignments=None,
-        sort_by=None,
-    ):
-        """
-        Create a DataTable with optimal column alignments based on data types.
-        """
-        # Generate columns with appropriate types
-        columns = []
-        for col in dataframe.columns:
-            col_type = "numeric" if dataframe[col].dtype.kind in "ifc" else "text"
-            columns.append({"name": col, "id": col, "type": col_type})
-
-        # Generate automatic alignments
-        alignments = generate_column_alignments(dataframe)
-
-        # Apply any override alignments
-        if override_alignments:
-            alignments.update(override_alignments)
-
-        # Use default sorting by date in descending order for statistics table
-        if sort_by is None and id == "statistics-table":
-            sort_by = [{"column_id": "date", "direction": "desc"}]
-
-        # Create the DataTable with aligned columns
-        return create_enhanced_data_table(
-            data=dataframe.to_dict("records"),
-            columns=columns,
-            id=id,
-            editable=editable,
-            row_selectable=False,
-            page_size=page_size,
-            include_pagination=include_pagination,
-            sort_action=sort_action,
-            filter_action=filter_action,
-            column_alignments=alignments,
-            sort_by=sort_by,
-            mobile_responsive=True,
-            priority_columns=["date"] if id == "statistics-table" else None,
-        )
-
-    # Use automatic column alignment if we have data
-    if not statistics_df.empty:
-        # Create an automatically aligned table with enhanced responsiveness
-        statistics_table = create_aligned_datatable(
-            dataframe=statistics_df,
-            id="statistics-table",
-            editable=True,
-            page_size=10,
-            include_pagination=True,
-            filter_action="native",
-            sort_action="native",
-            # Override automatic alignments if needed
-            override_alignments={
-                "date": "center",  # Ensure dates are centered
-            },
-        )
-    else:
-        # Define column configuration for empty table
-        columns = [
-            {
-                "name": "Date (YYYY-MM-DD)",
-                "id": "date",
-                "type": "text",
-            },
-            {
-                "name": "Items Completed",
-                "id": "completed_items",
-                "type": "numeric",
-            },
-            {
-                "name": "Points Completed",
-                "id": "completed_points",
-                "type": "numeric",
-            },
-        ]
-
-        # Set column alignments based on data type
-        column_alignments = {
-            "date": "center",
-            "completed_items": "right",
-            "completed_points": "right",
-        }
-
-        # Create the enhanced table with manual alignments
-        statistics_table = create_enhanced_data_table(
-            data=current_statistics,
-            columns=columns,
-            id="statistics-table",
-            editable=True,
-            row_selectable=False,
-            page_size=10,
-            include_pagination=True,
-            sort_action="native",
-            filter_action="native",
-            column_alignments=column_alignments,
-        )
+        filter_action="native",
+        column_alignments=column_alignments,
+        sort_by=[{"column_id": "date", "direction": "desc"}],
+    )
 
     # Create help text for data input
     help_text = html.Div(
@@ -1144,6 +1102,13 @@ def create_statistics_data_card(current_statistics):
                     " button to add new entries.",
                 ],
                 className="text-muted",
+            ),
+            html.Small(
+                [
+                    html.I(className="fas fa-plus-circle me-1 text-info"),
+                    "Include created items and points to track scope changes.",
+                ],
+                className="text-muted d-block mt-1",
             ),
             html.Small(
                 [

@@ -256,6 +256,8 @@ def register(app):
                         "date": new_date,
                         "completed_items": 0,
                         "completed_points": 0,
+                        "created_items": 0,
+                        "created_points": 0,
                     },
                 )
 
@@ -283,6 +285,13 @@ def register(app):
 
                         # Clean data and ensure date is in YYYY-MM-DD format
                         df = read_and_clean_data(df)
+
+                        # Ensure created_items and created_points columns exist
+                        if "created_items" not in df.columns:
+                            df["created_items"] = 0
+                        if "created_points" not in df.columns:
+                            df["created_points"] = 0
+
                         # When uploading data, we're no longer using sample data
                         return df.to_dict("records"), False
                     except Exception as e:

@@ -10,7 +10,7 @@
 .dash-table-container {
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   /* Add overflow-x auto for responsiveness if not already handled by specific wrappers */
-  overflow-x: auto; 
+  overflow-x: auto;
 }
 
 /* Core table structure */
@@ -47,11 +47,11 @@
 }
 /* Add right border back to last cell */
 .dash-spreadsheet-container .dash-spreadsheet-inner td:last-child {
-    border-right: 1px solid #f0f0f0;
+  border-right: 1px solid #f0f0f0;
 }
 /* Add bottom border back to cells in last row */
 .dash-spreadsheet-container .dash-spreadsheet-inner tr:last-child td {
-    border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid #f0f0f0;
 }
 
 /* Enhanced styling for editable cells */
@@ -97,7 +97,12 @@ td.cell--editable:not(.cell-selected) .dash-cell-value::after {
 
 /* Hover effect for table rows */
 .dash-spreadsheet-container .dash-spreadsheet-inner tr:hover {
-  background-color: rgba(13, 110, 253, 0.08) !important; /* Use primary color tint */
+  background-color: rgba(
+    13,
+    110,
+    253,
+    0.08
+  ) !important; /* Use primary color tint */
   cursor: default;
 }
 
@@ -140,7 +145,8 @@ td.cell--editable:not(.cell-selected) .dash-cell-value::after {
   background-color: #f8f9fa !important;
   color: #495057 !important;
   cursor: pointer !important;
-  transition: background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, color 0.15s ease-in-out; /* Smooth transition */
+  transition: background-color 0.15s ease-in-out, border-color 0.15s ease-in-out,
+    color 0.15s ease-in-out; /* Smooth transition */
 }
 
 /* Hover effects for pagination buttons */
@@ -181,7 +187,7 @@ td.cell--editable:not(.cell-selected) .dash-cell-value::after {
   min-width: 100px !important; /* Ensure enough space */
 }
 
-.page-number input[type=number] {
+.page-number input[type="number"] {
   height: 36px !important; /* Match button height */
   border: 1px solid #dee2e6 !important;
   border-radius: 4px !important;
@@ -195,8 +201,8 @@ td.cell--editable:not(.cell-selected) .dash-cell-value::after {
   appearance: textfield;
   -moz-appearance: textfield;
 }
-.page-number input[type=number]::-webkit-outer-spin-button,
-.page-number input[type=number]::-webkit-inner-spin-button {
+.page-number input[type="number"]::-webkit-outer-spin-button,
+.page-number input[type="number"]::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
@@ -259,6 +265,85 @@ td.cell--editable:not(.cell-selected) .dash-cell-value::after {
   z-index: 1 !important;
   text-align: center !important;
   margin: 0 !important;
+}
+
+/* ===== Chart Toggle Button Styling ===== */
+/* Custom styling for the burndown/burnup chart toggle buttons */
+
+.chart-toggle-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 5px;
+  background: rgba(248, 249, 250, 0.7);
+  border-radius: 8px;
+  backdrop-filter: blur(5px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.chart-toggle-buttons .form-check {
+  margin: 0;
+  padding: 0;
+}
+
+.chart-toggle-buttons .form-check-input {
+  position: absolute;
+  opacity: 0;
+}
+
+.chart-toggle-buttons .form-check-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 15px;
+  margin: 0 5px;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 100px;
+}
+
+.chart-toggle-buttons .form-check-input:checked + .form-check-label {
+  background-color: #20c997;
+  border-color: #20c997;
+  color: white;
+  font-weight: bold;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.chart-toggle-buttons .form-check-label:hover {
+  background-color: rgba(32, 201, 151, 0.1);
+  transform: translateY(-1px);
+}
+
+.chart-toggle-buttons .form-check-input:focus + .form-check-label {
+  box-shadow: 0 0 0 3px rgba(32, 201, 151, 0.3);
+  outline: none;
+}
+
+/* Burndown/burnup icon styling */
+.chart-toggle-buttons .form-check-label[for*="burndown"]:before {
+  content: "↘️";
+  margin-right: 5px;
+}
+
+.chart-toggle-buttons .form-check-label[for*="burnup"]:before {
+  content: "↗️";
+  margin-right: 5px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 576px) {
+  .chart-toggle-buttons .form-check-label {
+    padding: 8px 10px;
+    font-size: 0.9rem;
+    min-width: 80px;
+  }
 }
 
 /* ===== Tab Navigation Standardization ===== */
@@ -756,109 +841,109 @@ input[type="radio"]:checked {
 
 /* Enhanced slider styling for better visibility and interaction */
 .rc-slider {
-    margin: 10px 0;
-    min-width: 150px;
+  margin: 10px 0;
+  min-width: 150px;
 }
 
 .rc-slider-track {
-    background-color: #0d6efd;
-    height: 4px;
+  background-color: #0d6efd;
+  height: 4px;
 }
 
 .rc-slider-rail {
-    height: 4px;
-    background-color: #e9ecef;
+  height: 4px;
+  background-color: #e9ecef;
 }
 
 .rc-slider-handle {
-    border: solid 2px #0d6efd;
-    background-color: #fff;
-    width: 16px;
-    height: 16px;
-    margin-top: -6px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-    cursor: pointer !important;
+  border: solid 2px #0d6efd;
+  background-color: #fff;
+  width: 16px;
+  height: 16px;
+  margin-top: -6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  cursor: pointer !important;
 }
 
 .rc-slider-handle:hover {
-    border-color: #0b5ed7;
-    box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+  border-color: #0b5ed7;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
 }
 
 .rc-slider-handle:active {
-    border-color: #0a58ca;
-    box-shadow: 0 1px 7px rgba(0,0,0,0.5);
-    cursor: grabbing;
+  border-color: #0a58ca;
+  box-shadow: 0 1px 7px rgba(0, 0, 0, 0.5);
+  cursor: grabbing;
 }
 
 .rc-slider-mark {
-    font-size: 12px;
-    top: 16px;
+  font-size: 12px;
+  top: 16px;
 }
 
 .rc-slider-mark-text {
-    color: #6c757d;
+  color: #6c757d;
 }
 
 .rc-slider-mark-text-active {
-    color: #212529;
+  color: #212529;
 }
 
 /* Compact trend indicator styling */
 .compact-trend-indicator {
-    transition: all 0.2s ease-in-out;
+  transition: all 0.2s ease-in-out;
 }
 
 .compact-trend-indicator:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 /* Fix sparkline display in trend components */
 .trend-sparkline {
-    height: 30px;
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
+  height: 30px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
 }
 
 .trend-sparkline-bar {
-    width: 5px;
-    border-radius: 1px;
-    margin: 0 1px;
-    transition: height 0.3s ease;
+  width: 5px;
+  border-radius: 1px;
+  margin: 0 1px;
+  transition: height 0.3s ease;
 }
 
 /* Improve input range slider functionality */
-input[type=range] {
-    -webkit-appearance: none;
-    appearance: none;
-    height: 4px;
-    border-radius: 2px;
-    background: #e9ecef;
-    outline: none;
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  background: #e9ecef;
+  outline: none;
 }
 
-input[type=range]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: #0d6efd;
-    border: 2px solid #fff;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-    cursor: pointer;
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #0d6efd;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
 }
 
-input[type=range]::-moz-range-thumb {
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: #0d6efd;
-    border: 2px solid #fff;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-    cursor: pointer;
+input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #0d6efd;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
 }
 
 /* ===== Disable Transition for Weekly Trend Boxes ===== */
@@ -867,20 +952,20 @@ input[type=range]::-moz-range-thumb {
 .forecast-pill,
 .compact-trend-indicator,
 .tab-content [class*="tab-"] .row:first-child {
-    transition: none !important;
+  transition: none !important;
 }
 
 /* Override any Bootstrap transitions that might be causing the animation */
-#tab-burndown .row, 
+#tab-burndown .row,
 #tab-burndown .col-md-6,
 #tab-burndown .col-12,
 .d-flex.flex-wrap.mt-2.align-items-center {
-    transition: none !important;
+  transition: none !important;
 }
 
 /* Ensure immediate display of trend content when switching tabs */
 [role="tabpanel"] {
-    transition: none !important;
+  transition: none !important;
 }
 
 /* ===== Responsive Table Styling ===== */
@@ -914,66 +999,88 @@ input[type=range]::-moz-range-thumb {
     padding-left: 12px !important;
     padding-right: 12px !important;
   }
-  
+
   /* Typography adjustments */
-  h1, .h1 { font-size: 1.75rem !important; }
-  h2, .h2 { font-size: 1.5rem !important; }
-  h3, .h3 { font-size: 1.25rem !important; }
-  h4, .h4 { font-size: 1.1rem !important; }
-  h5, .h5 { font-size: 1rem !important; }
-  h6, .h6 { font-size: 0.9rem !important; }
-  
+  h1,
+  .h1 {
+    font-size: 1.75rem !important;
+  }
+  h2,
+  .h2 {
+    font-size: 1.5rem !important;
+  }
+  h3,
+  .h3 {
+    font-size: 1.25rem !important;
+  }
+  h4,
+  .h4 {
+    font-size: 1.1rem !important;
+  }
+  h5,
+  .h5 {
+    font-size: 1rem !important;
+  }
+  h6,
+  .h6 {
+    font-size: 0.9rem !important;
+  }
+
   /* Card adjustments */
-  .card-body { padding: 0.75rem !important; }
-  .card-header { padding: 0.75rem !important; }
-  
+  .card-body {
+    padding: 0.75rem !important;
+  }
+  .card-header {
+    padding: 0.75rem !important;
+  }
+
   /* Form elements */
   .btn {
     padding: 0.5rem 0.75rem !important;
     min-height: 44px !important;
     font-size: 1rem !important;
   }
-  
-  .form-control, 
+
+  .form-control,
   .form-select,
   .input-group .input-group-text {
     min-height: 44px !important;
     font-size: 16px !important; /* Prevents zooming on iOS */
   }
-  
+
   .DateInput_input {
     font-size: 16px !important;
     padding: 8px !important;
     height: 44px !important;
   }
-  
+
   .form-group:not(:last-child) {
     margin-bottom: 1.25rem !important;
   }
-  
-  input[type="checkbox"], 
+
+  input[type="checkbox"],
   input[type="radio"] {
     width: 20px !important;
     height: 20px !important;
   }
-  
+
   /* Table styles */
   .dash-table-container {
-    -webkit-overflow-scrolling: touch; 
+    -webkit-overflow-scrolling: touch;
   }
-  
+
   .dash-spreadsheet td,
   .dash-spreadsheet th {
     padding: 8px 6px !important;
     font-size: 14px !important;
   }
-  
+
   /* Pagination controls */
   .previous-next-container {
-    gap: 3px !important; 
-    margin: 10px auto !important; 
+    gap: 3px !important;
+    margin: 10px auto !important;
   }
-  
+
   .first-page,
   .previous-page,
   .next-page,
@@ -988,51 +1095,53 @@ input[type=range]::-moz-range-thumb {
     justify-content: center !important;
     padding: 0.3rem !important;
   }
-  
-  .page-number input[type=number] {
-    max-width: 50px; 
-    padding: 0.3rem 0.5rem !important; 
+
+  .page-number input[type="number"] {
+    max-width: 50px;
+    padding: 0.3rem 0.5rem !important;
     height: 44px !important;
-    font-size: 0.9rem !important; 
+    font-size: 0.9rem !important;
   }
-  
+
   .page-number,
   .page-number > div {
     height: 44px !important;
     line-height: 44px !important;
   }
-  
+
   /* Visibility & text handling */
   .mobile-hidden {
     display: none !important;
   }
-  
+
   .mobile-text-center {
     text-align: center !important;
   }
-  
+
   .mobile-truncate {
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
     max-width: 120px;
   }
-  
+
   .mobile-mb-2 {
     margin-bottom: 0.5rem !important;
   }
-  
+
   /* Modal adjustments */
   .modal-dialog {
     margin: 0.5rem;
     max-width: calc(100% - 1rem);
   }
-  
+
   .modal-content {
     font-size: 0.95rem;
   }
-  
-  .modal-header, .modal-body, .modal-footer {
+
+  .modal-header,
+  .modal-body,
+  .modal-footer {
     padding: 0.75rem !important;
   }
 }
@@ -1041,93 +1150,123 @@ input[type=range]::-moz-range-thumb {
 /* Standard mobile utility classes that follow a consistent pattern */
 
 .mobile-truncate {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .mobile-touch-target {
-    min-height: 44px !important;
-    min-width: 44px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
+  min-height: 44px !important;
+  min-width: 44px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
 /* Mobile-friendly spacing utilities */
-.mobile-mb-0 { margin-bottom: 0 !important; }
-.mobile-mb-1 { margin-bottom: 0.25rem !important; }
-.mobile-mb-2 { margin-bottom: 0.5rem !important; }
-.mobile-mb-3 { margin-bottom: 1rem !important; }
-.mobile-mb-4 { margin-bottom: 1.5rem !important; }
+.mobile-mb-0 {
+  margin-bottom: 0 !important;
+}
+.mobile-mb-1 {
+  margin-bottom: 0.25rem !important;
+}
+.mobile-mb-2 {
+  margin-bottom: 0.5rem !important;
+}
+.mobile-mb-3 {
+  margin-bottom: 1rem !important;
+}
+.mobile-mb-4 {
+  margin-bottom: 1.5rem !important;
+}
 
-.mobile-mt-0 { margin-top: 0 !important; }
-.mobile-mt-1 { margin-top: 0.25rem !important; }
-.mobile-mt-2 { margin-top: 0.5rem !important; }
-.mobile-mt-3 { margin-top: 1rem !important; }
-.mobile-mt-4 { margin-top: 1.5rem !important; }
+.mobile-mt-0 {
+  margin-top: 0 !important;
+}
+.mobile-mt-1 {
+  margin-top: 0.25rem !important;
+}
+.mobile-mt-2 {
+  margin-top: 0.5rem !important;
+}
+.mobile-mt-3 {
+  margin-top: 1rem !important;
+}
+.mobile-mt-4 {
+  margin-top: 1.5rem !important;
+}
 
-.mobile-p-0 { padding: 0 !important; }
-.mobile-p-1 { padding: 0.25rem !important; }
-.mobile-p-2 { padding: 0.5rem !important; }
-.mobile-p-3 { padding: 1rem !important; }
-.mobile-p-4 { padding: 1.5rem !important; }
+.mobile-p-0 {
+  padding: 0 !important;
+}
+.mobile-p-1 {
+  padding: 0.25rem !important;
+}
+.mobile-p-2 {
+  padding: 0.5rem !important;
+}
+.mobile-p-3 {
+  padding: 1rem !important;
+}
+.mobile-p-4 {
+  padding: 1.5rem !important;
+}
 
 /* Mobile-first visibility and layout helpers */
 .mobile-only {
-    display: block !important;
+  display: block !important;
 }
 
 .mobile-hidden {
-    display: none !important;
+  display: none !important;
 }
 
 @media (min-width: 768px) {
-    .mobile-only {
-        display: none !important;
-    }
-    
-    .mobile-hidden {
-        display: block !important;
-    }
+  .mobile-only {
+    display: none !important;
+  }
+
+  .mobile-hidden {
+    display: block !important;
+  }
 }
 
 /* Touch target enhancement for all interactive elements */
 @media (max-width: 767px) {
-    /* Ensure all buttons meet minimum touch target size */
-    .btn, 
-    button,
-    .nav-link,
-    .form-check-label,
-    .dropdown-item {
-        min-height: 44px !important;
-        min-width: 44px !important;
-        display: flex !important;
-        align-items: center !important;
-    }
-    
-    /* Form controls touch target improvements */
-    .form-control,
-    .form-select,
-    input[type="text"],
-    input[type="email"],
-    input[type="password"],
-    input[type="number"],
-    input[type="date"],
-    input[type="time"],
-    input[type="search"],
-    select,
-    textarea {
-        min-height: 44px !important;
-        font-size: 16px !important; /* Prevents zoom on iOS */
-    }
-    
-    /* Improve spacing between touch targets */
-    .btn + .btn,
-    .nav-item + .nav-item {
-        margin-left: 8px !important;
-    }
+  /* Ensure all buttons meet minimum touch target size */
+  .btn,
+  button,
+  .nav-link,
+  .form-check-label,
+  .dropdown-item {
+    min-height: 44px !important;
+    min-width: 44px !important;
+    display: flex !important;
+    align-items: center !important;
+  }
+
+  /* Form controls touch target improvements */
+  .form-control,
+  .form-select,
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="date"],
+  input[type="time"],
+  input[type="search"],
+  select,
+  textarea {
+    min-height: 44px !important;
+    font-size: 16px !important; /* Prevents zoom on iOS */
+  }
+
+  /* Improve spacing between touch targets */
+  .btn + .btn,
+  .nav-item + .nav-item {
+    margin-left: 8px !important;
+  }
 }
 
 /* Special case styles for devices that should remain outside the consolidated block */
@@ -1140,7 +1279,7 @@ input[type=range]::-moz-range-thumb {
   position: relative;
   border-radius: 6px;
   overflow: hidden;
-  box-shadow: inset 0 1px 2px rgba(0,0,0,.1);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .progress-label {
@@ -1152,7 +1291,7 @@ input[type=range]::-moz-range-thumb {
   display: flex;
   align-items: center;
   justify-content: center;
-  text-shadow: 0 0 2px rgba(0,0,0,0.2);
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.2);
   font-weight: bold;
 }
 
@@ -1232,18 +1371,30 @@ input[type=range]::-moz-range-thumb {
 }
 
 .forecast-card.items-theme {
-  background: linear-gradient(to bottom, rgba(13, 110, 253, 0.05), rgba(255, 255, 255, 1));
+  background: linear-gradient(
+    to bottom,
+    rgba(13, 110, 253, 0.05),
+    rgba(255, 255, 255, 1)
+  );
 }
 
 .forecast-card.points-theme {
-  background: linear-gradient(to bottom, rgba(253, 126, 20, 0.05), rgba(255, 255, 255, 1));
+  background: linear-gradient(
+    to bottom,
+    rgba(253, 126, 20, 0.05),
+    rgba(255, 255, 255, 1)
+  );
 }
 
 .deadline-card {
   padding: 1rem;
   border: 1px solid #dee2e6;
   border-radius: 0.375rem;
-  background: linear-gradient(to bottom, rgba(220, 53, 69, 0.05), rgba(255, 255, 255, 1));
+  background: linear-gradient(
+    to bottom,
+    rgba(220, 53, 69, 0.05),
+    rgba(255, 255, 255, 1)
+  );
   box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px 0px;
 }
 

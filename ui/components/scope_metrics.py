@@ -65,6 +65,14 @@ def create_scope_growth_chart(weekly_growth_data):
         y=weekly_growth_data["items_growth"],
         name="Items Growth",
         marker_color="rgba(50, 171, 96, 0.7)",
+        # Add hover text to clarify meaning of values
+        hovertemplate=(
+            "<b>Items</b><br>"
+            + "Week: %{x}<br>"
+            + "Growth: %{y}<br>"
+            + "<i>Positive = Scope Increase<br>"
+            + "Negative = Backlog Reduction</i>"
+        ),
     )
 
     points_trace = go.Bar(
@@ -72,13 +80,21 @@ def create_scope_growth_chart(weekly_growth_data):
         y=weekly_growth_data["points_growth"],
         name="Points Growth",
         marker_color="rgba(219, 64, 82, 0.7)",
+        # Add hover text to clarify meaning of values
+        hovertemplate=(
+            "<b>Points</b><br>"
+            + "Week: %{x}<br>"
+            + "Growth: %{y}<br>"
+            + "<i>Positive = Scope Increase<br>"
+            + "Negative = Backlog Reduction</i>"
+        ),
     )
 
     # Create layout
     layout = go.Layout(
-        title="Weekly Scope Growth",
+        title="Weekly Scope Growth (+ Increase, - Reduction)",  # Updated title to clarify meaning
         xaxis={"title": "Week", "tickangle": -45},
-        yaxis={"title": "Growth (Created - Completed)"},
+        yaxis={"title": "Growth (Created - Completed Items)"},
         height=300,
         margin={"l": 60, "r": 20, "t": 50, "b": 80},
         legend={"orientation": "h", "y": -0.2},
@@ -100,6 +116,17 @@ def create_scope_growth_chart(weekly_growth_data):
         line=dict(color="black", width=1, dash="dot"),
     )
 
+    # Add annotation explaining the chart
+    figure.add_annotation(
+        x=0.5,
+        y=-0.28,
+        xref="paper",
+        yref="paper",
+        text="Negative values represent backlog reduction (completing more items than were added)",
+        showarrow=False,
+        font=dict(size=11, color="gray"),
+    )
+
     # Return the graph component
     return dcc.Graph(
         figure=figure,
@@ -112,24 +139,41 @@ def create_stability_gauge(stability_value, title="Scope Stability Index"):
     # Define color scale based on stability value
     if stability_value > 0.8:
         color = "green"
+        status_text = "Very Stable"
     elif stability_value > 0.6:
         color = "lightgreen"
+        status_text = "Stable"
     elif stability_value > 0.4:
         color = "yellow"
+        status_text = "Moderate"
     elif stability_value > 0.2:
         color = "orange"
+        status_text = "Unstable"
     else:
         color = "red"
+        status_text = "Very Unstable"
 
-    # Create gauge
+    # Create gauge with number position at bottom to avoid text overlap
     figure = go.Figure(
         go.Indicator(
             mode="gauge+number",
             value=stability_value,
             domain={"x": [0, 1], "y": [0, 1]},
-            title={"text": title, "font": {"size": 16}},
+            title={"text": title, "font": {"size": 16}, "align": "center"},
+            number={
+                "font": {"color": color, "size": 24},
+                "suffix": "",
+                "valueformat": ".2f",
+                # Move the number below the gauge
+                "prefix": status_text + ": ",
+            },
             gauge={
-                "axis": {"range": [0, 1], "tickwidth": 1},
+                "axis": {
+                    "range": [0, 1],
+                    "tickwidth": 1,
+                    "tickmode": "array",
+                    "tickvals": [0, 0.2, 0.4, 0.6, 0.8, 1],
+                },
                 "bar": {"color": color},
                 "steps": [
                     {"range": [0, 0.2], "color": "red"},
@@ -147,10 +191,10 @@ def create_stability_gauge(stability_value, title="Scope Stability Index"):
         )
     )
 
-    # Update layout
+    # Update layout with more height to accommodate number placement
     figure.update_layout(
-        height=200,
-        margin={"l": 30, "r": 30, "t": 30, "b": 0},
+        height=240,  # Increased from 200 to 240
+        margin={"l": 30, "r": 30, "t": 30, "b": 50},  # Increased bottom margin
     )
 
     return dcc.Graph(
