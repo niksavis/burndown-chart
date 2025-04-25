@@ -1102,12 +1102,12 @@ def create_statistics_data_card(current_statistics):
             },
             {
                 "name": "Items Completed",
-                "id": "no_items",
+                "id": "completed_items",
                 "type": "numeric",
             },
             {
                 "name": "Points Completed",
-                "id": "no_points",
+                "id": "completed_points",
                 "type": "numeric",
             },
         ]
@@ -1115,8 +1115,8 @@ def create_statistics_data_card(current_statistics):
         # Set column alignments based on data type
         column_alignments = {
             "date": "center",
-            "no_items": "right",
-            "no_points": "right",
+            "completed_items": "right",
+            "completed_points": "right",
         }
 
         # Create the enhanced table with manual alignments
@@ -1257,10 +1257,14 @@ def create_project_status_card(statistics_df, settings):
 
         # Calculate completed items and points from statistics
         completed_items = (
-            int(statistics_df["no_items"].sum()) if not statistics_df.empty else 0
+            int(statistics_df["completed_items"].sum())
+            if not statistics_df.empty
+            else 0
         )
         completed_points = (
-            int(statistics_df["no_points"].sum()) if not statistics_df.empty else 0
+            int(statistics_df["completed_points"].sum())
+            if not statistics_df.empty
+            else 0
         )
 
         # Calculate true project totals (completed + remaining)
@@ -1303,18 +1307,18 @@ def create_project_status_card(statistics_df, settings):
             # Group by week to get weekly data
             weekly_data = (
                 recent_df.groupby(["year", "week"])
-                .agg({"no_items": "sum", "no_points": "sum"})
+                .agg({"completed_items": "sum", "completed_points": "sum"})
                 .reset_index()
                 .tail(10)  # Consider only the last 10 weeks
             )
 
             # Calculate average weekly velocity
-            avg_weekly_items = weekly_data["no_items"].mean()
-            avg_weekly_points = weekly_data["no_points"].mean()
+            avg_weekly_items = weekly_data["completed_items"].mean()
+            avg_weekly_points = weekly_data["completed_points"].mean()
 
             # Calculate standard deviation for coefficient of variation
-            std_weekly_items = weekly_data["no_items"].std()
-            std_weekly_points = weekly_data["no_points"].std()
+            std_weekly_items = weekly_data["completed_items"].std()
+            std_weekly_points = weekly_data["completed_points"].std()
 
             # Calculate coefficient of variation (CV = std/mean)
             cv_items = (
@@ -1329,13 +1333,13 @@ def create_project_status_card(statistics_df, settings):
             )
 
             # Count zero weeks and high weeks (outliers)
-            zero_item_weeks = len(weekly_data[weekly_data["no_items"] == 0])
-            zero_point_weeks = len(weekly_data[weekly_data["no_points"] == 0])
+            zero_item_weeks = len(weekly_data[weekly_data["completed_items"] == 0])
+            zero_point_weeks = len(weekly_data[weekly_data["completed_points"] == 0])
             high_item_weeks = len(
-                weekly_data[weekly_data["no_items"] > avg_weekly_items * 2]
+                weekly_data[weekly_data["completed_items"] > avg_weekly_items * 2]
             )
             high_point_weeks = len(
-                weekly_data[weekly_data["no_points"] > avg_weekly_points * 2]
+                weekly_data[weekly_data["completed_points"] > avg_weekly_points * 2]
             )
 
             # Calculate overall stability score (0-100)
@@ -1644,13 +1648,13 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
 
             weekly_data = (
                 recent_df.groupby(["year", "week"])
-                .agg({"no_items": "sum", "no_points": "sum"})
+                .agg({"completed_items": "sum", "completed_points": "sum"})
                 .reset_index()
             )
 
             # Calculate metrics needed for PERT table
-            avg_weekly_items = weekly_data["no_items"].mean()
-            avg_weekly_points = weekly_data["no_points"].mean()
+            avg_weekly_items = weekly_data["completed_items"].mean()
+            avg_weekly_points = weekly_data["completed_points"].mean()
         else:
             avg_weekly_items = 0
             avg_weekly_points = 0

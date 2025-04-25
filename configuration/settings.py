@@ -46,8 +46,8 @@ SAMPLE_DATA = pd.DataFrame(
             (datetime.now() - timedelta(days=i)).strftime("%Y-%m-%d")
             for i in range(10, 0, -1)
         ],
-        "no_items": [5, 7, 3, 6, 4, 8, 5, 6, 7, 4],
-        "no_points": [50, 70, 30, 60, 40, 80, 50, 60, 70, 40],
+        "completed_items": [5, 7, 3, 6, 4, 8, 5, 6, 7, 4],
+        "completed_points": [50, 70, 30, 60, 40, 80, 50, 60, 70, 40],
     }
 )
 
@@ -102,12 +102,12 @@ HELP_TEXTS = {
     "csv_format": """
         Your CSV file should contain the following columns:
         - date: Date of work completed (YYYY-MM-DD format)
-        - no_items: Number of items completed on that date
-        - no_points: Number of points completed on that date
+        - completed_items: Number of items completed on that date
+        - completed_points: Number of points completed on that date
         
         The file can use semicolon (;) or comma (,) as separators.
         Example:
-        date;no_items;no_points
+        date;completed_items;completed_points
         2025-03-01;5;50
         2025-03-02;7;70
     """,

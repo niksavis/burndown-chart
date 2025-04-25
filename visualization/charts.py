@@ -827,7 +827,7 @@ def create_weekly_items_chart(
     # Aggregate by week
     weekly_df = (
         df.groupby("year_week")
-        .agg(items=("no_items", "sum"), start_date=("date", "min"))
+        .agg(items=("completed_items", "sum"), start_date=("date", "min"))
         .reset_index()
     )
 
@@ -1032,7 +1032,7 @@ def create_weekly_points_chart(
     # Aggregate by week
     weekly_df = (
         df.groupby("year_week")
-        .agg(points=("no_points", "sum"), start_date=("date", "min"))
+        .agg(points=("completed_points", "sum"), start_date=("date", "min"))
         .reset_index()
     )
 
@@ -1256,7 +1256,7 @@ def create_weekly_items_forecast_chart(
     # Aggregate by week
     weekly_df = (
         df.groupby("year_week")
-        .agg(items=("no_items", "sum"), start_date=("date", "min"))
+        .agg(items=("completed_items", "sum"), start_date=("date", "min"))
         .reset_index()
     )
 
@@ -1460,7 +1460,7 @@ def create_weekly_points_forecast_chart(
     # Aggregate by week
     weekly_df = (
         df.groupby("year_week")
-        .agg(points=("no_points", "sum"), start_date=("date", "min"))
+        .agg(points=("completed_points", "sum"), start_date=("date", "min"))
         .reset_index()
     )
 

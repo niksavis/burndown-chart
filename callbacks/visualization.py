@@ -273,8 +273,8 @@ def register(app):
             tuple: (items_trend, points_trend) dictionaries with trend and forecast data
         """
         # Calculate trend indicators for items and points
-        items_trend = calculate_performance_trend(statistics, "no_items", 4)
-        points_trend = calculate_performance_trend(statistics, "no_points", 4)
+        items_trend = calculate_performance_trend(statistics, "completed_items", 4)
+        points_trend = calculate_performance_trend(statistics, "completed_points", 4)
 
         # Generate weekly forecast data if statistics available
         if statistics:
@@ -702,7 +702,9 @@ def register(app):
                     )
                     weekly_df = (
                         df.groupby("year_week")
-                        .agg(week_start=("date", "min"), items=("no_items", "sum"))
+                        .agg(
+                            week_start=("date", "min"), items=("completed_items", "sum")
+                        )
                         .reset_index()
                     )
 
@@ -730,7 +732,10 @@ def register(app):
                     )
                     weekly_df = (
                         df.groupby("year_week")
-                        .agg(week_start=("date", "min"), points=("no_points", "sum"))
+                        .agg(
+                            week_start=("date", "min"),
+                            points=("completed_points", "sum"),
+                        )
                         .reset_index()
                     )
 

@@ -1026,8 +1026,8 @@ def create_pert_info_table(
     completed_items = 0
     completed_points = 0
     if statistics_df is not None and not statistics_df.empty:
-        completed_items = int(statistics_df["no_items"].sum())
-        completed_points = int(statistics_df["no_points"].sum())
+        completed_items = int(statistics_df["completed_items"].sum())
+        completed_points = int(statistics_df["completed_points"].sum())
 
     # Calculate actual total project items and points
     actual_total_items = completed_items + total_items

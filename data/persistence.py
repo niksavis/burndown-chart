@@ -275,8 +275,8 @@ def generate_realistic_sample_data():
     sample_df = pd.DataFrame(
         {
             "date": [d.strftime("%Y-%m-%d") for d in dates],
-            "no_items": items,
-            "no_points": points,
+            "completed_items": items,
+            "completed_points": points,
         }
     )
 
@@ -294,7 +294,7 @@ def read_and_clean_data(df):
         DataFrame with cleaned and formatted data
     """
     # Ensure required columns exist
-    required_columns = ["date", "no_items", "no_points"]
+    required_columns = ["date", "completed_items", "completed_points"]
     for col in required_columns:
         if col not in df.columns:
             raise ValueError(f"Required column '{col}' not found in data")
@@ -306,11 +306,11 @@ def read_and_clean_data(df):
     df = df.dropna(subset=["date"])
 
     # Ensure items and points are numeric
-    df["no_items"] = (
-        pd.to_numeric(df["no_items"], errors="coerce").fillna(0).astype(int)
+    df["completed_items"] = (
+        pd.to_numeric(df["completed_items"], errors="coerce").fillna(0).astype(int)
     )
-    df["no_points"] = (
-        pd.to_numeric(df["no_points"], errors="coerce").fillna(0).astype(int)
+    df["completed_points"] = (
+        pd.to_numeric(df["completed_points"], errors="coerce").fillna(0).astype(int)
     )
 
     # Sort by date

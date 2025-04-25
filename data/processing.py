@@ -40,11 +40,15 @@ def calculate_total_points(
         if statistics_data and len(statistics_data) > 0:
             # Calculate average points per item from historical data
             df = pd.DataFrame(statistics_data)
-            df["no_items"] = pd.to_numeric(df["no_items"], errors="coerce").fillna(0)
-            df["no_points"] = pd.to_numeric(df["no_points"], errors="coerce").fillna(0)
+            df["completed_items"] = pd.to_numeric(
+                df["completed_items"], errors="coerce"
+            ).fillna(0)
+            df["completed_points"] = pd.to_numeric(
+                df["completed_points"], errors="coerce"
+            ).fillna(0)
 
-            total_completed_items = df["no_items"].sum()
-            total_completed_points = df["no_points"].sum()
+            total_completed_items = df["completed_items"].sum()
+            total_completed_points = df["completed_points"].sum()
 
             if total_completed_items > 0:
                 avg_points_per_item = total_completed_points / total_completed_items
@@ -78,9 +82,9 @@ def read_and_clean_data(df):
     df.dropna(subset=["date"], inplace=True)
     df.sort_values("date", inplace=True)
     df["date"] = df["date"].dt.strftime("%Y-%m-%d")
-    df["no_items"] = pd.to_numeric(df["no_items"], errors="coerce")
-    df["no_points"] = pd.to_numeric(df["no_points"], errors="coerce")
-    df.dropna(subset=["no_items", "no_points"], inplace=True)
+    df["completed_items"] = pd.to_numeric(df["completed_items"], errors="coerce")
+    df["completed_points"] = pd.to_numeric(df["completed_points"], errors="coerce")
+    df.dropna(subset=["completed_items", "completed_points"], inplace=True)
     return df
 
 
@@ -104,14 +108,18 @@ def compute_cumulative_values(df, total_items, total_points):
         df = df.sort_values("date", ascending=True)
 
     # Convert to numeric in case there are any string values
-    df["no_items"] = pd.to_numeric(df["no_items"], errors="coerce").fillna(0)
-    df["no_points"] = pd.to_numeric(df["no_points"], errors="coerce").fillna(0)
+    df["completed_items"] = pd.to_numeric(
+        df["completed_items"], errors="coerce"
+    ).fillna(0)
+    df["completed_points"] = pd.to_numeric(
+        df["completed_points"], errors="coerce"
+    ).fillna(0)
 
     # Calculate cumulative sums from the end to the beginning
     # This gives us the remaining items/points at each data point
     # We reverse the dataframe, calculate cumulative sum, then reverse back
-    reversed_items = df["no_items"][::-1].cumsum()[::-1]
-    reversed_points = df["no_points"][::-1].cumsum()[::-1]
+    reversed_items = df["completed_items"][::-1].cumsum()[::-1]
+    reversed_points = df["completed_points"][::-1].cumsum()[::-1]
 
     # Calculate remaining items and points by adding the total to the reverse cumsum
     df["cum_items"] = reversed_items + total_items
@@ -138,7 +146,7 @@ def compute_weekly_throughput(df):
 
     grouped = (
         df.groupby("year_week")
-        .agg({"no_items": "sum", "no_points": "sum"})
+        .agg({"completed_items": "sum", "completed_points": "sum"})
         .reset_index()
     )
     return grouped
@@ -173,8 +181,8 @@ def calculate_rates(grouped, total_items, total_points, pert_factor):
     if valid_data_count <= 3:
         # With very few data points, just use the mean for all estimates
         # This prevents crashes when pert_factor is 3 but we only have 1-3 data points
-        most_likely_items_rate = grouped["no_items"].mean() / days_per_week
-        most_likely_points_rate = grouped["no_points"].mean() / days_per_week
+        most_likely_items_rate = grouped["completed_items"].mean() / days_per_week
+        most_likely_points_rate = grouped["completed_points"].mean() / days_per_week
 
         # Use the same value for optimistic and pessimistic to avoid erratic forecasts
         # with tiny datasets
@@ -190,21 +198,25 @@ def calculate_rates(grouped, total_items, total_points, pert_factor):
 
         # Calculate daily rates for items
         optimistic_items_rate = (
-            grouped["no_items"].nlargest(valid_pert_factor).mean() / days_per_week
+            grouped["completed_items"].nlargest(valid_pert_factor).mean()
+            / days_per_week
         )
         pessimistic_items_rate = (
-            grouped["no_items"].nsmallest(valid_pert_factor).mean() / days_per_week
+            grouped["completed_items"].nsmallest(valid_pert_factor).mean()
+            / days_per_week
         )
-        most_likely_items_rate = grouped["no_items"].mean() / days_per_week
+        most_likely_items_rate = grouped["completed_items"].mean() / days_per_week
 
         # Calculate daily rates for points
         optimistic_points_rate = (
-            grouped["no_points"].nlargest(valid_pert_factor).mean() / days_per_week
+            grouped["completed_points"].nlargest(valid_pert_factor).mean()
+            / days_per_week
         )
         pessimistic_points_rate = (
-            grouped["no_points"].nsmallest(valid_pert_factor).mean() / days_per_week
+            grouped["completed_points"].nsmallest(valid_pert_factor).mean()
+            / days_per_week
         )
-        most_likely_points_rate = grouped["no_points"].mean() / days_per_week
+        most_likely_points_rate = grouped["completed_points"].mean() / days_per_week
 
     # Prevent any zero or negative rates that would cause division by zero errors
     # or negative time forecasts
@@ -349,8 +361,12 @@ def calculate_weekly_averages(statistics_data):
 
     # Create DataFrame and ensure numeric types
     df = pd.DataFrame(statistics_data)
-    df["no_items"] = pd.to_numeric(df["no_items"], errors="coerce").fillna(0)
-    df["no_points"] = pd.to_numeric(df["no_points"], errors="coerce").fillna(0)
+    df["completed_items"] = pd.to_numeric(
+        df["completed_items"], errors="coerce"
+    ).fillna(0)
+    df["completed_points"] = pd.to_numeric(
+        df["completed_points"], errors="coerce"
+    ).fillna(0)
 
     # Convert date to datetime and ensure it's sorted chronologically
     df["date"] = pd.to_datetime(df["date"], errors="coerce")
@@ -366,8 +382,8 @@ def calculate_weekly_averages(statistics_data):
     weekly_df = (
         df.groupby("year_week")
         .agg(
-            items=("no_items", "sum"),
-            points=("no_points", "sum"),
+            items=("completed_items", "sum"),
+            points=("completed_points", "sum"),
             start_date=("date", "min"),
         )
         .reset_index()
@@ -563,8 +579,8 @@ def generate_weekly_forecast(statistics_data, pert_factor=3, forecast_weeks=1):
     weekly_df = (
         df.groupby("year_week")
         .agg(
-            items=("no_items", "sum"),
-            points=("no_points", "sum"),
+            items=("completed_items", "sum"),
+            points=("completed_points", "sum"),
             start_date=("date", "min"),
         )
         .reset_index()
@@ -691,13 +707,15 @@ def generate_weekly_forecast(statistics_data, pert_factor=3, forecast_weeks=1):
         }
 
 
-def calculate_performance_trend(statistics_data, metric="no_items", weeks_to_compare=4):
+def calculate_performance_trend(
+    statistics_data, metric="completed_items", weeks_to_compare=4
+):
     """
     Calculate performance trend indicators based on historical data.
 
     Args:
         statistics_data: List of dictionaries containing statistics data
-        metric: The metric to calculate trend for ("no_items" or "no_points")
+        metric: The metric to calculate trend for ("completed_items" or "completed_points")
         weeks_to_compare: Number of weeks to use for trend calculation
 
     Returns:

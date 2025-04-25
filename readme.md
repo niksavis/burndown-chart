@@ -140,13 +140,13 @@ The app generates an interactive burndown chart with:
 Your CSV file should contain the following columns:
 
 - `date`: Date of work completed (YYYY-MM-DD format)
-- `no_items`: Number of items completed on that date
-- `no_points`: Number of points completed on that date
+- `completed_items`: Number of items completed on that date
+- `completed_points`: Number of points completed on that date
 
 Example CSV:
 
 ```text
-date;no_items;no_points
+date;completed_items;completed_points
 2025-03-01;5;50
 2025-03-02;7;70
 ```

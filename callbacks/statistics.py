@@ -255,8 +255,8 @@ def register(app):
                     0,
                     {
                         "date": new_date,
-                        "no_items": 0,
-                        "no_points": 0,
+                        "completed_items": 0,
+                        "completed_points": 0,
                     },
                 )
 
@@ -276,8 +276,8 @@ def register(app):
                         df = pd.read_csv(io.StringIO(decoded.decode("utf-8")), sep=";")
                         if (
                             "date" not in df.columns
-                            or "no_items" not in df.columns
-                            or "no_points" not in df.columns
+                            or "completed_items" not in df.columns
+                            or "completed_points" not in df.columns
                         ):
                             # Try with comma separator
                             df = pd.read_csv(io.StringIO(decoded.decode("utf-8")))
@@ -391,8 +391,8 @@ def register(app):
             # Ensure date column is in datetime format
             stats_df["date"] = pd.to_datetime(stats_df["date"])
             # Ensure numeric columns are numeric
-            stats_df["no_items"] = pd.to_numeric(stats_df["no_items"])
-            stats_df["no_points"] = pd.to_numeric(stats_df["no_points"])
+            stats_df["completed_items"] = pd.to_numeric(stats_df["completed_items"])
+            stats_df["completed_points"] = pd.to_numeric(stats_df["completed_points"])
 
         # Initialize capacity manager and set parameters
         capacity_manager = CapacityManager()

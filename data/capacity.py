@@ -59,7 +59,7 @@ class CapacityManager:
         Calculate capacity metrics based on historical data
 
         Args:
-            stats_df: DataFrame containing historical statistics with 'date', 'no_items', 'no_points'
+            stats_df: DataFrame containing historical statistics with 'date', 'completed_items', 'completed_points'
 
         Returns:
             Dictionary with calculated capacity metrics
@@ -79,14 +79,14 @@ class CapacityManager:
         stats_df["year"] = pd.to_datetime(stats_df["date"]).dt.isocalendar().year
         weekly_stats = (
             stats_df.groupby(["year", "week"])
-            .agg({"no_items": "sum", "no_points": "sum"})
+            .agg({"completed_items": "sum", "completed_points": "sum"})
             .reset_index()
         )
 
         # Calculate averages if we have capacity hours set and team members
         if self.capacity_hours_per_week > 0 and self.team_members > 0:
-            avg_weekly_items = weekly_stats["no_items"].mean()
-            avg_weekly_points = weekly_stats["no_points"].mean()
+            avg_weekly_items = weekly_stats["completed_items"].mean()
+            avg_weekly_points = weekly_stats["completed_points"].mean()
 
             # Calculate hours per item based on individual productivity
             # Instead of using total team capacity, calculate per-member productivity
@@ -124,14 +124,14 @@ class CapacityManager:
             # Calculate estimated hours per week based on items and points
             if self.hours_per_item > 0:
                 weekly_stats["estimated_hours_items"] = (
-                    weekly_stats["no_items"] * self.hours_per_item
+                    weekly_stats["completed_items"] * self.hours_per_item
                 )
             else:
                 weekly_stats["estimated_hours_items"] = 0
 
             if self.hours_per_point > 0:
                 weekly_stats["estimated_hours_points"] = (
-                    weekly_stats["no_points"] * self.hours_per_point
+                    weekly_stats["completed_points"] * self.hours_per_point
                 )
             else:
                 weekly_stats["estimated_hours_points"] = 0
