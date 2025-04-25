@@ -584,6 +584,28 @@ def create_forecast_plot(
                 f"Invalid deadline format: {deadline_str}. Using default."
             )
 
+        # Add starting point 7 days before the first data point with zero values
+        # This provides a better visualization of the initial baseline
+        if not df.empty:
+            # Convert date column to datetime if it's not already
+            if "date" in df.columns and not pd.api.types.is_datetime64_any_dtype(
+                df["date"]
+            ):
+                df["date"] = pd.to_datetime(df["date"])
+
+            # Sort by date to find the earliest data point
+            df = df.sort_values("date")
+            first_date = df["date"].min()
+            start_date = first_date - pd.Timedelta(days=7)
+
+            # Create a zero starting point with the same columns as the DataFrame
+            start_row = pd.DataFrame({col: [0] for col in df.columns})
+            start_row["date"] = start_date
+
+            # Add the starting point to the dataframe
+            df = pd.concat([start_row, df], ignore_index=True)
+            df = df.sort_values("date")  # Ensure proper sorting
+
         # Prepare all data needed for the visualization
         forecast_data = prepare_forecast_data(
             df, total_items, total_points, pert_factor, data_points_count
@@ -1673,7 +1695,7 @@ def create_weekly_points_forecast_chart(
                 text=(
                     f"<b>Forecast Methodology:</b> Based on PERT analysis using historical data.<br>"
                     f"<b>Most Likely:</b> {forecast_data['points'].get('most_likely_value', 0):.1f} points/week (historical average)<br>"
-                    f"<b>Optimistic:</b> {forecast_data['points'].get('optimistic_value', 0):.1f} points/week<br>"
+                    f"<b>Optimistic:</b> {forecast_data['points'].get('optimistic_value', 0)::.1f} points/week<br>"
                     f"<b>Pessimistic:</b> {forecast_data['points'].get('pessimistic_value', 0):.1f} points/week<br>"
                     f"<b>Weighted Average:</b> More weight given to recent data (40% for most recent week, 30%, 20%, 10% for earlier weeks)"
                 ),
@@ -2202,6 +2224,27 @@ def create_burnup_chart(
             df["created_items"] = 0
         if "created_points" not in df.columns:
             df["created_points"] = 0
+
+        # Add starting point 7 days before the first data point with zero completed items/points
+        # This provides a better visualization of the initial baseline
+        if not df.empty:
+            first_date = df["date"].min()
+            start_date = first_date - pd.Timedelta(days=7)
+
+            # Create starting point row with zeros for completed items/points
+            start_row = pd.DataFrame(
+                {
+                    "date": [start_date],
+                    "completed_items": [0],
+                    "completed_points": [0],
+                    "created_items": [0],
+                    "created_points": [0],
+                }
+            )
+
+            # Add the starting point to the dataframe
+            df = pd.concat([start_row, df], ignore_index=True)
+            df = df.sort_values("date")  # Ensure proper sorting
 
         df["cum_completed_items"] = df["completed_items"].cumsum()
         df["cum_completed_points"] = df["completed_points"].cumsum()
