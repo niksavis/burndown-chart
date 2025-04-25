@@ -1394,7 +1394,7 @@ def create_weekly_items_forecast_chart(
                     f"<b>Forecast Methodology:</b> Based on PERT analysis using historical data.<br>"
                     f"<b>Most Likely:</b> {forecast_data['items'].get('most_likely_value', 0):.1f} items/week (historical average)<br>"
                     f"<b>Optimistic:</b> {forecast_data['items'].get('optimistic_value', 0):.1f} items/week<br>"
-                    f"<b>Pessimistic:</b> {forecast_data['items'].get('pessimistic_value', 0)::.1f} items/week"
+                    f"<b>Pessimistic:</b> {forecast_data['items'].get('pessimistic_value', 0):.1f} items/week"
                 ),
                 showarrow=False,
                 font=dict(size=12),
@@ -2298,6 +2298,7 @@ def create_burnup_chart(
                     "Date": "%{x|%Y-%m-%d}",
                     "Items": "%{y}",
                 },
+                extra_info="Items",
             ),
             hoverlabel=create_hoverlabel_config("default"),
         )
@@ -2320,6 +2321,7 @@ def create_burnup_chart(
                     "Date": "%{x|%Y-%m-%d}",
                     "Points": "%{y}",
                 },
+                extra_info="Points",
             ),
             hoverlabel=create_hoverlabel_config("default"),
         )
@@ -2345,6 +2347,7 @@ def create_burnup_chart(
                     "Date": "%{x|%Y-%m-%d}",
                     "Items": "%{y}",
                 },
+                extra_info="Items Scope",
             ),
             hoverlabel=create_hoverlabel_config("default"),
         )
@@ -2369,6 +2372,7 @@ def create_burnup_chart(
                     "Date": "%{x|%Y-%m-%d}",
                     "Points": "%{y}",
                 },
+                extra_info="Points Scope",
             ),
             hoverlabel=create_hoverlabel_config("default"),
         )
@@ -2407,9 +2411,15 @@ def create_burnup_chart(
                 go.Scatter(
                     x=items_forecasts["opt"][0],
                     y=items_forecasts["opt"][1],
-                    mode="lines",
+                    mode="lines+markers",  # Added markers for consistency with burndown chart
                     name="Items (Optimistic)",
-                    line=dict(color=COLOR_PALETTE["optimistic"], dash="dot", width=2),
+                    line=dict(color=COLOR_PALETTE["optimistic"], dash="dot", width=2.5),
+                    marker=dict(
+                        size=7,
+                        symbol="triangle-up",
+                        color=COLOR_PALETTE["optimistic"],
+                        line=dict(color="white", width=1),
+                    ),
                     hovertemplate=format_hover_template(
                         title="Items Forecast",
                         fields={
@@ -2429,9 +2439,17 @@ def create_burnup_chart(
                 go.Scatter(
                     x=items_forecasts["pes"][0],
                     y=items_forecasts["pes"][1],
-                    mode="lines",
+                    mode="lines+markers",  # Added markers for consistency with burndown chart
                     name="Items (Pessimistic)",
-                    line=dict(color=COLOR_PALETTE["pessimistic"], dash="dot", width=2),
+                    line=dict(
+                        color=COLOR_PALETTE["pessimistic"], dash="dot", width=2.5
+                    ),
+                    marker=dict(
+                        size=7,
+                        symbol="triangle-down",
+                        color=COLOR_PALETTE["pessimistic"],
+                        line=dict(color="white", width=1),
+                    ),
                     hovertemplate=format_hover_template(
                         title="Items Forecast",
                         fields={
@@ -2480,11 +2498,17 @@ def create_burnup_chart(
                 go.Scatter(
                     x=points_forecasts["opt"][0],
                     y=points_forecasts["opt"][1],
-                    mode="lines",
+                    mode="lines+markers",  # Added markers for consistency with burndown chart
                     name="Points (Optimistic)",
                     line=dict(
-                        color="rgb(184, 134, 11)", dash="dot", width=2
-                    ),  # Gold color
+                        color="rgb(184, 134, 11)", dash="dot", width=2.5
+                    ),  # Gold color to match burndown chart
+                    marker=dict(
+                        size=7,
+                        symbol="triangle-up",
+                        color="rgb(184, 134, 11)",  # Gold color for marker
+                        line=dict(color="white", width=1),
+                    ),
                     hovertemplate=format_hover_template(
                         title="Points Forecast",
                         fields={
@@ -2504,11 +2528,17 @@ def create_burnup_chart(
                 go.Scatter(
                     x=points_forecasts["pes"][0],
                     y=points_forecasts["pes"][1],
-                    mode="lines",
+                    mode="lines+markers",  # Added markers for consistency with burndown chart
                     name="Points (Pessimistic)",
                     line=dict(
-                        color="rgb(165, 42, 42)", dash="dot", width=2
-                    ),  # Brown color
+                        color="rgb(165, 42, 42)", dash="dot", width=2.5
+                    ),  # Brown color to match burndown chart
+                    marker=dict(
+                        size=7,
+                        symbol="triangle-down",
+                        color="rgb(165, 42, 42)",  # Brown color for marker
+                        line=dict(color="white", width=1),
+                    ),
                     hovertemplate=format_hover_template(
                         title="Points Forecast",
                         fields={
@@ -2560,14 +2590,26 @@ def create_burnup_chart(
             secondary_y=True,
         )
 
-        # Update layout
+        # Apply consistent layout settings to match burndown chart
         fig.update_layout(
-            title="Project Burnup Chart",
+            title={
+                "text": "Project Burnup Chart",
+                "y": 0.9,  # Match the position of burndown chart title
+                "x": 0.5,
+                "xanchor": "center",
+                "yanchor": "top",
+                "font": {"size": 20},
+            },
             legend=dict(
-                orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5
+                orientation="h",
+                yanchor="bottom",
+                y=1.02,
+                xanchor="center",
+                x=0.5,
+                font=dict(size=12),
             ),
-            hovermode="x unified",
-            margin=dict(l=60, r=60, t=80, b=50),
+            hovermode="x unified",  # Consistent hover behavior with burndown chart
+            margin=dict(l=60, r=60, t=80, b=50),  # Match burndown chart margins
             height=700,
             template="plotly_white",
             plot_bgcolor="white",  # Match burndown chart background
@@ -2593,6 +2635,16 @@ def create_burnup_chart(
         pert_time_items = forecast_data.get("pert_time_items", 0.0)
         pert_time_points = forecast_data.get("pert_time_points", 0.0)
 
+        # Calculate enhanced completion date strings
+        items_completion_date = current_date + timedelta(days=pert_time_items)
+        points_completion_date = current_date + timedelta(days=pert_time_points)
+
+        items_completion_str = items_completion_date.strftime("%Y-%m-%d")
+        points_completion_str = points_completion_date.strftime("%Y-%m-%d")
+
+        items_completion_enhanced = f"{items_completion_str} ({pert_time_items:.1f} days, {pert_time_items / 7:.1f} weeks)"
+        points_completion_enhanced = f"{points_completion_str} ({pert_time_points:.1f} days, {pert_time_points / 7:.1f} weeks)"
+
         # Calculate average and median weekly metrics for display
         avg_weekly_items, avg_weekly_points, med_weekly_items, med_weekly_points = (
             0.0,
@@ -2611,35 +2663,29 @@ def create_burnup_chart(
                     med_weekly_points,
                 ) = results
 
-        # Add tooltip with PERT estimates at the top of the chart
-        formatted_items_completion = (
-            current_date + timedelta(days=pert_time_items)
-        ).strftime("%Y-%m-%d")
-        formatted_points_completion = (
-            current_date + timedelta(days=pert_time_points)
-        ).strftime("%Y-%m-%d")
+        # Add metrics data to the plot - same as burndown chart
+        metrics_data = {
+            "total_items": total_items,
+            "total_points": total_points,
+            "deadline": deadline.strftime("%Y-%m-%d"),
+            "days_to_deadline": days_to_deadline,
+            "pert_time_items": pert_time_items,
+            "pert_time_points": pert_time_points,
+            "avg_weekly_items": avg_weekly_items,
+            "avg_weekly_points": avg_weekly_points,
+            "med_weekly_items": med_weekly_items,
+            "med_weekly_points": med_weekly_points,
+            "data_points_used": int(data_points_count)
+            if data_points_count is not None
+            and isinstance(data_points_count, (int, float))
+            else (len(df) if hasattr(df, "__len__") else 0),
+            "data_points_available": len(df) if hasattr(df, "__len__") else 0,
+            "items_completion_enhanced": items_completion_enhanced,
+            "points_completion_enhanced": points_completion_enhanced,
+        }
 
-        forecast_tooltip_text = (
-            f"<b>PERT Forecast Estimates:</b><br>"
-            f"Items completion: {formatted_items_completion} ({pert_time_items:.1f} days)<br>"
-            f"Points completion: {formatted_points_completion} ({pert_time_points:.1f} days)<br>"
-            f"Project deadline: {deadline.strftime('%Y-%m-%d')} ({days_to_deadline} days)"
-        )
-
-        fig.add_annotation(
-            x=0.5,
-            y=1.06,
-            xref="paper",
-            yref="paper",
-            text=forecast_tooltip_text,
-            showarrow=False,
-            font=dict(size=12),
-            bgcolor="rgba(255, 255, 255, 0.8)",
-            bordercolor="rgba(0, 0, 0, 0.2)",
-            borderwidth=1,
-            borderpad=4,
-            align="center",
-        )
+        # Add metrics annotations in the same position as the burndown chart
+        fig = add_metrics_annotations(fig, metrics_data)
 
         # Return more comprehensive data for dashboard metrics
         return fig, {
@@ -2664,6 +2710,8 @@ def create_burnup_chart(
             "avg_weekly_points": avg_weekly_points,
             "med_weekly_items": med_weekly_items,
             "med_weekly_points": med_weekly_points,
+            "items_completion_enhanced": items_completion_enhanced,
+            "points_completion_enhanced": points_completion_enhanced,
         }
 
     except Exception as e:
@@ -2682,6 +2730,47 @@ def create_burnup_chart(
             y=0.5,
             showarrow=False,
             font=dict(size=14, color="red"),
+        )
+
+        # Add button to show/hide detailed error info to match burndown chart
+        fig.update_layout(
+            updatemenus=[
+                dict(
+                    type="buttons",
+                    direction="right",
+                    x=0.5,
+                    y=0.4,
+                    xanchor="center",
+                    yanchor="top",
+                    buttons=[
+                        dict(
+                            label="Show Error Details",
+                            method="update",
+                            args=[
+                                {},
+                                {
+                                    "annotations": [
+                                        {
+                                            "text": f"Error in burnup chart generation:<br>{str(e)}<br><br>Stack trace (for developers):<br>{error_trace.replace(chr(10), '<br>')}",
+                                            "xref": "paper",
+                                            "yref": "paper",
+                                            "x": 0.5,
+                                            "y": 0.5,
+                                            "showarrow": False,
+                                            "font": dict(size=12, color="red"),
+                                            "align": "left",
+                                            "bgcolor": "rgba(255, 255, 255, 0.9)",
+                                            "bordercolor": "red",
+                                            "borderwidth": 1,
+                                            "borderpad": 4,
+                                        }
+                                    ]
+                                },
+                            ],
+                        )
+                    ],
+                )
+            ]
         )
 
         return fig, {}
@@ -2716,19 +2805,38 @@ def identify_significant_scope_growth(df, threshold_pct=10):
             or row["points_pct_change"] > threshold_pct
         ):
             if current_period is None:
-                # Start a new period
-                current_period = {"start_date": row["date"], "end_date": row["date"]}
+                # Start a new significant period
+                current_period = {
+                    "start_date": row["date"],
+                    "end_date": row["date"],
+                    "max_items_pct": row["items_pct_change"]
+                    if not pd.isna(row["items_pct_change"])
+                    else 0,
+                    "max_points_pct": row["points_pct_change"]
+                    if not pd.isna(row["points_pct_change"])
+                    else 0,
+                }
             else:
-                # Extend current period
+                # Extend the current period
                 current_period["end_date"] = row["date"]
+                if (
+                    not pd.isna(row["items_pct_change"])
+                    and row["items_pct_change"] > current_period["max_items_pct"]
+                ):
+                    current_period["max_items_pct"] = row["items_pct_change"]
+                if (
+                    not pd.isna(row["points_pct_change"])
+                    and row["points_pct_change"] > current_period["max_points_pct"]
+                ):
+                    current_period["max_points_pct"] = row["points_pct_change"]
         else:
+            # End the current period if it exists
             if current_period is not None:
-                # End the current period
-                # Extend end_date by 1 day for better visibility
-                current_period["end_date"] = current_period["end_date"] + pd.Timedelta(
-                    days=1
-                )
-                significant_periods.append(current_period)
+                # Only include periods that span at least one day
+                if (
+                    current_period["end_date"] - current_period["start_date"]
+                ).days >= 0:
+                    significant_periods.append(current_period)
                 current_period = None
 
     # Handle case where last row is part of a significant period
