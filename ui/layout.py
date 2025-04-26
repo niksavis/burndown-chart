@@ -97,6 +97,8 @@ def create_app_layout(settings, statistics, is_sample_data):
             ),
             # Store for date range selection
             dcc.Store(id="date-range-weeks", data=None),
+            # Store for selected chart type (burndown or burnup)
+            dcc.Store(id="selected-chart-type", data="burndown"),
             # Add an empty div to hold the forecast-graph (will be populated by callback)
             html.Div(
                 dcc.Graph(id="forecast-graph", style={"display": "none"}),

@@ -403,7 +403,13 @@ def register(app):
         )
 
     def _create_burndown_tab_content(
-        df, items_trend, points_trend, burndown_fig, burnup_fig, settings
+        df,
+        items_trend,
+        points_trend,
+        burndown_fig,
+        burnup_fig,
+        settings,
+        chart_type="burndown",
     ):
         """
         Create content for the burndown tab with toggle between burndown and burnup views.
@@ -415,10 +421,15 @@ def register(app):
             burndown_fig: Burndown chart figure
             burnup_fig: Burnup chart figure
             settings: Settings dictionary
+            chart_type: Current chart type to display ('burndown' or 'burnup')
 
         Returns:
             html.Div: Burndown tab content
         """
+        # Use the appropriate figure based on chart_type
+        current_figure = burnup_fig if chart_type == "burnup" else burndown_fig
+        chart_height = settings.get("chart_height", 700)
+
         # Create a toggle switch between burndown and burnup charts
         chart_toggle = html.Div(
             [
@@ -431,7 +442,7 @@ def register(app):
                                 {"label": "Burndown", "value": "burndown"},
                                 {"label": "Burnup", "value": "burnup"},
                             ],
-                            value="burndown",
+                            value=chart_type,  # Set the initial value based on the parameter
                             inline=True,
                             labelStyle={
                                 "display": "inline-block",
@@ -497,9 +508,9 @@ def register(app):
                 html.Div(
                     dcc.Graph(
                         id="forecast-graph",
-                        figure=burndown_fig,
+                        figure=current_figure,
                         config={"displayModeBar": True, "responsive": True},
-                        style={"height": "700px"},
+                        style={"height": f"{chart_height}px"},
                     ),
                     id="chart-container",
                 ),
@@ -676,6 +687,7 @@ def register(app):
             scope_creep_rate, weekly_growth_data, stability_index, scope_creep_threshold
         )
 
+    # Replace the existing render_tab_content callback with a consistent approach
     @app.callback(
         Output("tab-content", "children"),
         [
@@ -702,6 +714,7 @@ def register(app):
         """
         Render the appropriate content based on the selected tab.
         This callback updates whenever tab selection changes or the underlying data changes.
+        Always defaults to burndown chart for a consistent experience when parameters change.
         """
         if not settings or not statistics:
             raise PreventUpdate
@@ -712,7 +725,6 @@ def register(app):
             total_items = settings["total_items"]
             total_points = calc_results.get("total_points", settings["total_points"])
             deadline = settings["deadline"]
-            # Get the data_points_count setting
             data_points_count = settings.get("data_points_count")
 
             # Convert statistics to DataFrame
@@ -724,55 +736,65 @@ def register(app):
             # Prepare trend data (items and points trends with forecasts)
             items_trend, points_trend = _prepare_trend_data(statistics, pert_factor)
 
-            # Burndown chart
-            burndown_fig, _ = create_forecast_plot(
-                df=compute_cumulative_values(df, total_items, total_points)
-                if not df.empty
-                else df,
-                total_items=total_items,
-                total_points=total_points,
-                pert_factor=pert_factor,
-                deadline_str=deadline,
-                data_points_count=data_points_count,
-            )
+            # Generate burndown and burnup charts
+            if active_tab == "tab-burndown":
+                # Generate burndown chart
+                burndown_fig, _ = create_forecast_plot(
+                    df=compute_cumulative_values(df, total_items, total_points)
+                    if not df.empty
+                    else df,
+                    total_items=total_items,
+                    total_points=total_points,
+                    pert_factor=pert_factor,
+                    deadline_str=deadline,
+                    data_points_count=data_points_count,
+                )
 
-            # Burnup chart
-            from visualization import create_burnup_chart
+                # Generate burnup chart for the toggle
+                from visualization import create_burnup_chart
 
-            burnup_fig, _ = create_burnup_chart(
-                df=df.copy() if not df.empty else df,
-                total_items=total_items,
-                total_points=total_points,
-                pert_factor=pert_factor,
-                deadline_str=deadline,
-                data_points_count=data_points_count,
-            )
+                burnup_fig, _ = create_burnup_chart(
+                    df=df.copy() if not df.empty else df,
+                    total_items=total_items,
+                    total_points=total_points,
+                    pert_factor=pert_factor,
+                    deadline_str=deadline,
+                    data_points_count=data_points_count,
+                )
 
-            # Create burndown tab content with both chart types
-            charts["tab-burndown"] = _create_burndown_tab_content(
-                df, items_trend, points_trend, burndown_fig, burnup_fig, settings
-            )
+                # Create burndown tab content - always default to burndown chart initially
+                burndown_tab_content = _create_burndown_tab_content(
+                    df,
+                    items_trend,
+                    points_trend,
+                    burndown_fig,
+                    burnup_fig,
+                    settings,
+                    "burndown",
+                )
+                charts["tab-burndown"] = burndown_tab_content
 
             # Weekly items chart with forecast
-            items_fig = create_weekly_items_chart(
-                statistics, date_range_weeks, pert_factor
-            )
-
-            # Create items tab content
-            charts["tab-items"] = _create_items_tab_content(items_trend, items_fig)
+            if active_tab == "tab-items" or active_tab is None:
+                items_fig = create_weekly_items_chart(
+                    statistics, date_range_weeks, pert_factor
+                )
+                charts["tab-items"] = _create_items_tab_content(items_trend, items_fig)
 
             # Weekly points chart with forecast
-            points_fig = create_weekly_points_chart(
-                statistics, date_range_weeks, pert_factor
-            )
-
-            # Create points tab content
-            charts["tab-points"] = _create_points_tab_content(points_trend, points_fig)
+            if active_tab == "tab-points" or active_tab is None:
+                points_fig = create_weekly_points_chart(
+                    statistics, date_range_weeks, pert_factor
+                )
+                charts["tab-points"] = _create_points_tab_content(
+                    points_trend, points_fig
+                )
 
             # Create scope tracking tab content
-            charts["tab-scope-tracking"] = _create_scope_tracking_tab_content(
-                df, settings
-            )
+            if active_tab == "tab-scope-tracking" or active_tab is None:
+                charts["tab-scope-tracking"] = _create_scope_tracking_tab_content(
+                    df, settings
+                )
 
             # Create content for the active tab
             return create_tab_content(active_tab, charts)
@@ -1165,6 +1187,29 @@ def register(app):
                     ),
                 ]
             )
+
+    @app.callback(
+        Output("selected-chart-type", "data"),
+        Input("chart-type-toggle", "value"),
+    )
+    def store_chart_type(chart_type):
+        """
+        Store the selected chart type (burndown or burnup) when the toggle is clicked.
+        This allows for persistence of the chart type between parameter changes.
+
+        Args:
+            chart_type: Selected chart type ('burndown' or 'burnup')
+
+        Returns:
+            str: Chart type to be stored
+        """
+        # Validate the chart type
+        if chart_type not in ["burndown", "burnup"]:
+            # Default to burndown if an invalid value is provided
+            return "burndown"
+
+        # Store the selected chart type
+        return chart_type
 
 
 def register_loading_callbacks(app):
