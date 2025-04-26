@@ -569,7 +569,6 @@ def create_scope_metrics_dashboard(
 
     return html.Div(
         [
-            html.H5("Scope Creep Metrics", className="mb-4"),
             # Scope Creep Rate Indicators with improved layout
             html.Div(
                 [
