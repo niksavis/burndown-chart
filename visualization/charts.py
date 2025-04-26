@@ -580,42 +580,9 @@ def create_forecast_plot(
                 f"Invalid deadline format: {deadline_str}. Using default."
             )
 
-        # Always add starting point 7 days before the first data point with zero values
-        # This provides a better visualization of the initial baseline and ensures
-        # consistency with the burnup chart
-        if not df.empty:
-            # Convert date column to datetime if it's not already
-            if "date" in df.columns and not pd.api.types.is_datetime64_any_dtype(
-                df["date"]
-            ):
-                df["date"] = pd.to_datetime(df["date"])
-
-            # Sort by date to find the earliest data point
-            df = df.sort_values("date")
-            first_date = df["date"].min()
-            start_date = first_date - pd.Timedelta(days=7)
-
-            # Create starting point row with only essential zero values
-            # This ensures consistent behavior with the burnup chart
-            required_cols = ["date", "completed_items", "completed_points"]
-            extra_cols = (
-                ["created_items", "created_points"]
-                if "created_items" in df.columns
-                else []
-            )
-
-            start_dict = {col: [0] for col in required_cols + extra_cols}
-            start_dict["date"] = [start_date]
-            start_row = pd.DataFrame(start_dict)
-
-            # Ensure all columns from original df are present in start_row
-            for col in df.columns:
-                if col not in start_row:
-                    start_row[col] = 0
-
-            # Add the starting point to the dataframe
-            df = pd.concat([start_row, df], ignore_index=True)
-            df = df.sort_values("date")  # Ensure proper sorting
+        # NOTE: For the burndown chart, we DO NOT add an artificial zero point before the first data point
+        # This ensures consistency with the burnup chart which also starts with the actual first data point
+        # The burnup chart's first point has the actual completed items/points from the first date
 
         # Prepare all data needed for the visualization
         forecast_data = prepare_forecast_data(
@@ -2271,27 +2238,30 @@ def create_burnup_chart(
         if "created_points" not in df.columns:
             df["created_points"] = 0
 
-        # Add starting point 7 days before the first data point with zero completed items/points
-        # This provides a better visualization of the initial baseline
+        # IMPORTANT: Ensure this is exactly the same starting point logic as in create_forecast_plot
+        # Add starting point 7 days before the first data point with zero values
         if not df.empty:
             first_date = df["date"].min()
             start_date = first_date - pd.Timedelta(days=7)
 
-            # Create starting point row with zeros for completed items/points
-            start_row = pd.DataFrame(
-                {
-                    "date": [start_date],
-                    "completed_items": [0],
-                    "completed_points": [0],
-                    "created_items": [0],
-                    "created_points": [0],
-                }
+            # Create starting point row with only essential zero values
+            # This ensures consistent behavior with the burndown chart
+            required_cols = ["date", "completed_items", "completed_points"]
+            extra_cols = (
+                ["created_items", "created_points"]
+                if "created_items" in df.columns
+                else []
             )
+
+            start_dict = {col: [0] for col in required_cols + extra_cols}
+            start_dict["date"] = [start_date]
+            start_row = pd.DataFrame(start_dict)
 
             # Add the starting point to the dataframe
             df = pd.concat([start_row, df], ignore_index=True)
             df = df.sort_values("date")  # Ensure proper sorting
 
+        # Now continue with the burnup chart specific calculations
         df["cum_completed_items"] = df["completed_items"].cumsum()
         df["cum_completed_points"] = df["completed_points"].cumsum()
 
