@@ -349,13 +349,6 @@ def configure_axes(fig, forecast_data):
 def apply_layout_settings(fig):
     """Apply common layout settings to the forecast plot."""
     fig.update_layout(
-        title={
-            "text": "Project Burndown Chart",
-            "y": 0.5,  # Increased from the default to move title higher
-            "x": 0.5,
-            "xanchor": "center",
-            "yanchor": "top",
-        },
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
         hovermode="x unified",  # Changed from "closest" to "x unified" for vertical guideline
         margin=dict(l=60, r=60, t=80, b=50),
@@ -2598,14 +2591,6 @@ def create_burnup_chart(
 
         # Apply consistent layout settings to match burndown chart
         fig.update_layout(
-            title={
-                "text": "Project Burnup Chart",
-                "y": 0.95,  # Increased from 0.9 to 0.95 to match burndown chart title position
-                "x": 0.5,
-                "xanchor": "center",
-                "yanchor": "top",
-                "font": {"size": 20},
-            },
             legend=dict(
                 orientation="h",
                 yanchor="bottom",
