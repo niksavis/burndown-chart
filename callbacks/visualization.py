@@ -1083,6 +1083,12 @@ def register(app):
             pert_factor = settings.get("pert_factor", 3)
             deadline = settings.get("deadline", None)
             data_points_count = settings.get("data_points_count", len(df))
+            show_forecast = settings.get("show_forecast", True)
+            forecast_visibility = settings.get("forecast_visibility", "legendonly")
+            hover_mode = settings.get(
+                "hover_mode", "x unified"
+            )  # Add hover mode setting
+            chart_height = settings.get("chart_height", 700)
 
             # Prepare data consistently for both charts
             if not df.empty:
@@ -1107,6 +1113,9 @@ def register(app):
                     pert_factor=pert_factor,
                     deadline_str=deadline,
                     data_points_count=data_points_count,
+                    show_forecast=show_forecast,
+                    forecast_visibility=forecast_visibility,
+                    hover_mode=hover_mode,  # Pass hover mode for consistent behavior
                 )
 
             else:
@@ -1120,13 +1129,16 @@ def register(app):
                     pert_factor=pert_factor,
                     deadline_str=deadline,
                     data_points_count=data_points_count,
+                    show_forecast=show_forecast,  # Pass this parameter
+                    forecast_visibility=forecast_visibility,  # Pass this parameter
+                    hover_mode=hover_mode,  # Pass this parameter
                 )
 
             return dcc.Graph(
                 id="forecast-graph",
                 figure=figure,
                 config={"displayModeBar": True, "responsive": True},
-                style={"height": "700px"},
+                style={"height": f"{chart_height}px"},
             )
 
         except Exception as e:

@@ -32,12 +32,16 @@ from ui.tooltip_utils import create_hoverlabel_config, format_hover_template
 #######################################################################
 
 
-def create_plot_traces(forecast_data):
+def create_plot_traces(
+    forecast_data, show_forecast=True, forecast_visibility="legendonly"
+):
     """
     Create all the traces for the plot.
 
     Args:
         forecast_data: Dictionary of forecast data from prepare_forecast_data
+        show_forecast: Whether to show forecast lines (default: True)
+        forecast_visibility: Visibility mode for forecast traces - True, False, or "legendonly" (default: "legendonly")
 
     Returns:
         List of traces for Plotly figure
@@ -103,6 +107,7 @@ def create_plot_traces(forecast_data):
                     },
                 ),
                 hoverlabel=create_hoverlabel_config("info"),
+                visible=True,  # Always show Most Likely forecast by default, regardless of forecast_visibility
             ),
             "secondary_y": False,
         }
@@ -221,6 +226,7 @@ def create_plot_traces(forecast_data):
                     },
                 ),
                 hoverlabel=create_hoverlabel_config("info"),
+                visible=True,  # Always show Most Likely forecast by default, regardless of forecast_visibility
             ),
             "secondary_y": True,
         }
@@ -507,7 +513,15 @@ def add_metrics_annotations(fig, metrics_data):
 
 
 def create_forecast_plot(
-    df, total_items, total_points, pert_factor, deadline_str, data_points_count=None
+    df,
+    total_items,
+    total_points,
+    pert_factor,
+    deadline_str,
+    data_points_count=None,
+    show_forecast=True,
+    forecast_visibility="legendonly",
+    hover_mode="x unified",
 ):
     """
     Create the complete forecast plot with all components.
@@ -519,6 +533,9 @@ def create_forecast_plot(
         pert_factor: PERT factor for calculations
         deadline_str: Deadline date as string (YYYY-MM-DD)
         data_points_count: Number of most recent data points to use (defaults to all)
+        show_forecast: Whether to show forecast traces
+        forecast_visibility: Visibility mode for forecast traces ("legendonly", True, False)
+        hover_mode: Hover mode for the plot ("x unified", "closest", etc.)
 
     Returns:
         Tuple of (figure, pert_data_dict) where pert_data_dict contains all PERT forecast information
@@ -596,12 +613,36 @@ def create_forecast_plot(
         # Add all traces to the figure
         traces = create_plot_traces(forecast_data)
         for trace in traces:
-            fig.add_trace(trace["data"], secondary_y=trace["secondary_y"])
+            # Only add forecast traces if show_forecast is True
+            is_forecast = (
+                "Forecast" in trace["data"].name
+                if hasattr(trace["data"], "name")
+                else False
+            )
+
+            if not is_forecast or (is_forecast and show_forecast):
+                # Set visibility for forecast traces based on forecast_visibility parameter
+                if is_forecast and forecast_visibility != True:
+                    # If it's a "Most Likely" forecast, keep it visible by default
+                    if "Most Likely" not in trace["data"].name:
+                        trace["data"].visible = forecast_visibility
+
+                fig.add_trace(trace["data"], secondary_y=trace["secondary_y"])
 
         # Add deadline marker and configure axes
         fig = add_deadline_marker(fig, deadline)
         fig = configure_axes(fig, forecast_data)
-        fig = apply_layout_settings(fig)
+
+        # Apply layout settings with the specified hover_mode
+        fig.update_layout(
+            legend=dict(
+                orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5
+            ),
+            hovermode=hover_mode,
+            margin=dict(l=60, r=60, t=80, b=50),
+            height=700,
+            template="plotly_white",
+        )
 
         # Calculate days to deadline for metrics with proper type handling
         current_date = datetime.now()
@@ -2128,7 +2169,15 @@ def format_hover_template_fix(
 
 
 def create_burnup_chart(
-    df, total_items, total_points, pert_factor, deadline_str, data_points_count=None
+    df,
+    total_items,
+    total_points,
+    pert_factor,
+    deadline_str,
+    data_points_count=None,
+    show_forecast=True,
+    forecast_visibility="legendonly",
+    hover_mode="x unified",
 ):
     """
     Create a burnup chart showing both completed work and total scope over time.
@@ -2140,6 +2189,9 @@ def create_burnup_chart(
         pert_factor: PERT factor for calculations
         deadline_str: Deadline date as string (YYYY-MM-DD)
         data_points_count: Number of most recent data points to use (defaults to all)
+        show_forecast: Whether to show forecast traces (default: True)
+        forecast_visibility: Visibility mode for forecast traces ("legendonly" or True)
+        hover_mode: Hover mode for the chart ("x unified" or "closest")
 
     Returns:
         Tuple of (figure, data_dict) where data_dict contains all chart information
@@ -2376,15 +2428,15 @@ def create_burnup_chart(
             hoverlabel=create_hoverlabel_config("default"),
         )
 
-        # Add PERT forecast traces for items if available
-        if items_forecasts:
+        # Add PERT forecast traces for items if available and forecast should be shown
+        if items_forecasts and show_forecast:
             # Items forecast - Most likely
             fig.add_trace(
                 go.Scatter(
                     x=items_forecasts["avg"][0],
                     y=items_forecasts["avg"][1],
                     mode="lines+markers",
-                    name="Items Completion Forecast",
+                    name="Items Forecast (Most Likely)",  # Renamed for consistency with burndown chart
                     line=dict(color=COLOR_PALETTE["items"], dash="dash", width=3),
                     marker=dict(
                         size=8,
@@ -2401,6 +2453,7 @@ def create_burnup_chart(
                         },
                     ),
                     hoverlabel=create_hoverlabel_config("info"),
+                    visible=True,  # Show the Most Likely forecast by default
                 ),
                 secondary_y=False,
             )
@@ -2411,7 +2464,7 @@ def create_burnup_chart(
                     x=items_forecasts["opt"][0],
                     y=items_forecasts["opt"][1],
                     mode="lines+markers",  # Added markers for consistency with burndown chart
-                    name="Items (Optimistic)",
+                    name="Items Forecast (Optimistic)",  # Renamed for consistency with burndown chart
                     line=dict(color=COLOR_PALETTE["optimistic"], dash="dot", width=2.5),
                     marker=dict(
                         size=7,
@@ -2439,7 +2492,7 @@ def create_burnup_chart(
                     x=items_forecasts["pes"][0],
                     y=items_forecasts["pes"][1],
                     mode="lines+markers",  # Added markers for consistency with burndown chart
-                    name="Items (Pessimistic)",
+                    name="Items Forecast (Pessimistic)",  # Renamed for consistency with burndown chart
                     line=dict(
                         color=COLOR_PALETTE["pessimistic"], dash="dot", width=2.5
                     ),
@@ -2463,15 +2516,15 @@ def create_burnup_chart(
                 secondary_y=False,
             )
 
-        # Add PERT forecast traces for points if available
-        if points_forecasts:
+        # Add PERT forecast traces for points if available and forecast should be shown
+        if points_forecasts and show_forecast:
             # Points forecast - Most likely
             fig.add_trace(
                 go.Scatter(
                     x=points_forecasts["avg"][0],
                     y=points_forecasts["avg"][1],
                     mode="lines+markers",
-                    name="Points Completion Forecast",
+                    name="Points Forecast (Most Likely)",  # Renamed for consistency with burndown chart
                     line=dict(color=COLOR_PALETTE["points"], dash="dash", width=3),
                     marker=dict(
                         size=8,
@@ -2488,6 +2541,7 @@ def create_burnup_chart(
                         },
                     ),
                     hoverlabel=create_hoverlabel_config("info"),
+                    visible=True,  # Show the Most Likely forecast by default
                 ),
                 secondary_y=True,
             )
@@ -2498,7 +2552,7 @@ def create_burnup_chart(
                     x=points_forecasts["opt"][0],
                     y=points_forecasts["opt"][1],
                     mode="lines+markers",  # Added markers for consistency with burndown chart
-                    name="Points (Optimistic)",
+                    name="Points Forecast (Optimistic)",  # Renamed for consistency with burndown chart
                     line=dict(
                         color="rgb(184, 134, 11)", dash="dot", width=2.5
                     ),  # Gold color to match burndown chart
@@ -2528,7 +2582,7 @@ def create_burnup_chart(
                     x=points_forecasts["pes"][0],
                     y=points_forecasts["pes"][1],
                     mode="lines+markers",  # Added markers for consistency with burndown chart
-                    name="Points (Pessimistic)",
+                    name="Points Forecast (Pessimistic)",  # Renamed for consistency with burndown chart
                     line=dict(
                         color="rgb(165, 42, 42)", dash="dot", width=2.5
                     ),  # Brown color to match burndown chart
@@ -2599,7 +2653,7 @@ def create_burnup_chart(
                 x=0.5,
                 font=dict(size=12),
             ),
-            hovermode="x unified",  # Consistent hover behavior with burndown chart
+            hovermode=hover_mode,  # Use the passed hover_mode parameter for consistent behavior
             margin=dict(l=60, r=60, t=80, b=50),  # Match burndown chart margins
             height=700,
             template="plotly_white",
