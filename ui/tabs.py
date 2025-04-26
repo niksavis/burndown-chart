@@ -148,10 +148,8 @@ def create_tab_content(active_tab, charts, statistics_df=None, pert_data=None):
         ),
         "tab-scope-tracking": html.H5(
             [
-                html.I(
-                    className="fas fa-project-diagram me-2", style={"color": "#6f42c1"}
-                ),
-                "Scope Tracking Dashboard",
+                html.I(className="fas fa-chart-bar me-2", style={"color": "#fd7e14"}),
+                "Scope Change Analysis",
             ],
             className="mb-3 border-bottom pb-2 d-flex align-items-center",
         ),
