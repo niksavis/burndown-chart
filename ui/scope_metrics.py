@@ -245,7 +245,9 @@ def create_scope_growth_chart(weekly_growth_data):
 
 
 def create_enhanced_stability_gauge(
-    stability_value, title="Scope Stability Index", height=280
+    stability_value,
+    title="Scope Stability Index",
+    height=300,  # Increased height from 280 to 300
 ):
     """
     Create an enhanced gauge visualization for the scope stability index with better visual indicators.
@@ -280,7 +282,10 @@ def create_enhanced_stability_gauge(
         go.Indicator(
             mode="gauge+number",  # Only gauge and number
             value=stability_value,
-            domain={"x": [0, 1], "y": [0.15, 0.85]},  # Adjusted to center the gauge
+            domain={
+                "x": [0, 1],
+                "y": [0.25, 0.85],
+            },  # Adjusted to move the gauge up slightly
             title={
                 "text": f"<b>{title}</b>",
                 "font": {"size": 18},
@@ -294,11 +299,11 @@ def create_enhanced_stability_gauge(
                     "tickmode": "array",
                     "tickvals": [0, 0.2, 0.4, 0.6, 0.8, 1],
                     "ticktext": ["0", "0.2", "0.4", "0.6", "0.8", "1"],
+                    "visible": False,  # Hide the axis and ticks
                 },
                 "bar": {"color": color, "thickness": 0.7},
                 "bgcolor": "white",
-                "borderwidth": 2,
-                "bordercolor": "gray",
+                "borderwidth": 0,  # Remove border to eliminate coordinate system appearance
                 "steps": [
                     {"range": [0, 0.2], "color": "rgba(220, 0, 0, 0.2)"},
                     {"range": [0.2, 0.4], "color": "rgba(230, 120, 0, 0.2)"},
@@ -307,7 +312,7 @@ def create_enhanced_stability_gauge(
                     {"range": [0.8, 1], "color": "rgba(0, 180, 0, 0.2)"},
                 ],
                 "threshold": {
-                    "line": {"color": "black", "width": 4},
+                    "line": {"color": "black", "width": 2},
                     "thickness": 0.75,
                     "value": stability_value,
                 },
@@ -320,11 +325,11 @@ def create_enhanced_stability_gauge(
         )
     )
 
-    # Add status text annotation BELOW the gauge (not overlapping)
+    # Add status text annotation BELOW the gauge (moved lower)
     figure.add_annotation(
         text=f"<b>Status: {status_text}</b>",
         x=0.5,
-        y=0.02,  # Position at the bottom
+        y=0,
         xref="paper",
         yref="paper",
         showarrow=False,
@@ -334,9 +339,9 @@ def create_enhanced_stability_gauge(
 
     # Add reference line annotation (adjusted position)
     figure.add_annotation(
-        text="Reference: 0.7",
-        x=0.85,
-        y=0.1,
+        text="Target: 0.7+",
+        x=0.5,
+        y=0.15,  # Moved down slightly (was 0.1)
         xref="paper",
         yref="paper",
         showarrow=False,
@@ -349,19 +354,26 @@ def create_enhanced_stability_gauge(
         type="line",
         x0=0.7,
         x1=0.7,
-        y0=0.15,
-        y1=0.85,
+        y0=0.25,  # Adjusted to match new domain y0
+        y1=0.85,  # Adjusted to match new domain y1
         xref="x",
         yref="paper",
         line=dict(color="gray", width=1, dash="dot"),
     )
 
-    # Update layout with more appropriate margins
+    # Update layout with more appropriate margins and hide axes
     figure.update_layout(
-        height=height,  # Increased height to accommodate the status text below
-        margin={"l": 30, "r": 30, "t": 40, "b": 60},  # Increased bottom margin
+        height=height,
+        margin={
+            "l": 30,
+            "r": 30,
+            "t": 40,
+            "b": 75,
+        },  # Increased bottom margin from 60 to 75
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
+        xaxis={"visible": False, "showgrid": False, "zeroline": False},
+        yaxis={"visible": False, "showgrid": False, "zeroline": False},
     )
 
     return dcc.Graph(
