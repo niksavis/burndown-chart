@@ -11,6 +11,7 @@ from data.scope_metrics import (
     calculate_weekly_scope_growth,
     calculate_scope_stability_index,
     check_scope_creep_threshold,
+    calculate_total_project_scope,  # Import our new function
 )
 from ui.scope_metrics import create_scope_metrics_dashboard  # Updated import path
 
@@ -58,6 +59,17 @@ def register(app):
         # Ensure date column is datetime
         df["date"] = pd.to_datetime(df["date"])
 
+        # Get remaining items/points from settings
+        remaining_items = settings_data.get("total_items", 34) if settings_data else 34
+        remaining_points = (
+            settings_data.get("total_points", 154) if settings_data else 154
+        )
+
+        # Calculate total project scope using our new function
+        project_scope = calculate_total_project_scope(
+            df, remaining_items, remaining_points
+        )
+
         # Calculate metrics
         scope_creep_rate = calculate_scope_creep_rate(
             df, baseline_items, baseline_points
@@ -67,9 +79,14 @@ def register(app):
             df, baseline_items, baseline_points
         )
 
-        # Create dashboard component
+        # Create dashboard component with project scope data
         dashboard = create_scope_metrics_dashboard(
-            scope_creep_rate, weekly_growth_data, stability_index, threshold
+            scope_creep_rate,
+            weekly_growth_data,
+            stability_index,
+            threshold,
+            project_scope["total_items"],
+            project_scope["total_points"],
         )
 
         return dashboard

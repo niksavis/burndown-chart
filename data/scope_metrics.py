@@ -11,31 +11,70 @@ def calculate_scope_creep_rate(df, baseline_items, baseline_points):
     """
     Calculate scope creep rate as percentage of new items/points created over baseline.
 
-    Scope Creep Rate = (New Items Created / Original Items) × 100%
+    Formula:
+    Scope Creep Rate = (sum(created_items) / baseline) × 100%
+
+    Where baseline = remaining total items + sum(completed_items)
     """
     if df.empty or baseline_items == 0 or baseline_points == 0:
         return {"items_rate": 0, "points_rate": 0}
 
-    # Ensure we have the created columns
-    if "cum_created_items" not in df.columns:
-        df["cum_created_items"] = df.get("created_items", 0).cumsum()
-    if "cum_created_points" not in df.columns:
-        df["cum_created_points"] = df.get("created_points", 0).cumsum()
+    # Get total created and completed items/points
+    total_created_items = df["created_items"].sum()
+    total_created_points = df["created_points"].sum()
+    total_completed_items = df["completed_items"].sum()
+    total_completed_points = df["completed_points"].sum()
 
-    # Get the latest values
-    last_row = df.iloc[-1]
-    total_created_items = last_row.get("cum_created_items", 0)
-    total_created_points = last_row.get("cum_created_points", 0)
+    # Calculate the true baseline (remaining items + completed items)
+    actual_baseline_items = baseline_items + total_completed_items
+    actual_baseline_points = baseline_points + total_completed_points
 
-    # Calculate scope creep rates
+    # Calculate scope creep rates as percentage of created items over baseline
     items_rate = (
-        (total_created_items / baseline_items) * 100 if baseline_items > 0 else 0
+        (total_created_items / actual_baseline_items) * 100
+        if actual_baseline_items > 0
+        else 0
     )
     points_rate = (
-        (total_created_points / baseline_points) * 100 if baseline_points > 0 else 0
+        (total_created_points / actual_baseline_points) * 100
+        if actual_baseline_points > 0
+        else 0
     )
 
     return {"items_rate": round(items_rate, 1), "points_rate": round(points_rate, 1)}
+
+
+def calculate_total_project_scope(df, remaining_items, remaining_points):
+    """
+    Calculate the total project scope without double-counting.
+
+    The formula is:
+    Total Scope = Remaining Items + Completed Items
+
+    This represents the true baseline scope (completed work plus remaining work)
+    without including created items/points, which may have already been counted in
+    completed or remaining items.
+
+    Args:
+        df: DataFrame with project statistics including completed_items and completed_points
+        remaining_items: Number of remaining items from forecast_settings.json
+        remaining_points: Number of remaining points from forecast_settings.json
+
+    Returns:
+        Dictionary with total_items and total_points representing the actual project scope
+    """
+    if df.empty:
+        return {"total_items": remaining_items, "total_points": remaining_points}
+
+    # Sum up completed items/points
+    total_completed_items = df["completed_items"].sum()
+    total_completed_points = df["completed_points"].sum()
+
+    # Calculate total project scope (baseline)
+    total_items = remaining_items + total_completed_items
+    total_points = remaining_points + total_completed_points
+
+    return {"total_items": int(total_items), "total_points": int(total_points)}
 
 
 def calculate_weekly_scope_growth(df):

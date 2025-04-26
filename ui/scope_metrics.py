@@ -121,7 +121,11 @@ def create_scope_creep_indicator(title, value, threshold=15, tooltip=None):
                                 f"Status: {'High Risk' if value > threshold else 'Warning' if value > threshold * 0.8 else 'Healthy'}"
                                 if value is not None and not pd.isna(value)
                                 else "Unknown",
-                                style={"color": text_color},
+                                style={
+                                    "color": text_color
+                                    if value is not None and not pd.isna(value)
+                                    else "inherit"
+                                },
                             ),
                         ],
                     ),
@@ -130,21 +134,20 @@ def create_scope_creep_indicator(title, value, threshold=15, tooltip=None):
         ],
     )
 
-    # Create components list to return - starting with the indicator
-    components = [indicator]
-
     # Add tooltip if provided
     if tooltip:
-        components.append(
-            dbc.Tooltip(
-                tooltip,
-                target=indicator_id,
-                className="tooltip-custom",
-            )
+        return html.Div(
+            [
+                indicator,
+                dbc.Tooltip(
+                    tooltip,
+                    target=indicator_id,
+                    className="tooltip-custom",
+                ),
+            ]
         )
 
-    # Return all components wrapped in a div
-    return html.Div(components, className="mb-3")
+    return indicator
 
 
 def create_scope_growth_chart(weekly_growth_data):
@@ -395,10 +398,152 @@ def create_scope_creep_alert(alert_data):
     )
 
 
+def create_forecast_pill(label, value, color):
+    """
+    Create a forecast pill component.
+
+    Args:
+        label: The label for the pill
+        value: The value to display
+        color: The color for the pill indicator
+
+    Returns:
+        html.Div: A forecast pill component
+    """
+    return html.Div(
+        className="forecast-pill",
+        style={
+            "borderLeft": f"3px solid {color}",
+            "paddingLeft": "0.5rem",
+            "marginRight": "0.75rem",
+        },
+        children=[
+            html.I(className="fas fa-chart-line me-1", style={"color": color}),
+            html.Small([f"{label}: ", html.Strong(f"{value}", style={"color": color})]),
+        ],
+    )
+
+
+def create_scope_metrics_header(title, icon, color):
+    """
+    Create a header for scope metrics similar to trend headers.
+
+    Args:
+        title: The title to display
+        icon: The icon class
+        color: The color for the icon
+
+    Returns:
+        html.Div: A header component
+    """
+    return html.Div(
+        className="d-flex align-items-center mb-2",
+        children=[
+            html.I(className=f"{icon} me-2", style={"color": color}),
+            html.Span(title, className="fw-medium"),
+        ],
+    )
+
+
 def create_scope_metrics_dashboard(
-    scope_creep_rate, weekly_growth_data, stability_index, threshold=15
+    scope_creep_rate,
+    weekly_growth_data,
+    stability_index,
+    threshold=15,
+    total_items_scope=None,
+    total_points_scope=None,  # Add parameters for total scope
 ):
-    """Create a dashboard component displaying all scope metrics."""
+    """
+    Create a dashboard component displaying all scope metrics.
+
+    Args:
+        scope_creep_rate (dict): Dictionary containing items_rate and points_rate percentages
+        weekly_growth_data (DataFrame): DataFrame containing weekly growth data
+        stability_index (dict): Dictionary containing items_stability and points_stability values
+        threshold (int): Threshold percentage for scope creep warnings
+        total_items_scope (int, optional): Total items scope (completed + remaining)
+        total_points_scope (int, optional): Total points scope (completed + remaining)
+
+    Returns:
+        html.Div: A dashboard component with scope metrics
+    """
+    # Read remaining items directly from forecast settings
+    import json
+
+    try:
+        with open("forecast_settings.json", "r") as f:
+            settings = json.load(f)
+            remaining_items = settings.get(
+                "total_items", 34
+            )  # Default to 34 if not found
+            remaining_points = settings.get(
+                "total_points", 154
+            )  # Default to 154 if not found
+    except:
+        # If we can't read the file, use defaults
+        remaining_items = 34
+        remaining_points = 154
+
+    # Get total created and completed items/points from the full dataset
+    import pandas as pd
+
+    try:
+        df = pd.read_csv("forecast_statistics.csv")
+        total_completed_items = (
+            df["completed_items"].sum() if "completed_items" in df.columns else 0
+        )
+        total_completed_points = (
+            df["completed_points"].sum() if "completed_points" in df.columns else 0
+        )
+        total_created_items = (
+            df["created_items"].sum() if "created_items" in df.columns else 0
+        )
+        total_created_points = (
+            df["created_points"].sum() if "created_points" in df.columns else 0
+        )
+    except:
+        # If we can't read the file, use the data from weekly_growth_data
+        total_completed_items = 0
+        total_completed_points = 0
+        total_created_items = 0
+        total_created_points = 0
+
+        if not weekly_growth_data.empty:
+            # Try to get sums from weekly_growth_data
+            if "completed_items" in weekly_growth_data.columns:
+                total_completed_items = weekly_growth_data["completed_items"].sum()
+                total_completed_points = (
+                    weekly_growth_data["completed_points"].sum()
+                    if "completed_points" in weekly_growth_data.columns
+                    else 0
+                )
+
+            if "created_items" in weekly_growth_data.columns:
+                total_created_items = weekly_growth_data["created_items"].sum()
+                total_created_points = (
+                    weekly_growth_data["created_points"].sum()
+                    if "created_points" in weekly_growth_data.columns
+                    else 0
+                )
+
+    # Calculate baselines using the provided total scope if available
+    if total_items_scope is not None:
+        baseline_items = total_items_scope  # Use the provided total scope
+    else:
+        # Fall back to the old calculation (remaining + completed = baseline)
+        baseline_items = remaining_items + total_completed_items
+
+    if total_points_scope is not None:
+        baseline_points = total_points_scope  # Use the provided total scope
+    else:
+        # Fall back to the old calculation (remaining + completed = baseline)
+        baseline_points = remaining_points + total_completed_points
+
+    # Calculate threshold in absolute values - how many items/points can be added
+    # before exceeding the threshold percentage
+    threshold_items = round(baseline_items * threshold / 100)
+    threshold_points = round(baseline_points * threshold / 100)
+
     # Check if scope creep exceeds threshold and create alert
     alert_data = {
         "status": "warning"
@@ -424,119 +569,130 @@ def create_scope_metrics_dashboard(
 
     return html.Div(
         [
-            # Scope Creep Rate Indicators in cards with matching style
+            html.H5("Scope Creep Metrics", className="mb-4"),
+            # Scope Creep Rate Indicators with improved layout
             html.Div(
                 [
                     # Items trend box - with similar styling to Weekly Items Trend
                     html.Div(
                         [
+                            # Header with icon
+                            create_scope_metrics_header(
+                                "Items Scope Creep Metrics", "fas fa-tasks", "#20c997"
+                            ),
+                            # Scope creep indicator
                             create_scope_creep_indicator(
                                 "Items Scope Creep Rate",
                                 scope_creep_rate["items_rate"],
                                 threshold,
                                 "Percentage of new items created compared to original baseline",
-                            )
+                            ),
+                            # Forecast pills for items scope creep - showing absolute values
+                            html.Div(
+                                [
+                                    create_forecast_pill(
+                                        "Current",
+                                        f"{int(total_created_items)} items",
+                                        "#20c997",
+                                    ),
+                                    create_forecast_pill(
+                                        "Threshold",
+                                        f"{int(threshold_items)} items",
+                                        "#dc3545",
+                                    ),
+                                    html.Div(
+                                        html.Small(
+                                            f"baseline: {int(baseline_items)} items",
+                                            className="text-muted fst-italic",
+                                        ),
+                                        style={"paddingTop": "2px"},
+                                    ),
+                                ],
+                                className="d-flex flex-wrap mt-2 align-items-center",
+                                style={"gap": "0.25rem"},
+                            ),
                         ],
                         className="col-md-6 col-12 mb-3 pe-md-2",
                     ),
                     # Points trend box - with similar styling to Weekly Points Trend
                     html.Div(
                         [
+                            # Header with icon
+                            create_scope_metrics_header(
+                                "Points Scope Creep Metrics",
+                                "fas fa-chart-bar",
+                                "#fd7e14",
+                            ),
+                            # Scope creep indicator
                             create_scope_creep_indicator(
                                 "Points Scope Creep Rate",
                                 scope_creep_rate["points_rate"],
                                 threshold,
                                 "Percentage of new points created compared to original baseline",
-                            )
+                            ),
+                            # Forecast pills for points scope creep - showing absolute values
+                            html.Div(
+                                [
+                                    create_forecast_pill(
+                                        "Current",
+                                        f"{int(total_created_points)} points",
+                                        "#fd7e14",
+                                    ),
+                                    create_forecast_pill(
+                                        "Threshold",
+                                        f"{int(threshold_points)} points",
+                                        "#dc3545",
+                                    ),
+                                    html.Div(
+                                        html.Small(
+                                            f"baseline: {int(baseline_points)} points",
+                                            className="text-muted fst-italic",
+                                        ),
+                                        style={"paddingTop": "2px"},
+                                    ),
+                                ],
+                                className="d-flex flex-wrap mt-2 align-items-center",
+                                style={"gap": "0.25rem"},
+                            ),
                         ],
                         className="col-md-6 col-12 mb-3 ps-md-2",
                     ),
                 ],
-                className="row g-0 mb-2",  # g-0 removes gutters
-            ),
-            html.Div(
-                html.P(
-                    "This analysis tracks how project scope changes over time. Scope creep measures growth beyond the initial baseline. Negative values indicate scope reduction.",
-                    className="text-muted mb-4",
-                ),
+                className="row mb-3",
             ),
             # Alert for threshold breach
             create_scope_creep_alert(alert_data),
-            # Section header for Growth Analysis
-            html.H5(
-                [
-                    html.I(
-                        className="fas fa-chart-bar me-2", style={"color": "#20c997"}
-                    ),
-                    "Weekly Scope Growth Analysis",
-                ],
-                className="mt-4 mb-3 border-bottom pb-2 d-flex align-items-center",
-            ),
-            # Weekly Scope Growth Chart in a card to match other components
-            html.Div(
-                [
-                    html.Div(
-                        create_scope_growth_chart(weekly_growth_data),
-                        className="p-2",
-                    ),
-                ],
-                className="border rounded mb-4 chart-container",
-                style={"boxShadow": "rgba(0, 0, 0, 0.05) 0px 1px 2px 0px"},
-            ),
-            # Section header for Stability Metrics
-            html.H5(
-                [
-                    html.I(
-                        className="fas fa-tachometer-alt me-2",
-                        style={"color": "#fd7e14"},
-                    ),
-                    "Scope Stability Metrics",
-                ],
-                className="mt-4 mb-3 border-bottom pb-2 d-flex align-items-center",
-            ),
-            # Brief description of stability index
-            html.Div(
-                html.P(
-                    [
-                        "The Stability Index measures how consistent scope has remained over time. ",
-                        html.Strong("Higher values (closer to 1.0)"),
-                        " indicate more stable scope with fewer changes.",
-                    ],
-                    className="text-muted mb-3",
-                ),
-            ),
-            # Stability Gauges in cards to match other components
+            # Weekly Scope Growth Chart
+            html.Div([create_scope_growth_chart(weekly_growth_data)], className="mb-4"),
+            # Stability Gauges
             dbc.Row(
                 [
                     dbc.Col(
-                        html.Div(
+                        [
                             create_enhanced_stability_gauge(
                                 stability_index["items_stability"],
                                 "Items Stability Index",
-                            ),
-                            className="border rounded p-2",
-                            style={"boxShadow": "rgba(0, 0, 0, 0.05) 0px 1px 2px 0px"},
-                        ),
+                            )
+                        ],
                         width=12,
                         md=6,
-                        className="mb-3",
                     ),
                     dbc.Col(
-                        html.Div(
+                        [
                             create_enhanced_stability_gauge(
                                 stability_index["points_stability"],
                                 "Points Stability Index",
-                            ),
-                            className="border rounded p-2",
-                            style={"boxShadow": "rgba(0, 0, 0, 0.05) 0px 1px 2px 0px"},
-                        ),
+                            )
+                        ],
                         width=12,
                         md=6,
-                        className="mb-3",
                     ),
-                ],
-                className="g-3",  # Small gutters between columns
+                ]
             ),
-        ],
-        className="scope-metrics-dashboard",
+            # Footnote explaining stability index
+            html.Small(
+                "Stability Index: Higher values indicate more stable scope (fewer changes relative to total scope).",
+                className="text-muted mt-2",
+            ),
+        ]
     )
