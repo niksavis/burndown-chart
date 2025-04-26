@@ -1109,7 +1109,6 @@ def register(app):
                     data_points_count=data_points_count,
                 )
 
-                title = "Project Burndown Chart"
             else:
                 # For burnup chart
                 from visualization import create_burnup_chart
@@ -1122,12 +1121,6 @@ def register(app):
                     deadline_str=deadline,
                     data_points_count=data_points_count,
                 )
-
-                title = "Project Burnup Chart"
-
-            # Update chart title
-            if figure and hasattr(figure, "layout"):
-                figure.update_layout(title=title)
 
             return dcc.Graph(
                 id="forecast-graph",
