@@ -1104,7 +1104,12 @@ def register(app):
             total_points = settings.get("total_points", 500)
             pert_factor = settings.get("pert_factor", 3)
             deadline = settings.get("deadline", None)
-            data_points_count = settings.get("data_points_count", len(df))
+
+            # Dynamically recalculate data_points_count based on actual statistics length
+            # This ensures when rows are deleted, both charts use the updated row count
+            stored_data_points = settings.get("data_points_count", len(df))
+            data_points_count = min(stored_data_points, len(df))
+
             show_forecast = settings.get("show_forecast", True)
             forecast_visibility = settings.get("forecast_visibility", "legendonly")
             hover_mode = settings.get(
