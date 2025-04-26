@@ -171,7 +171,7 @@ def create_scope_growth_chart(weekly_growth_data):
         x=weekly_growth_data["week_label"],
         y=weekly_growth_data["items_growth"],
         name="Items Growth",
-        marker_color="rgba(32, 201, 151, 0.7)",  # Green color matching items trend
+        marker_color="rgba(0, 123, 255, 0.7)",  # Changed from green to blue
         # Add hover text to clarify meaning of values
         hovertemplate=(
             "<b>Items</b><br>"
@@ -186,7 +186,7 @@ def create_scope_growth_chart(weekly_growth_data):
         x=weekly_growth_data["week_label"],
         y=weekly_growth_data["points_growth"],
         name="Points Growth",
-        marker_color="rgba(253, 126, 20, 0.7)",  # Orange color matching points trend
+        marker_color="rgba(253, 126, 20, 0.7)",  # Keep orange color for points
         # Add hover text to clarify meaning of values
         hovertemplate=(
             "<b>Points</b><br>"
@@ -212,8 +212,13 @@ def create_scope_growth_chart(weekly_growth_data):
             "zerolinecolor": "rgba(0, 0, 0, 0.2)",
         },
         height=300,
-        margin={"l": 60, "r": 20, "t": 50, "b": 80},
-        legend={"orientation": "h", "y": -0.2, "xanchor": "center", "x": 0.5},
+        margin={"l": 60, "r": 20, "t": 70, "b": 60},  # Increased top margin for legend
+        legend={
+            "orientation": "h",
+            "y": 1.25,
+            "xanchor": "center",
+            "x": 0.95,
+        },  # Moved legend to top
         hovermode="x unified",
         plot_bgcolor="rgba(255, 255, 255, 0.9)",
     )
@@ -232,27 +237,7 @@ def create_scope_growth_chart(weekly_growth_data):
         line=dict(color="black", width=1, dash="dot"),
     )
 
-    # Add annotation explaining the chart
-    figure.add_annotation(
-        x=0.5,
-        y=-0.25,
-        xref="paper",
-        yref="paper",
-        text=(
-            "<b>Growth Interpretation:</b> "
-            "Positive values indicate added scope, "
-            "negative values indicate backlog reduction."
-        ),
-        showarrow=False,
-        font=dict(size=12),
-        align="center",
-        bordercolor="rgba(200, 200, 200, 0.5)",
-        borderwidth=1,
-        borderpad=8,
-        bgcolor="rgba(250, 250, 250, 0.8)",
-    )
-
-    # Return the graph component
+    # Return the graph component - note that we removed the explanatory annotation
     return dcc.Graph(
         figure=figure,
         config={"displayModeBar": False, "responsive": True},
@@ -662,7 +647,18 @@ def create_scope_metrics_dashboard(
             # Alert for threshold breach
             create_scope_creep_alert(alert_data),
             # Weekly Scope Growth Chart
-            html.Div([create_scope_growth_chart(weekly_growth_data)], className="mb-4"),
+            html.Div([create_scope_growth_chart(weekly_growth_data)], className="mb-2"),
+            # Footnote explaining growth interpretation with consistent styling and icon
+            html.Div(
+                className="text-muted fst-italic small text-center",
+                children=[
+                    html.I(
+                        className="fas fa-info-circle me-1",
+                        style={"color": "rgb(108, 117, 125)"},
+                    ),
+                    "Growth Interpretation: Positive values indicate added scope, negative values indicate backlog reduction.",
+                ],
+            ),
             # Stability Gauges
             dbc.Row(
                 [
@@ -688,10 +684,16 @@ def create_scope_metrics_dashboard(
                     ),
                 ]
             ),
-            # Footnote explaining stability index
-            html.Small(
-                "Stability Index: Higher values indicate more stable scope (fewer changes relative to total scope).",
-                className="text-muted mt-2",
+            # Footnote explaining stability index with consistent styling and icon
+            html.Div(
+                className="text-muted fst-italic small text-center",
+                children=[
+                    html.I(
+                        className="fas fa-info-circle me-1",
+                        style={"color": "rgb(108, 117, 125)"},
+                    ),
+                    "Stability Index: Higher values indicate more stable scope (fewer changes relative to total scope).",
+                ],
             ),
         ]
     )
