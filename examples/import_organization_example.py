@@ -66,6 +66,6 @@ def get_stats_component():
         A statistics component
     """
     # Import at function level to avoid circular dependency
-    from ui.statistics import create_stats_display
+    from callbacks.statistics import create_stats_display
 
     return create_stats_display()
