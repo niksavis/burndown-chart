@@ -205,16 +205,25 @@ def register(app):
 
     @app.callback(
         [Output("statistics-table", "data"), Output("is-sample-data", "data")],
-        [Input("add-row-button", "n_clicks"), Input("upload-data", "contents")],
+        [
+            Input("add-row-button", "n_clicks"),
+            Input("upload-data", "contents"),
+            Input("statistics-table", "data_timestamp"),
+        ],  # Added data_timestamp as input
         [
             State("statistics-table", "data"),
             State("upload-data", "filename"),
             State("is-sample-data", "data"),
         ],
     )
-    def update_table(n_clicks, contents, rows, filename, is_sample_data):
+    def update_table(
+        n_clicks, contents, data_timestamp, rows, filename, is_sample_data
+    ):
         """
-        Update the statistics table data when a row is added or data is uploaded.
+        Update the statistics table data when:
+        - A row is added
+        - Data is uploaded
+        - Cell values are edited (and need empty values converted to zeros)
         Also update the sample data flag when real data is uploaded.
         """
         ctx = dash.callback_context
@@ -223,7 +232,32 @@ def register(app):
             return rows, is_sample_data
 
         trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+        trigger_prop = (
+            ctx.triggered[0]["prop_id"].split(".")[1]
+            if "." in ctx.triggered[0]["prop_id"]
+            else None
+        )
+
         try:
+            # Always clean numeric values first to prevent errors
+            if rows:
+                for row in rows:
+                    numeric_columns = [
+                        "completed_items",
+                        "completed_points",
+                        "created_items",
+                        "created_points",
+                    ]
+                    for col in numeric_columns:
+                        if col in row:
+                            if row[col] == "" or row[col] is None:
+                                row[col] = 0
+                            else:
+                                try:
+                                    row[col] = int(float(row[col]))
+                                except (ValueError, TypeError):
+                                    row[col] = 0
+
             # Add a new row with a smart date calculation
             if trigger_id == "add-row-button":
                 if not rows:
@@ -292,14 +326,36 @@ def register(app):
                         if "created_points" not in df.columns:
                             df["created_points"] = 0
 
+                        # Convert empty strings to zeros for all numeric columns
+                        numeric_columns = [
+                            "completed_items",
+                            "completed_points",
+                            "created_items",
+                            "created_points",
+                        ]
+                        for col in numeric_columns:
+                            if col in df.columns:
+                                df[col] = (
+                                    pd.to_numeric(df[col], errors="coerce")
+                                    .fillna(0)
+                                    .astype(int)
+                                )
+
                         # When uploading data, we're no longer using sample data
                         return df.to_dict("records"), False
                     except Exception as e:
                         logger.error(f"Error loading CSV file: {e}")
                         # Return unchanged data if there's an error
                         return rows, is_sample_data
+
+            elif trigger_id == "statistics-table" and trigger_prop == "data_timestamp":
+                # This is triggered when a cell is edited and loses focus
+                # We've already cleaned the data at the start of this callback
+                return rows, is_sample_data
+
         except Exception as e:
             logger.error(f"Error in update_table callback: {e}")
+
         return rows, is_sample_data
 
     @app.callback(
