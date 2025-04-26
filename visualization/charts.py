@@ -2381,10 +2381,10 @@ def create_burnup_chart(
         scope_items_trace = go.Scatter(
             x=df["date"],
             y=df["cum_scope_items"],
-            mode="lines+markers",
+            mode="lines",
             name="Total Items Scope",
             line=dict(
-                color="#0047AB", width=4, dash="dot"
+                color="#0047AB", width=3, dash="dot"
             ),  # Darker blue and thicker line
             marker=dict(
                 size=10,  # Increased marker size
@@ -2406,10 +2406,10 @@ def create_burnup_chart(
         scope_points_trace = go.Scatter(
             x=df["date"],
             y=df["cum_scope_points"],
-            mode="lines+markers",
+            mode="lines",
             name="Total Points Scope",
             line=dict(
-                color="#B22222", width=4, dash="dot"
+                color="#B22222", width=3, dash="dot"
             ),  # Firebrick red and thicker line
             marker=dict(
                 size=10,  # Increased marker size
