@@ -454,7 +454,6 @@ def create_scope_metrics_dashboard(
                 ],
                 className="row g-0 mb-2",  # g-0 removes gutters
             ),
-            # Description moved below the Items and Points scope creep indicators
             html.Div(
                 html.P(
                     "This analysis tracks how project scope changes over time. Scope creep measures growth beyond the initial baseline. Negative values indicate scope reduction.",
