@@ -245,9 +245,7 @@ def create_scope_growth_chart(weekly_growth_data):
 
 
 def create_enhanced_stability_gauge(
-    stability_value,
-    title="Scope Stability Index",
-    height=300,  # Increased height from 280 to 300
+    stability_value, title="Scope Stability Index", height=300
 ):
     """
     Create an enhanced gauge visualization for the scope stability index with better visual indicators.
@@ -299,11 +297,14 @@ def create_enhanced_stability_gauge(
                     "tickmode": "array",
                     "tickvals": [0, 0.2, 0.4, 0.6, 0.8, 1],
                     "ticktext": ["0", "0.2", "0.4", "0.6", "0.8", "1"],
-                    "visible": False,  # Hide the axis and ticks
+                    "visible": True,
                 },
-                "bar": {"color": color, "thickness": 0.7},
+                "bar": {
+                    "color": color,
+                    "thickness": 0.6,
+                },
                 "bgcolor": "white",
-                "borderwidth": 0,  # Remove border to eliminate coordinate system appearance
+                "borderwidth": 0.4,
                 "steps": [
                     {"range": [0, 0.2], "color": "rgba(220, 0, 0, 0.2)"},
                     {"range": [0.2, 0.4], "color": "rgba(230, 120, 0, 0.2)"},
@@ -318,7 +319,7 @@ def create_enhanced_stability_gauge(
                 },
             },
             number={
-                "font": {"size": 24, "color": color},
+                "font": {"size": 24, "color": color, "weight": "bold"},
                 "valueformat": ".2f",
                 "suffix": "",  # No suffix to avoid overlap
             },
@@ -329,11 +330,11 @@ def create_enhanced_stability_gauge(
     figure.add_annotation(
         text=f"<b>Status: {status_text}</b>",
         x=0.5,
-        y=0,
+        y=-0.01,  # Position further down (was 0.02)
         xref="paper",
         yref="paper",
         showarrow=False,
-        font=dict(size=15, color=color),
+        font=dict(size=16, color=color),
         align="center",
     )
 
@@ -341,7 +342,7 @@ def create_enhanced_stability_gauge(
     figure.add_annotation(
         text="Target: 0.7+",
         x=0.5,
-        y=0.15,  # Moved down slightly (was 0.1)
+        y=0.13,  # Moved down slightly (was 0.1)
         xref="paper",
         yref="paper",
         showarrow=False,
