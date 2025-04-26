@@ -2087,7 +2087,7 @@ def create_chart_with_loading(
             "responsive": True,
             "toImageButtonOptions": {
                 "format": "png",
-                "filename": f"burndown-chart-{id}",
+                "filename": f"{id.replace('-', '_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
                 "scale": 2,
             },
             "modeBarButtonsToRemove": [

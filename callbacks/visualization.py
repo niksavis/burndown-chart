@@ -547,7 +547,13 @@ def register(app):
                 dcc.Graph(
                     id="items-chart",
                     figure=items_fig,
-                    config={"displayModeBar": True, "responsive": True},
+                    config={
+                        "displayModeBar": True,
+                        "responsive": True,
+                        "toImageButtonOptions": {
+                            "filename": f"weekly_items_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+                        },
+                    },
                     style={"height": "700px"},
                 ),
             ]
@@ -583,7 +589,13 @@ def register(app):
                 dcc.Graph(
                     id="points-chart",
                     figure=points_fig,
-                    config={"displayModeBar": True, "responsive": True},
+                    config={
+                        "displayModeBar": True,
+                        "responsive": True,
+                        "toImageButtonOptions": {
+                            "filename": f"weekly_points_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+                        },
+                    },
                     style={"height": "700px"},
                 ),
             ]
@@ -1117,6 +1129,9 @@ def register(app):
             )  # Add hover mode setting
             chart_height = settings.get("chart_height", 700)
 
+            # Generate timestamp for the filename
+            current_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
             # Prepare data consistently for both charts
             if not df.empty:
                 df["date"] = pd.to_datetime(df["date"])
@@ -1164,7 +1179,13 @@ def register(app):
             return dcc.Graph(
                 id="forecast-graph",
                 figure=figure,
-                config={"displayModeBar": True, "responsive": True},
+                config={
+                    "displayModeBar": True,
+                    "responsive": True,
+                    "toImageButtonOptions": {
+                        "filename": f"{'burndown' if chart_type == 'burndown' else 'burnup'}_chart_{current_timestamp}"
+                    },
+                },
                 style={"height": f"{chart_height}px"},
             )
 
