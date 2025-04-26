@@ -5,9 +5,7 @@ The grid_templates module has been completely removed, and this
 test now verifies it doesn't exist anymore.
 """
 
-import os
 import sys
-import importlib
 import unittest
 from pathlib import Path
 

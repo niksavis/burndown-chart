@@ -7,7 +7,6 @@ across all application components.
 
 from dash import html, dcc
 import dash_bootstrap_components as dbc
-import json
 
 
 def create_mobile_checker(id_prefix="mobile-view"):

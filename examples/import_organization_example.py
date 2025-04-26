@@ -9,22 +9,11 @@ the project's conventions/imports.md guidelines.
 # IMPORTS
 #######################################################################
 # Standard library imports
-import os
-import sys
-from datetime import datetime, timedelta
-import json
 
 # Third-party library imports
-import dash
-from dash import html, dcc
-import dash_bootstrap_components as dbc
-import pandas as pd
-import numpy as np
+from dash import html
 
 # Application imports
-from configuration import COLOR_PALETTE, SETTINGS  # Config imports first
-from ui.styles import get_color, SPACING  # Utility modules next
-from ui.grid_utils import create_responsive_column  # Layout utilities
 from data.processing import calculate_total_points  # Feature-specific imports last
 
 

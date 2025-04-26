@@ -28,7 +28,6 @@ from data.processing import (
     calculate_weekly_averages,
     compute_cumulative_values,
     generate_weekly_forecast,
-    prepare_forecast_data,
 )
 
 # Define public API
@@ -42,7 +41,6 @@ __all__ = [
     "calculate_total_points",
     "compute_cumulative_values",
     "calculate_weekly_averages",
-    "prepare_forecast_data",
     "generate_weekly_forecast",
     "calculate_performance_trend",
 ]

@@ -19,8 +19,6 @@ from ui.style_constants import (
     TYPOGRAPHY,
     SEMANTIC_COLORS,
     NEUTRAL_COLORS,
-    PRIMARY_COLORS,
-    CHART_COLORS,
     rgb_to_rgba,
 )
 

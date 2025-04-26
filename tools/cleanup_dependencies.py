@@ -8,11 +8,8 @@ It performs a more thorough analysis than the audit tool to minimize false posit
 import os
 import sys
 import re
-import importlib
-import subprocess
 import pkg_resources
 from pathlib import Path
-from collections import defaultdict
 
 
 def get_installed_packages():

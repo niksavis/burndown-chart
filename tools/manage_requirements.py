@@ -11,7 +11,6 @@ import sys
 import re
 import subprocess
 import pkg_resources
-from pathlib import Path
 from datetime import datetime
 
 

@@ -3,8 +3,7 @@ Scope creep metrics calculation functions.
 """
 
 import pandas as pd
-import numpy as np
-from datetime import datetime, timedelta
+from datetime import datetime
 
 
 def calculate_scope_creep_rate(df, baseline_items, baseline_points):

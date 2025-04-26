@@ -14,7 +14,6 @@ import re
 import subprocess
 import json
 from importlib.metadata import version, PackageNotFoundError
-from pathlib import Path
 from datetime import datetime
 
 # Remove any potential indirect imports related to pkg_resources

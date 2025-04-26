@@ -9,7 +9,7 @@ import traceback
 import logging
 from dash import html
 import dash_bootstrap_components as dbc
-from typing import Optional, Union, Dict, Any, Callable
+from typing import Optional, Dict, Any, Callable
 
 # Configure logger
 logger = logging.getLogger(__name__)

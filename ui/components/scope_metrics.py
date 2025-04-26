@@ -6,7 +6,6 @@ import dash_bootstrap_components as dbc
 from dash import html, dcc
 import plotly.graph_objs as go
 import pandas as pd
-import numpy as np
 
 
 def create_scope_creep_indicator(title, value, threshold=15, tooltip=None):

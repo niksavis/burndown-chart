@@ -21,7 +21,6 @@ from ui.style_constants import (
     PRIMARY_COLORS,
     SEMANTIC_COLORS,
     NEUTRAL_COLORS,
-    rgb_to_rgba,
 )
 
 #######################################################################

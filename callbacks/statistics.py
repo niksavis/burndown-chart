@@ -17,13 +17,11 @@ import dash
 from dash import Input, Output, State, html
 from dash.exceptions import PreventUpdate
 import pandas as pd
-import plotly.graph_objects as go
 import dash_bootstrap_components as dbc
 
 # Application imports
 from configuration import logger
 from data import save_statistics, read_and_clean_data
-from visualization import create_empty_figure
 
 #######################################################################
 # HELPER FUNCTIONS

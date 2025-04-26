@@ -5,7 +5,6 @@ This script helps reorganize imports in Python modules according to project conv
 It creates a backup before making any changes and operates in a safe, controlled manner.
 """
 
-import os
 import re
 import sys
 import shutil

@@ -3,14 +3,12 @@ Callbacks for scope creep metrics visualization.
 """
 
 import pandas as pd
-from dash import Input, Output, State, callback, html
-import dash_bootstrap_components as dbc
+from dash import Input, Output, State, html
 
 from data.scope_metrics import (
     calculate_scope_creep_rate,
     calculate_weekly_scope_growth,
     calculate_scope_stability_index,
-    check_scope_creep_threshold,
     calculate_total_project_scope,  # Import our new function
 )
 from ui.scope_metrics import create_scope_metrics_dashboard  # Updated import path

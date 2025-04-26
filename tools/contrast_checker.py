@@ -8,10 +8,7 @@ It can analyze CSS files or be used to check specific color combinations.
 import re
 import sys
 import os
-import math
-from pathlib import Path
-import colorsys
-from typing import Tuple, Dict, List, Optional, Union
+from typing import Tuple, Dict, List
 
 
 def parse_color(color: str) -> Tuple[float, float, float]:

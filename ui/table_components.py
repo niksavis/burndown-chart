@@ -9,7 +9,6 @@ from dash import html, dash_table
 import dash_bootstrap_components as dbc
 from typing import List, Dict, Any, Optional, Union
 
-from ui.error_utils import try_except_callback
 from ui.aria_utils import enhance_data_table
 
 

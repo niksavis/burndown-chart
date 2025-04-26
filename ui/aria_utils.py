@@ -7,7 +7,6 @@ to improve accessibility.
 
 from dash import html
 import dash_bootstrap_components as dbc
-from typing import Dict, Any, List, Union, Optional
 
 
 def add_aria_label_to_icon_button(component, label, options=None):

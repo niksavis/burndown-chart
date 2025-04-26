@@ -9,7 +9,6 @@ for consistent icon usage across the application.
 # IMPORTS
 #######################################################################
 # Third-party library imports
-import dash_bootstrap_components as dbc
 from dash import html
 
 #######################################################################

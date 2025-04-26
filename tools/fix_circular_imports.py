@@ -6,8 +6,6 @@ This script helps implement suggested fixes for circular imports by:
 2. Creating extraction candidates for common functionality
 """
 
-import os
-import re
 import sys
 from pathlib import Path
 import ast

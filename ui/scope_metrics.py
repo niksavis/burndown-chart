@@ -6,7 +6,6 @@ import dash_bootstrap_components as dbc
 from dash import html, dcc
 import plotly.graph_objs as go
 import pandas as pd
-import numpy as np
 from ui.components import TREND_ICONS, TREND_COLORS
 
 
@@ -28,7 +27,6 @@ def create_scope_creep_indicator(title, value, threshold=15, tooltip=None):
 
     # Determine status direction, color, and icon based on threshold
     if value is None or pd.isna(value):
-        direction = "stable"
         icon_class = TREND_ICONS["stable"]
         text_color = TREND_COLORS["stable"]
         bg_color = "rgba(108, 117, 125, 0.1)"
@@ -36,7 +34,6 @@ def create_scope_creep_indicator(title, value, threshold=15, tooltip=None):
         value_text = "N/A"
     else:
         if value > threshold:
-            direction = "up"  # High scope creep is represented as "up" (negative)
             icon_class = TREND_ICONS["up"]
             text_color = TREND_COLORS[
                 "down"
@@ -45,14 +42,12 @@ def create_scope_creep_indicator(title, value, threshold=15, tooltip=None):
             border_color = "rgba(220, 53, 69, 0.2)"
             value_text = f"{value}%"
         elif value > threshold * 0.8:  # Within 80% of threshold
-            direction = "up"  # Medium scope creep still "up"
             icon_class = TREND_ICONS["up"]
             text_color = "#fd7e14"  # Orange color for warning
             bg_color = "rgba(253, 126, 20, 0.1)"  # Light orange background
             border_color = "rgba(253, 126, 20, 0.2)"
             value_text = f"{value}%"
         else:
-            direction = "down"  # Low scope creep is represented as "down" (positive)
             icon_class = TREND_ICONS["down"]
             text_color = TREND_COLORS["up"]  # Use "up" color (green) to indicate good
             bg_color = "rgba(40, 167, 69, 0.1)"  # Light green background
@@ -477,7 +472,7 @@ def create_scope_metrics_dashboard(
             remaining_points = settings.get(
                 "total_points", 154
             )  # Default to 154 if not found
-    except:
+    except Exception:
         # If we can't read the file, use defaults
         remaining_items = 34
         remaining_points = 154
@@ -499,7 +494,7 @@ def create_scope_metrics_dashboard(
         total_created_points = (
             df["created_points"].sum() if "created_points" in df.columns else 0
         )
-    except:
+    except Exception:
         # If we can't read the file, use the data from weekly_growth_data
         total_completed_items = 0
         total_completed_points = 0

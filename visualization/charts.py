@@ -23,7 +23,6 @@ from configuration import COLOR_PALETTE
 from data import (
     calculate_weekly_averages,
     generate_weekly_forecast,
-    prepare_forecast_data,
 )
 from ui.tooltip_utils import create_hoverlabel_config, format_hover_template
 
@@ -585,7 +584,7 @@ def create_forecast_plot(
         # The burnup chart's first point has the actual completed items/points from the first date
 
         # Prepare all data needed for the visualization
-        forecast_data = prepare_forecast_data(
+        forecast_data = prepare_visualization_data(
             df, total_items, total_points, pert_factor, data_points_count
         )
 
@@ -604,7 +603,7 @@ def create_forecast_plot(
 
             if not is_forecast or (is_forecast and show_forecast):
                 # Set visibility for forecast traces based on forecast_visibility parameter
-                if is_forecast and forecast_visibility != True:
+                if is_forecast and forecast_visibility is not True:
                     # If it's a "Most Likely" forecast, keep it visible by default
                     if "Most Likely" not in trace["data"].name:
                         trace["data"].visible = forecast_visibility
@@ -2299,8 +2298,8 @@ def create_burnup_chart(
             df["cum_scope_points"].iloc[-1] if not df.empty else baseline_points
         )
 
-        # Calculate forecast data using the prepare_forecast_data function with burnup=True
-        forecast_data = prepare_forecast_data(
+        # Calculate forecast data using the prepare_visualization_data function with burnup=True
+        forecast_data = prepare_visualization_data(
             df_forecast,
             total_items,
             total_points,
@@ -2877,7 +2876,7 @@ def identify_significant_scope_growth(df, threshold_pct=10):
     return significant_periods
 
 
-def prepare_forecast_data(
+def prepare_visualization_data(
     df,
     total_items,
     total_points,
@@ -2905,7 +2904,6 @@ def prepare_forecast_data(
     """
     # Import needed functions from data module
     from data.processing import (
-        daily_forecast,
         daily_forecast_burnup,
         compute_weekly_throughput,
         calculate_rates,
