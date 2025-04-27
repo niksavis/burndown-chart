@@ -151,6 +151,8 @@ python-dateutil==2.9.0.post0
     #   -r requirements.in
     #   matplotlib
     #   pandas
+python-dotenv==1.0.1
+    # via -r requirements.in
 pytz==2025.2
     # via
     #   -r requirements.in
