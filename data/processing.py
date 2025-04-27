@@ -437,7 +437,12 @@ def calculate_weekly_averages(statistics_data):
     Returns:
         Tuple of (avg_weekly_items, avg_weekly_points, med_weekly_items, med_weekly_points)
     """
-    if not statistics_data or len(statistics_data) == 0:
+    # Check if statistics_data is empty or None
+    if (
+        statistics_data is None
+        or (isinstance(statistics_data, pd.DataFrame) and statistics_data.empty)
+        or (not isinstance(statistics_data, pd.DataFrame) and len(statistics_data) == 0)
+    ):
         return 0, 0, 0, 0
 
     # Create DataFrame and ensure numeric types
@@ -683,7 +688,15 @@ def calculate_performance_trend(
         - previous_avg: Average value for previous period
         - is_significant: True if change is >20%
     """
-    if not statistics_data or len(statistics_data) < weeks_to_compare * 2:
+    # Check if statistics_data is empty or None
+    if (
+        statistics_data is None
+        or (isinstance(statistics_data, pd.DataFrame) and statistics_data.empty)
+        or (
+            not isinstance(statistics_data, pd.DataFrame)
+            and len(statistics_data) < weeks_to_compare * 2
+        )
+    ):
         return {
             "trend_direction": "stable",
             "percent_change": 0,

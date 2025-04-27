@@ -118,16 +118,22 @@ app.layout = html.Div(
                 ),
                 create_icon_button(
                     "fas fa-trash",
+                    label="Delete",
                     id="icon-only",
-                    variant="danger",
-                    className="me-2",
+                    color="danger",  # Use color instead of variant
                     tooltip="Delete",
                 ),
                 create_icon_button(
-                    "fas fa-edit", id="edit-icon", variant="info", className="me-2"
+                    "fas fa-edit",
+                    label="Edit",
+                    id="edit-icon",
+                    color="info",  # Use color instead of variant
                 ),
                 create_icon_button(
-                    "fas fa-save", id="save-icon", variant="success", className="me-2"
+                    "fas fa-save",
+                    label="Save",
+                    id="save-icon",
+                    color="success",  # Use color instead of variant
                 ),
             ],
             className="mb-4",
@@ -221,9 +227,9 @@ app.layout = html.Div(
                 ),
                 create_icon_button(
                     "fas fa-trash",
+                    label="Delete",
                     id="disabled-icon-only",
                     disabled=True,
-                    className="me-2",
                 ),
             ],
             className="mb-4",
@@ -239,9 +245,9 @@ app.layout = html.Div(
                 ),
                 create_icon_button(
                     "fas fa-info-circle",
+                    label="Info",
                     id="info-tooltip",
                     tooltip="Information",
-                    className="me-2",
                 ),
             ],
             className="mb-4",
