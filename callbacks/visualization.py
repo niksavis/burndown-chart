@@ -468,7 +468,7 @@ def register(app):
                     style={
                         "display": "flex",
                         "justifyContent": "center",
-                        "marginBottom": "15px",
+                        "marginBottom": "0",
                     },
                 ),
                 dbc.Tooltip(
