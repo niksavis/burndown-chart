@@ -2090,10 +2090,10 @@ def add_deadline_marker(fig, deadline, milestone=None):
         # Add milestone annotation
         fig.add_annotation(
             x=milestone_datetime,
-            y=1.0,
+            y=0.99,  # Position it slightly above the chart but below the deadline text
             xref="x",
             yref="paper",
-            text="Milestone",
+            text=f"MS-{milestone_datetime.strftime('%Y-%m-%d')}",
             showarrow=False,
             font=dict(color=milestone_color, size=14),
             xanchor="center",
