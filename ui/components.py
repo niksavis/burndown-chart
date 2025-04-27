@@ -669,17 +669,11 @@ def _create_velocity_metric_card(
             )
         )
 
-    # Create the card with proper styles
+    # Create the card with proper styles - remove fixed margins
     style_dict = {
         "flex": "1",
         "minWidth": "150px",
     }
-
-    # Add the appropriate margin based on card type
-    if title == "Average":
-        style_dict["marginRight"] = "0.5rem"
-    else:
-        style_dict["marginLeft"] = "0.5rem"
 
     return html.Div(
         [
@@ -787,35 +781,40 @@ def _create_velocity_metric_section(
                 ],
                 className="d-flex align-items-center justify-content-center mb-3",
             ),
-            # Velocity metrics - using flex layout for better responsiveness
+            # Velocity metrics - using flex layout with improved gap spacing for better responsiveness
             html.Div(
                 [
                     # Average Items/Points
-                    _create_velocity_metric_card(
-                        "Average",
-                        avg_weekly_value,
-                        avg_trend,
-                        avg_trend_icon,
-                        avg_trend_color,
-                        avg_color,
-                        is_mini,
+                    html.Div(
+                        _create_velocity_metric_card(
+                            "Average",
+                            avg_weekly_value,
+                            avg_trend,
+                            avg_trend_icon,
+                            avg_trend_color,
+                            avg_color,
+                            is_mini,
+                        ),
+                        className="px-2",
+                        style={"flex": "1", "minWidth": "150px"},
                     ),
                     # Median Items/Points
-                    _create_velocity_metric_card(
-                        "Median",
-                        med_weekly_value,
-                        med_trend,
-                        med_trend_icon,
-                        med_trend_color,
-                        med_color,
-                        is_mini,
+                    html.Div(
+                        _create_velocity_metric_card(
+                            "Median",
+                            med_weekly_value,
+                            med_trend,
+                            med_trend_icon,
+                            med_trend_color,
+                            med_color,
+                            is_mini,
+                        ),
+                        className="px-2",
+                        style={"flex": "1", "minWidth": "150px"},
                     ),
                 ],
-                className="d-flex flex-wrap",
-                style={
-                    "marginLeft": "-0.5rem",
-                    "marginRight": "-0.5rem",
-                },
+                className="d-flex flex-wrap mx-n2",  # Negative margin to offset px-2 padding
+                style={"gap": "0px"},
             ),
         ],
         className=f"{'mb-4' if is_items else 'mb-3'} p-3 border rounded",
