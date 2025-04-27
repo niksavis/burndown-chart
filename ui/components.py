@@ -1128,33 +1128,39 @@ def create_pert_info_table(
                     # Right column - Weekly Velocity with improved mobile responsiveness
                     dbc.Col(
                         [
-                            html.H5(
+                            # Add wrapper div with significant mobile-specific top margin and padding to prevent overlap
+                            html.Div(
                                 [
-                                    html.I(
-                                        className="fas fa-tachometer-alt me-2",
-                                        style={"color": "#6610f2"},
+                                    html.H5(
+                                        [
+                                            html.I(
+                                                className="fas fa-tachometer-alt me-2",
+                                                style={"color": "#6610f2"},
+                                            ),
+                                            "Weekly Velocity",
+                                        ],
+                                        className="mb-3 border-bottom pb-2 d-flex align-items-center",
                                     ),
-                                    "Weekly Velocity",
+                                    _create_weekly_velocity_section(
+                                        avg_weekly_items,
+                                        med_weekly_items,
+                                        avg_weekly_points,
+                                        med_weekly_points,
+                                        avg_items_trend,
+                                        med_items_trend,
+                                        avg_points_trend,
+                                        med_points_trend,
+                                        avg_items_icon,
+                                        avg_items_icon_color,
+                                        med_items_icon,
+                                        med_items_icon_color,
+                                        avg_points_icon,
+                                        avg_points_icon_color,
+                                        med_points_icon,
+                                        med_points_icon_color,
+                                    ),
                                 ],
-                                className="mb-3 border-bottom pb-2 d-flex align-items-center",
-                            ),
-                            _create_weekly_velocity_section(
-                                avg_weekly_items,
-                                med_weekly_items,
-                                avg_weekly_points,
-                                med_weekly_points,
-                                avg_items_trend,
-                                med_items_trend,
-                                avg_points_trend,
-                                med_points_trend,
-                                avg_items_icon,
-                                avg_items_icon_color,
-                                med_items_icon,
-                                med_items_icon_color,
-                                avg_points_icon,
-                                avg_points_icon_color,
-                                med_points_icon,
-                                med_points_icon_color,
+                                className="mt-3 mt-lg-0",  # Add top margin for mobile
                             ),
                         ],
                         width=12,
