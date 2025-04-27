@@ -4,6 +4,7 @@ Script to clean up packages not listed in requirements.txt from a virtual enviro
 
 import subprocess
 import sys
+from pathlib import Path
 
 
 def get_installed_packages():
@@ -19,8 +20,14 @@ def get_installed_packages():
     return [p.split("==")[0].lower() for p in packages if p]
 
 
-def get_required_packages(requirements_file="requirements.txt"):
+def get_required_packages(requirements_file=None):
     """Get a list of all packages listed in requirements.txt"""
+    # If no requirements file specified, determine the location based on script location
+    if requirements_file is None:
+        # Get the project root directory (parent of the tools directory)
+        project_root = Path(__file__).parent.parent
+        requirements_file = project_root / "requirements.txt"
+
     try:
         with open(requirements_file, "r") as f:
             packages = f.readlines()

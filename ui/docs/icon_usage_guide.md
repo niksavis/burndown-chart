@@ -1,5 +1,7 @@
 # Icon Usage Guidelines
 
+> **Note:** This is the primary documentation for icon usage in the Burndown Chart application. The file in `docs/icon_usage_guide.md` now redirects here to avoid duplication.
+
 ## Overview
 
 This document provides guidelines for consistent icon usage throughout the Burndown Chart Application. Following these standards ensures visual harmony and improved user experience.
