@@ -1552,9 +1552,13 @@ input[type="range"]::-moz-range-thumb {
 
 /* Fix for milestone date picker alignment with deadline picker */
 #milestone-picker {
-  margin-top: 0 !important; /* Reset any margins */
+  margin-top: -1px !important; /* Compensate for the toggle component's effect */
   position: relative !important;
-  top: -0.5px !important; /* Slight upward shift to perfectly align */
+}
+
+/* Make the toggle component above the milestone picker not affect layout flow */
+.d-flex.align-items-center + #milestone-picker {
+  margin-top: -1px !important;
 }
 
 /* Ensure font and line heights match */
