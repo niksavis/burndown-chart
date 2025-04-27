@@ -2090,7 +2090,7 @@ def add_deadline_marker(fig, deadline, milestone=None):
         # Add milestone annotation
         fig.add_annotation(
             x=milestone_datetime,
-            y=0.97,  # Position below deadline annotation to avoid overlap
+            y=1.0,
             xref="x",
             yref="paper",
             text="Milestone",

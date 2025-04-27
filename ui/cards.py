@@ -171,7 +171,6 @@ def create_forecast_info_card():
                                                     "Brown",
                                                     style={
                                                         "color": "rgb(165, 42, 42)",
-                                                        "fontWeight": "bold",
                                                     },
                                                 ),
                                                 ": Pessimistic",
@@ -394,69 +393,58 @@ def create_input_parameters_card(
                         # Milestone toggle and date picker in one column
                         dbc.Col(
                             [
-                                # Label for the entire milestone section
-                                html.Label(
-                                    [
-                                        "Milestone:",
-                                        create_info_tooltip(
-                                            "milestone-date",
-                                            "Set a milestone marker on the charts (must be before deadline).",
-                                        ),
-                                    ],
-                                    className="fw-medium",
-                                ),
-                                # Flex container for toggle and date picker
+                                # Label and toggle combined in a flex container
                                 html.Div(
                                     [
-                                        # Toggle switch in its own div
-                                        html.Div(
+                                        # Label for the milestone section
+                                        html.Label(
                                             [
-                                                dbc.Switch(
-                                                    id="milestone-toggle",
-                                                    value=current_settings.get(
-                                                        "show_milestone", False
-                                                    ),
-                                                    label="Enable",
-                                                    className="mt-1",
+                                                "Milestone:",
+                                                create_info_tooltip(
+                                                    "milestone-date",
+                                                    "Set a milestone marker on the charts (must be before deadline).",
                                                 ),
                                             ],
-                                            className="me-3",  # Space between toggle and date picker
+                                            className="fw-medium me-2",
                                             style={
-                                                "minWidth": "80px"
-                                            },  # Fixed width for the toggle
+                                                "display": "inline-flex",
+                                                "alignItems": "center",
+                                            },
                                         ),
-                                        # Date picker with flex-grow to fill remaining space
-                                        html.Div(
-                                            [
-                                                dcc.DatePickerSingle(
-                                                    id="milestone-picker",
-                                                    date=current_settings.get(
-                                                        "milestone", None
-                                                    ),
-                                                    display_format="YYYY-MM-DD",
-                                                    first_day_of_week=1,
-                                                    show_outside_days=True,
-                                                    with_portal=False,
-                                                    with_full_screen_portal=False,
-                                                    placeholder="Select milestone date",
-                                                    persistence=True,
-                                                    min_date_allowed=datetime.now().strftime(
-                                                        "%Y-%m-%d"
-                                                    ),
-                                                    style=create_datepicker_style(
-                                                        size="md"
-                                                    ),
-                                                    className="w-100",
-                                                    disabled=not current_settings.get(
-                                                        "show_milestone", False
-                                                    ),
-                                                ),
-                                            ],
-                                            style={"flex": "1"},  # Take remaining space
+                                        # Toggle switch directly next to the label (without text label)
+                                        dbc.Switch(
+                                            id="milestone-toggle",
+                                            value=current_settings.get(
+                                                "show_milestone", False
+                                            ),
+                                            label="",  # Removed "Enable" text
+                                            className="ms-2",
+                                            style={
+                                                "transform": "translateY(1px)"
+                                            },  # Fine-tune vertical alignment
                                         ),
                                     ],
-                                    className="d-flex align-items-center",  # Flex layout
-                                    style={"width": "100%"},  # Full width
+                                    className="d-flex align-items-center",  # Removed mb-2 to reduce bottom spacing
+                                ),
+                                # Date picker in its own row
+                                dcc.DatePickerSingle(
+                                    id="milestone-picker",
+                                    date=current_settings.get("milestone", None),
+                                    display_format="YYYY-MM-DD",
+                                    first_day_of_week=1,
+                                    show_outside_days=True,
+                                    with_portal=False,
+                                    with_full_screen_portal=False,
+                                    placeholder="Select milestone date",
+                                    persistence=True,
+                                    min_date_allowed=datetime.now().strftime(
+                                        "%Y-%m-%d"
+                                    ),
+                                    style=create_datepicker_style(size="md"),
+                                    className="w-100",
+                                    disabled=not current_settings.get(
+                                        "show_milestone", False
+                                    ),
                                 ),
                                 html.Div(
                                     id="milestone-feedback",
