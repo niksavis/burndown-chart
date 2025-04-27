@@ -770,7 +770,7 @@ def _create_velocity_metric_section(
 
     return html.Div(
         [
-            # Header with icon
+            # Header with icon - align left instead of center
             html.Div(
                 [
                     html.I(
@@ -779,7 +779,7 @@ def _create_velocity_metric_section(
                     ),
                     html.Span("Items" if is_items else "Points", className="fw-medium"),
                 ],
-                className="d-flex align-items-center justify-content-center mb-3",
+                className="d-flex align-items-center mb-3",  # Removed justify-content-center
             ),
             # Velocity metrics - using flex layout with improved gap spacing for better responsiveness
             html.Div(
