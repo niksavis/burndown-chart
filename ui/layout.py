@@ -30,7 +30,7 @@ from ui.cards import (
 )
 from ui.grid_utils import (
     create_full_width_layout,
-    create_two_cards_layout,
+    create_two_column_layout,
 )
 from ui.tabs import create_tabs
 
@@ -194,15 +194,15 @@ def create_app_layout(settings, statistics, is_sample_data):
                 row_class="mb-4",
             ),
             # Project Dashboard and Input Parameters Cards - using two cards layout
-            create_two_cards_layout(
-                # Left card - Input Parameters
-                create_input_parameters_card(
+            # Changed to use create_two_column_layout with xl breakpoint instead of the default md
+            # This will make the cards stack on screens smaller than xl (1200px) instead of md (768px)
+            create_two_column_layout(
+                left_content=create_input_parameters_card(
                     settings,
                     avg_points_per_item,
                     estimated_total_points,
                 ),
-                # Right card - Project Dashboard
-                create_project_summary_card(
+                right_content=create_project_summary_card(
                     statistics_df,
                     settings,
                     pert_data={
@@ -210,9 +210,10 @@ def create_app_layout(settings, statistics, is_sample_data):
                         "pert_time_points": 35,  # Provide default value instead of None
                     },
                 ),
-                card1_width=4,  # Left card width (changed from 6 to 4 - 1/3 of the space)
-                card2_width=8,  # Right card width (changed from 6 to 8 - 2/3 of the space)
-                equal_height=True,  # Make cards the same height
+                left_width=4,  # Left card width (4/12 or 33%)
+                right_width=8,  # Right card width (8/12 or 67%)
+                breakpoint="xl",  # Changed from default "md" to "xl" to stack earlier
+                className="mb-4",  # Added margin bottom for consistency
             ),
             # Statistics Data Table - using full width layout
             create_full_width_layout(

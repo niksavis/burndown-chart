@@ -517,6 +517,7 @@ def create_forecast_plot(
     total_points,
     pert_factor,
     deadline_str,
+    milestone_str=None,
     data_points_count=None,
     show_forecast=True,
     forecast_visibility="legendonly",
@@ -531,6 +532,7 @@ def create_forecast_plot(
         total_points: Total number of points to complete
         pert_factor: PERT factor for calculations
         deadline_str: Deadline date as string (YYYY-MM-DD)
+        milestone_str: Milestone date as string (YYYY-MM-DD), optional
         data_points_count: Number of most recent data points to use (defaults to all)
         show_forecast: Whether to show forecast traces
         forecast_visibility: Visibility mode for forecast traces ("legendonly", True, False)
@@ -579,6 +581,23 @@ def create_forecast_plot(
                 f"Invalid deadline format: {deadline_str}. Using default."
             )
 
+        # Parse milestone date if provided
+        milestone = None
+        if milestone_str:
+            try:
+                milestone = pd.to_datetime(milestone_str)
+                # Only reject milestones that are AFTER the deadline, not equal to it
+                if milestone > deadline:
+                    logging.getLogger("burndown_chart").warning(
+                        f"Milestone date {milestone_str} is after deadline {deadline_str}. Ignoring milestone."
+                    )
+                    milestone = None
+            except (ValueError, TypeError):
+                logging.getLogger("burndown_chart").warning(
+                    f"Invalid milestone format: {milestone_str}. Ignoring milestone."
+                )
+                milestone = None
+
         # NOTE: For the burndown chart, we DO NOT add an artificial zero point before the first data point
         # This ensures consistency with the burnup chart which also starts with the actual first data point
         # The burnup chart's first point has the actual completed items/points from the first date
@@ -611,7 +630,7 @@ def create_forecast_plot(
                 fig.add_trace(trace["data"], secondary_y=trace["secondary_y"])
 
         # Add deadline marker and configure axes
-        fig = add_deadline_marker(fig, deadline)
+        fig = add_deadline_marker(fig, deadline, milestone)
         fig = configure_axes(fig, forecast_data)
 
         # Apply layout settings with the specified hover_mode
@@ -1944,16 +1963,17 @@ def create_capacity_chart(capacity_data, forecast_data, settings):
     return fig
 
 
-def add_deadline_marker(fig, deadline):
+def add_deadline_marker(fig, deadline, milestone=None):
     """
-    Add a vertical line marking the deadline on the plot.
+    Add vertical lines marking the deadline and optional milestone on the plot.
 
     Args:
         fig: Plotly figure object
         deadline: Deadline date (pandas datetime or datetime object)
+        milestone: Optional milestone date (pandas datetime or datetime object)
 
     Returns:
-        Updated figure with deadline marker
+        Updated figure with deadline and milestone markers
     """
     # Convert pandas Timestamp to a format compatible with Plotly
     if isinstance(deadline, pd.Timestamp):
@@ -2016,7 +2036,7 @@ def add_deadline_marker(fig, deadline):
                 y0=0,
                 y1=1,
                 yref="paper",
-                fillcolor="rgba(255, 0, 0, 0.1)",
+                fillcolor="rgba(255, 0, 0, 0.15)",
                 line=dict(width=0),
                 layer="below",
             )
@@ -2040,6 +2060,44 @@ def add_deadline_marker(fig, deadline):
             fillcolor="rgba(255, 0, 0, 0.15)",
             line=dict(width=0),
             layer="below",
+        )
+
+    # Add milestone marker if provided
+    if milestone is not None:
+        # Convert pandas Timestamp to a format compatible with Plotly
+        if isinstance(milestone, pd.Timestamp):
+            milestone_datetime = milestone.to_pydatetime()
+        else:
+            milestone_datetime = milestone
+
+        # Use a color from the color palette that fits well with the other colors
+        milestone_color = COLOR_PALETTE.get(
+            "optimistic", "#5E35B1"
+        )  # Default to purple if not in palette
+
+        # Create a vertical line for milestone
+        fig.add_shape(
+            type="line",
+            x0=milestone_datetime,
+            x1=milestone_datetime,
+            y0=0,
+            y1=1,
+            yref="paper",
+            line=dict(color=milestone_color, width=2, dash="dot"),
+            layer="above",
+        )
+
+        # Add milestone annotation
+        fig.add_annotation(
+            x=milestone_datetime,
+            y=0.97,  # Position below deadline annotation to avoid overlap
+            xref="x",
+            yref="paper",
+            text="Milestone",
+            showarrow=False,
+            font=dict(color=milestone_color, size=14),
+            xanchor="center",
+            yanchor="bottom",
         )
 
     return fig
@@ -2155,6 +2213,7 @@ def create_burnup_chart(
     total_points,
     pert_factor,
     deadline_str,
+    milestone_str=None,
     data_points_count=None,
     show_forecast=True,
     forecast_visibility="legendonly",
@@ -2169,6 +2228,7 @@ def create_burnup_chart(
         total_points: Total number of remaining points to complete (not the original baseline)
         pert_factor: PERT factor for calculations
         deadline_str: Deadline date as string (YYYY-MM-DD)
+        milestone_str: Milestone date as string (YYYY-MM-DD), optional
         data_points_count: Number of most recent data points to use (defaults to all)
         show_forecast: Whether to show forecast traces (default: True)
         forecast_visibility: Visibility mode for forecast traces ("legendonly" or True)
@@ -2203,6 +2263,23 @@ def create_burnup_chart(
             logging.getLogger("burndown_chart").warning(
                 f"Invalid deadline format: {deadline_str}. Using default."
             )
+
+        # Parse milestone date if provided
+        milestone = None
+        if milestone_str:
+            try:
+                milestone = pd.to_datetime(milestone_str)
+                # Ensure milestone is not after or equal to deadline
+                if milestone >= deadline:
+                    logging.getLogger("burndown_chart").warning(
+                        f"Milestone date {milestone_str} is not before deadline {deadline_str}. Ignoring milestone."
+                    )
+                    milestone = None
+            except (ValueError, TypeError):
+                logging.getLogger("burndown_chart").warning(
+                    f"Invalid milestone format: {milestone_str}. Ignoring milestone."
+                )
+                milestone = None
 
         # Create subplot with secondary y-axis
         fig = make_subplots(specs=[[{"secondary_y": True}]])
@@ -2596,8 +2673,8 @@ def create_burnup_chart(
         fig.add_trace(completed_points_trace, secondary_y=True)
         fig.add_trace(scope_points_trace, secondary_y=True)
 
-        # Add deadline marker
-        fig = add_deadline_marker(fig, deadline)
+        # Add deadline and milestone marker
+        fig = add_deadline_marker(fig, deadline, milestone)
 
         # Configure axes with consistent grid styling matching burndown chart
         # Configure x-axis

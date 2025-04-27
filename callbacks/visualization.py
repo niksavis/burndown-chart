@@ -160,6 +160,10 @@ def register(app):
             "data_points_count", len(df)
         )  # Get selected data points count
 
+        # Get milestone settings
+        show_milestone = settings.get("show_milestone", False)
+        milestone = settings.get("milestone", None) if show_milestone else None
+
         # Process data for calculations
         if not df.empty:
             df = compute_cumulative_values(df, total_items, total_points)
@@ -171,6 +175,7 @@ def register(app):
             total_points=total_points,
             pert_factor=pert_factor,
             deadline_str=deadline,
+            milestone_str=milestone,  # Pass milestone parameter
             data_points_count=data_points_count,
         )
 
@@ -220,6 +225,10 @@ def register(app):
             "data_points_count", len(df)
         )  # Get selected data points count
 
+        # Get milestone settings
+        show_milestone = settings.get("show_milestone", False)
+        milestone = settings.get("milestone", None) if show_milestone else None
+
         # Process data for calculations
         if not df.empty:
             df = compute_cumulative_values(df, total_items, total_points)
@@ -231,6 +240,7 @@ def register(app):
             total_points=total_points,
             pert_factor=pert_factor,
             deadline_str=deadline,
+            milestone_str=milestone,  # Pass milestone parameter
             data_points_count=data_points_count,
         )
 
@@ -257,6 +267,7 @@ def register(app):
             total_items=total_items,
             total_points=total_points,
             deadline_str=deadline,
+            milestone_str=milestone,  # Pass milestone parameter
             statistics_df=df,
         )
 
@@ -750,6 +761,10 @@ def register(app):
 
             # Generate burndown and burnup charts
             if active_tab == "tab-burndown":
+                # Get milestone settings
+                show_milestone = settings.get("show_milestone", False)
+                milestone = settings.get("milestone", None) if show_milestone else None
+
                 # Generate burndown chart
                 burndown_fig, _ = create_forecast_plot(
                     df=compute_cumulative_values(df, total_items, total_points)
@@ -759,6 +774,7 @@ def register(app):
                     total_points=total_points,
                     pert_factor=pert_factor,
                     deadline_str=deadline,
+                    milestone_str=milestone,  # Pass milestone parameter
                     data_points_count=data_points_count,
                 )
 
@@ -771,6 +787,7 @@ def register(app):
                     total_points=total_points,
                     pert_factor=pert_factor,
                     deadline_str=deadline,
+                    milestone_str=milestone,  # Pass milestone parameter
                     data_points_count=data_points_count,
                 )
 
@@ -1117,6 +1134,10 @@ def register(app):
             pert_factor = settings.get("pert_factor", 3)
             deadline = settings.get("deadline", None)
 
+            # Get milestone settings - THIS WAS MISSING
+            show_milestone = settings.get("show_milestone", False)
+            milestone = settings.get("milestone", None) if show_milestone else None
+
             # Dynamically recalculate data_points_count based on actual statistics length
             # This ensures when rows are deleted, both charts use the updated row count
             stored_data_points = settings.get("data_points_count", len(df))
@@ -1154,6 +1175,7 @@ def register(app):
                     total_points=total_points,
                     pert_factor=pert_factor,
                     deadline_str=deadline,
+                    milestone_str=milestone,  # Pass milestone parameter here
                     data_points_count=data_points_count,
                     show_forecast=show_forecast,
                     forecast_visibility=forecast_visibility,
@@ -1170,6 +1192,7 @@ def register(app):
                     total_points=total_points,
                     pert_factor=pert_factor,
                     deadline_str=deadline,
+                    milestone_str=milestone,  # Pass milestone parameter here
                     data_points_count=data_points_count,
                     show_forecast=show_forecast,  # Pass this parameter
                     forecast_visibility=forecast_visibility,  # Pass this parameter

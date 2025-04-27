@@ -178,6 +178,8 @@ def register(app):
             Input("estimated-items-input", "value"),
             Input("estimated-points-input", "value"),
             Input("data-points-input", "value"),  # Added data_points_count input
+            Input("milestone-toggle", "value"),  # Added milestone toggle input
+            Input("milestone-picker", "date"),  # Added milestone picker input
         ],
         [State("app-init-complete", "data")],
     )
@@ -189,6 +191,8 @@ def register(app):
         estimated_items,
         estimated_points,
         data_points_count,  # Added parameter
+        show_milestone,  # Added parameter
+        milestone,  # Added parameter
         init_complete,
     ):
         """
@@ -235,6 +239,8 @@ def register(app):
             "estimated_items": estimated_items,
             "estimated_points": estimated_points,
             "data_points_count": data_points_count,  # Added to settings
+            "show_milestone": show_milestone,  # Added to settings
+            "milestone": milestone,  # Added to settings
         }
 
         # Save to disk
@@ -246,6 +252,8 @@ def register(app):
             estimated_items,
             estimated_points,
             data_points_count,  # Added parameter
+            show_milestone,  # Added parameter
+            milestone,  # Added parameter
         )
 
         logger.info(f"Settings updated and saved: {settings}")
@@ -403,3 +411,21 @@ def register(app):
         dash.Output("pert-factor-info", "children"),
         [dash.Input("pert-factor-slider", "value")],
     )
+
+    # Add a callback to enable/disable the milestone date picker based on toggle state
+    @app.callback(
+        Output("milestone-picker", "disabled"),
+        Input("milestone-toggle", "value"),
+    )
+    def toggle_milestone_picker(show_milestone):
+        """
+        Enable or disable the milestone date picker based on the toggle state.
+
+        Args:
+            show_milestone: Boolean value from the milestone toggle switch
+
+        Returns:
+            Boolean: True if the picker should be disabled, False if it should be enabled
+        """
+        # When show_milestone is True, we want disabled to be False and vice versa
+        return not show_milestone

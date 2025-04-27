@@ -43,6 +43,8 @@ def save_settings(
     estimated_items=None,
     estimated_points=None,
     data_points_count=None,
+    show_milestone=None,
+    milestone=None,
 ):
     """
     Save user settings to JSON file.
@@ -55,6 +57,8 @@ def save_settings(
         estimated_items: Number of items that have been estimated
         estimated_points: Number of points for the estimated items
         data_points_count: Number of data points to use for calculations
+        show_milestone: Whether to show milestone on charts
+        milestone: Milestone date string
     """
     settings = {
         "pert_factor": pert_factor,
@@ -70,6 +74,8 @@ def save_settings(
         "data_points_count": data_points_count
         if data_points_count is not None
         else max(DEFAULT_DATA_POINTS_COUNT, pert_factor * 2),
+        "show_milestone": show_milestone if show_milestone is not None else False,
+        "milestone": milestone,
     }
 
     try:
@@ -103,6 +109,8 @@ def load_settings():
         "estimated_items": DEFAULT_ESTIMATED_ITEMS,
         "estimated_points": DEFAULT_ESTIMATED_POINTS,
         "data_points_count": DEFAULT_DATA_POINTS_COUNT,
+        "show_milestone": False,
+        "milestone": None,
     }
 
     try:
@@ -122,6 +130,10 @@ def load_settings():
                 settings["data_points_count"] = max(
                     DEFAULT_DATA_POINTS_COUNT, pert_factor * 2
                 )
+            if "show_milestone" not in settings:
+                settings["show_milestone"] = False
+            if "milestone" not in settings:
+                settings["milestone"] = None
 
             return settings
         else:

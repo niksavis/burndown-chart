@@ -920,6 +920,7 @@ def create_pert_info_table(
     total_points=0,  # New parameter for total points
     deadline_str=None,  # Add parameter for direct deadline string
     statistics_df=None,  # New parameter for statistics data
+    milestone_str=None,  # Add parameter for milestone date string
 ):
     """
     Create the PERT information table with improved organization and visual grouping.

@@ -147,7 +147,7 @@ def create_forecast_info_card():
                                                 "/",
                                                 html.Span(
                                                     "Gold",
-                                                    style={
+                                                    style={  # Fixed double curly braces to single
                                                         "color": "rgb(184, 134, 11)",
                                                         "fontWeight": "bold",
                                                     },
@@ -349,10 +349,10 @@ def create_input_parameters_card(
                     ],
                     className="mb-3 border-bottom pb-2 d-flex align-items-center",
                 ),
-                # First row: Deadline and PERT Factor (swapped and no padding)
+                # First row: Deadline and Milestone (side by side)
                 dbc.Row(
                     [
-                        # Deadline - now first
+                        # Deadline
                         dbc.Col(
                             [
                                 html.Label(
@@ -371,7 +371,6 @@ def create_input_parameters_card(
                                     display_format="YYYY-MM-DD",
                                     first_day_of_week=1,
                                     show_outside_days=True,
-                                    # Use a responsive portal approach - will only be used on small screens
                                     with_portal=False,
                                     with_full_screen_portal=False,
                                     placeholder="Select deadline date",
@@ -389,11 +388,91 @@ def create_input_parameters_card(
                                 ),
                             ],
                             width=12,
-                            sm=12,  # Full width on mobile/small screens
-                            md=4,  # 1/3 width on medium and up
-                            className="mb-4 mb-md-0",  # Add bottom margin on mobile only
+                            md=6,
+                            className="mb-3 mb-md-0",
                         ),
-                        # PERT Factor - directly adjacent to Deadline
+                        # Milestone toggle and date picker in one column
+                        dbc.Col(
+                            [
+                                # Label for the entire milestone section
+                                html.Label(
+                                    [
+                                        "Milestone:",
+                                        create_info_tooltip(
+                                            "milestone-date",
+                                            "Set a milestone marker on the charts (must be before deadline).",
+                                        ),
+                                    ],
+                                    className="fw-medium",
+                                ),
+                                # Flex container for toggle and date picker
+                                html.Div(
+                                    [
+                                        # Toggle switch in its own div
+                                        html.Div(
+                                            [
+                                                dbc.Switch(
+                                                    id="milestone-toggle",
+                                                    value=current_settings.get(
+                                                        "show_milestone", False
+                                                    ),
+                                                    label="Enable",
+                                                    className="mt-1",
+                                                ),
+                                            ],
+                                            className="me-3",  # Space between toggle and date picker
+                                            style={
+                                                "minWidth": "80px"
+                                            },  # Fixed width for the toggle
+                                        ),
+                                        # Date picker with flex-grow to fill remaining space
+                                        html.Div(
+                                            [
+                                                dcc.DatePickerSingle(
+                                                    id="milestone-picker",
+                                                    date=current_settings.get(
+                                                        "milestone", None
+                                                    ),
+                                                    display_format="YYYY-MM-DD",
+                                                    first_day_of_week=1,
+                                                    show_outside_days=True,
+                                                    with_portal=False,
+                                                    with_full_screen_portal=False,
+                                                    placeholder="Select milestone date",
+                                                    persistence=True,
+                                                    min_date_allowed=datetime.now().strftime(
+                                                        "%Y-%m-%d"
+                                                    ),
+                                                    style=create_datepicker_style(
+                                                        size="md"
+                                                    ),
+                                                    className="w-100",
+                                                    disabled=not current_settings.get(
+                                                        "show_milestone", False
+                                                    ),
+                                                ),
+                                            ],
+                                            style={"flex": "1"},  # Take remaining space
+                                        ),
+                                    ],
+                                    className="d-flex align-items-center",  # Flex layout
+                                    style={"width": "100%"},  # Full width
+                                ),
+                                html.Div(
+                                    id="milestone-feedback",
+                                    className="d-none",
+                                    style=create_form_feedback_style("invalid"),
+                                ),
+                            ],
+                            width=12,
+                            md=6,
+                        ),
+                    ],
+                    className="mb-3",
+                ),
+                # Second row: PERT Factor (full width)
+                dbc.Row(
+                    [
                         dbc.Col(
                             [
                                 html.Label(
@@ -417,16 +496,14 @@ def create_input_parameters_card(
                                         "placement": "bottom",
                                         "always_visible": False,
                                     },
-                                    className="my-3",  # Added margin top and bottom
+                                    className="my-3",
                                 ),
                                 html.Small(
                                     id="pert-factor-info",
                                     children="PERT Factor determines forecast confidence range",
                                     className="text-muted mt-1 d-block text-center",
-                                    style={
-                                        "cursor": "pointer"
-                                    },  # Make it look clickable
-                                    title="Click to see PERT Factor details",  # Add hover title
+                                    style={"cursor": "pointer"},
+                                    title="Click to see PERT Factor details",
                                 ),
                                 html.Div(
                                     id="pert-factor-feedback",
@@ -434,17 +511,15 @@ def create_input_parameters_card(
                                     style=create_form_feedback_style("invalid"),
                                 ),
                             ],
-                            width=12,  # Full width on extra small screens
-                            sm=12,  # Full width on small screens
-                            md=8,  # 2/3 width on medium and up
+                            width=12,
                         ),
                     ],
-                    className="mb-3",  # Keep margin below this row
+                    className="mb-3",
                 ),
-                # Second row: Data Points to Include (full width)
+                # Third row: Data Points to Include (full width)
                 dbc.Row(
                     [
-                        # Data Points - now full width
+                        # Data Points - full width
                         dbc.Col(
                             [
                                 html.Label(
@@ -477,20 +552,18 @@ def create_input_parameters_card(
                                     id="data-points-info",
                                     children="Using all available data points",
                                     className="text-muted mt-1 d-block text-center",
-                                    style={
-                                        "cursor": "pointer"
-                                    },  # Make it look clickable
-                                    title="Click to see data points selection details",  # Add hover title
+                                    style={"cursor": "pointer"},
+                                    title="Click to see data points selection details",
                                 ),
                             ],
-                            width=12,  # Full width in all screen sizes
+                            width=12,
                         ),
                     ],
                 ),
             ],
             className="mb-4 p-3 bg-light rounded-3",
         ),
-        # Project Scope Section - unchanged
+        # Project Scope Section - Updated breakpoints
         html.Div(
             [
                 html.H5(
@@ -536,7 +609,10 @@ def create_input_parameters_card(
                                 ),
                             ],
                             width=12,
-                            md=6,
+                            # Changed from md=6 to lg=6 to stack on medium screens
+                            lg=6,
+                            # Add bottom margin when stacked
+                            className="mb-3 mb-lg-0",
                         ),
                         # Total Items
                         dbc.Col(
@@ -568,7 +644,8 @@ def create_input_parameters_card(
                                 ),
                             ],
                             width=12,
-                            md=6,
+                            # Changed from md=6 to lg=6 to stack on medium screens
+                            lg=6,
                         ),
                     ],
                     className="mb-3",
@@ -606,7 +683,10 @@ def create_input_parameters_card(
                                 ),
                             ],
                             width=12,
-                            md=6,
+                            # Changed from md=6 to lg=6 to stack on medium screens
+                            lg=6,
+                            # Add bottom margin when stacked
+                            className="mb-3 mb-lg-0",
                         ),
                         # Total Points (Calculated)
                         dbc.Col(
@@ -658,7 +738,8 @@ def create_input_parameters_card(
                                 ),
                             ],
                             width=12,
-                            md=6,
+                            # Changed from md=6 to lg=6 to stack on medium screens
+                            lg=6,
                         ),
                     ],
                 ),
