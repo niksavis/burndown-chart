@@ -484,7 +484,7 @@ def create_input_parameters_card(
                                         "placement": "bottom",
                                         "always_visible": False,
                                     },
-                                    className="my-3",
+                                    className="mb-1 mt-3",
                                 ),
                                 html.Small(
                                     id="pert-factor-info",
