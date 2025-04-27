@@ -1512,7 +1512,7 @@ input[type="range"]::-moz-range-thumb {
 }
 
 /* ===== Date Picker Alignment ===== */
-/* Ensures consistent alignment of date pickers in the project timeline section */
+/* Ensures consistent alignment of date pickers in the project timeline section with pixel-perfect precision */
 
 /* Standardize the SingleDatePicker appearance and alignment */
 .SingleDatePicker {
@@ -1536,17 +1536,47 @@ input[type="range"]::-moz-range-thumb {
   border: 1px solid #ced4da !important;
   border-radius: 0.25rem !important;
   width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Exact pixel dimensions for both pickers */
+#deadline-picker,
+#milestone-picker {
+  height: 50px !important; /* Force both to be exactly 50px tall */
+  padding: 0 !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+  display: flex !important;
+  align-items: center !important;
 }
 
 /* Fix for milestone date picker alignment with deadline picker */
-#milestone-picker .DateInput_input {
-  margin-top: 1px; /* Fine-tune alignment with deadline picker */
+#milestone-picker {
+  margin-top: 0 !important; /* Reset any margins */
+  position: relative !important;
+  top: -0.5px !important; /* Slight upward shift to perfectly align */
 }
 
-/* Style consistency between the two date pickers */
-#deadline-picker,
-#milestone-picker {
-  height: auto !important;
+/* Ensure font and line heights match */
+#deadline-picker .DateInput_input,
+#milestone-picker .DateInput_input {
+  font-size: 1rem !important;
+  line-height: 1.5 !important;
+  padding-top: 0.375rem !important;
+  padding-bottom: 0.375rem !important;
+}
+
+/* Ensure consistent borders */
+#deadline-picker .SingleDatePickerInput,
+#milestone-picker .SingleDatePickerInput {
+  border: none !important;
+  width: 100% !important;
+}
+
+/* Ensure consistent inner DateInput component */
+#deadline-picker .DateInput,
+#milestone-picker .DateInput {
+  width: 100% !important;
 }
 
 /* Responsive Toggle Switch ===== */
