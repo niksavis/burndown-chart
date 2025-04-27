@@ -7,6 +7,11 @@ import sys
 from pathlib import Path
 
 
+def normalize_package_name(name):
+    """Normalize package names by converting to lowercase and replacing hyphens with underscores"""
+    return name.lower().replace("-", "_").replace("_", "_")
+
+
 def get_installed_packages():
     """Get a list of all installed packages in the current environment"""
     result = subprocess.run(
@@ -16,8 +21,8 @@ def get_installed_packages():
         check=True,
     )
     packages = result.stdout.strip().split("\n")
-    # Parse package names (ignore version numbers)
-    return [p.split("==")[0].lower() for p in packages if p]
+    # Parse package names (ignore version numbers) and normalize
+    return [normalize_package_name(p.split("==")[0]) for p in packages if p]
 
 
 def get_required_packages(requirements_file=None):
@@ -31,9 +36,9 @@ def get_required_packages(requirements_file=None):
     try:
         with open(requirements_file, "r") as f:
             packages = f.readlines()
-        # Parse package names (ignore version numbers)
+        # Parse package names (ignore version numbers) and normalize
         return [
-            p.strip().split("==")[0].lower()
+            normalize_package_name(p.strip().split("==")[0])
             for p in packages
             if p.strip() and not p.startswith("#")
         ]
@@ -52,6 +57,9 @@ def main():
         for pkg in installed
         if pkg not in required and pkg != "pip" and pkg != "setuptools"
     ]
+
+    # Also exclude wheel and other commonly pre-installed packages
+    to_remove = [pkg for pkg in to_remove if pkg not in ("wheel", "distlib")]
 
     if not to_remove:
         print("No packages to remove. All installed packages are in requirements.txt")
