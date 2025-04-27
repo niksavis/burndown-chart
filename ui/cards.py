@@ -388,7 +388,8 @@ def create_input_parameters_card(
                             ],
                             width=12,
                             md=6,
-                            className="mb-3 mb-md-0",
+                            # Removed the mb-3 mb-md-0 classes to fix the spacing issue
+                            className="",
                         ),
                         # Milestone toggle and date picker in one column
                         dbc.Col(
