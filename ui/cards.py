@@ -418,10 +418,8 @@ def create_input_parameters_card(
                                                 "show_milestone", False
                                             ),
                                             label="",  # Removed "Enable" text
-                                            className="ms-2",
-                                            style={
-                                                "transform": "translateY(1px)"
-                                            },  # Fine-tune vertical alignment
+                                            className="ms-2 responsive-toggle",
+                                            style={},  # Remove inline transform
                                         ),
                                     ],
                                     className="d-flex align-items-center",  # Removed mb-2 to reduce bottom spacing
