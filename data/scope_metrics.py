@@ -145,6 +145,11 @@ def calculate_scope_stability_index(df, baseline_items, baseline_points):
     Scope Stability Index = 1 - (Number of Requirement Changes / Total Requirements)
 
     Higher value means more stability (less scope changes relative to total scope).
+
+    Note: The total scope is calculated as:
+    Total Scope = Remaining items + Created items
+
+    This avoids double counting completed items that may overlap with created items.
     """
     if df.empty or baseline_items == 0 or baseline_points == 0:
         return {"items_stability": 1.0, "points_stability": 1.0}
@@ -153,7 +158,9 @@ def calculate_scope_stability_index(df, baseline_items, baseline_points):
     total_created_items = df["created_items"].sum()
     total_created_points = df["created_points"].sum()
 
-    # Calculate current total scope (baseline + created - completed)
+    # Calculate current total scope correctly:
+    # Total scope = Remaining items + Created items
+    # No need to subtract completed items from baseline
     total_items = baseline_items + total_created_items
     total_points = baseline_points + total_created_points
 
