@@ -2341,26 +2341,20 @@ def create_burnup_chart(
         df["cum_completed_items"] = df["completed_items"].cumsum()
         df["cum_completed_points"] = df["completed_points"].cumsum()
 
-        # Calculate baseline - consider that total_items is the REMAINING items, not the original baseline
-        # So baseline = remaining items + completed items
-        if not df.empty:
-            total_completed_items = df["cum_completed_items"].iloc[-1]
-            total_completed_points = df["cum_completed_points"].iloc[-1]
-        else:
-            total_completed_items = 0
-            total_completed_points = 0
-
-        # Baseline is the remaining items (from parameters) plus the completed items (from statistics)
-        baseline_items = total_items + total_completed_items
-        baseline_points = total_points + total_completed_points
-
-        # Calculate scope changes over time
+        # Calculate cumulative created items/points
         df["cum_created_items"] = df["created_items"].cumsum()
         df["cum_created_points"] = df["created_points"].cumsum()
 
-        # Total scope at each point = baseline + cumulative created items/points
-        df["cum_scope_items"] = baseline_items + df["cum_created_items"]
-        df["cum_scope_points"] = baseline_points + df["cum_created_points"]
+        # Get current completed and created totals
+        current_completed_items = df["cum_completed_items"].iloc[-1]
+        current_completed_points = df["cum_completed_points"].iloc[-1]
+        current_created_items = df["cum_created_items"].iloc[-1]
+        current_created_points = df["cum_created_points"].iloc[-1]
+
+        # No baseline scope calculation needed - directly use the cumulative created values
+        # as the scope traces
+        df["cum_scope_items"] = df["cum_created_items"]
+        df["cum_scope_points"] = df["cum_created_points"]
 
         # Create a copy of the dataframe with column names expected by prepare_forecast_data
         df_forecast = df.copy()
@@ -2368,12 +2362,8 @@ def create_burnup_chart(
         df_forecast["cum_points"] = df_forecast["cum_completed_points"]
 
         # Get final scope values for forecasting target
-        final_scope_items = (
-            df["cum_scope_items"].iloc[-1] if not df.empty else baseline_items
-        )
-        final_scope_points = (
-            df["cum_scope_points"].iloc[-1] if not df.empty else baseline_points
-        )
+        final_scope_items = df["cum_scope_items"].iloc[-1]
+        final_scope_points = df["cum_scope_points"].iloc[-1]
 
         # Calculate forecast data using the prepare_visualization_data function with burnup=True
         forecast_data = prepare_visualization_data(
@@ -2387,6 +2377,7 @@ def create_burnup_chart(
             scope_points=final_scope_points,
         )
 
+        # Rest of function remains the same...
         # Get forecast information
         items_forecasts = forecast_data["items_forecasts"]
         points_forecasts = forecast_data["points_forecasts"]
@@ -2443,7 +2434,7 @@ def create_burnup_chart(
             x=df["date"],
             y=df["cum_scope_items"],
             mode="lines",
-            name="Total Items Scope",
+            name="Created Items",
             line=dict(
                 color="#0047AB", width=3, dash="dot"
             ),  # Darker blue and thicker line
@@ -2454,12 +2445,12 @@ def create_burnup_chart(
                 line=dict(width=2, color="white"),
             ),
             hovertemplate=format_hover_template(
-                title="Total Items Scope",
+                title="Created Items",
                 fields={
                     "Date": "%{x|%Y-%m-%d}",
                     "Items": "%{y}",
                 },
-                extra_info="Items Scope",
+                extra_info="Created Items",
             ),
             hoverlabel=create_hoverlabel_config("default"),
         )
@@ -2468,7 +2459,7 @@ def create_burnup_chart(
             x=df["date"],
             y=df["cum_scope_points"],
             mode="lines",
-            name="Total Points Scope",
+            name="Created Points",
             line=dict(
                 color="#B22222", width=3, dash="dot"
             ),  # Firebrick red and thicker line
@@ -2479,12 +2470,12 @@ def create_burnup_chart(
                 line=dict(width=2, color="white"),
             ),
             hovertemplate=format_hover_template(
-                title="Total Points Scope",
+                title="Created Points",
                 fields={
                     "Date": "%{x|%Y-%m-%d}",
                     "Points": "%{y}",
                 },
-                extra_info="Points Scope",
+                extra_info="Created Points",
             ),
             hoverlabel=create_hoverlabel_config("default"),
         )
@@ -2721,20 +2712,6 @@ def create_burnup_chart(
             plot_bgcolor="white",  # Match burndown chart background
         )
 
-        # Highlight periods of significant scope increase
-        scope_growth_periods = identify_significant_scope_growth(df)
-        for period in scope_growth_periods:
-            fig.add_vrect(
-                x0=period["start_date"],
-                x1=period["end_date"],
-                fillcolor="rgba(255, 0, 0, 0.1)",
-                opacity=0.5,
-                layer="below",
-                line_width=0,
-                annotation_text="Significant scope increase",
-                annotation_position="top right",
-            )
-
         # Calculate PERT time estimates for the metrics
         current_date = datetime.now()
         days_to_deadline = max(0, (deadline - pd.Timestamp(current_date)).days)
@@ -2795,14 +2772,14 @@ def create_burnup_chart(
 
         # Return more comprehensive data for dashboard metrics
         return fig, {
-            "baseline_items": baseline_items,
-            "baseline_points": baseline_points,
+            "baseline_items": 0,  # No baseline scope calculation needed
+            "baseline_points": 0,  # No baseline scope calculation needed
             "current_scope_items": df["cum_scope_items"].iloc[-1]
             if not df.empty
-            else baseline_items,
+            else 0,
             "current_scope_points": df["cum_scope_points"].iloc[-1]
             if not df.empty
-            else baseline_points,
+            else 0,
             "completed_items": df["cum_completed_items"].iloc[-1]
             if not df.empty
             else 0,
