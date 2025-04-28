@@ -2346,10 +2346,10 @@ def create_burnup_chart(
         df["cum_created_points"] = df["created_points"].cumsum()
 
         # Get current completed and created totals
-        current_completed_items = df["cum_completed_items"].iloc[-1]
-        current_completed_points = df["cum_completed_points"].iloc[-1]
-        current_created_items = df["cum_created_items"].iloc[-1]
-        current_created_points = df["cum_created_points"].iloc[-1]
+        df["cum_completed_items"].iloc[-1]
+        df["cum_completed_points"].iloc[-1]
+        df["cum_created_items"].iloc[-1]
+        df["cum_created_points"].iloc[-1]
 
         # No baseline scope calculation needed - directly use the cumulative created values
         # as the scope traces
