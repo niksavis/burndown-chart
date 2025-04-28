@@ -146,7 +146,7 @@ def create_scope_creep_indicator(title, value, threshold=15, tooltip=None):
 
 
 def create_scope_growth_chart(weekly_growth_data):
-    """Create a bar chart showing weekly scope growth with separate y-axes for items and points."""
+    """Create a bar chart showing weekly scope growth with side-by-side bars and separate y-axes for items and points."""
     if weekly_growth_data.empty:
         return dcc.Graph(
             figure={
@@ -161,13 +161,15 @@ def create_scope_growth_chart(weekly_growth_data):
             config={"displayModeBar": False, "responsive": True},
         )
 
-    # Create traces with separate y-axes
+    # Create trace for items - side by side bars with primary y-axis
     items_trace = go.Bar(
         x=weekly_growth_data["week_label"],
         y=weekly_growth_data["items_growth"],
         name="Items Growth",
         marker_color="rgba(0, 123, 255, 0.7)",  # Blue for items
-        yaxis="y",
+        width=0.4,  # Make bars narrower to fit side by side
+        offset=-0.25,  # Shift to the left for side by side
+        yaxis="y",  # Use primary y-axis
         # Add hover text to clarify meaning of values
         hovertemplate=(
             "<b>Items</b><br>"
@@ -183,6 +185,8 @@ def create_scope_growth_chart(weekly_growth_data):
         y=weekly_growth_data["points_growth"],
         name="Points Growth",
         marker_color="rgba(253, 126, 20, 0.7)",  # Orange for points
+        width=0.4,  # Make bars narrower to fit side by side
+        offset=0.25,  # Shift to the right for side by side
         yaxis="y2",  # Use secondary y-axis
         # Add hover text to clarify meaning of values
         hovertemplate=(
@@ -194,7 +198,7 @@ def create_scope_growth_chart(weekly_growth_data):
         ),
     )
 
-    # Create layout with improved styling and dual y-axes
+    # Create layout with dual y-axes but still using side-by-side bars
     layout = go.Layout(
         title="Weekly Scope Growth (+ Increase, - Reduction)",
         xaxis={
@@ -228,10 +232,10 @@ def create_scope_growth_chart(weekly_growth_data):
         height=300,
         margin={
             "l": 60,
-            "r": 60,
+            "r": 60,  # Increased right margin back for the second y-axis
             "t": 70,
             "b": 60,
-        },  # Increased right margin for second y-axis
+        },
         legend={
             "orientation": "h",
             "y": 1.25,
@@ -240,6 +244,7 @@ def create_scope_growth_chart(weekly_growth_data):
         },
         hovermode="x unified",
         plot_bgcolor="rgba(255, 255, 255, 0.9)",
+        barmode="group",  # Keep the bars grouped side by side
     )
 
     # Create figure
