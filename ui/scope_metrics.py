@@ -770,7 +770,7 @@ def create_scope_metrics_dashboard(
                             html.Div(
                                 [
                                     create_forecast_pill(
-                                        "Current",
+                                        "Created",
                                         f"{int(total_created_items)} items",
                                         "#20c997",
                                     ),
@@ -813,7 +813,7 @@ def create_scope_metrics_dashboard(
                             html.Div(
                                 [
                                     create_forecast_pill(
-                                        "Current",
+                                        "Created",
                                         f"{int(total_created_points)} points",
                                         "#fd7e14",
                                     ),
