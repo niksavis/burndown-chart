@@ -146,7 +146,7 @@ def create_scope_creep_indicator(title, value, threshold=15, tooltip=None):
 
 
 def create_scope_growth_chart(weekly_growth_data):
-    """Create a bar chart showing weekly scope growth."""
+    """Create a bar chart showing weekly scope growth with separate y-axes for items and points."""
     if weekly_growth_data.empty:
         return dcc.Graph(
             figure={
@@ -161,12 +161,13 @@ def create_scope_growth_chart(weekly_growth_data):
             config={"displayModeBar": False, "responsive": True},
         )
 
-    # Create traces with improved colors matching the trend visuals
+    # Create traces with separate y-axes
     items_trace = go.Bar(
         x=weekly_growth_data["week_label"],
         y=weekly_growth_data["items_growth"],
         name="Items Growth",
-        marker_color="rgba(0, 123, 255, 0.7)",  # Changed from green to blue
+        marker_color="rgba(0, 123, 255, 0.7)",  # Blue for items
+        yaxis="y",
         # Add hover text to clarify meaning of values
         hovertemplate=(
             "<b>Items</b><br>"
@@ -181,7 +182,8 @@ def create_scope_growth_chart(weekly_growth_data):
         x=weekly_growth_data["week_label"],
         y=weekly_growth_data["points_growth"],
         name="Points Growth",
-        marker_color="rgba(253, 126, 20, 0.7)",  # Keep orange color for points
+        marker_color="rgba(253, 126, 20, 0.7)",  # Orange for points
+        yaxis="y2",  # Use secondary y-axis
         # Add hover text to clarify meaning of values
         hovertemplate=(
             "<b>Points</b><br>"
@@ -192,28 +194,50 @@ def create_scope_growth_chart(weekly_growth_data):
         ),
     )
 
-    # Create layout with improved styling
+    # Create layout with improved styling and dual y-axes
     layout = go.Layout(
-        title="Weekly Scope Growth (+ Increase, - Reduction)",  # Updated title to clarify meaning
+        title="Weekly Scope Growth (+ Increase, - Reduction)",
         xaxis={
             "title": "Week",
             "tickangle": -45,
             "gridcolor": "rgba(200, 200, 200, 0.2)",
         },
         yaxis={
-            "title": "Growth (Created - Completed)",
-            "gridcolor": "rgba(200, 200, 200, 0.2)",
+            "title": {
+                "text": "Items Growth",
+                "font": {"color": "rgba(0, 123, 255, 1)"},
+            },
+            "tickfont": {"color": "rgba(0, 123, 255, 1)"},
+            "gridcolor": "rgba(0, 123, 255, 0.1)",
             "zeroline": True,
-            "zerolinecolor": "rgba(0, 0, 0, 0.2)",
+            "zerolinecolor": "rgba(0, 123, 255, 0.2)",
+            "side": "left",
+        },
+        yaxis2={
+            "title": {
+                "text": "Points Growth",
+                "font": {"color": "rgba(253, 126, 20, 1)"},
+            },
+            "tickfont": {"color": "rgba(253, 126, 20, 1)"},
+            "gridcolor": "rgba(253, 126, 20, 0.1)",
+            "zeroline": True,
+            "zerolinecolor": "rgba(253, 126, 20, 0.2)",
+            "overlaying": "y",
+            "side": "right",
         },
         height=300,
-        margin={"l": 60, "r": 20, "t": 70, "b": 60},  # Increased top margin for legend
+        margin={
+            "l": 60,
+            "r": 60,
+            "t": 70,
+            "b": 60,
+        },  # Increased right margin for second y-axis
         legend={
             "orientation": "h",
             "y": 1.25,
             "xanchor": "center",
-            "x": 0.95,
-        },  # Moved legend to top
+            "x": 0.5,
+        },
         hovermode="x unified",
         plot_bgcolor="rgba(255, 255, 255, 0.9)",
     )
@@ -221,7 +245,7 @@ def create_scope_growth_chart(weekly_growth_data):
     # Create figure
     figure = go.Figure(data=[items_trace, points_trace], layout=layout)
 
-    # Add a reference line at y=0
+    # Add a reference line at y=0 for both axes
     figure.add_shape(
         type="line",
         x0=0,
@@ -229,10 +253,21 @@ def create_scope_growth_chart(weekly_growth_data):
         xref="paper",
         y0=0,
         y1=0,
-        line=dict(color="black", width=1, dash="dot"),
+        yref="y",
+        line=dict(color="rgba(0, 123, 255, 0.5)", width=1, dash="dot"),
     )
 
-    # Return the graph component - note that we removed the explanatory annotation
+    figure.add_shape(
+        type="line",
+        x0=0,
+        x1=1,
+        xref="paper",
+        y0=0,
+        y1=0,
+        yref="y2",
+        line=dict(color="rgba(253, 126, 20, 0.5)", width=1, dash="dot"),
+    )
+
     return dcc.Graph(
         figure=figure,
         config={"displayModeBar": False, "responsive": True},
@@ -388,6 +423,148 @@ def create_scope_creep_alert(alert_data):
         color="warning",
         className="mt-3",
         is_open=True,
+    )
+
+
+def create_cumulative_scope_chart(weekly_growth_data, baseline_items, baseline_points):
+    """
+    Create a line chart showing cumulative scope growth over time with separate y-axes for items and points.
+
+    Args:
+        weekly_growth_data (DataFrame): DataFrame with weekly growth data
+        baseline_items (int): Initial baseline for items
+        baseline_points (int): Initial baseline for points
+
+    Returns:
+        dcc.Graph: A graph component with cumulative scope growth
+    """
+    if weekly_growth_data.empty:
+        return dcc.Graph(
+            figure={
+                "data": [],
+                "layout": go.Layout(
+                    title="Cumulative Scope Growth",
+                    xaxis={"title": "Week"},
+                    yaxis={"title": "Items"},
+                    height=350,
+                ),
+            },
+            config={"displayModeBar": False, "responsive": True},
+        )
+
+    # Sort data by week to ensure proper accumulation
+    weekly_data = weekly_growth_data.sort_values("start_date")
+
+    # Create cumulative series for items and points
+    weekly_data["cum_items_growth"] = weekly_data["items_growth"].cumsum()
+    weekly_data["cum_points_growth"] = weekly_data["points_growth"].cumsum()
+
+    # Calculate total scope at each point (baseline + cumulative growth)
+    weekly_data["total_items_scope"] = baseline_items + weekly_data["cum_items_growth"]
+    weekly_data["total_points_scope"] = (
+        baseline_points + weekly_data["cum_points_growth"]
+    )
+
+    # Create traces for items (yaxis1)
+    items_baseline_trace = go.Scatter(
+        x=weekly_data["week_label"],
+        y=[baseline_items] * len(weekly_data),
+        mode="lines",
+        name="Items Baseline",
+        line=dict(color="rgba(0, 123, 255, 0.5)", width=2, dash="dash"),
+        hovertemplate="<b>Items Baseline</b><br>Week: %{x}<br>Value: %{y}<extra></extra>",
+        yaxis="y",
+    )
+
+    items_scope_trace = go.Scatter(
+        x=weekly_data["week_label"],
+        y=weekly_data["total_items_scope"],
+        mode="lines+markers",
+        name="Items Total Scope",
+        line=dict(color="rgba(0, 123, 255, 1)", width=3),
+        marker=dict(size=7),
+        hovertemplate="<b>Items Total Scope</b><br>Week: %{x}<br>Value: %{y}<extra></extra>",
+        yaxis="y",
+    )
+
+    # Create traces for points with different color (yaxis2)
+    points_baseline_trace = go.Scatter(
+        x=weekly_data["week_label"],
+        y=[baseline_points] * len(weekly_data),
+        mode="lines",
+        name="Points Baseline",
+        line=dict(color="rgba(253, 126, 20, 0.5)", width=2, dash="dash"),
+        hovertemplate="<b>Points Baseline</b><br>Week: %{x}<br>Value: %{y}<extra></extra>",
+        yaxis="y2",
+    )
+
+    points_scope_trace = go.Scatter(
+        x=weekly_data["week_label"],
+        y=weekly_data["total_points_scope"],
+        mode="lines+markers",
+        name="Points Total Scope",
+        line=dict(color="rgba(253, 126, 20, 1)", width=3),
+        marker=dict(size=7),
+        hovertemplate="<b>Points Total Scope</b><br>Week: %{x}<br>Value: %{y}<extra></extra>",
+        yaxis="y2",
+    )
+
+    # Create layout with dual y-axes
+    layout = go.Layout(
+        title="Cumulative Scope Growth (Baseline + Creep)",
+        xaxis={
+            "title": "Week",
+            "tickangle": -45,
+            "gridcolor": "rgba(200, 200, 200, 0.2)",
+        },
+        yaxis={
+            "title": {"text": "Items", "font": {"color": "rgba(0, 123, 255, 1)"}},
+            "tickfont": {"color": "rgba(0, 123, 255, 1)"},
+            "gridcolor": "rgba(0, 123, 255, 0.1)",
+            "zeroline": True,
+            "zerolinecolor": "rgba(0, 123, 255, 0.2)",
+            "side": "left",
+        },
+        yaxis2={
+            "title": {"text": "Points", "font": {"color": "rgba(253, 126, 20, 1)"}},
+            "tickfont": {"color": "rgba(253, 126, 20, 1)"},
+            "gridcolor": "rgba(253, 126, 20, 0.1)",
+            "zeroline": True,
+            "zerolinecolor": "rgba(253, 126, 20, 0.2)",
+            "overlaying": "y",
+            "side": "right",
+        },
+        height=350,
+        margin={
+            "l": 60,
+            "r": 60,
+            "t": 70,
+            "b": 60,
+        },  # Increased right margin for second y-axis
+        legend={
+            "orientation": "h",
+            "y": 1.25,
+            "xanchor": "center",
+            "x": 0.5,
+        },
+        hovermode="x unified",
+        plot_bgcolor="rgba(255, 255, 255, 0.9)",
+    )
+
+    # Create figure with all traces
+    figure = go.Figure(
+        data=[
+            items_baseline_trace,
+            items_scope_trace,
+            points_baseline_trace,
+            points_scope_trace,
+        ],
+        layout=layout,
+    )
+
+    return dcc.Graph(
+        figure=figure,
+        config={"displayModeBar": False, "responsive": True},
     )
 
 
@@ -654,6 +831,15 @@ def create_scope_metrics_dashboard(
             ),
             # Alert for threshold breach
             create_scope_creep_alert(alert_data),
+            # Cumulative Scope Growth Chart - Added above the weekly chart
+            html.Div(
+                [
+                    create_cumulative_scope_chart(
+                        weekly_growth_data, baseline_items, baseline_points
+                    )
+                ],
+                className="mb-3",
+            ),
             # Weekly Scope Growth Chart
             html.Div([create_scope_growth_chart(weekly_growth_data)], className="mb-2"),
             # Footnote explaining growth interpretation with consistent styling and icon
