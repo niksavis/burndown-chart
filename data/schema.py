@@ -34,6 +34,6 @@ DEFAULT_STATISTICS = {
 # Default settings structure
 DEFAULT_SETTINGS = {
     # Scope creep settings
-    "scope_creep_threshold": 15,  # Default threshold for scope creep alerts (%)
+    "scope_creep_threshold": 20,  # Default threshold for scope creep alerts (%)
     "track_scope_changes": True,  # Whether to track scope changes
 }

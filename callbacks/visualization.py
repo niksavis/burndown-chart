@@ -42,6 +42,7 @@ from visualization import (
     create_weekly_points_chart,
 )
 from visualization.charts import create_chart_with_loading
+from data.schema import DEFAULT_SETTINGS
 
 # Setup logging
 logger = logging.getLogger("burndown_chart")
@@ -631,7 +632,9 @@ def register(app):
         from ui.scope_metrics import create_scope_metrics_dashboard
 
         # Get threshold from settings or use default
-        scope_creep_threshold = settings.get("scope_creep_threshold", 15)
+        scope_creep_threshold = settings.get(
+            "scope_creep_threshold", DEFAULT_SETTINGS["scope_creep_threshold"]
+        )
 
         if df.empty:
             return html.Div(

@@ -6,10 +6,15 @@ import dash_bootstrap_components as dbc
 from dash import html, dcc
 import plotly.graph_objs as go
 import pandas as pd
+from data.schema import DEFAULT_SETTINGS  # Import DEFAULT_SETTINGS
 
 
-def create_scope_creep_indicator(title, value, threshold=15, tooltip=None):
+def create_scope_creep_indicator(title, value, threshold=None, tooltip=None):
     """Create an indicator for scope creep metrics."""
+    # Use the threshold from DEFAULT_SETTINGS if not provided
+    if threshold is None:
+        threshold = DEFAULT_SETTINGS["scope_creep_threshold"]
+
     # Determine status color based on threshold
     if value is None or pd.isna(value):
         color = "secondary"
@@ -216,9 +221,13 @@ def create_scope_creep_alert(alert_data):
 
 
 def create_scope_metrics_dashboard(
-    scope_creep_rate, weekly_growth_data, stability_index, threshold=15
+    scope_creep_rate, weekly_growth_data, stability_index, threshold=None
 ):
     """Create a dashboard component displaying all scope metrics."""
+    # Use the threshold from DEFAULT_SETTINGS if not provided
+    if threshold is None:
+        threshold = DEFAULT_SETTINGS["scope_creep_threshold"]
+
     # Check if scope creep exceeds threshold and create alert
     alert_data = {
         "status": "warning"

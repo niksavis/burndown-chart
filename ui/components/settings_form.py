@@ -5,20 +5,21 @@ Settings form for the burndown chart application.
 import dash_bootstrap_components as dbc
 from dash import html
 
+from data.schema import DEFAULT_SETTINGS  # Import DEFAULT_SETTINGS
+
 
 def create_settings_form(settings=None):
     """Create settings form for the application."""
     settings = settings or {}
 
     # Extract scope creep settings
-    scope_creep_threshold = settings.get("scope_creep_threshold", 15)
+    scope_creep_threshold = settings.get(
+        "scope_creep_threshold", DEFAULT_SETTINGS["scope_creep_threshold"]
+    )
     track_scope_changes = settings.get("track_scope_changes", True)
-
-    # ...existing code...
 
     return html.Div(
         [
-            # ...existing code...
             html.H5("Scope Tracking Settings", className="mt-4 mb-3"),
             dbc.Row(
                 [
@@ -56,7 +57,6 @@ def create_settings_form(settings=None):
                     ),
                 ]
             ),
-            # ...existing code...
         ]
     )
 
@@ -67,7 +67,7 @@ def update_settings_from_form(current_settings, form_values):
 
     # Update scope creep settings
     current_settings["scope_creep_threshold"] = form_values.get(
-        "scope_creep_threshold", 15
+        "scope_creep_threshold", DEFAULT_SETTINGS["scope_creep_threshold"]
     )
     current_settings["track_scope_changes"] = form_values.get(
         "track_scope_changes", True

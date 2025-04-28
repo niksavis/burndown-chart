@@ -7,9 +7,10 @@ from dash import html, dcc
 import plotly.graph_objs as go
 import pandas as pd
 from ui.components import TREND_ICONS, TREND_COLORS
+from data.schema import DEFAULT_SETTINGS  # Import the DEFAULT_SETTINGS
 
 
-def create_scope_creep_indicator(title, value, threshold=15, tooltip=None):
+def create_scope_creep_indicator(title, value, threshold=None, tooltip=None):
     """
     Create a scope creep indicator that matches the styling of trend indicators.
 
@@ -22,6 +23,10 @@ def create_scope_creep_indicator(title, value, threshold=15, tooltip=None):
     Returns:
         html.Div: A scope creep indicator component
     """
+    # Use the threshold from DEFAULT_SETTINGS if not provided
+    if threshold is None:
+        threshold = DEFAULT_SETTINGS["scope_creep_threshold"]
+
     # Generate a unique ID for the indicator based on the title (for tooltip target)
     indicator_id = f"scope-indicator-{title.lower().replace(' ', '-')}"
 
@@ -624,7 +629,7 @@ def create_scope_metrics_dashboard(
     scope_creep_rate,
     weekly_growth_data,
     stability_index,
-    threshold=15,
+    threshold=20,
     total_items_scope=None,
     total_points_scope=None,  # Add parameters for total scope
 ):
