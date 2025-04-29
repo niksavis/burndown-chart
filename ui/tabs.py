@@ -46,7 +46,7 @@ def create_tabs():
         },
         {
             "id": "tab-scope-tracking",
-            "label": "Scope Tracking",
+            "label": "Scope Changes",
             "icon": "fas fa-project-diagram",
             "color": "#6f42c1",  # Purple
         },

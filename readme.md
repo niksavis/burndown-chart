@@ -37,7 +37,7 @@ An interactive web app that helps you track project progress and forecast comple
 - **Track Project Progress**: See completion trends with interactive charts
 - **Switch Views**: Toggle between burndown (work remaining) and burnup (work completed) charts
 - **Get Forecasts**: View optimistic, most likely, and pessimistic completion dates
-- **Monitor Scope Changes**: Track when requirements grow and get alerts for significant scope creep
+- **Monitor Scope Changes**: Track when requirements grow and get alerts for significant scope changes
 - **Customize Parameters**: Set deadlines, initial scope, and analysis settings
 - **Export Data**: Save charts as images or download raw data for reports
 
