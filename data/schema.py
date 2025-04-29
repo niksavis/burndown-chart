@@ -12,8 +12,8 @@ STATISTICS_COLUMNS = [
     "date",  # Date of work (YYYY-MM-DD format)
     "completed_items",  # Number of items completed on that date
     "completed_points",  # Number of points completed on that date
-    "created_items",  # Number of items created on that date (for scope creep tracking)
-    "created_points",  # Number of points created on that date (for scope creep tracking)
+    "created_items",  # Number of items created on that date (for scope change tracking)
+    "created_points",  # Number of points created on that date (for scope change tracking)
 ]
 
 #######################################################################
@@ -33,7 +33,11 @@ DEFAULT_STATISTICS = {
 
 # Default settings structure
 DEFAULT_SETTINGS = {
-    # Scope creep settings
-    "scope_creep_threshold": 20,  # Default threshold for scope creep alerts (%)
+    # Scope change settings
+    "scope_change_threshold": 20,  # Default threshold for scope change alerts (%)
     "track_scope_changes": True,  # Whether to track scope changes
+    "scope_change_throughput_threshold": 1.2,  # Alert when scope grows 20% faster than throughput
 }
+
+# For backwards compatibility
+DEFAULT_SETTINGS["scope_creep_threshold"] = DEFAULT_SETTINGS["scope_change_threshold"]

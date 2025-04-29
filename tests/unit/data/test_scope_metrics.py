@@ -1,7 +1,7 @@
 """
 Unit tests for the scope metrics module.
 
-This module contains tests for the functions that calculate scope creep metrics,
+This module contains tests for the functions that calculate scope change metrics,
 stability indexes, and project scope measurements.
 """
 
@@ -16,22 +16,25 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
 # Import the functions to test
 from data.scope_metrics import (
-    calculate_scope_creep_rate,
+    calculate_scope_change_rate,
     calculate_total_project_scope,
     calculate_weekly_scope_growth,
     calculate_scope_stability_index,
-    check_scope_creep_threshold,
+    check_scope_change_threshold,
     get_week_start_date,
+    # Aliases for backward compatibility
+    calculate_scope_creep_rate,
+    check_scope_creep_threshold,
 )
 
 
-class TestCalculateScopeCreepRate(unittest.TestCase):
-    """Test calculate_scope_creep_rate() function."""
+class TestCalculateScopeChangeRate(unittest.TestCase):
+    """Test calculate_scope_change_rate() function."""
 
     def setUp(self):
         """Set up test data."""
-        # Create test data with scope creep (created more than completed)
-        self.scope_creep_data = pd.DataFrame(
+        # Create test data with scope changes (created more than completed)
+        self.scope_change_data = pd.DataFrame(
             {
                 "date": pd.date_range(start="2025-01-01", periods=10, freq="W"),
                 "completed_items": [5, 7, 4, 6, 8, 5, 9, 7, 3, 10],
@@ -46,22 +49,23 @@ class TestCalculateScopeCreepRate(unittest.TestCase):
         self.baseline_points = 250
 
     def test_basic_calculation(self):
-        """Test basic scope creep rate calculation."""
-        result = calculate_scope_creep_rate(
-            self.scope_creep_data, self.baseline_items, self.baseline_points
+        """Test basic scope change rate calculation."""
+        result = calculate_scope_change_rate(
+            self.scope_change_data, self.baseline_items, self.baseline_points
         )
 
         # Verify result structure
         self.assertIn("items_rate", result)
         self.assertIn("points_rate", result)
+        self.assertIn("throughput_ratio", result)
 
         # Calculate expected values
-        total_created_items = self.scope_creep_data["created_items"].sum()
-        total_created_points = self.scope_creep_data["created_points"].sum()
-        total_completed_items = self.scope_creep_data["completed_items"].sum()
-        total_completed_points = self.scope_creep_data["completed_points"].sum()
+        total_created_items = self.scope_change_data["created_items"].sum()
+        total_created_points = self.scope_change_data["created_points"].sum()
+        total_completed_items = self.scope_change_data["completed_items"].sum()
+        total_completed_points = self.scope_change_data["completed_points"].sum()
 
-        # Calculate expected scope creep rates
+        # Calculate expected scope change rates
         actual_baseline_items = self.baseline_items + total_completed_items
         actual_baseline_points = self.baseline_points + total_completed_points
         expected_items_rate = round(
@@ -71,17 +75,51 @@ class TestCalculateScopeCreepRate(unittest.TestCase):
             (total_created_points / actual_baseline_points) * 100, 1
         )
 
+        # Calculate expected throughput ratios
+        expected_items_throughput_ratio = round(
+            total_created_items / total_completed_items, 2
+        )
+        expected_points_throughput_ratio = round(
+            total_created_points / total_completed_points, 2
+        )
+
         # Check that calculated rates match expected values
         self.assertEqual(result["items_rate"], expected_items_rate)
         self.assertEqual(result["points_rate"], expected_points_rate)
+        self.assertEqual(
+            result["throughput_ratio"]["items"], expected_items_throughput_ratio
+        )
+        self.assertEqual(
+            result["throughput_ratio"]["points"], expected_points_throughput_ratio
+        )
 
     def test_zero_baseline_values(self):
         """Test with zero baseline values."""
-        result = calculate_scope_creep_rate(self.scope_creep_data, 0, 0)
+        result = calculate_scope_change_rate(self.scope_change_data, 0, 0)
 
         # Should return zeros for both rates to avoid division by zero
         self.assertEqual(result["items_rate"], 0)
         self.assertEqual(result["points_rate"], 0)
+
+        # Throughput ratios should still be calculated
+        total_created_items = self.scope_change_data["created_items"].sum()
+        total_created_points = self.scope_change_data["created_points"].sum()
+        total_completed_items = self.scope_change_data["completed_items"].sum()
+        total_completed_points = self.scope_change_data["completed_points"].sum()
+
+        expected_items_throughput_ratio = round(
+            total_created_items / total_completed_items, 2
+        )
+        expected_points_throughput_ratio = round(
+            total_created_points / total_completed_points, 2
+        )
+
+        self.assertEqual(
+            result["throughput_ratio"]["items"], expected_items_throughput_ratio
+        )
+        self.assertEqual(
+            result["throughput_ratio"]["points"], expected_points_throughput_ratio
+        )
 
     def test_empty_dataframe(self):
         """Test with empty dataframe."""
@@ -94,17 +132,19 @@ class TestCalculateScopeCreepRate(unittest.TestCase):
                 "created_points",
             ]
         )
-        result = calculate_scope_creep_rate(
+        result = calculate_scope_change_rate(
             empty_df, self.baseline_items, self.baseline_points
         )
 
-        # With no data, should return zeros for both rates
+        # With no data, should return zeros for all metrics
         self.assertEqual(result["items_rate"], 0)
         self.assertEqual(result["points_rate"], 0)
+        self.assertEqual(result["throughput_ratio"]["items"], 0)
+        self.assertEqual(result["throughput_ratio"]["points"], 0)
 
-    def test_no_scope_creep(self):
-        """Test with data that has no scope creep."""
-        no_creep_data = pd.DataFrame(
+    def test_no_scope_change(self):
+        """Test with data that has no scope change."""
+        no_change_data = pd.DataFrame(
             {
                 "date": pd.date_range(start="2025-01-01", periods=5, freq="W"),
                 "completed_items": [5, 7, 4, 6, 8],
@@ -114,17 +154,19 @@ class TestCalculateScopeCreepRate(unittest.TestCase):
             }
         )
 
-        result = calculate_scope_creep_rate(
-            no_creep_data, self.baseline_items, self.baseline_points
+        result = calculate_scope_change_rate(
+            no_change_data, self.baseline_items, self.baseline_points
         )
 
-        # Should return 0% for both rates
+        # Should return 0% for rates and 0 for throughput ratio (no changes)
         self.assertEqual(result["items_rate"], 0.0)
         self.assertEqual(result["points_rate"], 0.0)
+        self.assertEqual(result["throughput_ratio"]["items"], 0)
+        self.assertEqual(result["throughput_ratio"]["points"], 0)
 
-    def test_negative_scope_creep(self):
+    def test_negative_scope_change(self):
         """Test with negative created values (should not happen but test for robustness)."""
-        negative_creep_data = pd.DataFrame(
+        negative_change_data = pd.DataFrame(
             {
                 "date": pd.date_range(start="2025-01-01", periods=5, freq="W"),
                 "completed_items": [5, 7, 4, 6, 8],
@@ -134,15 +176,15 @@ class TestCalculateScopeCreepRate(unittest.TestCase):
             }
         )
 
-        result = calculate_scope_creep_rate(
-            negative_creep_data, self.baseline_items, self.baseline_points
+        result = calculate_scope_change_rate(
+            negative_change_data, self.baseline_items, self.baseline_points
         )
 
         # Function should still handle this correctly, summing the negative and positive values
-        total_created_items = negative_creep_data["created_items"].sum()
-        total_created_points = negative_creep_data["created_points"].sum()
-        total_completed_items = negative_creep_data["completed_items"].sum()
-        total_completed_points = negative_creep_data["completed_points"].sum()
+        total_created_items = negative_change_data["created_items"].sum()
+        total_created_points = negative_change_data["created_points"].sum()
+        total_completed_items = negative_change_data["completed_items"].sum()
+        total_completed_points = negative_change_data["completed_points"].sum()
 
         actual_baseline_items = self.baseline_items + total_completed_items
         actual_baseline_points = self.baseline_points + total_completed_points
@@ -153,8 +195,74 @@ class TestCalculateScopeCreepRate(unittest.TestCase):
             (total_created_points / actual_baseline_points) * 100, 1
         )
 
+        # Calculate throughput ratio with potentially negative values
+        expected_items_throughput_ratio = (
+            round(total_created_items / total_completed_items, 2)
+            if total_completed_items > 0
+            else 0
+        )
+        expected_points_throughput_ratio = (
+            round(total_created_points / total_completed_points, 2)
+            if total_completed_points > 0
+            else 0
+        )
+
         self.assertEqual(result["items_rate"], expected_items_rate)
         self.assertEqual(result["points_rate"], expected_points_rate)
+        self.assertEqual(
+            result["throughput_ratio"]["items"], expected_items_throughput_ratio
+        )
+        self.assertEqual(
+            result["throughput_ratio"]["points"], expected_points_throughput_ratio
+        )
+
+    def test_zero_completed(self):
+        """Test with zero completed items/points but some created items."""
+        zero_completed_data = pd.DataFrame(
+            {
+                "date": pd.date_range(start="2025-01-01", periods=3, freq="W"),
+                "completed_items": [0, 0, 0],
+                "completed_points": [0, 0, 0],
+                "created_items": [2, 3, 1],
+                "created_points": [10, 15, 5],
+            }
+        )
+
+        result = calculate_scope_change_rate(
+            zero_completed_data, self.baseline_items, self.baseline_points
+        )
+
+        # Rates should be calculated normally
+        total_created_items = zero_completed_data["created_items"].sum()
+        total_created_points = zero_completed_data["created_points"].sum()
+
+        expected_items_rate = round(
+            (total_created_items / self.baseline_items) * 100, 1
+        )
+        expected_points_rate = round(
+            (total_created_points / self.baseline_points) * 100, 1
+        )
+
+        # Throughput ratios should be infinity (implemented as float('inf'))
+        self.assertEqual(result["items_rate"], expected_items_rate)
+        self.assertEqual(result["points_rate"], expected_points_rate)
+        self.assertEqual(result["throughput_ratio"]["items"], float("inf"))
+        self.assertEqual(result["throughput_ratio"]["points"], float("inf"))
+
+    def test_backward_compatibility(self):
+        """Test that the old function name still works."""
+        # Use both functions with the same input
+        result1 = calculate_scope_change_rate(
+            self.scope_change_data, self.baseline_items, self.baseline_points
+        )
+        result2 = calculate_scope_creep_rate(
+            self.scope_change_data, self.baseline_items, self.baseline_points
+        )
+
+        # The results should be identical
+        self.assertEqual(result1["items_rate"], result2["items_rate"])
+        self.assertEqual(result1["points_rate"], result2["points_rate"])
+        self.assertEqual(result1["throughput_ratio"], result2["throughput_ratio"])
 
 
 class TestCalculateTotalProjectScope(unittest.TestCase):
@@ -495,56 +603,110 @@ class TestCalculateScopeStabilityIndex(unittest.TestCase):
         self.assertEqual(len(str(result["points_stability"]).split(".")[-1]), 2)
 
 
-class TestCheckScopeCreepThreshold(unittest.TestCase):
-    """Test check_scope_creep_threshold() function."""
+class TestCheckScopeChangeThreshold(unittest.TestCase):
+    """Test check_scope_change_threshold() function."""
 
     def test_below_threshold(self):
-        """Test when scope creep is below threshold."""
-        scope_creep_rate = {"items_rate": 5.0, "points_rate": 8.0}
+        """Test when scope change is below threshold."""
+        scope_change_rate = {
+            "items_rate": 5.0,
+            "points_rate": 8.0,
+            "throughput_ratio": {"items": 0.5, "points": 0.7},
+        }
         threshold = 10.0
 
-        result = check_scope_creep_threshold(scope_creep_rate, threshold)
+        result = check_scope_change_threshold(scope_change_rate, threshold)
 
-        # Should return "ok" status when both rates are below threshold
-        self.assertEqual(result["status"], "ok")
+        # Should return "info" status when rates are below threshold
+        self.assertEqual(result["status"], "info")
         self.assertEqual(result["message"], "")
 
-    def test_items_exceeds_threshold(self):
-        """Test when items scope creep exceeds threshold."""
-        scope_creep_rate = {"items_rate": 15.0, "points_rate": 8.0}
+    def test_above_threshold_below_throughput(self):
+        """Test when scope change exceeds threshold but throughput ratio is good."""
+        scope_change_rate = {
+            "items_rate": 15.0,
+            "points_rate": 8.0,
+            "throughput_ratio": {"items": 0.5, "points": 0.7},
+        }
         threshold = 10.0
 
-        result = check_scope_creep_threshold(scope_creep_rate, threshold)
+        result = check_scope_change_threshold(scope_change_rate, threshold)
+
+        # Should return "info" status when rates are above threshold but throughput is under 1
+        self.assertEqual(result["status"], "info")
+
+    def test_above_threshold_above_throughput(self):
+        """Test when both threshold and throughput ratio indicate problems."""
+        scope_change_rate = {
+            "items_rate": 15.0,
+            "points_rate": 8.0,
+            "throughput_ratio": {"items": 1.2, "points": 0.7},
+        }
+        threshold = 10.0
+
+        result = check_scope_change_threshold(scope_change_rate, threshold)
 
         # Should return "warning" status
         self.assertEqual(result["status"], "warning")
+        self.assertIn("Items scope change (15.0%)", result["message"])
         self.assertIn(
-            "Items scope creep (15.0%) exceeds threshold (10.0%)", result["message"]
+            "Scope is growing 1.2x faster than items completion", result["message"]
         )
 
-    def test_points_exceeds_threshold(self):
-        """Test when points scope creep exceeds threshold."""
-        scope_creep_rate = {"items_rate": 5.0, "points_rate": 15.0}
+    def test_points_exceeds_threshold_and_throughput(self):
+        """Test when points scope change exceeds threshold and throughput is concerning."""
+        scope_change_rate = {
+            "items_rate": 5.0,
+            "points_rate": 15.0,
+            "throughput_ratio": {"items": 0.5, "points": 1.5},
+        }
         threshold = 10.0
 
-        result = check_scope_creep_threshold(scope_creep_rate, threshold)
+        result = check_scope_change_threshold(scope_change_rate, threshold)
 
         # Should return "warning" status
         self.assertEqual(result["status"], "warning")
+        self.assertIn("Points scope change (15.0%)", result["message"])
         self.assertIn(
-            "Points scope creep (15.0%) exceeds threshold (10.0%)", result["message"]
+            "Scope is growing 1.5x faster than points completion", result["message"]
         )
 
-    def test_both_exceed_threshold(self):
-        """Test when both items and points scope creep exceed threshold."""
-        scope_creep_rate = {"items_rate": 15.0, "points_rate": 20.0}
+    def test_both_exceed_threshold_and_throughput(self):
+        """Test when both items and points scope change values are problematic."""
+        scope_change_rate = {
+            "items_rate": 15.0,
+            "points_rate": 20.0,
+            "throughput_ratio": {"items": 1.2, "points": 1.8},
+        }
         threshold = 10.0
 
-        result = check_scope_creep_threshold(scope_creep_rate, threshold)
+        result = check_scope_change_threshold(scope_change_rate, threshold)
 
         # Should return "warning" status with message mentioning both
         self.assertEqual(result["status"], "warning")
-        self.assertIn("Both items (15.0%) and points (20.0%)", result["message"])
+        self.assertIn("Items scope change (15.0%)", result["message"])
+        self.assertIn("Points scope change (20.0%)", result["message"])
+        self.assertIn(
+            "Scope is growing 1.2x faster than items completion and 1.8x faster than points completion",
+            result["message"],
+        )
+
+    def test_backward_compatibility(self):
+        """Test that the old function name still works."""
+        scope_change_rate = {
+            "items_rate": 15.0,
+            "points_rate": 20.0,
+            "throughput_ratio": {"items": 1.2, "points": 1.8},
+        }
+        threshold = 10.0
+
+        # Use both functions with the same input
+        result1 = check_scope_change_threshold(scope_change_rate, threshold)
+        result2 = check_scope_creep_threshold(scope_change_rate, threshold)
+
+        # The results should be identical
+        self.assertEqual(result1["status"], result2["status"])
+        self.assertEqual(result1["message"], result2["message"])
 
 
 class TestGetWeekStartDate(unittest.TestCase):
@@ -567,7 +729,7 @@ class TestGetWeekStartDate(unittest.TestCase):
             for week in range(1, 53):
                 date = get_week_start_date(year, week)
                 # Monday is 0 in Python's weekday() function
-                self.assertEqual(date.weekday(), 0)
+                self.assertEqual(date.weekday(), 0)  # Monday is 0
 
 
 if __name__ == "__main__":

@@ -1,5 +1,5 @@
 """
-UI components for displaying scope creep metrics.
+UI components for displaying scope change metrics.
 """
 
 import dash_bootstrap_components as dbc
@@ -10,57 +10,68 @@ from ui.components import TREND_ICONS, TREND_COLORS
 from data.schema import DEFAULT_SETTINGS  # Import the DEFAULT_SETTINGS
 
 
-def create_scope_creep_indicator(title, value, threshold=None, tooltip=None):
+def create_scope_change_indicator(
+    title, value, threshold=None, tooltip=None, throughput_ratio=None
+):
     """
-    Create a scope creep indicator that matches the styling of trend indicators.
+    Create a scope change indicator that shows scope change rate with throughput ratio comparison.
 
     Args:
-        title: Title of the scope creep metric
-        value: Percentage value of scope creep
+        title: Title of the scope change metric
+        value: Percentage value of scope change
         threshold: Threshold percentage for determining status color
         tooltip: Optional tooltip text
+        throughput_ratio: Optional ratio of created vs completed items/points
 
     Returns:
-        html.Div: A scope creep indicator component
+        html.Div: A scope change indicator component
     """
     # Use the threshold from DEFAULT_SETTINGS if not provided
     if threshold is None:
-        threshold = DEFAULT_SETTINGS["scope_creep_threshold"]
+        threshold = DEFAULT_SETTINGS["scope_change_threshold"]
 
     # Generate a unique ID for the indicator based on the title (for tooltip target)
     indicator_id = f"scope-indicator-{title.lower().replace(' ', '-')}"
 
-    # Determine status direction, color, and icon based on threshold
+    # Extract metric name (Items or Points) from title
+    metric_name = "Items" if "Items" in title else "Points"
+
+    # Determine status based on value and throughput ratio
+    high_throughput_ratio = throughput_ratio and throughput_ratio > 1
+
+    # By default, scope changes are not considered negative
+    # Only if changes are significant AND outpacing throughput, we show warning indicators
     if value is None or pd.isna(value):
         icon_class = TREND_ICONS["stable"]
         text_color = TREND_COLORS["stable"]
         bg_color = "rgba(108, 117, 125, 0.1)"
         border_color = "rgba(108, 117, 125, 0.2)"
         value_text = "N/A"
+        status_text = "Unknown"
+    elif value > threshold and high_throughput_ratio:
+        # Only show warning if both threshold exceeded and throughput ratio > 1
+        icon_class = TREND_ICONS["up"]
+        text_color = TREND_COLORS["down"]  # Red to indicate potential concern
+        bg_color = "rgba(220, 53, 69, 0.1)"  # Light red background
+        border_color = "rgba(220, 53, 69, 0.2)"
+        value_text = f"{value}%"
+        status_text = "High Change"
+    elif value > threshold * 0.8 and high_throughput_ratio:
+        # Warning level - approaching threshold and throughput ratio > 1
+        icon_class = TREND_ICONS["up"]
+        text_color = "#fd7e14"  # Orange color for notice
+        bg_color = "rgba(253, 126, 20, 0.1)"  # Light orange background
+        border_color = "rgba(253, 126, 20, 0.2)"
+        value_text = f"{value}%"
+        status_text = "Moderate Change"
     else:
-        if value > threshold:
-            icon_class = TREND_ICONS["up"]
-            text_color = TREND_COLORS[
-                "down"
-            ]  # Use "down" color (red) to indicate problem
-            bg_color = "rgba(220, 53, 69, 0.1)"  # Light red background
-            border_color = "rgba(220, 53, 69, 0.2)"
-            value_text = f"{value}%"
-        elif value > threshold * 0.8:  # Within 80% of threshold
-            icon_class = TREND_ICONS["up"]
-            text_color = "#fd7e14"  # Orange color for warning
-            bg_color = "rgba(253, 126, 20, 0.1)"  # Light orange background
-            border_color = "rgba(253, 126, 20, 0.2)"
-            value_text = f"{value}%"
-        else:
-            icon_class = TREND_ICONS["down"]
-            text_color = TREND_COLORS["up"]  # Use "up" color (green) to indicate good
-            bg_color = "rgba(40, 167, 69, 0.1)"  # Light green background
-            border_color = "rgba(40, 167, 69, 0.2)"
-            value_text = f"{value}%"
-
-    # Extract metric name (Items or Points) from title
-    metric_name = "Items" if "Items" in title else "Points"
+        # Normal - either below threshold or not outpacing throughput
+        icon_class = TREND_ICONS["up" if value > 0 else "stable"]
+        text_color = "#20c997"  # Teal color for neutral/information
+        bg_color = "rgba(32, 201, 151, 0.1)"  # Light teal background
+        border_color = "rgba(32, 201, 151, 0.2)"
+        value_text = f"{value}%"
+        status_text = "Normal Change"
 
     # Create the compact trend-style indicator
     indicator = html.Div(
@@ -87,7 +98,7 @@ def create_scope_creep_indicator(title, value, threshold=None, tooltip=None):
                     style={"color": text_color, "fontSize": "1rem"},
                 ),
             ),
-            # Scope Creep information
+            # Scope Change information
             html.Div(
                 className="trend-info",
                 style={"flexGrow": 1, "minWidth": 0},
@@ -96,7 +107,7 @@ def create_scope_creep_indicator(title, value, threshold=None, tooltip=None):
                         className="d-flex justify-content-between align-items-baseline",
                         children=[
                             html.Span(
-                                f"{metric_name} Scope Creep",
+                                f"{metric_name} Scope Change",
                                 className="fw-medium",
                                 style={"fontSize": "0.9rem"},
                             ),
@@ -115,12 +126,27 @@ def create_scope_creep_indicator(title, value, threshold=None, tooltip=None):
                         style={"fontSize": "0.8rem", "color": "#6c757d"},
                         children=[
                             html.Span(
-                                f"Threshold: {threshold}%",
+                                [
+                                    "Threshold: ",
+                                    html.Span(f"{threshold}%"),
+                                    throughput_ratio is not None
+                                    and html.Span(
+                                        [
+                                            " | Throughput Ratio: ",
+                                            html.Span(
+                                                f"{throughput_ratio:.2f}x",
+                                                style={
+                                                    "color": "#dc3545"
+                                                    if high_throughput_ratio
+                                                    else "#20c997"
+                                                },
+                                            ),
+                                        ]
+                                    ),
+                                ]
                             ),
                             html.Span(
-                                f"Status: {'High Risk' if value > threshold else 'Warning' if value > threshold * 0.8 else 'Healthy'}"
-                                if value is not None and not pd.isna(value)
-                                else "Unknown",
+                                status_text,
                                 style={
                                     "color": text_color
                                     if value is not None and not pd.isna(value)
@@ -148,6 +174,10 @@ def create_scope_creep_indicator(title, value, threshold=None, tooltip=None):
         )
 
     return indicator
+
+
+# For backwards compatibility
+create_scope_creep_indicator = create_scope_change_indicator
 
 
 def create_scope_growth_chart(weekly_growth_data):
@@ -423,17 +453,29 @@ def create_enhanced_stability_gauge(
     )
 
 
-def create_scope_creep_alert(alert_data):
-    """Create an alert component for scope creep warnings."""
+def create_scope_change_alert(alert_data):
+    """Create an alert component for significant scope changes."""
     if alert_data["status"] == "ok":
         return html.Div()  # Return empty div if no alert
 
+    # Use different colors based on status
+    if alert_data["status"] == "warning":
+        color = "warning"
+        icon = "fas fa-exclamation-triangle"
+    else:  # info status
+        color = "info"
+        icon = "fas fa-info-circle"
+
     return dbc.Alert(
-        [html.I(className="fas fa-exclamation-triangle me-2"), alert_data["message"]],
-        color="warning",
+        [html.I(className=f"{icon} me-2"), alert_data["message"]],
+        color=color,
         className="mt-3",
         is_open=True,
     )
+
+
+# For backwards compatibility
+create_scope_creep_alert = create_scope_change_alert
 
 
 def create_cumulative_scope_chart(weekly_growth_data, baseline_items, baseline_points):
@@ -521,7 +563,7 @@ def create_cumulative_scope_chart(weekly_growth_data, baseline_items, baseline_p
 
     # Create layout with dual y-axes
     layout = go.Layout(
-        title="Cumulative Scope Growth (Baseline + Creep)",
+        title="Cumulative Scope Growth (Baseline + Change)",
         xaxis={
             "title": "Week",
             "tickangle": -45,
@@ -550,7 +592,7 @@ def create_cumulative_scope_chart(weekly_growth_data, baseline_items, baseline_p
             "r": 60,
             "t": 70,
             "b": 60,
-        },  # Increased right margin for second y-axis
+        },
         legend={
             "orientation": "h",
             "y": 1.25,
@@ -626,7 +668,7 @@ def create_scope_metrics_header(title, icon, color):
 
 
 def create_scope_metrics_dashboard(
-    scope_creep_rate,
+    scope_change_rate,
     weekly_growth_data,
     stability_index,
     threshold=20,
@@ -637,10 +679,10 @@ def create_scope_metrics_dashboard(
     Create a dashboard component displaying all scope metrics.
 
     Args:
-        scope_creep_rate (dict): Dictionary containing items_rate and points_rate percentages
+        scope_change_rate (dict): Dictionary containing items_rate, points_rate and throughput_ratio
         weekly_growth_data (DataFrame): DataFrame containing weekly growth data
         stability_index (dict): Dictionary containing items_stability and points_stability values
-        threshold (int): Threshold percentage for scope creep warnings
+        threshold (int): Threshold percentage for scope change notifications
         total_items_scope (int, optional): Total items scope (completed + remaining)
         total_points_scope (int, optional): Total points scope (completed + remaining)
 
@@ -724,49 +766,102 @@ def create_scope_metrics_dashboard(
     threshold_items = round(baseline_items * threshold / 100)
     threshold_points = round(baseline_points * threshold / 100)
 
-    # Check if scope creep exceeds threshold and create alert
+    # Extract throughput ratios if available, or calculate them
+    items_throughput_ratio = (
+        scope_change_rate.get("throughput_ratio", {}).get("items", 0)
+        if isinstance(scope_change_rate.get("throughput_ratio", {}), dict)
+        else (
+            total_created_items / total_completed_items
+            if total_completed_items > 0
+            else float("inf")
+            if total_created_items > 0
+            else 0
+        )
+    )
+
+    points_throughput_ratio = (
+        scope_change_rate.get("throughput_ratio", {}).get("points", 0)
+        if isinstance(scope_change_rate.get("throughput_ratio", {}), dict)
+        else (
+            total_created_points / total_completed_points
+            if total_completed_points > 0
+            else float("inf")
+            if total_created_points > 0
+            else 0
+        )
+    )
+
+    # Check if scope change exceeds threshold and create alert
+    items_exceeded = scope_change_rate["items_rate"] > threshold
+    points_exceeded = scope_change_rate["points_rate"] > threshold
+    items_throughput_concern = items_throughput_ratio > 1
+    points_throughput_concern = points_throughput_ratio > 1
+
     alert_data = {
         "status": "warning"
-        if (
-            scope_creep_rate["items_rate"] > threshold
-            or scope_creep_rate["points_rate"] > threshold
-        )
+        if (items_exceeded or points_exceeded)
+        and (items_throughput_concern or points_throughput_concern)
+        else "info"
+        if items_exceeded
+        or points_exceeded
+        or items_throughput_concern
+        or points_throughput_concern
         else "ok",
         "message": "",
     }
 
-    if alert_data["status"] == "warning":
+    if alert_data["status"] != "ok":
         parts = []
-        if scope_creep_rate["items_rate"] > threshold:
-            parts.append(f"Items scope creep ({scope_creep_rate['items_rate']}%)")
-        if scope_creep_rate["points_rate"] > threshold:
-            parts.append(f"Points scope creep ({scope_creep_rate['points_rate']}%)")
+        if items_exceeded:
+            parts.append(f"Items scope change ({scope_change_rate['items_rate']}%)")
+        if points_exceeded:
+            parts.append(f"Points scope change ({scope_change_rate['points_rate']}%)")
 
         if parts:
-            alert_data["message"] = (
-                f"{' and '.join(parts)} exceed threshold ({threshold}%)."
-            )
+            if alert_data["status"] == "warning":
+                alert_data["message"] = (
+                    f"{' and '.join(parts)} exceed threshold ({threshold}%)."
+                )
+            else:
+                alert_data["message"] = (
+                    f"{' and '.join(parts)} changing significantly ({threshold}% threshold)."
+                )
+
+            # Add throughput insight
+            if items_throughput_concern and points_throughput_concern:
+                alert_data["message"] += (
+                    f" Scope is growing {items_throughput_ratio:.2f}x faster than items completion and {points_throughput_ratio:.2f}x faster than points completion."
+                )
+            elif items_throughput_concern:
+                alert_data["message"] += (
+                    f" Scope is growing {items_throughput_ratio:.2f}x faster than items completion."
+                )
+            elif points_throughput_concern:
+                alert_data["message"] += (
+                    f" Scope is growing {points_throughput_ratio:.2f}x faster than points completion."
+                )
 
     return html.Div(
         [
-            # Scope Creep Rate Indicators with improved layout
+            # Scope Change Rate Indicators with improved layout
             html.Div(
                 [
-                    # Items trend box - with similar styling to Weekly Items Trend
+                    # Items trend box
                     html.Div(
                         [
                             # Header with icon
                             create_scope_metrics_header(
-                                "Items Scope Creep Metrics", "fas fa-tasks", "#20c997"
+                                "Items Scope Change Metrics", "fas fa-tasks", "#20c997"
                             ),
-                            # Scope creep indicator
-                            create_scope_creep_indicator(
-                                "Items Scope Creep Rate",
-                                scope_creep_rate["items_rate"],
+                            # Scope change indicator with throughput ratio
+                            create_scope_change_indicator(
+                                "Items Scope Change Rate",
+                                scope_change_rate["items_rate"],
                                 threshold,
-                                "Percentage of new items created compared to original baseline",
+                                "Percentage of new items created compared to original baseline. Throughput ratio shows how many new items are created per completed item.",
+                                items_throughput_ratio,
                             ),
-                            # Forecast pills for items scope creep - showing absolute values
+                            # Forecast pills for items scope change - showing absolute values
                             html.Div(
                                 [
                                     create_forecast_pill(
@@ -775,9 +870,14 @@ def create_scope_metrics_dashboard(
                                         "#20c997",
                                     ),
                                     create_forecast_pill(
+                                        "Completed",
+                                        f"{int(total_completed_items)} items",
+                                        "#0d6efd",
+                                    ),
+                                    create_forecast_pill(
                                         "Threshold",
                                         f"{int(threshold_items)} items",
-                                        "#dc3545",
+                                        "#fd7e14",
                                     ),
                                     html.Div(
                                         html.Small(
@@ -793,23 +893,24 @@ def create_scope_metrics_dashboard(
                         ],
                         className="col-md-6 col-12 mb-3 pe-md-2",
                     ),
-                    # Points trend box - with similar styling to Weekly Points Trend
+                    # Points trend box
                     html.Div(
                         [
                             # Header with icon
                             create_scope_metrics_header(
-                                "Points Scope Creep Metrics",
+                                "Points Scope Change Metrics",
                                 "fas fa-chart-bar",
                                 "#fd7e14",
                             ),
-                            # Scope creep indicator
-                            create_scope_creep_indicator(
-                                "Points Scope Creep Rate",
-                                scope_creep_rate["points_rate"],
+                            # Scope change indicator with throughput ratio
+                            create_scope_change_indicator(
+                                "Points Scope Change Rate",
+                                scope_change_rate["points_rate"],
                                 threshold,
-                                "Percentage of new points created compared to original baseline",
+                                "Percentage of new points created compared to original baseline. Throughput ratio shows how many new points are created per completed point.",
+                                points_throughput_ratio,
                             ),
-                            # Forecast pills for points scope creep - showing absolute values
+                            # Forecast pills for points scope change - showing absolute values
                             html.Div(
                                 [
                                     create_forecast_pill(
@@ -818,9 +919,14 @@ def create_scope_metrics_dashboard(
                                         "#fd7e14",
                                     ),
                                     create_forecast_pill(
+                                        "Completed",
+                                        f"{int(total_completed_points)} points",
+                                        "#0d6efd",
+                                    ),
+                                    create_forecast_pill(
                                         "Threshold",
                                         f"{int(threshold_points)} points",
-                                        "#dc3545",
+                                        "#fd7e14",
                                     ),
                                     html.Div(
                                         html.Small(
@@ -840,8 +946,8 @@ def create_scope_metrics_dashboard(
                 className="row mb-3",
             ),
             # Alert for threshold breach
-            create_scope_creep_alert(alert_data),
-            # Cumulative Scope Growth Chart - Added above the weekly chart
+            create_scope_change_alert(alert_data),
+            # Cumulative Scope Growth Chart
             html.Div(
                 [
                     create_cumulative_scope_chart(
@@ -849,6 +955,72 @@ def create_scope_metrics_dashboard(
                     )
                 ],
                 className="mb-3",
+            ),
+            # Throughput vs Scope Change summary
+            html.Div(
+                [
+                    html.Div(
+                        className="d-flex align-items-center mb-2",
+                        children=[
+                            html.I(
+                                className="fas fa-balance-scale me-2",
+                                style={"color": "#6610f2"},
+                            ),
+                            html.Span(
+                                "Scope Change vs Team Throughput", className="fw-medium"
+                            ),
+                        ],
+                    ),
+                    dbc.Card(
+                        dbc.CardBody(
+                            [
+                                html.P(
+                                    [
+                                        "Items: ",
+                                        html.Span(
+                                            f"For every completed item, {items_throughput_ratio:.2f} new items are being created",
+                                            className="fw-medium",
+                                            style={
+                                                "color": "#dc3545"
+                                                if items_throughput_ratio > 1
+                                                else "#20c997"
+                                            },
+                                        ),
+                                        html.Span(
+                                            f" ({total_created_items} created vs {total_completed_items} completed)",
+                                            className="text-muted ms-1",
+                                            style={"fontSize": "0.9rem"},
+                                        ),
+                                    ]
+                                ),
+                                html.P(
+                                    [
+                                        "Points: ",
+                                        html.Span(
+                                            f"For every completed point, {points_throughput_ratio:.2f} new points are being created",
+                                            className="fw-medium",
+                                            style={
+                                                "color": "#dc3545"
+                                                if points_throughput_ratio > 1
+                                                else "#20c997"
+                                            },
+                                        ),
+                                        html.Span(
+                                            f" ({total_created_points} created vs {total_completed_points} completed)",
+                                            className="text-muted ms-1",
+                                            style={"fontSize": "0.9rem"},
+                                        ),
+                                    ]
+                                ),
+                                html.P(
+                                    "A ratio greater than 1.0 indicates scope is growing faster than the team can deliver. This may affect delivery timelines.",
+                                    className="text-muted small mb-0 mt-2 fst-italic",
+                                ),
+                            ]
+                        ),
+                        className="mb-3",
+                    ),
+                ]
             ),
             # Weekly Scope Growth Chart
             html.Div([create_scope_growth_chart(weekly_growth_data)], className="mb-2"),
@@ -901,3 +1073,7 @@ def create_scope_metrics_dashboard(
             ),
         ]
     )
+
+
+# For backwards compatibility
+create_scope_creep_dashboard = create_scope_metrics_dashboard

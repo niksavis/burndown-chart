@@ -1,34 +1,68 @@
 """
-Scope creep metrics calculation functions.
+Scope change metrics calculation functions.
 """
 
 import pandas as pd
 from datetime import datetime
 
 
-def calculate_scope_creep_rate(df, baseline_items, baseline_points):
+def calculate_scope_change_rate(df, baseline_items, baseline_points):
     """
-    Calculate scope creep rate as percentage of new items/points created over baseline.
+    Calculate scope change rate as percentage of new items/points created over baseline.
 
     Formula:
-    Scope Creep Rate = (sum(created_items) / baseline) × 100%
+    Scope Change Rate = (sum(created_items) / baseline) × 100%
 
     Where baseline = remaining total items + sum(completed_items)
-    """
-    if df.empty or baseline_items == 0 or baseline_points == 0:
-        return {"items_rate": 0, "points_rate": 0}
 
+    In agile projects, this tracks the rate of scope change rather than implying negative "creep".
+    """
     # Get total created and completed items/points
+    if df.empty:
+        return {
+            "items_rate": 0,
+            "points_rate": 0,
+            "throughput_ratio": {"items": 0, "points": 0},
+        }
+
     total_created_items = df["created_items"].sum()
     total_created_points = df["created_points"].sum()
     total_completed_items = df["completed_items"].sum()
     total_completed_points = df["completed_points"].sum()
 
+    # Calculate throughput ratios regardless of baseline values
+    items_throughput_ratio = (
+        total_created_items / total_completed_items
+        if total_completed_items > 0
+        else float("inf")
+        if total_created_items > 0
+        else 0
+    )
+
+    points_throughput_ratio = (
+        total_created_points / total_completed_points
+        if total_completed_points > 0
+        else float("inf")
+        if total_created_points > 0
+        else 0
+    )
+
+    # Check if baselines are zero - if so, only calculate throughput ratios
+    if baseline_items == 0 or baseline_points == 0:
+        return {
+            "items_rate": 0,
+            "points_rate": 0,
+            "throughput_ratio": {
+                "items": round(items_throughput_ratio, 2),
+                "points": round(points_throughput_ratio, 2),
+            },
+        }
+
     # Calculate the true baseline (remaining items + completed items)
     actual_baseline_items = baseline_items + total_completed_items
     actual_baseline_points = baseline_points + total_completed_points
 
-    # Calculate scope creep rates as percentage of created items over baseline
+    # Calculate scope change rates as percentage of created items over baseline
     items_rate = (
         (total_created_items / actual_baseline_items) * 100
         if actual_baseline_items > 0
@@ -40,7 +74,18 @@ def calculate_scope_creep_rate(df, baseline_items, baseline_points):
         else 0
     )
 
-    return {"items_rate": round(items_rate, 1), "points_rate": round(points_rate, 1)}
+    return {
+        "items_rate": round(items_rate, 1),
+        "points_rate": round(points_rate, 1),
+        "throughput_ratio": {
+            "items": round(items_throughput_ratio, 2),
+            "points": round(points_throughput_ratio, 2),
+        },
+    }
+
+
+# For backwards compatibility
+calculate_scope_creep_rate = calculate_scope_change_rate
 
 
 def calculate_total_project_scope(df, remaining_items, remaining_points):
@@ -176,23 +221,51 @@ def calculate_scope_stability_index(df, baseline_items, baseline_points):
     }
 
 
-def check_scope_creep_threshold(scope_creep_rate, threshold):
+def check_scope_change_threshold(scope_change_rate, threshold):
     """
-    Check if scope creep rate exceeds threshold.
+    Check if scope change rate exceeds threshold.
+
+    In agile, scope changes are normal - this function helps identify when the rate
+    of change may affect delivery without judging the changes themselves.
 
     Returns a dict with status and message.
     """
-    items_exceeded = scope_creep_rate["items_rate"] > threshold
-    points_exceeded = scope_creep_rate["points_rate"] > threshold
+    items_exceeded = scope_change_rate["items_rate"] > threshold
+    points_exceeded = scope_change_rate["points_rate"] > threshold
 
-    status = "warning" if items_exceeded or points_exceeded else "ok"
+    # Check throughput ratios - if > 1, scope is growing faster than completion
+    items_throughput_concern = scope_change_rate["throughput_ratio"]["items"] > 1
+    points_throughput_concern = scope_change_rate["throughput_ratio"]["points"] > 1
+
+    # Only warn if both percentage threshold is exceeded AND throughput ratio > 1
+    status = "info"
+    if (items_exceeded or points_exceeded) and (
+        items_throughput_concern or points_throughput_concern
+    ):
+        status = "warning"
+
     message = ""
 
-    if items_exceeded and points_exceeded:
-        message = f"Both items ({scope_creep_rate['items_rate']}%) and points ({scope_creep_rate['points_rate']}%) scope creep exceed threshold ({threshold}%)."
-    elif items_exceeded:
-        message = f"Items scope creep ({scope_creep_rate['items_rate']}%) exceeds threshold ({threshold}%)."
-    elif points_exceeded:
-        message = f"Points scope creep ({scope_creep_rate['points_rate']}%) exceeds threshold ({threshold}%)."
+    if status == "warning":
+        parts = []
+        if items_exceeded:
+            parts.append(f"Items scope change ({scope_change_rate['items_rate']}%)")
+        if points_exceeded:
+            parts.append(f"Points scope change ({scope_change_rate['points_rate']}%)")
+
+        if parts:
+            message = f"{' and '.join(parts)} exceed threshold ({threshold}%)."
+
+            # Add throughput insight
+            if items_throughput_concern and points_throughput_concern:
+                message += f" Scope is growing {scope_change_rate['throughput_ratio']['items']}x faster than items completion and {scope_change_rate['throughput_ratio']['points']}x faster than points completion."
+            elif items_throughput_concern:
+                message += f" Scope is growing {scope_change_rate['throughput_ratio']['items']}x faster than items completion."
+            elif points_throughput_concern:
+                message += f" Scope is growing {scope_change_rate['throughput_ratio']['points']}x faster than points completion."
 
     return {"status": status, "message": message}
+
+
+# For backwards compatibility
+check_scope_creep_threshold = check_scope_change_threshold
