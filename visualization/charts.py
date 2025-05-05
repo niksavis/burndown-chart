@@ -2338,10 +2338,17 @@ def create_burnup_chart(
         df["cum_created_points"] = df["created_points"].cumsum()
 
         # Get current completed and created totals
-        df["cum_completed_items"].iloc[-1]
-        df["cum_completed_points"].iloc[-1]
-        df["cum_created_items"].iloc[-1]
-        df["cum_created_points"].iloc[-1]
+        completed_items_total = df["cum_completed_items"].iloc[-1]
+        completed_points_total = df["cum_completed_points"].iloc[-1]
+        created_items_total = df["cum_created_items"].iloc[-1]
+        created_points_total = df["cum_created_points"].iloc[-1]
+
+        # Log the data for debugging
+        logger = logging.getLogger("burndown_chart")
+        logger.info(f"Burnup chart - Completed items total: {completed_items_total}")
+        logger.info(f"Burnup chart - Completed points total: {completed_points_total}")
+        logger.info(f"Burnup chart - Created items total: {created_items_total}")
+        logger.info(f"Burnup chart - Created points total: {created_points_total}")
 
         # No baseline scope calculation needed - directly use the cumulative created values
         # as the scope traces
@@ -2354,8 +2361,20 @@ def create_burnup_chart(
         df_forecast["cum_points"] = df_forecast["cum_completed_points"]
 
         # Get final scope values for forecasting target
-        final_scope_items = df["cum_scope_items"].iloc[-1]
-        final_scope_points = df["cum_scope_points"].iloc[-1]
+        final_scope_items = df["cum_scope_items"].iloc[-1] if not df.empty else 0
+        final_scope_points = df["cum_scope_points"].iloc[-1] if not df.empty else 0
+
+        logger.info(f"Burnup chart - Final scope items: {final_scope_items}")
+        logger.info(f"Burnup chart - Final scope points: {final_scope_points}")
+
+        # Ensure we have valid scope values - if scope is zero, forecasts won't show
+        if final_scope_points <= 0:
+            final_scope_points = max(
+                10, completed_points_total * 1.5
+            )  # Set a reasonable fallback
+            logger.warning(
+                f"Final scope points was zero or negative, using fallback value: {final_scope_points}"
+            )
 
         # Calculate forecast data using the prepare_visualization_data function with burnup=True
         forecast_data = prepare_visualization_data(
@@ -2369,10 +2388,33 @@ def create_burnup_chart(
             scope_points=final_scope_points,
         )
 
-        # Rest of function remains the same...
-        # Get forecast information
+        # Log forecast data for debugging
         items_forecasts = forecast_data["items_forecasts"]
         points_forecasts = forecast_data["points_forecasts"]
+
+        # Check if we have valid forecast data
+        has_items_forecast = all(
+            len(items_forecasts[key][0]) > 0 for key in ["avg", "opt", "pes"]
+        )
+        has_points_forecast = all(
+            len(points_forecasts[key][0]) > 0 for key in ["avg", "opt", "pes"]
+        )
+
+        logger.info(f"Burnup chart - Has items forecast data: {has_items_forecast}")
+        logger.info(f"Burnup chart - Has points forecast data: {has_points_forecast}")
+
+        if not has_points_forecast:
+            logger.warning(
+                "Points forecast data is empty or invalid - checking forecast data structure:"
+            )
+            for key in ["avg", "opt", "pes"]:
+                logger.warning(
+                    f"Points forecast '{key}' data length: {len(points_forecasts[key][0])}"
+                )
+                if len(points_forecasts[key][0]) > 0:
+                    logger.warning(
+                        f"First few values: {points_forecasts[key][1][:3] if len(points_forecasts[key][1]) > 3 else points_forecasts[key][1]}"
+                    )
 
         # Create traces for completed work
         completed_items_trace = go.Scatter(
@@ -2473,7 +2515,7 @@ def create_burnup_chart(
         )
 
         # Add PERT forecast traces for items if available and forecast should be shown
-        if items_forecasts and show_forecast:
+        if has_items_forecast and show_forecast:
             # Items forecast - Most likely
             fig.add_trace(
                 go.Scatter(
@@ -2561,94 +2603,82 @@ def create_burnup_chart(
             )
 
         # Add PERT forecast traces for points if available and forecast should be shown
-        if points_forecasts and show_forecast:
-            # Points forecast - Most likely
-            fig.add_trace(
-                go.Scatter(
-                    x=points_forecasts["avg"][0],
-                    y=points_forecasts["avg"][1],
-                    mode="lines+markers",
-                    name="Points Forecast (Most Likely)",  # Renamed for consistency with burndown chart
-                    line=dict(color=COLOR_PALETTE["points"], dash="dash", width=3),
-                    marker=dict(
-                        size=8,
-                        symbol="diamond",
-                        color=COLOR_PALETTE["points"],
-                        line=dict(color="white", width=1),
-                    ),
-                    hovertemplate=format_hover_template(
-                        title="Points Forecast",
-                        fields={
-                            "Date": "%{x|%Y-%m-%d}",
-                            "Points": "%{y:.1f}",
-                            "Type": "Most Likely",
-                        },
-                    ),
-                    hoverlabel=create_hoverlabel_config("info"),
-                    visible=True,
-                ),
-                secondary_y=True,
-            )
+        if show_forecast:
+            # Check and log points forecast data
+            # Points forecast tracing issues - ensure we have valid data for each forecast
+            for key in ["avg", "opt", "pes"]:
+                if not (
+                    points_forecasts
+                    and points_forecasts[key]
+                    and len(points_forecasts[key]) >= 2
+                    and len(points_forecasts[key][0]) > 0
+                    and len(points_forecasts[key][1]) > 0
+                ):
+                    logger.warning(f"Invalid points forecast data for '{key}'")
+                    continue
 
-            # Points forecast - Optimistic (dotted line)
-            fig.add_trace(
-                go.Scatter(
-                    x=points_forecasts["opt"][0],
-                    y=points_forecasts["opt"][1],
-                    mode="lines+markers",  # Added markers for consistency with burndown chart
-                    name="Points Forecast (Optimistic)",  # Renamed for consistency with burndown chart
-                    line=dict(
-                        color="rgb(184, 134, 11)", dash="dot", width=2.5
-                    ),  # Gold color to match burndown chart
-                    marker=dict(
-                        size=7,
-                        symbol="triangle-up",
-                        color="rgb(184, 134, 11)",  # Gold color for marker
-                        line=dict(color="white", width=1),
-                    ),
-                    hovertemplate=format_hover_template(
-                        title="Points Forecast",
-                        fields={
-                            "Date": "%{x|%Y-%m-%d}",
-                            "Points": "%{y:.1f}",
-                            "Type": "Optimistic",
-                        },
-                    ),
-                    hoverlabel=create_hoverlabel_config("success"),
-                    visible=True,
-                ),
-                secondary_y=True,
-            )
+                # Points forecast - dynamically create based on key
+                color = (
+                    COLOR_PALETTE["points"]
+                    if key == "avg"
+                    else ("rgb(184, 134, 11)" if key == "opt" else "rgb(165, 42, 42)")
+                )
+                dash_style = "dash" if key == "avg" else "dot"
+                symbol = (
+                    "diamond"
+                    if key == "avg"
+                    else ("triangle-up" if key == "opt" else "triangle-down")
+                )
+                forecast_name = (
+                    "Points Forecast (Most Likely)"
+                    if key == "avg"
+                    else (
+                        "Points Forecast (Optimistic)"
+                        if key == "opt"
+                        else "Points Forecast (Pessimistic)"
+                    )
+                )
+                hover_type = (
+                    "Most Likely"
+                    if key == "avg"
+                    else ("Optimistic" if key == "opt" else "Pessimistic")
+                )
+                hover_style = (
+                    "info"
+                    if key == "avg"
+                    else ("success" if key == "opt" else "warning")
+                )
 
-            # Points forecast - Pessimistic (dotted line)
-            fig.add_trace(
-                go.Scatter(
-                    x=points_forecasts["pes"][0],
-                    y=points_forecasts["pes"][1],
-                    mode="lines+markers",  # Added markers for consistency with burndown chart
-                    name="Points Forecast (Pessimistic)",  # Renamed for consistency with burndown chart
-                    line=dict(
-                        color="rgb(165, 42, 42)", dash="dot", width=2.5
-                    ),  # Brown color to match burndown chart
-                    marker=dict(
-                        size=7,
-                        symbol="triangle-down",
-                        color="rgb(165, 42, 42)",  # Brown color for marker
-                        line=dict(color="white", width=1),
+                fig.add_trace(
+                    go.Scatter(
+                        x=points_forecasts[key][0],
+                        y=points_forecasts[key][1],
+                        mode="lines+markers",
+                        name=forecast_name,
+                        line=dict(
+                            color=color,
+                            dash=dash_style,
+                            width=3 if key == "avg" else 2.5,
+                        ),
+                        marker=dict(
+                            size=8 if key == "avg" else 7,
+                            symbol=symbol,
+                            color=color,
+                            line=dict(color="white", width=1),
+                        ),
+                        hovertemplate=format_hover_template(
+                            title="Points Forecast",
+                            fields={
+                                "Date": "%{x|%Y-%m-%d}",
+                                "Points": "%{y:.1f}",
+                                "Type": hover_type,
+                            },
+                        ),
+                        hoverlabel=create_hoverlabel_config(hover_style),
+                        visible=True,
                     ),
-                    hovertemplate=format_hover_template(
-                        title="Points Forecast",
-                        fields={
-                            "Date": "%{x|%Y-%m-%d}",
-                            "Points": "%{y:.1f}",
-                            "Type": "Pessimistic",
-                        },
-                    ),
-                    hoverlabel=create_hoverlabel_config("warning"),
-                    visible=True,
-                ),
-                secondary_y=True,
-            )
+                    secondary_y=True,
+                )
 
         # Add traces to figure - all visible by default
         fig.add_trace(completed_items_trace, secondary_y=False)
@@ -2678,6 +2708,34 @@ def create_burnup_chart(
             secondary_y=False,
         )
 
+        # Calculate max value for y-axis range
+        # Improve y-axis range calculation for points
+        def safe_max(values):
+            if not values or len(values) == 0:
+                return 0
+            return max(values)
+
+        # Ensure we have appropriate room for the points forecast lines
+        max_points_val = max(
+            df["cum_scope_points"].max() if not df.empty else 0,
+            safe_max(points_forecasts["avg"][1])
+            if points_forecasts and len(points_forecasts["avg"]) > 1
+            else 0,
+            safe_max(points_forecasts["opt"][1])
+            if points_forecasts and len(points_forecasts["opt"]) > 1
+            else 0,
+            safe_max(points_forecasts["pes"][1])
+            if points_forecasts and len(points_forecasts["pes"]) > 1
+            else 0,
+        )
+
+        # If still zero, use a reasonable default
+        if max_points_val <= 0:
+            max_points_val = max(10, completed_points_total * 1.5)
+            logger.warning(
+                f"Max points value was zero, using fallback: {max_points_val}"
+            )
+
         # Configure secondary y-axis (points) with points grid color
         fig.update_yaxes(
             title={"text": "Points", "font": {"size": 16}},
@@ -2685,23 +2743,7 @@ def create_burnup_chart(
             zeroline=True,
             zerolinecolor="black",
             secondary_y=True,
-            # Ensure we have appropriate room for the points forecast lines
-            range=[
-                0,
-                max(
-                    df["cum_scope_points"].max() if not df.empty else 0,
-                    max(points_forecasts["avg"][1])
-                    if points_forecasts and points_forecasts["avg"][1]
-                    else 0,
-                    max(points_forecasts["opt"][1])
-                    if points_forecasts and points_forecasts["opt"][1]
-                    else 0,
-                    max(points_forecasts["pes"][1])
-                    if points_forecasts and points_forecasts["pes"][1]
-                    else 0,
-                )
-                * 1.1,
-            ],  # Add 10% headroom
+            range=[0, max_points_val * 1.1],  # Add 10% headroom
         )
 
         # Apply consistent layout settings to match burndown chart
