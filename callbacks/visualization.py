@@ -1147,7 +1147,9 @@ def register(app):
             data_points_count = min(stored_data_points, len(df))
 
             show_forecast = settings.get("show_forecast", True)
-            forecast_visibility = settings.get("forecast_visibility", "legendonly")
+            forecast_visibility = settings.get(
+                "forecast_visibility", True
+            )  # Changed from "legendonly" to True
             hover_mode = settings.get(
                 "hover_mode", "x unified"
             )  # Add hover mode setting

@@ -31,9 +31,7 @@ from ui.tooltip_utils import create_hoverlabel_config, format_hover_template
 #######################################################################
 
 
-def create_plot_traces(
-    forecast_data, show_forecast=True, forecast_visibility="legendonly"
-):
+def create_plot_traces(forecast_data, show_forecast=True, forecast_visibility=True):
     """
     Create all the traces for the plot.
 
@@ -106,7 +104,7 @@ def create_plot_traces(
                     },
                 ),
                 hoverlabel=create_hoverlabel_config("info"),
-                visible=True,  # Always show Most Likely forecast by default, regardless of forecast_visibility
+                visible=True,
             ),
             "secondary_y": False,
         }
@@ -126,7 +124,7 @@ def create_plot_traces(
                     color=COLOR_PALETTE["optimistic"],
                     line=dict(color="white", width=1),
                 ),
-                visible="legendonly",  # Hidden by default, matching burnup chart behavior
+                visible=True,
                 hovertemplate=format_hover_template(
                     title="Items Forecast",
                     fields={
@@ -155,7 +153,7 @@ def create_plot_traces(
                     color=COLOR_PALETTE["pessimistic"],
                     line=dict(color="white", width=1),
                 ),
-                visible="legendonly",  # Hidden by default, matching burnup chart behavior
+                visible=True,
                 hovertemplate=format_hover_template(
                     title="Items Forecast",
                     fields={
@@ -225,7 +223,7 @@ def create_plot_traces(
                     },
                 ),
                 hoverlabel=create_hoverlabel_config("info"),
-                visible=True,  # Always show Most Likely forecast by default, regardless of forecast_visibility
+                visible=True,
             ),
             "secondary_y": True,
         }
@@ -248,7 +246,7 @@ def create_plot_traces(
                     color="rgb(184, 134, 11)",  # Gold color for marker
                     line=dict(color="white", width=1),
                 ),
-                visible="legendonly",  # Hidden by default, matching burnup chart behavior
+                visible=True,
                 hovertemplate=format_hover_template(
                     title="Points Forecast",
                     fields={
@@ -280,7 +278,7 @@ def create_plot_traces(
                     color="rgb(165, 42, 42)",  # Brown color for marker
                     line=dict(color="white", width=1),
                 ),
-                visible="legendonly",  # Hidden by default, matching burnup chart behavior
+                visible=True,
                 hovertemplate=format_hover_template(
                     title="Points Forecast",
                     fields={
@@ -520,7 +518,7 @@ def create_forecast_plot(
     milestone_str=None,
     data_points_count=None,
     show_forecast=True,
-    forecast_visibility="legendonly",
+    forecast_visibility=True,
     hover_mode="x unified",
 ):
     """
@@ -598,10 +596,6 @@ def create_forecast_plot(
                 )
                 milestone = None
 
-        # NOTE: For the burndown chart, we DO NOT add an artificial zero point before the first data point
-        # This ensures consistency with the burnup chart which also starts with the actual first data point
-        # The burnup chart's first point has the actual completed items/points from the first date
-
         # Prepare all data needed for the visualization
         forecast_data = prepare_visualization_data(
             df, total_items, total_points, pert_factor, data_points_count
@@ -611,7 +605,7 @@ def create_forecast_plot(
         fig = make_subplots(specs=[[{"secondary_y": True}]])
 
         # Add all traces to the figure
-        traces = create_plot_traces(forecast_data)
+        traces = create_plot_traces(forecast_data, show_forecast, forecast_visibility)
         for trace in traces:
             # Only add forecast traces if show_forecast is True
             is_forecast = (
@@ -621,11 +615,9 @@ def create_forecast_plot(
             )
 
             if not is_forecast or (is_forecast and show_forecast):
-                # Set visibility for forecast traces based on forecast_visibility parameter
-                if is_forecast and forecast_visibility is not True:
-                    # If it's a "Most Likely" forecast, keep it visible by default
-                    if "Most Likely" not in trace["data"].name:
-                        trace["data"].visible = forecast_visibility
+                # Set visibility for all forecast traces based on forecast_visibility parameter
+                if is_forecast:
+                    trace["data"].visible = forecast_visibility
 
                 fig.add_trace(trace["data"], secondary_y=trace["secondary_y"])
 
@@ -1905,7 +1897,7 @@ def create_capacity_chart(capacity_data, forecast_data, settings):
             mode="lines",
             name="Items Utilization %",
             line=dict(color=COLOR_PALETTE["items"], width=1.5),
-            visible="legendonly",  # Hidden by default
+            visible=True,
             hovertemplate=format_hover_template(
                 title="Items Utilization",
                 fields={
@@ -1925,7 +1917,7 @@ def create_capacity_chart(capacity_data, forecast_data, settings):
             mode="lines",
             name="Points Utilization %",
             line=dict(color=COLOR_PALETTE["points"], width=1.5),
-            visible="legendonly",  # Hidden by default
+            visible=True,
             hovertemplate=format_hover_template(
                 title="Points Utilization",
                 fields={
@@ -2216,7 +2208,7 @@ def create_burnup_chart(
     milestone_str=None,
     data_points_count=None,
     show_forecast=True,
-    forecast_visibility="legendonly",
+    forecast_visibility=True,
     hover_mode="x unified",
 ):
     """
@@ -2505,7 +2497,7 @@ def create_burnup_chart(
                         },
                     ),
                     hoverlabel=create_hoverlabel_config("info"),
-                    visible=True,  # Show the Most Likely forecast by default
+                    visible=True,
                 ),
                 secondary_y=False,
             )
@@ -2533,7 +2525,7 @@ def create_burnup_chart(
                         },
                     ),
                     hoverlabel=create_hoverlabel_config("success"),
-                    visible="legendonly",  # Hidden by default
+                    visible=True,
                 ),
                 secondary_y=False,
             )
@@ -2563,7 +2555,7 @@ def create_burnup_chart(
                         },
                     ),
                     hoverlabel=create_hoverlabel_config("warning"),
-                    visible="legendonly",  # Hidden by default
+                    visible=True,
                 ),
                 secondary_y=False,
             )
@@ -2593,7 +2585,7 @@ def create_burnup_chart(
                         },
                     ),
                     hoverlabel=create_hoverlabel_config("info"),
-                    visible=True,  # Show the Most Likely forecast by default
+                    visible=True,
                 ),
                 secondary_y=True,
             )
@@ -2623,7 +2615,7 @@ def create_burnup_chart(
                         },
                     ),
                     hoverlabel=create_hoverlabel_config("success"),
-                    visible="legendonly",  # Hidden by default
+                    visible=True,
                 ),
                 secondary_y=True,
             )
@@ -2653,7 +2645,7 @@ def create_burnup_chart(
                         },
                     ),
                     hoverlabel=create_hoverlabel_config("warning"),
-                    visible="legendonly",  # Hidden by default
+                    visible=True,
                 ),
                 secondary_y=True,
             )
@@ -2693,6 +2685,23 @@ def create_burnup_chart(
             zeroline=True,
             zerolinecolor="black",
             secondary_y=True,
+            # Ensure we have appropriate room for the points forecast lines
+            range=[
+                0,
+                max(
+                    df["cum_scope_points"].max() if not df.empty else 0,
+                    max(points_forecasts["avg"][1])
+                    if points_forecasts and points_forecasts["avg"][1]
+                    else 0,
+                    max(points_forecasts["opt"][1])
+                    if points_forecasts and points_forecasts["opt"][1]
+                    else 0,
+                    max(points_forecasts["pes"][1])
+                    if points_forecasts and points_forecasts["pes"][1]
+                    else 0,
+                )
+                * 1.1,
+            ],  # Add 10% headroom
         )
 
         # Apply consistent layout settings to match burndown chart
@@ -3147,26 +3156,52 @@ def generate_burndown_forecast(
         # If end date is same as or before start date, use 1 day
         days_span = 1
 
-    # Create date range from start to end
-    dates = [start_date + timedelta(days=i) for i in range(days_span + 1)]
+    # Calculate days needed for each rate to reach zero
+    days_to_zero_avg = int(last_value / avg_rate) if avg_rate > 0.001 else days_span * 2
+    days_to_zero_opt = int(last_value / opt_rate) if opt_rate > 0.001 else days_span * 2
+    days_to_zero_pes = int(last_value / pes_rate) if pes_rate > 0.001 else days_span * 2
+
+    # Ensure we have enough days for each forecast to reach zero
+    max_days_needed = max(
+        days_span, days_to_zero_avg, days_to_zero_opt, days_to_zero_pes
+    )
+
+    # Create date ranges specific to each rate to ensure they all reach zero
+    dates_avg = [
+        start_date + timedelta(days=i)
+        for i in range(max(days_span, days_to_zero_avg) + 1)
+    ]
+    dates_opt = [
+        start_date + timedelta(days=i)
+        for i in range(max(days_span, days_to_zero_opt) + 1)
+    ]
+    dates_pes = [
+        start_date + timedelta(days=i)
+        for i in range(max(days_span, days_to_zero_pes) + 1)
+    ]
 
     # Calculate decreasing values for each rate
     avg_values = []
     opt_values = []
     pes_values = []
 
-    for i in range(days_span + 1):
-        # Calculate remaining values with linear reduction
+    # Average rate forecast
+    for i in range(len(dates_avg)):
         remaining_avg = max(0, last_value - (avg_rate * i))
-        remaining_opt = max(0, last_value - (opt_rate * i))
-        remaining_pes = max(0, last_value - (pes_rate * i))
-
         avg_values.append(remaining_avg)
+
+    # Optimistic rate forecast
+    for i in range(len(dates_opt)):
+        remaining_opt = max(0, last_value - (opt_rate * i))
         opt_values.append(remaining_opt)
+
+    # Pessimistic rate forecast
+    for i in range(len(dates_pes)):
+        remaining_pes = max(0, last_value - (pes_rate * i))
         pes_values.append(remaining_pes)
 
     return {
-        "avg": (dates, avg_values),
-        "opt": (dates, opt_values),
-        "pes": (dates, pes_values),
+        "avg": (dates_avg, avg_values),
+        "opt": (dates_opt, opt_values),
+        "pes": (dates_pes, pes_values),
     }
