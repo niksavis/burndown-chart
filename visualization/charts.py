@@ -553,48 +553,13 @@ def create_forecast_plot(
             else:
                 df = pd.DataFrame()
 
-        # Ensure numeric types for calculations with explicit conversion and error handling
-        try:
-            total_items = float(total_items) if total_items is not None else 0.0
-        except (ValueError, TypeError):
-            total_items = 0.0
+        # Ensure numeric types for calculations with explicit conversion
+        total_items = _safe_numeric_convert(total_items, default=0.0)
+        total_points = _safe_numeric_convert(total_points, default=0.0)
+        pert_factor = int(_safe_numeric_convert(pert_factor, default=3.0))
 
-        try:
-            total_points = float(total_points) if total_points is not None else 0.0
-        except (ValueError, TypeError):
-            total_points = 0.0
-
-        try:
-            pert_factor = int(pert_factor) if pert_factor is not None else 3
-        except (ValueError, TypeError):
-            pert_factor = 3
-
-        # Ensure proper date format for deadline with robust error handling
-        try:
-            deadline = pd.to_datetime(deadline_str)
-        except (ValueError, TypeError):
-            # Use fallback date 30 days from now if deadline format is invalid
-            deadline = pd.Timestamp.now() + pd.Timedelta(days=30)
-            logging.getLogger("burndown_chart").warning(
-                f"Invalid deadline format: {deadline_str}. Using default."
-            )
-
-        # Parse milestone date if provided
-        milestone = None
-        if milestone_str:
-            try:
-                milestone = pd.to_datetime(milestone_str)
-                # Only reject milestones that are AFTER the deadline, not equal to it
-                if milestone > deadline:
-                    logging.getLogger("burndown_chart").warning(
-                        f"Milestone date {milestone_str} is after deadline {deadline_str}. Ignoring milestone."
-                    )
-                    milestone = None
-            except (ValueError, TypeError):
-                logging.getLogger("burndown_chart").warning(
-                    f"Invalid milestone format: {milestone_str}. Ignoring milestone."
-                )
-                milestone = None
+        # Parse deadline and milestone dates
+        deadline, milestone = _parse_deadline_milestone(deadline_str, milestone_str)
 
         # Prepare all data needed for the visualization
         forecast_data = prepare_visualization_data(
@@ -636,86 +601,49 @@ def create_forecast_plot(
             template="plotly_white",
         )
 
-        # Calculate days to deadline for metrics with proper type handling
+        # Calculate days to deadline for metrics
         current_date = datetime.now()
         days_to_deadline = max(0, (deadline - pd.Timestamp(current_date)).days)
 
-        # Calculate average and median weekly metrics for display
+        # Calculate weekly metrics
         avg_weekly_items, avg_weekly_points, med_weekly_items, med_weekly_points = (
-            0.0,
-            0.0,
-            0.0,
-            0.0,
+            _get_weekly_metrics(df)
         )
-        if not df.empty:
-            # Get all four values from calculate_weekly_averages
-            results = calculate_weekly_averages(df.to_dict("records"))
-            if isinstance(results, (list, tuple)) and len(results) >= 4:
-                (
-                    avg_weekly_items,
-                    avg_weekly_points,
-                    med_weekly_items,
-                    med_weekly_points,
-                ) = results
-
-            # Ensure all are valid float values
-            avg_weekly_items = (
-                float(avg_weekly_items) if avg_weekly_items is not None else 0.0
-            )
-            avg_weekly_points = (
-                float(avg_weekly_points) if avg_weekly_points is not None else 0.0
-            )
-            med_weekly_items = (
-                float(med_weekly_items) if med_weekly_items is not None else 0.0
-            )
-            med_weekly_points = (
-                float(med_weekly_points) if med_weekly_points is not None else 0.0
-            )
 
         # Calculate enhanced formatted strings for PERT estimates
         pert_time_items = forecast_data.get("pert_time_items", 0.0)
         pert_time_points = forecast_data.get("pert_time_points", 0.0)
 
-        # Ensure they are valid numbers
-        if not isinstance(pert_time_items, (int, float)):
-            pert_time_items = 0.0
-        if not isinstance(pert_time_points, (int, float)):
-            pert_time_points = 0.0
+        # Ensure valid numbers for PERT times
+        pert_time_items = _safe_numeric_convert(pert_time_items, default=0.0)
+        pert_time_points = _safe_numeric_convert(pert_time_points, default=0.0)
 
-        # Generate the enhanced formatted strings
-        items_completion_date = current_date + timedelta(days=pert_time_items)
-        points_completion_date = current_date + timedelta(days=pert_time_points)
+        # Get formatted completion date strings
+        items_completion_enhanced, points_completion_enhanced = (
+            _calculate_forecast_completion_dates(pert_time_items, pert_time_points)
+        )
 
-        items_completion_str = items_completion_date.strftime("%Y-%m-%d")
-        points_completion_str = points_completion_date.strftime("%Y-%m-%d")
+        # Prepare metrics data for display
+        metrics_data = _prepare_metrics_data(
+            total_items,
+            total_points,
+            deadline,
+            pert_time_items,
+            pert_time_points,
+            data_points_count,
+            df,
+            items_completion_enhanced,
+            points_completion_enhanced,
+            avg_weekly_items,
+            avg_weekly_points,
+            med_weekly_items,
+            med_weekly_points,
+        )
 
-        items_completion_enhanced = f"{items_completion_str} ({pert_time_items:.1f} days, {pert_time_items / 7:.1f} weeks)"
-        points_completion_enhanced = f"{points_completion_str} ({pert_time_points:.1f} days, {pert_time_points / 7:.1f} weeks)"
-
-        # Add metrics data to the plot
-        metrics_data = {
-            "total_items": total_items,
-            "total_points": total_points,
-            "deadline": deadline.strftime("%Y-%m-%d"),
-            "days_to_deadline": days_to_deadline,
-            "pert_time_items": pert_time_items,
-            "pert_time_points": pert_time_points,
-            "avg_weekly_items": avg_weekly_items,
-            "avg_weekly_points": avg_weekly_points,
-            "med_weekly_items": med_weekly_items,
-            "med_weekly_points": med_weekly_points,
-            "data_points_used": int(data_points_count)
-            if data_points_count is not None
-            and isinstance(data_points_count, (int, float))
-            else (len(df) if hasattr(df, "__len__") else 0),
-            "data_points_available": len(df) if hasattr(df, "__len__") else 0,
-            "items_completion_enhanced": items_completion_enhanced,
-            "points_completion_enhanced": points_completion_enhanced,
-        }
-
+        # Add metrics annotations
         fig = add_metrics_annotations(fig, metrics_data)
 
-        # Create a complete PERT data dictionary with explicit type conversion to ensure consistent data types
+        # Create a complete PERT data dictionary with explicit type conversion
         pert_data = {
             "pert_time_items": float(pert_time_items),
             "pert_time_points": float(pert_time_points),
@@ -729,84 +657,195 @@ def create_forecast_plot(
             "forecast_timestamp": datetime.now().isoformat(),
         }
 
-        # Always return the proper Python dict directly, never convert to string or other format
         return fig, pert_data
 
     except Exception as e:
-        # Comprehensive error handling with full stack trace
-        error_trace = traceback.format_exc()
-        logger = logging.getLogger("burndown_chart")
-        logger.error(f"Error in create_forecast_plot: {str(e)}\n{error_trace}")
+        return _handle_forecast_error(e)
 
-        # Create an empty figure with detailed error message
-        fig = go.Figure()
-        fig.add_annotation(
-            text=f"Error in forecast plot generation:<br>{str(e)}",
-            xref="paper",
-            yref="paper",
-            x=0.5,
-            y=0.5,
-            showarrow=False,
-            font=dict(size=14, color="red"),
+
+def _safe_numeric_convert(value, default=0.0):
+    """
+    Safely convert a value to a float with error handling.
+
+    Args:
+        value: Value to convert
+        default: Default value if conversion fails
+
+    Returns:
+        Converted float value
+    """
+    try:
+        return float(value) if value is not None else default
+    except (ValueError, TypeError):
+        return default
+
+
+def _parse_deadline_milestone(deadline_str, milestone_str=None):
+    """
+    Parse deadline and optional milestone dates.
+
+    Args:
+        deadline_str: Deadline date string (YYYY-MM-DD)
+        milestone_str: Optional milestone date string (YYYY-MM-DD)
+
+    Returns:
+        Tuple of (deadline, milestone) as datetime objects
+    """
+    # Parse deadline with error handling
+    try:
+        deadline = pd.to_datetime(deadline_str)
+    except (ValueError, TypeError):
+        # Use fallback date 30 days from now if deadline format is invalid
+        deadline = pd.Timestamp.now() + pd.Timedelta(days=30)
+        logging.getLogger("burndown_chart").warning(
+            f"Invalid deadline format: {deadline_str}. Using default."
         )
 
-        # Add button to show/hide detailed error info
-        fig.update_layout(
-            updatemenus=[
-                dict(
-                    type="buttons",
-                    direction="right",
-                    x=0.5,
-                    y=0.4,
-                    xanchor="center",
-                    yanchor="top",
-                    buttons=[
-                        dict(
-                            label="Show Error Details",
-                            method="update",
-                            args=[
-                                {},
-                                {
-                                    "annotations": [
-                                        {
-                                            "text": f"Error in forecast plot generation:<br>{str(e)}<br><br>Stack trace (for developers):<br>{error_trace.replace(chr(10), '<br>')}",
-                                            "xref": "paper",
-                                            "yref": "paper",
-                                            "x": 0.5,
-                                            "y": 0.5,
-                                            "showarrow": False,
-                                            "font": dict(size=12, color="red"),
-                                            "align": "left",
-                                            "bgcolor": "rgba(255, 255, 255, 0.9)",
-                                            "bordercolor": "red",
-                                            "borderwidth": 1,
-                                            "borderpad": 4,
-                                        }
-                                    ]
-                                },
-                            ],
-                        )
-                    ],
+    # Parse milestone date if provided
+    milestone = None
+    if milestone_str:
+        try:
+            milestone = pd.to_datetime(milestone_str)
+            # Only reject milestones that are AFTER the deadline, not equal to it
+            if milestone > deadline:
+                logging.getLogger("burndown_chart").warning(
+                    f"Milestone date {milestone_str} is after deadline {deadline_str}. Ignoring milestone."
                 )
-            ]
+                milestone = None
+        except (ValueError, TypeError):
+            logging.getLogger("burndown_chart").warning(
+                f"Invalid milestone format: {milestone_str}. Ignoring milestone."
+            )
+
+    return deadline, milestone
+
+
+def _get_weekly_metrics(df):
+    """
+    Calculate weekly metrics from the data frame.
+
+    Args:
+        df: DataFrame with historical data
+
+    Returns:
+        Tuple of (avg_weekly_items, avg_weekly_points, med_weekly_items, med_weekly_points)
+    """
+    avg_weekly_items, avg_weekly_points, med_weekly_items, med_weekly_points = (
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+    )
+
+    if not df.empty:
+        # Get all four values from calculate_weekly_averages
+        results = calculate_weekly_averages(df.to_dict("records"))
+        if isinstance(results, (list, tuple)) and len(results) >= 4:
+            avg_weekly_items, avg_weekly_points, med_weekly_items, med_weekly_points = (
+                results
+            )
+
+        # Ensure all are valid float values
+        avg_weekly_items = float(
+            avg_weekly_items if avg_weekly_items is not None else 0.0
+        )
+        avg_weekly_points = float(
+            avg_weekly_points if avg_weekly_points is not None else 0.0
+        )
+        med_weekly_items = float(
+            med_weekly_items if med_weekly_items is not None else 0.0
+        )
+        med_weekly_points = float(
+            med_weekly_points if med_weekly_points is not None else 0.0
         )
 
-        # Return safe fallback values with consistent types
-        safe_pert_data = {
-            "pert_time_items": 0.0,
-            "pert_time_points": 0.0,
-            "items_completion_enhanced": "Error in calculation",
-            "points_completion_enhanced": "Error in calculation",
-            "days_to_deadline": 0,
-            "avg_weekly_items": 0.0,
-            "avg_weekly_points": 0.0,
-            "med_weekly_items": 0.0,
-            "med_weekly_points": 0.0,
-            "error": str(e),
-            "forecast_timestamp": datetime.now().isoformat(),
-        }
+    return avg_weekly_items, avg_weekly_points, med_weekly_items, med_weekly_points
 
-        return fig, safe_pert_data
+
+def _handle_forecast_error(e):
+    """
+    Handle exceptions in forecast plot creation with detailed error reporting.
+
+    Args:
+        e: Exception that occurred
+
+    Returns:
+        Tuple of (error_figure, safe_data_dict)
+    """
+    # Get full stack trace
+    error_trace = traceback.format_exc()
+    logger = logging.getLogger("burndown_chart")
+    logger.error(f"Error in create_forecast_plot: {str(e)}\n{error_trace}")
+
+    # Create an empty figure with detailed error message
+    fig = go.Figure()
+    fig.add_annotation(
+        text=f"Error in forecast plot generation:<br>{str(e)}",
+        xref="paper",
+        yref="paper",
+        x=0.5,
+        y=0.5,
+        showarrow=False,
+        font=dict(size=14, color="red"),
+    )
+
+    # Add button to show/hide detailed error info
+    fig.update_layout(
+        updatemenus=[
+            dict(
+                type="buttons",
+                direction="right",
+                x=0.5,
+                y=0.4,
+                xanchor="center",
+                yanchor="top",
+                buttons=[
+                    dict(
+                        label="Show Error Details",
+                        method="update",
+                        args=[
+                            {},
+                            {
+                                "annotations": [
+                                    {
+                                        "text": f"Error in forecast plot generation:<br>{str(e)}<br><br>Stack trace (for developers):<br>{error_trace.replace(chr(10), '<br>')}",
+                                        "xref": "paper",
+                                        "yref": "paper",
+                                        "x": 0.5,
+                                        "y": 0.5,
+                                        "showarrow": False,
+                                        "font": dict(size=12, color="red"),
+                                        "align": "left",
+                                        "bgcolor": "rgba(255, 255, 255, 0.9)",
+                                        "bordercolor": "red",
+                                        "borderwidth": 1,
+                                        "borderpad": 4,
+                                    }
+                                ]
+                            },
+                        ],
+                    )
+                ],
+            )
+        ]
+    )
+
+    # Return safe fallback values with consistent types
+    safe_pert_data = {
+        "pert_time_items": 0.0,
+        "pert_time_points": 0.0,
+        "items_completion_enhanced": "Error in calculation",
+        "points_completion_enhanced": "Error in calculation",
+        "days_to_deadline": 0,
+        "avg_weekly_items": 0.0,
+        "avg_weekly_points": 0.0,
+        "med_weekly_items": 0.0,
+        "med_weekly_points": 0.0,
+        "error": str(e),
+        "forecast_timestamp": datetime.now().isoformat(),
+    }
+
+    return fig, safe_pert_data
 
 
 def create_weekly_items_chart(
@@ -3246,4 +3285,110 @@ def generate_burndown_forecast(
         "avg": (dates_avg, avg_values),
         "opt": (dates_opt, opt_values),
         "pes": (dates_pes, pes_values),
+    }
+
+
+def _create_forecast_axes_titles(fig, forecast_data):
+    """
+    Configure the axis titles for the forecast plot.
+
+    Args:
+        fig: Plotly figure object
+        forecast_data: Dictionary with forecast data
+
+    Returns:
+        Updated figure with configured axis titles
+    """
+    # Configure x-axis title
+    fig.update_xaxes(
+        title={"text": "Date", "font": {"size": 16}},
+    )
+
+    # Configure primary y-axis (items) title
+    fig.update_yaxes(
+        title={"text": "Remaining Items", "font": {"size": 16}},
+        secondary_y=False,
+    )
+
+    # Configure secondary y-axis (points) title
+    fig.update_yaxes(
+        title={"text": "Remaining Points", "font": {"size": 16}},
+        secondary_y=True,
+    )
+
+    return fig
+
+
+def _calculate_forecast_completion_dates(pert_time_items, pert_time_points):
+    """
+    Calculate formatted completion dates based on PERT estimates.
+
+    Args:
+        pert_time_items: PERT time estimate for items in days
+        pert_time_points: PERT time estimate for points in days
+
+    Returns:
+        Tuple of (items_completion_enhanced, points_completion_enhanced) strings
+    """
+    current_date = datetime.now()
+
+    # Generate the enhanced formatted strings
+    items_completion_date = current_date + timedelta(days=pert_time_items)
+    points_completion_date = current_date + timedelta(days=pert_time_points)
+
+    items_completion_str = items_completion_date.strftime("%Y-%m-%d")
+    points_completion_str = points_completion_date.strftime("%Y-%m-%d")
+
+    items_completion_enhanced = f"{items_completion_str} ({pert_time_items:.1f} days, {pert_time_items / 7:.1f} weeks)"
+    points_completion_enhanced = f"{points_completion_str} ({pert_time_points:.1f} days, {pert_time_points / 7:.1f} weeks)"
+
+    return items_completion_enhanced, points_completion_enhanced
+
+
+def _prepare_metrics_data(
+    total_items,
+    total_points,
+    deadline,
+    pert_time_items,
+    pert_time_points,
+    data_points_count,
+    df,
+    items_completion_enhanced,
+    points_completion_enhanced,
+    avg_weekly_items=0,
+    avg_weekly_points=0,
+    med_weekly_items=0,
+    med_weekly_points=0,
+):
+    """
+    Prepare metrics data for display in the forecast plot.
+
+    Args:
+        Various metric parameters
+
+    Returns:
+        Dictionary with metrics data
+    """
+    # Calculate days to deadline
+    current_date = datetime.now()
+    days_to_deadline = max(0, (deadline - pd.Timestamp(current_date)).days)
+
+    # Create metrics data dictionary
+    return {
+        "total_items": total_items,
+        "total_points": total_points,
+        "deadline": deadline.strftime("%Y-%m-%d"),
+        "days_to_deadline": days_to_deadline,
+        "pert_time_items": pert_time_items,
+        "pert_time_points": pert_time_points,
+        "avg_weekly_items": avg_weekly_items,
+        "avg_weekly_points": avg_weekly_points,
+        "med_weekly_items": med_weekly_items,
+        "med_weekly_points": med_weekly_points,
+        "data_points_used": int(data_points_count)
+        if data_points_count is not None and isinstance(data_points_count, (int, float))
+        else (len(df) if hasattr(df, "__len__") else 0),
+        "data_points_available": len(df) if hasattr(df, "__len__") else 0,
+        "items_completion_enhanced": items_completion_enhanced,
+        "points_completion_enhanced": points_completion_enhanced,
     }

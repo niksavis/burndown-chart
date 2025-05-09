@@ -14,14 +14,20 @@ from datetime import datetime, timedelta
 # Third-party library imports
 import pandas as pd
 
+# Application imports
+from caching import memoize
+
 #######################################################################
 # DATA PROCESSING FUNCTIONS
 #######################################################################
 
 
 def calculate_total_points(
-    total_items, estimated_items, estimated_points, statistics_data=None
-):
+    total_items: float,
+    estimated_items: float,
+    estimated_points: float,
+    statistics_data: list[dict] | None = None,
+) -> tuple[float, float]:
     """
     Calculate the total points based on estimated points and items.
 
@@ -67,7 +73,7 @@ def calculate_total_points(
     return estimated_total_points, avg_points_per_item
 
 
-def read_and_clean_data(df):
+def read_and_clean_data(df: pd.DataFrame) -> pd.DataFrame:
     """
     Clean and prepare the input dataframe for analysis.
 
@@ -88,7 +94,9 @@ def read_and_clean_data(df):
     return df
 
 
-def compute_cumulative_values(df, total_items, total_points):
+def compute_cumulative_values(
+    df: pd.DataFrame, total_items: float, total_points: float
+) -> pd.DataFrame:
     """
     Compute cumulative values for items and points for burndown tracking.
 
@@ -128,7 +136,7 @@ def compute_cumulative_values(df, total_items, total_points):
     return df
 
 
-def compute_weekly_throughput(df):
+def compute_weekly_throughput(df: pd.DataFrame) -> pd.DataFrame:
     """
     Aggregate daily data to weekly throughput for more stable calculations.
 
@@ -152,7 +160,10 @@ def compute_weekly_throughput(df):
     return grouped
 
 
-def calculate_rates(grouped, total_items, total_points, pert_factor):
+@memoize(max_age_seconds=300)
+def calculate_rates(
+    grouped: pd.DataFrame, total_items: float, total_points: float, pert_factor: int
+) -> tuple[float, float, float, float, float, float]:
     """
     Calculate burn rates using PERT methodology.
 
@@ -273,7 +284,9 @@ def calculate_rates(grouped, total_items, total_points, pert_factor):
     )
 
 
-def daily_forecast(start_val, daily_rate, start_date):
+def daily_forecast(
+    start_val: float, daily_rate: float, start_date: datetime
+) -> tuple[list[datetime], list[float]]:
     """
     Generate daily forecast values from start to completion.
 
@@ -346,7 +359,9 @@ def daily_forecast(start_val, daily_rate, start_date):
     return x_vals, y_vals
 
 
-def daily_forecast_burnup(start_val, daily_rate, start_date, target_val):
+def daily_forecast_burnup(
+    start_val: float, daily_rate: float, start_date: datetime, target_val: float
+) -> tuple[list[datetime], list[float]]:
     """
     Generate daily forecast values from start to target value (for burnup charts).
 
@@ -427,7 +442,9 @@ def daily_forecast_burnup(start_val, daily_rate, start_date, target_val):
     return x_vals, y_vals
 
 
-def calculate_weekly_averages(statistics_data):
+def calculate_weekly_averages(
+    statistics_data: list[dict] | pd.DataFrame,
+) -> tuple[float, float, float, float]:
     """
     Calculate average and median weekly items and points for the last 10 weeks.
 
@@ -495,7 +512,12 @@ def calculate_weekly_averages(statistics_data):
     )
 
 
-def generate_weekly_forecast(statistics_data, pert_factor=3, forecast_weeks=1):
+@memoize(max_age_seconds=300)
+def generate_weekly_forecast(
+    statistics_data: list[dict] | pd.DataFrame,
+    pert_factor: int = 3,
+    forecast_weeks: int = 1,
+) -> dict:
     """
     Generate a weekly forecast for items and points per week using PERT methodology.
 
@@ -670,8 +692,10 @@ def generate_weekly_forecast(statistics_data, pert_factor=3, forecast_weeks=1):
 
 
 def calculate_performance_trend(
-    statistics_data, metric="completed_items", weeks_to_compare=4
-):
+    statistics_data: list[dict] | pd.DataFrame,
+    metric: str = "completed_items",
+    weeks_to_compare: int = 4,
+) -> dict:
     """
     Calculate performance trend indicators based on historical data.
 
@@ -785,8 +809,18 @@ def calculate_performance_trend(
     }
 
 
-def process_statistics_data(data, settings):
-    """Process statistics data for visualization and analysis."""
+def process_statistics_data(
+    data: list[dict] | pd.DataFrame, settings: dict
+) -> pd.DataFrame:
+    """Process statistics data for visualization and analysis.
+
+    Args:
+        data: Statistics data as list of dictionaries or DataFrame
+        settings: Dictionary with project settings including baseline
+
+    Returns:
+        DataFrame with processed statistics data including cumulative values
+    """
     # Convert data to DataFrame if not already
     if isinstance(data, list):
         if not data:  # Empty list
@@ -844,8 +878,15 @@ def process_statistics_data(data, settings):
     return df
 
 
-def establish_baseline(statistics_data):
-    """Establish a baseline from initial scope."""
+def establish_baseline(statistics_data: dict | None) -> dict:
+    """Establish a baseline from initial scope.
+
+    Args:
+        statistics_data: Dictionary containing statistics data and baseline info
+
+    Returns:
+        Dictionary with baseline items, points, and date
+    """
     if not statistics_data or not statistics_data.get("data"):
         return {"items": 0, "points": 0, "date": datetime.now().strftime("%Y-%m-%d")}
 
