@@ -17,9 +17,6 @@ from datetime import datetime, timedelta
 import pandas as pd
 import plotly.graph_objects as go
 
-# Application imports
-from ui.tooltip_utils import create_hoverlabel_config, format_hover_template
-
 #######################################################################
 # TYPE CONVERSION AND VALIDATION HELPERS
 #######################################################################
@@ -253,9 +250,7 @@ def generate_burndown_forecast(
     days_to_zero_pes = int(last_value / pes_rate) if pes_rate > 0.001 else days_span * 2
 
     # Ensure we have enough days for each forecast to reach zero
-    max_days_needed = max(
-        days_span, days_to_zero_avg, days_to_zero_opt, days_to_zero_pes
-    )
+    max(days_span, days_to_zero_avg, days_to_zero_opt, days_to_zero_pes)
 
     # Create date ranges specific to each rate to ensure they all reach zero
     dates_avg = [

@@ -4,12 +4,9 @@ Unit tests specifically for the hashable conversion functions in the caching mod
 
 import pytest
 import pandas as pd
-import numpy as np
-import hashlib
-import json
 from unittest.mock import patch
 
-from caching import _make_hashable, clear_cache
+from caching import _make_hashable
 
 
 @pytest.fixture
@@ -48,8 +45,8 @@ def test_make_hashable_with_primitives():
     assert _make_hashable(5) == 5
     assert _make_hashable("string") == "string"
     assert _make_hashable(3.14) == 3.14
-    assert _make_hashable(True) == True
-    assert _make_hashable(None) == None
+    assert _make_hashable(True) is True
+    assert _make_hashable(None) is None
     assert _make_hashable((1, 2, 3)) == (1, 2, 3)
 
 

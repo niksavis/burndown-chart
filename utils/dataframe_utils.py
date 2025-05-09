@@ -11,11 +11,10 @@ across the application.
 # Standard library imports
 import hashlib
 import logging
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Union
 
 # Third-party library imports
 import pandas as pd
-import numpy as np
 
 #######################################################################
 # LOGGING

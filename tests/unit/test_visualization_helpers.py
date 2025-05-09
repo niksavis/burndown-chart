@@ -5,7 +5,7 @@ Unit tests for the visualization helpers module.
 import pytest
 import pandas as pd
 from datetime import datetime
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 from visualization.helpers import prepare_visualization_data
 

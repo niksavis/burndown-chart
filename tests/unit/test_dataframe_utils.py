@@ -4,8 +4,7 @@ Unit tests for DataFrame utilities module.
 
 import pytest
 import pandas as pd
-import numpy as np
-from unittest.mock import patch, Mock
+from unittest.mock import patch
 
 from utils.dataframe_utils import (
     df_to_dict,
