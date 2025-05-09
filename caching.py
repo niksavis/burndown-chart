@@ -18,7 +18,6 @@ from typing import (
     Any,
     Callable,
     Dict,
-    List,
     Tuple,
     TypeVar,
     cast,
