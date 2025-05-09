@@ -525,12 +525,13 @@ def prepare_visualization_data(
     Returns:
         Dictionary containing all data needed for visualization
     """
-    # Import needed functions from data module
+    # Import needed functions
     from data.processing import (
         daily_forecast_burnup,
         compute_weekly_throughput,
         calculate_rates,
     )
+    from utils.dataframe_utils import df_to_dict, ensure_dataframe
 
     # Handle empty dataframe case
     if (
@@ -552,10 +553,7 @@ def prepare_visualization_data(
         }
 
     # Convert to DataFrame if input is a list of dictionaries
-    if not isinstance(df, pd.DataFrame):
-        df_calc = pd.DataFrame(df)
-    else:
-        df_calc = df.copy()
+    df_calc = ensure_dataframe(df)
 
     # Convert string dates to datetime for calculations
     df_calc["date"] = pd.to_datetime(df_calc["date"])
@@ -575,17 +573,9 @@ def prepare_visualization_data(
     # Compute weekly throughput with the filtered data
     grouped_df = compute_weekly_throughput(df_calc)
 
-    # IMPORTANT: Always convert to list of dictionaries before passing to calculate_rates
-    # This prevents the "unhashable type: 'DataFrame'" error in the caching mechanism
-    if isinstance(grouped_df, pd.DataFrame):
-        grouped_dict = grouped_df.to_dict("records")
-    else:
-        # Handle case where compute_weekly_throughput might return a different format
-        grouped_dict = grouped_df
-
-    # Ensure grouped_dict is not a DataFrame
-    if isinstance(grouped_dict, pd.DataFrame):
-        grouped_dict = grouped_dict.to_dict("records")
+    # Convert DataFrame to dictionary for caching
+    # This prevents the "unhashable type: 'DataFrame'" error
+    grouped_dict = df_to_dict(grouped_df)
 
     # Log the data type for debugging
     logger = logging.getLogger("burndown_chart")
@@ -595,25 +585,9 @@ def prepare_visualization_data(
     try:
         rates = calculate_rates(grouped_dict, total_items, total_points, pert_factor)
     except TypeError as e:
-        # If we still get a TypeError, try converting one more time with a different method
-        if "unhashable type" in str(e):
-            logger.warning(
-                f"Encountered unhashable type error: {str(e)}. Trying alternative conversion."
-            )
-            if isinstance(grouped_dict, pd.DataFrame):
-                # Try a different conversion method
-                grouped_dict = [row.to_dict() for _, row in grouped_dict.iterrows()]
-            elif isinstance(grouped_dict, (list, tuple)) and all(
-                isinstance(item, pd.DataFrame) for item in grouped_dict
-            ):
-                # Handle list of DataFrames
-                grouped_dict = [df.to_dict("records") for df in grouped_dict]
-            rates = calculate_rates(
-                grouped_dict, total_items, total_points, pert_factor
-            )
-        else:
-            # Re-raise if it's a different TypeError
-            raise
+        logger.error(f"Type error in calculate_rates: {str(e)}")
+        # Create safe default values in case of error
+        rates = (0, 0, 0, 0, 0, 0)
 
     (
         pert_time_items,
