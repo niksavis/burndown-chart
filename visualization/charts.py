@@ -2407,6 +2407,14 @@ def create_burnup_chart(
         logger.info(f"Burnup chart - Final scope points: {final_scope_points}")
 
         # Ensure we have valid scope values - if scope is zero, forecasts won't show
+        if final_scope_items <= 0:
+            final_scope_items = max(
+                10, completed_items_total * 1.5
+            )  # Set a reasonable fallback
+            logger.warning(
+                f"Final scope items was zero or negative, using fallback value: {final_scope_items}"
+            )
+
         if final_scope_points <= 0:
             final_scope_points = max(
                 10, completed_points_total * 1.5
@@ -2431,29 +2439,38 @@ def create_burnup_chart(
         items_forecasts = forecast_data["items_forecasts"]
         points_forecasts = forecast_data["points_forecasts"]
 
-        # Check if we have valid forecast data
-        has_items_forecast = all(
-            len(items_forecasts[key][0]) > 0 for key in ["avg", "opt", "pes"]
-        )
-        has_points_forecast = all(
-            len(points_forecasts[key][0]) > 0 for key in ["avg", "opt", "pes"]
-        )
+        # Check if we have valid forecast data and log it consistently for both items and points
+        def validate_forecast_data(forecast_data, forecast_type):
+            """Helper function to validate forecast data and log issues"""
+            is_valid = True
+            for key in ["avg", "opt", "pes"]:
+                if not (
+                    forecast_data
+                    and forecast_data[key]
+                    and len(forecast_data[key]) >= 2
+                    and len(forecast_data[key][0]) > 0
+                    and len(forecast_data[key][1]) > 0
+                ):
+                    logger.warning(
+                        f"{forecast_type} forecast '{key}' data is invalid or empty"
+                    )
+                    is_valid = False
+                else:
+                    logger.info(
+                        f"{forecast_type} forecast '{key}' data length: {len(forecast_data[key][0])}"
+                    )
+                    if len(forecast_data[key][0]) > 0:
+                        logger.info(
+                            f"First few values: {forecast_data[key][1][:3] if len(forecast_data[key][1]) > 3 else forecast_data[key][1]}"
+                        )
+            return is_valid
+
+        # Check and log forecast data for both items and points
+        has_items_forecast = validate_forecast_data(items_forecasts, "Items")
+        has_points_forecast = validate_forecast_data(points_forecasts, "Points")
 
         logger.info(f"Burnup chart - Has items forecast data: {has_items_forecast}")
         logger.info(f"Burnup chart - Has points forecast data: {has_points_forecast}")
-
-        if not has_points_forecast:
-            logger.warning(
-                "Points forecast data is empty or invalid - checking forecast data structure:"
-            )
-            for key in ["avg", "opt", "pes"]:
-                logger.warning(
-                    f"Points forecast '{key}' data length: {len(points_forecasts[key][0])}"
-                )
-                if len(points_forecasts[key][0]) > 0:
-                    logger.warning(
-                        f"First few values: {points_forecasts[key][1][:3] if len(points_forecasts[key][1]) > 3 else points_forecasts[key][1]}"
-                    )
 
         # Create traces for completed work
         completed_items_trace = go.Scatter(
@@ -2553,110 +2570,119 @@ def create_burnup_chart(
             hoverlabel=create_hoverlabel_config("default"),
         )
 
-        # Add PERT forecast traces for items if available and forecast should be shown
-        if has_items_forecast and show_forecast:
-            # Items forecast - Most likely
-            fig.add_trace(
-                go.Scatter(
-                    x=items_forecasts["avg"][0],
-                    y=items_forecasts["avg"][1],
-                    mode="lines+markers",
-                    name="Items Forecast (Most Likely)",  # Renamed for consistency with burndown chart
-                    line=dict(color=COLOR_PALETTE["items"], dash="dash", width=3),
-                    marker=dict(
-                        size=8,
-                        symbol="diamond",
-                        color=COLOR_PALETTE["items"],
-                        line=dict(color="white", width=1),
-                    ),
-                    hovertemplate=format_hover_template(
-                        title="Items Forecast",
-                        fields={
-                            "Date": "%{x|%Y-%m-%d}",
-                            "Items": "%{y:.1f}",
-                            "Type": "Most Likely",
-                        },
-                    ),
-                    hoverlabel=create_hoverlabel_config("info"),
-                    visible=True,
-                ),
-                secondary_y=False,
-            )
-
-            # Items forecast - Optimistic (dotted line)
-            fig.add_trace(
-                go.Scatter(
-                    x=items_forecasts["opt"][0],
-                    y=items_forecasts["opt"][1],
-                    mode="lines+markers",  # Added markers for consistency with burndown chart
-                    name="Items Forecast (Optimistic)",  # Renamed for consistency with burndown chart
-                    line=dict(color=COLOR_PALETTE["optimistic"], dash="dot", width=2.5),
-                    marker=dict(
-                        size=7,
-                        symbol="triangle-up",
-                        color=COLOR_PALETTE["optimistic"],
-                        line=dict(color="white", width=1),
-                    ),
-                    hovertemplate=format_hover_template(
-                        title="Items Forecast",
-                        fields={
-                            "Date": "%{x|%Y-%m-%d}",
-                            "Items": "%{y:.1f}",
-                            "Type": "Optimistic",
-                        },
-                    ),
-                    hoverlabel=create_hoverlabel_config("success"),
-                    visible=True,
-                ),
-                secondary_y=False,
-            )
-
-            # Items forecast - Pessimistic (dotted line)
-            fig.add_trace(
-                go.Scatter(
-                    x=items_forecasts["pes"][0],
-                    y=items_forecasts["pes"][1],
-                    mode="lines+markers",  # Added markers for consistency with burndown chart
-                    name="Items Forecast (Pessimistic)",  # Renamed for consistency with burndown chart
-                    line=dict(
-                        color=COLOR_PALETTE["pessimistic"], dash="dot", width=2.5
-                    ),
-                    marker=dict(
-                        size=7,
-                        symbol="triangle-down",
-                        color=COLOR_PALETTE["pessimistic"],
-                        line=dict(color="white", width=1),
-                    ),
-                    hovertemplate=format_hover_template(
-                        title="Items Forecast",
-                        fields={
-                            "Date": "%{x|%Y-%m-%d}",
-                            "Items": "%{y:.1f}",
-                            "Type": "Pessimistic",
-                        },
-                    ),
-                    hoverlabel=create_hoverlabel_config("warning"),
-                    visible=True,
-                ),
-                secondary_y=False,
-            )
-
-        # Add PERT forecast traces for points if available and forecast should be shown
+        # Add forecasts to the chart if show_forecast is True
         if show_forecast:
-            # Check and log points forecast data
-            # Points forecast tracing issues - ensure we have valid data for each forecast
-            for key in ["avg", "opt", "pes"]:
+            # Add PERT forecast traces for items if available
+            def add_forecast_trace(
+                fig,
+                forecast_data,
+                key,
+                forecast_type,
+                color,
+                dash_style,
+                symbol,
+                name,
+                hover_type,
+                hover_style,
+                secondary_y,
+            ):
+                """Helper function to add forecast traces with error handling"""
                 if not (
-                    points_forecasts
-                    and points_forecasts[key]
-                    and len(points_forecasts[key]) >= 2
-                    and len(points_forecasts[key][0]) > 0
-                    and len(points_forecasts[key][1]) > 0
+                    forecast_data
+                    and forecast_data[key]
+                    and len(forecast_data[key]) >= 2
+                    and len(forecast_data[key][0]) > 0
+                    and len(forecast_data[key][1]) > 0
                 ):
-                    logger.warning(f"Invalid points forecast data for '{key}'")
-                    continue
+                    logger.warning(
+                        f"Cannot add {forecast_type} {key} forecast trace - invalid data"
+                    )
+                    return
 
-                # Points forecast - dynamically create based on key
+                fig.add_trace(
+                    go.Scatter(
+                        x=forecast_data[key][0],
+                        y=forecast_data[key][1],
+                        mode="lines+markers",
+                        name=name,
+                        line=dict(
+                            color=color,
+                            dash=dash_style,
+                            width=3 if key == "avg" else 2.5,
+                        ),
+                        marker=dict(
+                            size=8 if key == "avg" else 7,
+                            symbol=symbol,
+                            color=color,
+                            line=dict(color="white", width=1),
+                        ),
+                        hovertemplate=format_hover_template(
+                            title=f"{forecast_type} Forecast",
+                            fields={
+                                "Date": "%{x|%Y-%m-%d}",
+                                forecast_type: "%{y:.1f}",
+                                "Type": hover_type,
+                            },
+                        ),
+                        hoverlabel=create_hoverlabel_config(hover_style),
+                        visible=True,
+                    ),
+                    secondary_y=secondary_y,
+                )
+
+            # Items forecasts
+            for key in ["avg", "opt", "pes"]:
+                color = (
+                    COLOR_PALETTE["items"]
+                    if key == "avg"
+                    else (
+                        COLOR_PALETTE["optimistic"]
+                        if key == "opt"
+                        else COLOR_PALETTE["pessimistic"]
+                    )
+                )
+                dash_style = "dash" if key == "avg" else "dot"
+                symbol = (
+                    "diamond"
+                    if key == "avg"
+                    else ("triangle-up" if key == "opt" else "triangle-down")
+                )
+                name = (
+                    "Items Forecast (Most Likely)"
+                    if key == "avg"
+                    else (
+                        "Items Forecast (Optimistic)"
+                        if key == "opt"
+                        else "Items Forecast (Pessimistic)"
+                    )
+                )
+                hover_type = (
+                    "Most Likely"
+                    if key == "avg"
+                    else ("Optimistic" if key == "opt" else "Pessimistic")
+                )
+                hover_style = (
+                    "info"
+                    if key == "avg"
+                    else ("success" if key == "opt" else "warning")
+                )
+
+                add_forecast_trace(
+                    fig,
+                    items_forecasts,
+                    key,
+                    "Items",
+                    color,
+                    dash_style,
+                    symbol,
+                    name,
+                    hover_type,
+                    hover_style,
+                    False,  # Items are on primary y-axis
+                )
+
+            # Points forecasts
+            for key in ["avg", "opt", "pes"]:
                 color = (
                     COLOR_PALETTE["points"]
                     if key == "avg"
@@ -2668,7 +2694,7 @@ def create_burnup_chart(
                     if key == "avg"
                     else ("triangle-up" if key == "opt" else "triangle-down")
                 )
-                forecast_name = (
+                name = (
                     "Points Forecast (Most Likely)"
                     if key == "avg"
                     else (
@@ -2688,35 +2714,18 @@ def create_burnup_chart(
                     else ("success" if key == "opt" else "warning")
                 )
 
-                fig.add_trace(
-                    go.Scatter(
-                        x=points_forecasts[key][0],
-                        y=points_forecasts[key][1],
-                        mode="lines+markers",
-                        name=forecast_name,
-                        line=dict(
-                            color=color,
-                            dash=dash_style,
-                            width=3 if key == "avg" else 2.5,
-                        ),
-                        marker=dict(
-                            size=8 if key == "avg" else 7,
-                            symbol=symbol,
-                            color=color,
-                            line=dict(color="white", width=1),
-                        ),
-                        hovertemplate=format_hover_template(
-                            title="Points Forecast",
-                            fields={
-                                "Date": "%{x|%Y-%m-%d}",
-                                "Points": "%{y:.1f}",
-                                "Type": hover_type,
-                            },
-                        ),
-                        hoverlabel=create_hoverlabel_config(hover_style),
-                        visible=True,
-                    ),
-                    secondary_y=True,
+                add_forecast_trace(
+                    fig,
+                    points_forecasts,
+                    key,
+                    "Points",
+                    color,
+                    dash_style,
+                    symbol,
+                    name,
+                    hover_type,
+                    hover_style,
+                    True,  # Points are on secondary y-axis
                 )
 
         # Add traces to figure - all visible by default
@@ -2758,13 +2767,22 @@ def create_burnup_chart(
         max_points_val = max(
             df["cum_scope_points"].max() if not df.empty else 0,
             safe_max(points_forecasts["avg"][1])
-            if points_forecasts and len(points_forecasts["avg"]) > 1
+            if points_forecasts
+            and "avg" in points_forecasts
+            and len(points_forecasts["avg"]) > 1
+            and points_forecasts["avg"][1]
             else 0,
             safe_max(points_forecasts["opt"][1])
-            if points_forecasts and len(points_forecasts["opt"]) > 1
+            if points_forecasts
+            and "opt" in points_forecasts
+            and len(points_forecasts["opt"]) > 1
+            and points_forecasts["opt"][1]
             else 0,
             safe_max(points_forecasts["pes"][1])
-            if points_forecasts and len(points_forecasts["pes"]) > 1
+            if points_forecasts
+            and "pes" in points_forecasts
+            and len(points_forecasts["pes"]) > 1
+            and points_forecasts["pes"][1]
             else 0,
         )
 
@@ -3082,7 +3100,7 @@ def prepare_visualization_data(
         and len(df_calc) > data_points_count
     ):
         # Get the most recent data_points_count rows
-        df_calc = df_calc.iloc[-data_points_count:]
+        df_calc = df.iloc[-data_points_count:]
 
     # Compute weekly throughput and rates with the filtered data
     grouped = compute_weekly_throughput(df_calc)
