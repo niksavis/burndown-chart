@@ -2312,8 +2312,12 @@ def create_burnup_chart(
                 )
                 milestone = None
 
-        # Create subplot with secondary y-axis
-        fig = make_subplots(specs=[[{"secondary_y": True}]])
+        # Create a single figure with subplots - force exact alignment with proper options
+        fig = make_subplots(
+            specs=[[{"secondary_y": True}]],
+            shared_xaxes=True,
+            horizontal_spacing=0.0,  # Force perfect alignment by eliminating any spacing
+        )
 
         # Create empty figure if no data
         if df is None or df.empty:
@@ -2737,25 +2741,6 @@ def create_burnup_chart(
         # Add deadline and milestone marker
         fig = add_deadline_marker(fig, deadline, milestone)
 
-        # Configure axes with consistent grid styling matching burndown chart
-        # Configure x-axis
-        fig.update_xaxes(
-            title={"text": "Date", "font": {"size": 16}},
-            tickmode="auto",
-            nticks=20,
-            gridcolor="rgba(200, 200, 200, 0.2)",
-            automargin=True,
-        )
-
-        # Configure primary y-axis (items) with items grid color
-        fig.update_yaxes(
-            title={"text": "Items", "font": {"size": 16}},
-            gridcolor=COLOR_PALETTE["items_grid"],
-            zeroline=True,
-            zerolinecolor="black",
-            secondary_y=False,
-        )
-
         # Calculate max value for y-axis range
         # Improve y-axis range calculation for points
         def safe_max(values):
@@ -2793,6 +2778,63 @@ def create_burnup_chart(
                 f"Max points value was zero, using fallback: {max_points_val}"
             )
 
+        # Calculate max items value for consistent scaling
+        max_items_val = max(
+            df["cum_scope_items"].max() if not df.empty else 0,
+            safe_max(items_forecasts["avg"][1])
+            if items_forecasts
+            and "avg" in items_forecasts
+            and len(items_forecasts["avg"]) > 1
+            and items_forecasts["avg"][1]
+            else 0,
+            safe_max(items_forecasts["opt"][1])
+            if items_forecasts
+            and "opt" in items_forecasts
+            and len(items_forecasts["opt"]) > 1
+            and items_forecasts["opt"][1]
+            else 0,
+            safe_max(items_forecasts["pes"][1])
+            if items_forecasts
+            and "pes" in items_forecasts
+            and len(items_forecasts["pes"]) > 1
+            and items_forecasts["pes"][1]
+            else 0,
+        )
+
+        # If still zero, use a reasonable default
+        if max_items_val <= 0:
+            max_items_val = max(10, completed_items_total * 1.5)
+
+        # Configure x-axis consistently for all plots
+        fig.update_xaxes(
+            title={"text": "Date", "font": {"size": 16}},
+            tickmode="auto",
+            nticks=20,
+            gridcolor="rgba(200, 200, 200, 0.2)",
+            automargin=True,
+            domain=[0, 1],  # Ensure x-axis spans the entire width
+            rangeslider=dict(visible=False),  # Disable any potential rangeslider
+            matches="x",  # Ensure x-axes match each other
+        )
+
+        # Calculate scale factor to align visually (same approach as in configure_axes)
+        scale_factor = max_points_val / max_items_val if max_items_val > 0 else 1
+
+        # Set y-axis ranges to maintain alignment
+        items_range = [0, max_items_val * 1.1]
+        points_range = [0, max_items_val * scale_factor * 1.1]
+
+        # Configure primary y-axis (items) with items grid color
+        fig.update_yaxes(
+            title={"text": "Items", "font": {"size": 16}},
+            gridcolor=COLOR_PALETTE["items_grid"],
+            zeroline=True,
+            zerolinecolor="black",
+            secondary_y=False,
+            range=items_range,  # Set explicit range for better visual alignment
+            side="left",
+        )
+
         # Configure secondary y-axis (points) with points grid color
         fig.update_yaxes(
             title={"text": "Points", "font": {"size": 16}},
@@ -2800,7 +2842,9 @@ def create_burnup_chart(
             zeroline=True,
             zerolinecolor="black",
             secondary_y=True,
-            range=[0, max_points_val * 1.1],  # Add 10% headroom
+            range=points_range,  # Set explicit range for better visual alignment
+            side="right",
+            anchor="x",  # Anchor to the x-axis to keep alignment
         )
 
         # Apply consistent layout settings to match burndown chart
@@ -2818,6 +2862,7 @@ def create_burnup_chart(
             height=700,
             template="plotly_white",
             plot_bgcolor="white",  # Match burndown chart background
+            uirevision="true",  # Keep UI state consistent
         )
 
         # Calculate PERT time estimates for the metrics
