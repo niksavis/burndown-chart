@@ -389,7 +389,7 @@ def create_enhanced_stability_gauge(
                 },
             },
             number={
-                "font": {"size": 24, "color": color, "weight": "bold"},
+                "font": {"size": 24, "color": color},  # Removed 'weight' property
                 "valueformat": ".2f",
                 "suffix": "",  # No suffix to avoid overlap
             },
