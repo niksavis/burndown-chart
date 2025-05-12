@@ -1,8 +1,9 @@
 """
-Dependency Audit Tool
-
-This script analyzes project dependencies, checks for outdated packages,
-identifies security vulnerabilities, and generates an update plan.
+Comprehensive analysis tool that:
+1. Audits installed packages vs used imports
+2. Checks for outdated packages
+3. Identifies security vulnerabilities
+4. Generates a detailed report with update recommendations
 """
 
 import os
@@ -173,17 +174,62 @@ def generate_update_plan(outdated, vulnerabilities):
     return sorted(update_plan, key=lambda x: 0 if x["priority"] == "high" else 1)
 
 
+def get_package_import_mapping():
+    """Create a mapping between package names and their import names."""
+    # Common package name to import name mappings
+    return {
+        "python-dateutil": "dateutil",
+        "scikit-learn": "sklearn",
+        "beautifulsoup4": "bs4",
+        "pillow": "PIL",
+        # Add more mappings as needed
+    }
+
+
 def identify_unused_dependencies(installed_packages, used_imports):
     """Identify installed packages that aren't being imported."""
     potentially_unused = []
+    package_import_mapping = get_package_import_mapping()
+
+    # Add reverse mapping
+    import_to_package = {v: k for k, v in package_import_mapping.items()}
 
     for package_name in installed_packages:
         # Skip standard library modules
         if package_name in sys.builtin_module_names:
             continue
 
-        if package_name not in used_imports:
-            potentially_unused.append(package_name)
+        # Check direct match
+        if package_name in used_imports:
+            continue
+
+        # Check common mappings
+        if (
+            package_name in package_import_mapping
+            and package_import_mapping[package_name] in used_imports
+        ):
+            continue
+
+        # Check reverse mapping
+        if (
+            package_name in import_to_package.values()
+            and package_name not in used_imports
+        ):
+            continue
+
+        # Check for development tools that don't get imported
+        if package_name in [
+            "pytest",
+            "pip-tools",
+            "black",
+            "flake8",
+            "mypy",
+            "coverage",
+            "twine",
+        ]:
+            continue
+
+        potentially_unused.append(package_name)
 
     return potentially_unused
 
