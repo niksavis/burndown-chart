@@ -394,12 +394,38 @@ def add_metrics_annotations(fig, metrics_data):
     metrics_columns = [
         [
             {
-                "label": "Total Items",
-                "value": metrics_data["total_items"],
-                "format": "{:,}",
+                "label": "Scope Items",
+                "value": metrics_data.get("total_scope_items", 0),
+                "format": "{:,.0f}",
             },
             {
-                "label": "Total Points",
+                "label": "Scope Points",
+                "value": metrics_data.get("total_scope_points", 0),
+                "format": "{:,.0f}",
+            },
+        ],
+        [
+            {
+                "label": "Completed Items",
+                "value": metrics_data.get("completed_items", 0),
+                "format": "{:,.0f} ({:.1f}%)",
+                "extra_value": metrics_data.get("items_percent_complete", 0),
+            },
+            {
+                "label": "Completed Points",
+                "value": metrics_data.get("completed_points", 0),
+                "format": "{:,.0f} ({:.1f}%)",
+                "extra_value": metrics_data.get("points_percent_complete", 0),
+            },
+        ],
+        [
+            {
+                "label": "Remaining Items",
+                "value": metrics_data["total_items"],
+                "format": "{:,.0f}",
+            },
+            {
+                "label": "Remaining Points",
                 "value": metrics_data["total_points"],
                 "format": "{:,.0f}",
             },
@@ -436,23 +462,17 @@ def add_metrics_annotations(fig, metrics_data):
                 "format": "{:.1f}",
             },
         ],
-        [
-            {
-                "label": "Med Weekly Items (10W)",
-                "value": metrics_data["med_weekly_items"],
-                "format": "{:.1f}",
-            },
-            {
-                "label": "Med Weekly Points (10W)",
-                "value": metrics_data["med_weekly_points"],
-                "format": "{:.1f}",
-            },
-        ],
     ]
 
     # Calculate column positions with better spacing
-    # Use fixed positions rather than relative calculations to ensure consistent spacing
-    column_positions = [0.02, 0.21, 0.40, 0.60, 0.80]  # Left position of each column
+    column_positions = [
+        0.02,
+        0.18,
+        0.34,
+        0.50,
+        0.66,
+        0.82,
+    ]  # Left position of each column
 
     # Add metrics to the figure - ensure all are left-aligned
     for col_idx, column in enumerate(metrics_columns):
@@ -464,7 +484,12 @@ def add_metrics_annotations(fig, metrics_data):
             y_pos = base_y_position + y_offset
 
             # Format the label and value
-            formatted_value = metric["format"].format(metric["value"])
+            if "extra_value" in metric:
+                formatted_value = metric["format"].format(
+                    metric["value"], metric["extra_value"]
+                )
+            else:
+                formatted_value = metric["format"].format(metric["value"])
 
             # Color for estimated days
             text_color = font_color
@@ -2393,8 +2418,7 @@ def create_burnup_chart(
         logger.info(f"Burnup chart - Created items total: {created_items_total}")
         logger.info(f"Burnup chart - Created points total: {created_points_total}")
 
-        # No baseline scope calculation needed - directly use the cumulative created values
-        # as the scope traces
+        # For display purposes, use the cumulative created values
         df["cum_scope_items"] = df["cum_created_items"]
         df["cum_scope_points"] = df["cum_created_points"]
 
@@ -2403,12 +2427,23 @@ def create_burnup_chart(
         df_forecast["cum_items"] = df_forecast["cum_completed_items"]
         df_forecast["cum_points"] = df_forecast["cum_completed_points"]
 
-        # Get final scope values for forecasting target
-        final_scope_items = df["cum_scope_items"].iloc[-1] if not df.empty else 0
-        final_scope_points = df["cum_scope_points"].iloc[-1] if not df.empty else 0
+        # Calculate total scope (completed + remaining) for forecast target
+        # This ensures forecasts reach expected scope values, not just cum_created
+        final_scope_items = completed_items_total + total_items
+        final_scope_points = completed_points_total + total_points
 
-        logger.info(f"Burnup chart - Final scope items: {final_scope_items}")
-        logger.info(f"Burnup chart - Final scope points: {final_scope_points}")
+        logger.info(
+            f"Burnup chart - Final scope items (completed + remaining): {final_scope_items}"
+        )
+        logger.info(
+            f"Burnup chart - Final scope points (completed + remaining): {final_scope_points}"
+        )
+        logger.info(
+            f"Burnup chart - Created scope items (from dataset): {created_items_total}"
+        )
+        logger.info(
+            f"Burnup chart - Created scope points (from dataset): {created_points_total}"
+        )
 
         # Ensure we have valid scope values - if scope is zero, forecasts won't show
         if final_scope_items <= 0:
@@ -2427,11 +2462,19 @@ def create_burnup_chart(
                 f"Final scope points was zero or negative, using fallback value: {final_scope_points}"
             )
 
+        # Calculate remaining work to be done (the actual values needed for forecast calculation)
+        remaining_items = max(0, final_scope_items - completed_items_total)
+        remaining_points = max(0, final_scope_points - completed_points_total)
+
+        logger.info(f"Burnup chart - Remaining items to complete: {remaining_items}")
+        logger.info(f"Burnup chart - Remaining points to complete: {remaining_points}")
+
         # Calculate forecast data using the prepare_visualization_data function with burnup=True
+        # Pass the remaining work values instead of the raw total_items/total_points
         forecast_data = prepare_visualization_data(
             df_forecast,
-            total_items,
-            total_points,
+            remaining_items,  # Pass remaining items to complete (not total_items)
+            remaining_points,  # Pass remaining points to complete (not total_points)
             pert_factor,
             data_points_count,
             is_burnup=True,
@@ -2442,6 +2485,40 @@ def create_burnup_chart(
         # Log forecast data for debugging
         items_forecasts = forecast_data["items_forecasts"]
         points_forecasts = forecast_data["points_forecasts"]
+
+        # Debug: Log the first and last forecast values for both items and points
+        logger.info(
+            f"Burnup chart - First items forecast value: {items_forecasts['avg'][1][0] if items_forecasts['avg'][1] else 'N/A'}"
+        )
+        logger.info(
+            f"Burnup chart - Last items forecast value: {items_forecasts['avg'][1][-1] if items_forecasts['avg'][1] else 'N/A'}"
+        )
+        logger.info(f"Burnup chart - Target scope items: {final_scope_items}")
+
+        logger.info(
+            f"Burnup chart - First points forecast value: {points_forecasts['avg'][1][0] if points_forecasts['avg'][1] else 'N/A'}"
+        )
+        logger.info(
+            f"Burnup chart - Last points forecast value: {points_forecasts['avg'][1][-1] if points_forecasts['avg'][1] else 'N/A'}"
+        )
+        logger.info(f"Burnup chart - Target scope points: {final_scope_points}")
+
+        # Check if forecasts reach their target scope values
+        if (
+            items_forecasts["avg"][1]
+            and abs(items_forecasts["avg"][1][-1] - final_scope_items) > 1
+        ):
+            logger.warning(
+                f"Items forecast doesn't reach target scope: {items_forecasts['avg'][1][-1]} vs {final_scope_items}"
+            )
+
+        if (
+            points_forecasts["avg"][1]
+            and abs(points_forecasts["avg"][1][-1] - final_scope_points) > 1
+        ):
+            logger.warning(
+                f"Points forecast doesn't reach target scope: {points_forecasts['avg'][1][-1]} vs {final_scope_points}"
+            )
 
         # Check if we have valid forecast data and log it consistently for both items and points
         def validate_forecast_data(forecast_data, forecast_type):
@@ -2601,7 +2678,12 @@ def create_burnup_chart(
                     logger.warning(
                         f"Cannot add {forecast_type} {key} forecast trace - invalid data"
                     )
-                    return
+                    return False  # Return False to indicate failure
+
+                # Log more details about the first and last points for debugging
+                logger.info(
+                    f"{forecast_type} {key} forecast: Start={forecast_data[key][1][0]}, End={forecast_data[key][1][-1]}"
+                )
 
                 fig.add_trace(
                     go.Scatter(
@@ -2633,6 +2715,11 @@ def create_burnup_chart(
                     ),
                     secondary_y=secondary_y,
                 )
+                return True  # Return True to indicate success
+
+            # Track if we've successfully added any forecasts
+            items_forecasts_added = False
+            points_forecasts_added = False
 
             # Items forecasts
             for key in ["avg", "opt", "pes"]:
@@ -2671,7 +2758,7 @@ def create_burnup_chart(
                     else ("success" if key == "opt" else "warning")
                 )
 
-                add_forecast_trace(
+                if add_forecast_trace(
                     fig,
                     items_forecasts,
                     key,
@@ -2683,7 +2770,11 @@ def create_burnup_chart(
                     hover_type,
                     hover_style,
                     False,  # Items are on primary y-axis
-                )
+                ):
+                    items_forecasts_added = True
+
+            # Log results of forecast traces
+            logger.info(f"Added items forecast traces: {items_forecasts_added}")
 
             # Points forecasts
             for key in ["avg", "opt", "pes"]:
@@ -2718,7 +2809,7 @@ def create_burnup_chart(
                     else ("success" if key == "opt" else "warning")
                 )
 
-                add_forecast_trace(
+                if add_forecast_trace(
                     fig,
                     points_forecasts,
                     key,
@@ -2730,7 +2821,10 @@ def create_burnup_chart(
                     hover_type,
                     hover_style,
                     True,  # Points are on secondary y-axis
-                )
+                ):
+                    points_forecasts_added = True
+
+            logger.info(f"Added points forecast traces: {points_forecasts_added}")
 
         # Add traces to figure - all visible by default
         fig.add_trace(completed_items_trace, secondary_y=False)
@@ -2903,6 +2997,16 @@ def create_burnup_chart(
         metrics_data = {
             "total_items": total_items,
             "total_points": total_points,
+            "total_scope_items": df["cum_scope_items"].iloc[-1] if not df.empty else 0,
+            "total_scope_points": df["cum_scope_points"].iloc[-1]
+            if not df.empty
+            else 0,
+            "completed_items": df["cum_completed_items"].iloc[-1]
+            if not df.empty
+            else 0,
+            "completed_points": df["cum_completed_points"].iloc[-1]
+            if not df.empty
+            else 0,
             "deadline": deadline.strftime("%Y-%m-%d"),
             "days_to_deadline": days_to_deadline,
             "pert_time_items": pert_time_items,
@@ -2919,6 +3023,21 @@ def create_burnup_chart(
             "items_completion_enhanced": items_completion_enhanced,
             "points_completion_enhanced": points_completion_enhanced,
         }
+
+        # Calculate completion percentages
+        if metrics_data["total_scope_items"] > 0:
+            metrics_data["items_percent_complete"] = (
+                metrics_data["completed_items"] / metrics_data["total_scope_items"]
+            ) * 100
+        else:
+            metrics_data["items_percent_complete"] = 0
+
+        if metrics_data["total_scope_points"] > 0:
+            metrics_data["points_percent_complete"] = (
+                metrics_data["completed_points"] / metrics_data["total_scope_points"]
+            ) * 100
+        else:
+            metrics_data["points_percent_complete"] = 0
 
         # Add metrics annotations in the same position as the burndown chart
         fig = add_metrics_annotations(fig, metrics_data)
@@ -3138,6 +3257,49 @@ def prepare_visualization_data(
     # Ensure data is sorted by date in ascending order
     df_calc = df_calc.sort_values("date", ascending=True)
 
+    # Calculate total scope by adding completed work and remaining work
+    if not is_burnup:
+        # For burndown charts, calculate completed work
+        completed_items = (
+            df_calc["completed_items"].sum()
+            if "completed_items" in df_calc.columns
+            else 0
+        )
+        completed_points = (
+            df_calc["completed_points"].sum()
+            if "completed_points" in df_calc.columns
+            else 0
+        )
+
+        # Calculate total scope
+        total_scope_items = completed_items + total_items
+        total_scope_points = completed_points + total_points
+
+        # Create remaining work columns for burndown charts
+        # These will start at total scope and decrease with each data point
+        remaining_items = [total_scope_items]
+        remaining_points = [total_scope_points]
+
+        for i in range(1, len(df_calc)):
+            # Subtract completed work in this period
+            items_completed_in_period = (
+                df_calc["completed_items"].iloc[i]
+                if "completed_items" in df_calc.columns
+                else 0
+            )
+            points_completed_in_period = (
+                df_calc["completed_points"].iloc[i]
+                if "completed_points" in df_calc.columns
+                else 0
+            )
+
+            remaining_items.append(remaining_items[-1] - items_completed_in_period)
+            remaining_points.append(remaining_points[-1] - points_completed_in_period)
+
+        # Update the dataframe with the correct remaining work columns
+        df_calc["cum_items"] = remaining_items
+        df_calc["cum_points"] = remaining_points
+
     # Filter to use only the specified number of most recent data points
     if (
         data_points_count is not None
@@ -3145,7 +3307,7 @@ def prepare_visualization_data(
         and len(df_calc) > data_points_count
     ):
         # Get the most recent data_points_count rows
-        df_calc = df.iloc[-data_points_count:]
+        df_calc = df_calc.iloc[-data_points_count:]
 
     # Compute weekly throughput and rates with the filtered data
     grouped = compute_weekly_throughput(df_calc)
@@ -3175,38 +3337,49 @@ def prepare_visualization_data(
 
     # Get starting points for forecast
     start_date = df_calc["date"].iloc[-1] if not df_calc.empty else datetime.now()
-    last_items = df_calc["cum_items"].iloc[-1] if not df_calc.empty else total_items
-    last_points = df_calc["cum_points"].iloc[-1] if not df_calc.empty else total_points
 
-    # Use completed items/points values for burnup chart
-    if is_burnup:
+    # For burndown charts, we need to get the correct last values
+    # (these represent remaining work, not completed work)
+    if not is_burnup:
+        last_items = (
+            df_calc["cum_items"].iloc[-1] if not df_calc.empty else total_scope_items
+        )
+        last_points = (
+            df_calc["cum_points"].iloc[-1] if not df_calc.empty else total_scope_points
+        )
+    else:
+        # For burnup charts, use the completed work values
         last_completed_items = df_calc["cum_items"].iloc[-1] if not df_calc.empty else 0
         last_completed_points = (
             df_calc["cum_points"].iloc[-1] if not df_calc.empty else 0
         )
+        last_items = last_completed_items  # This is completed items for burnup
+        last_points = last_completed_points  # This is completed points for burnup
 
+    # Use completed items/points values for burnup chart
+    if is_burnup:
         # For burnup charts, start from completed values and forecast toward scope
         items_forecasts = {
             "avg": daily_forecast_burnup(
-                last_completed_items, items_daily_rate, start_date, scope_items
+                last_items, items_daily_rate, start_date, scope_items
             ),
             "opt": daily_forecast_burnup(
-                last_completed_items, optimistic_items_rate, start_date, scope_items
+                last_items, optimistic_items_rate, start_date, scope_items
             ),
             "pes": daily_forecast_burnup(
-                last_completed_items, pessimistic_items_rate, start_date, scope_items
+                last_items, pessimistic_items_rate, start_date, scope_items
             ),
         }
 
         points_forecasts = {
             "avg": daily_forecast_burnup(
-                last_completed_points, points_daily_rate, start_date, scope_points
+                last_points, points_daily_rate, start_date, scope_points
             ),
             "opt": daily_forecast_burnup(
-                last_completed_points, optimistic_points_rate, start_date, scope_points
+                last_points, optimistic_points_rate, start_date, scope_points
             ),
             "pes": daily_forecast_burnup(
-                last_completed_points, pessimistic_points_rate, start_date, scope_points
+                last_points, pessimistic_points_rate, start_date, scope_points
             ),
         }
     else:
@@ -3263,7 +3436,13 @@ def prepare_visualization_data(
         ),
     )
 
-    return {
+    # For burndown charts, make sure max values include total scope
+    if not is_burnup:
+        max_items = max(max_items, total_scope_items)
+        max_points = max(max_points, total_scope_points)
+
+    # Return results with scope information for burndown charts
+    result = {
         "df_calc": df_calc,
         "pert_time_items": pert_time_items,
         "pert_time_points": pert_time_points,
@@ -3275,6 +3454,13 @@ def prepare_visualization_data(
         "last_items": last_items,
         "last_points": last_points,
     }
+
+    # Add total scope information for burndown charts
+    if not is_burnup:
+        result["total_scope_items"] = total_scope_items
+        result["total_scope_points"] = total_scope_points
+
+    return result
 
 
 def generate_burndown_forecast(
@@ -3425,7 +3611,19 @@ def _prepare_metrics_data(
     Prepare metrics data for display in the forecast plot.
 
     Args:
-        Various metric parameters
+        total_items: Total number of remaining items to complete
+        total_points: Total number of remaining points to complete
+        deadline: Deadline date
+        pert_time_items: PERT time estimate for items in days
+        pert_time_points: PERT time estimate for points in days
+        data_points_count: Number of data points used in the forecast
+        df: DataFrame with historical data
+        items_completion_enhanced: Enhanced completion date string for items
+        points_completion_enhanced: Enhanced completion date string for points
+        avg_weekly_items: Average weekly completed items
+        avg_weekly_points: Average weekly completed points
+        med_weekly_items: Median weekly completed items
+        med_weekly_points: Median weekly completed points
 
     Returns:
         Dictionary with metrics data
@@ -3434,10 +3632,46 @@ def _prepare_metrics_data(
     current_date = datetime.now()
     days_to_deadline = max(0, (deadline - pd.Timestamp(current_date)).days)
 
+    # Calculate completed work from the dataframe
+    completed_items = 0
+    completed_points = 0
+
+    if (
+        not df.empty
+        and "completed_items" in df.columns
+        and "completed_points" in df.columns
+    ):
+        completed_items = (
+            df["completed_items"].sum() if "completed_items" in df.columns else 0
+        )
+        completed_points = (
+            df["completed_points"].sum() if "completed_points" in df.columns else 0
+        )
+
+    # Calculate total scope (completed + remaining)
+    total_scope_items = completed_items + total_items
+    total_scope_points = completed_points + total_points
+
+    # Calculate completion percentage
+    items_percent_complete = 0
+    points_percent_complete = 0
+
+    if total_scope_items > 0:
+        items_percent_complete = (completed_items / total_scope_items) * 100
+
+    if total_scope_points > 0:
+        points_percent_complete = (completed_points / total_scope_points) * 100
+
     # Create metrics data dictionary
     return {
         "total_items": total_items,
         "total_points": total_points,
+        "total_scope_items": total_scope_items,
+        "total_scope_points": total_scope_points,
+        "completed_items": completed_items,
+        "completed_points": completed_points,
+        "items_percent_complete": items_percent_complete,
+        "points_percent_complete": points_percent_complete,
         "deadline": deadline.strftime("%Y-%m-%d"),
         "days_to_deadline": days_to_deadline,
         "pert_time_items": pert_time_items,

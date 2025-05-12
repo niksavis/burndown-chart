@@ -359,87 +359,42 @@ def daily_forecast(
     return x_vals, y_vals
 
 
-def daily_forecast_burnup(
-    start_val: float, daily_rate: float, start_date: datetime, target_val: float
-) -> tuple[list[datetime], list[float]]:
+def daily_forecast_burnup(current, daily_rate, start_date, target_scope):
     """
-    Generate daily forecast values from start to target value (for burnup charts).
-
-    Unlike the regular daily_forecast which decreases values toward zero,
-    this function increases values toward a target value (scope line).
+    Generate a daily burnup forecast from current completed work to target scope.
 
     Args:
-        start_val: Starting value (completed items/points so far)
+        current: Current completed value (starting point)
         daily_rate: Daily completion rate
-        start_date: Starting date for the forecast
-        target_val: Target value to reach (total scope)
+        start_date: Starting date for forecast
+        target_scope: Target scope value to reach (upper limit)
 
     Returns:
-        Tuple of (x_values, y_values) for plotting
+        Tuple of (dates, values) for the forecast
     """
-    # If rate is too small, we'll hit timestamp limits; enforce a minimum
-    if daily_rate < 0.001:
-        daily_rate = 0.001
+    if daily_rate <= 0 or current >= target_scope:
+        # If rate is zero or we've already reached target, return empty forecast
+        return ([], [])
 
-    # If rate is still effectively zero, return just the start point
-    if daily_rate <= 0:
-        return [start_date], [start_val]
+    # Calculate days needed to reach target scope
+    remaining = target_scope - current
+    days_needed = int(remaining / daily_rate) + 1  # Add 1 to ensure we reach target
 
-    # Ensure target is at least equal to start value
-    target_val = max(target_val, start_val)
+    # Generate dates
+    dates = [start_date + timedelta(days=i) for i in range(days_needed + 1)]
 
-    x_vals, y_vals = [], []
-    val = start_val
-    current_date = start_date
+    # Generate values
+    values = []
+    for i in range(len(dates)):
+        # Calculate forecasted value, but cap at target scope
+        value = min(current + (daily_rate * i), target_scope)
+        values.append(value)
 
-    # Calculate expected days needed to reach target
-    remaining = target_val - start_val
-    days_needed = remaining / daily_rate if daily_rate > 0 else 0
+    # Ensure the last value is exactly the target scope
+    if values and values[-1] < target_scope:
+        values[-1] = target_scope
 
-    # Cap forecast at 10 years (3650 days) to prevent timestamp overflow
-    MAX_FORECAST_DAYS = 3650
-    if days_needed > MAX_FORECAST_DAYS:
-        # Create a capped forecast
-        num_points = min(
-            100, MAX_FORECAST_DAYS
-        )  # Use at most 100 points for the forecast
-        day_step = MAX_FORECAST_DAYS / num_points
-
-        for i in range(num_points):
-            days_elapsed = i * day_step
-            if days_elapsed > MAX_FORECAST_DAYS:
-                break
-
-            forecast_date = start_date + timedelta(days=days_elapsed)
-            forecast_val = min(target_val, val + (daily_rate * days_elapsed))
-
-            x_vals.append(forecast_date)
-            y_vals.append(forecast_val)
-
-        # Add final point at the maximum forecast date
-        final_date = start_date + timedelta(days=MAX_FORECAST_DAYS)
-        final_val = min(target_val, val + (daily_rate * MAX_FORECAST_DAYS))
-        x_vals.append(final_date)
-        y_vals.append(final_val)
-
-        return x_vals, y_vals
-
-    # Normal case - forecast until target reached
-    while val < target_val:
-        x_vals.append(current_date)
-        y_vals.append(val)
-        val += daily_rate
-        current_date += timedelta(days=1)
-
-        # Safety check to prevent infinite loops
-        if len(x_vals) > MAX_FORECAST_DAYS:
-            break
-
-    # Add final point at target value
-    x_vals.append(current_date)
-    y_vals.append(target_val)
-
-    return x_vals, y_vals
+    return (dates, values)
 
 
 def calculate_weekly_averages(
