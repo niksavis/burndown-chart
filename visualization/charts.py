@@ -2033,6 +2033,7 @@ def add_deadline_marker(fig, deadline, milestone=None):
     """
     # Convert pandas Timestamp to a format compatible with Plotly
     if isinstance(deadline, pd.Timestamp):
+        # Convert to Python datetime to prevent FutureWarning
         deadline_datetime = deadline.to_pydatetime()
     else:
         deadline_datetime = deadline
@@ -2073,37 +2074,30 @@ def add_deadline_marker(fig, deadline, milestone=None):
         critical_start = deadline - pd.Timedelta(days=14)
 
         # Convert to datetime for better compatibility
-        critical_start_datetime = (
-            critical_start.to_pydatetime()
-            if isinstance(critical_start, pd.Timestamp)
-            else critical_start
+        if isinstance(critical_start, pd.Timestamp):
+            critical_start_datetime = critical_start.to_pydatetime()
+        else:
+            critical_start_datetime = critical_start
+
+        # Use shape for consistent behavior
+        fig.add_shape(
+            type="rect",
+            x0=critical_start_datetime,
+            x1=deadline_datetime,
+            y0=0,
+            y1=1,
+            yref="paper",
+            fillcolor="rgba(255, 0, 0, 0.15)",
+            line=dict(width=0),
+            layer="below",
         )
-
-        # Use timedelta days property for comparison instead of direct integer subtraction
-        days_until_critical = (critical_start - current_date).days
-
-        # Only add critical period highlight if we're within or approaching that period
-        if current_date < critical_start and days_until_critical < 30:
-            # Use shape for consistent behavior
-            fig.add_shape(
-                type="rect",
-                x0=critical_start_datetime,
-                x1=deadline_datetime,
-                y0=0,
-                y1=1,
-                yref="paper",
-                fillcolor="rgba(255, 0, 0, 0.15)",
-                line=dict(width=0),
-                layer="below",
-            )
     # If deadline has passed, shade the region after deadline
     else:
         # Convert current_date to datetime for compatibility
-        current_datetime = (
-            current_date.to_pydatetime()
-            if isinstance(current_date, pd.Timestamp)
-            else current_date
-        )
+        if isinstance(current_date, pd.Timestamp):
+            current_datetime = current_date.to_pydatetime()
+        else:
+            current_datetime = current_date
 
         # Use shape for consistent behavior
         fig.add_shape(
