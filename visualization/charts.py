@@ -2988,50 +2988,21 @@ def create_burnup_chart(
                 ) = results
 
         # Add metrics data to the plot - same as burndown chart
-        metrics_data = {
-            "total_items": total_items,
-            "total_points": total_points,
-            "total_scope_items": df["cum_scope_items"].iloc[-1] if not df.empty else 0,
-            "total_scope_points": df["cum_scope_points"].iloc[-1]
-            if not df.empty
-            else 0,
-            "completed_items": df["cum_completed_items"].iloc[-1]
-            if not df.empty
-            else 0,
-            "completed_points": df["cum_completed_points"].iloc[-1]
-            if not df.empty
-            else 0,
-            "deadline": deadline.strftime("%Y-%m-%d"),
-            "days_to_deadline": days_to_deadline,
-            "pert_time_items": pert_time_items,
-            "pert_time_points": pert_time_points,
-            "avg_weekly_items": avg_weekly_items,
-            "avg_weekly_points": avg_weekly_points,
-            "med_weekly_items": med_weekly_items,
-            "med_weekly_points": med_weekly_points,
-            "data_points_used": int(data_points_count)
-            if data_points_count is not None
-            and isinstance(data_points_count, (int, float))
-            else (len(df) if hasattr(df, "__len__") else 0),
-            "data_points_available": len(df) if hasattr(df, "__len__") else 0,
-            "items_completion_enhanced": items_completion_enhanced,
-            "points_completion_enhanced": points_completion_enhanced,
-        }
-
-        # Calculate completion percentages
-        if metrics_data["total_scope_items"] > 0:
-            metrics_data["items_percent_complete"] = (
-                metrics_data["completed_items"] / metrics_data["total_scope_items"]
-            ) * 100
-        else:
-            metrics_data["items_percent_complete"] = 0
-
-        if metrics_data["total_scope_points"] > 0:
-            metrics_data["points_percent_complete"] = (
-                metrics_data["completed_points"] / metrics_data["total_scope_points"]
-            ) * 100
-        else:
-            metrics_data["points_percent_complete"] = 0
+        metrics_data = _prepare_metrics_data(
+            total_items,
+            total_points,
+            deadline,
+            pert_time_items,
+            pert_time_points,
+            data_points_count,
+            df,
+            items_completion_enhanced,
+            points_completion_enhanced,
+            avg_weekly_items,
+            avg_weekly_points,
+            med_weekly_items,
+            med_weekly_points,
+        )
 
         # Add metrics annotations in the same position as the burndown chart
         fig = add_metrics_annotations(fig, metrics_data)
@@ -3040,12 +3011,12 @@ def create_burnup_chart(
         return fig, {
             "baseline_items": 0,  # No baseline scope calculation needed
             "baseline_points": 0,  # No baseline scope calculation needed
-            "current_scope_items": df["cum_scope_items"].iloc[-1]
-            if not df.empty
-            else 0,
-            "current_scope_points": df["cum_scope_points"].iloc[-1]
-            if not df.empty
-            else 0,
+            "current_scope_items": metrics_data[
+                "total_scope_items"
+            ],  # Use consistent scope values
+            "current_scope_points": metrics_data[
+                "total_scope_points"
+            ],  # Use consistent scope values
             "completed_items": df["cum_completed_items"].iloc[-1]
             if not df.empty
             else 0,
