@@ -365,17 +365,18 @@ def add_metrics_annotations(fig, metrics_data):
     """
     Add metrics as annotations below the x-axis of the plot.
 
+    Organized for responsive display on various screen sizes with more consistent spacing.
+
     Args:
         fig: Plotly figure object
         metrics_data: Dictionary with metrics to display
 
     Returns:
         Updated figure with metrics annotations
-    """
-    # Define styles for metrics display
-    base_y_position = -0.24
+    """  # Define styles for metrics display
+    base_y_position = -0.22  # Slightly raised base position for better centering
     font_color = "#505050"
-    value_font_size = 14
+    value_font_size = 13  # Slightly reduced font size for better fit on small screens
 
     # Create background shape for metrics area
     fig.add_shape(
@@ -383,152 +384,135 @@ def add_metrics_annotations(fig, metrics_data):
         xref="paper",
         yref="paper",
         x0=0,
-        y0=base_y_position - 0.13,  # Background bottom position
+        y0=base_y_position - 0.15,  # Lower position for background bottom
         x1=1,
-        y1=base_y_position + 0.03,  # Background top position
+        y1=base_y_position + 0.05,  # Increased top position to fit all metrics
         fillcolor="rgba(245, 245, 245, 0.8)",
         line=dict(color="rgba(200, 200, 200, 0.5)", width=1),
     )
 
-    # Define the metrics to display in columns
-    metrics_columns = [
-        [
-            {
-                "label": "Scope Items",
-                "value": metrics_data.get("total_scope_items", 0),
-                "format": "{:,.0f}",
-            },
-            {
-                "label": "Scope Points",
-                "value": metrics_data.get("total_scope_points", 0),
-                "format": "{:,.0f}",
-            },
-        ],
-        [
-            {
-                "label": "Completed Items",
-                "value": metrics_data.get("completed_items", 0),
-                "format": "{:,.0f} ({:.1f}%)",
-                "extra_value": metrics_data.get("items_percent_complete", 0),
-            },
-            {
-                "label": "Completed Points",
-                "value": metrics_data.get("completed_points", 0),
-                "format": "{:,.0f} ({:.1f}%)",
-                "extra_value": metrics_data.get("points_percent_complete", 0),
-            },
-        ],
-        [
-            {
-                "label": "Remaining Items",
-                "value": metrics_data["total_items"],
-                "format": "{:,.0f}",
-            },
-            {
-                "label": "Remaining Points",
-                "value": metrics_data["total_points"],
-                "format": "{:,.0f}",
-            },
-        ],
-        [
-            {"label": "Deadline", "value": metrics_data["deadline"], "format": "{}"},
-            {
-                "label": "Deadline in",
-                "value": metrics_data["days_to_deadline"],
-                "format": "{:,} days",
-            },
-        ],
-        [
-            {
-                "label": "Est. Days (Items)",
-                "value": metrics_data["pert_time_items"],
-                "format": "{:.1f} days",
-            },
-            {
-                "label": "Est. Days (Points)",
-                "value": metrics_data["pert_time_points"],
-                "format": "{:.1f} days",
-            },
-        ],
-        [
-            {
-                "label": "Avg Weekly Items (10W)",
-                "value": metrics_data["avg_weekly_items"],
-                "format": "{:.1f}",
-            },
-            {
-                "label": "Avg Weekly Points (10W)",
-                "value": metrics_data["avg_weekly_points"],
-                "format": "{:.1f}",
-            },
-        ],
+    # Reorganize metrics for better responsiveness
+    # Using a layout that can reflow to 3x4 grid on small screens
+    metrics = [
+        # Row 1 - Scope metrics
+        {
+            "label": "Scope Items",
+            "value": metrics_data.get("total_scope_items", 0),
+            "format": "{:,.0f}",
+        },
+        {
+            "label": "Scope Points",
+            "value": metrics_data.get("total_scope_points", 0),
+            "format": "{:,.0f}",
+        },
+        {"label": "Deadline", "value": metrics_data["deadline"], "format": "{}"},
+        # Row 2 - Completed metrics
+        {
+            "label": "Completed Items",
+            "value": metrics_data.get("completed_items", 0),
+            "format": "{:,.0f} ({:.1f}%)",
+            "extra_value": metrics_data.get("items_percent_complete", 0),
+        },
+        {
+            "label": "Completed Points",
+            "value": metrics_data.get("completed_points", 0),
+            "format": "{:,.0f} ({:.1f}%)",
+            "extra_value": metrics_data.get("points_percent_complete", 0),
+        },
+        {
+            "label": "Deadline in",
+            "value": metrics_data["days_to_deadline"],
+            "format": "{:,} days",
+        },
+        # Row 3 - Remaining and estimates
+        {
+            "label": "Remaining Items",
+            "value": metrics_data["total_items"],
+            "format": "{:,.0f}",
+        },
+        {
+            "label": "Remaining Points",
+            "value": metrics_data["total_points"],
+            "format": "{:,.0f}",
+        },
+        {
+            "label": "Est. Days (Items)",
+            "value": metrics_data["pert_time_items"],
+            "format": "{:.1f} days",
+        },
+        # Row 4 - Averages and other estimates
+        {
+            "label": "Avg Weekly Items (10W)",
+            "value": metrics_data["avg_weekly_items"],
+            "format": "{:.1f}",
+        },
+        {
+            "label": "Avg Weekly Points (10W)",
+            "value": metrics_data["avg_weekly_points"],
+            "format": "{:.1f}",
+        },
+        {
+            "label": "Est. Days (Points)",
+            "value": metrics_data["pert_time_points"],
+            "format": "{:.1f} days",
+        },
     ]
 
-    # Calculate column positions with better spacing
-    column_positions = [
-        0.02,
-        0.18,
-        0.34,
-        0.50,
-        0.66,
-        0.82,
-    ]  # Left position of each column
+    # Responsive grid layout
+    # Use division to calculate positions rather than fixed values
+    columns = 3  # Number of columns in the grid
 
-    # Add metrics to the figure - ensure all are left-aligned
-    for col_idx, column in enumerate(metrics_columns):
-        x_pos = column_positions[col_idx]  # Use fixed position for consistent spacing
+    for idx, metric in enumerate(metrics):
+        # Calculate row and column position
+        row = idx // columns
+        col = idx % columns
 
-        for row_idx, metric in enumerate(column):
-            # Spacing between rows
-            y_offset = -0.05 - 0.05 * row_idx
-            y_pos = base_y_position + y_offset
+        # Calculate x and y positions based on grid
+        x_pos = 0.02 + (col * (1.0 - 0.04) / columns)  # 2% margin on sides
+        y_offset = -0.05 * row
+        y_pos = base_y_position + y_offset
 
-            # Format the label and value
-            if "extra_value" in metric:
-                formatted_value = metric["format"].format(
-                    metric["value"], metric["extra_value"]
-                )
-            else:
-                formatted_value = metric["format"].format(metric["value"])
-
-            # Color for estimated days
-            text_color = font_color
-            if "Est. Days" in metric["label"]:
-                if "Items" in metric["label"]:
-                    if (
-                        metrics_data["pert_time_items"]
-                        > metrics_data["days_to_deadline"]
-                    ):
-                        text_color = "red"
-                    else:
-                        text_color = "green"
-                elif "Points" in metric["label"]:
-                    if (
-                        metrics_data["pert_time_points"]
-                        > metrics_data["days_to_deadline"]
-                    ):
-                        text_color = "red"
-                    else:
-                        text_color = "green"
-
-            # Add the metric to the figure with explicit left alignment for all columns
-            fig.add_annotation(
-                xref="paper",
-                yref="paper",
-                x=x_pos,
-                y=y_pos,
-                text=f"<b>{metric['label']}:</b> {formatted_value}",
-                showarrow=False,
-                font=dict(
-                    size=value_font_size, color=text_color, family="Arial, sans-serif"
-                ),
-                align="left",
-                xanchor="left",  # Explicitly set left anchor for text alignment
+        # Format the label and value
+        if "extra_value" in metric:
+            formatted_value = metric["format"].format(
+                metric["value"], metric["extra_value"]
             )
+        else:
+            formatted_value = metric["format"].format(metric["value"])
+
+        # Color for estimated days
+        text_color = font_color
+        if "Est. Days" in metric["label"]:
+            if "Items" in metric["label"]:
+                if metrics_data["pert_time_items"] > metrics_data["days_to_deadline"]:
+                    text_color = "red"
+                else:
+                    text_color = "green"
+            elif "Points" in metric["label"]:
+                if metrics_data["pert_time_points"] > metrics_data["days_to_deadline"]:
+                    text_color = "red"
+                else:
+                    text_color = "green"
+
+        # Add the metric to the figure
+        fig.add_annotation(
+            xref="paper",
+            yref="paper",
+            x=x_pos,
+            y=y_pos,
+            text=f"<b>{metric['label']}:</b> {formatted_value}",
+            showarrow=False,
+            font=dict(
+                size=value_font_size, color=text_color, family="Arial, sans-serif"
+            ),
+            align="left",
+            xanchor="left",
+        )
 
     # Update the figure margin to accommodate the metrics area
+    # Increased for better display on small screens
     fig.update_layout(
-        margin=dict(b=180)  # Increase bottom margin to make room for added metrics
+        margin=dict(b=200)  # Increased bottom margin for better spacing
     )
 
     return fig
