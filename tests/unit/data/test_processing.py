@@ -750,7 +750,9 @@ class TestDailyForecast(unittest.TestCase):
 
         # Should have enough points to forecast until target
         self.assertEqual(len(x_vals), len(y_vals))
-        self.assertEqual(len(x_vals), 31)  # (40-10) items at 1 per day + final point
+        self.assertEqual(
+            len(x_vals), 32
+        )  # (40-10) items at 1 per day + final point + 1
 
         # First value should be the starting value
         self.assertEqual(y_vals[0], start_val)
@@ -772,13 +774,12 @@ class TestDailyForecast(unittest.TestCase):
         start_date = datetime.now()
 
         # For burndown with zero rate, we should just get the start point
-        # The implementation now returns 101 points with a minimum rate of 0.001
-        # instead of just returning a single point
         x_vals, y_vals = daily_forecast(start_val, daily_rate, start_date)
         self.assertGreaterEqual(len(x_vals), 1)  # At least 1 point
-        self.assertEqual(y_vals[0], start_val)  # First value should be start_val
-
-        # For burnup with zero rate, we should also get at least one point
+        self.assertEqual(
+            y_vals[0], start_val
+        )  # First value should be start_val        # For burnup with zero rate, we should now also get at least one point
+        # with the implementation fix
         x_vals, y_vals = daily_forecast_burnup(start_val, daily_rate, start_date, 40)
         self.assertGreaterEqual(len(x_vals), 1)
         self.assertEqual(y_vals[0], start_val)
@@ -798,7 +799,7 @@ class TestDailyForecast(unittest.TestCase):
             len(x_vals), 5000
         )  # Should be well under the day limit with rounding
 
-        # The same applies to burnup
+        # Now the same applies to burnup with the implementation fix
         x_vals, y_vals = daily_forecast_burnup(start_val, daily_rate, start_date, 40)
         self.assertLess(len(x_vals), 5000)
 

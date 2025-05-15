@@ -372,22 +372,61 @@ def daily_forecast_burnup(current, daily_rate, start_date, target_scope):
     Returns:
         Tuple of (dates, values) for the forecast
     """
-    if daily_rate <= 0 or current >= target_scope:
-        # If rate is zero or we've already reached target, return empty forecast
-        return ([], [])
+    # If we've already reached target, return just the start point
+    if current >= target_scope:
+        return ([start_date], [current])
+
+    # If rate is zero, return just the start point to match daily_forecast behavior
+    if daily_rate <= 0:
+        return ([start_date], [current])
+
+    # If rate is too small, enforce a minimum to prevent overflow
+    if daily_rate < 0.001:
+        daily_rate = 0.001
 
     # Calculate days needed to reach target scope
     remaining = target_scope - current
     days_needed = int(remaining / daily_rate) + 1  # Add 1 to ensure we reach target
 
-    # Generate dates
+    # Cap forecast at MAX_FORECAST_DAYS (3650 days) to prevent timestamp overflow
+    MAX_FORECAST_DAYS = 3650
+    if days_needed > MAX_FORECAST_DAYS:
+        # Create a capped forecast
+        num_points = min(
+            100, MAX_FORECAST_DAYS
+        )  # Use at most 100 points for the forecast
+        day_step = MAX_FORECAST_DAYS / num_points
+
+        dates = []
+        values = []
+
+        for i in range(num_points):
+            days_elapsed = i * day_step
+            if days_elapsed > MAX_FORECAST_DAYS:
+                break
+
+            forecast_date = start_date + timedelta(days=days_elapsed)
+            forecast_val = min(target_scope, current + (daily_rate * days_elapsed))
+
+            dates.append(forecast_date)
+            values.append(forecast_val)
+
+        # Add final point at the maximum forecast date
+        final_date = start_date + timedelta(days=MAX_FORECAST_DAYS)
+        final_val = min(target_scope, current + (daily_rate * MAX_FORECAST_DAYS))
+        dates.append(final_date)
+        values.append(final_val)
+
+        return (dates, values)
+
+    # Normal case - forecast until target scope
     dates = [start_date + timedelta(days=i) for i in range(days_needed + 1)]
 
     # Generate values
     values = []
     for i in range(len(dates)):
         # Calculate forecasted value, but cap at target scope
-        value = min(current + (daily_rate * i), target_scope)
+        value = min(target_scope, current + (daily_rate * i))
         values.append(value)
 
     # Ensure the last value is exactly the target scope
