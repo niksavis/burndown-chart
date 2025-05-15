@@ -16,6 +16,11 @@ import dash_bootstrap_components as dbc
 from dash import html, dcc
 import pandas as pd
 
+from typing import Dict, Any, List, cast
+
+# Type definition for StyleCellConditional
+StyleCellConditional = Dict[str, Any]
+
 # Application imports
 from configuration import HELP_TEXTS, COLOR_PALETTE
 
@@ -1018,27 +1023,29 @@ def create_statistics_data_card(current_statistics):
         # Get base styling
         table_style = create_standardized_table_style(
             mobile_optimized=mobile_responsive
-        )
-
-        # Apply column-specific alignments if provided
-        style_cell_conditional = []
+        )  # Apply column-specific alignments if provided
+        style_cell_conditional: List[StyleCellConditional] = []
         if column_alignments:
             style_cell_conditional = [
-                {"if": {"column_id": col_id}, "textAlign": alignment}
+                cast(
+                    StyleCellConditional,
+                    {"if": {"column_id": col_id}, "textAlign": alignment},
+                )
                 for col_id, alignment in column_alignments.items()
-            ]
-
-        # Add mobile optimization for columns if needed
+            ]  # Add mobile optimization for columns if needed
         if mobile_responsive and priority_columns:
             # Create conditional styling for non-priority columns on mobile
             for col in columns:
                 if col["id"] not in priority_columns:
                     style_cell_conditional.append(
-                        {
-                            "if": {"column_id": col["id"]},
-                            "className": "mobile-hidden",
-                            "media": "screen and (max-width: 767px)",
-                        }
+                        cast(
+                            StyleCellConditional,
+                            {
+                                "if": {"column_id": col["id"]},
+                                "className": "mobile-hidden",
+                                "media": "screen and (max-width: 767px)",
+                            },
+                        )
                     )
 
         # Add highlighting for editable cells
@@ -1081,9 +1088,7 @@ def create_statistics_data_card(current_statistics):
                 "page_count": None,
             }
         else:
-            pagination_settings = {}
-
-        # Create the table with enhanced styling and responsive features
+            pagination_settings = {}  # Create the table with enhanced styling and responsive features
         return dash_table.DataTable(
             id=id,
             data=data,
@@ -1097,7 +1102,7 @@ def create_statistics_data_card(current_statistics):
             style_table=table_style["style_table"],
             style_header=table_style["style_header"],
             style_cell=table_style["style_cell"],
-            style_cell_conditional=style_cell_conditional,
+            style_cell_conditional=style_cell_conditional,  # type: ignore # Ignore type error for style_cell_conditional
             style_data=table_style["style_data"],
             style_data_conditional=style_data_conditional,
             css=table_style.get("css", []),
@@ -1659,10 +1664,6 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
         A Dash card component with project dashboard information
     """
     try:
-        import pandas as pd
-        import dash_bootstrap_components as dbc
-        from dash import html
-
         # Make a copy of statistics_df to avoid modifying the original
         statistics_df = (
             statistics_df.copy() if not statistics_df.empty else pd.DataFrame()
