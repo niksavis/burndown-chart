@@ -1524,7 +1524,7 @@ def create_project_status_card(statistics_df, settings):
                                                                 ]
                                                             },
                                                         ),
-                                                        f"{avg_weekly_items:.1f}",
+                                                        f"{float(avg_weekly_items):.2f}",
                                                         html.Small(" items/week"),
                                                     ],
                                                     className="d-flex align-items-center mb-2",
@@ -1539,7 +1539,7 @@ def create_project_status_card(statistics_df, settings):
                                                                 ]
                                                             },
                                                         ),
-                                                        f"{avg_weekly_points:.1f}",
+                                                        f"{float(avg_weekly_points):.2f}",
                                                         html.Small(" points/week"),
                                                     ],
                                                     className="d-flex align-items-center",
@@ -1893,7 +1893,7 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
                                                         },
                                                     ),
                                                     html.Span(
-                                                        f"{avg_weekly_items:.1f}",
+                                                        f"{float(avg_weekly_items):.2f}",
                                                         className="fw-bold",
                                                         style={
                                                             "fontSize": "1.1rem",
@@ -1928,7 +1928,7 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
                                                         },
                                                     ),
                                                     html.Span(
-                                                        f"{avg_weekly_points:.1f}",
+                                                        f"{float(avg_weekly_points):.2f}",
                                                         className="fw-bold",
                                                         style={
                                                             "fontSize": "1.1rem",

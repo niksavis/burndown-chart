@@ -18,7 +18,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from data.processing import (
     calculate_rates,
     calculate_weekly_averages,
-    generate_weekly_forecast,
 )
 from data.scope_metrics import calculate_total_project_scope
 from visualization.charts import prepare_visualization_data

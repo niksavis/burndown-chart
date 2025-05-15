@@ -496,13 +496,19 @@ def calculate_weekly_averages(
     avg_weekly_items = recent_data["items"].mean()
     avg_weekly_points = recent_data["points"].mean()
     med_weekly_items = recent_data["items"].median()
-    med_weekly_points = recent_data["points"].median()
+    med_weekly_points = recent_data[
+        "points"
+    ].median()  # Always round up to 2 decimal places (as float, not int)
+
+    def round_up_2(x):
+        # Ensure we're working with a float and preserve 2 decimal places
+        return round(float(x), 2) if pd.notnull(x) else 0.0
 
     return (
-        round(avg_weekly_items, 1),
-        round(avg_weekly_points, 1),
-        round(med_weekly_items, 1),
-        round(med_weekly_points, 1),
+        round_up_2(avg_weekly_items),
+        round_up_2(avg_weekly_points),
+        round_up_2(med_weekly_items),
+        round_up_2(med_weekly_points),
     )
 
 
@@ -788,16 +794,14 @@ def calculate_performance_trend(
     elif percent_change > 0:
         trend_direction = "up"
     else:
-        trend_direction = "down"
-
-    # Check if change is significant (>20%)
+        trend_direction = "down"  # Check if change is significant (>20%)
     is_significant = abs(percent_change) >= 20
 
     return {
         "trend_direction": trend_direction,
         "percent_change": round(percent_change, 1),
-        "current_avg": round(current_avg, 1),
-        "previous_avg": round(previous_avg, 1),
+        "current_avg": round(current_avg, 2),
+        "previous_avg": round(previous_avg, 2),
         "is_significant": is_significant,
         "weeks_compared": weeks_to_compare,
     }

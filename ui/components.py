@@ -80,7 +80,10 @@ def _create_forecast_row(
     label_content = [html.Span(label, className=" ".join(label_classes))]
 
     if icon and is_highlighted:
-        label_content.append(html.I(className=f"{icon} ms-2 {' '.join(icon_classes)}"))
+        # Wrap the icon in a Span element for type consistency
+        label_content.append(
+            html.Span(html.I(className=f"{icon} ms-2 {' '.join(icon_classes)}"))
+        )
 
     return html.Div(
         className=" ".join(row_classes),
@@ -700,11 +703,10 @@ def _create_velocity_metric_card(
                     ),
                 ],
                 className="d-flex justify-content-between align-items-center mb-2",
-            ),
-            # Value
+            ),  # Value
             html.Div(
                 html.Span(
-                    f"{value}",
+                    f"{float(value):.1f}",  # Display with 1 decimal place
                     className="fs-3 fw-bold",
                     style={"color": color},
                 ),
@@ -911,10 +913,10 @@ def create_pert_info_table(
     pert_time_items,
     pert_time_points,
     days_to_deadline,
-    avg_weekly_items=0,
-    avg_weekly_points=0,
-    med_weekly_items=0,
-    med_weekly_points=0,
+    avg_weekly_items: float = 0.0,
+    avg_weekly_points: float = 0.0,
+    med_weekly_items: float = 0.0,
+    med_weekly_points: float = 0.0,
     pert_factor=3,  # Add default value
     total_items=0,  # New parameter for total items
     total_points=0,  # New parameter for total points

@@ -373,12 +373,17 @@ def add_metrics_annotations(fig, metrics_data):
 
     Returns:
         Updated figure with metrics annotations
-    """  # Define styles for metrics display
-    base_y_position = -0.22  # Slightly raised base position for better centering
-    font_color = "#505050"
-    value_font_size = 13  # Slightly reduced font size for better fit on small screens
+    """
+    # Ensure metrics_data is a dictionary
+    if metrics_data is None:
+        metrics_data = {}
 
-    # Create background shape for metrics area
+    # Define positions and styles for metrics display
+    base_y_position = -0.15  # Y position for the top row of metrics
+    font_color = "rgba(50, 50, 50, 0.9)"  # Default text color for metrics
+    value_font_size = 12  # Font size for metric values
+
+    # Define styles for metrics display
     fig.add_shape(
         type="rect",
         xref="paper",
@@ -444,12 +449,12 @@ def add_metrics_annotations(fig, metrics_data):
         {
             "label": "Avg Weekly Items (10W)",
             "value": metrics_data["avg_weekly_items"],
-            "format": "{:.1f}",
+            "format": "{:.2f}",  # Changed from {:.1f} to show 2 decimal places
         },
         {
             "label": "Avg Weekly Points (10W)",
             "value": metrics_data["avg_weekly_points"],
-            "format": "{:.1f}",
+            "format": "{:.2f}",  # Changed from {:.1f} to show 2 decimal places
         },
         {
             "label": "Est. Days (Points)",
@@ -633,24 +638,56 @@ def create_forecast_plot(
         )
 
         # Prepare metrics data for display
-        metrics_data = _prepare_metrics_data(
-            total_items,
-            total_points,
-            deadline,
-            pert_time_items,
-            pert_time_points,
-            data_points_count,
-            df,
-            items_completion_enhanced,
-            points_completion_enhanced,
-            avg_weekly_items,
-            avg_weekly_points,
-            med_weekly_items,
-            med_weekly_points,
-        )
+        try:
+            metrics_data = _prepare_metrics_data(
+                total_items,
+                total_points,
+                deadline,
+                pert_time_items,
+                pert_time_points,
+                data_points_count,
+                df,
+                items_completion_enhanced,
+                points_completion_enhanced,
+                avg_weekly_items,  # Removed round() to preserve decimal places
+                avg_weekly_points,  # Removed round() to preserve decimal places
+                med_weekly_items,  # Removed round() to preserve decimal places
+                med_weekly_points,  # Removed round() to preserve decimal places
+            )
 
-        # Add metrics annotations
-        fig = add_metrics_annotations(fig, metrics_data)
+            # Ensure metrics_data is never None
+            if metrics_data is None:
+                metrics_data = {}  # Default to empty dict if None
+
+            # Add metrics annotations
+            fig = add_metrics_annotations(fig, metrics_data)
+        except Exception as metrics_error:
+            # Log the error but continue without metrics
+            logger = logging.getLogger("burndown_chart")
+            logger.error(
+                f"Error preparing metrics data: {str(metrics_error)}\n{traceback.format_exc()}"
+            )
+
+            # Create minimal metrics data with default values
+            metrics_data = {
+                "total_items": total_items,
+                "total_points": total_points,
+                "deadline": deadline.strftime("%Y-%m-%d")
+                if hasattr(deadline, "strftime")
+                else "Unknown",
+                "days_to_deadline": days_to_deadline,
+                "avg_weekly_items": float(avg_weekly_items),
+                "avg_weekly_points": float(avg_weekly_points),
+                "med_weekly_items": float(med_weekly_items),
+                "med_weekly_points": float(med_weekly_points),
+            }
+
+            # Try to add metrics with the minimal data
+            try:
+                fig = add_metrics_annotations(fig, metrics_data)
+            except Exception:
+                # If even this fails, just continue without metrics
+                pass
 
         # Create a complete PERT data dictionary with explicit type conversion
         pert_data = {
@@ -659,10 +696,14 @@ def create_forecast_plot(
             "items_completion_enhanced": str(items_completion_enhanced),
             "points_completion_enhanced": str(points_completion_enhanced),
             "days_to_deadline": int(days_to_deadline),
-            "avg_weekly_items": float(avg_weekly_items),
-            "avg_weekly_points": float(avg_weekly_points),
-            "med_weekly_items": float(med_weekly_items),
-            "med_weekly_points": float(med_weekly_points),
+            "avg_weekly_items": float(
+                avg_weekly_items
+            ),  # Ensure this is a float without rounding
+            "avg_weekly_points": float(
+                avg_weekly_points
+            ),  # Ensure this is a float without rounding
+            "med_weekly_items": float(med_weekly_items),  # Also keep this as float
+            "med_weekly_points": float(med_weekly_points),  # Also keep this as float
             "forecast_timestamp": datetime.now().isoformat(),
         }
 
@@ -751,21 +792,19 @@ def _get_weekly_metrics(df):
         results = calculate_weekly_averages(df.to_dict("records"))
         if isinstance(results, (list, tuple)) and len(results) >= 4:
             avg_weekly_items, avg_weekly_points, med_weekly_items, med_weekly_points = (
-                results
+                results  # Ensure all are valid float values with preserved decimal places
             )
-
-        # Ensure all are valid float values
-        avg_weekly_items = float(
-            avg_weekly_items if avg_weekly_items is not None else 0.0
+        avg_weekly_items = round(
+            float(avg_weekly_items if avg_weekly_items is not None else 0.0), 2
         )
-        avg_weekly_points = float(
-            avg_weekly_points if avg_weekly_points is not None else 0.0
+        avg_weekly_points = round(
+            float(avg_weekly_points if avg_weekly_points is not None else 0.0), 2
         )
-        med_weekly_items = float(
-            med_weekly_items if med_weekly_items is not None else 0.0
+        med_weekly_items = round(
+            float(med_weekly_items if med_weekly_items is not None else 0.0), 2
         )
-        med_weekly_points = float(
-            med_weekly_points if med_weekly_points is not None else 0.0
+        med_weekly_points = round(
+            float(med_weekly_points if med_weekly_points is not None else 0.0), 2
         )
 
     return avg_weekly_items, avg_weekly_points, med_weekly_items, med_weekly_points
@@ -846,10 +885,10 @@ def _handle_forecast_error(e):
         "items_completion_enhanced": "Error in calculation",
         "points_completion_enhanced": "Error in calculation",
         "days_to_deadline": 0,
-        "avg_weekly_items": 0.0,
-        "avg_weekly_points": 0.0,
-        "med_weekly_items": 0.0,
-        "med_weekly_points": 0.0,
+        "avg_weekly_items": 0.0,  # Ensure consistent with non-error case
+        "avg_weekly_points": 0.0,  # Ensure consistent with non-error case
+        "med_weekly_items": 0.0,  # Keep as float
+        "med_weekly_points": 0.0,  # Keep as float
         "error": str(e),
         "forecast_timestamp": datetime.now().isoformat(),
     }
@@ -2193,12 +2232,13 @@ def create_chart_with_loading(
 
     # Wrap the chart with a loading state
     return create_loading_overlay(
-        chart,
+        children=chart,
+        style_key="primary",
+        size_key="lg",
+        text=message,
         is_loading=is_loading,
-        id=f"{id}-loading-wrapper",
-        spinner_props={"color": "primary", "size": "lg"},
-        overlay_style={"backgroundColor": "rgba(255, 255, 255, 0.7)"},
-        message=message,
+        opacity=0.7,
+        className=f"{id}-loading-wrapper",
     )
 
 
@@ -2972,51 +3012,94 @@ def create_burnup_chart(
                 ) = results
 
         # Add metrics data to the plot - same as burndown chart
-        metrics_data = _prepare_metrics_data(
-            total_items,
-            total_points,
-            deadline,
-            pert_time_items,
-            pert_time_points,
-            data_points_count,
-            df,
-            items_completion_enhanced,
-            points_completion_enhanced,
-            avg_weekly_items,
-            avg_weekly_points,
-            med_weekly_items,
-            med_weekly_points,
-        )
+        try:
+            metrics_data = _prepare_metrics_data(
+                total_items,
+                total_points,
+                deadline,
+                pert_time_items,
+                pert_time_points,
+                data_points_count,
+                df,
+                items_completion_enhanced,
+                points_completion_enhanced,
+                avg_weekly_items,  # Removed round() to preserve decimal places
+                avg_weekly_points,  # Removed round() to preserve decimal places
+                med_weekly_items,  # Removed round() to preserve decimal places
+                med_weekly_points,  # Removed round() to preserve decimal places
+            )
 
-        # Add metrics annotations in the same position as the burndown chart
-        fig = add_metrics_annotations(fig, metrics_data)
+            # Ensure metrics_data is never None
+            if metrics_data is None:
+                metrics_data = {}  # Default to empty dict if None
+
+            # Add metrics annotations in the same position as the burndown chart
+            fig = add_metrics_annotations(fig, metrics_data)
+        except Exception as metrics_error:
+            # Log the error but continue without metrics
+            logger = logging.getLogger("burndown_chart")
+            logger.error(
+                f"Error preparing burnup metrics data: {str(metrics_error)}\n{traceback.format_exc()}"
+            )
+
+            # Create minimal metrics data with default values
+            metrics_data = {
+                "total_items": total_items,
+                "total_points": total_points,
+                "total_scope_items": completed_items_total + total_items,
+                "total_scope_points": completed_points_total + total_points,
+                "completed_items": completed_items_total,
+                "completed_points": completed_points_total,
+                "deadline": deadline.strftime("%Y-%m-%d")
+                if hasattr(deadline, "strftime")
+                else "Unknown",
+                "days_to_deadline": days_to_deadline,
+                "avg_weekly_items": float(avg_weekly_items),
+                "avg_weekly_points": float(avg_weekly_points),
+                "med_weekly_items": float(med_weekly_items),
+                "med_weekly_points": float(med_weekly_points),
+            }
+
+            # Try to add metrics with the minimal data
+            try:
+                fig = add_metrics_annotations(fig, metrics_data)
+            except Exception:
+                # If even this fails, just continue without metrics
+                pass
 
         # Return more comprehensive data for dashboard metrics
-        return fig, {
-            "baseline_items": 0,  # No baseline scope calculation needed
-            "baseline_points": 0,  # No baseline scope calculation needed
-            "current_scope_items": metrics_data[
-                "total_scope_items"
-            ],  # Use consistent scope values
-            "current_scope_points": metrics_data[
-                "total_scope_points"
-            ],  # Use consistent scope values
-            "completed_items": df["cum_completed_items"].iloc[-1]
-            if not df.empty
-            else 0,
-            "completed_points": df["cum_completed_points"].iloc[-1]
-            if not df.empty
-            else 0,
-            "pert_time_items": pert_time_items,
-            "pert_time_points": pert_time_points,
-            "days_to_deadline": days_to_deadline,
-            "avg_weekly_items": avg_weekly_items,
-            "avg_weekly_points": avg_weekly_points,
-            "med_weekly_items": med_weekly_items,
-            "med_weekly_points": med_weekly_points,
-            "items_completion_enhanced": items_completion_enhanced,
-            "points_completion_enhanced": points_completion_enhanced,
-        }
+        return (
+            fig,
+            {
+                "baseline_items": 0,  # No baseline scope calculation needed
+                "baseline_points": 0,  # No baseline scope calculation needed
+                "current_scope_items": metrics_data[
+                    "total_scope_items"
+                ],  # Use consistent scope values
+                "current_scope_points": metrics_data[
+                    "total_scope_points"
+                ],  # Use consistent scope values
+                "completed_items": df["cum_completed_items"].iloc[-1]
+                if not df.empty
+                else 0,
+                "completed_points": df["cum_completed_points"].iloc[-1]
+                if not df.empty
+                else 0,
+                "pert_time_items": pert_time_items,
+                "pert_time_points": pert_time_points,
+                "days_to_deadline": days_to_deadline,
+                "avg_weekly_items": float(
+                    avg_weekly_items
+                ),  # Explicitly ensure float value (no rounding)
+                "avg_weekly_points": float(
+                    avg_weekly_points
+                ),  # Explicitly ensure float value (no rounding)
+                "med_weekly_items": float(med_weekly_items),  # Also keep as float
+                "med_weekly_points": float(med_weekly_points),  # Also keep as float
+                "items_completion_enhanced": items_completion_enhanced,
+                "points_completion_enhanced": points_completion_enhanced,
+            },
+        )
 
     except Exception as e:
         # Comprehensive error handling with full stack trace
@@ -3205,6 +3288,10 @@ def prepare_visualization_data(
 
     # Ensure data is sorted by date in ascending order
     df_calc = df_calc.sort_values("date", ascending=True)
+
+    # Initialize scope variables
+    total_scope_items = total_items
+    total_scope_points = total_points
 
     # Calculate total scope by adding completed work and remaining work
     if not is_burnup:
@@ -3551,10 +3638,10 @@ def _prepare_metrics_data(
     df,
     items_completion_enhanced,
     points_completion_enhanced,
-    avg_weekly_items=0,
-    avg_weekly_points=0,
-    med_weekly_items=0,
-    med_weekly_points=0,
+    avg_weekly_items=0.0,
+    avg_weekly_points=0.0,
+    med_weekly_items=0.0,
+    med_weekly_points=0.0,
 ):
     """
     Prepare metrics data for display in the forecast plot.
@@ -3611,7 +3698,7 @@ def _prepare_metrics_data(
     if total_scope_points > 0:
         points_percent_complete = (completed_points / total_scope_points) * 100
 
-    # Create metrics data dictionary
+    # Create metrics data dictionary with explicit float conversions for weekly metrics
     return {
         "total_items": total_items,
         "total_points": total_points,
@@ -3625,10 +3712,15 @@ def _prepare_metrics_data(
         "days_to_deadline": days_to_deadline,
         "pert_time_items": pert_time_items,
         "pert_time_points": pert_time_points,
-        "avg_weekly_items": avg_weekly_items,
-        "avg_weekly_points": avg_weekly_points,
-        "med_weekly_items": med_weekly_items,
-        "med_weekly_points": med_weekly_points,
+        "avg_weekly_items": round(float(avg_weekly_items), 2),
+        "avg_weekly_points": round(float(avg_weekly_points), 2),
+        "med_weekly_items": round(float(med_weekly_items), 2),
+        "med_weekly_points": round(float(med_weekly_points), 2),
+        # Ensure string representations use 2 decimal places and never get converted to integers
+        "avg_weekly_items_str": f"{float(avg_weekly_items):.2f}",
+        "avg_weekly_points_str": f"{float(avg_weekly_points):.2f}",
+        "med_weekly_items_str": f"{float(med_weekly_items):.2f}",
+        "med_weekly_points_str": f"{float(med_weekly_points):.2f}",
         "data_points_used": int(data_points_count)
         if data_points_count is not None and isinstance(data_points_count, (int, float))
         else (len(df) if hasattr(df, "__len__") else 0),

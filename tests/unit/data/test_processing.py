@@ -624,10 +624,6 @@ class TestGenerateWeeklyForecast(unittest.TestCase):
         items_values = [entry["completed_items"] for entry in self.statistics_data]
         points_values = [entry["completed_points"] for entry in self.statistics_data]
 
-        # Most likely should be close to the mean of the dataset
-        sum(items_values) / len(items_values)
-        sum(points_values) / len(points_values)
-
         # Get the first forecasted values
         if len(forecast["items"]["most_likely"]) > 0:
             forecast_most_likely_items = forecast["items"]["most_likely"][0]

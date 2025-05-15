@@ -863,9 +863,9 @@ def create_loading_state(
         return create_growing_spinner(
             style_key=style_key,
             size_key=size_key,
-            text=message,
+            count=3,
+            variant="circle",
             className=className,
-            id=id,
         )
 
     elif type == "skeleton":

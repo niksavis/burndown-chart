@@ -16,7 +16,16 @@ from datetime import datetime
 import dash_bootstrap_components as dbc
 import pandas as pd
 import plotly.graph_objects as go
-from dash import Input, Output, State, callback, callback_context, dcc, html
+from dash import (
+    Input,
+    Output,
+    State,
+    callback,
+    callback_context,
+    dcc,
+    html,
+)
+from dash.dcc.express import send_data_frame  # Import from dash.dcc.express
 from dash.exceptions import PreventUpdate
 
 # Application imports
@@ -74,7 +83,7 @@ def create_forecast_pill(forecast_type, value, color):
                 [
                     f"{forecast_type}: ",
                     html.Strong(
-                        f"{value:.1f}",
+                        f"{value:.2f}",
                         style={"color": color},
                     ),
                 ],
@@ -248,9 +257,7 @@ def register(app):
         # Calculate weekly averages for the info table
         avg_weekly_items, avg_weekly_points, med_weekly_items, med_weekly_points = (
             calculate_weekly_averages(statistics)
-        )
-
-        # Calculate days to deadline
+        )  # Calculate days to deadline
         deadline_date = pd.to_datetime(deadline)
         current_date = datetime.now()
         days_to_deadline = max(0, (deadline_date - current_date).days)
@@ -260,10 +267,10 @@ def register(app):
             pert_data["pert_time_items"],
             pert_data["pert_time_points"],
             days_to_deadline,
-            avg_weekly_items,
-            avg_weekly_points,
-            med_weekly_items,
-            med_weekly_points,
+            avg_weekly_items,  # Preserve decimal precision
+            avg_weekly_points,  # Preserve decimal precision
+            med_weekly_items,  # Preserve decimal precision
+            med_weekly_points,  # Preserve decimal precision
             pert_factor=pert_factor,
             total_items=total_items,
             total_points=total_points,
@@ -904,6 +911,11 @@ def register(app):
             try:
                 current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
 
+                # Initialize df to empty DataFrame to prevent "possibly unbound" error
+                df = pd.DataFrame()
+                # Initialize filename with a default value to prevent "possibly unbound" error
+                filename = f"chart_data_{current_time}.csv"
+
                 # Create pandas DataFrame for CSV export
                 if chart_id == "burndown":
                     # Export burndown chart data
@@ -974,19 +986,21 @@ def register(app):
                     filename = f"{prefix}weekly_points_data_{current_time}.csv"
 
                 # Format dates for better readability
-                if "date" in df.columns:
+                if not df.empty and "date" in df.columns:
                     df["date"] = df["date"].dt.strftime("%Y-%m-%d")
-                if "week_start" in df.columns:
+                if not df.empty and "week_start" in df.columns:
                     df["week_start"] = df["week_start"].dt.strftime("%Y-%m-%d")
 
                 # Return CSV data
-                return dcc.send_data_frame(df.to_csv, filename, index=False)
+                return send_data_frame(df.to_csv, filename, index=False)
 
             except Exception as e:
                 logger.error(f"Error exporting CSV data for {chart_id}: {e}")
+                # Define current_time here to ensure it's always available
+                current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
                 # Return empty CSV with error message
                 error_df = pd.DataFrame({"Error": [f"Failed to export data: {str(e)}"]})
-                return dcc.send_data_frame(
+                return send_data_frame(
                     error_df.to_csv, f"export_error_{current_time}.csv", index=False
                 )
 
@@ -1075,15 +1089,17 @@ def register(app):
             filename = f"statistics_{current_time}.csv"
 
             # Return CSV data
-            return dcc.send_data_frame(df.to_csv, filename, index=False)
+            return send_data_frame(df.to_csv, filename, index=False)
 
         except Exception as e:
             logger.error(f"Error exporting statistics data: {e}")
+            # Define current_time for the error case
+            current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
             # Return empty CSV with error message
             error_df = pd.DataFrame(
                 {"Error": [f"Failed to export statistics data: {str(e)}"]}
             )
-            return dcc.send_data_frame(
+            return send_data_frame(
                 error_df.to_csv, f"export_error_{current_time}.csv", index=False
             )
 
@@ -1432,14 +1448,16 @@ def register_loading_callbacks(app):
                             ),
                             html.Div(
                                 [
-                                    create_content_placeholder(
-                                        type="chart",
-                                        width="100%",
-                                        height="150px",
-                                        className="mb-3",
+                                    html.Div(
+                                        create_content_placeholder(
+                                            type="chart",
+                                            height="150px",
+                                            className="mb-3 w-100",
+                                        ),
+                                        style={"width": "100%"},
                                     ),
                                     create_content_placeholder(
-                                        type="table", width="100%", height="150px"
+                                        type="table", height="150px", className="w-100"
                                     ),
                                 ],
                                 className="d-flex flex-column",
@@ -1509,7 +1527,10 @@ def register_loading_callbacks(app):
                             className="text-success mb-3",
                         ),
                         dash_table.DataTable(
-                            data=df.to_dict("records"),
+                            data=[
+                                {str(k): v for k, v in record.items()}
+                                for record in df.to_dict("records")
+                            ],
                             columns=[{"name": i, "id": i} for i in df.columns],
                             style_table={"overflowX": "auto"},
                             style_cell={
