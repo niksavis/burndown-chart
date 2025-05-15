@@ -10,16 +10,12 @@ of the application, such as the forecast graph card, info card, etc.
 #######################################################################
 # Standard library imports
 from datetime import datetime, timedelta
+from typing import Any, Dict, List, cast
 
 # Third-party library imports
 import dash_bootstrap_components as dbc
 from dash import html, dcc
 import pandas as pd
-
-from typing import Dict, Any, List, cast
-
-# Type definition for StyleCellConditional
-StyleCellConditional = Dict[str, Any]
 
 # Application imports
 from configuration import HELP_TEXTS, COLOR_PALETTE
@@ -36,6 +32,9 @@ from ui.styles import (
 )
 from ui.button_utils import create_button
 from ui.tooltip_utils import create_info_tooltip
+
+# Type definition for StyleCellConditional
+StyleCellConditional = Dict[str, Any]
 
 #######################################################################
 # CARD COMPONENTS
