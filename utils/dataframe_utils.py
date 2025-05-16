@@ -11,7 +11,7 @@ across the application.
 # Standard library imports
 import hashlib
 import logging
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Union, Literal, Hashable, Callable
 
 # Third-party library imports
 import pandas as pd
@@ -26,7 +26,12 @@ logger = logging.getLogger("burndown_chart")
 #######################################################################
 
 
-def df_to_dict(df: pd.DataFrame, orient: str = "records") -> List[Dict[str, Any]]:
+def df_to_dict(
+    df: pd.DataFrame,
+    orient: Literal[
+        "dict", "list", "series", "split", "records", "index", "tight"
+    ] = "records",
+) -> Union[Dict[Hashable, Any], List[Dict[Hashable, Any]]]:
     """
     Convert a DataFrame to a dictionary with proper error handling.
 
@@ -36,7 +41,7 @@ def df_to_dict(df: pd.DataFrame, orient: str = "records") -> List[Dict[str, Any]
             See pandas.DataFrame.to_dict documentation for options
 
     Returns:
-        Dictionary representation of the DataFrame
+        Dictionary representation of the DataFrame, type depends on the orient parameter
     """
     if not isinstance(df, pd.DataFrame):
         logger.warning(f"Input is not a DataFrame: {type(df)}. Returning as is.")
@@ -107,7 +112,7 @@ def ensure_dataframe(
 
 
 def safe_dataframe_operation(
-    df: pd.DataFrame, operation: callable, fallback: Any = None, *args, **kwargs
+    df: pd.DataFrame, operation: Callable, fallback: Any = None, *args, **kwargs
 ) -> Any:
     """
     Safely perform an operation on a DataFrame with proper error handling.
