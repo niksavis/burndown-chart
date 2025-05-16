@@ -376,10 +376,10 @@ def add_metrics_annotations(fig, metrics_data):
     """
     # Ensure metrics_data is a dictionary
     if metrics_data is None:
-        metrics_data = {}
-
-    # Define positions and styles for metrics display
-    base_y_position = -0.15  # Y position for the top row of metrics
+        metrics_data = {}  # Define positions and styles for metrics display
+    base_y_position = (
+        -0.20
+    )  # Y position for the top row of metrics (moved down from -0.15)
     font_color = "rgba(50, 50, 50, 0.9)"  # Default text color for metrics
     value_font_size = 12  # Font size for metric values
 
@@ -512,12 +512,10 @@ def add_metrics_annotations(fig, metrics_data):
             ),
             align="left",
             xanchor="left",
-        )
-
-    # Update the figure margin to accommodate the metrics area
-    # Increased for better display on small screens
+        )  # Update the figure margin to accommodate the metrics area
+    # Increased for better display on small screens and to prevent overlay with x-axis
     fig.update_layout(
-        margin=dict(b=200)  # Increased bottom margin for better spacing
+        margin=dict(b=220)  # Increased bottom margin for better spacing (was 200)
     )
 
     return fig
