@@ -564,6 +564,7 @@ def create_dashboard_layout(
 
     # Set specified widths for breakpoints after stack_until
     bp_order = BOOTSTRAP_BREAKPOINTS
+    stack_index = bp_order.index("lg")  # Default to 'lg' breakpoint
     try:
         stack_index = bp_order.index(stack_until)
         for bp in bp_order[stack_index + 1 :]:
@@ -736,13 +737,15 @@ def create_form_section(title, components, help_text=None):
     Returns:
         A section div with title and components
     """
-    section_components = [
+    section_components = []
+
+    section_components.append(
         html.H5(
             title,
             className="border-bottom pb-2",
             style={"marginBottom": get_vertical_rhythm("heading.h5")},
-        ),
-    ]
+        )
+    )
 
     if help_text:
         section_components.append(
