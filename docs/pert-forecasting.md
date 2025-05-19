@@ -26,15 +26,19 @@ The PERT calculation is primarily implemented in `calculate_rates()` function in
 `data/processing.py`:
 
 1. **Data Aggregation**: Historical data is grouped by week to stabilize calculations
-2. **Three-point Estimation**: For both items and points completion rates:
-   - **Optimistic**: Average of best-performing weeks
-   - **Most Likely**: Average of all weeks
-   - **Pessimistic**: Average of worst-performing weeks (excluding zeros)
-3. **PERT Formula Application**: `(O + 4M + P) / 6` where:
+2. **Three-point Estimation**: For both items and points, we calculate three completion **rates**:
+   - **Optimistic Rate**: Average rate of best-performing weeks
+   - **Most Likely Rate**: Average rate of all weeks
+   - **Pessimistic Rate**: Average rate of worst-performing weeks (excluding zeros)
+3. **Conversion to Time Estimates**: These rates are converted to completion time estimates:
+   - **Optimistic Time** = Remaining Work ÷ Optimistic Rate
+   - **Most Likely Time** = Remaining Work ÷ Most Likely Rate
+   - **Pessimistic Time** = Remaining Work ÷ Pessimistic Rate
+4. **PERT Formula Application**: `(O + 4M + P) / 6` where:
    - O = Optimistic completion time
-   - M = Most likely completion time
+   - M = Most likely completion time (weighted 4× to emphasize its importance)
    - P = Pessimistic completion time
-4. **Adaptations for Small Datasets**:
+5. **Adaptations for Small Datasets**:
    - For very small datasets (≤3 data points), the mean is used for all estimates
      with slight adjustments for optimistic/pessimistic values
    - PERT factor is dynamically adjusted to be at most 1/3 of available data points
@@ -46,6 +50,21 @@ The PERT calculation is primarily implemented in `calculate_rates()` function in
 - **Rate Calculation**: Daily rates are derived by dividing weekly values by 7
 - **Zero Protection**: All rates have a minimum value of 0.001 to prevent division by zero
 - **Data Points Control**: Users can limit how much historical data to include in calculations
+
+### Handling Data Irregularities
+
+The system implements several measures to handle irregular data patterns:
+
+- **Outlier Handling**: The "pessimistic" calculation ignores zero values to prevent skewed forecasts. Extremely high values are included in optimistic calculations, but their impact is balanced by the PERT formula weighting.
+- **Small Dataset Adjustments**: For datasets with ≤3 data points, the system uses the mean for base calculations with specific adjustments:
+  - For optimistic values: Mean × 1.2 (20% higher)
+  - For pessimistic values: Mean × 0.8 (20% lower, never below 0.1)
+- **Missing Data Points**: Missing values in the dataset are filtered out during preprocessing, ensuring calculations use only valid data.
+- **Error Handling**: When calculations encounter potential errors (such as division by zero), the system applies fallback mechanisms:
+  - Enforces minimum rate values (0.001)
+  - Returns safe default values when no data is available
+  - Caps forecasts at 10 years maximum to prevent timestamp overflow
+  - Applies intelligent rounding to ensure human-readable values
 
 ## Values Used in Burndown Chart Forecasts
 
@@ -66,34 +85,39 @@ The burndown chart visualizes the following forecast data:
    - `pert_time_points`: PERT-weighted estimate for points completion (days)
    - Daily rates derived from PERT calculations
 
-## Values Used in Project Dashboard
+## Visualization Options
 
-The project dashboard displays additional metrics derived from PERT calculations:
+Users can configure several aspects of the PERT forecasting visualization:
 
-1. **Completion Forecast Section**:
-   - **PERT Completion Dates**: Formatted dates showing when items and points are
-     expected to be completed based on PERT estimates
-   - **Average & Median Forecasts**: Alternative completion forecasts based on
-     simple average and median historical rates
-   - **Color-coding**: Green if forecast meets deadline, red if it doesn't
+1. **PERT Factor** (slider range: 3-15):
+   - Controls the number of data points used for optimistic/pessimistic scenarios
+   - Lower values (3-5): More responsive to recent performance changes, wider confidence range
+   - Medium values (6-10): Balanced approach, moderate confidence range
+   - Higher values (11-15): More stable forecasts using more historical data, narrower confidence range
 
-2. **Weekly Velocity Section**:
-   - `avg_weekly_items`: Average weekly items completed
-   - `med_weekly_items`: Median weekly items completed
-   - `avg_weekly_points`: Average weekly points completed
-   - `med_weekly_points`: Median weekly points completed
-   - Trend indicators showing velocity changes
+2. **Data Points Count** (slider with dynamic range):
+   - Minimum: 2× PERT Factor (ensures statistical validity)
+   - Maximum: All available data points
+   - Controls how much historical data to include in calculations
+   - Fewer points make forecasts more responsive to recent trends
 
-3. **Weeks & Days Calculations**:
-   - `weeks_avg_items`: Weeks to complete remaining items at average rate
-   - `weeks_med_items`: Weeks to complete remaining items at median rate
-   - `weeks_avg_points`: Weeks to complete remaining points at average rate
-   - `weeks_med_points`: Weeks to complete remaining points at median rate
-   - Corresponding day values (`avg_items_days`, `med_items_days`, etc.)
+3. **Chart Type Toggle**:
+   - Burndown view: Shows remaining work with forecast to zero
+   - Burnup view: Shows completed work with forecast to total scope
 
-4. **Project Overview Metrics**:
-   - Completion percentages for items and points
-   - Progress visualization
+## Limitations and Considerations
+
+The PERT forecasting approach has some inherent limitations to consider:
+
+1. **Historical Dependency**: Forecasts are only as good as the historical data they're based on. Significant changes in team composition or working conditions may reduce forecast accuracy.
+
+2. **Linearity Assumption**: The model assumes relatively linear progress, making it less accurate for projects with highly variable velocity.
+
+3. **Small Dataset Challenges**: With fewer than 6 data points, the distinction between optimistic, most likely, and pessimistic scenarios becomes less meaningful.
+
+4. **Scope Change Impact**: Frequent scope changes can reduce forecast accuracy unless the "scope tracking" features are used to account for them.
+
+5. **Minimum Data Requirements**: The system requires at least 2× PERT Factor data points to generate valid forecasts. For a default PERT Factor of 3, this means at least 6 data points are recommended.
 
 ## Interpreting PERT Forecasts
 
