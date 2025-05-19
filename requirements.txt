@@ -52,6 +52,9 @@ werkzeug==3.0.6
 wheel==0.45.1
 zipp==3.21.0
 
+# Tools dependencies
+networkx>=2.5  # For import analysis graph operations
+
 # The following packages are considered to be unsafe in a requirements file:
 # pip
 # setuptools
