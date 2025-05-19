@@ -40,8 +40,19 @@ TREND_COLORS = {
 
 
 # Add these utility functions to help with PERT table components without breaking existing functionality
-def _create_header_with_icon(icon_class, title, color="#20c997"):
-    """Create a header with an icon for PERT info sections."""
+def _create_header_with_icon(
+    icon_class: str, title: str, color: str = "#20c997"
+) -> html.H5:
+    """Create a header with an icon for PERT info sections.
+
+    Args:
+        icon_class: The Font Awesome icon class to use
+        title: The title text for the header
+        color: The color to use for the icon, defaults to teal
+
+    Returns:
+        A styled H5 component with an icon and title
+    """
     return html.H5(
         [
             html.I(

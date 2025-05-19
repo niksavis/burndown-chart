@@ -11,14 +11,15 @@ import sys
 from pathlib import Path
 import networkx as nx
 import matplotlib.pyplot as plt
+from typing import List
 
 
-def find_python_files(root_dir):
+def find_python_files(root_dir: str) -> List[Path]:
     """Find all Python files in the project directory tree."""
     return list(Path(root_dir).rglob("*.py"))
 
 
-def extract_imports(file_path):
+def extract_imports(file_path: Path) -> List[str]:
     """Extract import statements from a Python file."""
     imports = []
     import_re = re.compile(
@@ -41,7 +42,7 @@ def extract_imports(file_path):
     return imports
 
 
-def build_import_graph(files):
+def build_import_graph(files: List[Path]) -> nx.DiGraph:
     """Build a directed graph of module dependencies."""
     G = nx.DiGraph()
 
@@ -69,7 +70,7 @@ def build_import_graph(files):
     return G
 
 
-def find_cycles(G):
+def find_cycles(G: nx.DiGraph) -> List[List[str]]:
     """Find circular dependencies in the import graph."""
     try:
         cycles = list(nx.simple_cycles(G))
@@ -78,7 +79,7 @@ def find_cycles(G):
         return []
 
 
-def visualize_graph(G, output_path):
+def visualize_graph(G: nx.DiGraph, output_path: str) -> None:
     """Visualize the import graph."""
     plt.figure(figsize=(12, 8))
     nx.draw(G, with_labels=True, node_color="lightblue", node_size=500)
@@ -86,7 +87,7 @@ def visualize_graph(G, output_path):
     plt.close()
 
 
-def suggest_fixes(cycles):
+def suggest_fixes(cycles: List[List[str]]) -> List[str]:
     """Provide suggestions to fix circular imports."""
     suggestions = []
 
@@ -103,7 +104,7 @@ def suggest_fixes(cycles):
     return suggestions
 
 
-def main():
+def main() -> None:
     if len(sys.argv) < 2:
         print("Usage: python analyze_imports.py <project_directory>")
         sys.exit(1)

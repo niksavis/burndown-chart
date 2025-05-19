@@ -51,11 +51,11 @@ assert formatted_value == "8.7"
 """
 
 import re
-from typing import Any, Optional
+from typing import Any, Optional, List
 
 
 def extract_numeric_value_from_component(
-    component: Any, property_path: Optional[list[str]] = None
+    component: Any, property_path: Optional[List[str]] = None
 ) -> Optional[float]:
     """
     Extract a numeric value from a UI component.
@@ -115,7 +115,7 @@ def extract_numeric_value_from_component(
 
 
 def extract_formatted_value_from_component(
-    component: Any, property_path: Optional[list[str]] = None
+    component: Any, property_path: Optional[List[str]] = None
 ) -> Optional[str]:
     """
     Extract a formatted string value from a UI component.
@@ -170,7 +170,7 @@ def extract_formatted_value_from_component(
 
 
 def validate_component_structure(
-    component: Any, expected_attrs: list[str], min_children: Optional[int] = None
+    component: Any, expected_attrs: List[str], min_children: Optional[int] = None
 ) -> bool:
     """
     Validate that a component has the expected attributes and minimum number of children.

@@ -13,8 +13,8 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, List, cast
 
 # Third-party library imports
-import dash_bootstrap_components as dbc
 from dash import html, dcc
+import dash_bootstrap_components as dbc
 import pandas as pd
 
 # Application imports

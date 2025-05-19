@@ -13,6 +13,7 @@ import datetime
 import json
 import traceback
 import uuid
+from typing import Dict
 
 # Third-party library imports
 import dash_bootstrap_components as dbc
@@ -34,18 +35,20 @@ from ui.styles import (
 #######################################################################
 
 
-def create_error_style(variant="danger", background=True):
+def create_error_style(
+    variant: str = "danger", background: bool = True
+) -> Dict[str, str]:
     """
     Create a consistent error style dictionary.
 
     Args:
-        variant (str): Error variant (danger, warning, info)
-        background (bool): Whether to include background styling
+        variant: Error variant (danger, warning, info)
+        background: Whether to include background styling
 
     Returns:
         Dictionary with error styling properties
     """
-    base_style = {
+    base_style: Dict[str, str] = {
         "borderRadius": "0.375rem",
         "border": f"1px solid {get_color(variant)}",
     }
@@ -166,8 +169,7 @@ def create_error_alert(
             title_content = [
                 create_icon(
                     icon_map.get(severity, "info"),
-                    with_space_right=True,
-                    className="me-2",
+                    className="me-2",  # Use className for spacing
                 ),
                 html.Span(title),
             ]
@@ -180,7 +182,8 @@ def create_error_alert(
     if icon and not title:
         message_content = [
             create_icon(
-                icon_map.get(severity, "info"), with_space_right=True, className="me-2"
+                icon_map.get(severity, "info"),
+                className="me-2",  # Use className for spacing
             ),
             html.Span(message),
         ]
@@ -243,7 +246,7 @@ def create_validation_message(
             create_icon(
                 style_info["icon"],
                 color=style_info["color"],
-                with_space_right=True,
+                className=f"me-2 {style_info.get('icon_class', '')}",  # Use className for spacing
                 size="sm",
             ),
             html.Span(
@@ -307,8 +310,9 @@ def create_form_field_with_validation(
         tooltip_id = f"{field_id}-tooltip"
         label_content.append(
             html.Span(
-                create_icon("info", size="sm", with_space_left=True, id=tooltip_id),
+                create_icon("info", size="sm"),
                 className="ms-1",
+                id=tooltip_id,
             )
         )
         tooltip_component = dbc.Tooltip(tooltip, target=tooltip_id)
@@ -573,7 +577,7 @@ def create_inline_error(
     """
     return html.Div(
         [
-            create_icon("danger", size=size, color="danger", with_space_right=True),
+            create_icon("danger", size=size, color="danger", className="me-2"),
             html.Span(message),
         ],
         className=f"d-flex align-items-center {className}",
@@ -612,7 +616,7 @@ def create_error_card(
     card_content = [
         dbc.CardHeader(
             html.H5(
-                [create_icon("danger", with_space_right=True), title],
+                [create_icon("danger", className="me-2"), title],
                 className="mb-0 d-flex align-items-center",
             ),
             className="bg-danger text-white",

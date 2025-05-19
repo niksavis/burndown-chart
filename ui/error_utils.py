@@ -53,18 +53,14 @@ def create_error_component(
     Returns:
         A Dash component displaying the error
     """
-    # Basic error alert
-    alert = dbc.Alert(
-        [
-            html.H4(
-                [html.I(className="fas fa-exclamation-triangle me-2"), "Error"],
-                className="alert-heading mb-2",
-            ),
-            html.P(error_message, className="mb-2"),
-        ],
-        color=severity,
-        className="mb-3",
-    )
+    # Create the children list for the alert
+    children = [
+        html.H4(
+            [html.I(className="fas fa-exclamation-triangle me-2"), "Error"],
+            className="alert-heading mb-2",
+        ),
+        html.P(error_message, className="mb-2"),
+    ]
 
     # Add error details if provided
     if error_details:
@@ -73,7 +69,7 @@ def create_error_component(
         )
         button_id = f"{component_id}-toggle" if component_id else "error-details-toggle"
 
-        alert.children.extend(
+        children.extend(
             [
                 html.Hr(className="my-2"),
                 dbc.Button(
@@ -106,7 +102,14 @@ def create_error_component(
             size="sm",
             className="mt-2",
         )
-        alert.children.append(retry_button)
+        children.append(retry_button)
+
+    # Create the alert with all children
+    alert = dbc.Alert(
+        children,
+        color=severity,
+        className="mb-3",
+    )
 
     # Return the error component
     return html.Div(alert, id=component_id, className="error-container")

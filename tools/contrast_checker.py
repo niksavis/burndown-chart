@@ -8,7 +8,7 @@ It can analyze CSS files or be used to check specific color combinations.
 import re
 import sys
 import os
-from typing import Tuple, Dict, List
+from typing import Tuple, Dict, List, Any
 
 
 def parse_color(color: str) -> Tuple[float, float, float]:
@@ -120,7 +120,7 @@ def check_wcag_compliance(ratio: float) -> Dict[str, bool]:
     }
 
 
-def find_colors_in_css(css_file: str) -> Dict[str, List[str]]:
+def find_colors_in_css(css_file: str) -> Dict[str, List[Dict[str, str]]]:
     """
     Extract color declarations from a CSS file.
 
@@ -154,7 +154,7 @@ def find_colors_in_css(css_file: str) -> Dict[str, List[str]]:
     return colors
 
 
-def generate_contrast_report(css_file: str) -> List[Dict]:
+def generate_contrast_report(css_file: str) -> List[Dict[str, Any]]:
     """
     Generate a report of potential contrast issues in a CSS file.
 
