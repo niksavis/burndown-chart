@@ -576,9 +576,19 @@ def prepare_visualization_data(
     logger = logging.getLogger("burndown_chart")
     logger.debug(f"Using {type(grouped_dict).__name__} as input to calculate_rates")
 
-    # Call calculate_rates with dict instead of DataFrame
+    # Convert dictionary back to DataFrame for calculate_rates
+    if isinstance(grouped_dict, dict):
+        grouped_df_for_rates = pd.DataFrame.from_dict(grouped_dict)
+    elif isinstance(grouped_dict, list):
+        grouped_df_for_rates = pd.DataFrame(grouped_dict)
+    else:
+        grouped_df_for_rates = grouped_df  # Use original if conversion failed
+
+    # Call calculate_rates with DataFrame
     try:
-        rates = calculate_rates(grouped_dict, total_items, total_points, pert_factor)
+        rates = calculate_rates(
+            grouped_df_for_rates, total_items, total_points, pert_factor
+        )
     except TypeError as e:
         logger.error(f"Type error in calculate_rates: {str(e)}")
         # Create safe default values in case of error
