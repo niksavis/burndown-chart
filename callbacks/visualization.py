@@ -187,6 +187,9 @@ def register(app):
             deadline_str=deadline,
             milestone_str=milestone,  # Pass milestone parameter
             data_points_count=data_points_count,
+            show_points=settings.get(
+                "show_points", False
+            ),  # Pass show_points parameter
         )
 
         return fig
@@ -252,6 +255,9 @@ def register(app):
             deadline_str=deadline,
             milestone_str=milestone,  # Pass milestone parameter
             data_points_count=data_points_count,
+            show_points=settings.get(
+                "show_points", False
+            ),  # Pass show_points parameter
         )
 
         # Calculate weekly averages for the info table
@@ -277,6 +283,9 @@ def register(app):
             deadline_str=deadline,
             milestone_str=milestone,  # Pass milestone parameter
             statistics_df=df,
+            show_points=settings.get(
+                "show_points", False
+            ),  # Pass show_points parameter
         )
 
         return project_dashboard_pert_info
@@ -729,6 +738,7 @@ def register(app):
             Input("current-statistics", "modified_timestamp"),
             Input("calculation-results", "data"),
             Input("date-range-weeks", "data"),
+            Input("points-toggle", "value"),  # Added points toggle input
         ],
         [
             State("current-settings", "data"),
@@ -741,6 +751,7 @@ def register(app):
         statistics_ts,
         calc_results,
         date_range_weeks,
+        show_points,  # Added parameter
         settings,
         statistics,
     ):
@@ -769,71 +780,88 @@ def register(app):
             # Prepare trend data (items and points trends with forecasts)
             items_trend, points_trend = _prepare_trend_data(statistics, pert_factor)
 
+            # Always generate all charts to ensure consistent React component structure
             # Generate burndown and burnup charts
-            if active_tab == "tab-burndown":
-                # Get milestone settings
-                show_milestone = settings.get("show_milestone", False)
-                milestone = settings.get("milestone", None) if show_milestone else None
+            show_milestone = settings.get("show_milestone", False)
+            milestone = settings.get("milestone", None) if show_milestone else None
 
-                # Generate burndown chart
-                burndown_fig, _ = create_forecast_plot(
-                    df=compute_cumulative_values(df, total_items, total_points)
-                    if not df.empty
-                    else df,
-                    total_items=total_items,
-                    total_points=total_points,
-                    pert_factor=pert_factor,
-                    deadline_str=deadline,
-                    milestone_str=milestone,  # Pass milestone parameter
-                    data_points_count=data_points_count,
-                )
+            # Generate burndown chart
+            burndown_fig, _ = create_forecast_plot(
+                df=compute_cumulative_values(df, total_items, total_points)
+                if not df.empty
+                else df,
+                total_items=total_items,
+                total_points=total_points,
+                pert_factor=pert_factor,
+                deadline_str=deadline,
+                milestone_str=milestone,  # Pass milestone parameter
+                data_points_count=data_points_count,
+                show_points=show_points,  # Pass show_points parameter
+            )
 
-                # Generate burnup chart for the toggle
-                from visualization import create_burnup_chart
+            # Generate burnup chart for the toggle
+            from visualization import create_burnup_chart
 
-                burnup_fig, _ = create_burnup_chart(
-                    df=df.copy() if not df.empty else df,
-                    total_items=total_items,
-                    total_points=total_points,
-                    pert_factor=pert_factor,
-                    deadline_str=deadline,
-                    milestone_str=milestone,  # Pass milestone parameter
-                    data_points_count=data_points_count,
-                )
+            burnup_fig, _ = create_burnup_chart(
+                df=df.copy() if not df.empty else df,
+                total_items=total_items,
+                total_points=total_points,
+                pert_factor=pert_factor,
+                deadline_str=deadline,
+                milestone_str=milestone,  # Pass milestone parameter
+                data_points_count=data_points_count,
+                show_points=show_points,  # Pass show_points parameter
+            )
 
-                # Create burndown tab content - always default to burndown chart initially
-                burndown_tab_content = _create_burndown_tab_content(
-                    df,
-                    items_trend,
-                    points_trend,
-                    burndown_fig,
-                    burnup_fig,
-                    settings,
-                    "burndown",
-                )
-                charts["tab-burndown"] = burndown_tab_content
+            # Create burndown tab content - always create to ensure consistent structure
+            burndown_tab_content = _create_burndown_tab_content(
+                df,
+                items_trend,
+                points_trend,
+                burndown_fig,
+                burnup_fig,
+                settings,
+                "burndown",
+            )
+            charts["tab-burndown"] = burndown_tab_content
 
-            # Weekly items chart with forecast
-            if active_tab == "tab-items" or active_tab is None:
-                items_fig = create_weekly_items_chart(
-                    statistics, date_range_weeks, pert_factor
-                )
-                charts["tab-items"] = _create_items_tab_content(items_trend, items_fig)
+            # Always create weekly items chart with forecast
+            items_fig = create_weekly_items_chart(
+                statistics, date_range_weeks, pert_factor
+            )
+            charts["tab-items"] = _create_items_tab_content(items_trend, items_fig)
 
-            # Weekly points chart with forecast
-            if active_tab == "tab-points" or active_tab is None:
+            # Always create weekly points chart - but content depends on points toggle
+            if show_points:
                 points_fig = create_weekly_points_chart(
                     statistics, date_range_weeks, pert_factor
                 )
                 charts["tab-points"] = _create_points_tab_content(
                     points_trend, points_fig
                 )
-
-            # Create scope tracking tab content
-            if active_tab == "tab-scope-tracking" or active_tab is None:
-                charts["tab-scope-tracking"] = _create_scope_tracking_tab_content(
-                    df, settings
+            else:
+                # Always create tab-points content, even if points tracking is disabled
+                charts["tab-points"] = html.Div(
+                    [
+                        html.Div(
+                            [
+                                html.H4(
+                                    "Points Tracking Disabled", className="text-muted"
+                                ),
+                                html.P(
+                                    "Enable the Points Tracking toggle in the Project Timeline form to view points forecasts.",
+                                    className="text-muted",
+                                ),
+                            ],
+                            className="alert alert-info text-center",
+                        )
+                    ]
                 )
+
+            # Always create scope tracking tab content
+            charts["tab-scope-tracking"] = _create_scope_tracking_tab_content(
+                df, settings
+            )
 
             # Create content for the active tab
             return create_tab_content(active_tab, charts)
@@ -1152,6 +1180,7 @@ def register(app):
             total_points = settings.get("total_points", 500)
             pert_factor = settings.get("pert_factor", 3)
             deadline = settings.get("deadline", None)
+            show_points = settings.get("show_points", False)  # Default to False
 
             # Get milestone settings - THIS WAS MISSING
             show_milestone = settings.get("show_milestone", False)
@@ -1201,6 +1230,7 @@ def register(app):
                     show_forecast=show_forecast,
                     forecast_visibility=forecast_visibility,
                     hover_mode=hover_mode,  # Pass hover mode for consistent behavior
+                    show_points=show_points,  # Pass show_points parameter
                 )
 
             else:
@@ -1218,6 +1248,7 @@ def register(app):
                     show_forecast=show_forecast,  # Pass this parameter
                     forecast_visibility=forecast_visibility,  # Pass this parameter
                     hover_mode=hover_mode,  # Pass this parameter
+                    show_points=show_points,  # Pass show_points parameter
                 )
 
             return dcc.Graph(
@@ -1337,7 +1368,12 @@ def register_loading_callbacks(app):
 
             # Create the chart (real implementation would call create_forecast_plot)
             figure, _ = create_forecast_plot(
-                df, total_items, total_points, pert_factor, deadline_str
+                df,
+                total_items,
+                total_points,
+                pert_factor,
+                deadline_str,
+                show_points=data.get("show_points", False),
             )
 
             # Return the chart with loading state
@@ -1616,3 +1652,83 @@ def toggle_forecast_info_collapse(n_clicks, is_open):
 
     # Toggle the state when button is clicked
     return not is_open
+
+
+# DISABLED: This callback causes React hooks errors by dynamically changing tab structure
+# @callback(
+#     Output("chart-tabs", "children"),
+#     [Input("points-toggle", "value")],
+#     [State("chart-tabs", "children")],
+# )
+# def update_tab_visibility(show_points, current_tabs):
+#     """
+#     Update tab visibility based on points toggle state.
+#     Hide the points tab when points toggle is disabled.
+#     """
+#     if current_tabs is None:
+#         raise PreventUpdate
+
+#     # Import here to avoid circular import
+#     import dash_bootstrap_components as dbc
+
+#     # Create new tabs list based on show_points state
+#     tab_config = [
+#         {
+#             "id": "tab-burndown",
+#             "label": "Burndown Chart",
+#             "icon": "fas fa-chart-line",
+#             "color": "#0d6efd",  # Primary blue
+#         },
+#         {
+#             "id": "tab-items",
+#             "label": "Items per Week",
+#             "icon": "fas fa-tasks",
+#             "color": "#20c997",  # Teal
+#         },
+#     ]
+
+#     # Only add points tab if toggle is enabled
+#     if show_points:
+#         tab_config.append(
+#             {
+#                 "id": "tab-points",
+#                 "label": "Points per Week",
+#                 "icon": "fas fa-chart-bar",
+#                 "color": "#fd7e14",  # Orange
+#             }
+#         )
+
+#     # Always include scope tracking tab
+#     tab_config.append(
+#         {
+#             "id": "tab-scope-tracking",
+#             "label": "Scope Changes",
+#             "icon": "fas fa-project-diagram",
+#             "color": "#e83e8c",  # Pink
+#         }
+#     )
+
+#     # Create new tabs
+#     tabs = []
+#     for config in tab_config:
+#         tab_style = {
+#             "borderTopLeftRadius": "0.375rem",
+#             "borderTopRightRadius": "0.375rem",
+#             "borderBottom": "none",
+#             "marginRight": "0.5rem",
+#             "color": config["color"],
+#         }
+
+#         tab = dbc.Tab(
+#             label=config["label"],  # Use string label instead of html.Div
+#             tab_id=config["id"],
+#             tab_style=tab_style,
+#             active_tab_style={
+#                 **tab_style,
+#                 "backgroundColor": config["color"],
+#                 "color": "white",
+#             },
+#         )
+#         tabs.append(tab)
+
+#     return tabs

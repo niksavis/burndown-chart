@@ -120,38 +120,38 @@ def create_tab_content(active_tab, charts, statistics_df=None, pert_data=None):
         "tab-burndown": create_forecast_info_card(),
         "tab-items": create_items_forecast_info_card(statistics_df, pert_data),
         "tab-points": create_points_forecast_info_card(statistics_df, pert_data),
-        "tab-scope-tracking": None,  # No info card needed for scope tracking tab
+        "tab-scope-tracking": html.Div(),  # Always provide a component, even if empty
     }
 
     # Enhanced tab titles with more descriptive content and icons
     tab_titles = {
-        "tab-burndown": html.H5(
+        "tab-burndown": html.Div(
             [
                 html.I(className="fas fa-chart-line me-2", style={"color": "#0d6efd"}),
                 "Project Burndown Forecast",
             ],
-            className="mb-3 border-bottom pb-2 d-flex align-items-center",
+            className="mb-3 border-bottom pb-2 d-flex align-items-center fw-bold",
         ),
-        "tab-items": html.H5(
+        "tab-items": html.Div(
             [
                 html.I(className="fas fa-tasks me-2", style={"color": "#20c997"}),
                 "Weekly Completed Items",
             ],
-            className="mb-3 border-bottom pb-2 d-flex align-items-center",
+            className="mb-3 border-bottom pb-2 d-flex align-items-center fw-bold",
         ),
-        "tab-points": html.H5(
+        "tab-points": html.Div(
             [
                 html.I(className="fas fa-chart-bar me-2", style={"color": "#fd7e14"}),
                 "Weekly Completed Points",
             ],
-            className="mb-3 border-bottom pb-2 d-flex align-items-center",
+            className="mb-3 border-bottom pb-2 d-flex align-items-center fw-bold",
         ),
-        "tab-scope-tracking": html.H5(
+        "tab-scope-tracking": html.Div(
             [
                 html.I(className="fas fa-chart-bar me-2", style={"color": "#fd7e14"}),
                 "Scope Change Analysis",
             ],
-            className="mb-3 border-bottom pb-2 d-flex align-items-center",
+            className="mb-3 border-bottom pb-2 d-flex align-items-center fw-bold",
         ),
     }
 
@@ -163,10 +163,12 @@ def create_tab_content(active_tab, charts, statistics_df=None, pert_data=None):
                 tab_titles.get(active_tab, "Chart View"),
                 className="mb-4 pb-2 border-bottom",
             ),
-            # Tab content
-            charts.get(active_tab, html.Div("No chart available")),
+            # Tab content - ensure we always have content, never fallback to avoid React hooks issues
+            charts.get(
+                active_tab, charts.get("tab-burndown", html.Div("Loading chart..."))
+            ),
             # Tab-specific info card
-            tab_info_cards.get(active_tab, None),
+            tab_info_cards.get(active_tab, html.Div()),  # Always return a component
         ],
         padding="p-4",  # Use consistent padding
     )

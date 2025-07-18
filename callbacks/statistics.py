@@ -417,3 +417,36 @@ def register(app):
 
         # Default: maintain current state
         return is_open
+
+    @app.callback(
+        [
+            Output("statistics-table", "data", allow_duplicate=True),
+            Output("is-sample-data", "data", allow_duplicate=True),
+        ],
+        [Input("jira-data-reload-trigger", "data")],
+        prevent_initial_call=True,
+    )
+    def reload_statistics_from_jira(reload_trigger):
+        """
+        Reload statistics table data when JIRA data is refreshed.
+
+        Args:
+            reload_trigger: Timestamp trigger from JIRA data refresh
+
+        Returns:
+            Tuple: (statistics_data, is_sample_data)
+        """
+        if not reload_trigger:
+            raise PreventUpdate
+
+        try:
+            from data.persistence import load_statistics
+
+            # Load fresh statistics data
+            statistics, is_sample = load_statistics()
+
+            return statistics, is_sample
+
+        except Exception as e:
+            logger.error(f"Error reloading statistics from JIRA: {e}")
+            raise PreventUpdate

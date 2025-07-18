@@ -571,43 +571,41 @@ def _create_completion_forecast_section(
     weeks_med_items_color,
     weeks_avg_points_color,
     weeks_med_points_color,
+    show_points=True,  # Add parameter for points tracking
 ):
     """
     Create the completion forecast section.
 
     Args:
         Multiple parameters for both items and points forecasts
+        show_points: Whether points tracking is enabled (default: True)
 
     Returns:
         dash.html.Div: Completion forecast section
     """
-    return html.Div(
-        [
-            # Subtitle with methodology information
-            html.Div(
-                html.Small(
-                    "Based on PERT methodology (optimistic, most likely, and pessimistic estimates)",
-                    className="text-muted mb-3 d-block text-center",
-                ),
-                className="mb-3",
-            ),
-            # Items Forecast Card
-            _create_forecast_card(
-                "Items Forecast",
-                "items",
-                items_completion_str,
-                pert_time_items,
-                items_color,
-                avg_items_completion_str,
-                med_items_completion_str,
-                weeks_avg_items,
-                avg_items_days,
-                weeks_med_items,
-                med_items_days,
-                weeks_avg_items_color,
-                weeks_med_items_color,
-            ),
-            # Points Forecast Card
+    # Create the forecast cards list
+    forecast_cards = [
+        # Items Forecast Card
+        _create_forecast_card(
+            "Items Forecast",
+            "items",
+            items_completion_str,
+            pert_time_items,
+            items_color,
+            avg_items_completion_str,
+            med_items_completion_str,
+            weeks_avg_items,
+            avg_items_days,
+            weeks_med_items,
+            med_items_days,
+            weeks_avg_items_color,
+            weeks_med_items_color,
+        ),
+    ]
+
+    # Only add points forecast card if points tracking is enabled
+    if show_points:
+        forecast_cards.append(
             _create_forecast_card(
                 "Points Forecast",
                 "points",
@@ -622,7 +620,21 @@ def _create_completion_forecast_section(
                 med_points_days,
                 weeks_avg_points_color,
                 weeks_med_points_color,
+            )
+        )
+
+    return html.Div(
+        [
+            # Subtitle with methodology information
+            html.Div(
+                html.Small(
+                    "Based on PERT methodology (optimistic, most likely, and pessimistic estimates)",
+                    className="text-muted mb-3 d-block text-center",
+                ),
+                className="mb-3",
             ),
+            # Add all forecast cards
+            *forecast_cards,
             # Legend
             html.Div(
                 html.Small(
@@ -857,39 +869,37 @@ def _create_weekly_velocity_section(
     avg_points_icon_color,
     med_points_icon,
     med_points_icon_color,
+    show_points=True,  # Add parameter for points tracking
 ):
     """
     Create the weekly velocity section.
 
     Args:
         Multiple parameters for velocity metrics
+        show_points: Whether points tracking is enabled (default: True)
 
     Returns:
         dash.html.Div: Weekly velocity section
     """
-    return html.Div(
-        [
-            # Subtitle with period information
-            html.Div(
-                html.Small(
-                    "Based on last 10 weeks of data",
-                    className="text-muted mb-3 d-block text-center",
-                ),
-                className="mb-3",
-            ),
-            # Items Velocity Card
-            _create_velocity_metric_section(
-                "items",
-                avg_weekly_items,
-                med_weekly_items,
-                avg_items_trend,
-                med_items_trend,
-                avg_items_icon,
-                avg_items_icon_color,
-                med_items_icon,
-                med_items_icon_color,
-            ),
-            # Points Velocity Card
+    # Create the velocity cards list
+    velocity_cards = [
+        # Items Velocity Card
+        _create_velocity_metric_section(
+            "items",
+            avg_weekly_items,
+            med_weekly_items,
+            avg_items_trend,
+            med_items_trend,
+            avg_items_icon,
+            avg_items_icon_color,
+            med_items_icon,
+            med_items_icon_color,
+        ),
+    ]
+
+    # Only add points velocity card if points tracking is enabled
+    if show_points:
+        velocity_cards.append(
             _create_velocity_metric_section(
                 "points",
                 avg_weekly_points,
@@ -900,7 +910,21 @@ def _create_weekly_velocity_section(
                 avg_points_icon_color,
                 med_points_icon,
                 med_points_icon_color,
+            )
+        )
+
+    return html.Div(
+        [
+            # Subtitle with period information
+            html.Div(
+                html.Small(
+                    "Based on last 10 weeks of data",
+                    className="text-muted mb-3 d-block text-center",
+                ),
+                className="mb-3",
             ),
+            # Add all velocity cards
+            *velocity_cards,
             # Info text at the bottom
             html.Div(
                 html.Div(
@@ -934,6 +958,7 @@ def create_pert_info_table(
     deadline_str=None,  # Add parameter for direct deadline string
     statistics_df=None,  # New parameter for statistics data
     milestone_str=None,  # Add parameter for milestone date string
+    show_points=True,  # Add parameter for points tracking
 ):
     """
     Create the PERT information table with improved organization and visual grouping.
@@ -951,6 +976,8 @@ def create_pert_info_table(
         total_points: Total remaining points to complete
         deadline_str: The deadline date string from settings
         statistics_df: DataFrame containing the statistics data
+        milestone_str: Milestone date string from settings
+        show_points: Whether points tracking is enabled (default: True)
 
     Returns:
         Dash component with improved PERT information display
@@ -1148,6 +1175,7 @@ def create_pert_info_table(
                                 weeks_med_items_color,
                                 weeks_avg_points_color,
                                 weeks_med_points_color,
+                                show_points=show_points,  # Pass show_points parameter
                             ),
                         ],
                         width=12,
@@ -1187,6 +1215,7 @@ def create_pert_info_table(
                                         avg_points_icon_color,
                                         med_points_icon,
                                         med_points_icon_color,
+                                        show_points=show_points,  # Pass show_points parameter
                                     ),
                                 ],
                                 className="mt-3 mt-lg-0",  # Add top margin for mobile

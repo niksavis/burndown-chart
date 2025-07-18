@@ -711,7 +711,7 @@ def create_responsive_table_wrapper(table_component, max_height=None, className=
     container_style = {
         "overflowX": "auto",
         "width": "100%",
-        "-webkit-overflow-scrolling": "touch",  # Smooth scrolling on iOS
+        "WebkitOverflowScrolling": "touch",  # Smooth scrolling on iOS
     }
 
     if max_height:

@@ -503,6 +503,7 @@ def prepare_visualization_data(
     is_burnup=False,
     scope_items=None,
     scope_points=None,
+    show_points=True,
 ):
     """
     Prepare all necessary data for the forecast visualization.
@@ -516,6 +517,7 @@ def prepare_visualization_data(
         is_burnup: Whether this is for a burnup chart (True) or burndown chart (False)
         scope_items: Total scope of items (required for burnup charts)
         scope_points: Total scope of points (required for burnup charts)
+        show_points: Whether points tracking is enabled (default: True)
 
     Returns:
         Dictionary containing all data needed for visualization
@@ -587,7 +589,7 @@ def prepare_visualization_data(
     # Call calculate_rates with DataFrame
     try:
         rates = calculate_rates(
-            grouped_df_for_rates, total_items, total_points, pert_factor
+            grouped_df_for_rates, total_items, total_points, pert_factor, show_points
         )
     except TypeError as e:
         logger.error(f"Type error in calculate_rates: {str(e)}")

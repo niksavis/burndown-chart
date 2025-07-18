@@ -162,7 +162,11 @@ def compute_weekly_throughput(df: pd.DataFrame) -> pd.DataFrame:
 
 @memoize(max_age_seconds=300)
 def calculate_rates(
-    grouped: pd.DataFrame, total_items: float, total_points: float, pert_factor: int
+    grouped: pd.DataFrame,
+    total_items: float,
+    total_points: float,
+    pert_factor: int,
+    show_points: bool = True,
 ) -> tuple[float, float, float, float, float, float]:
     """
     Calculate burn rates using PERT methodology.
@@ -172,6 +176,7 @@ def calculate_rates(
         total_items: Total number of items to complete
         total_points: Total number of points to complete
         pert_factor: Number of data points to use for optimistic/pessimistic estimates
+        show_points: Whether points tracking is enabled (default: True)
 
     Returns:
         Tuple of calculated values:
@@ -184,6 +189,29 @@ def calculate_rates(
     if grouped is None or len(grouped) == 0:
         # Return zeros to avoid calculations with empty data
         return 0, 0, 0, 0, 0, 0
+
+    # If points tracking is disabled, return safe defaults for points calculations
+    if not show_points:
+        # Still calculate items rates for items-based forecasting
+        days_per_week = 7.0
+        valid_data_count = len(grouped)
+
+        # Simple calculation for items only
+        if valid_data_count == 0:
+            return 0, 0, 0, 0, 0, 0
+
+        # Calculate simple items rate
+        mean_items_rate = grouped["completed_items"].mean() / days_per_week
+        mean_items_rate = max(0.001, mean_items_rate)  # Prevent division by zero
+
+        # Calculate time for items
+        time_items = total_items / mean_items_rate if mean_items_rate > 0 else 0
+
+        # Cap at reasonable maximum (2 years = 730 days)
+        time_items = min(time_items, 730)
+
+        # Return items calculation with zero points values
+        return time_items, mean_items_rate, mean_items_rate, 0, 0, 0
 
     # Validate and adjust pert_factor based on available data
     valid_data_count = len(grouped)
@@ -273,6 +301,12 @@ def calculate_rates(
     pert_time_points = (
         optimistic_time_points + 4 * most_likely_time_points + pessimistic_time_points
     ) / 6
+
+    # Cap estimated time to reasonable maximum to prevent performance issues
+    # Maximum: 2 years (730 days) for any forecast
+    MAX_ESTIMATED_DAYS = 730
+    pert_time_items = min(pert_time_items, MAX_ESTIMATED_DAYS)
+    pert_time_points = min(pert_time_points, MAX_ESTIMATED_DAYS)
 
     return (
         pert_time_items,

@@ -61,6 +61,7 @@ def save_settings(
     data_points_count=None,
     show_milestone=None,
     milestone=None,
+    show_points=None,
 ):
     """
     Save user settings to JSON file.
@@ -75,6 +76,7 @@ def save_settings(
         data_points_count: Number of data points to use for calculations
         show_milestone: Whether to show milestone on charts
         milestone: Milestone date string
+        show_points: Whether to show points tracking and forecasting
     """
     settings = {
         "pert_factor": pert_factor,
@@ -92,6 +94,7 @@ def save_settings(
         else max(DEFAULT_DATA_POINTS_COUNT, pert_factor * 2),
         "show_milestone": show_milestone if show_milestone is not None else False,
         "milestone": milestone,
+        "show_points": show_points if show_points is not None else False,
     }
 
     try:
@@ -203,20 +206,8 @@ def load_statistics():
         - is_sample: Boolean indicating if sample data is being used
     """
     try:
-        # Check if JIRA sync should be performed
-        if should_sync_jira():
-            try:
-                from data.jira_simple import sync_jira_data
-
-                success, message = sync_jira_data()
-                if success:
-                    logger.info(f"JIRA sync completed: {message}")
-                else:
-                    logger.warning(f"JIRA sync failed: {message}")
-                    # Continue with existing CSV loading logic
-            except Exception as e:
-                logger.warning(f"JIRA sync failed with error: {e}")
-                # Continue with existing CSV loading logic
+        # Note: JIRA sync is handled manually via UI "Refresh Cache" button
+        # No automatic sync on app start to respect user control
 
         if os.path.exists(STATISTICS_FILE):
             df = pd.read_csv(STATISTICS_FILE)

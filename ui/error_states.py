@@ -549,7 +549,9 @@ def create_loading_error(
                 className="mb2",
                 style=create_error_message_style("danger", "md"),
             ),
-            html.Div(retry_button) if retry_button else None,
+            html.Div(
+                retry_button if retry_button else []
+            ),  # Always render div, but conditional content
         ],
         className=f"text-center p-4 {className}",
         style=create_error_style("danger", background=True),

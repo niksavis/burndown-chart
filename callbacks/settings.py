@@ -180,6 +180,7 @@ def register(app):
             Input("data-points-input", "value"),  # Added data_points_count input
             Input("milestone-toggle", "value"),  # Added milestone toggle input
             Input("milestone-picker", "date"),  # Added milestone picker input
+            Input("points-toggle", "value"),  # Added points toggle input
         ],
         [State("app-init-complete", "data")],
     )
@@ -193,6 +194,7 @@ def register(app):
         data_points_count,  # Added parameter
         show_milestone,  # Added parameter
         milestone,  # Added parameter
+        show_points,  # Added parameter
         init_complete,
     ):
         """
@@ -241,6 +243,7 @@ def register(app):
             "data_points_count": data_points_count,  # Added to settings
             "show_milestone": show_milestone,  # Added to settings
             "milestone": milestone,  # Added to settings
+            "show_points": show_points,  # Added to settings
         }
 
         # Save to disk
@@ -254,6 +257,7 @@ def register(app):
             data_points_count,  # Added parameter
             show_milestone,  # Added parameter
             milestone,  # Added parameter
+            show_points,  # Added parameter
         )
 
         logger.info(f"Settings updated and saved: {settings}")
@@ -429,6 +433,22 @@ def register(app):
         """
         # When show_milestone is True, we want disabled to be False and vice versa
         return not show_milestone
+
+    @app.callback(
+        Output("points-inputs-container", "style"),
+        Input("points-toggle", "value"),
+    )
+    def toggle_points_inputs_container(show_points):
+        """
+        Show or hide the points inputs container based on the toggle state.
+
+        Args:
+            show_points: Boolean value from the points toggle switch
+
+        Returns:
+            Dict: Style dictionary to show/hide points inputs container
+        """
+        return {"display": "block" if show_points else "none"}
 
     # JIRA Integration Callbacks
     @app.callback(
@@ -670,7 +690,10 @@ def register(app):
 
     # Add a callback to trigger JIRA data loading when data source is selected
     @app.callback(
-        Output("jira-data-loader", "data"),
+        [
+            Output("jira-data-loader", "data"),
+            Output("jira-data-reload-trigger", "data"),
+        ],
         [
             Input("data-source-selection", "value"),
             Input("refresh-jira-cache", "n_clicks"),
@@ -680,41 +703,45 @@ def register(app):
     def trigger_jira_data_loading(data_source, n_clicks):
         """
         Trigger JIRA data loading when data source is selected or cache is refreshed.
+        Also trigger a reload of statistics data.
 
         Args:
             data_source: Selected data source ("CSV" or "JIRA")
             n_clicks: Number of refresh button clicks
 
         Returns:
-            Trigger signal for JIRA data loading, updated statistics data, and timestamp
+            Tuple: (timestamp, reload_trigger)
         """
         ctx = dash.callback_context
 
-        # Only proceed if JIRA is selected
-        if data_source != "JIRA":
-            raise PreventUpdate
-
         try:
             from data.jira_simple import sync_jira_data
-            from data.persistence import load_statistics
 
-            # If refresh button was clicked, sync data first
+            # Check if refresh button was clicked
             if (
                 n_clicks
                 and ctx.triggered
                 and ctx.triggered[0]["prop_id"] == "refresh-jira-cache.n_clicks"
             ):
+                # Sync data when refresh button is clicked (regardless of data source)
                 success, message = sync_jira_data()
                 if not success:
                     logger.error(f"Failed to sync JIRA data: {message}")
                     raise PreventUpdate
 
-            # Load statistics (this will automatically load JIRA data if configured)
-            statistics, _ = load_statistics()
+                # Return timestamp to trigger other callbacks
+                timestamp = int(datetime.now().timestamp() * 1000)
+                return timestamp, timestamp
 
-            # Return timestamp to trigger other callbacks
-            timestamp = int(datetime.now().timestamp() * 1000)
-            return timestamp
+            # Only proceed for data source selection if JIRA is selected
+            elif data_source == "JIRA":
+                # Return timestamp to trigger other callbacks
+                timestamp = int(datetime.now().timestamp() * 1000)
+                return timestamp, timestamp
+
+            else:
+                # If data source is not JIRA and refresh button wasn't clicked, prevent update
+                raise PreventUpdate
 
         except ImportError:
             logger.error("JIRA integration not available")

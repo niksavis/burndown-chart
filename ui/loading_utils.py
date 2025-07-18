@@ -1048,7 +1048,7 @@ def create_data_loading_section(
     error_id = f"{id}-error"
     retry_id = f"{id}-retry"
 
-    header = html.H5(title) if title else None
+    header = html.H5(title) if title else html.Div()  # Always render a component
 
     return html.Div(
         [

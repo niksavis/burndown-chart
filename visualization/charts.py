@@ -31,7 +31,9 @@ from ui.tooltip_utils import create_hoverlabel_config, format_hover_template
 #######################################################################
 
 
-def create_plot_traces(forecast_data, show_forecast=True, forecast_visibility=True):
+def create_plot_traces(
+    forecast_data, show_forecast=True, forecast_visibility=True, show_points=True
+):
     """
     Create all the traces for the plot.
 
@@ -39,6 +41,7 @@ def create_plot_traces(forecast_data, show_forecast=True, forecast_visibility=Tr
         forecast_data: Dictionary of forecast data from prepare_forecast_data
         show_forecast: Whether to show forecast lines (default: True)
         forecast_visibility: Visibility mode for forecast traces - True, False, or "legendonly" (default: "legendonly")
+        show_points: Whether points tracking is enabled (default: True)
 
     Returns:
         List of traces for Plotly figure
@@ -168,130 +171,132 @@ def create_plot_traces(forecast_data, show_forecast=True, forecast_visibility=Tr
         }
     )
 
-    # Historical points trace - enhanced markers
-    traces.append(
-        {
-            "data": go.Scatter(
-                x=df_calc["date"],
-                y=df_calc["cum_points"],
-                mode="lines+markers",
-                name="Points History",
-                line=dict(color=COLOR_PALETTE["points"], width=3),
-                marker=dict(
-                    size=10,
-                    color=COLOR_PALETTE["points"],
-                    symbol="circle",
-                    line=dict(width=2, color="white"),
+    # Only add points traces if points tracking is enabled
+    if show_points:
+        # Historical points trace - enhanced markers
+        traces.append(
+            {
+                "data": go.Scatter(
+                    x=df_calc["date"],
+                    y=df_calc["cum_points"],
+                    mode="lines+markers",
+                    name="Points History",
+                    line=dict(color=COLOR_PALETTE["points"], width=3),
+                    marker=dict(
+                        size=10,
+                        color=COLOR_PALETTE["points"],
+                        symbol="circle",
+                        line=dict(width=2, color="white"),
+                    ),
+                    hovertemplate=format_hover_template(
+                        title="Points History",
+                        fields={
+                            "Date": "%{x|%Y-%m-%d}",
+                            "Points": "%{y}",
+                        },
+                        extra_info="Points",
+                    ),
+                    hoverlabel=create_hoverlabel_config("default"),
                 ),
-                hovertemplate=format_hover_template(
-                    title="Points History",
-                    fields={
-                        "Date": "%{x|%Y-%m-%d}",
-                        "Points": "%{y}",
-                    },
-                    extra_info="Points",
-                ),
-                hoverlabel=create_hoverlabel_config("default"),
-            ),
-            "secondary_y": True,
-        }
-    )
+                "secondary_y": True,
+            }
+        )
 
-    # Points forecast traces - improving visibility
-    traces.append(
-        {
-            "data": go.Scatter(
-                x=points_forecasts["avg"][0],
-                y=points_forecasts["avg"][1],
-                mode="lines+markers",  # Added markers
-                name="Points Forecast (Most Likely)",
-                line=dict(
-                    color=COLOR_PALETTE["points"], dash="dash", width=3
-                ),  # Increased width
-                marker=dict(
-                    size=8,
-                    symbol="diamond",
-                    color=COLOR_PALETTE["points"],
-                    line=dict(color="white", width=1),
+        # Points forecast traces - improving visibility
+        traces.append(
+            {
+                "data": go.Scatter(
+                    x=points_forecasts["avg"][0],
+                    y=points_forecasts["avg"][1],
+                    mode="lines+markers",  # Added markers
+                    name="Points Forecast (Most Likely)",
+                    line=dict(
+                        color=COLOR_PALETTE["points"], dash="dash", width=3
+                    ),  # Increased width
+                    marker=dict(
+                        size=8,
+                        symbol="diamond",
+                        color=COLOR_PALETTE["points"],
+                        line=dict(color="white", width=1),
+                    ),
+                    hovertemplate=format_hover_template(
+                        title="Points Forecast",
+                        fields={
+                            "Date": "%{x|%Y-%m-%d}",
+                            "Points": "%{y:.1f}",
+                            "Type": "Most Likely",
+                        },
+                    ),
+                    hoverlabel=create_hoverlabel_config("info"),
+                    visible=True,
                 ),
-                hovertemplate=format_hover_template(
-                    title="Points Forecast",
-                    fields={
-                        "Date": "%{x|%Y-%m-%d}",
-                        "Points": "%{y:.1f}",
-                        "Type": "Most Likely",
-                    },
-                ),
-                hoverlabel=create_hoverlabel_config("info"),
-                visible=True,
-            ),
-            "secondary_y": True,
-        }
-    )
+                "secondary_y": True,
+            }
+        )
 
-    # Use gold color for optimistic points forecast (matching info card description)
-    traces.append(
-        {
-            "data": go.Scatter(
-                x=points_forecasts["opt"][0],
-                y=points_forecasts["opt"][1],
-                mode="lines+markers",  # Added markers
-                name="Points Forecast (Optimistic)",
-                line=dict(
-                    color="rgb(184, 134, 11)", dash="dot", width=2.5
-                ),  # Gold color for optimistic points
-                marker=dict(
-                    size=7,
-                    symbol="triangle-up",
-                    color="rgb(184, 134, 11)",  # Gold color for marker
-                    line=dict(color="white", width=1),
+        # Use gold color for optimistic points forecast (matching info card description)
+        traces.append(
+            {
+                "data": go.Scatter(
+                    x=points_forecasts["opt"][0],
+                    y=points_forecasts["opt"][1],
+                    mode="lines+markers",  # Added markers
+                    name="Points Forecast (Optimistic)",
+                    line=dict(
+                        color="rgb(184, 134, 11)", dash="dot", width=2.5
+                    ),  # Gold color for optimistic points
+                    marker=dict(
+                        size=7,
+                        symbol="triangle-up",
+                        color="rgb(184, 134, 11)",  # Gold color for marker
+                        line=dict(color="white", width=1),
+                    ),
+                    visible=True,
+                    hovertemplate=format_hover_template(
+                        title="Points Forecast",
+                        fields={
+                            "Date": "%{x|%Y-%m-%d}",
+                            "Points": "%{y:.1f}",
+                            "Type": "Optimistic",
+                        },
+                    ),
+                    hoverlabel=create_hoverlabel_config("success"),
                 ),
-                visible=True,
-                hovertemplate=format_hover_template(
-                    title="Points Forecast",
-                    fields={
-                        "Date": "%{x|%Y-%m-%d}",
-                        "Points": "%{y:.1f}",
-                        "Type": "Optimistic",
-                    },
-                ),
-                hoverlabel=create_hoverlabel_config("success"),
-            ),
-            "secondary_y": True,
-        }
-    )
+                "secondary_y": True,
+            }
+        )
 
-    # Use brown color for pessimistic points forecast (matching info card description)
-    traces.append(
-        {
-            "data": go.Scatter(
-                x=points_forecasts["pes"][0],
-                y=points_forecasts["pes"][1],
-                mode="lines+markers",  # Added markers
-                name="Points Forecast (Pessimistic)",
-                line=dict(
-                    color="rgb(165, 42, 42)", dash="dot", width=2.5
-                ),  # Brown color for pessimistic points
-                marker=dict(
-                    size=7,
-                    symbol="triangle-down",
-                    color="rgb(165, 42, 42)",  # Brown color for marker
-                    line=dict(color="white", width=1),
+        # Use brown color for pessimistic points forecast (matching info card description)
+        traces.append(
+            {
+                "data": go.Scatter(
+                    x=points_forecasts["pes"][0],
+                    y=points_forecasts["pes"][1],
+                    mode="lines+markers",  # Added markers
+                    name="Points Forecast (Pessimistic)",
+                    line=dict(
+                        color="rgb(165, 42, 42)", dash="dot", width=2.5
+                    ),  # Brown color for pessimistic points
+                    marker=dict(
+                        size=7,
+                        symbol="triangle-down",
+                        color="rgb(165, 42, 42)",  # Brown color for marker
+                        line=dict(color="white", width=1),
+                    ),
+                    visible=True,
+                    hovertemplate=format_hover_template(
+                        title="Points Forecast",
+                        fields={
+                            "Date": "%{x|%Y-%m-%d}",
+                            "Points": "%{y:.1f}",
+                            "Type": "Pessimistic",
+                        },
+                    ),
+                    hoverlabel=create_hoverlabel_config("warning"),
                 ),
-                visible=True,
-                hovertemplate=format_hover_template(
-                    title="Points Forecast",
-                    fields={
-                        "Date": "%{x|%Y-%m-%d}",
-                        "Points": "%{y:.1f}",
-                        "Type": "Pessimistic",
-                    },
-                ),
-                hoverlabel=create_hoverlabel_config("warning"),
-            ),
-            "secondary_y": True,
-        }
-    )
+                "secondary_y": True,
+            }
+        )
 
     return traces
 
@@ -396,7 +401,27 @@ def add_metrics_annotations(fig, metrics_data):
         line=dict(color="rgba(200, 200, 200, 0.5)", width=1),
     )
 
-    # Reorganize metrics for better responsiveness
+    # Detect if points data is meaningful
+    # Points data is considered available if:
+    # 1. There's any historical completed points data (sum > 0), OR
+    # 2. There's meaningful weekly points data (average > 0), OR
+    # 3. There's both scope and remaining points configured and they're different
+    points_data_available = (
+        metrics_data.get("completed_points", 0) > 0
+        or metrics_data.get("avg_weekly_points", 0) > 0
+        or (
+            metrics_data.get("total_scope_points", 0) > 0
+            and metrics_data.get("total_points", 0) > 0
+        )
+    )
+
+    # Additional check: if total_scope_points == total_points, it suggests no historical data
+    if (
+        metrics_data.get("total_scope_points", 0) == metrics_data.get("total_points", 0)
+        and metrics_data.get("completed_points", 0) == 0
+    ):
+        points_data_available = False
+
     # Using a layout that can reflow to 3x4 grid on small screens
     metrics = [
         # Row 1 - Scope metrics
@@ -407,8 +432,10 @@ def add_metrics_annotations(fig, metrics_data):
         },
         {
             "label": "Scope Points",
-            "value": metrics_data.get("total_scope_points", 0),
-            "format": "{:,.0f}",
+            "value": metrics_data.get("total_scope_points", 0)
+            if points_data_available
+            else None,
+            "format": "{:,.0f}" if points_data_available else "n/a",
         },
         {"label": "Deadline", "value": metrics_data["deadline"], "format": "{}"},
         # Row 2 - Completed metrics
@@ -420,9 +447,13 @@ def add_metrics_annotations(fig, metrics_data):
         },
         {
             "label": "Completed Points",
-            "value": metrics_data.get("completed_points", 0),
-            "format": "{:,.0f} ({:.1f}%)",
-            "extra_value": metrics_data.get("points_percent_complete", 0),
+            "value": metrics_data.get("completed_points", 0)
+            if points_data_available
+            else None,
+            "format": "{:,.0f} ({:.1f}%)" if points_data_available else "n/a",
+            "extra_value": metrics_data.get("points_percent_complete", 0)
+            if points_data_available
+            else None,
         },
         {
             "label": "Deadline in",
@@ -437,8 +468,8 @@ def add_metrics_annotations(fig, metrics_data):
         },
         {
             "label": "Remaining Points",
-            "value": metrics_data["total_points"],
-            "format": "{:,.0f}",
+            "value": metrics_data["total_points"] if points_data_available else None,
+            "format": "{:,.0f}" if points_data_available else "n/a",
         },
         {
             "label": "Est. Days (Items)",
@@ -453,13 +484,19 @@ def add_metrics_annotations(fig, metrics_data):
         },
         {
             "label": "Avg Weekly Points (10W)",
-            "value": metrics_data["avg_weekly_points"],
-            "format": "{:.2f}",  # Changed from {:.1f} to show 2 decimal places
+            "value": metrics_data["avg_weekly_points"]
+            if points_data_available
+            else None,
+            "format": "{:.2f}"
+            if points_data_available
+            else "n/a",  # Changed from {:.1f} to show 2 decimal places
         },
         {
             "label": "Est. Days (Points)",
-            "value": metrics_data["pert_time_points"],
-            "format": "{:.1f} days",
+            "value": metrics_data["pert_time_points"]
+            if points_data_available
+            else None,
+            "format": "{:.1f} days" if points_data_available else "n/a",
         },
     ]
 
@@ -478,7 +515,10 @@ def add_metrics_annotations(fig, metrics_data):
         y_pos = base_y_position + y_offset
 
         # Format the label and value
-        if "extra_value" in metric:
+        if metric["value"] is None:
+            # Handle n/a case
+            formatted_value = metric["format"]
+        elif "extra_value" in metric and metric["extra_value"] is not None:
             formatted_value = metric["format"].format(
                 metric["value"], metric["extra_value"]
             )
@@ -493,7 +533,7 @@ def add_metrics_annotations(fig, metrics_data):
                     text_color = "red"
                 else:
                     text_color = "green"
-            elif "Points" in metric["label"]:
+            elif "Points" in metric["label"] and metric["value"] is not None:
                 if metrics_data["pert_time_points"] > metrics_data["days_to_deadline"]:
                     text_color = "red"
                 else:
@@ -532,6 +572,7 @@ def create_forecast_plot(
     show_forecast=True,
     forecast_visibility=True,
     hover_mode="x unified",
+    show_points=True,
 ):
     """
     Create the complete forecast plot with all components.
@@ -547,6 +588,7 @@ def create_forecast_plot(
         show_forecast: Whether to show forecast traces
         forecast_visibility: Visibility mode for forecast traces ("legendonly", True, False)
         hover_mode: Hover mode for the plot ("x unified", "closest", etc.)
+        show_points: Whether points tracking is enabled (default: True)
 
     Returns:
         Tuple of (figure, pert_data_dict) where pert_data_dict contains all PERT forecast information
@@ -575,14 +617,24 @@ def create_forecast_plot(
 
         # Prepare all data needed for the visualization
         forecast_data = prepare_visualization_data(
-            df, total_items, total_points, pert_factor, data_points_count
+            df,
+            total_items,
+            total_points,
+            pert_factor,
+            data_points_count,
+            is_burnup=False,
+            scope_items=None,
+            scope_points=None,
+            show_points=show_points,
         )
 
         # Create subplot with secondary y-axis
         fig = make_subplots(specs=[[{"secondary_y": True}]])
 
         # Add all traces to the figure
-        traces = create_plot_traces(forecast_data, show_forecast, forecast_visibility)
+        traces = create_plot_traces(
+            forecast_data, show_forecast, forecast_visibility, show_points
+        )
         for trace in traces:
             # Only add forecast traces if show_forecast is True
             is_forecast = (
@@ -2290,6 +2342,7 @@ def create_burnup_chart(
     show_forecast=True,
     forecast_visibility=True,
     hover_mode="x unified",
+    show_points=True,
 ):
     """
     Create a burnup chart showing both completed work and total scope over time.
@@ -2305,6 +2358,7 @@ def create_burnup_chart(
         show_forecast: Whether to show forecast traces (default: True)
         forecast_visibility: Visibility mode for forecast traces ("legendonly" or True)
         hover_mode: Hover mode for the chart ("x unified" or "closest")
+        show_points: Whether points tracking is enabled (default: True)
 
     Returns:
         Tuple of (figure, data_dict) where data_dict contains all chart information
@@ -2496,6 +2550,7 @@ def create_burnup_chart(
             is_burnup=True,
             scope_items=final_scope_items,
             scope_points=final_scope_points,
+            show_points=show_points,
         )
 
         # Log forecast data for debugging
@@ -2845,8 +2900,11 @@ def create_burnup_chart(
         # Add traces to figure - all visible by default
         fig.add_trace(completed_items_trace, secondary_y=False)
         fig.add_trace(scope_items_trace, secondary_y=False)
-        fig.add_trace(completed_points_trace, secondary_y=True)
-        fig.add_trace(scope_points_trace, secondary_y=True)
+
+        # Only add points traces if points tracking is enabled
+        if show_points:
+            fig.add_trace(completed_points_trace, secondary_y=True)
+            fig.add_trace(scope_points_trace, secondary_y=True)
 
         # Add deadline and milestone marker
         fig = add_deadline_marker(fig, deadline, milestone)
@@ -3241,6 +3299,7 @@ def prepare_visualization_data(
     is_burnup=False,
     scope_items=None,
     scope_points=None,
+    show_points=True,
 ):
     """
     Prepare all necessary data for the forecast visualization.
@@ -3254,6 +3313,7 @@ def prepare_visualization_data(
         is_burnup: Whether this is for a burnup chart (True) or burndown chart (False)
         scope_items: Total scope of items (required for burnup charts)
         scope_points: Total scope of points (required for burnup charts)
+        show_points: Whether points tracking is enabled (default: True)
 
     Returns:
         Dictionary containing all data needed for visualization
@@ -3345,7 +3405,9 @@ def prepare_visualization_data(
 
     # Compute weekly throughput and rates with the filtered data
     grouped = compute_weekly_throughput(df_calc)
-    rates = calculate_rates(grouped, total_items, total_points, pert_factor)
+    rates = calculate_rates(
+        grouped, total_items, total_points, pert_factor, show_points
+    )
 
     (
         pert_time_items,

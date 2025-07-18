@@ -37,6 +37,26 @@ from ui.tooltip_utils import create_info_tooltip
 StyleCellConditional = Dict[str, Any]
 
 #######################################################################
+# HELPER FUNCTIONS
+#######################################################################
+
+
+def _get_default_data_source():
+    """
+    Determine the default data source based on JIRA configuration.
+
+    Returns:
+        str: "JIRA" if JIRA is configured, "CSV" otherwise
+    """
+    try:
+        from data.persistence import should_sync_jira
+
+        return "JIRA" if should_sync_jira() else "CSV"
+    except ImportError:
+        return "CSV"
+
+
+#######################################################################
 # CARD COMPONENTS
 #######################################################################
 
@@ -641,98 +661,148 @@ def create_input_parameters_card(
                     ],
                     className="mb-3",
                 ),
-                # Points (Estimated and Total) in one row
+                # Points Toggle Section
                 dbc.Row(
                     [
-                        # Estimated Points
                         dbc.Col(
                             [
-                                html.Label(
-                                    [
-                                        "Remaining Estimated Points:",
-                                        create_info_tooltip(
-                                            "estimated-points",
-                                            HELP_TEXTS["estimated_points"],
-                                        ),
-                                    ],
-                                    className="fw-medium",
-                                ),
-                                dbc.Input(
-                                    id="estimated-points-input",
-                                    type="number",
-                                    value=current_settings["estimated_points"],
-                                    min=0,
-                                    step=1,
-                                    style=create_input_style(size="md"),
-                                    invalid=False,  # Will be controlled by callback
-                                    className="form-control",
-                                ),
+                                # Label and toggle combined in a flex container
                                 html.Div(
-                                    id="estimated-points-feedback",
-                                    className="d-none",
-                                    style=create_form_feedback_style("invalid"),
-                                ),
-                            ],
-                            width=12,
-                            # Changed from md=6 to lg=6 to stack on medium screens
-                            lg=6,
-                            # Add bottom margin when stacked
-                            className="mb-3 mb-lg-0",
-                        ),
-                        # Total Points (Calculated)
-                        dbc.Col(
-                            [
-                                html.Label(
                                     [
-                                        "Remaining Total Points:",
-                                        html.Span(
-                                            "auto",
-                                            className="badge bg-secondary ms-1",
+                                        # Label for the points section
+                                        html.Label(
+                                            [
+                                                "Points Tracking:",
+                                                create_info_tooltip(
+                                                    "points-toggle",
+                                                    "Enable points tracking and forecasting (disable if not using story points).",
+                                                ),
+                                            ],
+                                            className="fw-medium me-2",
                                             style={
-                                                "fontSize": "0.7rem",
-                                                "verticalAlign": "text-top",
+                                                "display": "inline-flex",
+                                                "alignItems": "center",
                                             },
                                         ),
-                                        create_info_tooltip(
-                                            "total-points",
-                                            HELP_TEXTS["total_points"],
-                                        ),
-                                    ],
-                                    className="fw-medium",
-                                ),
-                                dbc.InputGroup(
-                                    [
-                                        dbc.Input(
-                                            id="total-points-display",
-                                            value=f"{estimated_total_points:.0f}",
-                                            disabled=True,
-                                            style=create_input_style(
-                                                disabled=True, readonly=True
+                                        # Toggle switch directly next to the label (without text label)
+                                        dbc.Switch(
+                                            id="points-toggle",
+                                            value=current_settings.get(
+                                                "show_points", False
                                             ),
+                                            label="",  # No text label
+                                            className="ms-2 responsive-toggle",
+                                            style={},  # Remove inline transform
                                         ),
-                                        dbc.InputGroupText(
-                                            html.I(className="fas fa-calculator"),
-                                            style={
-                                                "backgroundColor": NEUTRAL_COLORS[
-                                                    "gray-200"
-                                                ]
-                                            },
-                                        ),
-                                    ]
-                                ),
-                                html.Small(
-                                    id="points-calculation-info",
-                                    children=[
-                                        f"Using {avg_points_per_item:.1f} points per remaining item for calculation"
                                     ],
-                                    className="text-muted mt-1 d-block",
+                                    className="d-flex align-items-center mb-2",
                                 ),
                             ],
                             width=12,
-                            # Changed from md=6 to lg=6 to stack on medium screens
-                            lg=6,
                         ),
                     ],
+                    className="mb-3",
+                ),
+                # Points Inputs Container (controlled by points toggle)
+                html.Div(
+                    id="points-inputs-container",
+                    children=[
+                        # Points (Estimated and Total) in one row
+                        dbc.Row(
+                            [
+                                # Estimated Points
+                                dbc.Col(
+                                    [
+                                        html.Label(
+                                            [
+                                                "Remaining Estimated Points:",
+                                                create_info_tooltip(
+                                                    "estimated-points",
+                                                    HELP_TEXTS["estimated_points"],
+                                                ),
+                                            ],
+                                            className="fw-medium",
+                                        ),
+                                        dbc.Input(
+                                            id="estimated-points-input",
+                                            type="number",
+                                            value=current_settings["estimated_points"],
+                                            min=0,
+                                            step=1,
+                                            style=create_input_style(size="md"),
+                                            invalid=False,  # Will be controlled by callback
+                                            className="form-control",
+                                        ),
+                                        html.Div(
+                                            id="estimated-points-feedback",
+                                            className="d-none",
+                                            style=create_form_feedback_style("invalid"),
+                                        ),
+                                    ],
+                                    width=12,
+                                    # Changed from md=6 to lg=6 to stack on medium screens
+                                    lg=6,
+                                    # Add bottom margin when stacked
+                                    className="mb-3 mb-lg-0",
+                                ),
+                                # Total Points (Calculated)
+                                dbc.Col(
+                                    [
+                                        html.Label(
+                                            [
+                                                "Remaining Total Points:",
+                                                html.Span(
+                                                    "auto",
+                                                    className="badge bg-secondary ms-1",
+                                                    style={
+                                                        "fontSize": "0.7rem",
+                                                        "verticalAlign": "text-top",
+                                                    },
+                                                ),
+                                                create_info_tooltip(
+                                                    "total-points",
+                                                    HELP_TEXTS["total_points"],
+                                                ),
+                                            ],
+                                            className="fw-medium",
+                                        ),
+                                        dbc.InputGroup(
+                                            [
+                                                dbc.Input(
+                                                    id="total-points-display",
+                                                    value=f"{estimated_total_points:.0f}",
+                                                    disabled=True,
+                                                    style=create_input_style(
+                                                        disabled=True, readonly=True
+                                                    ),
+                                                ),
+                                                dbc.InputGroupText(
+                                                    html.I(
+                                                        className="fas fa-calculator"
+                                                    ),
+                                                    style={
+                                                        "backgroundColor": NEUTRAL_COLORS[
+                                                            "gray-200"
+                                                        ]
+                                                    },
+                                                ),
+                                            ]
+                                        ),
+                                        html.Small(
+                                            id="points-calculation-info",
+                                            children=[
+                                                f"Using {avg_points_per_item:.1f} points per remaining item for calculation"
+                                            ],
+                                            className="text-muted mt-1 d-block",
+                                        ),
+                                    ],
+                                    width=12,
+                                    # Changed from md=6 to lg=6 to stack on medium screens
+                                    lg=6,
+                                ),
+                            ],
+                        ),
+                    ],  # Close points inputs container
                 ),
             ],
             className="mb-4 p-3 bg-light rounded-3",
@@ -777,7 +847,7 @@ def create_input_parameters_card(
                                             "value": "JIRA",
                                         },
                                     ],
-                                    value="CSV",
+                                    value=_get_default_data_source(),
                                     inline=True,
                                     className="mb-3",
                                 ),
@@ -786,10 +856,14 @@ def create_input_parameters_card(
                         ),
                     ],
                 ),
-                # JIRA Configuration Container (hidden by default)
+                # JIRA Configuration Container (hidden by default when data source is CSV)
                 html.Div(
                     id="jira-config-container",
-                    style={"display": "none"},
+                    style={
+                        "display": "block"
+                        if _get_default_data_source() == "JIRA"
+                        else "none"
+                    },
                     children=[
                         dbc.Row(
                             [
@@ -991,9 +1065,14 @@ def create_input_parameters_card(
                     ],
                     className="mb-3 border-bottom pb-2 d-flex align-items-center",
                 ),
-                # CSV Upload Container (visible by default)
+                # CSV Upload Container (visible by default when data source is CSV)
                 html.Div(
                     id="csv-upload-container",
+                    style={
+                        "display": "block"
+                        if _get_default_data_source() == "CSV"
+                        else "none"
+                    },
                     children=dbc.Row(
                         [
                             dbc.Col(
@@ -1047,6 +1126,8 @@ def create_input_parameters_card(
                 ),  # Close the csv-upload-container div
                 # Hidden store component for JIRA data loading state
                 dcc.Store(id="jira-data-loader"),
+                # Hidden store component for JIRA data reload trigger
+                dcc.Store(id="jira-data-reload-trigger"),
             ],
             className="p-3 bg-light rounded-3",
         ),
@@ -1108,7 +1189,7 @@ def create_statistics_data_card(current_statistics):
         container_style = {
             "overflowX": "auto",
             "width": "100%",
-            "-webkit-overflow-scrolling": "touch",  # Smooth scrolling on iOS
+            "WebkitOverflowScrolling": "touch",  # Smooth scrolling on iOS
         }
 
         if max_height:
@@ -1180,7 +1261,7 @@ def create_statistics_data_card(current_statistics):
                 "borderRadius": "4px",
                 "border": f"1px solid {NEUTRAL_COLORS.get('gray-300', '#dee2e6')}",
                 "marginBottom": get_vertical_rhythm("section"),
-                "-webkit-overflow-scrolling": "touch",  # Improved scroll on iOS
+                "WebkitOverflowScrolling": "touch",  # Improved scroll on iOS
             },
             "style_header": {
                 "backgroundColor": NEUTRAL_COLORS.get("gray-200", "#e9ecef"),
