@@ -429,3 +429,296 @@ def register(app):
         """
         # When show_milestone is True, we want disabled to be False and vice versa
         return not show_milestone
+
+    # JIRA Integration Callbacks
+    @app.callback(
+        Output("jira-config-container", "style"),
+        Input("data-source-selection", "value"),
+    )
+    def toggle_jira_config(data_source):
+        """
+        Toggle visibility of JIRA configuration inputs based on data source selection.
+
+        Args:
+            data_source: Selected data source ("CSV" or "JIRA")
+
+        Returns:
+            Dict: Style dictionary to show/hide JIRA configuration
+        """
+        if data_source == "JIRA":
+            return {"display": "block"}
+        return {"display": "none"}
+
+    @app.callback(
+        Output("csv-upload-container", "style"), Input("data-source-selection", "value")
+    )
+    def toggle_csv_upload(data_source):
+        """
+        Toggle visibility of CSV upload container based on data source selection.
+
+        Args:
+            data_source: Selected data source ("CSV" or "JIRA")
+
+        Returns:
+            Dict: Style dictionary to show/hide CSV upload container
+        """
+        if data_source == "CSV":
+            return {"display": "block"}
+        return {"display": "none"}
+
+    @app.callback(
+        [
+            Output("jira-cache-status", "children"),
+            Output("jira-validation-errors", "children"),
+        ],
+        [
+            Input("refresh-jira-cache", "n_clicks"),
+            Input("jira-url", "value"),
+            Input("jira-projects", "value"),
+            Input("jira-date-from", "date"),
+            Input("jira-date-to", "date"),
+        ],
+        prevent_initial_call=True,
+    )
+    def update_jira_cache_and_validation(n_clicks, url, projects, date_from, date_to):
+        """
+        Update JIRA cache and show validation errors.
+
+        Args:
+            n_clicks: Number of refresh button clicks
+            url: JIRA URL
+            projects: JIRA projects (comma-separated)
+            date_from: Start date for JIRA query
+            date_to: End date for JIRA query
+
+        Returns:
+            Tuple: (cache_status, validation_errors)
+        """
+        ctx = dash.callback_context
+
+        # Initialize return values
+        cache_status = ""
+        validation_errors = ""
+
+        try:
+            from data.jira_simple import (
+                get_cache_status,
+                sync_jira_data,
+                validate_jira_config,
+                get_jira_config,
+            )
+
+            # Get current cache status
+            cache_status = get_cache_status()
+
+            # If refresh button was clicked, try to sync data
+            if (
+                n_clicks
+                and ctx.triggered
+                and ctx.triggered[0]["prop_id"] == "refresh-jira-cache.n_clicks"
+            ):
+                try:
+                    # When refreshing, use environment variables + any UI overrides
+                    config = get_jira_config()
+
+                    # Apply UI overrides only if they have non-empty values
+                    if date_from and date_from.strip():
+                        config["date_from"] = date_from
+                    if date_to and date_to.strip():
+                        config["date_to"] = date_to
+                    if url and url.strip():
+                        config["url"] = url
+                    if projects and projects.strip():
+                        config["projects"] = [
+                            p.strip() for p in projects.split(",") if p.strip()
+                        ]
+
+                    # Validate and sync with the merged config
+                    is_valid, error_message = validate_jira_config(config)
+                    if not is_valid:
+                        validation_errors = html.Div(
+                            [
+                                html.I(className="fas fa-exclamation-triangle me-2"),
+                                f"Configuration error: {error_message}",
+                            ],
+                            className="text-danger small",
+                        )
+                    else:
+                        # Temporarily set the config for this sync
+                        import os
+
+                        original_env = {}
+                        try:
+                            # Backup original env vars
+                            for key in [
+                                "JIRA_URL",
+                                "JIRA_PROJECTS",
+                                "JIRA_DATE_FROM",
+                                "JIRA_DATE_TO",
+                            ]:
+                                original_env[key] = os.environ.get(key)
+
+                            # Set temporary env vars
+                            os.environ["JIRA_URL"] = config["url"]
+                            os.environ["JIRA_PROJECTS"] = ",".join(config["projects"])
+                            os.environ["JIRA_DATE_FROM"] = config["date_from"]
+                            os.environ["JIRA_DATE_TO"] = config["date_to"]
+
+                            # Now sync
+                            success, message = sync_jira_data()
+                            if success:
+                                cache_status = get_cache_status()
+                                validation_errors = html.Div(
+                                    [
+                                        html.I(className="fas fa-check-circle me-2"),
+                                        f"Cache refreshed successfully: {message}",
+                                    ],
+                                    className="text-success small",
+                                )
+                            else:
+                                validation_errors = html.Div(
+                                    [
+                                        html.I(
+                                            className="fas fa-exclamation-triangle me-2"
+                                        ),
+                                        f"Cache refresh failed: {message}",
+                                    ],
+                                    className="text-danger small",
+                                )
+                        finally:
+                            # Restore original env vars
+                            for key, value in original_env.items():
+                                if value is not None:
+                                    os.environ[key] = value
+                                elif key in os.environ:
+                                    del os.environ[key]
+                except Exception as e:
+                    validation_errors = html.Div(
+                        [
+                            html.I(className="fas fa-exclamation-triangle me-2"),
+                            f"Cache refresh failed: {str(e)}",
+                        ],
+                        className="text-danger small",
+                    )
+            else:
+                # Only validate configuration if any inputs are provided AND not refreshing
+                if url or projects or date_from or date_to:
+                    # Start with the base config from environment variables
+                    config = get_jira_config()
+
+                    # Override with UI inputs if provided (only non-empty values)
+                    if url:
+                        config["url"] = url
+                    if projects:
+                        config["projects"] = [
+                            p.strip() for p in projects.split(",") if p.strip()
+                        ]
+                    if date_from:
+                        config["date_from"] = date_from
+                    if date_to:
+                        config["date_to"] = date_to
+
+                    # Validate configuration
+                    is_valid, error_message = validate_jira_config(config)
+                    if not is_valid:
+                        validation_errors = html.Div(
+                            [
+                                html.I(className="fas fa-exclamation-triangle me-2"),
+                                f"Configuration error: {error_message}",
+                            ],
+                            className="text-danger small",
+                        )
+
+            # Format cache status for display
+            if cache_status:
+                cache_status_display = html.Div(
+                    [
+                        html.I(className="fas fa-database me-2"),
+                        f"Cache: {cache_status}",
+                    ],
+                    className="text-muted small",
+                )
+            else:
+                cache_status_display = html.Div(
+                    [html.I(className="fas fa-database me-2"), "No cache available"],
+                    className="text-muted small",
+                )
+
+            return (
+                cache_status_display,
+                validation_errors,
+            )
+
+        except ImportError:
+            # JIRA integration not available
+            return html.Div(
+                [
+                    html.I(className="fas fa-exclamation-triangle me-2"),
+                    "JIRA integration not available",
+                ],
+                className="text-warning small",
+            ), ""
+        except Exception as e:
+            logger.error(f"Error in JIRA cache callback: {e}")
+            return html.Div(
+                [
+                    html.I(className="fas fa-exclamation-triangle me-2"),
+                    f"Error: {str(e)}",
+                ],
+                className="text-danger small",
+            ), ""
+
+    # Add a callback to trigger JIRA data loading when data source is selected
+    @app.callback(
+        Output("jira-data-loader", "data"),
+        [
+            Input("data-source-selection", "value"),
+            Input("refresh-jira-cache", "n_clicks"),
+        ],
+        prevent_initial_call=True,
+    )
+    def trigger_jira_data_loading(data_source, n_clicks):
+        """
+        Trigger JIRA data loading when data source is selected or cache is refreshed.
+
+        Args:
+            data_source: Selected data source ("CSV" or "JIRA")
+            n_clicks: Number of refresh button clicks
+
+        Returns:
+            Trigger signal for JIRA data loading, updated statistics data, and timestamp
+        """
+        ctx = dash.callback_context
+
+        # Only proceed if JIRA is selected
+        if data_source != "JIRA":
+            raise PreventUpdate
+
+        try:
+            from data.jira_simple import sync_jira_data
+            from data.persistence import load_statistics
+
+            # If refresh button was clicked, sync data first
+            if (
+                n_clicks
+                and ctx.triggered
+                and ctx.triggered[0]["prop_id"] == "refresh-jira-cache.n_clicks"
+            ):
+                success, message = sync_jira_data()
+                if not success:
+                    logger.error(f"Failed to sync JIRA data: {message}")
+                    raise PreventUpdate
+
+            # Load statistics (this will automatically load JIRA data if configured)
+            statistics, _ = load_statistics()
+
+            # Return timestamp to trigger other callbacks
+            timestamp = int(datetime.now().timestamp() * 1000)
+            return timestamp
+
+        except ImportError:
+            logger.error("JIRA integration not available")
+            raise PreventUpdate
+        except Exception as e:
+            logger.error(f"Error loading JIRA data: {e}")
+            raise PreventUpdate

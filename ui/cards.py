@@ -737,6 +737,247 @@ def create_input_parameters_card(
             ],
             className="mb-4 p-3 bg-light rounded-3",
         ),
+        # Data Source Section
+        html.Div(
+            [
+                html.H5(
+                    [
+                        html.I(
+                            className="fas fa-database me-2",
+                            style={"color": COLOR_PALETTE["optimistic"]},
+                        ),
+                        "Data Source",
+                    ],
+                    className="mb-3 border-bottom pb-2 d-flex align-items-center",
+                ),
+                # Data Source Selection
+                dbc.Row(
+                    [
+                        dbc.Col(
+                            [
+                                html.Label(
+                                    [
+                                        "Data Source:",
+                                        create_info_tooltip(
+                                            "data-source",
+                                            "Choose between CSV file upload or JIRA API integration for project data.",
+                                        ),
+                                    ],
+                                    className="fw-medium mb-2",
+                                ),
+                                dbc.RadioItems(
+                                    id="data-source-selection",
+                                    options=[
+                                        {
+                                            "label": "CSV Import (Manual)",
+                                            "value": "CSV",
+                                        },
+                                        {
+                                            "label": "JIRA API (Auto-sync)",
+                                            "value": "JIRA",
+                                        },
+                                    ],
+                                    value="CSV",
+                                    inline=True,
+                                    className="mb-3",
+                                ),
+                            ],
+                            width=12,
+                        ),
+                    ],
+                ),
+                # JIRA Configuration Container (hidden by default)
+                html.Div(
+                    id="jira-config-container",
+                    style={"display": "none"},
+                    children=[
+                        dbc.Row(
+                            [
+                                dbc.Col(
+                                    [
+                                        html.Label(
+                                            "JIRA URL:",
+                                            className="fw-medium",
+                                        ),
+                                        dbc.Input(
+                                            id="jira-url",
+                                            type="text",
+                                            placeholder="https://your-jira.com",
+                                            value="https://jira.atlassian.com",
+                                            style=create_input_style(size="md"),
+                                        ),
+                                    ],
+                                    width=12,
+                                    md=6,
+                                    className="mb-3",
+                                ),
+                                dbc.Col(
+                                    [
+                                        html.Label(
+                                            "Projects (comma-separated):",
+                                            className="fw-medium",
+                                        ),
+                                        dbc.Input(
+                                            id="jira-projects",
+                                            type="text",
+                                            placeholder="PROJ1,PROJ2,PROJ3",
+                                            value="JRASERVER",
+                                            style=create_input_style(size="md"),
+                                        ),
+                                    ],
+                                    width=12,
+                                    md=6,
+                                    className="mb-3",
+                                ),
+                            ],
+                        ),
+                        dbc.Row(
+                            [
+                                dbc.Col(
+                                    [
+                                        html.Label(
+                                            "Personal Access Token (optional):",
+                                            className="fw-medium",
+                                        ),
+                                        dbc.Input(
+                                            id="jira-token",
+                                            type="password",
+                                            placeholder="Optional for public projects",
+                                            style=create_input_style(size="md"),
+                                        ),
+                                    ],
+                                    width=12,
+                                    md=6,
+                                    className="mb-3",
+                                ),
+                                dbc.Col(
+                                    [
+                                        html.Label(
+                                            "Story Points Field:",
+                                            className="fw-medium",
+                                        ),
+                                        dbc.Input(
+                                            id="jira-story-points-field",
+                                            type="text",
+                                            placeholder="customfield_10002",
+                                            value="customfield_10002",
+                                            style=create_input_style(size="md"),
+                                        ),
+                                    ],
+                                    width=12,
+                                    md=6,
+                                    className="mb-3",
+                                ),
+                            ],
+                        ),
+                        dbc.Row(
+                            [
+                                dbc.Col(
+                                    [
+                                        html.Label(
+                                            "Date From:",
+                                            className="fw-medium",
+                                        ),
+                                        dcc.DatePickerSingle(
+                                            id="jira-date-from",
+                                            date=(
+                                                datetime.now() - timedelta(days=365)
+                                            ).strftime("%Y-%m-%d"),
+                                            style=create_input_style(size="md"),
+                                        ),
+                                    ],
+                                    width=12,
+                                    md=6,
+                                    className="mb-3",
+                                ),
+                                dbc.Col(
+                                    [
+                                        html.Label(
+                                            "Date To:",
+                                            className="fw-medium",
+                                        ),
+                                        dcc.DatePickerSingle(
+                                            id="jira-date-to",
+                                            date=datetime.now().strftime("%Y-%m-%d"),
+                                            style=create_input_style(size="md"),
+                                        ),
+                                    ],
+                                    width=12,
+                                    md=6,
+                                    className="mb-3",
+                                ),
+                            ],
+                        ),
+                        dbc.Row(
+                            [
+                                dbc.Col(
+                                    [
+                                        html.Label(
+                                            "Cache Size Limit (MB):",
+                                            className="fw-medium",
+                                        ),
+                                        dbc.Input(
+                                            id="jira-cache-max-size",
+                                            type="number",
+                                            placeholder="100",
+                                            value=100,
+                                            min=1,
+                                            max=1000,
+                                            style=create_input_style(size="md"),
+                                        ),
+                                    ],
+                                    width=12,
+                                    md=6,
+                                    className="mb-3",
+                                ),
+                                dbc.Col(
+                                    [
+                                        html.Label(
+                                            "Cache Actions:",
+                                            className="fw-medium",
+                                        ),
+                                        html.Div(
+                                            [
+                                                create_button(
+                                                    text="Refresh Cache",
+                                                    id="refresh-jira-cache",
+                                                    variant="primary",
+                                                    icon_class="fas fa-sync",
+                                                    size="sm",
+                                                ),
+                                            ],
+                                            className="d-flex align-items-end",
+                                        ),
+                                    ],
+                                    width=12,
+                                    md=6,
+                                    className="mb-3",
+                                ),
+                            ],
+                        ),
+                        # Cache Status and Validation Errors
+                        dbc.Row(
+                            [
+                                dbc.Col(
+                                    [
+                                        html.Div(
+                                            id="jira-cache-status",
+                                            className="text-muted small",
+                                        ),
+                                        html.Div(
+                                            id="jira-validation-errors",
+                                            className="text-danger small",
+                                        ),
+                                    ],
+                                    width=12,
+                                ),
+                            ],
+                        ),
+                    ],
+                ),
+            ],
+            className="mb-4 p-3 bg-light rounded-3",
+        ),
         # Data Import Section
         html.Div(
             [
@@ -750,53 +991,62 @@ def create_input_parameters_card(
                     ],
                     className="mb-3 border-bottom pb-2 d-flex align-items-center",
                 ),
-                # CSV Upload
-                dbc.Row(
-                    [
-                        dbc.Col(
-                            [
-                                html.Label(
-                                    [
-                                        "Upload Statistics CSV:",
-                                        create_info_tooltip(
-                                            "csv-upload",
-                                            HELP_TEXTS["csv_format"],
-                                        ),
-                                    ],
-                                    className="fw-medium mb-2",
-                                ),
-                                dcc.Upload(
-                                    id="upload-data",
-                                    children=html.Div(
+                # CSV Upload Container (visible by default)
+                html.Div(
+                    id="csv-upload-container",
+                    children=dbc.Row(
+                        [
+                            dbc.Col(
+                                [
+                                    html.Label(
                                         [
-                                            html.I(className="fas fa-file-upload me-2"),
-                                            "Drag and Drop or ",
-                                            html.A(
-                                                "Select CSV File",
-                                                className="text-primary",
+                                            "Upload Statistics CSV:",
+                                            create_info_tooltip(
+                                                "csv-upload",
+                                                HELP_TEXTS["csv_format"],
                                             ),
                                         ],
-                                        className="d-flex align-items-center justify-content-center",
+                                        className="fw-medium mb-2",
                                     ),
-                                    style={
-                                        "width": "100%",
-                                        "height": "60px",
-                                        "lineHeight": "60px",
-                                        "borderWidth": "1px",
-                                        "borderStyle": "dashed",
-                                        "borderRadius": "0.25rem",
-                                        "textAlign": "center",
-                                        "backgroundColor": NEUTRAL_COLORS["gray-100"],
-                                        "transition": "border-color 0.15s ease-in-out, background-color 0.15s ease-in-out",
-                                        "borderColor": COLOR_PALETTE["items"],
-                                    },
-                                    multiple=False,
-                                ),
-                            ],
-                            width=12,
-                        ),
-                    ],
-                ),
+                                    dcc.Upload(
+                                        id="upload-data",
+                                        children=html.Div(
+                                            [
+                                                html.I(
+                                                    className="fas fa-file-upload me-2"
+                                                ),
+                                                "Drag and Drop or ",
+                                                html.A(
+                                                    "Select CSV File",
+                                                    className="text-primary",
+                                                ),
+                                            ],
+                                            className="d-flex align-items-center justify-content-center",
+                                        ),
+                                        style={
+                                            "width": "100%",
+                                            "height": "60px",
+                                            "lineHeight": "60px",
+                                            "borderWidth": "1px",
+                                            "borderStyle": "dashed",
+                                            "borderRadius": "0.25rem",
+                                            "textAlign": "center",
+                                            "backgroundColor": NEUTRAL_COLORS[
+                                                "gray-100"
+                                            ],
+                                            "transition": "border-color 0.15s ease-in-out, background-color 0.15s ease-in-out",
+                                            "borderColor": COLOR_PALETTE["items"],
+                                        },
+                                        multiple=False,
+                                    ),
+                                ],
+                                width=12,
+                            ),
+                        ],
+                    ),
+                ),  # Close the csv-upload-container div
+                # Hidden store component for JIRA data loading state
+                dcc.Store(id="jira-data-loader"),
             ],
             className="p-3 bg-light rounded-3",
         ),

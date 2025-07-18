@@ -35,6 +35,22 @@ from configuration import (
 #######################################################################
 
 
+def should_sync_jira():
+    """
+    Check if JIRA sync should be performed based on configuration.
+
+    Returns:
+        bool: True if JIRA is enabled and configured
+    """
+    import os
+
+    # Check if JIRA is enabled via environment variables
+    jira_url = os.getenv("JIRA_URL", "")
+    jira_projects = os.getenv("JIRA_PROJECTS", "")
+
+    return bool(jira_url and jira_projects)
+
+
 def save_settings(
     pert_factor,
     deadline,
@@ -187,6 +203,21 @@ def load_statistics():
         - is_sample: Boolean indicating if sample data is being used
     """
     try:
+        # Check if JIRA sync should be performed
+        if should_sync_jira():
+            try:
+                from data.jira_simple import sync_jira_data
+
+                success, message = sync_jira_data()
+                if success:
+                    logger.info(f"JIRA sync completed: {message}")
+                else:
+                    logger.warning(f"JIRA sync failed: {message}")
+                    # Continue with existing CSV loading logic
+            except Exception as e:
+                logger.warning(f"JIRA sync failed with error: {e}")
+                # Continue with existing CSV loading logic
+
         if os.path.exists(STATISTICS_FILE):
             df = pd.read_csv(STATISTICS_FILE)
 

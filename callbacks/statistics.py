@@ -207,7 +207,7 @@ def register(app):
             Input("add-row-button", "n_clicks"),
             Input("upload-data", "contents"),
             Input("statistics-table", "data_timestamp"),
-        ],  # Added data_timestamp as input
+        ],
         [
             State("statistics-table", "data"),
             State("upload-data", "filename"),
@@ -215,7 +215,12 @@ def register(app):
         ],
     )
     def update_table(
-        n_clicks, contents, data_timestamp, rows, filename, is_sample_data
+        n_clicks,
+        contents,
+        data_timestamp,
+        rows,
+        filename,
+        is_sample_data,
     ):
         """
         Update the statistics table data when:

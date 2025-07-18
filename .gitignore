@@ -172,3 +172,8 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Application-specific generated files
+forecast_settings.json
+forecast_statistics.csv
+jira_cache.json
