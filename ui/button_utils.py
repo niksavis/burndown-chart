@@ -17,7 +17,6 @@ from dash import html
 
 # Application imports
 from ui.styles import TYPOGRAPHY
-from ui.aria_utils import add_aria_label_to_icon_button
 
 #######################################################################
 # BUTTON STYLING FUNCTIONS
@@ -288,17 +287,30 @@ def create_icon_button(
     label,
     id=None,
     color="primary",
+    tooltip=None,
+    className=None,
     **kwargs,
 ):
     """Create an icon-only button with accessibility features."""
+    # Remove conflicting arguments from kwargs
+    button_kwargs = {
+        k: v for k, v in kwargs.items() if k not in ["tooltip", "className"]
+    }
+
+    # Build the final className
+    final_class = f"btn btn-{color} icon-only"
+    if className:
+        final_class += f" {className}"
+
     button = html.Button(
         html.I(className=icon_class),
         id=id,
-        className=f"btn btn-{color} icon-only",
-        **kwargs,
+        className=final_class,
+        title=tooltip if tooltip else label,  # Use title for tooltip text
+        **{"aria-label": label, **button_kwargs},  # Add aria-label directly
     )
 
-    return add_aria_label_to_icon_button(button, label)
+    return button
 
 
 def create_close_button(
@@ -340,14 +352,16 @@ def create_close_button(
 
     return create_icon_button(
         icon_class="fas fa-times",
+        label="Close",  # Add the required label parameter
         id=id,
-        variant=variant,
-        size=size,
+        color=variant if variant else "secondary",  # Convert variant to color
         tooltip=tooltip,
         className=className,
         style=button_style,
         disabled=disabled,
-        **kwargs,
+        **{
+            k: v for k, v in kwargs.items() if k not in ["size", "variant"]
+        },  # Filter out invalid attributes
     )
 
 
@@ -379,14 +393,16 @@ def create_menu_button(
     """
     return create_icon_button(
         icon_class="fas fa-bars",
+        label="Menu",  # Add the required label parameter
         id=id,
-        variant=variant,
-        size=size,
+        color=variant if variant else "primary",  # Convert variant to color
         tooltip=tooltip,
         className=className,
         style=style,
         disabled=disabled,
-        **kwargs,
+        **{
+            k: v for k, v in kwargs.items() if k not in ["size", "variant"]
+        },  # Filter out invalid attributes
     )
 
 

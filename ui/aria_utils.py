@@ -46,8 +46,15 @@ def add_aria_label_to_icon_button(component, label, options=None):
     if not isinstance(component.children, list):
         component.children = [component.children]
 
-    # Add aria-label attribute
-    component["aria-label"] = label
+    # Add aria-label attribute using the correct Dash property format
+    if hasattr(component, "children"):
+        # For HTML components, aria-label should be passed as a constructor argument
+        # Since we can't modify it after creation, we'll use title instead
+        pass
+
+    # Use title attribute for accessibility (works for screen readers)
+    if not hasattr(component, "title") or component.title is None:
+        component.title = label
 
     # Add tooltip if requested
     if options["include_tooltip"] and hasattr(component, "id"):

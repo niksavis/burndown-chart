@@ -1,16 +1,17 @@
 """
-Test script for the tooltip_utils module.
+Tooltip Utils Demo Application
 
-This script demonstrates and validates the usage of the new tooltip_utils module.
-To run this script, execute: python ui/test_tooltips.py
+This script demonstrates and validates the usage of the tooltip_utils module.
+To run this demo, execute: python demos/ui/tooltip_utils_demo.py
 """
 
 # Add the project root to the path so we can import the ui module properly
 # IMPORTANT: This must be done before any other imports
 import sys
-import os
+from pathlib import Path
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+# Add the project root to the Python path (two levels up from demos/ui/)
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 # Now we can import from ui modules
 from dash import Dash, html, dcc
