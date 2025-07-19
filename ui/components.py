@@ -1021,24 +1021,24 @@ def create_pert_info_table(
 
     # Calculate dates for average and median completion (handle infinity values)
     avg_items_completion_date = (
-        current_date + timedelta(days=min(weeks_avg_items * 7, 3650))
+        current_date + timedelta(days=min(weeks_avg_items * 7, 3653))
         if weeks_avg_items != float("inf")
-        else current_date + timedelta(days=3650)
+        else current_date + timedelta(days=3653)
     )
     med_items_completion_date = (
-        current_date + timedelta(days=min(weeks_med_items * 7, 3650))
+        current_date + timedelta(days=min(weeks_med_items * 7, 3653))
         if weeks_med_items != float("inf")
-        else current_date + timedelta(days=3650)
+        else current_date + timedelta(days=3653)
     )
     avg_points_completion_date = (
-        current_date + timedelta(days=min(weeks_avg_points * 7, 3650))
+        current_date + timedelta(days=min(weeks_avg_points * 7, 3653))
         if weeks_avg_points != float("inf")
-        else current_date + timedelta(days=3650)
+        else current_date + timedelta(days=3653)
     )
     med_points_completion_date = (
-        current_date + timedelta(days=min(weeks_med_points * 7, 3650))
+        current_date + timedelta(days=min(weeks_med_points * 7, 3653))
         if weeks_med_points != float("inf")
-        else current_date + timedelta(days=3650)
+        else current_date + timedelta(days=3653)
     )
 
     # Format dates and values for display with enhanced format

@@ -24,7 +24,6 @@ from configuration import (
     logger,
 )
 from data import calculate_total_points
-from data.persistence import save_project_data
 
 #######################################################################
 # HELPER FUNCTIONS
@@ -284,14 +283,37 @@ def register(app):
             else 100,  # Use current cache size input
         )
 
-        # Save project data separately
-        save_project_data(
-            total_items,
-            total_points,
-            estimated_items,
-            estimated_points,
-            None,  # metadata - can be added later
-        )
+        # Save project data using unified format
+        from data.persistence import get_project_scope, update_project_scope
+
+        # Get current project scope to check if it's from JIRA
+        current_scope = get_project_scope()
+
+        # Only update project scope if it's NOT from JIRA (to avoid overriding JIRA data)
+        if current_scope.get("source") != "jira":
+            update_project_scope(
+                {
+                    "total_items": total_items,
+                    "total_points": total_points,
+                    "estimated_items": estimated_items,
+                    "estimated_points": estimated_points,
+                    "remaining_items": total_items,  # Default assumption for manual data
+                    "remaining_points": total_points,
+                }
+            )
+        else:
+            # If data is from JIRA, only update the estimation fields but preserve JIRA scope data
+            logger.info(
+                "Preserving JIRA project scope data, only updating estimation fields"
+            )
+            update_project_scope(
+                {
+                    "estimated_items": estimated_items,
+                    "estimated_points": estimated_points,
+                    # Don't update total_items, total_points, remaining_items, remaining_points
+                    # as they come from JIRA
+                }
+            )
 
         logger.info(f"Settings updated and saved: {settings}")
         return settings, int(datetime.now().timestamp() * 1000)
@@ -882,3 +904,119 @@ def register(app):
                 className="text-danger small",
             )
             return None, None, None, validation_errors, no_update
+
+
+#######################################################################
+# JIRA SCOPE CALCULATION CALLBACK
+#######################################################################
+
+
+@dash.callback(
+    [
+        Output("jira-scope-status", "children"),
+        Output("jira-scope-update-time", "children"),
+        Output("estimated-items-input", "value"),
+        Output("total-items-input", "value"),
+        Output("estimated-points-input", "value"),
+    ],
+    [Input("jira-scope-calculate-btn", "n_clicks")],
+    [
+        State("jira-jql-query", "value"),
+        State("jira-url", "value"),
+        State("jira-token", "value"),
+        State("jira-story-points-field", "value"),
+        State("jira-cache-max-size", "value"),
+    ],
+    prevent_initial_call=True,
+)
+def calculate_jira_project_scope(
+    n_clicks, jql_query, jira_url, jira_token, story_points_field, cache_max_size
+):
+    """
+    Calculate project scope based on JIRA issues using status categories.
+    """
+    if not n_clicks or n_clicks == 0:
+        raise PreventUpdate
+
+    try:
+        from data.persistence import update_project_scope_from_jira
+
+        # Build UI config from form inputs
+        ui_config = {
+            "jql_query": jql_query or "",
+            "base_url": jira_url or "https://jira.atlassian.com",
+            "token": jira_token or "",
+            "story_points_field": story_points_field or "votes",
+            "cache_max_size_mb": int(cache_max_size) if cache_max_size else 50,
+        }
+
+        # Update project scope from JIRA
+        success, message = update_project_scope_from_jira(jql_query, ui_config)
+
+        # Update timestamp
+        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        if success:
+            # Load the updated project scope values
+            from data.persistence import get_project_scope
+
+            project_scope = get_project_scope()
+
+            # Get the updated values for UI fields
+            estimated_items = project_scope.get("remaining_items", 0)
+            total_items = project_scope.get("remaining_items", 0)
+            estimated_points = project_scope.get("remaining_points", 0)
+
+            status_content = html.Div(
+                [
+                    html.I(className="fas fa-check-circle me-2 text-success"),
+                    html.Span(message, className="text-success"),
+                ],
+                className="mb-2",
+            )
+            time_content = html.Small(
+                f"Last updated: {current_time}", className="text-muted"
+            )
+
+            return (
+                status_content,
+                time_content,
+                estimated_items,
+                total_items,
+                estimated_points,
+            )
+        else:
+            # On error, don't update the input fields (use no_update)
+            status_content = html.Div(
+                [
+                    html.I(className="fas fa-exclamation-triangle me-2 text-danger"),
+                    html.Span(f"Error: {message}", className="text-danger"),
+                ],
+                className="mb-2",
+            )
+            time_content = html.Small(
+                f"Last attempt: {current_time}", className="text-muted"
+            )
+
+            return (
+                status_content,
+                time_content,
+                no_update,
+                no_update,
+                no_update,
+            )
+
+    except Exception as e:
+        logger.error(f"Error in JIRA scope calculation callback: {e}")
+        error_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        status_content = html.Div(
+            [
+                html.I(className="fas fa-exclamation-triangle me-2 text-danger"),
+                html.Span(f"Unexpected error: {str(e)}", className="text-danger"),
+            ],
+            className="mb-2",
+        )
+        time_content = html.Small(f"Error at: {error_time}", className="text-muted")
+
+        return status_content, time_content, no_update, no_update, no_update

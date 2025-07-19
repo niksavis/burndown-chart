@@ -45,7 +45,6 @@ APP_SETTINGS_FILE = (
 PROJECT_DATA_FILE = (
     "project_data.json"  # New project data (statistics, scope, metadata)
 )
-STATISTICS_FILE = "forecast_statistics.csv"
 
 # Sample data for initialization
 SAMPLE_DATA = pd.DataFrame(

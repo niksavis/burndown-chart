@@ -167,9 +167,10 @@ def calculate_rates(
     total_points: float,
     pert_factor: int,
     show_points: bool = True,
+    performance_settings: dict | None = None,
 ) -> tuple[float, float, float, float, float, float]:
     """
-    Calculate burn rates using PERT methodology.
+    Calculate burn rates using PERT methodology with performance optimizations.
 
     Args:
         grouped: DataFrame with weekly aggregated data
@@ -177,12 +178,24 @@ def calculate_rates(
         total_points: Total number of points to complete
         pert_factor: Number of data points to use for optimistic/pessimistic estimates
         show_points: Whether points tracking is enabled (default: True)
+        performance_settings: Dictionary with performance optimization settings
 
     Returns:
         Tuple of calculated values:
         (pert_time_items, optimistic_items_rate, pessimistic_items_rate,
          pert_time_points, optimistic_points_rate, pessimistic_points_rate)
     """
+    # Set default performance settings if not provided
+    if performance_settings is None:
+        from data.schema import DEFAULT_SETTINGS
+
+        performance_settings = {
+            "forecast_max_days": DEFAULT_SETTINGS.get("forecast_max_days", 730),
+            "pessimistic_multiplier_cap": DEFAULT_SETTINGS.get(
+                "pessimistic_multiplier_cap", 5
+            ),
+        }
+
     days_per_week = 7.0
 
     # If no data or empty dataframe, return safe default values
@@ -303,10 +316,37 @@ def calculate_rates(
     ) / 6
 
     # Cap estimated time to reasonable maximum to prevent performance issues
-    # Maximum: 2 years (730 days) for any forecast
-    MAX_ESTIMATED_DAYS = 730
+    # Use configurable maximum from performance settings
+    MAX_ESTIMATED_DAYS = performance_settings.get("forecast_max_days", 730)
     pert_time_items = min(pert_time_items, MAX_ESTIMATED_DAYS)
     pert_time_points = min(pert_time_points, MAX_ESTIMATED_DAYS)
+
+    # Additional optimization: If pessimistic forecast is much longer than optimistic,
+    # cap it to avoid extreme chart scaling issues
+    MAX_PESSIMISTIC_MULTIPLIER = performance_settings.get(
+        "pessimistic_multiplier_cap", 5
+    )
+    if optimistic_time_items > 0:
+        max_pessimistic_items = optimistic_time_items * MAX_PESSIMISTIC_MULTIPLIER
+        if pessimistic_time_items > max_pessimistic_items:
+            pessimistic_time_items = max_pessimistic_items
+            # Recalculate PERT with capped pessimistic
+            pert_time_items = (
+                optimistic_time_items
+                + 4 * most_likely_time_items
+                + pessimistic_time_items
+            ) / 6
+
+    if optimistic_time_points > 0:
+        max_pessimistic_points = optimistic_time_points * MAX_PESSIMISTIC_MULTIPLIER
+        if pessimistic_time_points > max_pessimistic_points:
+            pessimistic_time_points = max_pessimistic_points
+            # Recalculate PERT with capped pessimistic
+            pert_time_points = (
+                optimistic_time_points
+                + 4 * most_likely_time_points
+                + pessimistic_time_points
+            ) / 6
 
     return (
         pert_time_items,
@@ -319,15 +359,21 @@ def calculate_rates(
 
 
 def daily_forecast(
-    start_val: float, daily_rate: float, start_date: datetime
+    start_val: float,
+    daily_rate: float,
+    start_date: datetime,
+    max_days: int = 3653,
+    max_points: int = 150,
 ) -> tuple[list[datetime], list[float]]:
     """
-    Generate daily forecast values from start to completion.
+    Generate daily forecast values from start to completion with adaptive sampling.
 
     Args:
         start_val: Starting value (remaining items/points)
         daily_rate: Daily completion rate
         start_date: Starting date for the forecast
+        max_days: Maximum forecast horizon in days (default: 730)
+        max_points: Maximum data points to generate (default: 150)
 
     Returns:
         Tuple of (x_values, y_values) for plotting
@@ -340,6 +386,13 @@ def daily_forecast(
     if daily_rate <= 0:
         return [start_date], [start_val]
 
+    # ABSOLUTE HARD CAP: Never forecast beyond today + 10 years
+    today = datetime.now()
+    absolute_max_date = today + timedelta(
+        days=3653
+    )  # 10 years from today (accounting for leap years)
+    MAX_FORECAST_DAYS = min(max_days, 3653)  # Enforce 10-year absolute maximum
+
     x_vals, y_vals = [], []
     val = start_val
     current_date = start_date
@@ -347,61 +400,71 @@ def daily_forecast(
     # Calculate expected end date
     days_needed = val / daily_rate if daily_rate > 0 else 0
 
-    # Cap forecast at 10 years (3650 days) to prevent timestamp overflow
-    MAX_FORECAST_DAYS = 3650
+    # STRICT ENFORCEMENT: Cap at 10 years absolute maximum for performance
+    # This prevents visualization of 160+ year forecasts that make the app unresponsive
     if days_needed > MAX_FORECAST_DAYS:
-        # Create a capped forecast
-        num_points = min(
-            100, MAX_FORECAST_DAYS
-        )  # Use at most 100 points for the forecast
-        day_step = MAX_FORECAST_DAYS / num_points
+        days_needed = MAX_FORECAST_DAYS
 
-        for i in range(num_points):
-            days_elapsed = i * day_step
-            if days_elapsed > MAX_FORECAST_DAYS:
-                break
+    # Performance optimization: Use adaptive sampling for long forecasts
+    MAX_POINTS = max_points  # Use configurable maximum points
 
-            forecast_date = start_date + timedelta(days=days_elapsed)
-            forecast_val = max(0, val - (daily_rate * days_elapsed))
+    if days_needed > MAX_FORECAST_DAYS:
+        # For very long forecasts, cap strictly at maximum
+        days_needed = MAX_FORECAST_DAYS
 
-            x_vals.append(forecast_date)
-            y_vals.append(forecast_val)
+    # Determine sampling interval based on forecast length
+    if days_needed > MAX_POINTS:
+        # Use weekly sampling for long forecasts
+        sample_interval = max(7, int(days_needed / MAX_POINTS))
+    else:
+        # Use daily sampling for shorter forecasts
+        sample_interval = 1
 
-        # Add final point at the maximum forecast date
-        final_date = start_date + timedelta(days=MAX_FORECAST_DAYS)
-        final_val = max(0, val - (daily_rate * MAX_FORECAST_DAYS))
-        x_vals.append(final_date)
-        y_vals.append(final_val)
-
-        return x_vals, y_vals
-
-    # Normal case - forecast until completion
-    while val > 0:
+    # Generate forecast with strict 10-year cap for visualization performance
+    days_elapsed = 0
+    while val > 0 and days_elapsed <= days_needed and current_date <= absolute_max_date:
         x_vals.append(current_date)
         y_vals.append(val)
-        val -= daily_rate
-        current_date += timedelta(days=1)
 
-        # Safety check to prevent infinite loops
-        if len(x_vals) > MAX_FORECAST_DAYS:
+        # Move forward by sample interval
+        days_elapsed += sample_interval
+        val -= daily_rate * sample_interval
+        current_date += timedelta(days=sample_interval)
+
+        # Safety check to prevent infinite loops and UI performance issues
+        if len(x_vals) > MAX_POINTS:
             break
 
-    # Add final zero point
-    x_vals.append(current_date)
-    y_vals.append(0)
+    # Only add final zero point if we haven't exceeded the 10-year cap
+    # This prevents visualization of completion dates beyond practical planning horizon
+    if val > 0 and current_date <= absolute_max_date:
+        # Add final zero point at the calculated end date, but respect the cap
+        final_date = start_date + timedelta(days=min(days_needed, MAX_FORECAST_DAYS))
+        if final_date <= absolute_max_date:
+            x_vals.append(final_date)
+            y_vals.append(0)
 
     return x_vals, y_vals
 
 
-def daily_forecast_burnup(current, daily_rate, start_date, target_scope):
+def daily_forecast_burnup(
+    current,
+    daily_rate,
+    start_date,
+    target_scope,
+    max_days: int = 3653,
+    max_points: int = 150,
+):
     """
-    Generate a daily burnup forecast from current completed work to target scope.
+    Generate a daily burnup forecast from current completed work to target scope with adaptive sampling.
 
     Args:
         current: Current completed value (starting point)
         daily_rate: Daily completion rate
         start_date: Starting date for forecast
         target_scope: Target scope value to reach (upper limit)
+        max_days: Maximum forecast horizon in days (default: 730)
+        max_points: Maximum data points to generate (default: 150)
 
     Returns:
         Tuple of (dates, values) for the forecast
@@ -418,54 +481,66 @@ def daily_forecast_burnup(current, daily_rate, start_date, target_scope):
     if daily_rate < 0.001:
         daily_rate = 0.001
 
+    # ABSOLUTE HARD CAP: Never forecast beyond today + 10 years
+    today = datetime.now()
+    absolute_max_date = today + timedelta(
+        days=3653
+    )  # 10 years from today (accounting for leap years)
+
     # Calculate days needed to reach target scope
     remaining = target_scope - current
     days_needed = int(remaining / daily_rate) + 1  # Add 1 to ensure we reach target
 
-    # Cap forecast at MAX_FORECAST_DAYS (3650 days) to prevent timestamp overflow
-    MAX_FORECAST_DAYS = 3650
+    # Performance optimization: Use adaptive sampling and cap forecast horizon
+    MAX_FORECAST_DAYS = min(max_days, 3653)  # Enforce 10-year absolute maximum
+    MAX_POINTS = max_points  # Use configurable maximum points
+
     if days_needed > MAX_FORECAST_DAYS:
-        # Create a capped forecast
-        num_points = min(
-            100, MAX_FORECAST_DAYS
-        )  # Use at most 100 points for the forecast
-        day_step = MAX_FORECAST_DAYS / num_points
+        # Cap at maximum forecast days
+        days_needed = MAX_FORECAST_DAYS
 
-        dates = []
-        values = []
+    # Determine sampling interval based on forecast length
+    if days_needed > MAX_POINTS:
+        # Use weekly sampling for long forecasts
+        sample_interval = max(7, int(days_needed / MAX_POINTS))
+    else:
+        # Use daily sampling for shorter forecasts
+        sample_interval = 1
 
-        for i in range(num_points):
-            days_elapsed = i * day_step
-            if days_elapsed > MAX_FORECAST_DAYS:
-                break
-
-            forecast_date = start_date + timedelta(days=days_elapsed)
-            forecast_val = min(target_scope, current + (daily_rate * days_elapsed))
-
-            dates.append(forecast_date)
-            values.append(forecast_val)
-
-        # Add final point at the maximum forecast date
-        final_date = start_date + timedelta(days=MAX_FORECAST_DAYS)
-        final_val = min(target_scope, current + (daily_rate * MAX_FORECAST_DAYS))
-        dates.append(final_date)
-        values.append(final_val)
-
-        return (dates, values)
-
-    # Normal case - forecast until target scope
-    dates = [start_date + timedelta(days=i) for i in range(days_needed + 1)]
-
-    # Generate values
+    # Generate forecast with strict 10-year cap for visualization performance
+    dates = []
     values = []
-    for i in range(len(dates)):
-        # Calculate forecasted value, but cap at target scope
-        value = min(target_scope, current + (daily_rate * i))
-        values.append(value)
 
-    # Ensure the last value is exactly the target scope
+    days_elapsed = 0
+    while days_elapsed <= days_needed:
+        forecast_date = start_date + timedelta(days=days_elapsed)
+
+        # STRICT DATE CAP: Stop if we would exceed today + 10 years
+        if forecast_date > absolute_max_date:
+            break
+
+        forecast_val = min(target_scope, current + (daily_rate * days_elapsed))
+
+        dates.append(forecast_date)
+        values.append(forecast_val)
+
+        # If we've reached target scope, stop
+        if forecast_val >= target_scope:
+            break
+
+        # Move forward by sample interval
+        days_elapsed += sample_interval
+
+        # Safety check to prevent too many points
+        if len(dates) > MAX_POINTS:
+            break
+
+    # Ensure the last value reaches exactly the target scope if not already
     if values and values[-1] < target_scope:
-        values[-1] = target_scope
+        # Add final point at target scope
+        final_date = start_date + timedelta(days=min(days_needed, MAX_FORECAST_DAYS))
+        dates.append(final_date)
+        values.append(target_scope)
 
     return (dates, values)
 

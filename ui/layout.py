@@ -52,8 +52,32 @@ def serve_layout():
     project_data = load_project_data()
     statistics, is_sample_data = load_statistics()
 
+    # Load unified project scope data (includes JIRA calculated values)
+    from data.persistence import get_project_scope
+
+    project_scope = get_project_scope()
+
     # Merge app settings and project data for backward compatibility
+    # Use project_scope values if available (from JIRA), otherwise fall back to project_data defaults
     settings = {**app_settings, **project_data}
+    if project_scope:
+        # Update with actual JIRA calculated scope values
+        settings.update(
+            {
+                "total_items": project_scope.get(
+                    "remaining_items", project_data["total_items"]
+                ),
+                "total_points": project_scope.get(
+                    "remaining_points", project_data["total_points"]
+                ),
+                "estimated_items": project_scope.get(
+                    "remaining_items", project_data["estimated_items"]
+                ),
+                "estimated_points": project_scope.get(
+                    "remaining_points", project_data["estimated_points"]
+                ),
+            }
+        )
 
     app_layout = create_app_layout(settings, statistics, is_sample_data)
     return app_layout

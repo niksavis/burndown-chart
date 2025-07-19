@@ -16,7 +16,6 @@ from typing import Dict, List, Tuple
 import requests
 
 from configuration import logger
-from data.persistence import save_statistics
 
 #######################################################################
 # CONFIGURATION
@@ -32,7 +31,7 @@ DEFAULT_CACHE_MAX_SIZE_MB = 100
 
 def get_jira_config(settings_jql_query: str | None = None) -> Dict:
     """
-    Load JIRA configuration with priority hierarchy: UI settings → Environment → Default.
+    Load JIRA configuration with priority hierarchy: UI settings → App Settings → Environment → Default.
 
     Args:
         settings_jql_query: JQL query from UI settings (highest priority)
@@ -40,20 +39,51 @@ def get_jira_config(settings_jql_query: str | None = None) -> Dict:
     Returns:
         Dictionary containing JIRA configuration
     """
-    # Configuration hierarchy: UI settings → Environment → Default
+    # Load app settings first
+    try:
+        from data.persistence import load_app_settings
+
+        app_settings = load_app_settings()
+    except Exception:
+        app_settings = {}
+
+    # Configuration hierarchy: UI settings → App settings → Environment → Default
     jql_query = (
         settings_jql_query  # UI settings (highest priority)
+        or app_settings.get("jql_query", "")  # App settings
         or os.getenv("JIRA_DEFAULT_JQL", "")  # Environment variable
         or "project = JRASERVER"  # Default fallback
     )
 
     config = {
-        "url": os.getenv("JIRA_URL", ""),
+        "url": (
+            app_settings.get("jira_url", "")  # App settings
+            or os.getenv("JIRA_URL", "")  # Environment variable
+            or ""  # Default
+        ),
+        "base_url": (
+            app_settings.get("jira_url", "")  # App settings
+            or os.getenv("JIRA_URL", "")  # Environment variable
+            or ""  # Default
+        ),
         "jql_query": jql_query,
-        "token": os.getenv("JIRA_TOKEN", ""),
-        "story_points_field": os.getenv("JIRA_STORY_POINTS_FIELD", ""),
+        "token": (
+            app_settings.get("jira_token", "")  # App settings
+            or os.getenv("JIRA_TOKEN", "")  # Environment variable
+            or ""  # Default
+        ),
+        "story_points_field": (
+            app_settings.get("jira_story_points_field", "")  # App settings
+            or os.getenv("JIRA_STORY_POINTS_FIELD", "")  # Environment variable
+            or ""  # Default
+        ),
         "cache_max_size_mb": int(
-            os.getenv("JIRA_CACHE_MAX_SIZE_MB", DEFAULT_CACHE_MAX_SIZE_MB)
+            app_settings.get(
+                "jira_cache_max_size", DEFAULT_CACHE_MAX_SIZE_MB
+            )  # App settings
+            or os.getenv(
+                "JIRA_CACHE_MAX_SIZE_MB", DEFAULT_CACHE_MAX_SIZE_MB
+            )  # Environment variable
         ),
     }
 
@@ -62,8 +92,10 @@ def get_jira_config(settings_jql_query: str | None = None) -> Dict:
 
 def validate_jira_config(config: Dict) -> Tuple[bool, str]:
     """Validate JIRA configuration and custom fields."""
-    if not config["url"]:
-        return False, "JIRA_URL is required"
+    # Check both 'url' and 'base_url' for backwards compatibility
+    jira_url = config.get("url") or config.get("base_url", "")
+    if not jira_url:
+        return False, "JIRA URL is required"
 
     if not config["jql_query"]:
         return False, "JQL query is required"
@@ -82,8 +114,14 @@ def fetch_jira_issues(config: Dict, max_results: int = 1000) -> Tuple[bool, List
         # Use the JQL query directly from configuration
         jql = config["jql_query"]
 
+        # Get JIRA URL - check both keys for compatibility
+        jira_url = config.get("url") or config.get("base_url", "")
+        if not jira_url:
+            logger.error("JIRA URL not configured")
+            return False, []
+
         # API endpoint
-        url = f"{config['url']}/rest/api/2/search"
+        url = f"{jira_url}/rest/api/2/search"
 
         # Headers
         headers = {"Accept": "application/json"}
@@ -183,7 +221,7 @@ def load_jira_cache(
             base_fields = "key,created,resolutiondate,status"
             if current_fields != base_fields:  # User has story points field configured
                 logger.info(
-                    f"Cache has no field info, but story points field is configured. Cache invalidated for field compatibility."
+                    "Cache has no field info, but story points field is configured. Cache invalidated for field compatibility."
                 )
                 return False, []
 
@@ -424,11 +462,14 @@ def jira_to_csv_format(issues: List[Dict], config: Dict) -> List[Dict]:
         return []
 
 
-def sync_jira_data(
+def sync_jira_scope_and_data(
     jql_query: str | None = None, ui_config: Dict | None = None
-) -> Tuple[bool, str]:
-    """Main sync function to replace CSV data with JIRA data."""
+) -> Tuple[bool, str, Dict]:
+    """Main sync function to get JIRA scope calculation and replace CSV data."""
     try:
+        # Import scope calculator here to avoid circular imports
+        from data.jira_scope_calculator import calculate_jira_project_scope
+
         # Load configuration with JQL query from settings or use provided UI config
         if ui_config:
             config = ui_config.copy()
@@ -441,11 +482,11 @@ def sync_jira_data(
         # Validate configuration
         is_valid, message = validate_jira_config(config)
         if not is_valid:
-            return False, f"Configuration invalid: {message}"
+            return False, f"Configuration invalid: {message}", {}
 
         # Validate cache file
         if not validate_cache_file(max_size_mb=config["cache_max_size_mb"]):
-            return False, "Cache file validation failed"
+            return False, "Cache file validation failed", {}
 
         # Calculate current fields that would be requested
         base_fields = "key,created,resolutiondate,status"
@@ -461,23 +502,47 @@ def sync_jira_data(
             # Fetch fresh data from JIRA
             fetch_success, issues = fetch_jira_issues(config)
             if not fetch_success:
-                return False, "Failed to fetch JIRA data"
+                return False, "Failed to fetch JIRA data", {}
 
             # Cache the response with the JQL query and fields used
             if not cache_jira_response(issues, config["jql_query"], current_fields):
                 logger.warning("Failed to cache JIRA response")
 
-        # Transform to CSV format
+        # Calculate JIRA-based project scope
+        points_field = config.get("story_points_field", "votes")
+        scope_data = calculate_jira_project_scope(issues, points_field, config)
+        if not scope_data:
+            return False, "Failed to calculate JIRA project scope", {}
+
+        # Transform to CSV format for statistics
         csv_data = jira_to_csv_format(issues, config)
-        if not csv_data:
-            return False, "Failed to transform JIRA data"
+        # Note: Empty list is valid when there are no issues, only None indicates error
 
-        # Save to statistics file
-        save_statistics(csv_data)
+        # Save both statistics and project scope to unified data structure
+        from data.persistence import save_jira_data_unified
 
-        logger.info("JIRA data sync completed successfully")
-        return True, "JIRA sync completed successfully"
+        if save_jira_data_unified(csv_data, scope_data):
+            logger.info("JIRA scope calculation and data sync completed successfully")
+            return (
+                True,
+                "JIRA sync and scope calculation completed successfully",
+                scope_data,
+            )
+        else:
+            return False, "Failed to save JIRA data to unified structure", {}
 
     except Exception as e:
-        logger.error(f"Error in JIRA sync: {e}")
+        logger.error(f"Error in JIRA scope sync: {e}")
+        return False, f"JIRA scope sync failed: {e}", {}
+
+
+def sync_jira_data(
+    jql_query: str | None = None, ui_config: Dict | None = None
+) -> Tuple[bool, str]:
+    """Legacy sync function - calls new scope sync and returns just success/message."""
+    try:
+        success, message, scope_data = sync_jira_scope_and_data(jql_query, ui_config)
+        return success, message
+    except Exception as e:
+        logger.error(f"Error in JIRA data sync: {e}")
         return False, f"JIRA sync failed: {e}"

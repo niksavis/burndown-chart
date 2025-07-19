@@ -2,7 +2,7 @@
 Data Persistence Module
 
 This module handles saving and loading application data to/from disk.
-It provides functions for managing settings (JSON) and statistics (CSV).
+It provides functions for managing settings and statistics using JSON files.
 """
 
 #######################################################################
@@ -28,7 +28,6 @@ from configuration import (
     DEFAULT_TOTAL_POINTS,
     PROJECT_DATA_FILE,
     SETTINGS_FILE,
-    STATISTICS_FILE,
     logger,
 )
 
@@ -418,11 +417,13 @@ def load_settings():
 
 def save_statistics(data):
     """
-    Save statistics data to CSV file.
+    Save statistics data to unified JSON file.
 
     Args:
         data: List of dictionaries containing statistics data
     """
+    from data.migration import load_unified_project_data, save_unified_project_data
+
     try:
         df = pd.DataFrame(data)
 
@@ -435,23 +436,29 @@ def save_statistics(data):
         # Convert back to string format for storage
         df["date"] = df["date"].dt.strftime("%Y-%m-%d")
 
-        # Write to a temporary file first
-        temp_file = f"{STATISTICS_FILE}.tmp"
-        df.to_csv(temp_file, index=False)
+        # Convert back to list of dictionaries
+        statistics_data = df.to_dict("records")
 
-        # Rename to final file (atomic operation)
-        if os.path.exists(STATISTICS_FILE):
-            os.remove(STATISTICS_FILE)
-        os.rename(temp_file, STATISTICS_FILE)
+        # Load current unified data
+        unified_data = load_unified_project_data()
 
-        logger.info(f"Statistics saved to {STATISTICS_FILE}")
+        # Update statistics in unified data
+        unified_data["statistics"] = statistics_data
+
+        # Update metadata
+        unified_data["metadata"]["last_updated"] = datetime.now().isoformat()
+
+        # Save the unified data
+        save_unified_project_data(unified_data)
+
+        logger.info(f"Statistics saved to {PROJECT_DATA_FILE}")
     except Exception as e:
         logger.error(f"Error saving statistics: {e}")
 
 
 def load_statistics():
     """
-    Load statistics data from CSV file.
+    Load statistics data from unified project data JSON file.
 
     Returns:
         Tuple (data, is_sample) where:
@@ -459,26 +466,26 @@ def load_statistics():
         - is_sample: Boolean indicating if sample data is being used
     """
     try:
-        # Note: JIRA sync is handled manually via UI "Refresh Cache" button
-        # No automatic sync on app start to respect user control
+        # Load from unified project data JSON
+        project_data = load_project_data()
 
-        if os.path.exists(STATISTICS_FILE):
-            df = pd.read_csv(STATISTICS_FILE)
+        if "statistics" in project_data and len(project_data["statistics"]) > 0:
+            # Load statistics from project data
+            statistics = project_data["statistics"]
 
-            # Ensure date column is in proper datetime format for sorting
-            df["date"] = pd.to_datetime(df["date"], errors="coerce")
+            # Ensure data is sorted by date (already should be from JIRA sync)
+            statistics_df = pd.DataFrame(statistics)
+            statistics_df["date"] = pd.to_datetime(
+                statistics_df["date"], errors="coerce"
+            )
+            statistics_df = statistics_df.sort_values("date", ascending=True)
+            statistics_df["date"] = statistics_df["date"].dt.strftime("%Y-%m-%d")
 
-            # Sort by date in ascending order (oldest first)
-            df = df.sort_values("date", ascending=True)
-
-            # Convert back to string format for display
-            df["date"] = df["date"].dt.strftime("%Y-%m-%d")
-
-            data = df.to_dict("records")
-            logger.info(f"Statistics loaded from {STATISTICS_FILE}")
+            data = statistics_df.to_dict("records")
+            logger.info(f"Statistics loaded from {PROJECT_DATA_FILE}")
             return data, False  # Return data and flag that it's not sample data
         else:
-            logger.info("Statistics file not found, using sample data")
+            logger.info("No statistics found in project data, using sample data")
 
             # Make sure sample data is also sorted by date
             sample_df = generate_realistic_sample_data()
@@ -658,3 +665,221 @@ def read_and_clean_data(df):
     df = df[existing_columns]
 
     return df
+
+
+#######################################################################
+# UNIFIED DATA FUNCTIONS (v2.0)
+#######################################################################
+
+
+def load_unified_project_data():
+    """
+    Load unified project data (Phase 3).
+
+    Returns:
+        Dict: Unified project data structure
+    """
+    from data.migration import load_unified_project_data
+
+    return load_unified_project_data()
+
+
+def save_unified_project_data(data):
+    """
+    Save unified project data (Phase 3).
+
+    Args:
+        data: Unified project data dictionary
+    """
+    from data.migration import save_unified_project_data
+
+    save_unified_project_data(data)
+
+
+def get_project_statistics():
+    """
+    Get statistics from unified data structure.
+
+    Returns:
+        List[Dict]: Statistics array
+    """
+    unified_data = load_unified_project_data()
+    return unified_data.get("statistics", [])
+
+
+def get_project_scope():
+    """
+    Get project scope from unified data structure.
+
+    Returns:
+        Dict: Project scope data
+    """
+    unified_data = load_unified_project_data()
+    return unified_data.get("project_scope", {})
+
+
+def update_project_scope(scope_data):
+    """
+    Update project scope in unified data structure.
+
+    Args:
+        scope_data: Dictionary with scope fields to update
+    """
+    unified_data = load_unified_project_data()
+    unified_data["project_scope"].update(scope_data)
+    unified_data["metadata"]["last_updated"] = datetime.now().isoformat()
+    save_unified_project_data(unified_data)
+
+
+def update_project_scope_from_jira(
+    jql_query: str | None = None, ui_config: dict | None = None
+):
+    """
+    Update project scope using JIRA scope calculation.
+
+    Args:
+        jql_query: Optional JQL query to use for JIRA sync
+        ui_config: Optional UI configuration to use
+
+    Returns:
+        Tuple (success: bool, message: str)
+    """
+    try:
+        from data.jira_simple import sync_jira_scope_and_data
+
+        # Get JIRA scope data
+        success, message, scope_data = sync_jira_scope_and_data(jql_query, ui_config)
+
+        if not success:
+            return success, message
+
+        # Update project scope with JIRA data
+        if scope_data:
+            # Add metadata to indicate JIRA source
+            scope_data["source"] = "jira"
+            scope_data["last_jira_sync"] = datetime.now().isoformat()
+            update_project_scope(scope_data)
+
+        return True, f"Project scope updated from JIRA: {message}"
+
+    except Exception as e:
+        logger.error(f"Error updating project scope from JIRA: {e}")
+        return False, f"Failed to update scope from JIRA: {e}"
+
+
+def add_project_statistic(stat_data):
+    """
+    Add a new statistic entry to unified data structure.
+
+    Args:
+        stat_data: Dictionary with statistic fields
+    """
+    unified_data = load_unified_project_data()
+    unified_data["statistics"].append(stat_data)
+    unified_data["metadata"]["last_updated"] = datetime.now().isoformat()
+    save_unified_project_data(unified_data)
+
+
+#######################################################################
+# LEGACY COMPATIBILITY LAYER
+#######################################################################
+
+
+def load_statistics_legacy():
+    """
+    Legacy function that loads statistics in old format for backward compatibility.
+
+    Returns:
+        Tuple (data, is_sample): Statistics data and sample flag
+    """
+    # First try to load from unified format
+    try:
+        statistics = get_project_statistics()
+        if statistics:
+            # Convert unified format back to legacy format
+            legacy_data = []
+            for stat in statistics:
+                legacy_data.append(
+                    {
+                        "date": stat.get("date", ""),
+                        "completed_items": stat.get("completed_items", 0),
+                        "completed_points": stat.get("completed_points", 0),
+                        "created_items": stat.get("created_items", 0),
+                        "created_points": stat.get("created_points", 0),
+                    }
+                )
+            return legacy_data, False
+    except Exception as e:
+        logger.warning(f"Could not load from unified format: {e}")
+
+    # Fall back to original CSV loading
+    return load_statistics()
+
+
+def load_project_data_legacy():
+    """
+    Legacy function that loads project data in old format for backward compatibility.
+
+    Returns:
+        Dict: Project data in legacy format
+    """
+    # First try to load from unified format
+    try:
+        scope = get_project_scope()
+        if scope:
+            return {
+                "total_items": scope.get("total_items", 0),
+                "total_points": scope.get("total_points", 0),
+                "estimated_items": scope.get("estimated_items", 0),
+                "estimated_points": scope.get("estimated_points", 0),
+            }
+    except Exception as e:
+        logger.warning(f"Could not load from unified format: {e}")
+
+    # Fall back to original project data loading
+    return load_project_data()
+
+
+def save_jira_data_unified(statistics_data, project_scope_data):
+    """
+    Save both JIRA statistics and project scope to unified data structure.
+
+    This replaces the old CSV-based approach with unified JSON storage.
+
+    Args:
+        statistics_data: List of dictionaries containing statistics data
+        project_scope_data: Dictionary containing project scope data
+    """
+    from data.migration import load_unified_project_data, save_unified_project_data
+    from datetime import datetime
+
+    try:
+        # Load current unified data
+        unified_data = load_unified_project_data()
+
+        # Update statistics
+        unified_data["statistics"] = statistics_data
+
+        # Update project scope
+        unified_data["project_scope"] = project_scope_data
+
+        # Update metadata
+        unified_data["metadata"].update(
+            {
+                "source": "csv_import",  # Keep as csv_import for compatibility
+                "last_updated": datetime.now().isoformat(),
+                "version": "2.0",
+                "jira_query": "",
+                "calculation_method": "",
+            }
+        )
+
+        # Save the unified data
+        save_unified_project_data(unified_data)
+
+        logger.info("✅ JIRA data saved to unified project data structure")
+        return True
+
+    except Exception as e:
+        logger.error(f"❌ Error saving JIRA data to unified structure: {e}")
+        return False

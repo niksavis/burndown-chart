@@ -36,7 +36,6 @@ from configuration.settings import (
     PROJECT_DATA_FILE,
     SAMPLE_DATA,
     SETTINGS_FILE,
-    STATISTICS_FILE,
     # Logging
     logger,
 )
@@ -57,7 +56,6 @@ __all__ = [
     "APP_SETTINGS_FILE",
     "PROJECT_DATA_FILE",
     "SETTINGS_FILE",
-    "STATISTICS_FILE",
     "SAMPLE_DATA",
     "COLOR_PALETTE",
     "HELP_TEXTS",

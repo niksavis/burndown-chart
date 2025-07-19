@@ -1181,6 +1181,45 @@ def create_input_parameters_card(
                                 ),
                             ],
                         ),
+                        # JIRA Scope Calculation Section
+                        html.Hr(className="my-3"),
+                        dbc.Row(
+                            [
+                                dbc.Col(
+                                    [
+                                        html.Label(
+                                            "Project Scope from JIRA:",
+                                            className="fw-medium",
+                                        ),
+                                        html.Div(
+                                            [
+                                                create_button(
+                                                    text="Calculate Scope",
+                                                    id="jira-scope-calculate-btn",
+                                                    variant="success",
+                                                    icon_class="fas fa-calculator",
+                                                ),
+                                                html.Small(
+                                                    "Calculate project scope based on JIRA issue statuses",
+                                                    className="text-muted mt-1 d-block",
+                                                ),
+                                            ],
+                                            className="d-flex flex-column",
+                                        ),
+                                        html.Div(
+                                            id="jira-scope-status",
+                                            className="mt-2",
+                                        ),
+                                        html.Div(
+                                            id="jira-scope-update-time",
+                                            className="mt-1",
+                                        ),
+                                    ],
+                                    width=12,
+                                    className="mb-3",
+                                ),
+                            ],
+                        ),
                     ],
                 ),
                 # Hidden store components for JIRA data loading state

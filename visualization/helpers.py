@@ -226,6 +226,7 @@ def generate_burndown_forecast(
 ):
     """
     Generate burndown forecast with a fixed end date to ensure consistency with burnup charts.
+    Includes strict 10-year maximum cap for visualization performance.
 
     Args:
         last_value: Current remaining value (items or points)
@@ -238,32 +239,56 @@ def generate_burndown_forecast(
     Returns:
         Dictionary containing forecasts for average, optimistic, and pessimistic scenarios
     """
+    from datetime import datetime
+
+    # STRICT 10-YEAR CAP: Never forecast beyond today + 10 years
+    today = datetime.now()
+    absolute_max_date = today + timedelta(
+        days=3653
+    )  # 10 years from today (accounting for leap years)
+    MAX_FORECAST_DAYS = 3653  # Absolute maximum
+
     # Calculate days between start and end
     days_span = (end_date - start_date).days
     if days_span <= 0:
         # If end date is same as or before start date, use 1 day
         days_span = 1
 
-    # Calculate days needed for each rate to reach zero
-    days_to_zero_avg = int(last_value / avg_rate) if avg_rate > 0.001 else days_span * 2
-    days_to_zero_opt = int(last_value / opt_rate) if opt_rate > 0.001 else days_span * 2
-    days_to_zero_pes = int(last_value / pes_rate) if pes_rate > 0.001 else days_span * 2
+    # Calculate days needed for each rate to reach zero, but cap at 10 years
+    days_to_zero_avg = min(
+        MAX_FORECAST_DAYS,
+        int(last_value / avg_rate) if avg_rate > 0.001 else days_span * 2,
+    )
+    days_to_zero_opt = min(
+        MAX_FORECAST_DAYS,
+        int(last_value / opt_rate) if opt_rate > 0.001 else days_span * 2,
+    )
+    days_to_zero_pes = min(
+        MAX_FORECAST_DAYS,
+        int(last_value / pes_rate) if pes_rate > 0.001 else days_span * 2,
+    )
 
-    # Ensure we have enough days for each forecast to reach zero
-    max(days_span, days_to_zero_avg, days_to_zero_opt, days_to_zero_pes)
+    # Cap everything at maximum forecast horizon
+    max_days = min(
+        MAX_FORECAST_DAYS,
+        max(days_span, days_to_zero_avg, days_to_zero_opt, days_to_zero_pes),
+    )
 
-    # Create date ranges specific to each rate to ensure they all reach zero
+    # Create date ranges with strict caps for performance
     dates_avg = [
         start_date + timedelta(days=i)
-        for i in range(max(days_span, days_to_zero_avg) + 1)
+        for i in range(min(max_days, days_to_zero_avg) + 1)
+        if start_date + timedelta(days=i) <= absolute_max_date
     ]
     dates_opt = [
         start_date + timedelta(days=i)
-        for i in range(max(days_span, days_to_zero_opt) + 1)
+        for i in range(min(max_days, days_to_zero_opt) + 1)
+        if start_date + timedelta(days=i) <= absolute_max_date
     ]
     dates_pes = [
         start_date + timedelta(days=i)
-        for i in range(max(days_span, days_to_zero_pes) + 1)
+        for i in range(min(max_days, days_to_zero_pes) + 1)
+        if start_date + timedelta(days=i) <= absolute_max_date
     ]
 
     # Calculate decreasing values for each rate
