@@ -196,6 +196,27 @@ def create_scope_growth_chart(weekly_growth_data):
             config={"displayModeBar": False, "responsive": True},
         )
 
+    # Calculate the data ranges to align zero lines
+    items_min = weekly_growth_data["items_growth"].min()
+    items_max = weekly_growth_data["items_growth"].max()
+    points_min = weekly_growth_data["points_growth"].min()
+    points_max = weekly_growth_data["points_growth"].max()
+
+    # Add some padding (10% of range) to both axes
+    items_range = items_max - items_min
+    points_range = points_max - points_min
+    items_padding = items_range * 0.1 if items_range > 0 else 1
+    points_padding = points_range * 0.1 if points_range > 0 else 1
+
+    # Calculate ranges that align zero lines
+    # Get the larger absolute value for each axis to make them symmetric around zero
+    items_abs_max = max(abs(items_min), abs(items_max)) + items_padding
+    points_abs_max = max(abs(points_min), abs(points_max)) + points_padding
+
+    # Set symmetric ranges around zero to ensure proper alignment
+    items_range_final = [-items_abs_max, items_abs_max]
+    points_range_final = [-points_abs_max, points_abs_max]
+
     # Create trace for items - side by side bars with primary y-axis
     items_trace = go.Bar(
         x=weekly_growth_data["week_label"],
@@ -251,6 +272,7 @@ def create_scope_growth_chart(weekly_growth_data):
             "zeroline": True,
             "zerolinecolor": "rgba(0, 123, 255, 0.2)",
             "side": "left",
+            "range": items_range_final,  # Set explicit range to align zero
         },
         yaxis2={
             "title": {
@@ -263,6 +285,7 @@ def create_scope_growth_chart(weekly_growth_data):
             "zerolinecolor": "rgba(253, 126, 20, 0.2)",
             "overlaying": "y",
             "side": "right",
+            "range": points_range_final,  # Set explicit range to align zero
         },
         height=300,
         margin={
