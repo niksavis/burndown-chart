@@ -910,7 +910,7 @@ def create_input_parameters_card(
                                         "Data Source:",
                                         create_info_tooltip(
                                             "data-source",
-                                            "Choose between CSV file upload or JIRA API integration for project data.",
+                                            "Choose between JSON/CSV file upload or JIRA API data source.",
                                         ),
                                     ],
                                     className="fw-medium mb-2",
