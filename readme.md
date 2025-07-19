@@ -45,7 +45,7 @@ An interactive web app that helps you track project progress and forecast comple
 
 The application supports two data sources, which you can switch between using the **Data Source** radio buttons in the web interface:
 
-### Data Source 1: JSON Import (File Upload)
+### Data Source 1: JSON/CSV Import (File Upload)
 
 Upload a CSV or JSON file with your project data. The application will automatically detect the format and convert it to the required structure.
 
@@ -150,10 +150,10 @@ project = MYPROJECT AND status changed to "Done" during (startOfYear(), now())
 
 1. Start the app and go to the **Input Parameters** section
 2. In the **Data Source** section, choose between:
-   - **"JSON Import"**: For uploading CSV/JSON files
-   - **"JIRA API (Auto-sync)"**: For direct JIRA integration
+   - **"JSON/CSV Import"**: For uploading CSV/JSON files
+   - **"JIRA API"**: For direct JIRA integration
 3. In the **Data Import** section, configure your chosen data source:
-   - **For JSON Import**: Use the drag-and-drop area to upload your file
+   - **For JSON/CSV Import**: Use the drag-and-drop area to upload your file
    - **For JIRA API**: Configure JIRA URL, JQL query, token, and points field
 4. Click the unified **"Update Data"** button to import your data
 5. Your charts will automatically update with the imported data
@@ -162,7 +162,7 @@ project = MYPROJECT AND status changed to "Done" during (startOfYear(), now())
 
 The application features a single **"Update Data"** button that intelligently handles both data sources:
 
-- **When JSON Import is selected**: The button will remind you to use the file upload area above
+- **When JSON/CSV Import is selected**: The button will remind you to use the file upload area above
 - **When JIRA API is selected**: The button will sync data from JIRA using your configured JQL query
 - **Both workflows** will overwrite the existing `forecast_statistics.csv` file and update all charts automatically
 - **Settings are preserved**: Your configuration (PERT factors, deadlines, etc.) remains unchanged during data imports

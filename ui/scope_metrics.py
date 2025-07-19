@@ -689,42 +689,44 @@ def create_scope_metrics_dashboard(
     Returns:
         html.Div: A dashboard component with scope metrics
     """
-    # Read remaining items directly from forecast settings
-    import json
+    # Read remaining items from project data using new persistence functions
+    from data.persistence import load_project_data
 
     try:
-        with open("forecast_settings.json", "r") as f:
-            settings = json.load(f)
-            remaining_items = settings.get(
-                "total_items", 34
-            )  # Default to 34 if not found
-            remaining_points = settings.get(
-                "total_points", 154
-            )  # Default to 154 if not found
+        project_data = load_project_data()
+        remaining_items = project_data.get("total_items", 34)
+        remaining_points = project_data.get("total_points", 154)
     except Exception:
         # If we can't read the file, use defaults
         remaining_items = 34
         remaining_points = 154
 
-    # Get total created and completed items/points from the full dataset
-    import pandas as pd
+    # Get total created and completed items/points from the statistics
+    from data.persistence import load_statistics
 
     try:
-        df = pd.read_csv("forecast_statistics.csv")
-        total_completed_items = (
-            df["completed_items"].sum() if "completed_items" in df.columns else 0
-        )
-        total_completed_points = (
-            df["completed_points"].sum() if "completed_points" in df.columns else 0
-        )
-        total_created_items = (
-            df["created_items"].sum() if "created_items" in df.columns else 0
-        )
-        total_created_points = (
-            df["created_points"].sum() if "created_points" in df.columns else 0
-        )
+        statistics_data, _ = load_statistics()
+        if statistics_data:
+            df = pd.DataFrame(statistics_data)
+            total_completed_items = (
+                df["completed_items"].sum() if "completed_items" in df.columns else 0
+            )
+            total_completed_points = (
+                df["completed_points"].sum() if "completed_points" in df.columns else 0
+            )
+            total_created_items = (
+                df["created_items"].sum() if "created_items" in df.columns else 0
+            )
+            total_created_points = (
+                df["created_points"].sum() if "created_points" in df.columns else 0
+            )
+        else:
+            total_completed_items = 0
+            total_completed_points = 0
+            total_created_items = 0
+            total_created_points = 0
     except Exception:
-        # If we can't read the file, use the data from weekly_growth_data
+        # If we can't read the data, use defaults
         total_completed_items = 0
         total_completed_points = 0
         total_created_items = 0

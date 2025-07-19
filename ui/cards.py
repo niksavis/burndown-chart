@@ -855,11 +855,11 @@ def create_input_parameters_card(
                                     id="data-source-selection",
                                     options=[
                                         {
-                                            "label": "JSON Import",
+                                            "label": "JSON/CSV Import",
                                             "value": "CSV",
                                         },
                                         {
-                                            "label": "JIRA API (Auto-sync)",
+                                            "label": "JIRA API",
                                             "value": "JIRA",
                                         },
                                     ],
