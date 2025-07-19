@@ -948,6 +948,7 @@ def create_input_parameters_card(
                         else "none"
                     },
                     children=[
+                        # JIRA URL - Full width on mobile
                         dbc.Row(
                             [
                                 dbc.Col(
@@ -965,9 +966,13 @@ def create_input_parameters_card(
                                         ),
                                     ],
                                     width=12,
-                                    md=6,
                                     className="mb-3",
                                 ),
+                            ],
+                        ),
+                        # JQL Query - Full width on mobile
+                        dbc.Row(
+                            [
                                 dbc.Col(
                                     [
                                         html.Label(
@@ -996,6 +1001,7 @@ def create_input_parameters_card(
                                 ),
                             ],
                         ),
+                        # Personal Access Token - Full width on mobile
                         dbc.Row(
                             [
                                 dbc.Col(
@@ -1012,9 +1018,13 @@ def create_input_parameters_card(
                                         ),
                                     ],
                                     width=12,
-                                    md=6,
                                     className="mb-3",
                                 ),
+                            ],
+                        ),
+                        # Points Field - Full width on mobile
+                        dbc.Row(
+                            [
                                 dbc.Col(
                                     [
                                         html.Label(
@@ -1030,11 +1040,11 @@ def create_input_parameters_card(
                                         ),
                                     ],
                                     width=12,
-                                    md=6,
                                     className="mb-3",
                                 ),
                             ],
                         ),
+                        # Cache Size Limit - Full width on mobile
                         dbc.Row(
                             [
                                 dbc.Col(
@@ -1054,9 +1064,13 @@ def create_input_parameters_card(
                                         ),
                                     ],
                                     width=12,
-                                    md=6,
                                     className="mb-3",
                                 ),
+                            ],
+                        ),
+                        # Update Data Button Section - Full width on mobile with standardized button styling
+                        dbc.Row(
+                            [
                                 dbc.Col(
                                     [
                                         html.Label(
@@ -1070,22 +1084,17 @@ def create_input_parameters_card(
                                                     id="update-data-unified",
                                                     variant="primary",
                                                     icon_class="fas fa-sync-alt",
-                                                    size="lg",
-                                                    style={
-                                                        "width": "100%",
-                                                        "font-weight": "bold",
-                                                    },
                                                 ),
                                                 html.Small(
                                                     "Import data from selected source and update charts",
-                                                    className="text-muted mt-1 d-block text-center",
+                                                    className="text-muted mt-1 d-block",
                                                 ),
                                             ],
-                                            className="d-flex flex-column align-items-center",
+                                            className="d-flex flex-column",
                                         ),
                                     ],
                                     width=12,
-                                    className="mb-3 text-center",
+                                    className="mb-3",
                                 ),
                             ],
                         ),

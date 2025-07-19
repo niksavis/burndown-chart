@@ -733,6 +733,21 @@ def register(app):
                     f"JQL Query - Input: '{jql_query}', Settings: '{app_settings.get('jql_query', 'N/A')}', Final: '{settings_jql}'"
                 )
 
+                # Save the JQL query if it's different from what's in settings
+                if settings_jql != app_settings.get("jql_query", "project = JRASERVER"):
+                    from data.persistence import save_app_settings
+
+                    save_app_settings(
+                        app_settings["pert_factor"],
+                        app_settings["deadline"],
+                        app_settings["data_points_count"],
+                        app_settings["show_milestone"],
+                        app_settings["milestone"],
+                        app_settings["show_points"],
+                        settings_jql,
+                    )
+                    logger.info(f"JQL query updated and saved: '{settings_jql}'")
+
                 # Create JIRA config from UI inputs (override environment/settings)
                 jira_config = {
                     "url": jira_url or "https://jira.atlassian.com",
