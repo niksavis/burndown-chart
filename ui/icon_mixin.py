@@ -97,7 +97,7 @@ def create_export_button_group(id_prefix):
 
     # Add tooltip
     export_data_tooltip = dbc.Tooltip(
-        "Export the data as CSV",
+        "Export the data as JSON",
         target=f"{id_prefix}-export-data-btn",
         placement="top",
     )

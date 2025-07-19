@@ -8,6 +8,7 @@ This module handles callbacks related to visualization updates and interactions.
 # IMPORTS
 #######################################################################
 # Standard library imports
+import json
 import logging
 import time
 from datetime import datetime
@@ -25,7 +26,6 @@ from dash import (
     dcc,
     html,
 )
-from dash.dcc.express import send_data_frame  # Import from dash.dcc.express
 from dash.exceptions import PreventUpdate
 
 # Application imports
@@ -902,233 +902,55 @@ def register(app):
 
         return value
 
-    # Add callbacks for CSV exports
-    # Create one callback for each chart
-    chart_ids = [
-        "burndown",
-        "items",
-        "points",
-        "items-forecast",
-        "points-forecast",
-    ]
-
-    for chart_id in chart_ids:
-
-        @app.callback(
-            Output(f"{chart_id}-csv-download", "data"),
-            Input(f"{chart_id}-csv-button", "n_clicks"),
-            [State("current-statistics", "data"), State("date-range-weeks", "data")],
-            prevent_initial_call=True,
-        )
-        def export_csv_data(n_clicks, statistics, date_range_weeks, chart_id=chart_id):
-            """
-            Export chart data as CSV when the export button is clicked.
-
-            Args:
-                n_clicks: Number of button clicks
-                statistics: Current statistics data
-                date_range_weeks: Selected date range in weeks
-                chart_id: ID of the chart to export (passed in via closure)
-
-            Returns:
-                Dictionary with CSV download data
-            """
-            if not n_clicks or not statistics:
-                raise PreventUpdate
-
-            try:
-                current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
-
-                # Initialize df to empty DataFrame to prevent "possibly unbound" error
-                df = pd.DataFrame()
-                # Initialize filename with a default value to prevent "possibly unbound" error
-                filename = f"chart_data_{current_time}.csv"
-
-                # Create pandas DataFrame for CSV export
-                if chart_id == "burndown":
-                    # Export burndown chart data
-                    df = pd.DataFrame(statistics)
-                    df["date"] = pd.to_datetime(df["date"])
-                    df = df.sort_values("date")
-                    filename = f"burndown_chart_data_{current_time}.csv"
-
-                elif chart_id in ["items", "items-forecast"]:
-                    # Export weekly items data
-                    df = pd.DataFrame(statistics)
-                    df["date"] = pd.to_datetime(df["date"])
-                    df = df.sort_values("date")
-
-                    # Group by week
-                    df["week"] = df["date"].dt.isocalendar().week
-                    df["year"] = df["date"].dt.year
-                    df["year_week"] = df.apply(
-                        lambda r: f"{r['year']}-W{r['week']:02d}", axis=1
-                    )
-                    weekly_df = (
-                        df.groupby("year_week")
-                        .agg(
-                            week_start=("date", "min"), items=("completed_items", "sum")
-                        )
-                        .reset_index()
-                    )
-
-                    # Filter by date range if specified
-                    if date_range_weeks and chart_id == "items":
-                        weekly_df = weekly_df.sort_values("week_start", ascending=False)
-                        weekly_df = weekly_df.head(date_range_weeks)
-                        weekly_df = weekly_df.sort_values("week_start")
-
-                    df = weekly_df
-                    prefix = "forecast_" if chart_id == "items-forecast" else ""
-                    filename = f"{prefix}weekly_items_data_{current_time}.csv"
-
-                elif chart_id in ["points", "points-forecast"]:
-                    # Export weekly points data
-                    df = pd.DataFrame(statistics)
-                    df["date"] = pd.to_datetime(df["date"])
-                    df = df.sort_values("date")
-
-                    # Group by week
-                    df["week"] = df["date"].dt.isocalendar().week
-                    df["year"] = df["date"].dt.year
-                    df["year_week"] = df.apply(
-                        lambda r: f"{r['year']}-W{r['week']:02d}", axis=1
-                    )
-                    weekly_df = (
-                        df.groupby("year_week")
-                        .agg(
-                            week_start=("date", "min"),
-                            points=("completed_points", "sum"),
-                        )
-                        .reset_index()
-                    )
-
-                    # Filter by date range if specified
-                    if date_range_weeks and chart_id == "points":
-                        weekly_df = weekly_df.sort_values("week_start", ascending=False)
-                        weekly_df = weekly_df.head(date_range_weeks)
-                        weekly_df = weekly_df.sort_values("week_start")
-
-                    df = weekly_df
-                    prefix = "forecast_" if chart_id == "points-forecast" else ""
-                    filename = f"{prefix}weekly_points_data_{current_time}.csv"
-
-                # Format dates for better readability
-                if not df.empty and "date" in df.columns:
-                    df["date"] = df["date"].dt.strftime("%Y-%m-%d")
-                if not df.empty and "week_start" in df.columns:
-                    df["week_start"] = df["week_start"].dt.strftime("%Y-%m-%d")
-
-                # Return CSV data
-                return send_data_frame(df.to_csv, filename, index=False)
-
-            except Exception as e:
-                logger.error(f"Error exporting CSV data for {chart_id}: {e}")
-                # Define current_time here to ensure it's always available
-                current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
-                # Return empty CSV with error message
-                error_df = pd.DataFrame({"Error": [f"Failed to export data: {str(e)}"]})
-                return send_data_frame(
-                    error_df.to_csv, f"export_error_{current_time}.csv", index=False
-                )
-
-    # Add callback for export statistics button
+    # Add callback for export project data button (JSON export)
     @app.callback(
-        Output("export-statistics-download", "data"),
-        Input("export-statistics-button", "n_clicks"),
-        [State("current-statistics", "data")],
+        Output("export-project-data-download", "data"),
+        Input("export-project-data-button", "n_clicks"),
         prevent_initial_call=True,
     )
-    def export_statistics_data(n_clicks, statistics):
+    def export_project_data(n_clicks):
         """
-        Export statistics data as CSV when the export button is clicked.
+        Export complete project data as JSON when the export button is clicked.
 
         Args:
             n_clicks: Number of button clicks
-            statistics: Current statistics data
 
         Returns:
-            Dictionary with CSV download data
+            Dictionary with JSON download data
         """
-        if not n_clicks or not statistics:
+        if not n_clicks:
             raise PreventUpdate
 
         try:
+            from data.persistence import load_unified_project_data
+
             current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-            # Create pandas DataFrame for CSV export
-            df = pd.DataFrame(statistics)
-
-            # Ensure required columns exist
-            required_columns = [
-                "date",
-                "completed_items",
-                "completed_points",
-                "created_items",
-                "created_points",
-            ]
-            for col in required_columns:
-                if col not in df.columns:
-                    if col == "date":
-                        # Date is special - can't be missing
-                        raise ValueError(
-                            "Statistics data is missing required 'date' column"
-                        )
-                    else:
-                        # For other columns, add with default value 0
-                        df[col] = 0
-
-            # Ensure numeric columns are properly formatted
-            numeric_columns = [
-                "completed_items",
-                "completed_points",
-                "created_items",
-                "created_points",
-            ]
-            for col in numeric_columns:
-                df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0).astype(int)
-
-            # Ensure date column is in proper datetime format for sorting
-            df["date"] = pd.to_datetime(df["date"], errors="coerce")
-
-            # Sort by date in ascending order (oldest first)
-            df = df.sort_values("date", ascending=True)
-
-            # Convert back to string format for display
-            df["date"] = df["date"].dt.strftime("%Y-%m-%d")
-
-            # Reorder columns to ensure consistent format
-            column_order = [
-                "date",
-                "completed_items",
-                "completed_points",
-                "created_items",
-                "created_points",
-            ]
-            # Add any additional columns that might be present
-            for col in df.columns:
-                if col not in column_order:
-                    column_order.append(col)
-
-            # Apply the column ordering
-            df = df[column_order]
+            # Load the complete unified project data
+            project_data = load_unified_project_data()
 
             # Create filename with timestamp
-            filename = f"statistics_{current_time}.csv"
+            filename = f"project_data_{current_time}.json"
 
-            # Return CSV data
-            return send_data_frame(df.to_csv, filename, index=False)
+            # Convert to JSON string with pretty formatting
+            json_content = json.dumps(project_data, indent=2, ensure_ascii=False)
+
+            # Return JSON data for download
+            return dict(
+                content=json_content, filename=filename, type="application/json"
+            )
 
         except Exception as e:
-            logger.error(f"Error exporting statistics data: {e}")
+            logger.error(f"Error exporting project data: {e}")
             # Define current_time for the error case
             current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
-            # Return empty CSV with error message
-            error_df = pd.DataFrame(
-                {"Error": [f"Failed to export statistics data: {str(e)}"]}
-            )
-            return send_data_frame(
-                error_df.to_csv, f"export_error_{current_time}.csv", index=False
+            # Return error JSON
+            error_data = {"error": f"Failed to export project data: {str(e)}"}
+            error_json = json.dumps(error_data, indent=2)
+            return dict(
+                content=error_json,
+                filename=f"export_error_{current_time}.json",
+                type="application/json",
             )
 
     @app.callback(

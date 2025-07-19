@@ -1003,6 +1003,12 @@ def create_input_parameters_card(
                         ),
                     ],
                 ),
+                # Import Status Message Container
+                html.Div(
+                    id="import-status-message",
+                    className="text-success small mb-3",
+                    style={"display": "none"},
+                ),
                 # JIRA Configuration Container (hidden by default when data source is CSV)
                 html.Div(
                     id="jira-config-container",
@@ -1144,18 +1150,43 @@ def create_input_parameters_card(
                                         ),
                                         html.Div(
                                             [
-                                                create_button(
-                                                    text="Update Data",
-                                                    id="update-data-unified",
-                                                    variant="primary",
-                                                    icon_class="fas fa-sync-alt",
+                                                html.Div(
+                                                    [
+                                                        create_button(
+                                                            text="Update Data",
+                                                            id="update-data-unified",
+                                                            variant="primary",
+                                                            icon_class="fas fa-sync-alt",
+                                                        ),
+                                                        html.Small(
+                                                            "Import data from selected source and update charts",
+                                                            className="text-muted mt-1 d-block",
+                                                        ),
+                                                    ],
+                                                    className="d-flex flex-column me-3 mb-2",
                                                 ),
-                                                html.Small(
-                                                    "Import data from selected source and update charts",
-                                                    className="text-muted mt-1 d-block",
+                                                html.Div(
+                                                    [
+                                                        create_button(
+                                                            text="Export Data",
+                                                            id="export-project-data-button",
+                                                            variant="secondary",
+                                                            icon_class="fas fa-file-export",
+                                                        ),
+                                                        html.Small(
+                                                            "Export complete project data as JSON",
+                                                            className="text-muted mt-1 d-block",
+                                                        ),
+                                                        html.Div(
+                                                            dcc.Download(
+                                                                id="export-project-data-download"
+                                                            )
+                                                        ),
+                                                    ],
+                                                    className="d-flex flex-column mb-2",
                                                 ),
                                             ],
-                                            className="d-flex flex-column",
+                                            className="d-flex flex-wrap",
                                         ),
                                     ],
                                     width=12,
@@ -1664,25 +1695,6 @@ def create_statistics_data_card(current_statistics):
                         icon_class="fas fa-filter",
                     ),
                     className="me-2 mb-2 mb-sm-0",  # Add right margin and bottom margin on mobile
-                    style={"display": "inline-block"},
-                ),
-                # Export Statistics Button with fixed styling
-                html.Div(
-                    [
-                        create_button(
-                            text="Export Statistics",
-                            id="export-statistics-button",
-                            variant="outline-secondary",
-                            icon_class="fas fa-file-export",
-                        ),
-                        dbc.Tooltip(
-                            "Export statistics data as CSV",
-                            target="export-statistics-button",
-                            placement="top",
-                        ),
-                        html.Div(dcc.Download(id="export-statistics-download")),
-                    ],
-                    className="mb-2 mb-sm-0",  # Add bottom margin on mobile
                     style={"display": "inline-block"},
                 ),
             ],

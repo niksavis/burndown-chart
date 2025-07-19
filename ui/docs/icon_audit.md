@@ -23,9 +23,8 @@ This document tracks the current usage of icons throughout the Burndown Chart ap
 | create_pert_info_table    | fas fa-arrow-up/down/equals | Trend indicators        | Switch to semantic icons "trend_up", "trend_down", "trend_neutral" |
 | create_pert_info_table    | fas fa-info-circle          | Info text               | Already matches semantic icon "info"                               |
 | create_trend_indicator    | fas fa-arrow-up/down/alt-h  | Trend direction         | Switch to semantic icons "trend_up", "trend_down", "trend_neutral" |
-| create_export_buttons     | fas fa-file-csv             | CSV export button       | Add semantic icon "export"                                         |
 | create_export_buttons     | fas fa-file-image           | Image export button     | Add semantic icon "export"                                         |
-| create_export_buttons     | fas fa-file-export          | Statistics export       | Already matches semantic icon "export"                             |
+| create_export_buttons     | fas fa-file-export          | JSON data export        | Already matches semantic icon "export"                             |
 | create_validation_message | fas fa-check-circle         | Valid feedback          | Already matches semantic icon "success"                            |
 | create_validation_message | fas fa-exclamation-triangle | Warning feedback        | Already matches semantic icon "warning"                            |
 | create_validation_message | fas fa-times-circle         | Invalid feedback        | Add semantic icon "danger"                                         |

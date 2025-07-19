@@ -12,7 +12,7 @@ that are used across the application.
 from datetime import datetime, timedelta
 
 # Third-party library imports
-from dash import html, dcc
+from dash import html
 import dash_bootstrap_components as dbc
 
 # Application imports
@@ -1455,20 +1455,7 @@ def create_export_buttons(chart_id=None, statistics_data=None):
     buttons = []
 
     if chart_id:
-        # Add CSV export button for chart using the new button styling system
-        csv_button = create_button(
-            children=[html.I(className="fas fa-file-csv me-2"), "Export CSV"],
-            id=f"{chart_id}-csv-button",
-            variant="secondary",
-            size="sm",
-            outline=True,
-            tooltip="Export chart data as CSV",
-            className="me-2",
-        )
-        buttons.append(csv_button)
-        buttons.append(html.Div(dcc.Download(id=f"{chart_id}-csv-download")))
-
-        # Add PNG export button as well
+        # Add PNG export button for charts using the new button styling system
         png_button = create_button(
             children=[html.I(className="fas fa-file-image me-2"), "Export Image"],
             id=f"{chart_id}-png-button",
@@ -1479,19 +1466,6 @@ def create_export_buttons(chart_id=None, statistics_data=None):
             className="me-2",
         )
         buttons.append(png_button)
-
-    if statistics_data:
-        # Add button for export stats using the new button styling system
-        stats_button = create_button(
-            children=[html.I(className="fas fa-file-export me-2"), "Export Statistics"],
-            id="export-statistics-button",
-            variant="secondary",
-            size="sm",
-            outline=True,
-            tooltip="Export statistics data",
-        )
-        buttons.append(stats_button)
-        buttons.append(html.Div(dcc.Download(id="export-statistics-download")))
 
     return html.Div(
         buttons,

@@ -15,7 +15,7 @@ from datetime import datetime, timedelta
 
 # Third-party library imports
 import dash
-from dash import Input, Output, State, html
+from dash import Input, Output, State, html, no_update
 from dash.exceptions import PreventUpdate
 import pandas as pd
 import dash_bootstrap_components as dbc
@@ -203,7 +203,11 @@ def register(app):
         return data, int(datetime.now().timestamp() * 1000)
 
     @app.callback(
-        [Output("statistics-table", "data"), Output("is-sample-data", "data")],
+        [
+            Output("statistics-table", "data"),
+            Output("is-sample-data", "data"),
+            Output("jira-data-reload-trigger", "data", allow_duplicate=True),
+        ],
         [
             Input("add-row-button", "n_clicks"),
             Input("upload-data", "contents"),
@@ -214,6 +218,7 @@ def register(app):
             State("upload-data", "filename"),
             State("is-sample-data", "data"),
         ],
+        prevent_initial_call=True,
     )
     def update_table(
         n_clicks,
@@ -229,11 +234,12 @@ def register(app):
         - Data is uploaded
         - Cell values are edited (and need empty values converted to zeros)
         Also update the sample data flag when real data is uploaded.
+        Also trigger page reload when full project data is imported.
         """
         ctx = dash.callback_context
         if not ctx.triggered:
             # No triggers, return unchanged
-            return rows, is_sample_data
+            return rows, is_sample_data, no_update
 
         trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
         trigger_prop = (
@@ -301,9 +307,9 @@ def register(app):
 
                 # If user adds a row, we're no longer using sample data
                 if is_sample_data:
-                    return rows, False
+                    return rows, False, no_update
                 else:
-                    return rows, is_sample_data
+                    return rows, is_sample_data, no_update
 
             elif trigger_id == "upload-data" and contents:
                 # Parse uploaded file
@@ -346,26 +352,44 @@ def register(app):
                                 )
 
                         # When uploading data, we're no longer using sample data
-                        return df.to_dict("records"), False
+                        return df.to_dict("records"), False, no_update
                     except Exception as e:
                         logger.error(f"Error loading CSV file: {e}")
                         # Return unchanged data if there's an error
-                        return rows, is_sample_data
+                        return rows, is_sample_data, no_update
 
                 elif "json" in filename.lower():
                     try:
                         # Parse JSON file
                         json_data = json.loads(decoded.decode("utf-8"))
 
-                        # Convert to DataFrame
-                        df = pd.DataFrame(json_data)
+                        # Check if this is a full project data structure (exported JSON)
+                        if isinstance(json_data, dict) and "statistics" in json_data:
+                            # This is a full project data export - handle it specially
+                            from data.persistence import save_unified_project_data
 
-                        # Validate required columns
+                            # Save the full project data
+                            save_unified_project_data(json_data)
+                            logger.info(f"Imported full project data from {filename}")
+
+                            # Extract statistics for the table
+                            statistics_data = json_data.get("statistics", [])
+                            df = pd.DataFrame(statistics_data)
+                        else:
+                            # This is just statistics data (legacy format)
+                            df = pd.DataFrame(json_data)
+
+                        # Validate required columns for statistics
                         required_columns = [
                             "date",
                             "completed_items",
                             "completed_points",
                         ]
+
+                        if df.empty:
+                            logger.error("JSON file contains no statistics data")
+                            return rows, is_sample_data, no_update
+
                         missing_columns = [
                             col for col in required_columns if col not in df.columns
                         ]
@@ -374,7 +398,7 @@ def register(app):
                             logger.error(
                                 f"JSON file missing required columns: {missing_columns}"
                             )
-                            return rows, is_sample_data
+                            return rows, is_sample_data, no_update
 
                         # Clean data and ensure date is in YYYY-MM-DD format
                         df = read_and_clean_data(df)
@@ -400,30 +424,48 @@ def register(app):
                                     .astype(int)
                                 )
 
+                        # Check if this was a full project data import to trigger reload
+                        full_project_imported = (
+                            isinstance(json_data, dict) and "statistics" in json_data
+                        )
+
                         # When uploading JSON data, we're no longer using sample data
-                        return df.to_dict("records"), False
+                        # Trigger statistics reload if full project data was imported
+                        reload_trigger = (
+                            int(datetime.now().timestamp() * 1000)
+                            if full_project_imported
+                            else no_update
+                        )
+
+                        # Log success message for full project import
+                        if full_project_imported:
+                            logger.info(
+                                "Full project data imported successfully. Statistics table updated. Page refresh recommended to update all charts and project scope metrics."
+                            )
+
+                        return df.to_dict("records"), False, reload_trigger
                     except json.JSONDecodeError as e:
                         logger.error(f"Error parsing JSON file: {e}")
-                        return rows, is_sample_data
+                        return rows, is_sample_data, no_update
                     except Exception as e:
                         logger.error(f"Error loading JSON file: {e}")
-                        return rows, is_sample_data
+                        return rows, is_sample_data, no_update
 
                 else:
                     logger.error(
                         f"Unsupported file type: {filename}. Please upload a CSV or JSON file."
                     )
-                    return rows, is_sample_data
+                    return rows, is_sample_data, no_update
 
             elif trigger_id == "statistics-table" and trigger_prop == "data_timestamp":
                 # This is triggered when a cell is edited and loses focus
                 # We've already cleaned the data at the start of this callback
-                return rows, is_sample_data
+                return rows, is_sample_data, no_update
 
         except Exception as e:
             logger.error(f"Error in update_table callback: {e}")
 
-        return rows, is_sample_data
+        return rows, is_sample_data, no_update
 
     @app.callback(
         Output("statistics-table", "filter_query"),
@@ -513,4 +555,60 @@ def register(app):
 
         except Exception as e:
             logger.error(f"Error reloading statistics from JIRA: {e}")
+            raise PreventUpdate
+
+    @app.callback(
+        [
+            Output("estimated-items-input", "value", allow_duplicate=True),
+            Output("total-items-input", "value", allow_duplicate=True),
+            Output("estimated-points-input", "value", allow_duplicate=True),
+            Output("total-points-display", "value", allow_duplicate=True),
+        ],
+        [Input("jira-data-reload-trigger", "data")],
+        prevent_initial_call=True,
+    )
+    def update_project_scope_from_import(reload_trigger):
+        """
+        Update project scope display when data is imported (JSON or JIRA).
+
+        Args:
+            reload_trigger: Timestamp trigger from data import/reload
+
+        Returns:
+            Tuple: (estimated_items, total_items, estimated_points, total_points_display)
+        """
+        logger.info(
+            f"Project scope update callback triggered with reload_trigger: {reload_trigger}"
+        )
+
+        if not reload_trigger:
+            logger.info("Project scope update: No reload trigger, preventing update")
+            raise PreventUpdate
+
+        try:
+            from data.persistence import get_project_scope
+
+            # Load fresh project scope data
+            project_scope = get_project_scope()
+            logger.info(f"Project scope loaded: {project_scope}")
+
+            if project_scope:
+                # Use the actual project scope values
+                estimated_items = project_scope.get("remaining_items", 0)
+                total_items = project_scope.get("total_items", estimated_items)
+                estimated_points = project_scope.get("remaining_points", 0)
+                total_points = project_scope.get("total_points", estimated_points)
+
+                logger.info(
+                    f"Updated project scope from import: Items={estimated_items}/{total_items}, Points={estimated_points}/{total_points}"
+                )
+
+                return estimated_items, total_items, estimated_points, f"{total_points}"
+            else:
+                # Fallback to default values if no project scope found
+                logger.warning("No project scope data found after import")
+                raise PreventUpdate
+
+        except Exception as e:
+            logger.error(f"Error updating project scope from import: {e}")
             raise PreventUpdate
