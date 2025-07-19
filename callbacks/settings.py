@@ -24,7 +24,7 @@ from configuration import (
     logger,
 )
 from data import calculate_total_points
-from data.persistence import save_app_settings, save_project_data
+from data.persistence import save_project_data
 
 #######################################################################
 # HELPER FUNCTIONS
@@ -182,6 +182,12 @@ def register(app):
             Input("milestone-toggle", "value"),  # Added milestone toggle input
             Input("milestone-picker", "date"),  # Added milestone picker input
             Input("points-toggle", "value"),  # Added points toggle input
+            # Add all JIRA inputs for immediate saving
+            Input("jira-jql-query", "value"),
+            Input("jira-url", "value"),
+            Input("jira-token", "value"),
+            Input("jira-story-points-field", "value"),
+            Input("jira-cache-max-size", "value"),
         ],
         [State("app-init-complete", "data")],
     )
@@ -196,6 +202,12 @@ def register(app):
         show_milestone,  # Added parameter
         milestone,  # Added parameter
         show_points,  # Added parameter
+        # Add all JIRA parameters for immediate saving
+        jql_query,
+        jira_url,
+        jira_token,
+        jira_story_points_field,
+        jira_cache_max_size,
         init_complete,
     ):
         """
@@ -247,10 +259,8 @@ def register(app):
             "show_points": show_points,  # Added to settings
         }
 
-        # Save app-level settings - preserve current JIRA configuration
-        from data.persistence import load_app_settings
-
-        current_settings = load_app_settings()
+        # Save app-level settings - use current JIRA input values for immediate persistence
+        from data.persistence import save_app_settings
 
         save_app_settings(
             pert_factor,
@@ -259,19 +269,19 @@ def register(app):
             show_milestone,  # Added parameter
             milestone,  # Added parameter
             show_points,  # Added parameter
-            current_settings.get(
-                "jql_query", "project = JRASERVER"
-            ),  # Preserve existing JQL query
-            current_settings.get(
-                "jira_url", "https://jira.atlassian.com"
-            ),  # Preserve existing JIRA URL
-            current_settings.get("jira_token", ""),  # Preserve existing JIRA token
-            current_settings.get(
-                "jira_story_points_field", ""
-            ),  # Preserve existing story points field
-            current_settings.get(
-                "jira_cache_max_size", 100
-            ),  # Preserve existing cache max size
+            jql_query.strip()
+            if jql_query and jql_query.strip()
+            else "project = JRASERVER",  # Use current JQL input
+            jira_url.strip()
+            if jira_url and jira_url.strip()
+            else "https://jira.atlassian.com",  # Use current JIRA URL input
+            jira_token.strip() if jira_token else "",  # Use current JIRA token input
+            jira_story_points_field.strip()
+            if jira_story_points_field
+            else "",  # Use current story points field input
+            jira_cache_max_size
+            if jira_cache_max_size is not None
+            else 100,  # Use current cache size input
         )
 
         # Save project data separately
@@ -285,41 +295,6 @@ def register(app):
 
         logger.info(f"Settings updated and saved: {settings}")
         return settings, int(datetime.now().timestamp() * 1000)
-
-    @app.callback(
-        Output("jira-jql-query-save-status", "children"),
-        Input("jira-jql-query", "value"),
-        prevent_initial_call=True,
-    )
-    def save_jql_query(jql_query):
-        """Save JQL query changes to app settings."""
-        # Always save the JQL query, even if empty (user might want to clear it)
-        from data.persistence import load_app_settings, save_app_settings
-
-        app_settings = load_app_settings()
-        jql_to_save = jql_query.strip() if jql_query else ""
-
-        save_app_settings(
-            app_settings["pert_factor"],
-            app_settings["deadline"],
-            app_settings["data_points_count"],
-            app_settings["show_milestone"],
-            app_settings["milestone"],
-            app_settings["show_points"],
-            jql_to_save or "project = JRASERVER",  # Use default if empty
-            app_settings.get(
-                "jira_url", "https://jira.atlassian.com"
-            ),  # Preserve existing JIRA URL
-            app_settings.get("jira_token", ""),  # Preserve existing JIRA token
-            app_settings.get(
-                "jira_story_points_field", ""
-            ),  # Preserve existing story points field
-            app_settings.get(
-                "jira_cache_max_size", 100
-            ),  # Preserve existing cache max size
-        )
-        logger.info(f"JQL query saved: '{jql_to_save or 'project = JRASERVER'}'")
-        return ""  # Return empty for hidden status element
 
     @app.callback(
         [
