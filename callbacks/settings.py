@@ -12,7 +12,7 @@ from datetime import datetime
 
 # Third-party library imports
 import dash
-from dash import Input, Output, State, html
+from dash import Input, Output, State, html, no_update
 from dash.exceptions import PreventUpdate
 
 # Application imports
@@ -523,26 +523,32 @@ def register(app):
             Output("jira-validation-errors", "children"),
         ],
         [
-            Input("refresh-jira-cache", "n_clicks"),
             Input("jira-url", "value"),
             Input("jira-jql-query", "value"),
         ],
+        [
+            State("jira-token", "value"),
+            State("jira-story-points-field", "value"),
+            State("jira-cache-max-size", "value"),
+        ],
         prevent_initial_call=True,
     )
-    def update_jira_cache_and_validation(n_clicks, url, jql_query):
+    def update_jira_cache_and_validation(
+        url, jql_query, jira_token, story_points_field, cache_max_size
+    ):
         """
-        Update JIRA cache and show validation errors using JQL query.
+        Update JIRA cache status and show validation information.
 
         Args:
-            n_clicks: Number of refresh button clicks
             url: JIRA URL
             jql_query: JQL query for filtering issues
+            jira_token: Personal access token
+            story_points_field: Custom field ID for story points mapping (optional)
+            cache_max_size: Maximum cache size in MB
 
         Returns:
             Tuple containing cache status and validation errors
         """
-        ctx = dash.callback_context
-
         # Initialize return values
         cache_status = ""
         validation_errors = ""
@@ -550,82 +556,42 @@ def register(app):
         try:
             from data.jira_simple import (
                 get_cache_status,
-                sync_jira_data,
                 validate_jira_config,
-                get_jira_config,
             )
 
             # Get current cache status
             cache_status = get_cache_status()
 
-            # If refresh button was clicked, try to sync data
-            if (
-                n_clicks
-                and ctx.triggered
-                and ctx.triggered[0]["prop_id"] == "refresh-jira-cache.n_clicks"
-            ):
-                try:
-                    # Load JQL query from settings or use provided value
-                    from data.persistence import load_app_settings
+            # Create JIRA config from UI inputs (same logic as unified button)
+            jira_config = {
+                "url": url or "https://jira.atlassian.com",
+                "jql_query": jql_query or "project = JRASERVER",
+                "token": jira_token or "",
+                "story_points_field": story_points_field.strip()
+                if story_points_field and story_points_field.strip()
+                else "",
+                "cache_max_size_mb": cache_max_size or 100,
+            }
 
-                    app_settings = load_app_settings()
-                    settings_jql = jql_query or app_settings.get(
-                        "jql_query", "project = JRASERVER"
-                    )
+            # Show current validation status using UI config
+            is_valid, error_message = validate_jira_config(jira_config)
 
-                    # Sync with the JQL query
-                    success, message = sync_jira_data(settings_jql)
-                    if success:
-                        cache_status = get_cache_status()
-                        validation_errors = html.Div(
-                            [
-                                html.I(className="fas fa-check-circle me-2"),
-                                f"Cache refreshed successfully: {message}",
-                            ],
-                            className="text-success small",
-                        )
-                    else:
-                        validation_errors = html.Div(
-                            [
-                                html.I(className="fas fa-exclamation-triangle me-2"),
-                                f"Cache refresh failed: {message}",
-                            ],
-                            className="text-danger small",
-                        )
-                except Exception as e:
-                    validation_errors = html.Div(
-                        [
-                            html.I(className="fas fa-exclamation-triangle me-2"),
-                            f"Cache refresh failed: {str(e)}",
-                        ],
-                        className="text-danger small",
-                    )
+            if is_valid:
+                validation_errors = html.Div(
+                    [
+                        html.I(className="fas fa-check-circle me-2"),
+                        "JIRA configuration is valid",
+                    ],
+                    className="text-success small",
+                )
             else:
-                # Only validate configuration if inputs are provided AND not refreshing
-                if url or jql_query:
-                    # Get config with JQL query from UI or settings
-                    from data.persistence import load_app_settings
-
-                    app_settings = load_app_settings()
-                    settings_jql = jql_query or app_settings.get(
-                        "jql_query", "project = JRASERVER"
-                    )
-                    config = get_jira_config(settings_jql)
-
-                    # Override URL if provided in UI
-                    if url:
-                        config["url"] = url
-
-                    # Validate configuration
-                    is_valid, error_message = validate_jira_config(config)
-                    if not is_valid:
-                        validation_errors = html.Div(
-                            [
-                                html.I(className="fas fa-exclamation-triangle me-2"),
-                                f"Configuration error: {error_message}",
-                            ],
-                            className="text-danger small",
-                        )
+                validation_errors = html.Div(
+                    [
+                        html.I(className="fas fa-exclamation-triangle me-2"),
+                        f"Configuration invalid: {error_message}",
+                    ],
+                    className="text-warning small",
+                )
 
             # Format cache status for display
             if cache_status:
@@ -674,58 +640,27 @@ def register(app):
         ],
         [
             Input("data-source-selection", "value"),
-            Input("refresh-jira-cache", "n_clicks"),
         ],
         prevent_initial_call=True,
     )
-    def trigger_jira_data_loading(data_source, n_clicks):
+    def trigger_jira_data_loading(data_source):
         """
-        Trigger JIRA data loading when data source is selected or cache is refreshed.
+        Trigger JIRA data loading when data source is selected.
         Also trigger a reload of statistics data.
 
         Args:
             data_source: Selected data source ("CSV" or "JIRA")
-            n_clicks: Number of refresh button clicks
 
         Returns:
             Tuple: (timestamp, reload_trigger)
         """
-        ctx = dash.callback_context
-
-        try:
-            from data.jira_simple import sync_jira_data
-
-            # Check if refresh button was clicked
-            if (
-                n_clicks
-                and ctx.triggered
-                and ctx.triggered[0]["prop_id"] == "refresh-jira-cache.n_clicks"
-            ):
-                # Sync data when refresh button is clicked (regardless of data source)
-                success, message = sync_jira_data()
-                if not success:
-                    logger.error(f"Failed to sync JIRA data: {message}")
-                    raise PreventUpdate
-
-                # Return timestamp to trigger other callbacks
-                timestamp = int(datetime.now().timestamp() * 1000)
-                return timestamp, timestamp
-
-            # Only proceed for data source selection if JIRA is selected
-            elif data_source == "JIRA":
-                # Return timestamp to trigger other callbacks
-                timestamp = int(datetime.now().timestamp() * 1000)
-                return timestamp, timestamp
-
-            else:
-                # If data source is not JIRA and refresh button wasn't clicked, prevent update
-                raise PreventUpdate
-
-        except ImportError:
-            logger.error("JIRA integration not available")
-            raise PreventUpdate
-        except Exception as e:
-            logger.error(f"Error loading JIRA data: {e}")
+        # Only proceed for data source selection if JIRA is selected
+        if data_source == "JIRA":
+            # Return timestamp to trigger other callbacks
+            timestamp = int(datetime.now().timestamp() * 1000)
+            return timestamp, timestamp
+        else:
+            # If data source is not JIRA, prevent update
             raise PreventUpdate
 
     @app.callback(
@@ -734,6 +669,7 @@ def register(app):
             Output("upload-data", "filename", allow_duplicate=True),
             Output("jira-cache-status", "children", allow_duplicate=True),
             Output("jira-validation-errors", "children", allow_duplicate=True),
+            Output("statistics-table", "data", allow_duplicate=True),
         ],
         [Input("update-data-unified", "n_clicks")],
         [
@@ -765,7 +701,7 @@ def register(app):
             jql_query (str): JQL query for JIRA data source
             jira_url (str): JIRA instance URL
             jira_token (str): Personal access token
-            story_points_field (str): Custom field ID for story points
+            story_points_field (str): Custom field ID for story points mapping (optional)
             cache_max_size (int): Maximum cache size in MB
 
         Returns:
@@ -777,7 +713,11 @@ def register(app):
         try:
             if data_source == "JIRA":
                 # Handle JIRA data import
-                from data.jira_simple import sync_jira_data, get_cache_status
+                from data.jira_simple import (
+                    sync_jira_data,
+                    get_cache_status,
+                    validate_jira_config,
+                )
                 from data.persistence import load_app_settings
 
                 # Use JQL query from input or fall back to settings
@@ -786,10 +726,41 @@ def register(app):
                     "jql_query", "project = JRASERVER"
                 )
 
-                # Sync with the JQL query
-                success, message = sync_jira_data(settings_jql)
-                if success:
+                # Create JIRA config from UI inputs (override environment/settings)
+                jira_config = {
+                    "url": jira_url or "https://jira.atlassian.com",
+                    "jql_query": settings_jql,
+                    "token": jira_token or "",
+                    "story_points_field": story_points_field.strip()
+                    if story_points_field and story_points_field.strip()
+                    else "",
+                    "cache_max_size_mb": cache_max_size or 100,
+                }
+
+                # Validate configuration
+                is_valid, validation_message = validate_jira_config(jira_config)
+                if not is_valid:
                     cache_status = get_cache_status()
+                    validation_errors = html.Div(
+                        [
+                            html.I(className="fas fa-exclamation-triangle me-2"),
+                            f"Configuration invalid: {validation_message}",
+                        ],
+                        className="text-danger small",
+                    )
+                    return None, None, cache_status, validation_errors, no_update
+
+                # Use sync_jira_data with the UI configuration
+                success, message = sync_jira_data(settings_jql, jira_config)
+                cache_status = get_cache_status()
+                if success:
+                    # Load the updated statistics data after JIRA import
+                    from data.persistence import load_statistics
+
+                    updated_statistics, _ = (
+                        load_statistics()
+                    )  # Unpack tuple, ignore is_sample flag
+
                     validation_errors = html.Div(
                         [
                             html.I(className="fas fa-check-circle me-2"),
@@ -797,8 +768,15 @@ def register(app):
                         ],
                         className="text-success small",
                     )
+                    # Return updated statistics to refresh the table
+                    return (
+                        None,
+                        None,
+                        cache_status,
+                        validation_errors,
+                        updated_statistics,
+                    )
                 else:
-                    cache_status = get_cache_status()
                     validation_errors = html.Div(
                         [
                             html.I(className="fas fa-exclamation-triangle me-2"),
@@ -806,9 +784,8 @@ def register(app):
                         ],
                         className="text-danger small",
                     )
-
-                # Clear any upload contents since we're using JIRA
-                return None, None, cache_status, validation_errors
+                    # Return no table update on failure
+                    return None, None, cache_status, validation_errors, no_update
 
             elif data_source == "CSV":
                 # For CSV data source, we need to trigger the file upload dialog
@@ -821,7 +798,7 @@ def register(app):
                     ],
                     className="text-info small",
                 )
-                return None, None, None, validation_errors
+                return None, None, None, validation_errors, no_update
 
             else:
                 validation_errors = html.Div(
@@ -831,7 +808,7 @@ def register(app):
                     ],
                     className="text-warning small",
                 )
-                return None, None, None, validation_errors
+                return None, None, None, validation_errors, no_update
 
         except ImportError:
             logger.error("JIRA integration not available")
@@ -842,7 +819,7 @@ def register(app):
                 ],
                 className="text-danger small",
             )
-            return None, None, None, validation_errors
+            return None, None, None, validation_errors, no_update
         except Exception as e:
             logger.error(f"Error in unified data update: {e}")
             validation_errors = html.Div(
@@ -852,4 +829,4 @@ def register(app):
                 ],
                 className="text-danger small",
             )
-            return None, None, None, validation_errors
+            return None, None, None, validation_errors, no_update

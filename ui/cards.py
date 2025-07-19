@@ -1018,14 +1018,14 @@ def create_input_parameters_card(
                                 dbc.Col(
                                     [
                                         html.Label(
-                                            "Points Field:",
+                                            "Points Field (optional):",
                                             className="fw-medium",
                                         ),
                                         dbc.Input(
                                             id="jira-story-points-field",
                                             type="text",
-                                            placeholder="customfield_10002",
-                                            value="customfield_10002",
+                                            placeholder="Leave empty if no story points, or enter your JIRA field ID",
+                                            value="",
                                             style=create_input_style(size="md"),
                                         ),
                                     ],

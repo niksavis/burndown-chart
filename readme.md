@@ -94,7 +94,7 @@ JIRA_DEFAULT_JQL=project = MYPROJECT AND created >= startOfYear()
 
 # Optional
 JIRA_TOKEN=your-personal-access-token
-JIRA_STORY_POINTS_FIELD=customfield_10002
+JIRA_STORY_POINTS_FIELD=your-story-points-field-id
 JIRA_CACHE_MAX_SIZE_MB=100
 ```
 

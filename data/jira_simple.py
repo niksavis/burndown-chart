@@ -51,7 +51,7 @@ def get_jira_config(settings_jql_query: str | None = None) -> Dict:
         "url": os.getenv("JIRA_URL", ""),
         "jql_query": jql_query,
         "token": os.getenv("JIRA_TOKEN", ""),
-        "story_points_field": os.getenv("JIRA_STORY_POINTS_FIELD", "customfield_10002"),
+        "story_points_field": os.getenv("JIRA_STORY_POINTS_FIELD", ""),
         "cache_max_size_mb": int(
             os.getenv("JIRA_CACHE_MAX_SIZE_MB", DEFAULT_CACHE_MAX_SIZE_MB)
         ),
@@ -91,10 +91,17 @@ def fetch_jira_issues(config: Dict, max_results: int = 1000) -> Tuple[bool, List
             headers["Authorization"] = f"Bearer {config['token']}"
 
         # Parameters - only fetch required fields
+        # Include story points field only if specified
+        base_fields = "key,created,resolutiondate,status"
+        if config.get("story_points_field") and config["story_points_field"].strip():
+            fields = f"{base_fields},{config['story_points_field']}"
+        else:
+            fields = base_fields
+
         params = {
             "jql": jql,
             "maxResults": max_results,
-            "fields": f"key,created,resolutiondate,status,{config['story_points_field']}",
+            "fields": fields,
         }
 
         logger.info(f"Fetching JIRA issues with JQL: {jql}")
@@ -265,12 +272,18 @@ def jira_to_csv_format(issues: List[Dict], config: Dict) -> List[Dict]:
                     )
                     if current_date <= resolution_date <= week_end:
                         completed_items += 1
-                        # Add story points if available
-                        story_points = issue.get("fields", {}).get(
-                            config["story_points_field"]
-                        )
-                        if story_points:
-                            completed_points += story_points
+                        # Add story points if available and field is specified
+                        story_points = 0
+                        if (
+                            config.get("story_points_field")
+                            and config["story_points_field"].strip()
+                        ):
+                            story_points_value = issue.get("fields", {}).get(
+                                config["story_points_field"]
+                            )
+                            if story_points_value:
+                                story_points = story_points_value
+                        completed_points += story_points
 
                 # Check if item was created this week
                 if issue.get("fields", {}).get("created"):
@@ -279,12 +292,18 @@ def jira_to_csv_format(issues: List[Dict], config: Dict) -> List[Dict]:
                     )
                     if current_date <= created_date <= week_end:
                         created_items += 1
-                        # Add story points if available
-                        story_points = issue.get("fields", {}).get(
-                            config["story_points_field"]
-                        )
-                        if story_points:
-                            created_points += story_points
+                        # Add story points if available and field is specified
+                        story_points = 0
+                        if (
+                            config.get("story_points_field")
+                            and config["story_points_field"].strip()
+                        ):
+                            story_points_value = issue.get("fields", {}).get(
+                                config["story_points_field"]
+                            )
+                            if story_points_value:
+                                story_points = story_points_value
+                        created_points += story_points
 
             weekly_data.append(
                 {
@@ -306,11 +325,19 @@ def jira_to_csv_format(issues: List[Dict], config: Dict) -> List[Dict]:
         return []
 
 
-def sync_jira_data(jql_query: str | None = None) -> Tuple[bool, str]:
+def sync_jira_data(
+    jql_query: str | None = None, ui_config: Dict | None = None
+) -> Tuple[bool, str]:
     """Main sync function to replace CSV data with JIRA data."""
     try:
-        # Load configuration with JQL query from settings
-        config = get_jira_config(jql_query)
+        # Load configuration with JQL query from settings or use provided UI config
+        if ui_config:
+            config = ui_config.copy()
+            # Ensure jql_query parameter takes precedence if provided
+            if jql_query:
+                config["jql_query"] = jql_query
+        else:
+            config = get_jira_config(jql_query)
 
         # Validate configuration
         is_valid, message = validate_jira_config(config)
