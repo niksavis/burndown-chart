@@ -727,3 +727,129 @@ def register(app):
         except Exception as e:
             logger.error(f"Error loading JIRA data: {e}")
             raise PreventUpdate
+
+    @app.callback(
+        [
+            Output("upload-data", "contents", allow_duplicate=True),
+            Output("upload-data", "filename", allow_duplicate=True),
+            Output("jira-cache-status", "children", allow_duplicate=True),
+            Output("jira-validation-errors", "children", allow_duplicate=True),
+        ],
+        [Input("update-data-unified", "n_clicks")],
+        [
+            State("data-source-selection", "value"),
+            State("jira-jql-query", "value"),
+            State("jira-url", "value"),
+            State("jira-token", "value"),
+            State("jira-story-points-field", "value"),
+            State("jira-cache-max-size", "value"),
+        ],
+        prevent_initial_call=True,
+    )
+    def handle_unified_data_update(
+        n_clicks,
+        data_source,
+        jql_query,
+        jira_url,
+        jira_token,
+        story_points_field,
+        cache_max_size,
+    ):
+        """
+        Handle unified data update button click.
+        Routes to appropriate handler based on selected data source.
+
+        Args:
+            n_clicks (int): Number of clicks on unified update button
+            data_source (str): Selected data source ("CSV" or "JIRA")
+            jql_query (str): JQL query for JIRA data source
+            jira_url (str): JIRA instance URL
+            jira_token (str): Personal access token
+            story_points_field (str): Custom field ID for story points
+            cache_max_size (int): Maximum cache size in MB
+
+        Returns:
+            Tuple: Upload contents, filename, cache status, validation errors
+        """
+        if not n_clicks:
+            raise PreventUpdate
+
+        try:
+            if data_source == "JIRA":
+                # Handle JIRA data import
+                from data.jira_simple import sync_jira_data, get_cache_status
+                from data.persistence import load_app_settings
+
+                # Use JQL query from input or fall back to settings
+                app_settings = load_app_settings()
+                settings_jql = jql_query or app_settings.get(
+                    "jql_query", "project = JRASERVER"
+                )
+
+                # Sync with the JQL query
+                success, message = sync_jira_data(settings_jql)
+                if success:
+                    cache_status = get_cache_status()
+                    validation_errors = html.Div(
+                        [
+                            html.I(className="fas fa-check-circle me-2"),
+                            f"JIRA data imported successfully: {message}",
+                        ],
+                        className="text-success small",
+                    )
+                else:
+                    cache_status = get_cache_status()
+                    validation_errors = html.Div(
+                        [
+                            html.I(className="fas fa-exclamation-triangle me-2"),
+                            f"Failed to import JIRA data: {message}",
+                        ],
+                        className="text-danger small",
+                    )
+
+                # Clear any upload contents since we're using JIRA
+                return None, None, cache_status, validation_errors
+
+            elif data_source == "CSV":
+                # For CSV data source, we need to trigger the file upload dialog
+                # This is handled by the existing upload-data component
+                # We can't programmatically trigger a file dialog, so we show a message
+                validation_errors = html.Div(
+                    [
+                        html.I(className="fas fa-info-circle me-2"),
+                        "Please use the file upload area above to select your CSV file.",
+                    ],
+                    className="text-info small",
+                )
+                return None, None, None, validation_errors
+
+            else:
+                validation_errors = html.Div(
+                    [
+                        html.I(className="fas fa-exclamation-triangle me-2"),
+                        "Please select a data source first.",
+                    ],
+                    className="text-warning small",
+                )
+                return None, None, None, validation_errors
+
+        except ImportError:
+            logger.error("JIRA integration not available")
+            validation_errors = html.Div(
+                [
+                    html.I(className="fas fa-exclamation-triangle me-2"),
+                    "JIRA integration not available",
+                ],
+                className="text-danger small",
+            )
+            return None, None, None, validation_errors
+        except Exception as e:
+            logger.error(f"Error in unified data update: {e}")
+            validation_errors = html.Div(
+                [
+                    html.I(className="fas fa-exclamation-triangle me-2"),
+                    f"Error updating data: {str(e)}",
+                ],
+                className="text-danger small",
+            )
+            return None, None, None, validation_errors
