@@ -72,6 +72,70 @@ def _get_default_jql_query():
         return "project = JRASERVER"
 
 
+def _get_default_jira_url():
+    """
+    Get the default JIRA URL from app settings.
+
+    Returns:
+        str: JIRA URL from settings or default value
+    """
+    try:
+        from data.persistence import load_app_settings
+
+        app_settings = load_app_settings()
+        return app_settings.get("jira_url", "https://jira.atlassian.com")
+    except ImportError:
+        return "https://jira.atlassian.com"
+
+
+def _get_default_jira_token():
+    """
+    Get the default JIRA token from app settings.
+
+    Returns:
+        str: JIRA token from settings or default value
+    """
+    try:
+        from data.persistence import load_app_settings
+
+        app_settings = load_app_settings()
+        return app_settings.get("jira_token", "")
+    except ImportError:
+        return ""
+
+
+def _get_default_jira_story_points_field():
+    """
+    Get the default JIRA story points field from app settings.
+
+    Returns:
+        str: Story points field from settings or default value
+    """
+    try:
+        from data.persistence import load_app_settings
+
+        app_settings = load_app_settings()
+        return app_settings.get("jira_story_points_field", "")
+    except ImportError:
+        return ""
+
+
+def _get_default_jira_cache_max_size():
+    """
+    Get the default JIRA cache max size from app settings.
+
+    Returns:
+        int: Cache max size from settings or default value
+    """
+    try:
+        from data.persistence import load_app_settings
+
+        app_settings = load_app_settings()
+        return app_settings.get("jira_cache_max_size", 100)
+    except ImportError:
+        return 100
+
+
 #######################################################################
 # CARD COMPONENTS
 #######################################################################
@@ -961,7 +1025,7 @@ def create_input_parameters_card(
                                             id="jira-url",
                                             type="text",
                                             placeholder="https://your-jira.com",
-                                            value="https://jira.atlassian.com",
+                                            value=_get_default_jira_url(),
                                             style=create_input_style(size="md"),
                                         ),
                                     ],
@@ -1014,6 +1078,7 @@ def create_input_parameters_card(
                                             id="jira-token",
                                             type="password",
                                             placeholder="Optional for public projects",
+                                            value=_get_default_jira_token(),
                                             style=create_input_style(size="md"),
                                         ),
                                     ],
@@ -1035,7 +1100,7 @@ def create_input_parameters_card(
                                             id="jira-story-points-field",
                                             type="text",
                                             placeholder="Leave empty if no story points, or enter your JIRA field ID",
-                                            value="",
+                                            value=_get_default_jira_story_points_field(),
                                             style=create_input_style(size="md"),
                                         ),
                                     ],
@@ -1057,7 +1122,7 @@ def create_input_parameters_card(
                                             id="jira-cache-max-size",
                                             type="number",
                                             placeholder="100",
-                                            value=100,
+                                            value=_get_default_jira_cache_max_size(),
                                             min=1,
                                             max=1000,
                                             style=create_input_style(size="md"),

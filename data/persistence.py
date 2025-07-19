@@ -63,6 +63,10 @@ def save_app_settings(
     milestone=None,
     show_points=None,
     jql_query=None,
+    jira_url=None,
+    jira_token=None,
+    jira_story_points_field=None,
+    jira_cache_max_size=None,
 ):
     """
     Save app-level settings to JSON file.
@@ -75,6 +79,10 @@ def save_app_settings(
         milestone: Milestone date string
         show_points: Whether to show points tracking and forecasting
         jql_query: JQL query for JIRA integration
+        jira_url: JIRA URL for API calls
+        jira_token: Personal access token for JIRA API
+        jira_story_points_field: Custom field ID for story points
+        jira_cache_max_size: Maximum cache size in MB
     """
     settings = {
         "pert_factor": pert_factor,
@@ -86,6 +94,14 @@ def save_app_settings(
         "milestone": milestone,
         "show_points": show_points if show_points is not None else False,
         "jql_query": jql_query if jql_query is not None else "project = JRASERVER",
+        "jira_url": jira_url if jira_url is not None else "https://jira.atlassian.com",
+        "jira_token": jira_token if jira_token is not None else "",
+        "jira_story_points_field": jira_story_points_field
+        if jira_story_points_field is not None
+        else "",
+        "jira_cache_max_size": jira_cache_max_size
+        if jira_cache_max_size is not None
+        else 100,
     }
 
     try:
@@ -119,6 +135,10 @@ def load_app_settings():
         "milestone": None,
         "show_points": False,
         "jql_query": "project = JRASERVER",
+        "jira_url": "https://jira.atlassian.com",
+        "jira_token": "",
+        "jira_story_points_field": "",
+        "jira_cache_max_size": 100,
     }
 
     try:
