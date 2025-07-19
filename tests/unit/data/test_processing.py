@@ -746,9 +746,7 @@ class TestDailyForecast(unittest.TestCase):
 
         # Should have enough points to forecast until target
         self.assertEqual(len(x_vals), len(y_vals))
-        self.assertEqual(
-            len(x_vals), 32
-        )  # (40-10) items at 1 per day + final point + 1
+        self.assertEqual(len(x_vals), 31)  # (40-10) items at 1 per day + final point
 
         # First value should be the starting value
         self.assertEqual(y_vals[0], start_val)
@@ -790,7 +788,7 @@ class TestDailyForecast(unittest.TestCase):
 
         # The function should enforce a minimum rate of 0.001
         # With 30 items at 0.001 per day, it would take 30,000 days
-        # but the function caps at MAX_FORECAST_DAYS (3650)
+        # but the function caps at MAX_FORECAST_DAYS (3653)
         self.assertLess(
             len(x_vals), 5000
         )  # Should be well under the day limit with rounding
@@ -808,10 +806,10 @@ class TestDailyForecast(unittest.TestCase):
 
         x_vals, y_vals = daily_forecast(start_val, daily_rate, start_date)
 
-        # The function should cap at MAX_FORECAST_DAYS (3650)
+        # The function should cap at MAX_FORECAST_DAYS (3653 - 10 years accounting for leap years)
         # It might use fewer points for efficiency
         max_days = (x_vals[-1] - x_vals[0]).days
-        self.assertLessEqual(max_days, 3650)
+        self.assertLessEqual(max_days, 3653)
 
         # Test the same for burnup
         target_val = 1000
@@ -821,7 +819,7 @@ class TestDailyForecast(unittest.TestCase):
         )
 
         max_days = (x_vals[-1] - x_vals[0]).days
-        self.assertLessEqual(max_days, 3650)
+        self.assertLessEqual(max_days, 3653)
 
 
 class TestCalculatePerformanceTrend(unittest.TestCase):

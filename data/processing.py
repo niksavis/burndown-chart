@@ -435,10 +435,10 @@ def daily_forecast(
         if len(x_vals) > MAX_POINTS:
             break
 
-    # Only add final zero point if we haven't exceeded the 10-year cap
-    # This prevents visualization of completion dates beyond practical planning horizon
-    if val > 0 and current_date <= absolute_max_date:
-        # Add final zero point at the calculated end date, but respect the cap
+    # Add final zero point if we completed the forecast naturally (didn't hit limits)
+    # and haven't exceeded the 10-year cap
+    if val <= 0 and current_date <= absolute_max_date and len(x_vals) <= MAX_POINTS:
+        # Add final zero point at the calculated completion date
         final_date = start_date + timedelta(days=min(days_needed, MAX_FORECAST_DAYS))
         if final_date <= absolute_max_date:
             x_vals.append(final_date)

@@ -12,6 +12,7 @@ It provides functions for managing settings and statistics using JSON files.
 import json
 import os
 from datetime import datetime, timedelta
+from typing import Dict, Any, Optional, Tuple
 
 # Third-party library imports
 import pandas as pd
@@ -422,8 +423,6 @@ def save_statistics(data):
     Args:
         data: List of dictionaries containing statistics data
     """
-    from data.migration import load_unified_project_data, save_unified_project_data
-
     try:
         df = pd.DataFrame(data)
 
@@ -679,9 +678,29 @@ def load_unified_project_data():
     Returns:
         Dict: Unified project data structure
     """
-    from data.migration import load_unified_project_data
+    from data.schema import get_default_unified_data, validate_project_data_structure
 
-    return load_unified_project_data()
+    try:
+        if not os.path.exists(PROJECT_DATA_FILE):
+            return get_default_unified_data()
+
+        with open(PROJECT_DATA_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        # Validate and migrate if necessary
+        if not data.get("metadata", {}).get("version"):
+            data = _migrate_legacy_project_data(data)
+
+        # Validate structure
+        if not validate_project_data_structure(data):
+            logger.warning("⚠️ Invalid unified data structure, using defaults")
+            return get_default_unified_data()
+
+        return data
+
+    except Exception as e:
+        logger.error(f"❌ Error loading unified project data: {e}")
+        return get_default_unified_data()
 
 
 def save_unified_project_data(data):
@@ -691,9 +710,51 @@ def save_unified_project_data(data):
     Args:
         data: Unified project data dictionary
     """
-    from data.migration import save_unified_project_data
+    try:
+        with open(PROJECT_DATA_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+        logger.info("✅ Saved unified project data")
+    except Exception as e:
+        logger.error(f"❌ Error saving unified project data: {e}")
+        raise
 
-    save_unified_project_data(data)
+
+def _migrate_legacy_project_data(data):
+    """
+    Migrate legacy project data format to v2.0.
+
+    Args:
+        data: Legacy project data structure
+
+    Returns:
+        Dict: Migrated v2.0 data structure
+    """
+    from data.schema import get_default_unified_data
+
+    unified_data = get_default_unified_data()
+
+    # Migrate existing project scope data if present
+    if isinstance(data, dict):
+        unified_data["project_scope"].update(
+            {
+                "total_items": data.get("total_items", 0),
+                "total_points": data.get("total_points", 0),
+                "estimated_items": data.get("estimated_items", 0),
+                "estimated_points": data.get("estimated_points", 0),
+                "remaining_items": data.get("total_items", 0),
+                "remaining_points": data.get("total_points", 0),
+            }
+        )
+
+        # Preserve any existing metadata
+        if "metadata" in data:
+            unified_data["metadata"].update(data["metadata"])
+
+    unified_data["metadata"]["source"] = "legacy_migration"
+    unified_data["metadata"]["version"] = "2.0"
+    unified_data["metadata"]["last_updated"] = datetime.now().isoformat()
+
+    return unified_data
 
 
 def get_project_statistics():
@@ -850,9 +911,6 @@ def save_jira_data_unified(statistics_data, project_scope_data):
         statistics_data: List of dictionaries containing statistics data
         project_scope_data: Dictionary containing project scope data
     """
-    from data.migration import load_unified_project_data, save_unified_project_data
-    from datetime import datetime
-
     try:
         # Load current unified data
         unified_data = load_unified_project_data()
@@ -883,3 +941,77 @@ def save_jira_data_unified(statistics_data, project_scope_data):
     except Exception as e:
         logger.error(f"❌ Error saving JIRA data to unified structure: {e}")
         return False
+
+
+def migrate_csv_to_json() -> Dict[str, Any]:
+    """
+    Migrate existing CSV data to unified JSON format.
+
+    Returns:
+        Dict: The migrated unified data structure
+    """
+    # Load existing data
+    csv_data, is_sample = load_statistics()
+    project_data = load_project_data()
+
+    # Convert CSV to statistics array
+    statistics = []
+    if csv_data and isinstance(csv_data, list):
+        for row in csv_data:
+            statistics.append(
+                {
+                    "date": str(row.get("date", "")),
+                    "completed_items": int(row.get("completed_items", 0)),
+                    "completed_points": int(row.get("completed_points", 0)),
+                    "created_items": int(row.get("created_items", 0)),
+                    "created_points": int(row.get("created_points", 0)),
+                    "velocity_items": int(
+                        row.get("completed_items", 0)
+                    ),  # Use completed as velocity
+                    "velocity_points": int(row.get("completed_points", 0)),
+                }
+            )
+
+    # Create unified structure
+    unified_data = {
+        "project_scope": {
+            "total_items": project_data.get("total_items", 0),
+            "total_points": project_data.get("total_points", 0),
+            "estimated_items": project_data.get("estimated_items", 0),
+            "estimated_points": project_data.get("estimated_points", 0),
+            "remaining_items": project_data.get("total_items", 0),  # Default to total
+            "remaining_points": project_data.get("total_points", 0),
+        },
+        "statistics": statistics,
+        "metadata": {
+            "source": "csv_import" if not is_sample else "sample_data",
+            "last_updated": datetime.now().isoformat(),
+            "version": "2.0",
+            "jira_query": "",
+            "calculation_method": "",
+        },
+    }
+
+    # Save unified data
+    save_unified_project_data(unified_data)
+
+    # Create backup of old files if not sample data
+    if not is_sample:
+        _backup_legacy_files()
+
+    return unified_data
+
+
+def _backup_legacy_files() -> None:
+    """Create backup copies of CSV and old JSON files."""
+    import shutil
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    if os.path.exists("forecast_statistics.csv"):
+        backup_name = f"backup_forecast_statistics_{timestamp}.csv"
+        shutil.copy2("forecast_statistics.csv", backup_name)
+        print(f"📁 Created backup: {backup_name}")
+
+    # Note: Don't backup project_data.json as we're updating it in place
+    # The legacy migration preserves existing data

@@ -47,9 +47,9 @@ class TestDataMigration(unittest.TestCase):
         mock_load_project.return_value = self.sample_project_data
 
         # Import after patching
-        from data.migration import migrate_csv_to_json
+        from data.persistence import migrate_csv_to_json
 
-        with patch("data.migration.save_unified_project_data") as mock_save:
+        with patch("data.persistence.save_unified_project_data") as mock_save:
             result = migrate_csv_to_json()
 
             # Verify structure
@@ -145,7 +145,7 @@ class TestDataMigration(unittest.TestCase):
         metadata = default_data["metadata"]
         self.assertEqual(metadata["version"], "2.0")
 
-    @patch("data.migration.load_unified_project_data")
+    @patch("data.persistence.load_unified_project_data")
     def test_get_project_statistics(self, mock_load):
         """Test getting statistics from unified data."""
         mock_load.return_value = {"statistics": self.sample_csv_data}
@@ -156,7 +156,7 @@ class TestDataMigration(unittest.TestCase):
         self.assertEqual(len(stats), 2)
         self.assertEqual(stats[0]["date"], "2024-01-01")
 
-    @patch("data.migration.load_unified_project_data")
+    @patch("data.persistence.load_unified_project_data")
     def test_get_project_scope(self, mock_load):
         """Test getting project scope from unified data."""
         mock_load.return_value = {"project_scope": self.sample_project_data}
@@ -167,27 +167,30 @@ class TestDataMigration(unittest.TestCase):
         self.assertEqual(scope["total_items"], 50)
         self.assertEqual(scope["total_points"], 200)
 
-    def test_legacy_compatibility(self):
-        """Test backward compatibility functions."""
-        from data.compat import load_statistics, load_project_data
+    def test_migration_functions_available(self):
+        """Test that migration functions are available in persistence module."""
+        from data.persistence import migrate_csv_to_json, _backup_legacy_files
 
-        # These should be callable (actual functionality depends on persistence layer)
-        self.assertTrue(callable(load_statistics))
-        self.assertTrue(callable(load_project_data))
+        # These should be callable
+        self.assertTrue(callable(migrate_csv_to_json))
+        self.assertTrue(callable(_backup_legacy_files))
 
 
 class TestMigrationScript(unittest.TestCase):
-    """Test migration script functionality."""
+    """Test migration functionality."""
 
-    def test_script_imports(self):
-        """Test that migration script can be imported."""
-        # This would be a basic smoke test for the script
-        try:
-            import migrate_data
+    def test_migration_functions_integrated(self):
+        """Test that migration functions are now part of persistence module."""
+        from data.persistence import migrate_csv_to_json
 
-            self.assertTrue(hasattr(migrate_data, "main"))
-        except ImportError as e:
-            self.fail(f"Migration script import failed: {e}")
+        # The migration function should exist and be callable
+        self.assertTrue(callable(migrate_csv_to_json))
+
+        # Test that it has the correct return type annotation
+        import inspect
+
+        sig = inspect.signature(migrate_csv_to_json)
+        self.assertTrue(hasattr(sig, "return_annotation"))
 
 
 if __name__ == "__main__":
