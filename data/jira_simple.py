@@ -119,11 +119,14 @@ def fetch_jira_issues(config: Dict, max_results: int = 1000) -> Tuple[bool, List
         return False, []
 
 
-def cache_jira_response(data: List[Dict], cache_file: str = JIRA_CACHE_FILE) -> bool:
-    """Save raw JIRA JSON response to cache file."""
+def cache_jira_response(
+    data: List[Dict], jql_query: str = "", cache_file: str = JIRA_CACHE_FILE
+) -> bool:
+    """Save raw JIRA JSON response to cache file with query tracking."""
     try:
         cache_data = {
             "timestamp": datetime.now().isoformat(),
+            "jql_query": jql_query,  # Track which JQL query was used
             "issues": data,
             "total_issues": len(data),
         }
@@ -131,7 +134,9 @@ def cache_jira_response(data: List[Dict], cache_file: str = JIRA_CACHE_FILE) -> 
         with open(cache_file, "w") as f:
             json.dump(cache_data, f, indent=2)
 
-        logger.info(f"Cached {len(data)} JIRA issues to {cache_file}")
+        logger.info(
+            f"Cached {len(data)} JIRA issues to {cache_file} (JQL: {jql_query})"
+        )
         return True
 
     except Exception as e:
@@ -139,8 +144,10 @@ def cache_jira_response(data: List[Dict], cache_file: str = JIRA_CACHE_FILE) -> 
         return False
 
 
-def load_jira_cache(cache_file: str = JIRA_CACHE_FILE) -> Tuple[bool, List[Dict]]:
-    """Load cached JIRA JSON response from file."""
+def load_jira_cache(
+    current_jql_query: str = "", cache_file: str = JIRA_CACHE_FILE
+) -> Tuple[bool, List[Dict]]:
+    """Load cached JIRA JSON response from file, checking if JQL query matches."""
     try:
         if not os.path.exists(cache_file):
             return False, []
@@ -148,8 +155,16 @@ def load_jira_cache(cache_file: str = JIRA_CACHE_FILE) -> Tuple[bool, List[Dict]
         with open(cache_file, "r") as f:
             cache_data = json.load(f)
 
+        # Check if the cached query matches the current query
+        cached_jql = cache_data.get("jql_query", "")
+        if cached_jql != current_jql_query:
+            logger.info(
+                f"Cache JQL query mismatch. Cached: '{cached_jql}', Current: '{current_jql_query}'. Cache invalidated."
+            )
+            return False, []
+
         issues = cache_data.get("issues", [])
-        logger.info(f"Loaded {len(issues)} JIRA issues from cache")
+        logger.info(f"Loaded {len(issues)} JIRA issues from cache (JQL: {cached_jql})")
         return True, issues
 
     except Exception as e:
@@ -348,8 +363,8 @@ def sync_jira_data(
         if not validate_cache_file(max_size_mb=config["cache_max_size_mb"]):
             return False, "Cache file validation failed"
 
-        # Try to load from cache first
-        cache_loaded, issues = load_jira_cache()
+        # Try to load from cache first, checking if JQL query matches
+        cache_loaded, issues = load_jira_cache(config["jql_query"])
 
         if not cache_loaded or not issues:
             # Fetch fresh data from JIRA
@@ -357,8 +372,8 @@ def sync_jira_data(
             if not fetch_success:
                 return False, "Failed to fetch JIRA data"
 
-            # Cache the response
-            if not cache_jira_response(issues):
+            # Cache the response with the JQL query
+            if not cache_jira_response(issues, config["jql_query"]):
                 logger.warning("Failed to cache JIRA response")
 
         # Transform to CSV format

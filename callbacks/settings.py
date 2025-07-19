@@ -277,21 +277,22 @@ def register(app):
     )
     def save_jql_query(jql_query):
         """Save JQL query changes to app settings."""
-        if jql_query:
-            # Load current app settings and update JQL query
-            from data.persistence import load_app_settings, save_app_settings
+        # Always save the JQL query, even if empty (user might want to clear it)
+        from data.persistence import load_app_settings, save_app_settings
 
-            app_settings = load_app_settings()
-            save_app_settings(
-                app_settings["pert_factor"],
-                app_settings["deadline"],
-                app_settings["data_points_count"],
-                app_settings["show_milestone"],
-                app_settings["milestone"],
-                app_settings["show_points"],
-                jql_query,
-            )
-            logger.info(f"JQL query saved: {jql_query}")
+        app_settings = load_app_settings()
+        jql_to_save = jql_query.strip() if jql_query else ""
+
+        save_app_settings(
+            app_settings["pert_factor"],
+            app_settings["deadline"],
+            app_settings["data_points_count"],
+            app_settings["show_milestone"],
+            app_settings["milestone"],
+            app_settings["show_points"],
+            jql_to_save or "project = JRASERVER",  # Use default if empty
+        )
+        logger.info(f"JQL query saved: '{jql_to_save or 'project = JRASERVER'}'")
         return ""  # Return empty for hidden status element
 
     @app.callback(
@@ -722,8 +723,14 @@ def register(app):
 
                 # Use JQL query from input or fall back to settings
                 app_settings = load_app_settings()
-                settings_jql = jql_query or app_settings.get(
-                    "jql_query", "project = JRASERVER"
+                settings_jql = (
+                    jql_query.strip()
+                    if jql_query and jql_query.strip()
+                    else app_settings.get("jql_query", "project = JRASERVER")
+                )
+
+                logger.info(
+                    f"JQL Query - Input: '{jql_query}', Settings: '{app_settings.get('jql_query', 'N/A')}', Final: '{settings_jql}'"
                 )
 
                 # Create JIRA config from UI inputs (override environment/settings)
