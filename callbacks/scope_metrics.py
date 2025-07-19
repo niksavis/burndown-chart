@@ -5,10 +5,8 @@ This module registers callbacks related to scope metrics.
 """
 
 import pandas as pd
-from dash.dependencies import Input, Output, State
+from dash.dependencies import Input, Output
 from dash import html
-
-from data.persistence import load_settings, load_statistics
 from data.scope_metrics import (
     calculate_scope_creep_rate,
     calculate_weekly_scope_growth,

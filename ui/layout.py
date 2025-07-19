@@ -20,7 +20,8 @@ from dash import dcc, html
 from configuration import __version__
 from data import (
     calculate_total_points,
-    load_settings,
+    load_app_settings,
+    load_project_data,
     load_statistics,
 )
 from ui.cards import (
@@ -46,9 +47,13 @@ def serve_layout():
     Returns:
         Dash application layout with all components
     """
-    # Load initial data
-    settings = load_settings()
+    # Load initial data using new separated functions
+    app_settings = load_app_settings()
+    project_data = load_project_data()
     statistics, is_sample_data = load_statistics()
+
+    # Merge app settings and project data for backward compatibility
+    settings = {**app_settings, **project_data}
 
     app_layout = create_app_layout(settings, statistics, is_sample_data)
     return app_layout

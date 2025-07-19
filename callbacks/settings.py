@@ -23,7 +23,8 @@ from configuration import (
     DEFAULT_TOTAL_POINTS,
     logger,
 )
-from data import calculate_total_points, save_settings
+from data import calculate_total_points
+from data.persistence import save_app_settings, save_project_data
 
 #######################################################################
 # HELPER FUNCTIONS
@@ -246,22 +247,52 @@ def register(app):
             "show_points": show_points,  # Added to settings
         }
 
-        # Save to disk
-        save_settings(
+        # Save app-level settings
+        save_app_settings(
             pert_factor,
             deadline,
-            total_items,
-            total_points,
-            estimated_items,
-            estimated_points,
             data_points_count,  # Added parameter
             show_milestone,  # Added parameter
             milestone,  # Added parameter
             show_points,  # Added parameter
+            None,  # jql_query - will be handled in JQL-specific callbacks
+        )
+
+        # Save project data separately
+        save_project_data(
+            total_items,
+            total_points,
+            estimated_items,
+            estimated_points,
+            None,  # metadata - can be added later
         )
 
         logger.info(f"Settings updated and saved: {settings}")
         return settings, int(datetime.now().timestamp() * 1000)
+
+    @app.callback(
+        Output("jira-jql-query-save-status", "children"),
+        Input("jira-jql-query", "value"),
+        prevent_initial_call=True,
+    )
+    def save_jql_query(jql_query):
+        """Save JQL query changes to app settings."""
+        if jql_query:
+            # Load current app settings and update JQL query
+            from data.persistence import load_app_settings, save_app_settings
+
+            app_settings = load_app_settings()
+            save_app_settings(
+                app_settings["pert_factor"],
+                app_settings["deadline"],
+                app_settings["data_points_count"],
+                app_settings["show_milestone"],
+                app_settings["milestone"],
+                app_settings["show_points"],
+                jql_query,
+            )
+            logger.info(f"JQL query saved: {jql_query}")
+        return ""  # Return empty for hidden status element
 
     @app.callback(
         [
@@ -494,25 +525,21 @@ def register(app):
         [
             Input("refresh-jira-cache", "n_clicks"),
             Input("jira-url", "value"),
-            Input("jira-projects", "value"),
-            Input("jira-date-from", "date"),
-            Input("jira-date-to", "date"),
+            Input("jira-jql-query", "value"),
         ],
         prevent_initial_call=True,
     )
-    def update_jira_cache_and_validation(n_clicks, url, projects, date_from, date_to):
+    def update_jira_cache_and_validation(n_clicks, url, jql_query):
         """
-        Update JIRA cache and show validation errors.
+        Update JIRA cache and show validation errors using JQL query.
 
         Args:
             n_clicks: Number of refresh button clicks
             url: JIRA URL
-            projects: JIRA projects (comma-separated)
-            date_from: Start date for JIRA query
-            date_to: End date for JIRA query
+            jql_query: JQL query for filtering issues
 
         Returns:
-            Tuple: (cache_status, validation_errors)
+            Tuple containing cache status and validation errors
         """
         ctx = dash.callback_context
 
@@ -538,80 +565,33 @@ def register(app):
                 and ctx.triggered[0]["prop_id"] == "refresh-jira-cache.n_clicks"
             ):
                 try:
-                    # When refreshing, use environment variables + any UI overrides
-                    config = get_jira_config()
+                    # Load JQL query from settings or use provided value
+                    from data.persistence import load_app_settings
 
-                    # Apply UI overrides only if they have non-empty values
-                    if date_from and date_from.strip():
-                        config["date_from"] = date_from
-                    if date_to and date_to.strip():
-                        config["date_to"] = date_to
-                    if url and url.strip():
-                        config["url"] = url
-                    if projects and projects.strip():
-                        config["projects"] = [
-                            p.strip() for p in projects.split(",") if p.strip()
-                        ]
+                    app_settings = load_app_settings()
+                    settings_jql = jql_query or app_settings.get(
+                        "jql_query", "project = JRASERVER"
+                    )
 
-                    # Validate and sync with the merged config
-                    is_valid, error_message = validate_jira_config(config)
-                    if not is_valid:
+                    # Sync with the JQL query
+                    success, message = sync_jira_data(settings_jql)
+                    if success:
+                        cache_status = get_cache_status()
+                        validation_errors = html.Div(
+                            [
+                                html.I(className="fas fa-check-circle me-2"),
+                                f"Cache refreshed successfully: {message}",
+                            ],
+                            className="text-success small",
+                        )
+                    else:
                         validation_errors = html.Div(
                             [
                                 html.I(className="fas fa-exclamation-triangle me-2"),
-                                f"Configuration error: {error_message}",
+                                f"Cache refresh failed: {message}",
                             ],
                             className="text-danger small",
                         )
-                    else:
-                        # Temporarily set the config for this sync
-                        import os
-
-                        original_env = {}
-                        try:
-                            # Backup original env vars
-                            for key in [
-                                "JIRA_URL",
-                                "JIRA_PROJECTS",
-                                "JIRA_DATE_FROM",
-                                "JIRA_DATE_TO",
-                            ]:
-                                original_env[key] = os.environ.get(key)
-
-                            # Set temporary env vars
-                            os.environ["JIRA_URL"] = config["url"]
-                            os.environ["JIRA_PROJECTS"] = ",".join(config["projects"])
-                            os.environ["JIRA_DATE_FROM"] = config["date_from"]
-                            os.environ["JIRA_DATE_TO"] = config["date_to"]
-
-                            # Now sync
-                            success, message = sync_jira_data()
-                            if success:
-                                cache_status = get_cache_status()
-                                validation_errors = html.Div(
-                                    [
-                                        html.I(className="fas fa-check-circle me-2"),
-                                        f"Cache refreshed successfully: {message}",
-                                    ],
-                                    className="text-success small",
-                                )
-                            else:
-                                validation_errors = html.Div(
-                                    [
-                                        html.I(
-                                            className="fas fa-exclamation-triangle me-2"
-                                        ),
-                                        f"Cache refresh failed: {message}",
-                                    ],
-                                    className="text-danger small",
-                                )
-                        finally:
-                            # Restore original env vars
-                            for key, value in original_env.items():
-                                if value is not None:
-                                    os.environ[key] = value
-                                elif key in os.environ:
-                                    del os.environ[key]
                 except Exception as e:
                     validation_errors = html.Div(
                         [
@@ -621,22 +601,20 @@ def register(app):
                         className="text-danger small",
                     )
             else:
-                # Only validate configuration if any inputs are provided AND not refreshing
-                if url or projects or date_from or date_to:
-                    # Start with the base config from environment variables
-                    config = get_jira_config()
+                # Only validate configuration if inputs are provided AND not refreshing
+                if url or jql_query:
+                    # Get config with JQL query from UI or settings
+                    from data.persistence import load_app_settings
 
-                    # Override with UI inputs if provided (only non-empty values)
+                    app_settings = load_app_settings()
+                    settings_jql = jql_query or app_settings.get(
+                        "jql_query", "project = JRASERVER"
+                    )
+                    config = get_jira_config(settings_jql)
+
+                    # Override URL if provided in UI
                     if url:
                         config["url"] = url
-                    if projects:
-                        config["projects"] = [
-                            p.strip() for p in projects.split(",") if p.strip()
-                        ]
-                    if date_from:
-                        config["date_from"] = date_from
-                    if date_to:
-                        config["date_to"] = date_to
 
                     # Validate configuration
                     is_valid, error_message = validate_jira_config(config)

@@ -56,6 +56,22 @@ def _get_default_data_source():
         return "CSV"
 
 
+def _get_default_jql_query():
+    """
+    Get the default JQL query from app settings.
+
+    Returns:
+        str: JQL query from settings or default value
+    """
+    try:
+        from data.persistence import load_app_settings
+
+        app_settings = load_app_settings()
+        return app_settings.get("jql_query", "project = JRASERVER")
+    except ImportError:
+        return "project = JRASERVER"
+
+
 #######################################################################
 # CARD COMPONENTS
 #######################################################################
@@ -856,6 +872,71 @@ def create_input_parameters_card(
                         ),
                     ],
                 ),
+            ],
+            className="mb-4 p-3 bg-light rounded-3",
+        ),
+        # Data Import Section
+        html.Div(
+            [
+                html.H5(
+                    [
+                        html.I(
+                            className="fas fa-upload me-2",
+                            style={"color": COLOR_PALETTE["items"]},
+                        ),
+                        "Data Import Configuration",
+                    ],
+                    className="mb-3 border-bottom pb-2 d-flex align-items-center",
+                ),
+                # CSV Upload Container (hidden by default when data source is JIRA)
+                html.Div(
+                    id="csv-upload-container",
+                    style={
+                        "display": "none"
+                        if _get_default_data_source() == "JIRA"
+                        else "block"
+                    },
+                    children=[
+                        dbc.Row(
+                            [
+                                dbc.Col(
+                                    [
+                                        html.Label(
+                                            "Upload CSV File:",
+                                            className="fw-medium",
+                                        ),
+                                        dcc.Upload(
+                                            id="upload-data",
+                                            children=html.Div(
+                                                [
+                                                    html.I(
+                                                        className="fas fa-cloud-upload-alt fa-2x mb-2"
+                                                    ),
+                                                    html.Br(),
+                                                    "Drag and Drop or Click to Select",
+                                                ],
+                                                className="text-center p-3 border rounded bg-white",
+                                            ),
+                                            style={
+                                                "width": "100%",
+                                                "height": "100px",
+                                                "lineHeight": "100px",
+                                                "borderWidth": "1px",
+                                                "borderStyle": "dashed",
+                                                "borderRadius": "5px",
+                                                "textAlign": "center",
+                                                "margin": "10px",
+                                            },
+                                            multiple=False,
+                                        ),
+                                    ],
+                                    width=12,
+                                    className="mb-3",
+                                ),
+                            ],
+                        ),
+                    ],
+                ),
                 # JIRA Configuration Container (hidden by default when data source is CSV)
                 html.Div(
                     id="jira-config-container",
@@ -888,19 +969,27 @@ def create_input_parameters_card(
                                 dbc.Col(
                                     [
                                         html.Label(
-                                            "Projects (comma-separated):",
+                                            "JQL Query:",
                                             className="fw-medium",
                                         ),
-                                        dbc.Input(
-                                            id="jira-projects",
-                                            type="text",
-                                            placeholder="PROJ1,PROJ2,PROJ3",
-                                            value="JRASERVER",
+                                        dbc.Textarea(
+                                            id="jira-jql-query",
+                                            placeholder="project = MYPROJECT AND created >= startOfYear()",
+                                            value=_get_default_jql_query(),
+                                            rows=3,
                                             style=create_input_style(size="md"),
+                                        ),
+                                        html.Small(
+                                            "Use JQL syntax to filter issues. Supports ScriptRunner functions.",
+                                            className="text-muted",
+                                        ),
+                                        # Hidden element for JQL query save status callback
+                                        html.Div(
+                                            id="jira-jql-query-save-status",
+                                            style={"display": "none"},
                                         ),
                                     ],
                                     width=12,
-                                    md=6,
                                     className="mb-3",
                                 ),
                             ],
@@ -927,7 +1016,7 @@ def create_input_parameters_card(
                                 dbc.Col(
                                     [
                                         html.Label(
-                                            "Story Points Field:",
+                                            "Points Field:",
                                             className="fw-medium",
                                         ),
                                         dbc.Input(
@@ -935,44 +1024,6 @@ def create_input_parameters_card(
                                             type="text",
                                             placeholder="customfield_10002",
                                             value="customfield_10002",
-                                            style=create_input_style(size="md"),
-                                        ),
-                                    ],
-                                    width=12,
-                                    md=6,
-                                    className="mb-3",
-                                ),
-                            ],
-                        ),
-                        dbc.Row(
-                            [
-                                dbc.Col(
-                                    [
-                                        html.Label(
-                                            "Date From:",
-                                            className="fw-medium",
-                                        ),
-                                        dcc.DatePickerSingle(
-                                            id="jira-date-from",
-                                            date=(
-                                                datetime.now() - timedelta(days=365)
-                                            ).strftime("%Y-%m-%d"),
-                                            style=create_input_style(size="md"),
-                                        ),
-                                    ],
-                                    width=12,
-                                    md=6,
-                                    className="mb-3",
-                                ),
-                                dbc.Col(
-                                    [
-                                        html.Label(
-                                            "Date To:",
-                                            className="fw-medium",
-                                        ),
-                                        dcc.DatePickerSingle(
-                                            id="jira-date-to",
-                                            date=datetime.now().strftime("%Y-%m-%d"),
                                             style=create_input_style(size="md"),
                                         ),
                                     ],
@@ -1007,25 +1058,32 @@ def create_input_parameters_card(
                                 dbc.Col(
                                     [
                                         html.Label(
-                                            "Cache Actions:",
+                                            "Data Import Actions:",
                                             className="fw-medium",
                                         ),
                                         html.Div(
                                             [
                                                 create_button(
-                                                    text="Refresh Cache",
-                                                    id="refresh-jira-cache",
+                                                    text="Update Data",
+                                                    id="update-data-unified",
                                                     variant="primary",
-                                                    icon_class="fas fa-sync",
-                                                    size="sm",
+                                                    icon_class="fas fa-sync-alt",
+                                                    size="lg",
+                                                    style={
+                                                        "width": "100%",
+                                                        "font-weight": "bold",
+                                                    },
+                                                ),
+                                                html.Small(
+                                                    "Import data from selected source and update charts",
+                                                    className="text-muted mt-1 d-block text-center",
                                                 ),
                                             ],
-                                            className="d-flex align-items-end",
+                                            className="d-flex flex-column align-items-center",
                                         ),
                                     ],
                                     width=12,
-                                    md=6,
-                                    className="mb-3",
+                                    className="mb-3 text-center",
                                 ),
                             ],
                         ),
@@ -1049,87 +1107,11 @@ def create_input_parameters_card(
                         ),
                     ],
                 ),
-            ],
-            className="mb-4 p-3 bg-light rounded-3",
-        ),
-        # Data Import Section
-        html.Div(
-            [
-                html.H5(
-                    [
-                        html.I(
-                            className="fas fa-file-import me-2",
-                            style={"color": COLOR_PALETTE["optimistic"]},
-                        ),
-                        "Data Import",
-                    ],
-                    className="mb-3 border-bottom pb-2 d-flex align-items-center",
-                ),
-                # CSV Upload Container (visible by default when data source is CSV)
-                html.Div(
-                    id="csv-upload-container",
-                    style={
-                        "display": "block"
-                        if _get_default_data_source() == "CSV"
-                        else "none"
-                    },
-                    children=dbc.Row(
-                        [
-                            dbc.Col(
-                                [
-                                    html.Label(
-                                        [
-                                            "Upload Statistics CSV:",
-                                            create_info_tooltip(
-                                                "csv-upload",
-                                                HELP_TEXTS["csv_format"],
-                                            ),
-                                        ],
-                                        className="fw-medium mb-2",
-                                    ),
-                                    dcc.Upload(
-                                        id="upload-data",
-                                        children=html.Div(
-                                            [
-                                                html.I(
-                                                    className="fas fa-file-upload me-2"
-                                                ),
-                                                "Drag and Drop or ",
-                                                html.A(
-                                                    "Select CSV File",
-                                                    className="text-primary",
-                                                ),
-                                            ],
-                                            className="d-flex align-items-center justify-content-center",
-                                        ),
-                                        style={
-                                            "width": "100%",
-                                            "height": "60px",
-                                            "lineHeight": "60px",
-                                            "borderWidth": "1px",
-                                            "borderStyle": "dashed",
-                                            "borderRadius": "0.25rem",
-                                            "textAlign": "center",
-                                            "backgroundColor": NEUTRAL_COLORS[
-                                                "gray-100"
-                                            ],
-                                            "transition": "border-color 0.15s ease-in-out, background-color 0.15s ease-in-out",
-                                            "borderColor": COLOR_PALETTE["items"],
-                                        },
-                                        multiple=False,
-                                    ),
-                                ],
-                                width=12,
-                            ),
-                        ],
-                    ),
-                ),  # Close the csv-upload-container div
-                # Hidden store component for JIRA data loading state
+                # Hidden store components for JIRA data loading state
                 dcc.Store(id="jira-data-loader"),
-                # Hidden store component for JIRA data reload trigger
                 dcc.Store(id="jira-data-reload-trigger"),
             ],
-            className="p-3 bg-light rounded-3",
+            className="mb-4 p-3 bg-light rounded-3",
         ),
     ]
 

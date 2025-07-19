@@ -30,29 +30,32 @@ DEFAULT_CACHE_MAX_SIZE_MB = 100
 #######################################################################
 
 
-def get_jira_config() -> Dict:
-    """Load JIRA configuration from environment variables."""
+def get_jira_config(settings_jql_query: str | None = None) -> Dict:
+    """
+    Load JIRA configuration with priority hierarchy: UI settings → Environment → Default.
+
+    Args:
+        settings_jql_query: JQL query from UI settings (highest priority)
+
+    Returns:
+        Dictionary containing JIRA configuration
+    """
+    # Configuration hierarchy: UI settings → Environment → Default
+    jql_query = (
+        settings_jql_query  # UI settings (highest priority)
+        or os.getenv("JIRA_DEFAULT_JQL", "")  # Environment variable
+        or "project = JRASERVER"  # Default fallback
+    )
+
     config = {
         "url": os.getenv("JIRA_URL", ""),
-        "projects": os.getenv("JIRA_PROJECTS", "").split(",")
-        if os.getenv("JIRA_PROJECTS")
-        else [],
+        "jql_query": jql_query,
         "token": os.getenv("JIRA_TOKEN", ""),
         "story_points_field": os.getenv("JIRA_STORY_POINTS_FIELD", "customfield_10002"),
-        "date_from": os.getenv("JIRA_DATE_FROM", ""),
-        "date_to": os.getenv("JIRA_DATE_TO", ""),
         "cache_max_size_mb": int(
             os.getenv("JIRA_CACHE_MAX_SIZE_MB", DEFAULT_CACHE_MAX_SIZE_MB)
         ),
     }
-
-    # Set default date range if not specified (1 year ago to today)
-    if not config["date_from"]:
-        config["date_from"] = (datetime.now() - timedelta(days=365)).strftime(
-            "%Y-%m-%d"
-        )
-    if not config["date_to"]:
-        config["date_to"] = datetime.now().strftime("%Y-%m-%d")
 
     return config
 
@@ -62,27 +65,13 @@ def validate_jira_config(config: Dict) -> Tuple[bool, str]:
     if not config["url"]:
         return False, "JIRA_URL is required"
 
-    if not config["projects"]:
-        return False, "JIRA_PROJECTS is required"
+    if not config["jql_query"]:
+        return False, "JQL query is required"
 
-    # Clean up project names
-    config["projects"] = [p.strip() for p in config["projects"] if p.strip()]
-
-    # Validate date range
-    try:
-        date_from = datetime.strptime(config["date_from"], "%Y-%m-%d")
-        date_to = datetime.strptime(config["date_to"], "%Y-%m-%d")
-
-        if date_from >= date_to:
-            return False, "Date from must be before date to"
-
-        # Check 3-year limit
-        max_date_from = datetime.now() - timedelta(days=365 * 3)
-        if date_from < max_date_from:
-            return False, "Date range cannot exceed 3 years in the past"
-
-    except ValueError as e:
-        return False, f"Invalid date format: {e}"
+    # Basic JQL validation (optional - JQL is complex, so we do minimal validation)
+    jql_query = config["jql_query"].strip()
+    if len(jql_query) < 5:  # Minimum reasonable JQL length
+        return False, "JQL query is too short"
 
     return True, "Configuration valid"
 
@@ -90,9 +79,8 @@ def validate_jira_config(config: Dict) -> Tuple[bool, str]:
 def fetch_jira_issues(config: Dict, max_results: int = 1000) -> Tuple[bool, List[Dict]]:
     """Execute JQL query and return issues."""
     try:
-        # Build JQL query for all projects and date range
-        projects_jql = ",".join([f'"{p}"' for p in config["projects"]])
-        jql = f'project in ({projects_jql}) AND (created >= "{config["date_from"]}" OR resolutiondate >= "{config["date_from"]}")'
+        # Use the JQL query directly from configuration
+        jql = config["jql_query"]
 
         # API endpoint
         url = f"{config['url']}/rest/api/2/search"
@@ -227,9 +215,34 @@ def get_cache_status(cache_file: str = JIRA_CACHE_FILE) -> str:
 def jira_to_csv_format(issues: List[Dict], config: Dict) -> List[Dict]:
     """Transform JIRA issues to CSV statistics format."""
     try:
-        # Generate weekly date ranges
-        date_from = datetime.strptime(config["date_from"], "%Y-%m-%d")
-        date_to = datetime.strptime(config["date_to"], "%Y-%m-%d")
+        if not issues:
+            return []
+
+        # Determine date range from actual issues data
+        all_dates = []
+        for issue in issues:
+            if issue.get("fields", {}).get("created"):
+                created_date = datetime.strptime(
+                    issue["fields"]["created"][:10], "%Y-%m-%d"
+                )
+                all_dates.append(created_date)
+            if issue.get("fields", {}).get("resolutiondate"):
+                resolution_date = datetime.strptime(
+                    issue["fields"]["resolutiondate"][:10], "%Y-%m-%d"
+                )
+                all_dates.append(resolution_date)
+
+        if not all_dates:
+            logger.warning("No valid dates found in JIRA issues")
+            return []
+
+        # Use actual data range, extending to full weeks
+        date_from = min(all_dates)
+        date_to = max(all_dates)
+
+        # Extend range to ensure we capture all activity
+        date_from = date_from - timedelta(days=date_from.weekday())  # Start of week
+        date_to = date_to + timedelta(days=6 - date_to.weekday())  # End of week
 
         weekly_data = []
         current_date = date_from
@@ -293,11 +306,11 @@ def jira_to_csv_format(issues: List[Dict], config: Dict) -> List[Dict]:
         return []
 
 
-def sync_jira_data() -> Tuple[bool, str]:
+def sync_jira_data(jql_query: str | None = None) -> Tuple[bool, str]:
     """Main sync function to replace CSV data with JIRA data."""
     try:
-        # Load configuration
-        config = get_jira_config()
+        # Load configuration with JQL query from settings
+        config = get_jira_config(jql_query)
 
         # Validate configuration
         is_valid, message = validate_jira_config(config)

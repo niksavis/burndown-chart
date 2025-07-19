@@ -36,7 +36,15 @@ DEFAULT_ESTIMATED_POINTS = (
 DEFAULT_DATA_POINTS_COUNT = 2 * DEFAULT_PERT_FACTOR  # Default to minimum valid value
 
 # File paths for data persistence
-SETTINGS_FILE = "forecast_settings.json"
+SETTINGS_FILE = (
+    "forecast_settings.json"  # Legacy settings file for backward compatibility
+)
+APP_SETTINGS_FILE = (
+    "app_settings.json"  # New app-level settings (PERT, deadline, toggles)
+)
+PROJECT_DATA_FILE = (
+    "project_data.json"  # New project data (statistics, scope, metadata)
+)
 STATISTICS_FILE = "forecast_statistics.csv"
 
 # Sample data for initialization

@@ -1,0 +1,9 @@
+{
+  "pert_factor": 3,
+  "deadline": "2025-08-01",
+  "data_points_count": 6,
+  "show_milestone": false,
+  "milestone": null,
+  "show_points": true,
+  "jql_query": "project = JRASERVER"
+}

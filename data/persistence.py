@@ -18,6 +18,7 @@ import pandas as pd
 
 # Application imports
 from configuration import (
+    APP_SETTINGS_FILE,
     DEFAULT_DATA_POINTS_COUNT,
     DEFAULT_DEADLINE,
     DEFAULT_ESTIMATED_ITEMS,
@@ -25,6 +26,7 @@ from configuration import (
     DEFAULT_PERT_FACTOR,
     DEFAULT_TOTAL_ITEMS,
     DEFAULT_TOTAL_POINTS,
+    PROJECT_DATA_FILE,
     SETTINGS_FILE,
     STATISTICS_FILE,
     logger,
@@ -46,9 +48,240 @@ def should_sync_jira():
 
     # Check if JIRA is enabled via environment variables
     jira_url = os.getenv("JIRA_URL", "")
-    jira_projects = os.getenv("JIRA_PROJECTS", "")
+    jira_default_jql = os.getenv("JIRA_DEFAULT_JQL", "")
 
-    return bool(jira_url and jira_projects)
+    return bool(
+        jira_url and (jira_default_jql or True)
+    )  # Always true if URL exists, JQL has default
+
+
+def save_app_settings(
+    pert_factor,
+    deadline,
+    data_points_count=None,
+    show_milestone=None,
+    milestone=None,
+    show_points=None,
+    jql_query=None,
+):
+    """
+    Save app-level settings to JSON file.
+
+    Args:
+        pert_factor: PERT factor value
+        deadline: Deadline date string
+        data_points_count: Number of data points to use for calculations
+        show_milestone: Whether to show milestone on charts
+        milestone: Milestone date string
+        show_points: Whether to show points tracking and forecasting
+        jql_query: JQL query for JIRA integration
+    """
+    settings = {
+        "pert_factor": pert_factor,
+        "deadline": deadline,
+        "data_points_count": data_points_count
+        if data_points_count is not None
+        else max(DEFAULT_DATA_POINTS_COUNT, pert_factor * 2),
+        "show_milestone": show_milestone if show_milestone is not None else False,
+        "milestone": milestone,
+        "show_points": show_points if show_points is not None else False,
+        "jql_query": jql_query if jql_query is not None else "project = JRASERVER",
+    }
+
+    try:
+        # Write to a temporary file first
+        temp_file = f"{APP_SETTINGS_FILE}.tmp"
+        with open(temp_file, "w") as f:
+            json.dump(settings, f, indent=2)
+
+        # Rename to final file (atomic operation)
+        if os.path.exists(APP_SETTINGS_FILE):
+            os.remove(APP_SETTINGS_FILE)
+        os.rename(temp_file, APP_SETTINGS_FILE)
+
+        logger.info(f"App settings saved to {APP_SETTINGS_FILE}")
+    except Exception as e:
+        logger.error(f"Error saving app settings: {e}")
+
+
+def load_app_settings():
+    """
+    Load app-level settings from JSON file with automatic migration from legacy format.
+
+    Returns:
+        Dictionary containing app settings or default values if file not found
+    """
+    default_settings = {
+        "pert_factor": DEFAULT_PERT_FACTOR,
+        "deadline": DEFAULT_DEADLINE,
+        "data_points_count": DEFAULT_DATA_POINTS_COUNT,
+        "show_milestone": False,
+        "milestone": None,
+        "show_points": False,
+        "jql_query": "project = JRASERVER",
+    }
+
+    try:
+        # Check if new app_settings.json exists
+        if os.path.exists(APP_SETTINGS_FILE):
+            with open(APP_SETTINGS_FILE, "r") as f:
+                settings = json.load(f)
+            logger.info(f"App settings loaded from {APP_SETTINGS_FILE}")
+
+            # Add default values for new fields if they don't exist
+            for key, default_value in default_settings.items():
+                if key not in settings:
+                    settings[key] = default_value
+
+            return settings
+
+        # Check if legacy forecast_settings.json exists and migrate
+        elif os.path.exists(SETTINGS_FILE):
+            logger.info(
+                f"Migrating legacy settings from {SETTINGS_FILE} to new file structure"
+            )
+            with open(SETTINGS_FILE, "r") as f:
+                legacy_settings = json.load(f)
+
+            # Extract app-level settings from legacy format
+            migrated_settings = {
+                "pert_factor": legacy_settings.get("pert_factor", DEFAULT_PERT_FACTOR),
+                "deadline": legacy_settings.get("deadline", DEFAULT_DEADLINE),
+                "data_points_count": legacy_settings.get(
+                    "data_points_count", DEFAULT_DATA_POINTS_COUNT
+                ),
+                "show_milestone": legacy_settings.get("show_milestone", False),
+                "milestone": legacy_settings.get("milestone", None),
+                "show_points": legacy_settings.get("show_points", True),
+                "jql_query": "project = JRASERVER",  # Default JQL for migration
+            }
+
+            # Save migrated app settings
+            save_app_settings(
+                migrated_settings["pert_factor"],
+                migrated_settings["deadline"],
+                migrated_settings["data_points_count"],
+                migrated_settings["show_milestone"],
+                migrated_settings["milestone"],
+                migrated_settings["show_points"],
+                migrated_settings["jql_query"],
+            )
+
+            # Extract project data from legacy format and save separately
+            project_data = {
+                "total_items": legacy_settings.get("total_items", DEFAULT_TOTAL_ITEMS),
+                "total_points": legacy_settings.get(
+                    "total_points", DEFAULT_TOTAL_POINTS
+                ),
+                "estimated_items": legacy_settings.get(
+                    "estimated_items", DEFAULT_ESTIMATED_ITEMS
+                ),
+                "estimated_points": legacy_settings.get(
+                    "estimated_points", DEFAULT_ESTIMATED_POINTS
+                ),
+            }
+
+            save_project_data(
+                project_data["total_items"],
+                project_data["total_points"],
+                project_data["estimated_items"],
+                project_data["estimated_points"],
+                {
+                    "migrated_from": SETTINGS_FILE,
+                    "migration_date": datetime.now().isoformat(),
+                },
+            )
+
+            logger.info("Legacy settings migration completed successfully")
+            return migrated_settings
+
+        else:
+            logger.info("No existing settings files found, using defaults")
+            return default_settings
+
+    except Exception as e:
+        logger.error(f"Error loading app settings: {e}")
+        return default_settings
+
+
+def save_project_data(
+    total_items,
+    total_points,
+    estimated_items=None,
+    estimated_points=None,
+    metadata=None,
+):
+    """
+    Save project-specific data to JSON file.
+
+    Args:
+        total_items: Total number of items
+        total_points: Total number of points
+        estimated_items: Number of items that have been estimated
+        estimated_points: Number of points for the estimated items
+        metadata: Additional project metadata (e.g., JIRA sync info)
+    """
+    project_data = {
+        "total_items": total_items,
+        "total_points": total_points,
+        "estimated_items": estimated_items
+        if estimated_items is not None
+        else DEFAULT_ESTIMATED_ITEMS,
+        "estimated_points": estimated_points
+        if estimated_points is not None
+        else DEFAULT_ESTIMATED_POINTS,
+        "metadata": metadata if metadata is not None else {},
+    }
+
+    try:
+        # Write to a temporary file first
+        temp_file = f"{PROJECT_DATA_FILE}.tmp"
+        with open(temp_file, "w") as f:
+            json.dump(project_data, f, indent=2)
+
+        # Rename to final file (atomic operation)
+        if os.path.exists(PROJECT_DATA_FILE):
+            os.remove(PROJECT_DATA_FILE)
+        os.rename(temp_file, PROJECT_DATA_FILE)
+
+        logger.info(f"Project data saved to {PROJECT_DATA_FILE}")
+    except Exception as e:
+        logger.error(f"Error saving project data: {e}")
+
+
+def load_project_data():
+    """
+    Load project-specific data from JSON file.
+
+    Returns:
+        Dictionary containing project data or default values if file not found
+    """
+    default_data = {
+        "total_items": DEFAULT_TOTAL_ITEMS,
+        "total_points": DEFAULT_TOTAL_POINTS,
+        "estimated_items": DEFAULT_ESTIMATED_ITEMS,
+        "estimated_points": DEFAULT_ESTIMATED_POINTS,
+        "metadata": {},
+    }
+
+    try:
+        if os.path.exists(PROJECT_DATA_FILE):
+            with open(PROJECT_DATA_FILE, "r") as f:
+                project_data = json.load(f)
+            logger.info(f"Project data loaded from {PROJECT_DATA_FILE}")
+
+            # Add default values for new fields if they don't exist
+            for key, default_value in default_data.items():
+                if key not in project_data:
+                    project_data[key] = default_value
+
+            return project_data
+        else:
+            logger.info("Project data file not found, using defaults")
+            return default_data
+    except Exception as e:
+        logger.error(f"Error loading project data: {e}")
+        return default_data
 
 
 def save_settings(
