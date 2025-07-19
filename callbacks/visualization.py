@@ -1531,6 +1531,7 @@ def register_loading_callbacks(app):
             import pandas as pd
             import base64
             import io
+            import json
 
             # This would be the actual content processing logic
             try:
@@ -1538,10 +1539,14 @@ def register_loading_callbacks(app):
                 decoded = base64.b64decode(content_string)
 
                 # Determine file type and parse accordingly
-                if "csv" in filename:
+                if "csv" in filename.lower():
                     # Parse CSV
                     df = pd.read_csv(io.StringIO(decoded.decode("utf-8")))
-                elif "xls" in filename:
+                elif "json" in filename.lower():
+                    # Parse JSON
+                    json_data = json.loads(decoded.decode("utf-8"))
+                    df = pd.DataFrame(json_data)
+                elif "xls" in filename.lower():
                     # Parse Excel
                     df = pd.read_excel(io.BytesIO(decoded))
                 else:
@@ -1549,7 +1554,7 @@ def register_loading_callbacks(app):
                         [
                             html.H5("Unsupported File Type", className="text-danger"),
                             html.P(
-                                f"File format {filename} is not supported. Please upload a CSV or Excel file."
+                                f"File format {filename} is not supported. Please upload a CSV, JSON, or Excel file."
                             ),
                         ],
                         className="p-3 border border-danger rounded",

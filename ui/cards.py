@@ -855,7 +855,7 @@ def create_input_parameters_card(
                                     id="data-source-selection",
                                     options=[
                                         {
-                                            "label": "CSV Import (Manual)",
+                                            "label": "JSON Import",
                                             "value": "CSV",
                                         },
                                         {
@@ -902,7 +902,7 @@ def create_input_parameters_card(
                                 dbc.Col(
                                     [
                                         html.Label(
-                                            "Upload CSV File:",
+                                            "Upload CSV/JSON File:",
                                             className="fw-medium",
                                         ),
                                         dcc.Upload(
@@ -915,17 +915,16 @@ def create_input_parameters_card(
                                                     html.Br(),
                                                     "Drag and Drop or Click to Select",
                                                 ],
-                                                className="text-center p-3",
+                                                className="d-flex flex-column justify-content-center align-items-center h-100",
+                                                style={"lineHeight": "1.2"},
                                             ),
                                             style={
                                                 "width": "100%",
                                                 "height": "100px",
-                                                "lineHeight": "100px",
                                                 "borderWidth": "2px",
                                                 "borderStyle": "dashed",
                                                 "borderRadius": "8px",
                                                 "borderColor": "#dee2e6",
-                                                "textAlign": "center",
                                                 "backgroundColor": "#f8f9fa",
                                                 "cursor": "pointer",
                                                 "transition": "all 0.2s ease",

@@ -9,6 +9,7 @@ This module handles callbacks related to statistics data management.
 #######################################################################
 # Standard library imports
 import io
+import json
 import base64
 from datetime import datetime, timedelta
 
@@ -350,6 +351,69 @@ def register(app):
                         logger.error(f"Error loading CSV file: {e}")
                         # Return unchanged data if there's an error
                         return rows, is_sample_data
+
+                elif "json" in filename.lower():
+                    try:
+                        # Parse JSON file
+                        json_data = json.loads(decoded.decode("utf-8"))
+
+                        # Convert to DataFrame
+                        df = pd.DataFrame(json_data)
+
+                        # Validate required columns
+                        required_columns = [
+                            "date",
+                            "completed_items",
+                            "completed_points",
+                        ]
+                        missing_columns = [
+                            col for col in required_columns if col not in df.columns
+                        ]
+
+                        if missing_columns:
+                            logger.error(
+                                f"JSON file missing required columns: {missing_columns}"
+                            )
+                            return rows, is_sample_data
+
+                        # Clean data and ensure date is in YYYY-MM-DD format
+                        df = read_and_clean_data(df)
+
+                        # Ensure created_items and created_points columns exist
+                        if "created_items" not in df.columns:
+                            df["created_items"] = 0
+                        if "created_points" not in df.columns:
+                            df["created_points"] = 0
+
+                        # Convert empty strings to zeros for all numeric columns
+                        numeric_columns = [
+                            "completed_items",
+                            "completed_points",
+                            "created_items",
+                            "created_points",
+                        ]
+                        for col in numeric_columns:
+                            if col in df.columns:
+                                df[col] = (
+                                    pd.to_numeric(df[col], errors="coerce")
+                                    .fillna(0)
+                                    .astype(int)
+                                )
+
+                        # When uploading JSON data, we're no longer using sample data
+                        return df.to_dict("records"), False
+                    except json.JSONDecodeError as e:
+                        logger.error(f"Error parsing JSON file: {e}")
+                        return rows, is_sample_data
+                    except Exception as e:
+                        logger.error(f"Error loading JSON file: {e}")
+                        return rows, is_sample_data
+
+                else:
+                    logger.error(
+                        f"Unsupported file type: {filename}. Please upload a CSV or JSON file."
+                    )
+                    return rows, is_sample_data
 
             elif trigger_id == "statistics-table" and trigger_prop == "data_timestamp":
                 # This is triggered when a cell is edited and loses focus
