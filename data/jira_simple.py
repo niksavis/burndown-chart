@@ -120,13 +120,17 @@ def fetch_jira_issues(config: Dict, max_results: int = 1000) -> Tuple[bool, List
 
 
 def cache_jira_response(
-    data: List[Dict], jql_query: str = "", cache_file: str = JIRA_CACHE_FILE
+    data: List[Dict],
+    jql_query: str = "",
+    fields_requested: str = "",
+    cache_file: str = JIRA_CACHE_FILE,
 ) -> bool:
-    """Save raw JIRA JSON response to cache file with query tracking."""
+    """Save raw JIRA JSON response to cache file with query and field tracking."""
     try:
         cache_data = {
             "timestamp": datetime.now().isoformat(),
             "jql_query": jql_query,  # Track which JQL query was used
+            "fields_requested": fields_requested,  # Track which fields were requested
             "issues": data,
             "total_issues": len(data),
         }
@@ -135,7 +139,7 @@ def cache_jira_response(
             json.dump(cache_data, f, indent=2)
 
         logger.info(
-            f"Cached {len(data)} JIRA issues to {cache_file} (JQL: {jql_query})"
+            f"Cached {len(data)} JIRA issues to {cache_file} (JQL: {jql_query}, Fields: {fields_requested})"
         )
         return True
 
@@ -145,9 +149,11 @@ def cache_jira_response(
 
 
 def load_jira_cache(
-    current_jql_query: str = "", cache_file: str = JIRA_CACHE_FILE
+    current_jql_query: str = "",
+    current_fields: str = "",
+    cache_file: str = JIRA_CACHE_FILE,
 ) -> Tuple[bool, List[Dict]]:
-    """Load cached JIRA JSON response from file, checking if JQL query matches."""
+    """Load cached JIRA JSON response from file, checking if JQL query and fields match."""
     try:
         if not os.path.exists(cache_file):
             return False, []
@@ -163,8 +169,28 @@ def load_jira_cache(
             )
             return False, []
 
+        # Check if the cached fields match the current fields (NEW!)
+        cached_fields = cache_data.get("fields_requested", "")
+        if cached_fields and current_fields and cached_fields != current_fields:
+            logger.info(
+                f"Cache fields mismatch. Cached: '{cached_fields}', Current: '{current_fields}'. Cache invalidated."
+            )
+            return False, []
+
+        # If no field info in old cache, check if current config needs story points field
+        if not cached_fields and current_fields:
+            # Extract story points field from current fields
+            base_fields = "key,created,resolutiondate,status"
+            if current_fields != base_fields:  # User has story points field configured
+                logger.info(
+                    f"Cache has no field info, but story points field is configured. Cache invalidated for field compatibility."
+                )
+                return False, []
+
         issues = cache_data.get("issues", [])
-        logger.info(f"Loaded {len(issues)} JIRA issues from cache (JQL: {cached_jql})")
+        logger.info(
+            f"Loaded {len(issues)} JIRA issues from cache (JQL: {cached_jql}, Fields: {cached_fields or 'base'})"
+        )
         return True, issues
 
     except Exception as e:
@@ -234,6 +260,62 @@ def get_cache_status(cache_file: str = JIRA_CACHE_FILE) -> str:
         return "Error reading cache status"
 
 
+def extract_story_points_value(story_points_value, field_name: str = "") -> float:
+    """
+    Extract numeric value from JIRA field, handling complex objects.
+
+    Args:
+        story_points_value: The raw value from JIRA field
+        field_name: Name of the field (for logging/debugging)
+
+    Returns:
+        float: Numeric value to use for calculations
+    """
+    if not story_points_value:
+        return 0.0
+
+    # Handle complex objects (like votes field)
+    if isinstance(story_points_value, dict):
+        # For votes field: {"votes": 5, "hasVoted": false}
+        if "votes" in story_points_value and isinstance(
+            story_points_value["votes"], (int, float)
+        ):
+            return float(story_points_value["votes"])
+
+        # For other complex fields, try common numeric properties
+        for numeric_key in ["value", "points", "count", "total"]:
+            if numeric_key in story_points_value and isinstance(
+                story_points_value[numeric_key], (int, float)
+            ):
+                return float(story_points_value[numeric_key])
+
+        # If no numeric value found in object, log warning and return 0
+        logger.warning(
+            f"Complex field '{field_name}' has no extractable numeric value: {story_points_value}"
+        )
+        return 0.0
+
+    # Handle simple numeric values
+    if isinstance(story_points_value, (int, float)):
+        return float(story_points_value)
+
+    # Handle string representations of numbers
+    if isinstance(story_points_value, str):
+        try:
+            return float(story_points_value)
+        except ValueError:
+            logger.warning(
+                f"Field '{field_name}' contains non-numeric string: '{story_points_value}'"
+            )
+            return 0.0
+
+    # Unknown type
+    logger.warning(
+        f"Field '{field_name}' has unexpected type {type(story_points_value)}: {story_points_value}"
+    )
+    return 0.0
+
+
 def jira_to_csv_format(issues: List[Dict], config: Dict) -> List[Dict]:
     """Transform JIRA issues to CSV statistics format."""
     try:
@@ -296,8 +378,9 @@ def jira_to_csv_format(issues: List[Dict], config: Dict) -> List[Dict]:
                             story_points_value = issue.get("fields", {}).get(
                                 config["story_points_field"]
                             )
-                            if story_points_value:
-                                story_points = story_points_value
+                            story_points = extract_story_points_value(
+                                story_points_value, config["story_points_field"]
+                            )
                         completed_points += story_points
 
                 # Check if item was created this week
@@ -316,8 +399,9 @@ def jira_to_csv_format(issues: List[Dict], config: Dict) -> List[Dict]:
                             story_points_value = issue.get("fields", {}).get(
                                 config["story_points_field"]
                             )
-                            if story_points_value:
-                                story_points = story_points_value
+                            story_points = extract_story_points_value(
+                                story_points_value, config["story_points_field"]
+                            )
                         created_points += story_points
 
             weekly_data.append(
@@ -363,8 +447,15 @@ def sync_jira_data(
         if not validate_cache_file(max_size_mb=config["cache_max_size_mb"]):
             return False, "Cache file validation failed"
 
-        # Try to load from cache first, checking if JQL query matches
-        cache_loaded, issues = load_jira_cache(config["jql_query"])
+        # Calculate current fields that would be requested
+        base_fields = "key,created,resolutiondate,status"
+        if config.get("story_points_field") and config["story_points_field"].strip():
+            current_fields = f"{base_fields},{config['story_points_field']}"
+        else:
+            current_fields = base_fields
+
+        # Try to load from cache first, checking if JQL query and fields match
+        cache_loaded, issues = load_jira_cache(config["jql_query"], current_fields)
 
         if not cache_loaded or not issues:
             # Fetch fresh data from JIRA
@@ -372,8 +463,8 @@ def sync_jira_data(
             if not fetch_success:
                 return False, "Failed to fetch JIRA data"
 
-            # Cache the response with the JQL query
-            if not cache_jira_response(issues, config["jql_query"]):
+            # Cache the response with the JQL query and fields used
+            if not cache_jira_response(issues, config["jql_query"], current_fields):
                 logger.warning("Failed to cache JIRA response")
 
         # Transform to CSV format
