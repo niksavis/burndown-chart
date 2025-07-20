@@ -100,7 +100,7 @@ Configure via the web interface **Data Import Configuration** section, or option
 #### Option 1: Web Interface (Recommended)
 
 - Open the app and go to **Input Parameters → Data Import Configuration**
-- Configure JIRA URL, JQL query, token, and story points field
+- Configure JIRA API Endpoint (URL), JQL query, token, and story points field
 - Settings are automatically saved to `app_settings.json`
 
 #### Option 2: Direct File Edit (Optional)
@@ -110,7 +110,7 @@ Edit `app_settings.json` directly with your JIRA configuration:
 ```json
 {
   "jql_query": "project = MYPROJECT AND created >= startOfYear()",
-  "jira_url": "https://your-jira-instance.com",
+  "jira_api_endpoint": "https://your-jira-instance.com/rest/api/2/search",
   "jira_token": "your-personal-access-token",
   "jira_story_points_field": "customfield_10002"
 }
@@ -119,13 +119,13 @@ Edit `app_settings.json` directly with your JIRA configuration:
 #### Option 3: Environment Variables (Optional)
 
 ```bash
-JIRA_URL=https://your-jira-instance.com
+JIRA_API_ENDPOINT=https://your-jira-instance.com/rest/api/2/search
 JIRA_DEFAULT_JQL=project = MYPROJECT AND created >= startOfYear()
 JIRA_TOKEN=your-personal-access-token  # Optional for public instances
 JIRA_STORY_POINTS_FIELD=customfield_10002  # Optional custom field ID
 ```
 
-**Quick Test**: Use `https://jira.atlassian.com` with JQL `project = JRASERVER` (no token needed).
+**Quick Test**: Use `https://jira.atlassian.com/rest/api/2/search` with JQL `project = JRASERVER` (no token needed).
 
 ## Troubleshooting
 
@@ -137,7 +137,7 @@ JIRA_STORY_POINTS_FIELD=customfield_10002  # Optional custom field ID
 
 ### JIRA Issues
 
-- **Connection failed?** Check JIRA URL and network access
+- **Connection failed?** Check JIRA API endpoint URL and network access
 - **Auth errors?** Verify personal access token
 - **No data?** Ensure project keys exist and contain issues in date range
 - **Cache problems?** Delete `jira_cache.json` to force refresh
