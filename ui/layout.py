@@ -238,6 +238,7 @@ def create_app_layout(settings, statistics, is_sample_data):
                         "pert_time_items": 30,  # Provide default value instead of None
                         "pert_time_points": 35,  # Provide default value instead of None
                     },
+                    show_points=settings.get("show_points", False),
                 ),
                 left_width=4,  # Left card width (4/12 or 33%)
                 right_width=8,  # Right card width (8/12 or 67%)

@@ -180,7 +180,7 @@ def create_scope_change_indicator(
 create_scope_creep_indicator = create_scope_change_indicator
 
 
-def create_scope_growth_chart(weekly_growth_data):
+def create_scope_growth_chart(weekly_growth_data, show_points=True):
     """Create a bar chart showing weekly scope growth with side-by-side bars and separate y-axes for items and points."""
     if weekly_growth_data.empty:
         return dcc.Graph(
@@ -254,6 +254,11 @@ def create_scope_growth_chart(weekly_growth_data):
         ),
     )
 
+    # Create data list - include points trace only if points tracking is enabled
+    data_traces = [items_trace]
+    if show_points:
+        data_traces.append(points_trace)
+
     # Create layout with dual y-axes but still using side-by-side bars
     layout = go.Layout(
         title="Weekly Scope Growth (+ Increase, - Reduction)",
@@ -286,7 +291,9 @@ def create_scope_growth_chart(weekly_growth_data):
             "overlaying": "y",
             "side": "right",
             "range": points_range_final,  # Set explicit range to align zero
-        },
+        }
+        if show_points
+        else {},
         height=300,
         margin={
             "l": 60,
@@ -306,7 +313,7 @@ def create_scope_growth_chart(weekly_growth_data):
     )
 
     # Create figure
-    figure = go.Figure(data=[items_trace, points_trace], layout=layout)
+    figure = go.Figure(data=data_traces, layout=layout)
 
     # Add a reference line at y=0 for both axes
     figure.add_shape(
@@ -320,16 +327,17 @@ def create_scope_growth_chart(weekly_growth_data):
         line=dict(color="rgba(0, 123, 255, 0.5)", width=1, dash="dot"),
     )
 
-    figure.add_shape(
-        type="line",
-        x0=0,
-        x1=1,
-        xref="paper",
-        y0=0,
-        y1=0,
-        yref="y2",
-        line=dict(color="rgba(253, 126, 20, 0.5)", width=1, dash="dot"),
-    )
+    if show_points:
+        figure.add_shape(
+            type="line",
+            x0=0,
+            x1=1,
+            xref="paper",
+            y0=0,
+            y1=0,
+            yref="y2",
+            line=dict(color="rgba(253, 126, 20, 0.5)", width=1, dash="dot"),
+        )
 
     return dcc.Graph(
         figure=figure,
@@ -501,7 +509,9 @@ def create_scope_change_alert(alert_data):
 create_scope_creep_alert = create_scope_change_alert
 
 
-def create_cumulative_scope_chart(weekly_growth_data, baseline_items, baseline_points):
+def create_cumulative_scope_chart(
+    weekly_growth_data, baseline_items, baseline_points, show_points=True
+):
     """
     Create a line chart showing cumulative scope growth over time with separate y-axes for items and points.
 
@@ -509,6 +519,7 @@ def create_cumulative_scope_chart(weekly_growth_data, baseline_items, baseline_p
         weekly_growth_data (DataFrame): DataFrame with weekly growth data
         baseline_items (int): Initial baseline for items
         baseline_points (int): Initial baseline for points
+        show_points (bool): Whether to show points traces
 
     Returns:
         dcc.Graph: A graph component with cumulative scope growth
@@ -584,6 +595,14 @@ def create_cumulative_scope_chart(weekly_growth_data, baseline_items, baseline_p
         yaxis="y2",
     )
 
+    # Create data list - include points traces only if points tracking is enabled
+    data_traces = [
+        items_baseline_trace,
+        items_scope_trace,
+    ]
+    if show_points:
+        data_traces.extend([points_baseline_trace, points_scope_trace])
+
     # Create layout with dual y-axes
     layout = go.Layout(
         title="Cumulative Scope Growth (Baseline + Change)",
@@ -608,7 +627,9 @@ def create_cumulative_scope_chart(weekly_growth_data, baseline_items, baseline_p
             "zerolinecolor": "rgba(253, 126, 20, 0.2)",
             "overlaying": "y",
             "side": "right",
-        },
+        }
+        if show_points
+        else {},
         height=350,
         margin={
             "l": 60,
@@ -626,14 +647,9 @@ def create_cumulative_scope_chart(weekly_growth_data, baseline_items, baseline_p
         plot_bgcolor="rgba(255, 255, 255, 0.9)",
     )
 
-    # Create figure with all traces
+    # Create figure with conditional traces
     figure = go.Figure(
-        data=[
-            items_baseline_trace,
-            items_scope_trace,
-            points_baseline_trace,
-            points_scope_trace,
-        ],
+        data=data_traces,
         layout=layout,
     )
 
@@ -697,6 +713,7 @@ def create_scope_metrics_dashboard(
     threshold=20,
     total_items_scope=None,
     total_points_scope=None,  # Add parameters for total scope
+    show_points=True,  # Add parameter for points tracking
 ):
     """
     Create a dashboard component displaying all scope metrics.
@@ -708,6 +725,7 @@ def create_scope_metrics_dashboard(
         threshold (int): Threshold percentage for scope change notifications
         total_items_scope (int, optional): Total items scope (completed + remaining)
         total_points_scope (int, optional): Total points scope (completed + remaining)
+        show_points (bool): Whether points tracking is enabled (default: True)
 
     Returns:
         html.Div: A dashboard component with scope metrics
@@ -918,56 +936,62 @@ def create_scope_metrics_dashboard(
                         ],
                         className="col-md-6 col-12 mb-3 pe-md-2",
                     ),
-                    # Points trend box
-                    html.Div(
-                        [
-                            # Header with icon
-                            create_scope_metrics_header(
-                                "Points Scope Change Metrics",
-                                "fas fa-chart-bar",
-                                "#fd7e14",
-                            ),
-                            # Scope change indicator with throughput ratio
-                            create_scope_change_indicator(
-                                "Points Scope Change Rate",
-                                scope_change_rate["points_rate"],
-                                threshold,
-                                "Percentage of new points created compared to original baseline. Throughput ratio shows how many new points are created per completed point.",
-                                points_throughput_ratio,
-                            ),
-                            # Forecast pills for points scope change - showing absolute values
-                            html.Div(
-                                [
-                                    create_forecast_pill(
-                                        "Created",
-                                        f"{int(total_created_points)} points",
-                                        "#fd7e14",
-                                    ),
-                                    create_forecast_pill(
-                                        "Completed",
-                                        f"{int(total_completed_points)} points",
-                                        "#0d6efd",
-                                    ),
-                                    create_forecast_pill(
-                                        "Threshold",
-                                        f"{int(threshold_points)} points",
-                                        "#fd7e14",
-                                    ),
-                                    html.Div(
-                                        html.Small(
-                                            f"baseline: {int(baseline_points)} points",
-                                            className="text-muted fst-italic",
+                    # Points trend box - only show if points tracking is enabled
+                ]
+                + (
+                    [
+                        html.Div(
+                            [
+                                # Header with icon
+                                create_scope_metrics_header(
+                                    "Points Scope Change Metrics",
+                                    "fas fa-chart-bar",
+                                    "#fd7e14",
+                                ),
+                                # Scope change indicator with throughput ratio
+                                create_scope_change_indicator(
+                                    "Points Scope Change Rate",
+                                    scope_change_rate["points_rate"],
+                                    threshold,
+                                    "Percentage of new points created compared to original baseline. Throughput ratio shows how many new points are created per completed point.",
+                                    points_throughput_ratio,
+                                ),
+                                # Forecast pills for points scope change - showing absolute values
+                                html.Div(
+                                    [
+                                        create_forecast_pill(
+                                            "Created",
+                                            f"{int(total_created_points)} points",
+                                            "#fd7e14",
                                         ),
-                                        style={"paddingTop": "2px"},
-                                    ),
-                                ],
-                                className="d-flex flex-wrap mt-2 align-items-center",
-                                style={"gap": "0.25rem"},
-                            ),
-                        ],
-                        className="col-md-6 col-12 mb-3 ps-md-2",
-                    ),
-                ],
+                                        create_forecast_pill(
+                                            "Completed",
+                                            f"{int(total_completed_points)} points",
+                                            "#0d6efd",
+                                        ),
+                                        create_forecast_pill(
+                                            "Threshold",
+                                            f"{int(threshold_points)} points",
+                                            "#fd7e14",
+                                        ),
+                                        html.Div(
+                                            html.Small(
+                                                f"baseline: {int(baseline_points)} points",
+                                                className="text-muted fst-italic",
+                                            ),
+                                            style={"paddingTop": "2px"},
+                                        ),
+                                    ],
+                                    className="d-flex flex-wrap mt-2 align-items-center",
+                                    style={"gap": "0.25rem"},
+                                ),
+                            ],
+                            className="col-md-6 col-12 mb-3 ps-md-2",
+                        ),
+                    ]
+                    if show_points
+                    else []
+                ),
                 className="row mb-3",
             ),
             # Alert for threshold breach
@@ -976,7 +1000,7 @@ def create_scope_metrics_dashboard(
             html.Div(
                 [
                     create_cumulative_scope_chart(
-                        weekly_growth_data, baseline_items, baseline_points
+                        weekly_growth_data, baseline_items, baseline_points, show_points
                     )
                 ],
                 className="mb-3",
@@ -1018,25 +1042,33 @@ def create_scope_metrics_dashboard(
                                         ),
                                     ]
                                 ),
-                                html.P(
-                                    [
-                                        "Points: ",
-                                        html.Span(
-                                            f"For every completed point, {points_throughput_ratio:.2f} new points are being created",
-                                            className="fw-medium",
-                                            style={
-                                                "color": "#dc3545"
-                                                if points_throughput_ratio > 1
-                                                else "#20c997"
-                                            },
-                                        ),
-                                        html.Span(
-                                            f" ({total_created_points} created vs {total_completed_points} completed)",
-                                            className="text-muted ms-1",
-                                            style={"fontSize": "0.9rem"},
-                                        ),
-                                    ]
-                                ),
+                            ]
+                            + (
+                                [
+                                    html.P(
+                                        [
+                                            "Points: ",
+                                            html.Span(
+                                                f"For every completed point, {points_throughput_ratio:.2f} new points are being created",
+                                                className="fw-medium",
+                                                style={
+                                                    "color": "#dc3545"
+                                                    if points_throughput_ratio > 1
+                                                    else "#20c997"
+                                                },
+                                            ),
+                                            html.Span(
+                                                f" ({total_created_points} created vs {total_completed_points} completed)",
+                                                className="text-muted ms-1",
+                                                style={"fontSize": "0.9rem"},
+                                            ),
+                                        ]
+                                    ),
+                                ]
+                                if show_points
+                                else []
+                            )
+                            + [
                                 html.P(
                                     "A ratio greater than 1.0 indicates scope is growing faster than the team can deliver. This may affect delivery timelines.",
                                     className="text-muted small mb-0 mt-2 fst-italic",
@@ -1048,7 +1080,10 @@ def create_scope_metrics_dashboard(
                 ]
             ),
             # Weekly Scope Growth Chart
-            html.Div([create_scope_growth_chart(weekly_growth_data)], className="mb-2"),
+            html.Div(
+                [create_scope_growth_chart(weekly_growth_data, show_points)],
+                className="mb-2",
+            ),
             # Footnote explaining growth interpretation with consistent styling and icon
             html.Div(
                 className="text-muted fst-italic small text-center",
@@ -1073,17 +1108,23 @@ def create_scope_metrics_dashboard(
                         width=12,
                         md=6,
                     ),
-                    dbc.Col(
-                        [
-                            create_enhanced_stability_gauge(
-                                stability_index["points_stability"],
-                                "Points Stability Index",
-                            )
-                        ],
-                        width=12,
-                        md=6,
-                    ),
                 ]
+                + (
+                    [
+                        dbc.Col(
+                            [
+                                create_enhanced_stability_gauge(
+                                    stability_index["points_stability"],
+                                    "Points Stability Index",
+                                )
+                            ],
+                            width=12,
+                            md=6,
+                        ),
+                    ]
+                    if show_points
+                    else []
+                )
             ),
             # Footnote explaining stability index with consistent styling and icon
             html.Div(

@@ -2100,7 +2100,9 @@ def create_project_status_card(statistics_df, settings):
         )
 
 
-def create_project_summary_card(statistics_df, settings, pert_data=None):
+def create_project_summary_card(
+    statistics_df, settings, pert_data=None, show_points=True
+):
     """
     Create a card with project dashboard information optimized for side-by-side layout.
 
@@ -2108,6 +2110,7 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
         statistics_df: DataFrame containing the project statistics
         settings: Dictionary with current settings
         pert_data: Dictionary containing PERT analysis data (optional)
+        show_points: Whether points tracking is enabled
 
     Returns:
         A Dash card component with project dashboard information
@@ -2262,62 +2265,70 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
                                                 className="ms-3",
                                             ),
                                         ],
-                                        width=6,
+                                        width=6 if show_points else 12,
                                         className="px-2",
                                     ),
-                                    # Points Forecast Column
-                                    dbc.Col(
-                                        [
-                                            html.Div(
-                                                [
-                                                    html.I(
-                                                        className="fas fa-chart-line me-1",
-                                                        style={
-                                                            "color": COLOR_PALETTE[
-                                                                "points"
-                                                            ],
-                                                            "fontSize": "1rem",
-                                                        },
-                                                    ),
-                                                    html.Span(
-                                                        "Points Completion:",
-                                                        style={
-                                                            "fontSize": "0.95rem",
-                                                            "fontWeight": "bold",
-                                                        },
-                                                    ),
-                                                ],
-                                                className="mb-1",
-                                            ),
-                                            html.Div(
-                                                [
-                                                    html.Span(
-                                                        f"{points_completion_str}",
-                                                        className="fw-bold",
-                                                        style={
-                                                            "fontSize": "1rem",
-                                                            "color": COLOR_PALETTE[
-                                                                "points"
-                                                            ],
-                                                        },
-                                                    ),
-                                                ],
-                                                className="ms-3 mb-1",
-                                            ),
-                                            html.Div(
-                                                [
-                                                    html.Span(
-                                                        f"{points_days} days ({points_weeks} weeks)",
-                                                        style={"fontSize": "0.9rem"},
-                                                    ),
-                                                ],
-                                                className="ms-3",
-                                            ),
-                                        ],
-                                        width=6,
-                                        className="px-2",
-                                    ),
-                                ],
+                                ]
+                                + (
+                                    [
+                                        # Points Forecast Column - only show if points tracking is enabled
+                                        dbc.Col(
+                                            [
+                                                html.Div(
+                                                    [
+                                                        html.I(
+                                                            className="fas fa-chart-line me-1",
+                                                            style={
+                                                                "color": COLOR_PALETTE[
+                                                                    "points"
+                                                                ],
+                                                                "fontSize": "1rem",
+                                                            },
+                                                        ),
+                                                        html.Span(
+                                                            "Points Completion:",
+                                                            style={
+                                                                "fontSize": "0.95rem",
+                                                                "fontWeight": "bold",
+                                                            },
+                                                        ),
+                                                    ],
+                                                    className="mb-1",
+                                                ),
+                                                html.Div(
+                                                    [
+                                                        html.Span(
+                                                            f"{points_completion_str}",
+                                                            className="fw-bold",
+                                                            style={
+                                                                "fontSize": "1rem",
+                                                                "color": COLOR_PALETTE[
+                                                                    "points"
+                                                                ],
+                                                            },
+                                                        ),
+                                                    ],
+                                                    className="ms-3 mb-1",
+                                                ),
+                                                html.Div(
+                                                    [
+                                                        html.Span(
+                                                            f"{points_days} days ({points_weeks} weeks)",
+                                                            style={
+                                                                "fontSize": "0.9rem"
+                                                            },
+                                                        ),
+                                                    ],
+                                                    className="ms-3",
+                                                ),
+                                            ],
+                                            width=6,
+                                            className="px-2",
+                                        ),
+                                    ]
+                                    if show_points
+                                    else []
+                                ),
                                 className="mb-4",  # Increased bottom margin for better spacing
                             ),
                             # Weekly velocity section
@@ -2360,45 +2371,53 @@ def create_project_summary_card(statistics_df, settings, pert_data=None):
                                                 className="mb-2",
                                             ),
                                         ],
-                                        width=6,
+                                        width=6 if show_points else 12,
                                         className="px-2",
                                     ),
-                                    # Points velocity
-                                    dbc.Col(
-                                        [
-                                            html.Div(
-                                                [
-                                                    html.I(
-                                                        className="fas fa-chart-line me-1",
-                                                        style={
-                                                            "color": COLOR_PALETTE[
-                                                                "points"
-                                                            ],
-                                                            "fontSize": "1rem",
-                                                        },
-                                                    ),
-                                                    html.Span(
-                                                        f"{float(avg_weekly_points):.2f}",
-                                                        className="fw-bold",
-                                                        style={
-                                                            "fontSize": "1.1rem",
-                                                            "color": COLOR_PALETTE[
-                                                                "points"
-                                                            ],
-                                                        },
-                                                    ),
-                                                    html.Small(
-                                                        " points/week",
-                                                        style={"fontSize": "0.9rem"},
-                                                    ),
-                                                ],
-                                                className="mb-2",
-                                            ),
-                                        ],
-                                        width=6,
-                                        className="px-2",
-                                    ),
-                                ],
+                                ]
+                                + (
+                                    [
+                                        # Points velocity - only show if points tracking is enabled
+                                        dbc.Col(
+                                            [
+                                                html.Div(
+                                                    [
+                                                        html.I(
+                                                            className="fas fa-chart-line me-1",
+                                                            style={
+                                                                "color": COLOR_PALETTE[
+                                                                    "points"
+                                                                ],
+                                                                "fontSize": "1rem",
+                                                            },
+                                                        ),
+                                                        html.Span(
+                                                            f"{float(avg_weekly_points):.2f}",
+                                                            className="fw-bold",
+                                                            style={
+                                                                "fontSize": "1.1rem",
+                                                                "color": COLOR_PALETTE[
+                                                                    "points"
+                                                                ],
+                                                            },
+                                                        ),
+                                                        html.Small(
+                                                            " points/week",
+                                                            style={
+                                                                "fontSize": "0.9rem"
+                                                            },
+                                                        ),
+                                                    ],
+                                                    className="mb-2",
+                                                ),
+                                            ],
+                                            width=6,
+                                            className="px-2",
+                                        ),
+                                    ]
+                                    if show_points
+                                    else []
+                                ),
                                 className="mb-3",  # Added bottom margin to prevent overlap
                             ),
                             # Deadline section if available

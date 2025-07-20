@@ -438,6 +438,7 @@ def register(app):
         burnup_fig,
         settings,
         chart_type="burndown",
+        show_points=True,
     ):
         """
         Create content for the burndown tab with toggle between burndown and burnup views.
@@ -520,14 +521,20 @@ def register(app):
                             "fas fa-tasks",
                             "#20c997",
                         ),
-                        # Points trend box
-                        _create_trend_header_with_forecasts(
-                            points_trend,
-                            "Weekly Points Trend",
-                            "fas fa-chart-bar",
-                            "#fd7e14",
-                        ),
-                    ],
+                    ]
+                    + (
+                        [
+                            # Points trend box - only show if points tracking is enabled
+                            _create_trend_header_with_forecasts(
+                                points_trend,
+                                "Weekly Points Trend",
+                                "fas fa-chart-bar",
+                                "#fd7e14",
+                            ),
+                        ]
+                        if show_points
+                        else []
+                    ),
                     className="row mb-3",
                 ),
                 # Chart type toggle
@@ -629,13 +636,14 @@ def register(app):
             ]
         )
 
-    def _create_scope_tracking_tab_content(df, settings):
+    def _create_scope_tracking_tab_content(df, settings, show_points=True):
         """
         Create content for the scope tracking tab.
 
         Args:
             df: DataFrame with statistics data
             settings: Settings dictionary
+            show_points: Whether points tracking is enabled
 
         Returns:
             html.Div: Scope tracking tab content
@@ -726,7 +734,11 @@ def register(app):
 
         # Create the scope metrics dashboard
         return create_scope_metrics_dashboard(
-            scope_creep_rate, weekly_growth_data, stability_index, scope_creep_threshold
+            scope_creep_rate,
+            weekly_growth_data,
+            stability_index,
+            scope_creep_threshold,
+            show_points=show_points,
         )
 
     # Replace the existing render_tab_content callback with a consistent approach
@@ -822,6 +834,7 @@ def register(app):
                 burnup_fig,
                 settings,
                 "burndown",
+                show_points,
             )
             charts["tab-burndown"] = burndown_tab_content
 
@@ -860,7 +873,7 @@ def register(app):
 
             # Always create scope tracking tab content
             charts["tab-scope-tracking"] = _create_scope_tracking_tab_content(
-                df, settings
+                df, settings, show_points
             )
 
             # Create content for the active tab
