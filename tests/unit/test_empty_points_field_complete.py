@@ -99,7 +99,7 @@ class TestEmptyPointsFieldComplete(unittest.TestCase):
         # Simulate the UI config that would be created by the fixed callback
         ui_config = {
             "jql_query": "project = TEST",
-            "base_url": "https://jira.atlassian.com",
+            "api_endpoint": "https://jira.atlassian.com/rest/api/2/search",
             "token": "",
             "story_points_field": "",  # Empty - should NOT default to votes anymore
             "cache_max_size_mb": 50,

@@ -154,7 +154,7 @@ class TestEmptyPointsFieldCachingWorkflow(unittest.TestCase):
             # User's actual configuration with EMPTY points field
             ui_config = {
                 "jql_query": "project = JRASERVER AND created > endOfMonth(-6)",
-                "base_url": "https://jira.atlassian.com",
+                "api_endpoint": "https://jira.atlassian.com/rest/api/2/search",
                 "token": "",
                 "story_points_field": "",  # EMPTY - the key fix!
                 "cache_max_size_mb": 100,
@@ -266,7 +266,7 @@ class TestEmptyPointsFieldCachingWorkflow(unittest.TestCase):
             # Empty points field should trigger recalculation
             ui_config = {
                 "jql_query": "project = TEST",
-                "base_url": "https://test.com",
+                "api_endpoint": "https://test.com/rest/api/2/search",
                 "token": "",
                 "story_points_field": "",  # Empty!
                 "cache_max_size_mb": 50,
