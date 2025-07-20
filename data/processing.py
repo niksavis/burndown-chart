@@ -27,6 +27,7 @@ def calculate_total_points(
     estimated_items: float,
     estimated_points: float,
     statistics_data: list[dict] | None = None,
+    use_fallback: bool = True,
 ) -> tuple[float, float]:
     """
     Calculate the total points based on estimated points and items.
@@ -36,13 +37,20 @@ def calculate_total_points(
         estimated_items: Number of items that have been estimated
         estimated_points: Number of points for the estimated items
         statistics_data: Optional historical data to use as fallback
+        use_fallback: Whether to use fallback calculation when no estimates provided
 
     Returns:
         Tuple of (estimated_total_points, avg_points_per_item)
     """
+    # Fix for edge case: When user explicitly sets estimated items/points to 0
+    # and fallback is disabled, respect their intent and return 0
+    if not use_fallback and estimated_items == 0 and estimated_points == 0:
+        # User explicitly indicated no estimates available and no fallback wanted
+        return 0.0, 0.0
+
     # Basic validation to prevent division by zero
     if estimated_items <= 0:
-        # If no items are estimated, try to use historical data
+        # Use fallback behavior (historical data or defaults)
         if statistics_data and len(statistics_data) > 0:
             # Calculate average points per item from historical data
             df = pd.DataFrame(statistics_data)
@@ -61,8 +69,12 @@ def calculate_total_points(
                 estimated_total_points = total_items * avg_points_per_item
                 return estimated_total_points, avg_points_per_item
 
-        # Default to 10 points per item if no data available
-        return total_items * 10, 10
+        # Default to 10 points per item if no data available and fallback enabled
+        if use_fallback:
+            return total_items * 10, 10
+        else:
+            # No fallback - return zeros when no estimates provided
+            return 0.0, 0.0
 
     # Calculate average points per item based on estimates
     avg_points_per_item = estimated_points / estimated_items

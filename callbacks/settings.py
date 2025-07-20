@@ -114,15 +114,22 @@ def register(app):
                 or {"total_points": DEFAULT_TOTAL_POINTS, "avg_points_per_item": 0},
             )
 
-        # Calculate total points and average
+        # Calculate total points and average - use_fallback=False to respect user's explicit input
         estimated_total_points, avg_points_per_item = calculate_total_points(
-            total_items, estimated_items, estimated_points, statistics
+            total_items,
+            estimated_items,
+            estimated_points,
+            statistics,
+            use_fallback=False,
         )
 
         # Prepare info text with source of calculation and styling
         style = {"color": "inherit"}  # Default styling
         if estimated_items <= 0:
-            info_text = f"Using {avg_points_per_item:.1f} points per item (based on historical data)"
+            if estimated_items == 0 and estimated_points == 0:
+                info_text = "No estimates provided - total points set to 0"
+            else:
+                info_text = f"Using {avg_points_per_item:.1f} points per item (based on historical data)"
         else:
             # If estimated items exceeds total, show a warning
             if estimated_items > total_items:

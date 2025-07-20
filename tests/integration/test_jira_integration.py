@@ -200,7 +200,9 @@ class TestJiraApiMocking:
         assert scope_data["total_items"] == 2
         assert scope_data["completed_items"] == 1  # TEST-1 is Done
         assert scope_data["remaining_items"] == 1  # TEST-2 is To Do
-        assert scope_data["estimated_items"] == 1  # Fallback: remaining items
+        assert (
+            scope_data["estimated_items"] == 0
+        )  # No items estimated when points field empty
 
 
 if __name__ == "__main__":
