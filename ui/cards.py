@@ -936,6 +936,41 @@ def create_input_parameters_card(
                         ),
                     ],
                 ),
+                # Data Export Action - Available for both data sources
+                html.Hr(className="my-3"),
+                dbc.Row(
+                    [
+                        dbc.Col(
+                            [
+                                html.Label(
+                                    "Export Options:",
+                                    className="fw-medium mb-2",
+                                ),
+                                html.Div(
+                                    [
+                                        create_button(
+                                            text="Export Data",
+                                            id="export-project-data-button",
+                                            variant="secondary",
+                                            icon_class="fas fa-file-export",
+                                        ),
+                                        html.Small(
+                                            "Export complete project data as JSON",
+                                            className="text-muted mt-1 d-block",
+                                        ),
+                                        html.Div(
+                                            dcc.Download(
+                                                id="export-project-data-download"
+                                            )
+                                        ),
+                                    ],
+                                    className="d-flex flex-column",
+                                ),
+                            ],
+                            width=12,
+                        ),
+                    ],
+                ),
             ],
             className="mb-4 p-3 bg-light rounded-3",
         ),
@@ -1150,43 +1185,18 @@ def create_input_parameters_card(
                                         ),
                                         html.Div(
                                             [
-                                                html.Div(
-                                                    [
-                                                        create_button(
-                                                            text="Update Data",
-                                                            id="update-data-unified",
-                                                            variant="primary",
-                                                            icon_class="fas fa-sync-alt",
-                                                        ),
-                                                        html.Small(
-                                                            "Import data from selected source and update charts",
-                                                            className="text-muted mt-1 d-block",
-                                                        ),
-                                                    ],
-                                                    className="d-flex flex-column me-3 mb-2",
+                                                create_button(
+                                                    text="Update Data",
+                                                    id="update-data-unified",
+                                                    variant="primary",
+                                                    icon_class="fas fa-sync-alt",
                                                 ),
-                                                html.Div(
-                                                    [
-                                                        create_button(
-                                                            text="Export Data",
-                                                            id="export-project-data-button",
-                                                            variant="secondary",
-                                                            icon_class="fas fa-file-export",
-                                                        ),
-                                                        html.Small(
-                                                            "Export complete project data as JSON",
-                                                            className="text-muted mt-1 d-block",
-                                                        ),
-                                                        html.Div(
-                                                            dcc.Download(
-                                                                id="export-project-data-download"
-                                                            )
-                                                        ),
-                                                    ],
-                                                    className="d-flex flex-column mb-2",
+                                                html.Small(
+                                                    "Import data from selected source and update charts",
+                                                    className="text-muted mt-1 d-block",
                                                 ),
                                             ],
-                                            className="d-flex flex-wrap",
+                                            className="d-flex flex-column",
                                         ),
                                     ],
                                     width=12,
