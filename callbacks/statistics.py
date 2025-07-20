@@ -207,6 +207,7 @@ def register(app):
             Output("statistics-table", "data"),
             Output("is-sample-data", "data"),
             Output("jira-data-reload-trigger", "data", allow_duplicate=True),
+            Output("upload-data", "contents", allow_duplicate=True),
         ],
         [
             Input("add-row-button", "n_clicks"),
@@ -239,7 +240,7 @@ def register(app):
         ctx = dash.callback_context
         if not ctx.triggered:
             # No triggers, return unchanged
-            return rows, is_sample_data, no_update
+            return rows, is_sample_data, no_update, no_update
 
         trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
         trigger_prop = (
@@ -307,9 +308,9 @@ def register(app):
 
                 # If user adds a row, we're no longer using sample data
                 if is_sample_data:
-                    return rows, False, no_update
+                    return rows, False, no_update, no_update
                 else:
-                    return rows, is_sample_data, no_update
+                    return rows, is_sample_data, no_update, no_update
 
             elif trigger_id == "upload-data" and contents:
                 # Parse uploaded file
@@ -352,11 +353,12 @@ def register(app):
                                 )
 
                         # When uploading data, we're no longer using sample data
-                        return df.to_dict("records"), False, no_update
+                        # Clear the upload contents to allow consecutive uploads of the same file
+                        return df.to_dict("records"), False, no_update, None
                     except Exception as e:
                         logger.error(f"Error loading CSV file: {e}")
                         # Return unchanged data if there's an error
-                        return rows, is_sample_data, no_update
+                        return rows, is_sample_data, no_update, no_update
 
                 elif "json" in filename.lower():
                     try:
@@ -388,7 +390,7 @@ def register(app):
 
                         if df.empty:
                             logger.error("JSON file contains no statistics data")
-                            return rows, is_sample_data, no_update
+                            return rows, is_sample_data, no_update, no_update
 
                         missing_columns = [
                             col for col in required_columns if col not in df.columns
@@ -398,7 +400,7 @@ def register(app):
                             logger.error(
                                 f"JSON file missing required columns: {missing_columns}"
                             )
-                            return rows, is_sample_data, no_update
+                            return rows, is_sample_data, no_update, no_update
 
                         # Clean data and ensure date is in YYYY-MM-DD format
                         df = read_and_clean_data(df)
@@ -443,29 +445,30 @@ def register(app):
                                 "Full project data imported successfully. Statistics table updated. Page refresh recommended to update all charts and project scope metrics."
                             )
 
-                        return df.to_dict("records"), False, reload_trigger
+                        # Clear the upload contents to allow consecutive uploads of the same file
+                        return df.to_dict("records"), False, reload_trigger, None
                     except json.JSONDecodeError as e:
                         logger.error(f"Error parsing JSON file: {e}")
-                        return rows, is_sample_data, no_update
+                        return rows, is_sample_data, no_update, no_update
                     except Exception as e:
                         logger.error(f"Error loading JSON file: {e}")
-                        return rows, is_sample_data, no_update
+                        return rows, is_sample_data, no_update, no_update
 
                 else:
                     logger.error(
                         f"Unsupported file type: {filename}. Please upload a CSV or JSON file."
                     )
-                    return rows, is_sample_data, no_update
+                    return rows, is_sample_data, no_update, no_update
 
             elif trigger_id == "statistics-table" and trigger_prop == "data_timestamp":
                 # This is triggered when a cell is edited and loses focus
                 # We've already cleaned the data at the start of this callback
-                return rows, is_sample_data, no_update
+                return rows, is_sample_data, no_update, no_update
 
         except Exception as e:
             logger.error(f"Error in update_table callback: {e}")
 
-        return rows, is_sample_data, no_update
+        return rows, is_sample_data, no_update, no_update
 
     @app.callback(
         Output("statistics-table", "filter_query"),
