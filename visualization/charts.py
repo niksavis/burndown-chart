@@ -2847,55 +2847,58 @@ def create_burnup_chart(
             # Log results of forecast traces
             logger.info(f"Added items forecast traces: {items_forecasts_added}")
 
-            # Points forecasts
-            for key in ["avg", "opt", "pes"]:
-                color = (
-                    COLOR_PALETTE["points"]
-                    if key == "avg"
-                    else ("rgb(184, 134, 11)" if key == "opt" else "rgb(165, 42, 42)")
-                )
-                dash_style = "dash" if key == "avg" else "dot"
-                symbol = (
-                    "diamond"
-                    if key == "avg"
-                    else ("triangle-up" if key == "opt" else "triangle-down")
-                )
-                name = (
-                    "Points Forecast (Most Likely)"
-                    if key == "avg"
-                    else (
-                        "Points Forecast (Optimistic)"
-                        if key == "opt"
-                        else "Points Forecast (Pessimistic)"
+            # Points forecasts - only if show_points is True
+            if show_points:
+                for key in ["avg", "opt", "pes"]:
+                    color = (
+                        COLOR_PALETTE["points"]
+                        if key == "avg"
+                        else (
+                            "rgb(184, 134, 11)" if key == "opt" else "rgb(165, 42, 42)"
+                        )
                     )
-                )
-                hover_type = (
-                    "Most Likely"
-                    if key == "avg"
-                    else ("Optimistic" if key == "opt" else "Pessimistic")
-                )
-                hover_style = (
-                    "info"
-                    if key == "avg"
-                    else ("success" if key == "opt" else "warning")
-                )
+                    dash_style = "dash" if key == "avg" else "dot"
+                    symbol = (
+                        "diamond"
+                        if key == "avg"
+                        else ("triangle-up" if key == "opt" else "triangle-down")
+                    )
+                    name = (
+                        "Points Forecast (Most Likely)"
+                        if key == "avg"
+                        else (
+                            "Points Forecast (Optimistic)"
+                            if key == "opt"
+                            else "Points Forecast (Pessimistic)"
+                        )
+                    )
+                    hover_type = (
+                        "Most Likely"
+                        if key == "avg"
+                        else ("Optimistic" if key == "opt" else "Pessimistic")
+                    )
+                    hover_style = (
+                        "info"
+                        if key == "avg"
+                        else ("success" if key == "opt" else "warning")
+                    )
 
-                if add_forecast_trace(
-                    fig,
-                    points_forecasts,
-                    key,
-                    "Points",
-                    color,
-                    dash_style,
-                    symbol,
-                    name,
-                    hover_type,
-                    hover_style,
-                    True,  # Points are on secondary y-axis
-                ):
-                    points_forecasts_added = True
+                    if add_forecast_trace(
+                        fig,
+                        points_forecasts,
+                        key,
+                        "Points",
+                        color,
+                        dash_style,
+                        symbol,
+                        name,
+                        hover_type,
+                        hover_style,
+                        True,  # Points are on secondary y-axis
+                    ):
+                        points_forecasts_added = True
 
-            logger.info(f"Added points forecast traces: {points_forecasts_added}")
+                logger.info(f"Added points forecast traces: {points_forecasts_added}")
 
         # Add traces to figure - all visible by default
         fig.add_trace(completed_items_trace, secondary_y=False)
@@ -3003,17 +3006,18 @@ def create_burnup_chart(
             side="left",
         )
 
-        # Configure secondary y-axis (points) with points grid color
-        fig.update_yaxes(
-            title={"text": "Points", "font": {"size": 16}},
-            gridcolor=COLOR_PALETTE["points_grid"],
-            zeroline=True,
-            zerolinecolor="black",
-            secondary_y=True,
-            range=points_range,  # Set explicit range for better visual alignment
-            side="right",
-            anchor="x",  # Anchor to the x-axis to keep alignment
-        )
+        # Configure secondary y-axis (points) with points grid color - only if points tracking is enabled
+        if show_points:
+            fig.update_yaxes(
+                title={"text": "Points", "font": {"size": 16}},
+                gridcolor=COLOR_PALETTE["points_grid"],
+                zeroline=True,
+                zerolinecolor="black",
+                secondary_y=True,
+                range=points_range,  # Set explicit range for better visual alignment
+                side="right",
+                anchor="x",  # Anchor to the x-axis to keep alignment
+            )
 
         # Apply consistent layout settings to match burndown chart
         fig.update_layout(
