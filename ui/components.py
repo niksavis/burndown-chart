@@ -141,6 +141,7 @@ def _create_project_overview_section(
     total_items,
     remaining_points,
     similar_percentages=False,
+    show_points=True,
 ):
     """
     Create the project overview section with progress bars.
@@ -155,6 +156,7 @@ def _create_project_overview_section(
         total_items: Number of remaining items
         remaining_points: Number of remaining points
         similar_percentages: Whether items and points percentages are similar
+        show_points: Whether points tracking is enabled
 
     Returns:
         dash.html.Div: Project overview section
@@ -203,21 +205,29 @@ def _create_project_overview_section(
                                                 ],
                                                 className="me-3",
                                             ),
-                                            html.Span(
-                                                [
-                                                    html.I(
-                                                        className="fas fa-chart-line me-1",
-                                                        style={
-                                                            "color": COLOR_PALETTE[
-                                                                "points"
-                                                            ]
-                                                        },
-                                                    ),
-                                                    html.Strong(f"{completed_points}"),
-                                                    f" of {actual_total_points} points",
-                                                ]
-                                            ),
-                                        ],
+                                        ]
+                                        + (
+                                            [
+                                                html.Span(
+                                                    [
+                                                        html.I(
+                                                            className="fas fa-chart-line me-1",
+                                                            style={
+                                                                "color": COLOR_PALETTE[
+                                                                    "points"
+                                                                ]
+                                                            },
+                                                        ),
+                                                        html.Strong(
+                                                            f"{completed_points}"
+                                                        ),
+                                                        f" of {actual_total_points} points",
+                                                    ]
+                                                ),
+                                            ]
+                                            if show_points
+                                            else []
+                                        ),
                                         className="text-muted mt-2 d-block",
                                     ),
                                 ],
@@ -282,58 +292,64 @@ def _create_project_overview_section(
                                 ],
                                 className="mb-3",
                             ),
-                            # Points progress
-                            html.Div(
-                                [
-                                    html.Div(
-                                        className="d-flex justify-content-between align-items-center mb-1",
-                                        children=[
-                                            html.Small(
-                                                [
-                                                    html.I(
-                                                        className="fas fa-chart-line me-1",
-                                                        style={
-                                                            "color": COLOR_PALETTE[
-                                                                "points"
-                                                            ]
-                                                        },
-                                                    ),
-                                                    "Points Progress",
-                                                ],
-                                                className="fw-medium",
-                                            ),
-                                            html.Small(
-                                                f"{points_percentage}% Complete",
-                                                className="text-muted",
-                                            ),
-                                        ],
-                                    ),
-                                    html.Div(
-                                        className="progress",
-                                        style={
-                                            "height": "16px",
-                                            "borderRadius": "4px",
-                                            "overflow": "hidden",
-                                            "boxShadow": "inset 0 1px 2px rgba(0,0,0,.1)",
-                                        },
-                                        children=[
-                                            html.Div(
-                                                className="progress-bar bg-warning",
-                                                style={
-                                                    "width": f"{points_percentage}%",
-                                                    "height": "100%",
-                                                    "transition": "width 1s ease",
-                                                },
-                                            ),
-                                        ],
-                                    ),
-                                    html.Small(
-                                        f"{completed_points} of {actual_total_points} points ({remaining_points} remaining)",
-                                        className="text-muted mt-1 d-block",
-                                    ),
-                                ],
-                            ),
-                        ],
+                        ]
+                        + (
+                            [
+                                # Points progress - only show if points tracking is enabled
+                                html.Div(
+                                    [
+                                        html.Div(
+                                            className="d-flex justify-content-between align-items-center mb-1",
+                                            children=[
+                                                html.Small(
+                                                    [
+                                                        html.I(
+                                                            className="fas fa-chart-line me-1",
+                                                            style={
+                                                                "color": COLOR_PALETTE[
+                                                                    "points"
+                                                                ]
+                                                            },
+                                                        ),
+                                                        "Points Progress",
+                                                    ],
+                                                    className="fw-medium",
+                                                ),
+                                                html.Small(
+                                                    f"{points_percentage}% Complete",
+                                                    className="text-muted",
+                                                ),
+                                            ],
+                                        ),
+                                        html.Div(
+                                            className="progress",
+                                            style={
+                                                "height": "16px",
+                                                "borderRadius": "4px",
+                                                "overflow": "hidden",
+                                                "boxShadow": "inset 0 1px 2px rgba(0,0,0,.1)",
+                                            },
+                                            children=[
+                                                html.Div(
+                                                    className="progress-bar bg-warning",
+                                                    style={
+                                                        "width": f"{points_percentage}%",
+                                                        "height": "100%",
+                                                        "transition": "width 1s ease",
+                                                    },
+                                                ),
+                                            ],
+                                        ),
+                                        html.Small(
+                                            f"{completed_points} of {actual_total_points} points ({remaining_points} remaining)",
+                                            className="text-muted mt-1 d-block",
+                                        ),
+                                    ],
+                                ),
+                            ]
+                            if show_points
+                            else []
+                        ),
                         style={
                             "display": "block" if not similar_percentages else "none"
                         },
@@ -1129,6 +1145,7 @@ def create_pert_info_table(
                                 total_items,
                                 remaining_points,
                                 similar_percentages,
+                                show_points,
                             ),
                             # Deadline card
                             _create_deadline_section(
