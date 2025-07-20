@@ -509,7 +509,11 @@ def sync_jira_scope_and_data(
                 logger.warning("Failed to cache JIRA response")
 
         # Calculate JIRA-based project scope
-        points_field = config.get("story_points_field", "votes")
+        # Only use story_points_field if it's configured and not empty
+        points_field = config.get("story_points_field", "").strip()
+        if not points_field:
+            # When no points field is configured, pass empty string instead of defaulting to "votes"
+            points_field = ""
         scope_data = calculate_jira_project_scope(issues, points_field, config)
         if not scope_data:
             return False, "Failed to calculate JIRA project scope", {}

@@ -98,13 +98,17 @@ def calculate_jira_project_scope(
     total_points = completed_points + remaining_points
 
     # Calculate remaining_total_points using the specified formula
-    remaining_total_points = _calculate_remaining_total_points(
-        estimated_items,
-        estimated_points,
-        remaining_items,
-        completed_items,
-        completed_points,
-    )
+    # Only calculate if points field is available, otherwise return 0
+    if points_field_available:
+        remaining_total_points = _calculate_remaining_total_points(
+            estimated_items,
+            estimated_points,
+            remaining_items,
+            completed_items,
+            completed_points,
+        )
+    else:
+        remaining_total_points = 0
 
     result = {
         "total_items": total_items,
@@ -115,10 +119,10 @@ def calculate_jira_project_scope(
         "remaining_points": remaining_points,  # Sum of all remaining item points
         "estimated_items": estimated_items
         if points_field_available
-        else remaining_items,  # Items with point values
+        else 0,  # No items have point values when field is empty
         "estimated_points": estimated_points
         if points_field_available
-        else remaining_points,  # Points from estimated items
+        else 0,  # No points from estimated items when field is empty
         "remaining_total_points": remaining_total_points,  # Calculated total remaining points
         "points_field_available": points_field_available,  # Flag for UI
         "status_breakdown": status_breakdown,

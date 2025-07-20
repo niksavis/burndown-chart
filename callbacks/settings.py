@@ -946,7 +946,9 @@ def calculate_jira_project_scope(
             "jql_query": jql_query or "",
             "base_url": jira_url or "https://jira.atlassian.com",
             "token": jira_token or "",
-            "story_points_field": story_points_field or "votes",
+            "story_points_field": story_points_field.strip()
+            if story_points_field
+            else "",
             "cache_max_size_mb": int(cache_max_size) if cache_max_size else 50,
         }
 
@@ -987,7 +989,10 @@ def calculate_jira_project_scope(
                 )  # Still get total remaining
                 estimated_points = 0  # Can't determine estimated points
 
-                status_message = f"⚠️ Points field '{story_points_field or 'votes'}' not found or no meaningful point values. Only total item count ({total_items}) calculated. Configure a valid points field for full scope calculation."
+                if story_points_field and story_points_field.strip():
+                    status_message = f"⚠️ Points field '{story_points_field.strip()}' not found or no meaningful point values. Only total item count ({total_items}) calculated. Configure a valid points field for full scope calculation."
+                else:
+                    status_message = f"⚠️ No points field configured. Only total item count ({total_items}) calculated. Configure a valid points field for full scope calculation."
 
             status_content = html.Div(
                 [

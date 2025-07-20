@@ -57,7 +57,9 @@ class TestEmptyPointsField(unittest.TestCase):
         self.assertEqual(result["total_items"], 3)
         self.assertEqual(result["completed_items"], 1)
         self.assertEqual(result["remaining_items"], 2)
-        self.assertEqual(result["estimated_items"], 2)  # Fallback when no points field
+        self.assertEqual(
+            result["estimated_items"], 0
+        )  # No estimated items when no points field
 
     def test_whitespace_points_field(self):
         """Test behavior with whitespace-only points field."""
@@ -75,6 +77,9 @@ class TestEmptyPointsField(unittest.TestCase):
         self.assertEqual(result["total_items"], 3)
         self.assertEqual(result["completed_items"], 1)
         self.assertEqual(result["remaining_items"], 2)
+        self.assertEqual(
+            result["estimated_items"], 0
+        )  # No estimated items when no points field
 
     def test_valid_points_field_comparison(self):
         """Test that valid points field works correctly for comparison."""
@@ -95,6 +100,59 @@ class TestEmptyPointsField(unittest.TestCase):
         self.assertEqual(result["completed_items"], 1)
         self.assertEqual(result["remaining_items"], 2)
         self.assertEqual(result["estimated_items"], 2)
+
+    def test_empty_points_field_with_many_issues(self):
+        """Test empty points field behavior with a larger dataset similar to user scenario."""
+        # Create a larger dataset similar to the user's scenario with 195 total items
+        large_issues = []
+
+        # Add 145 completed issues (Done status)
+        for i in range(145):
+            large_issues.append(
+                {
+                    "key": f"TEST-{i + 1}",
+                    "fields": {
+                        "status": {"name": "Done", "statusCategory": {"key": "done"}},
+                        "customfield_10002": None,  # No points configured
+                    },
+                }
+            )
+
+        # Add 50 remaining issues (In Progress and To Do)
+        for i in range(50):
+            status_name = "In Progress" if i < 25 else "To Do"
+            status_key = "indeterminate" if i < 25 else "new"
+            large_issues.append(
+                {
+                    "key": f"TEST-{i + 146}",
+                    "fields": {
+                        "status": {
+                            "name": status_name,
+                            "statusCategory": {"key": status_key},
+                        },
+                        "customfield_10002": None,  # No points configured
+                    },
+                }
+            )
+
+        # Test with empty points field
+        result = calculate_jira_project_scope(large_issues, "")
+
+        # All point-related calculations should be 0
+        self.assertFalse(result["points_field_available"])
+        self.assertEqual(result["total_points"], 0)
+        self.assertEqual(result["completed_points"], 0)
+        self.assertEqual(result["remaining_points"], 0)
+        self.assertEqual(result["estimated_points"], 0)
+        self.assertEqual(
+            result["remaining_total_points"], 0.0
+        )  # This should NOT be 1088!
+        self.assertEqual(result["estimated_items"], 0)  # This should NOT be 50!
+
+        # Item counts should be correct
+        self.assertEqual(result["total_items"], 195)
+        self.assertEqual(result["completed_items"], 145)
+        self.assertEqual(result["remaining_items"], 50)
 
 
 if __name__ == "__main__":
