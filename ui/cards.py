@@ -72,20 +72,22 @@ def _get_default_jql_query():
         return "project = JRASERVER"
 
 
-def _get_default_jira_url():
+def _get_default_jira_api_endpoint():
     """
-    Get the default JIRA URL from app settings.
+    Get the default JIRA API endpoint from app settings.
 
     Returns:
-        str: JIRA URL from settings or default value
+        str: JIRA API endpoint from settings or default value
     """
     try:
         from data.persistence import load_app_settings
 
         app_settings = load_app_settings()
-        return app_settings.get("jira_url", "https://jira.atlassian.com")
+        return app_settings.get(
+            "jira_api_endpoint", "https://jira.atlassian.com/rest/api/2/search"
+        )
     except ImportError:
-        return "https://jira.atlassian.com"
+        return "https://jira.atlassian.com/rest/api/2/search"
 
 
 def _get_default_jira_token():
@@ -1053,20 +1055,20 @@ def create_input_parameters_card(
                         else "none"
                     },
                     children=[
-                        # JIRA URL - Full width on mobile
+                        # JIRA API Endpoint - Full width on mobile
                         dbc.Row(
                             [
                                 dbc.Col(
                                     [
                                         html.Label(
-                                            "JIRA URL:",
+                                            "JIRA API Endpoint (URL):",
                                             className="fw-medium",
                                         ),
                                         dbc.Input(
                                             id="jira-url",
                                             type="text",
-                                            placeholder="https://your-jira.com",
-                                            value=_get_default_jira_url(),
+                                            placeholder="https://your-jira.com/rest/api/2/search",
+                                            value=_get_default_jira_api_endpoint(),
                                             style=create_input_style(size="md"),
                                         ),
                                     ],

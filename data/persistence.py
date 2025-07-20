@@ -12,7 +12,7 @@ It provides functions for managing settings and statistics using JSON files.
 import json
 import os
 from datetime import datetime, timedelta
-from typing import Dict, Any, Optional, Tuple
+from typing import Dict, Any
 
 # Third-party library imports
 import pandas as pd
@@ -63,7 +63,7 @@ def save_app_settings(
     milestone=None,
     show_points=None,
     jql_query=None,
-    jira_url=None,
+    jira_api_endpoint=None,
     jira_token=None,
     jira_story_points_field=None,
     jira_cache_max_size=None,
@@ -79,7 +79,7 @@ def save_app_settings(
         milestone: Milestone date string
         show_points: Whether to show points tracking and forecasting
         jql_query: JQL query for JIRA integration
-        jira_url: JIRA URL for API calls
+        jira_api_endpoint: Full JIRA API endpoint URL
         jira_token: Personal access token for JIRA API
         jira_story_points_field: Custom field ID for story points
         jira_cache_max_size: Maximum cache size in MB
@@ -94,7 +94,9 @@ def save_app_settings(
         "milestone": milestone,
         "show_points": show_points if show_points is not None else False,
         "jql_query": jql_query if jql_query is not None else "project = JRASERVER",
-        "jira_url": jira_url if jira_url is not None else "https://jira.atlassian.com",
+        "jira_api_endpoint": jira_api_endpoint
+        if jira_api_endpoint is not None
+        else "https://jira.atlassian.com/rest/api/2/search",
         "jira_token": jira_token if jira_token is not None else "",
         "jira_story_points_field": jira_story_points_field
         if jira_story_points_field is not None
@@ -135,7 +137,7 @@ def load_app_settings():
         "milestone": None,
         "show_points": False,
         "jql_query": "project = JRASERVER",
-        "jira_url": "https://jira.atlassian.com",
+        "jira_api_endpoint": "https://jira.atlassian.com/rest/api/2/search",
         "jira_token": "",
         "jira_story_points_field": "",
         "jira_cache_max_size": 100,
@@ -185,6 +187,10 @@ def load_app_settings():
                 migrated_settings["milestone"],
                 migrated_settings["show_points"],
                 migrated_settings["jql_query"],
+                "https://jira.atlassian.com/rest/api/2/search",  # Default API endpoint for migration
+                "",  # Empty JIRA token for migration
+                "",  # Empty story points field for migration
+                100,  # Default cache size for migration
             )
 
             # Extract project data from legacy format and save separately
@@ -444,8 +450,12 @@ def save_statistics(data):
         # Update statistics in unified data
         unified_data["statistics"] = statistics_data
 
-        # Update metadata
-        unified_data["metadata"]["last_updated"] = datetime.now().isoformat()
+        # Update metadata - preserve existing source and jira_query unless explicitly overriding
+        unified_data["metadata"].update(
+            {
+                "last_updated": datetime.now().isoformat(),
+            }
+        )
 
         # Save the unified data
         save_unified_project_data(unified_data)
@@ -453,6 +463,52 @@ def save_statistics(data):
         logger.info(f"Statistics saved to {PROJECT_DATA_FILE}")
     except Exception as e:
         logger.error(f"Error saving statistics: {e}")
+
+
+def save_statistics_from_csv_import(data):
+    """
+    Save statistics data from CSV import to unified JSON file.
+    This function specifically handles CSV imports and sets appropriate metadata.
+
+    Args:
+        data: List of dictionaries containing statistics data
+    """
+    try:
+        df = pd.DataFrame(data)
+
+        # Ensure date column is in proper datetime format for sorting
+        df["date"] = pd.to_datetime(df["date"], errors="coerce")
+
+        # Sort by date in ascending order (oldest first)
+        df = df.sort_values("date", ascending=True)
+
+        # Convert back to string format for storage
+        df["date"] = df["date"].dt.strftime("%Y-%m-%d")
+
+        # Convert back to list of dictionaries
+        statistics_data = df.to_dict("records")
+
+        # Load current unified data
+        unified_data = load_unified_project_data()
+
+        # Update statistics in unified data
+        unified_data["statistics"] = statistics_data
+
+        # Update metadata specifically for CSV import
+        unified_data["metadata"].update(
+            {
+                "source": "csv_import",  # Set proper source for CSV uploads
+                "last_updated": datetime.now().isoformat(),
+                "jira_query": "",  # Clear JIRA-specific fields for CSV import
+            }
+        )
+
+        # Save the unified data
+        save_unified_project_data(unified_data)
+
+        logger.info(f"Statistics from CSV import saved to {PROJECT_DATA_FILE}")
+    except Exception as e:
+        logger.error(f"Error saving CSV import statistics: {e}")
 
 
 def load_statistics():
@@ -828,6 +884,62 @@ def update_project_scope_from_jira(
         return False, f"Failed to update scope from JIRA: {e}"
 
 
+def calculate_project_scope_from_jira(
+    jql_query: str | None = None, ui_config: dict | None = None
+):
+    """
+    Calculate project scope from JIRA without saving to file.
+    This is used for "Calculate Scope" action which should only display results.
+
+    Args:
+        jql_query: Optional JQL query to use for JIRA sync
+        ui_config: Optional UI configuration to use
+
+    Returns:
+        Tuple (success: bool, message: str, scope_data: dict)
+    """
+    try:
+        from data.jira_simple import (
+            get_jira_config,
+            validate_jira_config,
+            fetch_jira_issues,
+        )
+        from data.jira_scope_calculator import calculate_jira_project_scope
+
+        # Load configuration
+        if ui_config:
+            config = ui_config.copy()
+            if jql_query:
+                config["jql_query"] = jql_query
+        else:
+            config = get_jira_config(jql_query)
+
+        # Validate configuration
+        is_valid, message = validate_jira_config(config)
+        if not is_valid:
+            return False, f"Configuration invalid: {message}", {}
+
+        # Fetch issues from JIRA (or cache)
+        fetch_success, issues = fetch_jira_issues(config)
+        if not fetch_success:
+            return False, "Failed to fetch JIRA data", {}
+
+        # Calculate scope (no saving to file!)
+        points_field = config.get("story_points_field", "").strip()
+        if not points_field:
+            points_field = ""
+
+        scope_data = calculate_jira_project_scope(issues, points_field, config)
+        if not scope_data:
+            return False, "Failed to calculate JIRA project scope", {}
+
+        return True, "Project scope calculated successfully", scope_data
+
+    except Exception as e:
+        logger.error(f"Error calculating project scope from JIRA: {e}")
+        return False, f"Failed to calculate scope from JIRA: {e}", {}
+
+
 def add_project_statistic(stat_data):
     """
     Add a new statistic entry to unified data structure.
@@ -901,7 +1013,7 @@ def load_project_data_legacy():
     return load_project_data()
 
 
-def save_jira_data_unified(statistics_data, project_scope_data):
+def save_jira_data_unified(statistics_data, project_scope_data, jira_config=None):
     """
     Save both JIRA statistics and project scope to unified data structure.
 
@@ -910,6 +1022,7 @@ def save_jira_data_unified(statistics_data, project_scope_data):
     Args:
         statistics_data: List of dictionaries containing statistics data
         project_scope_data: Dictionary containing project scope data
+        jira_config: Optional JIRA configuration dictionary for metadata
     """
     try:
         # Load current unified data
@@ -921,14 +1034,19 @@ def save_jira_data_unified(statistics_data, project_scope_data):
         # Update project scope
         unified_data["project_scope"] = project_scope_data
 
-        # Update metadata
+        # Extract JQL query from config or fallback
+        jql_query = ""
+        if jira_config:
+            jql_query = jira_config.get(
+                "jql_query", ""
+            )  # Update metadata with proper JIRA information
         unified_data["metadata"].update(
             {
-                "source": "csv_import",  # Keep as csv_import for compatibility
+                "source": "jira_calculated",  # Correct source for JIRA data
                 "last_updated": datetime.now().isoformat(),
                 "version": "2.0",
-                "jira_query": "",
-                "calculation_method": "",
+                "jira_query": jql_query,
+                # Remove calculation_method - it's redundant with project_scope.calculation_metadata.method
             }
         )
 
@@ -988,7 +1106,6 @@ def migrate_csv_to_json() -> Dict[str, Any]:
             "last_updated": datetime.now().isoformat(),
             "version": "2.0",
             "jira_query": "",
-            "calculation_method": "",
         },
     }
 

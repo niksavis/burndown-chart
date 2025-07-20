@@ -56,17 +56,12 @@ def get_jira_config(settings_jql_query: str | None = None) -> Dict:
     )
 
     config = {
-        "url": (
-            app_settings.get("jira_url", "")  # App settings
-            or os.getenv("JIRA_URL", "")  # Environment variable
-            or ""  # Default
-        ),
-        "base_url": (
-            app_settings.get("jira_url", "")  # App settings
-            or os.getenv("JIRA_URL", "")  # Environment variable
-            or ""  # Default
-        ),
         "jql_query": jql_query,
+        "api_endpoint": (
+            app_settings.get("jira_api_endpoint", "")  # App settings
+            or os.getenv("JIRA_API_ENDPOINT", "")  # Environment variable
+            or "https://jira.atlassian.com/rest/api/2/search"  # Default fallback
+        ),
         "token": (
             app_settings.get("jira_token", "")  # App settings
             or os.getenv("JIRA_TOKEN", "")  # Environment variable
@@ -92,10 +87,9 @@ def get_jira_config(settings_jql_query: str | None = None) -> Dict:
 
 def validate_jira_config(config: Dict) -> Tuple[bool, str]:
     """Validate JIRA configuration and custom fields."""
-    # Check both 'url' and 'base_url' for backwards compatibility
-    jira_url = config.get("url") or config.get("base_url", "")
-    if not jira_url:
-        return False, "JIRA URL is required"
+    api_endpoint = config.get("api_endpoint", "")
+    if not api_endpoint:
+        return False, "JIRA API endpoint is required"
 
     if not config["jql_query"]:
         return False, "JQL query is required"
@@ -104,6 +98,10 @@ def validate_jira_config(config: Dict) -> Tuple[bool, str]:
     jql_query = config["jql_query"].strip()
     if len(jql_query) < 5:  # Minimum reasonable JQL length
         return False, "JQL query is too short"
+
+    # Basic URL validation for API endpoint
+    if not api_endpoint.startswith(("http://", "https://")):
+        return False, "JIRA API endpoint must be a valid URL (http:// or https://)"
 
     return True, "Configuration valid"
 
@@ -114,14 +112,14 @@ def fetch_jira_issues(config: Dict, max_results: int = 1000) -> Tuple[bool, List
         # Use the JQL query directly from configuration
         jql = config["jql_query"]
 
-        # Get JIRA URL - check both keys for compatibility
-        jira_url = config.get("url") or config.get("base_url", "")
-        if not jira_url:
-            logger.error("JIRA URL not configured")
+        # Get JIRA API endpoint (full URL)
+        api_endpoint = config.get("api_endpoint", "")
+        if not api_endpoint:
+            logger.error("JIRA API endpoint not configured")
             return False, []
 
-        # API endpoint
-        url = f"{jira_url}/rest/api/2/search"
+        # Use the full API endpoint directly
+        url = api_endpoint
 
         # Headers
         headers = {"Accept": "application/json"}
@@ -525,7 +523,7 @@ def sync_jira_scope_and_data(
         # Save both statistics and project scope to unified data structure
         from data.persistence import save_jira_data_unified
 
-        if save_jira_data_unified(csv_data, scope_data):
+        if save_jira_data_unified(csv_data, scope_data, config):
             logger.info("JIRA scope calculation and data sync completed successfully")
             return (
                 True,

@@ -22,7 +22,7 @@ import dash_bootstrap_components as dbc
 
 # Application imports
 from configuration import logger
-from data import save_statistics, read_and_clean_data
+from data import save_statistics, save_statistics_from_csv_import, read_and_clean_data
 
 #######################################################################
 # HELPER FUNCTIONS
@@ -351,6 +351,9 @@ def register(app):
                                     .fillna(0)
                                     .astype(int)
                                 )
+
+                        # Save CSV data directly with correct metadata
+                        save_statistics_from_csv_import(df.to_dict("records"))
 
                         # When uploading data, we're no longer using sample data
                         # Clear the upload contents to allow consecutive uploads of the same file

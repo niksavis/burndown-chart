@@ -78,7 +78,6 @@ PROJECT_DATA_SCHEMA = {
         "last_updated": str,  # ISO datetime
         "version": str,  # Data format version
         "jira_query": str,  # JQL used for calculation
-        "calculation_method": str,  # "status_category", "status_names"
     },
 }
 
@@ -151,6 +150,5 @@ def get_default_unified_data() -> Dict[str, Any]:
             "last_updated": datetime.now().isoformat(),
             "version": "2.0",
             "jira_query": "",
-            "calculation_method": "",
         },
     }

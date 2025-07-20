@@ -106,7 +106,6 @@ class TestDataMigration(unittest.TestCase):
                 "last_updated": datetime.now().isoformat(),
                 "version": "2.0",
                 "jira_query": "",
-                "calculation_method": "",
             },
         }
 

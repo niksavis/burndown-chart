@@ -5,9 +5,9 @@
   "show_milestone": false,
   "milestone": null,
   "show_points": true,
-  "jql_query": "project = JRASERVER AND created > endOfMonth(-12)",
-  "jira_url": "https://jira.atlassian.com",
+  "jql_query": "project = JRASERVER AND created > endOfMonth(-3)",
+  "jira_api_endpoint": "https://jira.atlassian.com/rest/api/2/search",
   "jira_token": "",
-  "jira_story_points_field": "votes",
+  "jira_story_points_field": "",
   "jira_cache_max_size": 100
 }

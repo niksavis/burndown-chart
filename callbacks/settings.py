@@ -210,7 +210,7 @@ def register(app):
         show_points,  # Added parameter
         # Add all JIRA parameters for immediate saving
         jql_query,
-        jira_url,
+        jira_api_endpoint,
         jira_token,
         jira_story_points_field,
         jira_cache_max_size,
@@ -278,9 +278,9 @@ def register(app):
             jql_query.strip()
             if jql_query and jql_query.strip()
             else "project = JRASERVER",  # Use current JQL input
-            jira_url.strip()
-            if jira_url and jira_url.strip()
-            else "https://jira.atlassian.com",  # Use current JIRA URL input
+            jira_api_endpoint.strip()
+            if jira_api_endpoint and jira_api_endpoint.strip()
+            else "https://jira.atlassian.com/rest/api/2/search",  # Use current JIRA API endpoint input
             jira_token.strip() if jira_token else "",  # Use current JIRA token input
             jira_story_points_field.strip()
             if jira_story_points_field
@@ -565,13 +565,13 @@ def register(app):
         prevent_initial_call=True,
     )
     def update_jira_cache_and_validation(
-        url, jql_query, jira_token, story_points_field, cache_max_size
+        api_endpoint, jql_query, jira_token, story_points_field, cache_max_size
     ):
         """
         Update JIRA cache status and show validation information.
 
         Args:
-            url: JIRA URL
+            api_endpoint: JIRA API endpoint URL
             jql_query: JQL query for filtering issues
             jira_token: Personal access token
             story_points_field: Custom field ID for story points mapping (optional)
@@ -595,7 +595,8 @@ def register(app):
 
             # Create JIRA config from UI inputs (same logic as unified button)
             jira_config = {
-                "url": url or "https://jira.atlassian.com",
+                "api_endpoint": api_endpoint
+                or "https://jira.atlassian.com/rest/api/2/search",
                 "jql_query": jql_query or "project = JRASERVER",
                 "token": jira_token or "",
                 "story_points_field": story_points_field.strip()
@@ -717,7 +718,7 @@ def register(app):
         n_clicks,
         data_source,
         jql_query,
-        jira_url,
+        jira_api_endpoint,
         jira_token,
         story_points_field,
         cache_max_size,
@@ -730,7 +731,7 @@ def register(app):
             n_clicks (int): Number of clicks on unified update button
             data_source (str): Selected data source ("CSV" or "JIRA")
             jql_query (str): JQL query for JIRA data source
-            jira_url (str): JIRA instance URL
+            jira_api_endpoint (str): JIRA API endpoint URL
             jira_token (str): Personal access token
             story_points_field (str): Custom field ID for story points mapping (optional)
             cache_max_size (int): Maximum cache size in MB
@@ -764,10 +765,10 @@ def register(app):
                 )
 
                 # Process and clean JIRA configuration inputs
-                final_jira_url = (
-                    jira_url.strip()
-                    if jira_url and jira_url.strip()
-                    else "https://jira.atlassian.com"
+                final_jira_api_endpoint = (
+                    jira_api_endpoint.strip()
+                    if jira_api_endpoint and jira_api_endpoint.strip()
+                    else "https://jira.atlassian.com/rest/api/2/search"
                 )
                 final_jira_token = jira_token.strip() if jira_token else ""
                 final_story_points_field = (
@@ -780,8 +781,11 @@ def register(app):
                 # Check if any JIRA settings have changed and need saving
                 settings_changed = (
                     settings_jql != app_settings.get("jql_query", "project = JRASERVER")
-                    or final_jira_url
-                    != app_settings.get("jira_url", "https://jira.atlassian.com")
+                    or final_jira_api_endpoint
+                    != app_settings.get(
+                        "jira_api_endpoint",
+                        "https://jira.atlassian.com/rest/api/2/search",
+                    )
                     or final_jira_token != app_settings.get("jira_token", "")
                     or final_story_points_field
                     != app_settings.get("jira_story_points_field", "")
@@ -800,18 +804,18 @@ def register(app):
                         app_settings["milestone"],
                         app_settings["show_points"],
                         settings_jql,
-                        final_jira_url,
+                        final_jira_api_endpoint,
                         final_jira_token,
                         final_story_points_field,
                         final_cache_max_size,
                     )
                     logger.info(
-                        f"JIRA configuration updated and saved: JQL='{settings_jql}', URL='{final_jira_url}', Points Field='{final_story_points_field}', Cache Size={final_cache_max_size}"
+                        f"JIRA configuration updated and saved: JQL='{settings_jql}', API Endpoint='{final_jira_api_endpoint}', Points Field='{final_story_points_field}', Cache Size={final_cache_max_size}"
                     )
 
                 # Create JIRA config from UI inputs (override environment/settings)
                 jira_config = {
-                    "url": final_jira_url,
+                    "api_endpoint": final_jira_api_endpoint,
                     "jql_query": settings_jql,
                     "token": final_jira_token,
                     "story_points_field": final_story_points_field,
@@ -937,7 +941,12 @@ def register(app):
     prevent_initial_call=True,
 )
 def calculate_jira_project_scope(
-    n_clicks, jql_query, jira_url, jira_token, story_points_field, cache_max_size
+    n_clicks,
+    jql_query,
+    jira_api_endpoint,
+    jira_token,
+    story_points_field,
+    cache_max_size,
 ):
     """
     Calculate project scope based on JIRA issues using status categories.
@@ -946,12 +955,13 @@ def calculate_jira_project_scope(
         raise PreventUpdate
 
     try:
-        from data.persistence import update_project_scope_from_jira
+        from data.persistence import calculate_project_scope_from_jira
 
         # Build UI config from form inputs
         ui_config = {
             "jql_query": jql_query or "",
-            "base_url": jira_url or "https://jira.atlassian.com",
+            "api_endpoint": jira_api_endpoint
+            or "https://jira.atlassian.com/rest/api/2/search",
             "token": jira_token or "",
             "story_points_field": story_points_field.strip()
             if story_points_field
@@ -959,17 +969,17 @@ def calculate_jira_project_scope(
             "cache_max_size_mb": int(cache_max_size) if cache_max_size else 50,
         }
 
-        # Update project scope from JIRA
-        success, message = update_project_scope_from_jira(jql_query, ui_config)
+        # Calculate project scope from JIRA (no saving to file!)
+        success, message, scope_data = calculate_project_scope_from_jira(
+            jql_query, ui_config
+        )
 
         # Update timestamp
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         if success:
-            # Load the updated project scope values
-            from data.persistence import get_project_scope
-
-            project_scope = get_project_scope()
+            # Use the calculated scope values directly (no file loading!)
+            project_scope = scope_data
 
             # Get the updated values for UI fields based on new calculation logic
             # Check if points field was available for proper calculations

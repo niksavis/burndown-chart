@@ -25,6 +25,7 @@ from data.persistence import (
     save_project_data,
     save_settings,
     save_statistics,
+    save_statistics_from_csv_import,
 )
 from data.processing import (
     calculate_performance_trend,
@@ -44,6 +45,7 @@ __all__ = [
     "save_settings",
     "load_statistics",
     "save_statistics",
+    "save_statistics_from_csv_import",
     "read_and_clean_data",
     "generate_realistic_sample_data",
     "calculate_total_points",
