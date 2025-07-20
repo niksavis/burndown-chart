@@ -27,16 +27,16 @@ def another_dataframe():
     )
 
 
-# Regular function for caching tests
-def test_dataframe_function(df, multiplier=1):
-    """Test function that takes a DataFrame and returns the sum of values multiplied."""
+# Regular function for caching tests - renamed to avoid pytest confusion
+def dataframe_function(df, multiplier=1):
+    """Function that takes a DataFrame and returns the sum of values multiplied."""
     if isinstance(df, pd.DataFrame) and "value" in df.columns:
         return df["value"].sum() * multiplier
     return 0
 
 
 # Apply the decorator separately to avoid pytest confusion
-cached_test_function = memoize(max_age_seconds=10)(test_dataframe_function)
+cached_test_function = memoize(max_age_seconds=10)(dataframe_function)
 
 
 def test_memoize_with_dataframe(sample_dataframe):

@@ -146,6 +146,62 @@ class TestJiraApiMocking:
             assert scope_data["total_items"] == 0
             assert scope_data["total_points"] == 0
 
+    @patch("data.jira_simple.fetch_jira_issues")
+    @patch("data.jira_simple.get_jira_config")
+    def test_empty_points_field_integration(self, mock_get_config, mock_fetch_issues):
+        """Test integration workflow with empty points field configuration."""
+
+        # Mock configuration with empty points field
+        mock_config = {
+            "jql_query": "project = TEST",
+            "base_url": "https://test-jira.com",
+            "token": "test-token",
+            "story_points_field": "",  # Empty points field
+            "cache_max_size_mb": 50,
+        }
+        mock_get_config.return_value = mock_config
+
+        # Mock JIRA issues with point values that should be ignored
+        mock_issues = [
+            {
+                "key": "TEST-1",
+                "fields": {
+                    "status": {"name": "Done", "statusCategory": {"key": "done"}},
+                    "customfield_10002": 8,  # Should be ignored
+                    "votes": {"votes": 2},  # Should be ignored
+                },
+            },
+            {
+                "key": "TEST-2",
+                "fields": {
+                    "status": {"name": "To Do", "statusCategory": {"key": "new"}},
+                    "customfield_10002": 5,  # Should be ignored
+                },
+            },
+        ]
+        mock_fetch_issues.return_value = (True, mock_issues)
+
+        # Execute the sync workflow
+        success, message, scope_data = sync_jira_scope_and_data()
+
+        # Verify success
+        assert success is True
+        assert message  # Just check that there's a success message
+
+        # Verify that points field being empty results in zero points
+        assert scope_data["points_field_available"] is False
+        assert scope_data["total_points"] == 0
+        assert scope_data["completed_points"] == 0
+        assert scope_data["remaining_points"] == 0
+        assert scope_data["estimated_points"] == 0
+        assert scope_data["remaining_total_points"] == 0.0
+
+        # Items should still be counted correctly
+        assert scope_data["total_items"] == 2
+        assert scope_data["completed_items"] == 1  # TEST-1 is Done
+        assert scope_data["remaining_items"] == 1  # TEST-2 is To Do
+        assert scope_data["estimated_items"] == 1  # Fallback: remaining items
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

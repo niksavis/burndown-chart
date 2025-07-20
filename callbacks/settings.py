@@ -962,15 +962,42 @@ def calculate_jira_project_scope(
 
             project_scope = get_project_scope()
 
-            # Get the updated values for UI fields
-            estimated_items = project_scope.get("remaining_items", 0)
-            total_items = project_scope.get("remaining_items", 0)
-            estimated_points = project_scope.get("remaining_points", 0)
+            # Get the updated values for UI fields based on new calculation logic
+            # Check if points field was available for proper calculations
+            points_field_available = project_scope.get("points_field_available", False)
+
+            if points_field_available:
+                # Use proper calculated values when points field is available
+                estimated_items = project_scope.get(
+                    "estimated_items", 0
+                )  # Items with point values
+                total_items = project_scope.get(
+                    "remaining_items", 0
+                )  # All remaining items
+                estimated_points = project_scope.get(
+                    "estimated_points", 0
+                )  # Points from estimated items
+
+                status_message = f"Project scope calculated from JIRA with {estimated_items} estimated items out of {total_items} total remaining items."
+            else:
+                # Fallback when points field is not available
+                estimated_items = 0  # Can't determine which items are estimated
+                total_items = project_scope.get(
+                    "remaining_items", 0
+                )  # Still get total remaining
+                estimated_points = 0  # Can't determine estimated points
+
+                status_message = f"⚠️ Points field '{story_points_field or 'votes'}' not found or no meaningful point values. Only total item count ({total_items}) calculated. Configure a valid points field for full scope calculation."
 
             status_content = html.Div(
                 [
                     html.I(className="fas fa-check-circle me-2 text-success"),
-                    html.Span(message, className="text-success"),
+                    html.Span(
+                        status_message,
+                        className="text-success"
+                        if points_field_available
+                        else "text-warning",
+                    ),
                 ],
                 className="mb-2",
             )

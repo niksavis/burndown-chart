@@ -31,15 +31,25 @@ def calculate_jira_project_scope(
         - total_points: Total story points
         - completed_items: Number of completed issues
         - completed_points: Story points for completed issues
-        - remaining_items: Number of remaining issues
-        - remaining_points: Story points for remaining issues
+        - remaining_items: Number of remaining issues (all non-completed)
+        - remaining_points: Story points for remaining issues (sum of all remaining)
+        - estimated_items: Number of remaining issues WITH point values
+        - estimated_points: Story points only from issues WITH point values
+        - remaining_total_points: Calculated total remaining points (estimated + extrapolated)
         - status_breakdown: Detailed breakdown by status
+        - points_field_available: Whether meaningful point data was found
     """
 
     # Initialize counters
     completed_items = completed_points = 0
     remaining_items = remaining_points = 0
+    estimated_items = estimated_points = 0  # Items/points with actual point values
     status_breakdown = {}
+
+    # Check if points field has meaningful data
+    points_field_available = _validate_points_field_availability(
+        issues_data, points_field
+    )
 
     for issue in issues_data:
         try:
@@ -48,18 +58,26 @@ def calculate_jira_project_scope(
             status_category = issue["fields"]["status"]["statusCategory"]["key"]
             points = _extract_story_points(issue["fields"], points_field)
 
+            # Check if this issue has meaningful points (not just default fallback)
+            has_real_points = _issue_has_real_points(issue["fields"], points_field)
+
             # Classify status
             classification = _classify_issue_status(
                 status_name, status_category, status_config
             )
 
-            # Update counters
+            # Update counters based on classification
             if classification == "COMPLETED":
                 completed_items += 1
                 completed_points += points
             else:  # IN_PROGRESS or TODO both count as remaining
                 remaining_items += 1
                 remaining_points += points
+
+                # Only count as "estimated" if it has real point values
+                if has_real_points and points_field_available:
+                    estimated_items += 1
+                    estimated_points += points
 
             # Track status breakdown for reporting
             if status_name not in status_breakdown:
@@ -79,15 +97,30 @@ def calculate_jira_project_scope(
     total_items = completed_items + remaining_items
     total_points = completed_points + remaining_points
 
+    # Calculate remaining_total_points using the specified formula
+    remaining_total_points = _calculate_remaining_total_points(
+        estimated_items,
+        estimated_points,
+        remaining_items,
+        completed_items,
+        completed_points,
+    )
+
     result = {
         "total_items": total_items,
         "total_points": total_points,
         "completed_items": completed_items,
         "completed_points": completed_points,
-        "remaining_items": remaining_items,
-        "remaining_points": remaining_points,
-        "estimated_items": total_items,  # For compatibility
-        "estimated_points": total_points,  # For compatibility
+        "remaining_items": remaining_items,  # All non-completed items
+        "remaining_points": remaining_points,  # Sum of all remaining item points
+        "estimated_items": estimated_items
+        if points_field_available
+        else remaining_items,  # Items with point values
+        "estimated_points": estimated_points
+        if points_field_available
+        else remaining_points,  # Points from estimated items
+        "remaining_total_points": remaining_total_points,  # Calculated total remaining points
+        "points_field_available": points_field_available,  # Flag for UI
         "status_breakdown": status_breakdown,
         "calculation_metadata": {
             "method": status_config.get("method", "status_category")
@@ -96,6 +129,7 @@ def calculate_jira_project_scope(
             "calculated_at": datetime.now().isoformat(),
             "total_issues_processed": len(issues_data),
             "points_field": points_field,
+            "points_field_valid": points_field_available,
         },
     }
 
@@ -158,9 +192,13 @@ def _extract_story_points(fields: Dict[str, Any], points_field: str) -> int:
         points_field: Field name to extract points from
 
     Returns:
-        int: Story points value (defaults to 1 if not found or invalid)
+        int: Story points value (defaults to 0 if field is invalid/empty, 1 if field exists but no value)
     """
     try:
+        # First check if points field is valid (not empty/whitespace)
+        if not points_field or points_field.strip() == "":
+            return 0  # No points field configured
+
         if points_field == "votes":
             # Use votes field as fallback
             votes_data = fields.get("votes")
@@ -191,8 +229,161 @@ def _extract_story_points(fields: Dict[str, Any], points_field: str) -> int:
             return int(value) if value is not None else 1
 
     except (ValueError, TypeError, KeyError):
-        # If points value is invalid, default to 1
+        # If points value is invalid, default to 0 for empty field, 1 for valid field
+        if not points_field or points_field.strip() == "":
+            return 0
         return 1
+
+
+def _validate_points_field_availability(
+    issues_data: List[Dict[str, Any]], points_field: str
+) -> bool:
+    """
+    Check if points field exists and has meaningful data in the issues.
+
+    Args:
+        issues_data: List of JIRA issues
+        points_field: Field name to check
+
+    Returns:
+        bool: True if points field has meaningful data
+    """
+    if not points_field or points_field.strip() == "":
+        return False
+
+    if not issues_data:
+        return False
+
+    # Check if at least some issues have the points field with valid values > 1 (not default)
+    valid_points_count = 0
+    sample_size = min(10, len(issues_data))  # Sample first 10 issues or all if fewer
+
+    for issue in issues_data[:sample_size]:
+        try:
+            fields = issue.get("fields", {})
+            if points_field == "votes":
+                votes_data = fields.get("votes")
+                if votes_data and votes_data.get("votes", 0) > 1:
+                    valid_points_count += 1
+            elif points_field.startswith("customfield_"):
+                value = fields.get(points_field)
+                if value is not None:
+                    if isinstance(value, dict):
+                        point_val = value.get(
+                            "value", value.get("count", value.get("total", 0))
+                        )
+                    elif isinstance(value, (int, float)):
+                        point_val = value
+                    elif isinstance(value, str):
+                        try:
+                            point_val = float(value)
+                        except ValueError:
+                            point_val = 0
+                    else:
+                        point_val = 0
+
+                    if point_val > 1:  # More than default fallback value
+                        valid_points_count += 1
+            else:
+                # Other field types
+                value = fields.get(points_field)
+                if value and value > 1:
+                    valid_points_count += 1
+        except Exception:
+            continue
+
+    # Return True if at least 10% of sampled issues have meaningful points
+    return valid_points_count > 0 and (valid_points_count / sample_size) >= 0.1
+
+
+def _issue_has_real_points(fields: Dict[str, Any], points_field: str) -> bool:
+    """
+    Check if a specific issue has real point values (not just default fallback).
+
+    Args:
+        fields: JIRA issue fields dictionary
+        points_field: Field name to check
+
+    Returns:
+        bool: True if issue has meaningful point values
+    """
+    try:
+        # First check if points field is valid (not empty/whitespace)
+        if not points_field or points_field.strip() == "":
+            return False  # No points field configured
+
+        if points_field == "votes":
+            votes_data = fields.get("votes")
+            return votes_data is not None and votes_data.get("votes", 0) > 1
+        elif points_field.startswith("customfield_"):
+            value = fields.get(points_field)
+            if value is None:
+                return False
+
+            if isinstance(value, dict):
+                point_val = value.get(
+                    "value", value.get("count", value.get("total", 0))
+                )
+            elif isinstance(value, (int, float)):
+                point_val = value
+            elif isinstance(value, str):
+                try:
+                    point_val = float(value)
+                except ValueError:
+                    return False
+            else:
+                return False
+
+            return point_val > 1  # More than default fallback
+        else:
+            value = fields.get(points_field)
+            return value is not None and value > 1
+    except Exception:
+        return False
+
+
+def _calculate_remaining_total_points(
+    estimated_items: int,
+    estimated_points: int,
+    remaining_total_items: int,
+    completed_items: int = 0,
+    completed_points: int = 0,
+) -> float:
+    """
+    Calculate remaining total points using the formula:
+    Remaining Total Points = Remaining Estimated Points +
+    (avg_points_per_item × (Remaining Total Items - Remaining Estimated Items))
+
+    Args:
+        estimated_items: Number of remaining items with point values
+        estimated_points: Sum of points from estimated items
+        remaining_total_items: Total number of remaining items
+        completed_items: Number of completed items (for historical average)
+        completed_points: Points from completed items (for historical average)
+
+    Returns:
+        float: Calculated remaining total points
+    """
+    # If no estimated items, use historical data or fallback
+    if estimated_items <= 0:
+        # Try to calculate from historical completion data
+        if completed_items > 0:
+            avg_points_per_item = completed_points / completed_items
+        else:
+            avg_points_per_item = 10  # Default fallback
+
+        return remaining_total_items * avg_points_per_item
+
+    # Calculate average points per item from estimated items
+    avg_points_per_item = estimated_points / estimated_items
+
+    # Apply the formula: estimated points + (avg × unestimated items)
+    unestimated_items = max(0, remaining_total_items - estimated_items)
+    remaining_total_points = estimated_points + (
+        avg_points_per_item * unestimated_items
+    )
+
+    return remaining_total_points
 
 
 def get_status_breakdown_summary(status_breakdown: Dict[str, Any]) -> Dict[str, Any]:
