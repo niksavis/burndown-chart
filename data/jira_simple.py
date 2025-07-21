@@ -80,6 +80,10 @@ def get_jira_config(settings_jql_query: str | None = None) -> Dict:
                 "JIRA_CACHE_MAX_SIZE_MB", DEFAULT_CACHE_MAX_SIZE_MB
             )  # Environment variable
         ),
+        "max_results": int(
+            app_settings.get("jira_max_results", 1000)  # App settings
+            or os.getenv("JIRA_MAX_RESULTS", 1000)  # Environment variable
+        ),
     }
 
     return config
@@ -106,9 +110,15 @@ def validate_jira_config(config: Dict) -> Tuple[bool, str]:
     return True, "Configuration valid"
 
 
-def fetch_jira_issues(config: Dict, max_results: int = 1000) -> Tuple[bool, List[Dict]]:
+def fetch_jira_issues(
+    config: Dict, max_results: int | None = None
+) -> Tuple[bool, List[Dict]]:
     """Execute JQL query and return issues."""
     try:
+        # Use max_results from config if not explicitly provided
+        if max_results is None:
+            max_results = config.get("max_results", 1000)
+
         # Use the JQL query directly from configuration
         jql = config["jql_query"]
 

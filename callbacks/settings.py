@@ -194,6 +194,7 @@ def register(app):
             Input("jira-token", "value"),
             Input("jira-story-points-field", "value"),
             Input("jira-cache-max-size", "value"),
+            Input("jira-max-results", "value"),
         ],
         [State("app-init-complete", "data")],
     )
@@ -214,6 +215,7 @@ def register(app):
         jira_token,
         jira_story_points_field,
         jira_cache_max_size,
+        jira_max_results,
         init_complete,
     ):
         """
@@ -288,6 +290,9 @@ def register(app):
             jira_cache_max_size
             if jira_cache_max_size is not None
             else 100,  # Use current cache size input
+            jira_max_results
+            if jira_max_results is not None
+            else 1000,  # Use current max results input
         )
 
         # Save project data using unified format
@@ -561,11 +566,17 @@ def register(app):
             State("jira-token", "value"),
             State("jira-story-points-field", "value"),
             State("jira-cache-max-size", "value"),
+            State("jira-max-results", "value"),
         ],
         prevent_initial_call=True,
     )
     def update_jira_cache_and_validation(
-        api_endpoint, jql_query, jira_token, story_points_field, cache_max_size
+        api_endpoint,
+        jql_query,
+        jira_token,
+        story_points_field,
+        cache_max_size,
+        jira_max_results,
     ):
         """
         Update JIRA cache status and show validation information.
@@ -711,6 +722,7 @@ def register(app):
             State("jira-token", "value"),
             State("jira-story-points-field", "value"),
             State("jira-cache-max-size", "value"),
+            State("jira-max-results", "value"),
         ],
         prevent_initial_call=True,
     )
@@ -722,6 +734,7 @@ def register(app):
         jira_token,
         story_points_field,
         cache_max_size,
+        jira_max_results,
     ):
         """
         Handle unified data update button click.
@@ -777,6 +790,11 @@ def register(app):
                 final_cache_max_size = (
                     cache_max_size if cache_max_size and cache_max_size > 0 else 100
                 )
+                final_max_results = (
+                    jira_max_results
+                    if jira_max_results and jira_max_results > 0
+                    else 1000
+                )
 
                 # Check if any JIRA settings have changed and need saving
                 settings_changed = (
@@ -791,6 +809,7 @@ def register(app):
                     != app_settings.get("jira_story_points_field", "")
                     or final_cache_max_size
                     != app_settings.get("jira_cache_max_size", 100)
+                    or final_max_results != app_settings.get("jira_max_results", 1000)
                 )
 
                 if settings_changed:
@@ -808,9 +827,10 @@ def register(app):
                         final_jira_token,
                         final_story_points_field,
                         final_cache_max_size,
+                        final_max_results,  # Use current UI input
                     )
                     logger.info(
-                        f"JIRA configuration updated and saved: JQL='{settings_jql}', API Endpoint='{final_jira_api_endpoint}', Points Field='{final_story_points_field}', Cache Size={final_cache_max_size}"
+                        f"JIRA configuration updated and saved: JQL='{settings_jql}', API Endpoint='{final_jira_api_endpoint}', Points Field='{final_story_points_field}', Cache Size={final_cache_max_size}, Max Results={final_max_results}"
                     )
 
                 # Create JIRA config from UI inputs (override environment/settings)
@@ -820,6 +840,7 @@ def register(app):
                     "token": final_jira_token,
                     "story_points_field": final_story_points_field,
                     "cache_max_size_mb": final_cache_max_size,
+                    "max_results": final_max_results,
                 }
 
                 # Validate configuration
@@ -937,6 +958,7 @@ def register(app):
         State("jira-token", "value"),
         State("jira-story-points-field", "value"),
         State("jira-cache-max-size", "value"),
+        State("jira-max-results", "value"),
     ],
     prevent_initial_call=True,
 )
@@ -947,6 +969,7 @@ def calculate_jira_project_scope(
     jira_token,
     story_points_field,
     cache_max_size,
+    jira_max_results,
 ):
     """
     Calculate project scope based on JIRA issues using status categories.
@@ -967,6 +990,7 @@ def calculate_jira_project_scope(
             if story_points_field
             else "",
             "cache_max_size_mb": int(cache_max_size) if cache_max_size else 50,
+            "max_results": int(jira_max_results) if jira_max_results else 1000,
         }
 
         # Calculate project scope from JIRA (no saving to file!)
