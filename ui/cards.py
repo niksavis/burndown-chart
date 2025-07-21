@@ -596,10 +596,12 @@ def create_input_parameters_card(
                                 ),
                                 dcc.Slider(
                                     id="pert-factor-slider",
-                                    min=3,
-                                    max=15,
+                                    min=1,  # Start with minimum possible value
+                                    max=15,  # This will be updated dynamically by callback
                                     value=current_settings["pert_factor"],
-                                    marks={i: str(i) for i in range(3, 16, 2)},
+                                    marks={
+                                        i: str(i) for i in [1, 3, 5, 8, 10, 12, 15]
+                                    },  # This will be updated dynamically by callback
                                     step=1,
                                     tooltip={
                                         "placement": "bottom",

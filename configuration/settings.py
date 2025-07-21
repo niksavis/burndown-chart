@@ -79,7 +79,7 @@ HELP_TEXTS = {
     "pert_factor": """
         The PERT factor determines how many data points to use for optimistic and pessimistic estimates.
         A higher value considers more historical data points for calculating scenarios.
-        Range: 3-15 (default: 3)
+        Range: 1-15, dynamically constrained by available data (minimum: 1 for small datasets, 3 for larger datasets)
     """,
     "data_points_count": """
         Select how many historical data points to include in your forecast calculation.
