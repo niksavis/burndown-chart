@@ -525,11 +525,11 @@ def register(app):
             return infoText;
         }
         """,
-        dash.Output("data-points-info", "children"),
+        Output("data-points-info", "children"),
         [
-            dash.Input("data-points-input", "value"),
-            dash.Input("data-points-input", "min"),
-            dash.Input("data-points-input", "max"),
+            Input("data-points-input", "value"),
+            Input("data-points-input", "min"),
+            Input("data-points-input", "max"),
         ],
     )
 
@@ -564,11 +564,11 @@ def register(app):
             return infoText;
         }
         """,
-        dash.Output("pert-factor-info", "children"),
+        Output("pert-factor-info", "children"),
         [
-            dash.Input("pert-factor-slider", "value"),
-            dash.Input("pert-factor-slider", "max"),
-            dash.Input("statistics-table", "data"),
+            Input("pert-factor-slider", "value"),
+            Input("pert-factor-slider", "max"),
+            Input("statistics-table", "data"),
         ],
     )
 
