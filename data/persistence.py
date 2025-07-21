@@ -67,6 +67,7 @@ def save_app_settings(
     jira_token=None,
     jira_story_points_field=None,
     jira_cache_max_size=None,
+    jira_max_results=None,
 ):
     """
     Save app-level settings to JSON file.
@@ -83,6 +84,7 @@ def save_app_settings(
         jira_token: Personal access token for JIRA API
         jira_story_points_field: Custom field ID for story points
         jira_cache_max_size: Maximum cache size in MB
+        jira_max_results: Maximum number of results to fetch from JIRA API
     """
     settings = {
         "pert_factor": pert_factor,
@@ -104,6 +106,7 @@ def save_app_settings(
         "jira_cache_max_size": jira_cache_max_size
         if jira_cache_max_size is not None
         else 100,
+        "jira_max_results": jira_max_results if jira_max_results is not None else 1000,
     }
 
     try:
@@ -191,6 +194,7 @@ def load_app_settings():
                 "",  # Empty JIRA token for migration
                 "",  # Empty story points field for migration
                 100,  # Default cache size for migration
+                1000,  # Default max results for migration
             )
 
             # Extract project data from legacy format and save separately

@@ -138,6 +138,22 @@ def _get_default_jira_cache_max_size():
         return 100
 
 
+def _get_default_jira_max_results():
+    """
+    Get the default JIRA max results from app settings.
+
+    Returns:
+        int: Max results from settings or default value
+    """
+    try:
+        from data.persistence import load_app_settings
+
+        app_settings = load_app_settings()
+        return app_settings.get("jira_max_results", 1000)
+    except ImportError:
+        return 1000
+
+
 #######################################################################
 # CARD COMPONENTS
 #######################################################################
@@ -1168,6 +1184,30 @@ def create_input_parameters_card(
                                             value=_get_default_jira_cache_max_size(),
                                             min=1,
                                             max=1000,
+                                            style=create_input_style(size="md"),
+                                        ),
+                                    ],
+                                    width=12,
+                                    className="mb-3",
+                                ),
+                            ],
+                        ),
+                        # Max Results Limit - Full width on mobile
+                        dbc.Row(
+                            [
+                                dbc.Col(
+                                    [
+                                        html.Label(
+                                            "Max Results per API Call:",
+                                            className="fw-medium",
+                                        ),
+                                        dbc.Input(
+                                            id="jira-max-results",
+                                            type="number",
+                                            placeholder="1000",
+                                            value=_get_default_jira_max_results(),
+                                            min=1,
+                                            max=50000,
                                             style=create_input_style(size="md"),
                                         ),
                                     ],
