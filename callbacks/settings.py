@@ -937,159 +937,310 @@ def register(app):
             )
             return None, None, None, validation_errors, no_update
 
+    #######################################################################
+    # JIRA SCOPE CALCULATION CALLBACK
+    #######################################################################
 
-#######################################################################
-# JIRA SCOPE CALCULATION CALLBACK
-#######################################################################
+    @app.callback(
+        [
+            Output("jira-scope-status", "children"),
+            Output("jira-scope-update-time", "children"),
+            Output("estimated-items-input", "value"),
+            Output("total-items-input", "value"),
+            Output("estimated-points-input", "value"),
+        ],
+        [Input("jira-scope-calculate-btn", "n_clicks")],
+        [
+            State("jira-jql-query", "value"),
+            State("jira-url", "value"),
+            State("jira-token", "value"),
+            State("jira-story-points-field", "value"),
+            State("jira-cache-max-size", "value"),
+            State("jira-max-results", "value"),
+        ],
+        prevent_initial_call=True,
+    )
+    def calculate_jira_project_scope(
+        n_clicks,
+        jql_query,
+        jira_api_endpoint,
+        jira_token,
+        story_points_field,
+        cache_max_size,
+        jira_max_results,
+    ):
+        """
+        Calculate project scope based on JIRA issues using status categories.
+        """
+        if not n_clicks or n_clicks == 0:
+            raise PreventUpdate
 
+        try:
+            from data.persistence import calculate_project_scope_from_jira
 
-@dash.callback(
-    [
-        Output("jira-scope-status", "children"),
-        Output("jira-scope-update-time", "children"),
-        Output("estimated-items-input", "value"),
-        Output("total-items-input", "value"),
-        Output("estimated-points-input", "value"),
-    ],
-    [Input("jira-scope-calculate-btn", "n_clicks")],
-    [
-        State("jira-jql-query", "value"),
-        State("jira-url", "value"),
-        State("jira-token", "value"),
-        State("jira-story-points-field", "value"),
-        State("jira-cache-max-size", "value"),
-        State("jira-max-results", "value"),
-    ],
-    prevent_initial_call=True,
-)
-def calculate_jira_project_scope(
-    n_clicks,
-    jql_query,
-    jira_api_endpoint,
-    jira_token,
-    story_points_field,
-    cache_max_size,
-    jira_max_results,
-):
-    """
-    Calculate project scope based on JIRA issues using status categories.
-    """
-    if not n_clicks or n_clicks == 0:
-        raise PreventUpdate
+            # Build UI config from form inputs
+            ui_config = {
+                "jql_query": jql_query or "",
+                "api_endpoint": jira_api_endpoint
+                or "https://jira.atlassian.com/rest/api/2/search",
+                "token": jira_token or "",
+                "story_points_field": story_points_field.strip()
+                if story_points_field
+                else "",
+                "cache_max_size_mb": int(cache_max_size) if cache_max_size else 50,
+                "max_results": int(jira_max_results) if jira_max_results else 1000,
+            }
 
-    try:
-        from data.persistence import calculate_project_scope_from_jira
+            # Calculate project scope from JIRA (no saving to file!)
+            success, message, scope_data = calculate_project_scope_from_jira(
+                jql_query, ui_config
+            )
 
-        # Build UI config from form inputs
-        ui_config = {
-            "jql_query": jql_query or "",
-            "api_endpoint": jira_api_endpoint
-            or "https://jira.atlassian.com/rest/api/2/search",
-            "token": jira_token or "",
-            "story_points_field": story_points_field.strip()
-            if story_points_field
-            else "",
-            "cache_max_size_mb": int(cache_max_size) if cache_max_size else 50,
-            "max_results": int(jira_max_results) if jira_max_results else 1000,
-        }
+            # Update timestamp
+            current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        # Calculate project scope from JIRA (no saving to file!)
-        success, message, scope_data = calculate_project_scope_from_jira(
-            jql_query, ui_config
-        )
+            if success:
+                # Use the calculated scope values directly (no file loading!)
+                project_scope = scope_data
 
-        # Update timestamp
-        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                # Get the updated values for UI fields based on new calculation logic
+                # Check if points field was available for proper calculations
+                points_field_available = project_scope.get(
+                    "points_field_available", False
+                )
 
-        if success:
-            # Use the calculated scope values directly (no file loading!)
-            project_scope = scope_data
+                if points_field_available:
+                    # Use proper calculated values when points field is available
+                    estimated_items = project_scope.get(
+                        "estimated_items", 0
+                    )  # Items with point values
+                    total_items = project_scope.get(
+                        "remaining_items", 0
+                    )  # All remaining items
+                    estimated_points = project_scope.get(
+                        "estimated_points", 0
+                    )  # Points from estimated items
 
-            # Get the updated values for UI fields based on new calculation logic
-            # Check if points field was available for proper calculations
-            points_field_available = project_scope.get("points_field_available", False)
-
-            if points_field_available:
-                # Use proper calculated values when points field is available
-                estimated_items = project_scope.get(
-                    "estimated_items", 0
-                )  # Items with point values
-                total_items = project_scope.get(
-                    "remaining_items", 0
-                )  # All remaining items
-                estimated_points = project_scope.get(
-                    "estimated_points", 0
-                )  # Points from estimated items
-
-                status_message = f"Project scope calculated from JIRA with {estimated_items} estimated items out of {total_items} total remaining items."
-            else:
-                # Fallback when points field is not available
-                estimated_items = 0  # Can't determine which items are estimated
-                total_items = project_scope.get(
-                    "remaining_items", 0
-                )  # Still get total remaining
-                estimated_points = 0  # Can't determine estimated points
-
-                if story_points_field and story_points_field.strip():
-                    status_message = f"⚠️ Points field '{story_points_field.strip()}' not found or no meaningful point values. Only total item count ({total_items}) calculated. Configure a valid points field for full scope calculation."
+                    status_message = f"Project scope calculated from JIRA with {estimated_items} estimated items out of {total_items} total remaining items."
                 else:
-                    status_message = f"⚠️ No points field configured. Only total item count ({total_items}) calculated. Configure a valid points field for full scope calculation."
+                    # Fallback when points field is not available
+                    estimated_items = 0  # Can't determine which items are estimated
+                    total_items = project_scope.get(
+                        "remaining_items", 0
+                    )  # Still get total remaining
+                    estimated_points = 0  # Can't determine estimated points
 
-            status_content = html.Div(
-                [
-                    html.I(className="fas fa-check-circle me-2 text-success"),
-                    html.Span(
-                        status_message,
-                        className="text-success"
-                        if points_field_available
-                        else "text-warning",
-                    ),
-                ],
-                className="mb-2",
-            )
-            time_content = html.Small(
-                f"Last updated: {current_time}", className="text-muted"
-            )
+                    if story_points_field and story_points_field.strip():
+                        status_message = f"⚠️ Points field '{story_points_field.strip()}' not found or no meaningful point values. Only total item count ({total_items}) calculated. Configure a valid points field for full scope calculation."
+                    else:
+                        status_message = f"⚠️ No points field configured. Only total item count ({total_items}) calculated. Configure a valid points field for full scope calculation."
 
-            return (
-                status_content,
-                time_content,
-                estimated_items,
-                total_items,
-                estimated_points,
-            )
-        else:
-            # On error, don't update the input fields (use no_update)
+                status_content = html.Div(
+                    [
+                        html.I(className="fas fa-check-circle me-2 text-success"),
+                        html.Span(
+                            status_message,
+                            className="text-success"
+                            if points_field_available
+                            else "text-warning",
+                        ),
+                    ],
+                    className="mb-2",
+                )
+                time_content = html.Small(
+                    f"Last updated: {current_time}", className="text-muted"
+                )
+
+                return (
+                    status_content,
+                    time_content,
+                    estimated_items,
+                    total_items,
+                    estimated_points,
+                )
+            else:
+                # On error, don't update the input fields (use no_update)
+                status_content = html.Div(
+                    [
+                        html.I(
+                            className="fas fa-exclamation-triangle me-2 text-danger"
+                        ),
+                        html.Span(f"Error: {message}", className="text-danger"),
+                    ],
+                    className="mb-2",
+                )
+                time_content = html.Small(
+                    f"Last attempt: {current_time}", className="text-muted"
+                )
+
+                return (
+                    status_content,
+                    time_content,
+                    no_update,
+                    no_update,
+                    no_update,
+                )
+
+        except Exception as e:
+            logger.error(f"Error in JIRA scope calculation callback: {e}")
+            error_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
             status_content = html.Div(
                 [
                     html.I(className="fas fa-exclamation-triangle me-2 text-danger"),
-                    html.Span(f"Error: {message}", className="text-danger"),
+                    html.Span(f"Unexpected error: {str(e)}", className="text-danger"),
                 ],
                 className="mb-2",
             )
-            time_content = html.Small(
-                f"Last attempt: {current_time}", className="text-muted"
-            )
+            time_content = html.Small(f"Error at: {error_time}", className="text-muted")
+            return status_content, time_content, no_update, no_update, no_update
 
-            return (
-                status_content,
-                time_content,
-                no_update,
-                no_update,
-                no_update,
-            )
+    # Add clientside callbacks for button loading states
+    # These callbacks use a simple approach that directly manages button states
+    # without conflicting with existing Dash callback outputs
 
-    except Exception as e:
-        logger.error(f"Error in JIRA scope calculation callback: {e}")
-        error_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    app.clientside_callback(
+        """
+        function(n_clicks) {
+            // Simple button state management for Update Data button
+            if (n_clicks && n_clicks > 0) {
+                setTimeout(function() {
+                    const button = document.getElementById('update-data-unified');
+                    if (button) {
+                        const originalHTML = button.innerHTML;
+                        const originalDisabled = button.disabled;
+                        
+                        // Set loading state
+                        button.disabled = true;
+                        button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Loading...';
+                        
+                        // Reset after timeout or when operation completes
+                        const resetButton = function() {
+                            if (button && button.disabled) {
+                                button.disabled = false;
+                                button.innerHTML = '<i class="fas fa-sync-alt me-2"></i>Update Data';
+                            }
+                        };
+                        
+                        // Shorter timeout since operations complete quickly
+                        setTimeout(resetButton, 8000);
+                        
+                        // Try to detect when operation completes by monitoring DOM changes
+                        const observer = new MutationObserver(function(mutations) {
+                            // Look for success/error messages in validation area
+                            const validationArea = document.getElementById('jira-validation-errors');
+                            if (validationArea) {
+                                const content = validationArea.innerHTML.toLowerCase();
+                                // Detect success, error, or completion messages
+                                if (content.includes('successfully') || 
+                                    content.includes('imported') || 
+                                    content.includes('completed') ||
+                                    content.includes('error') || 
+                                    content.includes('failed')) {
+                                    setTimeout(resetButton, 1000); // Reset 1 second after message appears
+                                    observer.disconnect();
+                                }
+                            }
+                        });
+                        
+                        const targetNode = document.getElementById('jira-validation-errors');
+                        if (targetNode) {
+                            observer.observe(targetNode, { childList: true, subtree: true });
+                            // Also check immediately if message is already there
+                            setTimeout(function() {
+                                const content = targetNode.innerHTML.toLowerCase();
+                                if (content.includes('successfully') || 
+                                    content.includes('imported') || 
+                                    content.includes('completed') ||
+                                    content.includes('error') || 
+                                    content.includes('failed')) {
+                                    setTimeout(resetButton, 1000);
+                                    observer.disconnect();
+                                }
+                            }, 1000);
+                        }
+                    }
+                }, 50); // Small delay to ensure this runs after the click
+            }
+            return null; // Don't update any output
+        }
+        """,
+        Output(
+            "update-data-unified", "title"
+        ),  # Use title as a safe output that won't conflict
+        [Input("update-data-unified", "n_clicks")],
+        prevent_initial_call=True,
+    )
 
-        status_content = html.Div(
-            [
-                html.I(className="fas fa-exclamation-triangle me-2 text-danger"),
-                html.Span(f"Unexpected error: {str(e)}", className="text-danger"),
-            ],
-            className="mb-2",
-        )
-        time_content = html.Small(f"Error at: {error_time}", className="text-muted")
-
-        return status_content, time_content, no_update, no_update, no_update
+    app.clientside_callback(
+        """
+        function(n_clicks) {
+            // Simple button state management for Calculate Scope button
+            if (n_clicks && n_clicks > 0) {
+                setTimeout(function() {
+                    const button = document.getElementById('jira-scope-calculate-btn');
+                    if (button) {
+                        const originalHTML = button.innerHTML;
+                        const originalDisabled = button.disabled;
+                        
+                        // Set loading state
+                        button.disabled = true;
+                        button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Calculating...';
+                        
+                        // Reset after timeout or when operation completes
+                        const resetButton = function() {
+                            if (button && button.disabled) {
+                                button.disabled = false;
+                                button.innerHTML = '<i class="fas fa-calculator me-2"></i>Calculate Scope';
+                            }
+                        };
+                        
+                        // Shorter timeout since operations complete quickly
+                        setTimeout(resetButton, 8000);
+                        
+                        // Try to detect when operation completes by monitoring DOM changes
+                        const observer = new MutationObserver(function(mutations) {
+                            // Look for success/error messages in scope status area
+                            const statusArea = document.getElementById('jira-scope-status');
+                            if (statusArea) {
+                                const content = statusArea.innerHTML.toLowerCase();
+                                // Detect completion messages
+                                if (content.includes('calculated') || 
+                                    content.includes('error') || 
+                                    content.includes('⚠️') ||
+                                    content.includes('updated') ||
+                                    content.includes('completed')) {
+                                    setTimeout(resetButton, 1000); // Reset 1 second after completion
+                                    observer.disconnect();
+                                }
+                            }
+                        });
+                        
+                        const targetNode = document.getElementById('jira-scope-status');
+                        if (targetNode) {
+                            observer.observe(targetNode, { childList: true, subtree: true });
+                            // Also check immediately if message is already there
+                            setTimeout(function() {
+                                const content = targetNode.innerHTML.toLowerCase();
+                                if (content.includes('calculated') || 
+                                    content.includes('error') || 
+                                    content.includes('⚠️') ||
+                                    content.includes('updated') ||
+                                    content.includes('completed')) {
+                                    setTimeout(resetButton, 1000);
+                                    observer.disconnect();
+                                }
+                            }, 1000);
+                        }
+                    }
+                }, 50); // Small delay to ensure this runs after the click
+            }
+            return null; // Don't update any output
+        }
+        """,
+        Output(
+            "jira-scope-calculate-btn", "title"
+        ),  # Use title as a safe output that won't conflict
+        [Input("jira-scope-calculate-btn", "n_clicks")],
+        prevent_initial_call=True,
+    )

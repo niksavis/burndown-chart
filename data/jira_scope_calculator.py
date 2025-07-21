@@ -258,46 +258,60 @@ def _validate_points_field_availability(
     if not issues_data:
         return False
 
-    # Check if at least some issues have the points field with valid values > 1 (not default)
+    # Check if the points field exists in the JIRA data structure (even if some values are null)
+    field_exists_count = 0
     valid_points_count = 0
     sample_size = min(10, len(issues_data))  # Sample first 10 issues or all if fewer
 
     for issue in issues_data[:sample_size]:
         try:
             fields = issue.get("fields", {})
-            if points_field == "votes":
-                votes_data = fields.get("votes")
-                if votes_data and votes_data.get("votes", 0) > 1:
-                    valid_points_count += 1
-            elif points_field.startswith("customfield_"):
-                value = fields.get(points_field)
-                if value is not None:
-                    if isinstance(value, dict):
-                        point_val = value.get(
-                            "value", value.get("count", value.get("total", 0))
-                        )
-                    elif isinstance(value, (int, float)):
-                        point_val = value
-                    elif isinstance(value, str):
-                        try:
-                            point_val = float(value)
-                        except ValueError:
-                            point_val = 0
-                    else:
-                        point_val = 0
 
-                    if point_val > 1:  # More than default fallback value
+            # Check if field exists in the data structure
+            if points_field in fields:
+                field_exists_count += 1
+
+                # Also count if it has a valid value
+                if points_field == "votes":
+                    votes_data = fields.get("votes")
+                    if (
+                        votes_data and votes_data.get("votes", -1) >= 0
+                    ):  # 0 and positive votes are valid
                         valid_points_count += 1
-            else:
-                # Other field types
-                value = fields.get(points_field)
-                if value and value > 1:
-                    valid_points_count += 1
+                elif points_field.startswith("customfield_"):
+                    value = fields.get(points_field)
+                    if value is not None:
+                        if isinstance(value, dict):
+                            point_val = value.get(
+                                "value", value.get("count", value.get("total", 0))
+                            )
+                        elif isinstance(value, (int, float)):
+                            point_val = value
+                        elif isinstance(value, str):
+                            try:
+                                point_val = float(value)
+                            except ValueError:
+                                point_val = None  # Invalid string
+                        else:
+                            point_val = None  # Unknown type
+
+                        if (
+                            point_val is not None and point_val >= 0
+                        ):  # 0 and positive values are valid
+                            valid_points_count += 1
+                else:
+                    # Other field types
+                    value = fields.get(points_field)
+                    if (
+                        value is not None and value >= 0
+                    ):  # 0 and positive values are valid
+                        valid_points_count += 1
         except Exception:
             continue
 
-    # Return True if at least 10% of sampled issues have meaningful points
-    return valid_points_count > 0 and (valid_points_count / sample_size) >= 0.1
+    # Return True if the field exists in at least 50% of issues (even if values are null)
+    # This indicates the field is configured correctly in JIRA
+    return field_exists_count > 0 and (field_exists_count / sample_size) >= 0.5
 
 
 def _issue_has_real_points(fields: Dict[str, Any], points_field: str) -> bool:
@@ -318,7 +332,7 @@ def _issue_has_real_points(fields: Dict[str, Any], points_field: str) -> bool:
 
         if points_field == "votes":
             votes_data = fields.get("votes")
-            return votes_data is not None and votes_data.get("votes", 0) > 1
+            return votes_data is not None and votes_data.get("votes", -1) >= 0
         elif points_field.startswith("customfield_"):
             value = fields.get(points_field)
             if value is None:
@@ -338,10 +352,10 @@ def _issue_has_real_points(fields: Dict[str, Any], points_field: str) -> bool:
             else:
                 return False
 
-            return point_val > 1  # More than default fallback
+            return point_val >= 0  # 0 and positive values are meaningful
         else:
             value = fields.get(points_field)
-            return value is not None and value > 1
+            return value is not None and value >= 0
     except Exception:
         return False
 
