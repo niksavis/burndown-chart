@@ -382,6 +382,86 @@ def register(app):
         return min_value, max_value, marks
 
     @app.callback(
+        [
+            Output("pert-factor-slider", "min"),
+            Output("pert-factor-slider", "max"),
+            Output("pert-factor-slider", "marks"),
+            Output("pert-factor-slider", "value"),
+        ],
+        [
+            Input("statistics-table", "data"),
+        ],
+        [State("pert-factor-slider", "value")],
+    )
+    def update_pert_factor_constraints(statistics_data, current_pert_factor):
+        """
+        Update the max constraint and marks for the PERT factor slider based on available data points.
+        PERT Factor maximum should be floor(available_data_points / 2) to ensure minimum 2x constraint.
+
+        Args:
+            statistics_data: Current statistics data
+            current_pert_factor: Current PERT factor value
+
+        Returns:
+            Tuple of (max_value, marks, adjusted_value)
+        """
+        if current_pert_factor is None:
+            current_pert_factor = DEFAULT_PERT_FACTOR
+
+        # Calculate minimum and maximum PERT factor based on available data points
+        max_data_points = len(statistics_data) if statistics_data else 6
+
+        # Calculate minimum PERT factor
+        min_pert_factor = 1 if max_data_points < 6 else 3
+
+        # Calculate maximum PERT factor to ensure 2x constraint is always satisfied
+        # PERT_Factor × 2 ≤ available_data_points
+        # Therefore: PERT_Factor ≤ floor(available_data_points / 2)
+        max_pert_factor = max_data_points // 2
+
+        # Ensure minimum PERT factor of 1 (never 0)
+        max_pert_factor = max(min_pert_factor, max_pert_factor)
+
+        # For datasets with 6+ data points, ensure PERT factor is at least 3 for meaningful analysis
+        if max_data_points >= 6:
+            max_pert_factor = max(3, max_pert_factor)
+
+        # Cap at reasonable maximum (15) for performance
+        max_pert_factor = min(max_pert_factor, 15)
+
+        # Create marks for the slider
+        marks = {}
+        start_val = min_pert_factor
+
+        # Create a reasonable number of marks based on the range
+        range_size = max_pert_factor - start_val
+        if range_size <= 5:
+            # Small range - show all values
+            for i in range(start_val, max_pert_factor + 1):
+                marks[i] = {"label": str(i)}
+        else:
+            # Larger range - show key values
+            step = max(1, range_size // 4)
+            for i in range(start_val, max_pert_factor + 1, step):
+                marks[i] = {"label": str(i)}
+
+        # Always include start value and maximum value in marks
+        marks[start_val] = {"label": str(start_val)}
+        marks[max_pert_factor] = {"label": str(max_pert_factor)}
+
+        # Adjust current value if it exceeds the new maximum or is below new minimum
+        adjusted_value = max(min_pert_factor, min(current_pert_factor, max_pert_factor))
+
+        # Log the constraint adjustment for debugging
+        if adjusted_value != current_pert_factor:
+            logger.info(
+                f"Adjusting PERT factor from {current_pert_factor} to {adjusted_value} "
+                f"(max data points: {max_data_points}, PERT factor range: {min_pert_factor}-{max_pert_factor})"
+            )
+
+        return min_pert_factor, max_pert_factor, marks, adjusted_value
+
+    @app.callback(
         Output("data-points-input", "value"),
         [
             Input("pert-factor-slider", "value"),
@@ -445,27 +525,32 @@ def register(app):
             return infoText;
         }
         """,
-        dash.Output("data-points-info", "children"),
+        Output("data-points-info", "children"),
         [
-            dash.Input("data-points-input", "value"),
-            dash.Input("data-points-input", "min"),
-            dash.Input("data-points-input", "max"),
+            Input("data-points-input", "value"),
+            Input("data-points-input", "min"),
+            Input("data-points-input", "max"),
         ],
     )
 
-    # Add a clientside callback for the PERT Factor slider to enhance tooltip behavior
+    # Add a clientside callback for the PERT Factor slider to enhance tooltip behavior and show constraints
     app.clientside_callback(
         """
-        function(value) {
-            // Format the info text based on the PERT Factor value
+        function(value, max_value, statistics_data) {
+            // Format the info text based on the PERT Factor value and constraints
             let infoText = "";
+            const dataPoints = statistics_data ? statistics_data.length : 0;
             
-            if (value <= 5) {
-                infoText = "Low confidence range (value: " + value + ")";
+            if (dataPoints === 0) {
+                infoText = "No data available - PERT Factor: " + value;
+            } else if (value === max_value && max_value < 15) {
+                infoText = "Maximum PERT Factor for " + dataPoints + " data points (value: " + value + ")";
+            } else if (value <= 5) {
+                infoText = "Narrow confidence range - more responsive (value: " + value + ")";
             } else if (value <= 10) {
-                infoText = "Medium confidence range (value: " + value + ")";
+                infoText = "Medium confidence range - balanced (value: " + value + ")";
             } else {
-                infoText = "High confidence range (value: " + value + ")";
+                infoText = "Wide confidence range - more stable (value: " + value + ")";
             }
             
             // Also trigger slider tooltip display when slider is updated automatically
@@ -479,8 +564,12 @@ def register(app):
             return infoText;
         }
         """,
-        dash.Output("pert-factor-info", "children"),
-        [dash.Input("pert-factor-slider", "value")],
+        Output("pert-factor-info", "children"),
+        [
+            Input("pert-factor-slider", "value"),
+            Input("pert-factor-slider", "max"),
+            Input("statistics-table", "data"),
+        ],
     )
 
     # Add a callback to enable/disable the milestone date picker based on toggle state
