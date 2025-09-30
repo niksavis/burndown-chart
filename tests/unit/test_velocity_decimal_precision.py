@@ -126,7 +126,7 @@ class TestUIComponentsFormatting:
     def test_velocity_card_decimal_formatting(self, value, expected):
         """Test that velocity metric card formats values with one decimal place."""
         card = _create_velocity_metric_card(
-            title="Test",
+            title="Average",  # Use a valid title that exists in VELOCITY_HELP_TEXTS
             value=value,
             trend=5,
             trend_icon="fas fa-arrow-up",
