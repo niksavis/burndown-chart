@@ -26,7 +26,12 @@ from configuration.settings import (
 from ui.icon_utils import create_icon_text
 from ui.styles import create_form_feedback_style
 from ui.button_utils import create_button
-from ui.tooltip_utils import create_info_tooltip
+from ui.tooltip_utils import (
+    create_info_tooltip,
+    create_formula_tooltip,
+    create_calculation_step_tooltip,
+    create_statistical_context_tooltip,
+)
 
 # Define common trend icons and colors
 TREND_ICONS = {
@@ -574,9 +579,16 @@ def _create_forecast_card(
                     html.Div(
                         [
                             "Method",
-                            create_info_tooltip(
+                            create_formula_tooltip(
                                 f"forecast-method-{metric_type}",
                                 FORECAST_HELP_TEXTS["three_point_estimation"],
+                                "Three-Point Estimation",
+                                [
+                                    "PERT: (Optimistic + 4×Most_Likely + Pessimistic) / 6",
+                                    "Average: Historical mean completion rate",
+                                    "Median: Middle value of historical rates",
+                                    "Each method provides different confidence levels",
+                                ],
                             ),
                         ],
                         className="text-muted d-flex align-items-center",
@@ -609,9 +621,16 @@ def _create_forecast_card(
             _create_forecast_row(
                 [
                     "PERT",
-                    create_info_tooltip(
+                    create_formula_tooltip(
                         f"pert-forecast-{metric_type}",
                         FORECAST_HELP_TEXTS["expected_forecast"],
+                        "PERT = (O + 4×M + P) / 6",
+                        [
+                            "O = Best case scenario (optimistic)",
+                            "M = Most likely scenario (modal)",
+                            "P = Worst case scenario (pessimistic)",
+                            "Uses beta distribution weighting with 4x emphasis on most likely case",
+                        ],
                     ),
                 ],
                 completion_str,
@@ -624,9 +643,15 @@ def _create_forecast_card(
             _create_forecast_row(
                 [
                     "Average",
-                    create_info_tooltip(
+                    create_calculation_step_tooltip(
                         f"average-forecast-{metric_type}",
                         VELOCITY_HELP_TEXTS["velocity_average"],
+                        [
+                            "Average = Σ(weekly_values) / n",
+                            "Example: (5+7+3+6+4)/5 = 5.0 items/week",
+                            "Completion = remaining_work / average_velocity",
+                            "Uses arithmetic mean of recent velocity data",
+                        ],
                     ),
                 ],
                 avg_completion_str,
@@ -641,9 +666,11 @@ def _create_forecast_card(
             _create_forecast_row(
                 [
                     "Median",
-                    create_info_tooltip(
+                    create_statistical_context_tooltip(
                         f"median-forecast-{metric_type}",
                         VELOCITY_HELP_TEXTS["velocity_median"],
+                        "50th percentile",
+                        "More robust than average - less affected by outliers and extreme values. Better for forecasting when velocity varies significantly.",
                     ),
                 ],
                 med_completion_str,
@@ -824,7 +851,18 @@ def _create_velocity_metric_card(
                     html.Span(
                         [
                             title,
-                            create_info_tooltip(
+                            create_calculation_step_tooltip(
+                                f"velocity-{title.lower()}",
+                                VELOCITY_HELP_TEXTS[f"velocity_{title.lower()}"],
+                                [
+                                    f"{title} = {'Σ(values)/n' if title == 'Average' else 'middle value when sorted'}",
+                                    f"Example: {'(3+5+7+4+6)/5 = 5.0' if title == 'Average' else '[3,4,5,6,7] → 5.0'}",
+                                    "Based on last 10 weeks of completed work",
+                                    f"{'Arithmetic mean' if title == 'Average' else '50th percentile - outlier resistant'}",
+                                ],
+                            )
+                            if title in ["Average", "Median"]
+                            else create_info_tooltip(
                                 f"velocity-{title.lower()}",
                                 VELOCITY_HELP_TEXTS[f"velocity_{title.lower()}"],
                             ),
@@ -841,9 +879,15 @@ def _create_velocity_metric_card(
                                 },
                             ),
                             f"{'+' if trend > 0 else ''}{trend}%",
-                            create_info_tooltip(
+                            create_calculation_step_tooltip(
                                 f"velocity-trend-{title.lower()}",
                                 VELOCITY_HELP_TEXTS["velocity_trend"],
+                                [
+                                    "Trend = ((Current - Previous) / Previous) × 100",
+                                    "Example: ((6.0 - 5.0) / 5.0) × 100 = +20%",
+                                    "Compares recent 5 weeks vs previous 5 weeks",
+                                    "Positive trend = improving velocity",
+                                ],
                             ),
                         ],
                         style={"color": trend_color},
@@ -929,9 +973,15 @@ def _create_velocity_metric_section(
                         style={"color": COLOR_PALETTE[metric_type]},
                     ),
                     html.Span("Items" if is_items else "Points", className="fw-medium"),
-                    create_info_tooltip(
+                    create_formula_tooltip(
                         f"velocity-{metric_type}",
                         VELOCITY_HELP_TEXTS["weekly_velocity"],
+                        "Weekly Average = Σ(last 10 weeks) ÷ 10",
+                        [
+                            "Calculates simple arithmetic mean of recent performance",
+                            "Uses last 10 weeks of historical data for stability",
+                            "Example: (5+7+6+8+4+9+7+6+8+5) ÷ 10 = 6.5 items/week",
+                        ],
                     ),
                 ],
                 className="d-flex align-items-center mb-3",  # Removed justify-content-center
