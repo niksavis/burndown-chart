@@ -36,7 +36,13 @@ from ui.styles import (
     create_input_style,
 )
 from ui.button_utils import create_button
-from ui.tooltip_utils import create_info_tooltip
+from ui.tooltip_utils import (
+    create_info_tooltip,
+    create_enhanced_tooltip,
+    create_dismissible_tooltip,
+    create_expandable_tooltip,
+    create_chart_tooltip_bundle,
+)
 
 # Type definition for StyleCellConditional
 StyleCellConditional = Dict[str, Any]
@@ -218,14 +224,17 @@ def create_forecast_info_card():
     # Create the card body content with optimized layout
     body_content = html.Div(
         [
-            # Concise introduction paragraph with PERT methodology tooltip
+            # Concise introduction paragraph with enhanced PERT methodology tooltip
             create_rhythm_text(
                 [
                     html.Strong("PERT Forecast: "),
                     "Estimates based on optimistic, most likely, and pessimistic scenarios from your historical data.",
-                    create_info_tooltip(
-                        CHART_HELP_TEXTS["pert_forecast_methodology"],
-                        "How PERT three-point estimation creates realistic forecasts using historical data",
+                    create_expandable_tooltip(
+                        id_suffix="pert-methodology-main",
+                        summary_text="PERT uses 3-point estimation for realistic forecasts",
+                        detailed_text=CHART_HELP_TEXTS["pert_forecast_methodology"],
+                        variant="primary",
+                        placement="right",
                     ),
                 ],
                 element_type="paragraph",
@@ -242,9 +251,13 @@ def create_forecast_info_card():
                                 html.Div(
                                     [
                                         html.Strong("Line Colors:"),
-                                        create_info_tooltip(
-                                            CHART_HELP_TEXTS["chart_legend_explained"],
-                                            "Visual cues and line types used in the forecast chart",
+                                        create_dismissible_tooltip(
+                                            id_suffix="chart-legend-colors",
+                                            help_text=CHART_HELP_TEXTS[
+                                                "chart_legend_explained"
+                                            ],
+                                            variant="info",
+                                            placement="top",
                                         ),
                                     ]
                                 ),
@@ -342,11 +355,15 @@ def create_forecast_info_card():
                                 html.Div(
                                     [
                                         html.Strong("Reading Guide:"),
-                                        create_info_tooltip(
-                                            CHART_HELP_TEXTS[
+                                        create_enhanced_tooltip(
+                                            id_suffix="reading-guide-enhanced",
+                                            help_text=CHART_HELP_TEXTS[
                                                 "historical_data_influence"
                                             ],
-                                            "How data quantity affects forecast accuracy and confidence",
+                                            variant="success",
+                                            placement="left",
+                                            smart_positioning=True,
+                                            icon_class="fas fa-chart-line",
                                         ),
                                     ]
                                 ),

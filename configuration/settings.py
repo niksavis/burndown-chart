@@ -479,10 +479,22 @@ CHART_HELP_TEXTS = {
         Chart distinguishes between historical and forecast data using visual cues:
         
         - Solid bars: Historical actual completed work
-        - Patterned bars: Forecast predictions with confidence intervals
+        - Patterned bars (X pattern): Forecast predictions with confidence intervals
         - Vertical line: Separates historical data from forecast projections
+        - Error bars: Show uncertainty range (±25% of PERT variance)
         
-        Forecast bars show most likely estimates with error ranges for uncertainty.
+        Forecast bars display PERT 3-point estimates with statistical confidence ranges.
+    """,
+    "forecast_confidence_intervals": """
+        Confidence intervals show the uncertainty range around forecast predictions.
+        
+        Calculation method:
+        - Most Likely: PERT expected value (main bar height)
+        - Upper bound: Most Likely + 25% of (Optimistic - Most Likely)
+        - Lower bound: Most Likely - 25% of (Most Likely - Pessimistic)
+        
+        Error bars provide visual indication of forecast reliability and risk assessment.
+        Wider intervals indicate higher uncertainty; narrower intervals suggest more predictable outcomes.
     """,
     "exponential_weighting": """
         Exponential weighting system emphasizes recent performance over older data.
@@ -499,11 +511,12 @@ CHART_HELP_TEXTS = {
         
         Features:
         - Bar height shows total work completed that week
-        - Trend line shows velocity patterns over time
-        - Forecast bars predict next week's performance
-        - Error bars indicate confidence ranges for predictions
+        - Weighted trend line shows velocity patterns (exponential weighting)
+        - Forecast bars predict next week's performance using PERT methodology
+        - Error bars show confidence intervals (±25% of PERT variance)
+        - Consistent visualization across both items and points charts
         
-        Helps identify velocity trends, capacity planning, and performance patterns.
+        Helps identify velocity trends, capacity planning, and performance patterns with statistical rigor.
     """,
     "burndown_vs_burnup": """
         Two complementary views of project progress with different perspectives:

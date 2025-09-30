@@ -9,7 +9,8 @@ for consistent tooltip appearance and behavior across the application.
 # IMPORTS
 #######################################################################
 # Standard library imports
-# (none currently needed)
+from functools import lru_cache
+import time
 
 # Third-party library imports
 from dash import html
@@ -146,6 +147,212 @@ def create_chart_layout_config(
 
 
 #######################################################################
+# TOOLTIP PERFORMANCE UTILITIES
+#######################################################################
+
+# Global cache for frequently accessed tooltip content
+_tooltip_cache = {}
+_cache_timestamps = {}
+_CACHE_TTL = 300  # 5 minutes cache TTL
+
+
+@lru_cache(maxsize=128)
+def get_cached_tooltip_style(variant="default"):
+    """
+    Get tooltip styling configuration with LRU caching for performance.
+
+    Args:
+        variant (str): Tooltip style variant
+
+    Returns:
+        dict: Cached style configuration
+    """
+    return get_tooltip_style(variant)
+
+
+@lru_cache(maxsize=64)
+def get_cached_hover_config(variant="default"):
+    """
+    Get cached hoverlabel configuration for Plotly charts.
+
+    Args:
+        variant (str): Tooltip style variant
+
+    Returns:
+        dict: Cached hoverlabel configuration
+    """
+    return create_hoverlabel_config(variant)
+
+
+def cache_tooltip_content(key, content, ttl=None):
+    """
+    Cache tooltip content for reuse across components.
+
+    Args:
+        key (str): Cache key for the content
+        content: Content to cache (string or Dash component)
+        ttl (int): Time to live in seconds (default: 300)
+    """
+    ttl = ttl or _CACHE_TTL
+    _tooltip_cache[key] = content
+    _cache_timestamps[key] = time.time() + ttl
+
+
+def get_cached_tooltip_content(key):
+    """
+    Retrieve cached tooltip content if available and not expired.
+
+    Args:
+        key (str): Cache key
+
+    Returns:
+        Content if cached and valid, None otherwise
+    """
+    if key not in _tooltip_cache:
+        return None
+
+    # Check if cache entry has expired
+    if key in _cache_timestamps and time.time() > _cache_timestamps[key]:
+        # Remove expired entry
+        del _tooltip_cache[key]
+        del _cache_timestamps[key]
+        return None
+
+    return _tooltip_cache[key]
+
+
+def clear_tooltip_cache():
+    """Clear all cached tooltip content."""
+    _tooltip_cache.clear()
+    _cache_timestamps.clear()
+
+
+def create_lazy_tooltip(
+    id_suffix, content_generator, generator_args=None, cache_key=None, **tooltip_kwargs
+):
+    """
+    Create a lazy-loaded tooltip that generates content on demand.
+
+    Args:
+        id_suffix: Suffix for component ID
+        content_generator: Function that generates tooltip content
+        generator_args: Arguments to pass to content generator
+        cache_key: Optional cache key for content reuse
+        **tooltip_kwargs: Additional arguments for tooltip creation
+
+    Returns:
+        Dash component with lazy-loaded tooltip
+    """
+    generator_args = generator_args or {}
+
+    # Check cache first if cache key provided
+    if cache_key:
+        cached_content = get_cached_tooltip_content(cache_key)
+        if cached_content is not None:
+            return create_enhanced_tooltip(
+                id_suffix=id_suffix, help_text=cached_content, **tooltip_kwargs
+            )
+
+    # Generate content
+    try:
+        content = content_generator(**generator_args)
+
+        # Cache the generated content if cache key provided
+        if cache_key:
+            cache_tooltip_content(cache_key, content)
+
+        return create_enhanced_tooltip(
+            id_suffix=id_suffix, help_text=content, **tooltip_kwargs
+        )
+    except Exception as e:
+        # Fallback to simple error message
+        fallback_content = f"Error loading tooltip content: {str(e)}"
+        return create_enhanced_tooltip(
+            id_suffix=id_suffix,
+            help_text=fallback_content,
+            variant="error",
+            **tooltip_kwargs,
+        )
+
+
+#######################################################################
+# TOOLTIP POSITIONING UTILITIES
+#######################################################################
+
+
+def get_smart_placement(preferred="top", mobile_override=None):
+    """
+    Get smart tooltip placement that adapts to screen size.
+
+    Args:
+        preferred (str): Preferred placement (top, bottom, left, right)
+        mobile_override (str): Override placement for mobile devices
+
+    Returns:
+        str: Optimal placement for the current context
+    """
+    # For mobile devices, prefer bottom placement to avoid viewport issues
+    if mobile_override and _is_mobile_context():
+        return mobile_override
+
+    # Return preferred placement for desktop
+    return preferred
+
+
+def get_responsive_placement(element_position="center"):
+    """
+    Get responsive tooltip placement based on element position.
+
+    Args:
+        element_position (str): Position context (top, bottom, left, right, center)
+
+    Returns:
+        str: Recommended placement to avoid viewport edges
+    """
+    placement_map = {
+        "top": "bottom",  # Elements at top show tooltip below
+        "bottom": "top",  # Elements at bottom show tooltip above
+        "left": "right",  # Elements at left show tooltip to right
+        "right": "left",  # Elements at right show tooltip to left
+        "center": "top",  # Center elements default to top
+    }
+
+    return placement_map.get(element_position, "top")
+
+
+def create_adaptive_tooltip_config(base_delay=200, mobile_delay=300):
+    """
+    Create adaptive tooltip configuration that adjusts for device type.
+
+    Args:
+        base_delay (int): Base delay in milliseconds for desktop
+        mobile_delay (int): Delay for mobile devices (usually longer)
+
+    Returns:
+        dict: Delay configuration
+    """
+    if _is_mobile_context():
+        return {"show": mobile_delay, "hide": mobile_delay // 2}
+
+    return {"show": base_delay, "hide": base_delay // 2}
+
+
+def _is_mobile_context():
+    """
+    Determine if we're in a mobile context (placeholder for client-side logic).
+
+    Note: This is a server-side approximation. In a real implementation,
+    this would be enhanced with client-side device detection.
+
+    Returns:
+        bool: True if likely mobile context
+    """
+    # Server-side placeholder - in practice this could be enhanced with
+    # user agent detection or client-side callbacks
+    return False
+
+
+#######################################################################
 # TOOLTIP COMPONENTS
 #######################################################################
 
@@ -253,6 +460,9 @@ def create_enhanced_tooltip(
     trigger_text=None,
     icon_class=None,
     delay={"show": 200, "hide": 100},
+    smart_positioning=True,
+    dismissible=False,
+    expandable=False,
 ):
     """
     Create an enhanced tooltip component with consistent styling and animations.
@@ -266,12 +476,20 @@ def create_enhanced_tooltip(
         trigger_text: Optional text to show as the tooltip trigger
         icon_class: FontAwesome icon class for custom icon (defaults to info circle)
         delay: Show/hide delay in milliseconds
+        smart_positioning: Whether to use smart placement based on context
+        dismissible: Whether to include a close button
+        expandable: Whether to support expandable detailed content
 
     Returns:
         Dash component with enhanced tooltip
     """
     # Set up the tooltip target
     tooltip_target = f"tooltip-{id_suffix}"
+
+    # Apply smart positioning if enabled
+    if smart_positioning:
+        placement = get_smart_placement(placement, mobile_override="bottom")
+        delay = create_adaptive_tooltip_config(delay.get("show", 200))
 
     # Create the trigger element based on parameters
     if target:
@@ -295,9 +513,16 @@ def create_enhanced_tooltip(
             style={"cursor": "help", "marginLeft": "5px", "fontSize": "1rem"},
         )
 
+    # Enhance content for dismissible or expandable tooltips
+    enhanced_content = help_text
+    if dismissible or expandable:
+        enhanced_content = _create_interactive_content(
+            help_text, id_suffix, dismissible, expandable
+        )
+
     # Create the tooltip
     tooltip = create_tooltip(
-        content=help_text,
+        content=enhanced_content,
         target=tooltip_target,
         position=placement,
         variant=variant,
@@ -312,6 +537,142 @@ def create_enhanced_tooltip(
         )
     else:
         return tooltip
+
+
+def create_dismissible_tooltip(
+    id_suffix, help_text, target=None, variant="primary", placement="top"
+):
+    """
+    Create a dismissible tooltip with a close button.
+
+    Args:
+        id_suffix: Suffix for component ID
+        help_text: Text to display in the tooltip
+        target: Target element ID
+        variant: Tooltip style variant
+        placement: Tooltip placement
+
+    Returns:
+        Dash component with dismissible tooltip
+    """
+    return create_enhanced_tooltip(
+        id_suffix=id_suffix,
+        help_text=help_text,
+        target=target,
+        variant=variant,
+        placement=placement,
+        dismissible=True,
+        smart_positioning=True,
+    )
+
+
+def create_expandable_tooltip(
+    id_suffix,
+    summary_text,
+    detailed_text,
+    target=None,
+    variant="primary",
+    placement="top",
+):
+    """
+    Create an expandable tooltip with summary and detailed content.
+
+    Args:
+        id_suffix: Suffix for component ID
+        summary_text: Brief summary text (always shown)
+        detailed_text: Detailed explanation (shown when expanded)
+        target: Target element ID
+        variant: Tooltip style variant
+        placement: Tooltip placement
+
+    Returns:
+        Dash component with expandable tooltip
+    """
+    # Combine summary and detailed content
+    combined_content = {"summary": summary_text, "details": detailed_text}
+
+    return create_enhanced_tooltip(
+        id_suffix=id_suffix,
+        help_text=combined_content,
+        target=target,
+        variant=variant,
+        placement=placement,
+        expandable=True,
+        smart_positioning=True,
+    )
+
+
+def _create_interactive_content(
+    content, id_suffix, dismissible=False, expandable=False
+):
+    """
+    Create interactive content for tooltips with dismiss/expand functionality.
+
+    Args:
+        content: Original tooltip content
+        id_suffix: ID suffix for interactive elements
+        dismissible: Whether to add dismiss functionality
+        expandable: Whether to add expand functionality
+
+    Returns:
+        Enhanced content with interactive elements
+    """
+    # Handle expandable content
+    if expandable and isinstance(content, dict):
+        summary = content.get("summary", "")
+        details = content.get("details", "")
+
+        interactive_content = html.Div(
+            [
+                html.Div(summary, className="tooltip-summary"),
+                html.Hr(style={"margin": "8px 0"}),
+                html.Div(
+                    [
+                        html.Small(
+                            "Click to expand...",
+                            id=f"expand-trigger-{id_suffix}",
+                            className="text-muted",
+                            style={"cursor": "pointer", "textDecoration": "underline"},
+                        ),
+                        html.Div(
+                            details,
+                            id=f"expand-content-{id_suffix}",
+                            style={"display": "none", "marginTop": "8px"},
+                        ),
+                    ]
+                ),
+            ]
+        )
+    else:
+        interactive_content = html.Div(
+            content if isinstance(content, list) else [content]
+        )
+
+    # Add dismiss button if requested
+    if dismissible:
+        dismiss_button = html.Button(
+            "×",
+            id=f"dismiss-{id_suffix}",
+            className="btn-close btn-close-white ms-2",
+            style={
+                "border": "none",
+                "background": "transparent",
+                "color": "inherit",
+                "fontSize": "1.2rem",
+                "padding": "0",
+                "cursor": "pointer",
+                "float": "right",
+            },
+        )
+
+        if isinstance(interactive_content, html.Div) and interactive_content.children:
+            # Add dismiss button to existing content
+            interactive_content.children.append(dismiss_button)
+        else:
+            # Wrap content with dismiss button
+            interactive_content = html.Div([interactive_content, dismiss_button])
+
+    return interactive_content
 
 
 def create_form_help_tooltip(id_suffix, field_label, help_text, variant="info"):
@@ -372,4 +733,142 @@ def create_contextual_help(id_suffix, help_text, trigger_text=None, variant="pri
                 variant=variant,
             ),
         ],
+    )
+
+
+def create_chart_tooltip_bundle(chart_type, chart_data=None, cache_enabled=True):
+    """
+    Create a comprehensive tooltip bundle for specific chart types.
+
+    Args:
+        chart_type (str): Type of chart (burndown, velocity, scope, etc.)
+        chart_data (dict): Optional chart-specific data for dynamic content
+        cache_enabled (bool): Whether to use caching for performance
+
+    Returns:
+        dict: Bundle of tooltip configurations for the chart
+    """
+    cache_key = f"chart-tooltips-{chart_type}" if cache_enabled else None
+
+    # Define chart-specific tooltip configurations
+    chart_configs = {
+        "burndown": {
+            "layout": create_chart_layout_config(
+                title="Burndown Chart", hover_mode="unified", tooltip_variant="primary"
+            ),
+            "hover_template": format_hover_template(
+                title="Burndown Progress",
+                fields={
+                    "Date": "%{x}",
+                    "Remaining": "%{y:.1f} points",
+                    "Ideal": "%{customdata:.1f} points",
+                },
+            ),
+        },
+        "velocity": {
+            "layout": create_chart_layout_config(
+                title="Velocity Chart", hover_mode="compare", tooltip_variant="success"
+            ),
+            "hover_template": format_hover_template(
+                title="Sprint Velocity",
+                fields={
+                    "Sprint": "%{x}",
+                    "Completed": "%{y:.1f} points",
+                    "Committed": "%{customdata:.1f} points",
+                },
+            ),
+        },
+        "scope": {
+            "layout": create_chart_layout_config(
+                title="Scope Changes", hover_mode="unified", tooltip_variant="warning"
+            ),
+            "hover_template": format_hover_template(
+                title="Scope Change",
+                fields={
+                    "Date": "%{x}",
+                    "Total Scope": "%{y:.1f} points",
+                    "Change": "%{customdata:+.1f} points",
+                },
+            ),
+        },
+    }
+
+    # Get configuration for the requested chart type
+    config = chart_configs.get(chart_type, chart_configs["burndown"])
+
+    # Cache the configuration if enabled
+    if cache_key:
+        cache_tooltip_content(cache_key, config)
+
+    return config
+
+
+def create_responsive_tooltip_system(component_id, tooltips_config):
+    """
+    Create a responsive tooltip system that adapts to screen size and context.
+
+    Args:
+        component_id (str): Base ID for the tooltip system
+        tooltips_config (dict): Configuration for multiple tooltips
+
+    Returns:
+        list: List of responsive tooltip components
+    """
+    tooltips = []
+
+    for tooltip_id, config in tooltips_config.items():
+        # Extract configuration
+        content = config.get("content", "")
+        variant = config.get("variant", "primary")
+        position = config.get("position", "top")
+        trigger_class = config.get("trigger_class", "fas fa-info-circle")
+        responsive = config.get("responsive", True)
+
+        # Create responsive tooltip
+        tooltip = create_enhanced_tooltip(
+            id_suffix=f"{component_id}-{tooltip_id}",
+            help_text=content,
+            variant=variant,
+            placement=position,
+            icon_class=trigger_class,
+            smart_positioning=responsive,
+            dismissible=config.get("dismissible", False),
+            expandable=config.get("expandable", False),
+        )
+
+        tooltips.append(tooltip)
+
+    return tooltips
+
+
+def create_tooltip_with_settings_integration(setting_key, id_suffix, variant="info"):
+    """
+    Create a tooltip that integrates with the application's settings system.
+
+    Args:
+        setting_key (str): Key to look up in CHART_HELP_TEXTS or similar
+        id_suffix (str): Suffix for component ID
+        variant (str): Tooltip variant
+
+    Returns:
+        Dash component with settings-integrated tooltip
+    """
+    # This would integrate with configuration.settings.CHART_HELP_TEXTS
+    # For now, we'll create a placeholder that shows the pattern
+
+    def get_help_text():
+        # In practice, this would import and access CHART_HELP_TEXTS
+        try:
+            from configuration.settings import CHART_HELP_TEXTS
+
+            return CHART_HELP_TEXTS.get(setting_key, f"Help for {setting_key}")
+        except ImportError:
+            return f"Help text for {setting_key} (settings integration available)"
+
+    return create_lazy_tooltip(
+        id_suffix=id_suffix,
+        content_generator=get_help_text,
+        cache_key=f"settings-{setting_key}",
+        variant=variant,
+        smart_positioning=True,
     )

@@ -1091,26 +1091,46 @@ def create_weekly_items_chart(
         forecast_data = generate_weekly_forecast(statistics_data, pert_factor)
 
         if forecast_data["items"]["dates"]:
-            # Most likely forecast - only display the single bar for the next week
+            # Get items forecast for next week with confidence intervals
+            most_likely = forecast_data["items"]["most_likely"]
+            optimistic = forecast_data["items"]["optimistic"]
+            pessimistic = forecast_data["items"]["pessimistic"]
+
+            # Calculate confidence interval bounds (25% of difference)
+            upper_bound = [
+                ml + 0.25 * (opt - ml) for ml, opt in zip(most_likely, optimistic)
+            ]
+            lower_bound = [
+                ml - 0.25 * (ml - pes) for ml, pes in zip(most_likely, pessimistic)
+            ]
+
+            # Single next week forecast with confidence interval
             fig.add_trace(
                 go.Bar(
                     x=forecast_data["items"]["dates"],
-                    y=forecast_data["items"]["most_likely"],
+                    y=most_likely,
                     marker_color=COLOR_PALETTE["items"],
                     marker_pattern_shape="x",  # Add pattern to distinguish forecast
                     opacity=0.7,
                     name="Next Week Forecast",
-                    text=[
-                        round(val, 1) for val in forecast_data["items"]["most_likely"]
-                    ],
+                    text=[round(val, 1) for val in most_likely],
                     textposition="outside",
+                    error_y=dict(
+                        type="data",
+                        symmetric=False,
+                        array=[u - ml for u, ml in zip(upper_bound, most_likely)],
+                        arrayminus=[
+                            ml - lb for ml, lb in zip(most_likely, lower_bound)
+                        ],
+                        color="rgba(0, 0, 0, 0.3)",
+                    ),
                     hovertemplate=format_hover_template(
                         title="Next Week Items Forecast",
                         fields={
                             "Week": "%{x}",
                             "Predicted Items": "%{y:.1f}",
-                            "Method": "PERT Most Likely estimate",
-                            "Based on": "Recent velocity patterns",
+                            "Confidence Range": "±25% of PERT variance",
+                            "Method": "PERT 3-point estimation",
                         },
                     ),
                     hoverlabel=create_hoverlabel_config("info"),
