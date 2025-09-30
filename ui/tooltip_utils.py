@@ -872,3 +872,155 @@ def create_tooltip_with_settings_integration(setting_key, id_suffix, variant="in
         variant=variant,
         smart_positioning=True,
     )
+
+
+def create_formula_tooltip(
+    id_suffix,
+    formula_name,
+    basic_explanation,
+    formula_text,
+    example_calculation=None,
+    mathematical_context=None,
+    variant="info",
+    placement="top",
+):
+    """
+    Create a specialized tooltip for mathematical formulas with progressive disclosure.
+
+    This function builds on Phase 7's expandable tooltip infrastructure to provide
+    comprehensive mathematical documentation with step-by-step explanations.
+
+    Args:
+        id_suffix (str): Suffix for component ID
+        formula_name (str): Name of the formula (e.g., "PERT Expected Value")
+        basic_explanation (str): Simple explanation for basic users
+        formula_text (str): Mathematical formula (e.g., "(O + 4×ML + P) ÷ 6")
+        example_calculation (str, optional): Step-by-step numerical example
+        mathematical_context (str, optional): Advanced mathematical context
+        variant (str): Tooltip style variant
+        placement (str): Tooltip placement
+
+    Returns:
+        Dash component with formula-specific expandable tooltip
+    """
+    # Create summary content (basic level)
+    summary_content = f"{basic_explanation}\n\n🔢 Formula: {formula_text}"
+
+    # Create detailed content (intermediate/advanced level)
+    detailed_parts = []
+
+    if example_calculation:
+        detailed_parts.append(f"📊 Example Calculation:\n{example_calculation}")
+
+    if mathematical_context:
+        detailed_parts.append(f"📈 Mathematical Context:\n{mathematical_context}")
+
+    detailed_content = (
+        "\n\n".join(detailed_parts)
+        if detailed_parts
+        else "Additional mathematical details available on request."
+    )
+
+    return create_expandable_tooltip(
+        id_suffix=f"formula-{id_suffix}",
+        summary_text=summary_content,
+        detailed_text=detailed_content,
+        variant=variant,
+        placement=placement,
+    )
+
+
+def create_calculation_step_tooltip(
+    id_suffix,
+    calculation_name,
+    steps,
+    interpretation=None,
+    variant="primary",
+    placement="top",
+):
+    """
+    Create a tooltip that shows step-by-step calculation process.
+
+    Ideal for showing mathematical processes with numbered steps and
+    clear interpretation of results.
+
+    Args:
+        id_suffix (str): Suffix for component ID
+        calculation_name (str): Name of the calculation process
+        steps (list): List of calculation steps
+        interpretation (str, optional): Interpretation of the final result
+        variant (str): Tooltip style variant
+        placement (str): Tooltip placement
+
+    Returns:
+        Dash component with step-by-step calculation tooltip
+    """
+    # Format steps with numbers
+    formatted_steps = []
+    for i, step in enumerate(steps, 1):
+        formatted_steps.append(f"{i}. {step}")
+
+    summary_content = f"{calculation_name}\n\nStep-by-step process:"
+    detailed_content = "\n".join(formatted_steps)
+
+    if interpretation:
+        detailed_content += f"\n\n💡 Result: {interpretation}"
+
+    return create_expandable_tooltip(
+        id_suffix=f"calc-{id_suffix}",
+        summary_text=summary_content,
+        detailed_text=detailed_content,
+        variant=variant,
+        placement=placement,
+    )
+
+
+def create_statistical_context_tooltip(
+    id_suffix,
+    metric_name,
+    statistical_explanation,
+    confidence_info=None,
+    data_requirements=None,
+    variant="success",
+    placement="top",
+):
+    """
+    Create a tooltip that explains statistical context and confidence levels.
+
+    Perfect for explaining why certain calculations are used and what
+    confidence levels mean in practical terms.
+
+    Args:
+        id_suffix (str): Suffix for component ID
+        metric_name (str): Name of the statistical metric
+        statistical_explanation (str): Core statistical explanation
+        confidence_info (str, optional): Information about confidence levels
+        data_requirements (str, optional): Minimum data requirements
+        variant (str): Tooltip style variant
+        placement (str): Tooltip placement
+
+    Returns:
+        Dash component with statistical context tooltip
+    """
+    summary_content = f"{metric_name}\n\n{statistical_explanation}"
+
+    detailed_parts = []
+    if confidence_info:
+        detailed_parts.append(f"📊 Confidence: {confidence_info}")
+
+    if data_requirements:
+        detailed_parts.append(f"📈 Data Requirements: {data_requirements}")
+
+    detailed_content = (
+        "\n\n".join(detailed_parts)
+        if detailed_parts
+        else "Additional statistical context available."
+    )
+
+    return create_expandable_tooltip(
+        id_suffix=f"stats-{id_suffix}",
+        summary_text=summary_content,
+        detailed_text=detailed_content,
+        variant=variant,
+        placement=placement,
+    )

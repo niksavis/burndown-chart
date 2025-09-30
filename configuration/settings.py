@@ -143,14 +143,21 @@ HELP_TEXTS = {
 # PERT and Forecasting Help Texts
 FORECAST_HELP_TEXTS = {
     "pert_methodology": """
-        PERT (Program Evaluation and Review Technique) uses three-point estimation:
+        PERT (Program Evaluation and Review Technique) uses three-point estimation for probabilistic forecasting:
         
-        - Optimistic: Best-case scenario using highest velocity periods
-        - Most Likely: Current average velocity based on recent data
-        - Pessimistic: Worst-case scenario using lowest velocity periods
-        - Expected: Weighted average using formula (O + 4×ML + P) ÷ 6
+        📊 **Formula Components:**
+        • Optimistic (O): Best-case scenario from top velocity periods
+        • Most Likely (ML): Current average velocity from recent data
+        • Pessimistic (P): Worst-case scenario from lowest velocity periods
+        • Expected (E): Weighted average = (O + 4×ML + P) ÷ 6
         
-        This provides a range of completion estimates with statistical confidence.
+        🔢 **Mathematical Foundation:**
+        The formula weights the Most Likely estimate 4x more heavily than extreme scenarios,
+        following beta distribution principles for realistic project estimation.
+        
+        📈 **Confidence Intervals:**
+        Uncertainty range calculated as ±25% of variance between scenarios.
+        Wider ranges indicate higher uncertainty; narrower ranges show more predictable velocity.
     """,
     "optimistic_forecast": """
         Best-case completion estimate based on your highest velocity periods.
@@ -173,11 +180,32 @@ FORECAST_HELP_TEXTS = {
     "expected_forecast": """
         PERT Expected estimate using weighted average of all three scenarios.
         
-        Formula: (Optimistic + 4×Most Likely + Pessimistic) ÷ 6
-        This balances optimism with realism and provides the most statistically sound estimate.
+        🔢 **Step-by-Step Calculation:**
+        1. Expected = (Optimistic + 4×Most Likely + Pessimistic) ÷ 6
+        2. Example: (8 + 4×12 + 20) ÷ 6 = (8 + 48 + 20) ÷ 6 = 76 ÷ 6 = 12.67 weeks
+        
+        📊 **Why This Formula:**
+        • Weights Most Likely 4x more than extremes (follows beta distribution)
+        • Balances optimism with realism for statistically sound estimates
+        • Reduces impact of outlier scenarios while acknowledging uncertainty
+        
+        💡 **Interpretation:** Most reliable single-point forecast for project planning.
     """,
     "three_point_estimation": """
         Three-point estimation technique provides forecast ranges instead of single points.
+        
+        🎯 **Mathematical Advantage:**
+        Single estimates ignore uncertainty; ranges acknowledge project variability.
+        
+        📈 **Confidence Calculation:**
+        • Standard Deviation = (Pessimistic - Optimistic) ÷ 6
+        • Confidence Interval = Expected ± (Standard Deviation × 1.96) for 95% confidence
+        • Practical Range = Expected ± 25% of scenario variance
+        
+        🔍 **Data Requirements:**
+        • Minimum 3-5 weeks for basic estimates
+        • Optimal 6-10 weeks for statistical reliability
+        • More data = narrower confidence intervals = higher accuracy
         
         Benefits:
         - Accounts for uncertainty and variability
@@ -216,14 +244,30 @@ VELOCITY_HELP_TEXTS = {
     "velocity_average": """
         Average weekly completion rate over the selected time period.
         
-        Calculation: Sum of completed items/points ÷ Number of weeks
-        This smooths out weekly variations to show overall team capacity.
+        🔢 **Mathematical Formula:**
+        Average = Σ(Weekly Completions) ÷ Number of Weeks
+        
+        📊 **Step-by-Step Example:**
+        Week 1: 8 items, Week 2: 12 items, Week 3: 6 items, Week 4: 10 items
+        Average = (8 + 12 + 6 + 10) ÷ 4 = 36 ÷ 4 = 9.0 items/week
+        
+        💡 **Usage:** Smooths out weekly variations to show sustainable team capacity.
+        Best for: Stable teams with consistent velocity patterns.
     """,
     "velocity_median": """
         Middle value of weekly completion rates when sorted from lowest to highest.
         
-        Less affected by outliers than average, representing typical weekly performance.
-        Useful when your velocity has high variability or occasional exceptional weeks.
+        🔢 **Mathematical Process:**
+        1. Sort all weekly values: [6, 8, 10, 12] (from example above)
+        2. Find middle position: For 4 values, average positions 2 & 3
+        3. Median = (8 + 10) ÷ 2 = 9.0 items/week
+        
+        📊 **Outlier Resistance:**
+        Average vs Median with outlier: [6, 8, 10, 40]
+        • Average = (6+8+10+40) ÷ 4 = 16.0 (skewed by outlier)
+        • Median = (8+10) ÷ 2 = 9.0 (stable despite outlier)
+        
+        💡 **Best for:** Teams with variable velocity or occasional exceptional weeks.
     """,
     "velocity_trend": """
         Direction and magnitude of velocity change over recent periods.
@@ -247,6 +291,21 @@ VELOCITY_HELP_TEXTS = {
         
         Significant trends (marked in bold) indicate real changes in team performance,
         while non-significant trends may be due to normal weekly fluctuations.
+    """,
+    "weighted_moving_average": """
+        Exponentially weighted moving average emphasizes recent weeks over older data.
+        
+        🔢 **Mathematical Formula:**
+        WMA = 0.4×Week₁ + 0.3×Week₂ + 0.2×Week₃ + 0.1×Week₄
+        (Week₁ = most recent, Week₄ = oldest in 4-week window)
+        
+        📊 **Calculation Example:**
+        Most recent weeks: [12, 8, 10, 6] (newest to oldest)
+        WMA = 0.4×12 + 0.3×8 + 0.2×10 + 0.1×6
+        WMA = 4.8 + 2.4 + 2.0 + 0.6 = 9.8 items/week
+        
+        💡 **Advantage:** Responds faster to velocity changes than simple averages.
+        Weights sum to 1.0 (40% + 30% + 20% + 10% = 100%).
     """,
 }
 
@@ -301,26 +360,40 @@ SCOPE_HELP_TEXTS = {
     "scope_change_rate": """
         Percentage of new work discovered and added compared to the original project baseline.
         
-        Calculation: (New Items Created ÷ Original Baseline) × 100%
+        🔢 **Mathematical Formula:**
+        Scope Change Rate = (New Items Created ÷ Original Baseline) × 100%
         
-        🎯 Agile Context:
-        - <20%: Normal discovery and refinement
-        - 20-40%: Active learning and adaptation  
-        - >40%: Significant discovery, consider timeline adjustments
+        📊 **Step-by-Step Example:**
+        1. Original baseline: 50 items
+        2. New items discovered: 15 items  
+        3. Calculation: (15 ÷ 50) × 100% = 30%
+        4. Interpretation: 30% scope growth from baseline
         
-        In agile projects, scope changes reflect learning and adaptation to user needs.
+        🎯 **Agile Context Guidelines:**
+        • <20%: Normal discovery and refinement (expected)
+        • 20-40%: Active learning and adaptation (healthy)
+        • >40%: Significant discovery, timeline impact (review priorities)
+        
+        💡 **Agile Philosophy:** Scope changes reflect learning and adaptation to user needs.
     """,
     "throughput_ratio": """
         Ratio comparing new work discovery versus work completion velocity.
         
-        Calculation: Created Items ÷ Completed Items
+        🔢 **Mathematical Formula:**
+        Throughput Ratio = Total Created Items ÷ Total Completed Items
         
-        📊 Interpretation:
-        - <1.0: Completing faster than discovering (catching up)
-        - =1.0: Balanced discovery and completion velocity
-        - >1.0: Discovering faster than completing (exploring ahead)
+        📊 **Calculation Example:**
+        1. Items created this period: 8 items
+        2. Items completed this period: 10 items
+        3. Ratio = 8 ÷ 10 = 0.8
+        4. Interpretation: Completing 25% faster than discovering
         
-        This helps understand the balance between exploration and execution.
+        📈 **Interpretation Guide:**
+        • <1.0: Completing faster than discovering (catching up to backlog)
+        • =1.0: Balanced discovery and completion velocity (steady state)
+        • >1.0: Discovering faster than completing (expanding backlog)
+        
+        💡 **Purpose:** Understand balance between exploration and execution phases.
     """,
     "threshold_color_coding": """
         Visual indicators based on velocity impact rather than absolute scope changes.
@@ -375,6 +448,24 @@ SCOPE_HELP_TEXTS = {
         - Growth Patterns: Week-by-week evolution of scope and priorities
         
         🎯 Purpose: Understand scope evolution patterns to optimize discovery-delivery balance.
+    """,
+    "jira_scope_calculation": """
+        JIRA scope calculator uses intelligent extrapolation for items without story points.
+        
+        🔢 **Core Formula:**
+        Remaining Total Points = Estimated Points + (avg_points_per_item × unestimated_items)
+        
+        📊 **Step-by-Step Process:**
+        1. Calculate average from items WITH points: avg = total_estimated_points ÷ estimated_items
+        2. Count items WITHOUT points: unestimated_items = remaining_items - estimated_items  
+        3. Extrapolate missing points: missing_points = avg × unestimated_items
+        4. Total forecast: remaining_total = estimated_points + missing_points
+        
+        🔄 **Historical Fallback Logic:**
+        When no remaining items have points, uses completed items for average:
+        avg_points_per_item = completed_points ÷ completed_items
+        
+        💡 **Why This Works:** Provides realistic forecasts even with incomplete estimation.
     """,
     "cumulative_chart": """
         Shows the cumulative impact of scope changes over time compared to the original baseline.
@@ -488,13 +579,19 @@ CHART_HELP_TEXTS = {
     "forecast_confidence_intervals": """
         Confidence intervals show the uncertainty range around forecast predictions.
         
-        Calculation method:
-        - Most Likely: PERT expected value (main bar height)
-        - Upper bound: Most Likely + 25% of (Optimistic - Most Likely)
-        - Lower bound: Most Likely - 25% of (Most Likely - Pessimistic)
+        🔢 **Mathematical Calculation:**
+        1. Most Likely (ML): PERT expected value (center of error bar)
+        2. Upper Bound = ML + 0.25 × (Optimistic - ML)
+        3. Lower Bound = ML - 0.25 × (ML - Pessimistic)
         
-        Error bars provide visual indication of forecast reliability and risk assessment.
-        Wider intervals indicate higher uncertainty; narrower intervals suggest more predictable outcomes.
+        📊 **Numerical Example:**
+        Optimistic = 15, Most Likely = 12, Pessimistic = 8
+        • Upper = 12 + 0.25×(15-12) = 12 + 0.75 = 12.75
+        • Lower = 12 - 0.25×(12-8) = 12 - 1.0 = 11.0
+        • Range: 11.0 to 12.75 (confidence interval)
+        
+        📈 **Interpretation:** Error bar width indicates forecast reliability.
+        Wider intervals = higher uncertainty; narrower intervals = more predictable outcomes.
     """,
     "exponential_weighting": """
         Exponential weighting system emphasizes recent performance over older data.
