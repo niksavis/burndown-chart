@@ -599,11 +599,19 @@ def register(app):
             logger.info(f"Project scope loaded: {project_scope}")
 
             if project_scope:
-                # Use the actual project scope values
-                estimated_items = project_scope.get("remaining_items", 0)
-                total_items = project_scope.get("total_items", estimated_items)
-                estimated_points = project_scope.get("remaining_points", 0)
-                total_points = project_scope.get("total_points", estimated_points)
+                # Use the actual project scope values with correct field mappings
+                estimated_items = project_scope.get(
+                    "estimated_items", 0
+                )  # Items with non-null story points
+                total_items = project_scope.get(
+                    "remaining_items", 0
+                )  # All remaining items
+                estimated_points = project_scope.get(
+                    "estimated_points", 0
+                )  # Points from estimated items
+                total_points = project_scope.get(
+                    "remaining_total_points", 0
+                )  # Total points including extrapolation
 
                 logger.info(
                     f"Updated project scope from import: Items={estimated_items}/{total_items}, Points={estimated_points}/{total_points}"

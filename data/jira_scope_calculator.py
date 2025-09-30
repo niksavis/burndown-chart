@@ -316,14 +316,18 @@ def _validate_points_field_availability(
 
 def _issue_has_real_points(fields: Dict[str, Any], points_field: str) -> bool:
     """
-    Check if a specific issue has real point values (not just default fallback).
+    Check if a specific issue has real point values (non-null story points).
+
+    Business Logic: An item is "estimated" ONLY if the story points field has a non-null value.
+    Items with null story points are considered "not estimated" even if they get default
+    points in calculations for extrapolation purposes.
 
     Args:
         fields: JIRA issue fields dictionary
         points_field: Field name to check
 
     Returns:
-        bool: True if issue has meaningful point values
+        bool: True if issue has non-null story points (estimated), False otherwise
     """
     try:
         # First check if points field is valid (not empty/whitespace)
@@ -331,12 +335,14 @@ def _issue_has_real_points(fields: Dict[str, Any], points_field: str) -> bool:
             return False  # No points field configured
 
         if points_field == "votes":
-            votes_data = fields.get("votes")
-            return votes_data is not None and votes_data.get("votes", -1) >= 0
+            # CORRECT LOGIC: Only issues with actual vote data are estimated
+            value = fields.get(points_field)
+            return value is not None  # Only non-null votes are estimated
         elif points_field.startswith("customfield_"):
             value = fields.get(points_field)
+            # CORRECT LOGIC: Only non-null values are considered "estimated"
             if value is None:
-                return False
+                return False  # Null values are NOT estimated
 
             if isinstance(value, dict):
                 point_val = value.get(
@@ -348,16 +354,19 @@ def _issue_has_real_points(fields: Dict[str, Any], points_field: str) -> bool:
                 try:
                     point_val = float(value)
                 except ValueError:
-                    return False
+                    return False  # Invalid string is NOT estimated
             else:
-                return False
+                return False  # Unknown type is NOT estimated
 
             return point_val >= 0  # 0 and positive values are meaningful
         else:
+            # CORRECT LOGIC: Only non-null values are estimated
             value = fields.get(points_field)
-            return value is not None and value >= 0
+            return (
+                value is not None and value >= 0
+            )  # Only non-null, non-negative values are estimated
     except Exception:
-        return False
+        return False  # On error, consider as NOT estimated
 
 
 def _calculate_remaining_total_points(

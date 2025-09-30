@@ -61,21 +61,21 @@ def serve_layout():
     # Use project_scope values if available (from JIRA), otherwise fall back to project_data defaults
     settings = {**app_settings, **project_data}
     if project_scope:
-        # Update with actual JIRA calculated scope values
+        # Update with actual JIRA calculated scope values using correct field mappings
         settings.update(
             {
                 "total_items": project_scope.get(
                     "remaining_items", project_data["total_items"]
-                ),
+                ),  # Remaining Total Items
                 "total_points": project_scope.get(
-                    "remaining_points", project_data["total_points"]
-                ),
+                    "remaining_total_points", project_data["total_points"]
+                ),  # Remaining Total Points (with extrapolation)
                 "estimated_items": project_scope.get(
-                    "remaining_items", project_data["estimated_items"]
-                ),
+                    "estimated_items", project_data["estimated_items"]
+                ),  # Remaining Estimated Items (non-null story points)
                 "estimated_points": project_scope.get(
-                    "remaining_points", project_data["estimated_points"]
-                ),
+                    "estimated_points", project_data["estimated_points"]
+                ),  # Remaining Estimated Points (sum of estimated)
             }
         )
 

@@ -41,7 +41,6 @@ from ui.tooltip_utils import (
     create_enhanced_tooltip,
     create_dismissible_tooltip,
     create_expandable_tooltip,
-    create_chart_tooltip_bundle,
 )
 
 # Type definition for StyleCellConditional
@@ -757,7 +756,7 @@ def create_input_parameters_card(
                             className="fas fa-tasks me-2",
                             style={"color": COLOR_PALETTE["points"]},
                         ),
-                        "Project Scope",
+                        "Remaining Work Scope",
                     ],
                     className="mb-3 border-bottom pb-2 d-flex align-items-center",
                 ),
@@ -769,7 +768,7 @@ def create_input_parameters_card(
                             [
                                 html.Label(
                                     [
-                                        "Remaining Estimated Items:",
+                                        "Estimated Items",
                                         create_info_tooltip(
                                             "estimated-items",
                                             HELP_TEXTS["estimated_items"],
@@ -804,7 +803,7 @@ def create_input_parameters_card(
                             [
                                 html.Label(
                                     [
-                                        "Remaining Total Items:",
+                                        "Total Items",
                                         create_info_tooltip(
                                             "total-items",
                                             HELP_TEXTS["total_items"],
@@ -889,7 +888,7 @@ def create_input_parameters_card(
                                     [
                                         html.Label(
                                             [
-                                                "Remaining Estimated Points:",
+                                                "Estimated Points",
                                                 create_info_tooltip(
                                                     "estimated-points",
                                                     HELP_TEXTS["estimated_points"],
@@ -924,7 +923,7 @@ def create_input_parameters_card(
                                     [
                                         html.Label(
                                             [
-                                                "Remaining Total Points:",
+                                                "Total Points",
                                                 html.Span(
                                                     "auto",
                                                     className="badge bg-secondary ms-1",

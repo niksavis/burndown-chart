@@ -296,13 +296,14 @@ def register(app):
         )
 
         # Save project data using unified format
-        from data.persistence import get_project_scope, update_project_scope
+        from data.persistence import load_unified_project_data, update_project_scope
 
-        # Get current project scope to check if it's from JIRA
-        current_scope = get_project_scope()
+        # Get current unified data to check if it's from JIRA
+        unified_data = load_unified_project_data()
+        data_source = unified_data.get("metadata", {}).get("source", "")
 
         # Only update project scope if it's NOT from JIRA (to avoid overriding JIRA data)
-        if current_scope.get("source") != "jira":
+        if data_source != "jira_calculated":
             update_project_scope(
                 {
                     "total_items": total_items,
@@ -314,18 +315,12 @@ def register(app):
                 }
             )
         else:
-            # If data is from JIRA, only update the estimation fields but preserve JIRA scope data
+            # CRITICAL FIX: If data is from JIRA, DO NOT override any JIRA-calculated values
+            # The estimation fields should only be updated through JIRA scope calculation, not UI inputs
             logger.info(
-                "Preserving JIRA project scope data, only updating estimation fields"
+                "Preserving JIRA project scope data - UI input changes do not override JIRA calculations"
             )
-            update_project_scope(
-                {
-                    "estimated_items": estimated_items,
-                    "estimated_points": estimated_points,
-                    # Don't update total_items, total_points, remaining_items, remaining_points
-                    # as they come from JIRA
-                }
-            )
+            # JIRA project scope should ONLY be updated by JIRA operations, never by UI inputs
 
         logger.info(f"Settings updated and saved: {settings}")
         return settings, int(datetime.now().timestamp() * 1000)
