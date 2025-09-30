@@ -29,6 +29,7 @@ from dash import (
 from dash.exceptions import PreventUpdate
 
 # Application imports
+from configuration import CHART_HELP_TEXTS
 from data import (
     calculate_performance_trend,
     calculate_weekly_averages,
@@ -45,6 +46,7 @@ from ui.loading_utils import (
     create_skeleton_loader,
     create_content_placeholder,
 )
+from ui.tooltip_utils import create_info_tooltip
 from visualization import (
     create_forecast_plot,
     create_weekly_items_chart,
@@ -401,10 +403,41 @@ def register(app):
             )
         )
 
-        # Create the header component
+        # Create tooltip components list for proper rendering
+        tooltip_components = []
+
+        # Create methodology tooltip
+        methodology_tooltip = create_info_tooltip(
+            f"weekly-chart-methodology-{title.split()[1].lower()}",
+            CHART_HELP_TEXTS["weekly_chart_methodology"],
+        )
+        tooltip_components.append(methodology_tooltip)
+
+        # Create weighted average tooltip
+        weighted_avg_tooltip = create_info_tooltip(
+            f"weighted-average-{title.split()[1].lower()}",
+            CHART_HELP_TEXTS["weighted_moving_average"],
+        )
+        tooltip_components.append(weighted_avg_tooltip)
+
+        # Create exponential weighting tooltip
+        exponential_tooltip = create_info_tooltip(
+            f"exponential-weighting-{title.split()[1].lower()}",
+            CHART_HELP_TEXTS["exponential_weighting"],
+        )
+        tooltip_components.append(exponential_tooltip)
+
+        # Create forecast methodology tooltip
+        forecast_tooltip = create_info_tooltip(
+            f"forecast-methodology-{title.split()[1].lower()}",
+            CHART_HELP_TEXTS["forecast_vs_actual_bars"],
+        )
+        tooltip_components.append(forecast_tooltip)
+
+        # Create the header component with tooltips rendered separately
         return html.Div(
             [
-                # Header with icon and title
+                # Header with icon and title - enhanced with tooltips
                 html.Div(
                     [
                         html.I(
@@ -415,17 +448,55 @@ def register(app):
                             title,
                             className="fw-medium",
                         ),
+                        # Add methodology tooltip icon only
+                        html.I(
+                            className="fas fa-info-circle text-info ms-2",
+                            id=f"info-tooltip-weekly-chart-methodology-{title.split()[1].lower()}",
+                            style={"cursor": "pointer"},
+                        ),
                     ],
                     className="d-flex align-items-center mb-2",
                 ),
-                # Add compact trend indicator
-                create_compact_trend_indicator(trend_data, title.split()[1]),
-                # Add forecast pills in a flex container
+                # Enhanced trend indicator with weighted average tooltip
                 html.Div(
-                    forecast_pills,
-                    className="d-flex flex-wrap mt-2 align-items-center",
+                    [
+                        create_compact_trend_indicator(trend_data, title.split()[1]),
+                        # Add weighted average explanation tooltip icon
+                        html.I(
+                            className="fas fa-chart-line text-info ms-2",
+                            id=f"info-tooltip-weighted-average-{title.split()[1].lower()}",
+                            style={"cursor": "pointer"},
+                        ),
+                        # Add exponential weighting details tooltip icon
+                        html.I(
+                            className="fas fa-calculator text-info ms-2",
+                            id=f"info-tooltip-exponential-weighting-{title.split()[1].lower()}",
+                            style={"cursor": "pointer"},
+                        ),
+                    ],
+                    className="d-flex align-items-center",
                     style={"gap": "0.25rem"},
                 ),
+                # Enhanced forecast pills with methodology tooltip
+                html.Div(
+                    [
+                        html.Div(
+                            forecast_pills,
+                            className="d-flex flex-wrap align-items-center",
+                            style={"gap": "0.25rem"},
+                        ),
+                        # Add forecast methodology tooltip icon
+                        html.I(
+                            className="fas fa-chart-bar text-info ms-2",
+                            id=f"info-tooltip-forecast-methodology-{title.split()[1].lower()}",
+                            style={"cursor": "pointer"},
+                        ),
+                    ],
+                    className="d-flex align-items-center mt-2",
+                    style={"gap": "0.5rem"},
+                ),
+                # Add all tooltip components at the end for proper rendering
+                html.Div(tooltip_components, style={"display": "none"}),
             ],
             className="col-md-6 col-12 mb-3 pe-md-2",
         )
@@ -501,7 +572,7 @@ def register(app):
                     },
                 ),
                 dbc.Tooltip(
-                    "Toggle between burndown view (showing work remaining) and burnup view (showing work completed and total scope)",
+                    CHART_HELP_TEXTS["burndown_vs_burnup"],
                     target="chart-type-toggle",
                 ),
             ],

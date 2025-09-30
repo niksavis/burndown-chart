@@ -19,7 +19,11 @@ import pandas as pd
 
 # Application imports
 from configuration import HELP_TEXTS, COLOR_PALETTE
-from configuration.settings import PROJECT_HELP_TEXTS, STATISTICS_HELP_TEXTS
+from configuration.settings import (
+    PROJECT_HELP_TEXTS,
+    STATISTICS_HELP_TEXTS,
+    CHART_HELP_TEXTS,
+)
 
 # Import styling functions from utility modules
 from ui.styles import (
@@ -214,11 +218,15 @@ def create_forecast_info_card():
     # Create the card body content with optimized layout
     body_content = html.Div(
         [
-            # Concise introduction paragraph
+            # Concise introduction paragraph with PERT methodology tooltip
             create_rhythm_text(
                 [
                     html.Strong("PERT Forecast: "),
                     "Estimates based on optimistic, most likely, and pessimistic scenarios from your historical data.",
+                    create_info_tooltip(
+                        CHART_HELP_TEXTS["pert_forecast_methodology"],
+                        "How PERT three-point estimation creates realistic forecasts using historical data",
+                    ),
                 ],
                 element_type="paragraph",
             ),
@@ -231,7 +239,15 @@ def create_forecast_info_card():
                         children=html.Div(
                             className="border rounded p-2",
                             children=[
-                                html.Strong("Line Colors:"),
+                                html.Div(
+                                    [
+                                        html.Strong("Line Colors:"),
+                                        create_info_tooltip(
+                                            CHART_HELP_TEXTS["chart_legend_explained"],
+                                            "Visual cues and line types used in the forecast chart",
+                                        ),
+                                    ]
+                                ),
                                 html.Ul(
                                     [
                                         html.Li(
@@ -323,27 +339,61 @@ def create_forecast_info_card():
                         children=html.Div(
                             className="border rounded p-2",
                             children=[
-                                html.Strong("Reading Guide:"),
+                                html.Div(
+                                    [
+                                        html.Strong("Reading Guide:"),
+                                        create_info_tooltip(
+                                            CHART_HELP_TEXTS[
+                                                "historical_data_influence"
+                                            ],
+                                            "How data quantity affects forecast accuracy and confidence",
+                                        ),
+                                    ]
+                                ),
                                 html.Ul(
                                     [
-                                        html.Li("Solid lines: Historical data"),
-                                        html.Li("Dashed/dotted: Forecasts"),
                                         html.Li(
                                             [
-                                                "Dates in ",
-                                                html.Span(
-                                                    "green", style={"color": "green"}
+                                                "Solid lines: Historical data ",
+                                                create_info_tooltip(
+                                                    CHART_HELP_TEXTS[
+                                                        "chart_legend_explained"
+                                                    ],
+                                                    "Visual legend and line type meanings",
                                                 ),
-                                                ": On track",
                                             ]
                                         ),
                                         html.Li(
                                             [
-                                                "Dates in ",
-                                                html.Span(
-                                                    "red", style={"color": "red"}
+                                                "Dashed/dotted: Forecasts ",
+                                                create_info_tooltip(
+                                                    CHART_HELP_TEXTS[
+                                                        "forecast_confidence_bands"
+                                                    ],
+                                                    "Understanding forecast uncertainty ranges",
                                                 ),
-                                                ": At risk",
+                                            ]
+                                        ),
+                                        html.Li(
+                                            [
+                                                "Scope changes: Chart annotations ",
+                                                create_info_tooltip(
+                                                    CHART_HELP_TEXTS[
+                                                        "scope_change_indicators"
+                                                    ],
+                                                    "How scope changes are shown on the main chart",
+                                                ),
+                                            ]
+                                        ),
+                                        html.Li(
+                                            [
+                                                "Data points: Accuracy factor ",
+                                                create_info_tooltip(
+                                                    CHART_HELP_TEXTS[
+                                                        "data_points_precision"
+                                                    ],
+                                                    "How number of data points affects forecast precision",
+                                                ),
                                             ]
                                         ),
                                     ],

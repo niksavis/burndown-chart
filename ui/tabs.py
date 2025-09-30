@@ -14,7 +14,9 @@ import dash_bootstrap_components as dbc
 from dash import html
 
 # Application imports
+from configuration.settings import CHART_HELP_TEXTS
 from ui.grid_utils import create_tab_content as grid_create_tab_content
+from ui.tooltip_utils import create_info_tooltip
 
 
 def create_tabs():
@@ -129,6 +131,10 @@ def create_tab_content(active_tab, charts, statistics_df=None, pert_data=None):
             [
                 html.I(className="fas fa-chart-line me-2", style={"color": "#0d6efd"}),
                 "Project Burndown Forecast",
+                create_info_tooltip(
+                    CHART_HELP_TEXTS["burndown_vs_burnup"],
+                    "Burndown vs Burnup chart differences and when to use each approach",
+                ),
             ],
             className="mb-3 border-bottom pb-2 d-flex align-items-center fw-bold",
         ),

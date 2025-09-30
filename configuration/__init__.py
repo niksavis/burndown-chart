@@ -33,6 +33,8 @@ from configuration.settings import (
     # File paths
     APP_SETTINGS_FILE,
     HELP_TEXTS,
+    CHART_HELP_TEXTS,
+    SCOPE_HELP_TEXTS,
     PROJECT_DATA_FILE,
     SAMPLE_DATA,
     SETTINGS_FILE,
@@ -59,6 +61,8 @@ __all__ = [
     "SAMPLE_DATA",
     "COLOR_PALETTE",
     "HELP_TEXTS",
+    "CHART_HELP_TEXTS",
+    "SCOPE_HELP_TEXTS",
     "logger",
     "__version__",
     # Server configuration

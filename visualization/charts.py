@@ -1072,10 +1072,12 @@ def create_weekly_items_chart(
                 marker=dict(size=6, opacity=1),
                 customdata=weighted_df["week_label"],
                 hovertemplate=format_hover_template(
-                    title="Weekly Average",
+                    title="Weighted Moving Average",
                     fields={
                         "Week of": "%{customdata}",
-                        "Weighted Avg": "%{y:.1f}",
+                        "Weighted Avg": "%{y:.1f} items",
+                        "Method": "Exponential weights (0.1, 0.2, 0.3, 0.4)",
+                        "Purpose": "Recent weeks have 4x more influence",
                     },
                 ),
                 hoverlabel=create_hoverlabel_config("info"),
@@ -1103,11 +1105,12 @@ def create_weekly_items_chart(
                     ],
                     textposition="outside",
                     hovertemplate=format_hover_template(
-                        title="Items Forecast",
+                        title="Next Week Items Forecast",
                         fields={
                             "Week": "%{x}",
-                            "Items": "%{y:.1f}",
-                            "Type": "Most Likely",
+                            "Predicted Items": "%{y:.1f}",
+                            "Method": "PERT Most Likely estimate",
+                            "Based on": "Recent velocity patterns",
                         },
                     ),
                     hoverlabel=create_hoverlabel_config("info"),
@@ -1277,10 +1280,12 @@ def create_weekly_points_chart(
                 marker=dict(size=6, opacity=1),
                 customdata=weighted_df["week_label"],
                 hovertemplate=format_hover_template(
-                    title="Weekly Average",
+                    title="Weighted Moving Average",
                     fields={
                         "Week of": "%{customdata}",
-                        "Weighted Avg": "%{y:.1f}",
+                        "Weighted Avg": "%{y:.1f} points",
+                        "Method": "Exponential weights (0.1, 0.2, 0.3, 0.4)",
+                        "Purpose": "Recent weeks have 4x more influence",
                     },
                 ),
                 hoverlabel=create_hoverlabel_config("info"),
@@ -1328,11 +1333,12 @@ def create_weekly_points_chart(
                         color="rgba(0, 0, 0, 0.3)",
                     ),
                     hovertemplate=format_hover_template(
-                        title="Points Forecast",
+                        title="Next Week Points Forecast",
                         fields={
                             "Week": "%{x}",
-                            "Points": "%{y:.1f}",
-                            "Range": "[%{error_y.arrayminus:.1f}, %{error_y.array:.1f}]",
+                            "Predicted Points": "%{y:.1f}",
+                            "Confidence Range": "±25% of PERT variance",
+                            "Method": "PERT 3-point estimation",
                         },
                     ),
                     hoverlabel=create_hoverlabel_config("info"),
