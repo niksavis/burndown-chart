@@ -618,7 +618,7 @@ def _create_forecast_card(
                 f"{pert_time:.1f}d ({pert_time / 7:.1f}w)",
                 f"rgba({color == 'green' and '40,167,69' or '220,53,69'},0.08)",
                 is_highlighted=True,
-                icon="fas fa-star-of-life",
+                icon="fas fa-chart-line",
             ),
             # Average row
             _create_forecast_row(
@@ -742,27 +742,25 @@ def _create_completion_forecast_section(
 
     return html.Div(
         [
-            # Subtitle with methodology information
-            html.Div(
-                html.Small(
-                    "Based on PERT methodology (optimistic, most likely, and pessimistic estimates)",
-                    className="text-muted mb-3 d-block text-center",
-                ),
-                className="mb-3",
-            ),
             # Add all forecast cards
             *forecast_cards,
-            # Legend
+            # Enhanced footer with methodology explanation and tooltip
             html.Div(
                 html.Small(
-                    create_icon_text(
-                        "fas fa-star-of-life",
-                        "PERT forecast combines optimistic, most likely, and pessimistic estimates",
-                        size="xs",
-                    ),
-                    className="text-muted fst-italic text-center",
+                    [
+                        create_icon_text(
+                            "fas fa-chart-line",
+                            "PERT three-point estimation (optimistic + most likely + pessimistic)",
+                            size="xs",
+                        ),
+                        create_info_tooltip(
+                            "pert-methodology",
+                            FORECAST_HELP_TEXTS["pert_methodology"],
+                        ),
+                    ],
+                    className="text-muted fst-italic text-center d-flex align-items-center justify-content-center",
                 ),
-                className="mt-2",
+                className="mt-3",
             ),
         ],
         className="p-3 border rounded h-100",
@@ -1047,39 +1045,25 @@ def _create_weekly_velocity_section(
 
     return html.Div(
         [
-            # Subtitle with period information
-            html.Div(
-                html.Small(
-                    [
-                        "Based on last 10 weeks of data",
-                        create_info_tooltip(
-                            "velocity-data-period",
-                            VELOCITY_HELP_TEXTS["ten_week_calculation"],
-                        ),
-                    ],
-                    className="text-muted mb-3 d-flex align-items-center justify-content-center",
-                ),
-                className="mb-3",
-            ),
             # Add all velocity cards
             *velocity_cards,
-            # Info text at the bottom
+            # Enhanced footer with data period explanation and tooltip
             html.Div(
                 html.Div(
                     [
                         html.I(
-                            className="fas fa-info-circle me-1",
+                            className="fas fa-calendar-week me-1",
                             style={"color": "#6c757d"},
                         ),
-                        "10-week velocity data used for project forecasting.",
+                        "Based on 10-week rolling average for forecasting accuracy",
                         create_info_tooltip(
-                            "ten-week-calculation",
+                            "velocity-ten-week-calculation",
                             VELOCITY_HELP_TEXTS["ten_week_calculation"],
                         ),
                     ],
                     className="text-muted fst-italic small text-center d-flex align-items-center justify-content-center",
                 ),
-                className="mt-2",
+                className="mt-3",
             ),
         ],
         className="p-3 border rounded h-100",
