@@ -58,6 +58,8 @@ def _create_header_with_icon(
     color: str = "#20c997",
     tooltip_id: Optional[str] = None,
     tooltip_text: Optional[str] = None,
+    help_key: Optional[str] = None,
+    help_category: Optional[str] = None,
 ) -> html.H5:
     """Create a header with an icon for PERT info sections.
 
@@ -67,9 +69,11 @@ def _create_header_with_icon(
         color: The color to use for the icon, defaults to teal
         tooltip_id: Optional ID suffix for tooltip
         tooltip_text: Optional tooltip text to display
+        help_key: Optional help content key for Phase 9.2 progressive disclosure
+        help_category: Optional help category for Phase 9.2 system
 
     Returns:
-        A styled H5 component with an icon, title, and optional tooltip
+        A styled H5 component with an icon, title, and optional tooltip/help
     """
     header_content = [
         html.I(
@@ -79,8 +83,25 @@ def _create_header_with_icon(
         title,
     ]
 
-    # Add tooltip if provided
-    if tooltip_id and tooltip_text:
+    # Add progressive disclosure help system (Phase 9.2) if help parameters provided
+    if help_key and help_category:
+        from ui.help_system import create_help_button_with_tooltip
+
+        header_content.append(
+            html.Span(
+                [
+                    create_help_button_with_tooltip(
+                        tooltip_text or "Click for detailed information",
+                        help_key,
+                        help_category,
+                        tooltip_placement="bottom",
+                    )
+                ],
+                className="ms-2",
+            )
+        )
+    # Fallback to simple tooltip if no help system parameters
+    elif tooltip_id and tooltip_text:
         header_content.append(create_info_tooltip(tooltip_id, tooltip_text))
 
     return html.H5(
@@ -860,6 +881,37 @@ def _create_velocity_metric_card(
                                     "Based on last 10 weeks of completed work",
                                     f"{'Arithmetic mean' if title == 'Average' else '50th percentile - outlier resistant'}",
                                 ],
+                            ),
+                            # Phase 9.2 Progressive Disclosure Help Button
+                            html.Span(
+                                [
+                                    html.Span(
+                                        [
+                                            dbc.Button(
+                                                html.I(
+                                                    className="fas fa-question-circle"
+                                                ),
+                                                id={
+                                                    "type": "help-button",
+                                                    "category": "velocity",
+                                                    "key": f"velocity_{title.lower()}_calculation",
+                                                },
+                                                size="sm",
+                                                color="link",
+                                                className="text-secondary p-1 ms-1",
+                                                style={
+                                                    "border": "none",
+                                                    "background": "transparent",
+                                                    "fontSize": "0.7rem",
+                                                    "lineHeight": "1",
+                                                },
+                                                title=f"Get detailed help about {title.lower()} velocity",
+                                            )
+                                        ],
+                                        className="help-button-container",
+                                    )
+                                ],
+                                className="ms-1",
                             )
                             if title in ["Average", "Median"]
                             else create_info_tooltip(
@@ -1288,13 +1340,14 @@ def create_pert_info_table(
             # Project Overview section at the top - full width (100%)
             html.Div(
                 [
-                    # Replace direct icon definition with utility function
+                    # Replace direct icon definition with utility function - Phase 9.2 progressive disclosure
                     _create_header_with_icon(
                         "fas fa-project-diagram",
                         "Project Overview",
                         "#20c997",
-                        "project-overview",
-                        PROJECT_HELP_TEXTS["project_overview"],
+                        tooltip_text=PROJECT_HELP_TEXTS["project_overview"],
+                        help_key="project_overview",
+                        help_category="forecast",
                     ),
                     html.Div(
                         [
@@ -1327,13 +1380,14 @@ def create_pert_info_table(
                     # Left column - Completion Forecast
                     dbc.Col(
                         [
-                            # Replace direct icon definition with utility function
+                            # Replace direct icon definition with utility function - Phase 9.2 progressive disclosure
                             _create_header_with_icon(
                                 "fas fa-calendar-check",
                                 "Completion Forecast",
                                 "#20c997",
-                                "completion-forecast",
-                                FORECAST_HELP_TEXTS["pert_methodology"],
+                                tooltip_text=FORECAST_HELP_TEXTS["pert_methodology"],
+                                help_key="pert_methodology",
+                                help_category="forecast",
                             ),
                             _create_completion_forecast_section(
                                 items_completion_str,
@@ -1375,8 +1429,11 @@ def create_pert_info_table(
                                         "fas fa-tachometer-alt",
                                         "Weekly Velocity",
                                         "#6610f2",
-                                        "weekly-velocity",
-                                        VELOCITY_HELP_TEXTS["weekly_velocity"],
+                                        tooltip_text=VELOCITY_HELP_TEXTS[
+                                            "weekly_velocity"
+                                        ],
+                                        help_key="weekly_velocity_calculation",
+                                        help_category="velocity",
                                     ),
                                     _create_weekly_velocity_section(
                                         avg_weekly_items,

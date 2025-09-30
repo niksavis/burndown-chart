@@ -903,30 +903,70 @@ def create_standardized_card(
     )
 
 
-def create_card_header_with_tooltip(title, tooltip_id=None, tooltip_text=None):
+def create_card_header_with_tooltip(
+    title, tooltip_id=None, tooltip_text=None, help_key=None, help_category=None
+):
     """
-    Create a standardized card header with an optional tooltip.
+    Create a standardized card header with an optional tooltip and help button (Phase 9.2 Progressive Disclosure).
 
     Args:
         title (str): Card title text
         tooltip_id (str, optional): ID for the tooltip
         tooltip_text (str, optional): Tooltip text content
+        help_key (str, optional): Key for comprehensive help content (Phase 9.2)
+        help_category (str, optional): Category for comprehensive help content (Phase 9.2)
 
     Returns:
-        list: Components for card header with tooltip
+        list or html.H4: Components for card header with tooltip and optional help button
     """
     from dash import html
+    import dash_bootstrap_components as dbc
 
-    # Import the tooltip function from components module if needed
+    # Import the tooltip function and help system
     from ui.tooltip_utils import create_info_tooltip
 
-    if tooltip_id and tooltip_text:
-        return [
-            html.H4(title, className="d-inline"),
-            create_info_tooltip(tooltip_id, tooltip_text),
-        ]
-    else:
+    # Start with base header
+    if not tooltip_id and not help_key:
+        # Simple case - just return the H4
         return html.H4(title, className="d-inline")
+
+    # Complex case - build list of components
+    header_components = []
+    header_components.append(html.H4(title, className="d-inline"))
+
+    # Add tooltip if provided
+    if tooltip_id and tooltip_text:
+        header_components.append(create_info_tooltip(tooltip_id, tooltip_text))
+
+    # Phase 9.2 Progressive Disclosure: Add help button if help parameters provided
+    if help_key and help_category:
+        header_components.append(
+            html.Span(
+                [
+                    dbc.Button(
+                        html.I(className="fas fa-question-circle"),
+                        id={
+                            "type": "help-button",
+                            "category": help_category,
+                            "key": help_key,
+                        },
+                        size="sm",
+                        color="link",
+                        className="text-secondary p-1 ms-2",
+                        style={
+                            "border": "none",
+                            "background": "transparent",
+                            "fontSize": "0.8rem",
+                            "lineHeight": "1",
+                        },
+                        title=f"Get detailed help about {title.lower()}",
+                    )
+                ],
+                className="ms-1",
+            )
+        )
+
+    return header_components
 
 
 #######################################################################

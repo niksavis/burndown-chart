@@ -13,7 +13,13 @@ from data.schema import DEFAULT_SETTINGS  # Import the DEFAULT_SETTINGS
 
 
 def create_scope_change_indicator(
-    title, value, threshold=None, tooltip=None, throughput_ratio=None
+    title,
+    value,
+    threshold=None,
+    tooltip=None,
+    throughput_ratio=None,
+    help_key=None,
+    help_category=None,
 ):
     """
     Create a scope change indicator that shows scope change rate with throughput ratio comparison.
@@ -108,10 +114,46 @@ def create_scope_change_indicator(
                     html.Div(
                         className="d-flex justify-content-between align-items-baseline",
                         children=[
-                            html.Span(
-                                f"{metric_name} Scope Change",
-                                className="fw-medium",
-                                style={"fontSize": "0.9rem"},
+                            html.Div(
+                                [
+                                    html.Span(
+                                        f"{metric_name} Scope Change",
+                                        className="fw-medium",
+                                        style={"fontSize": "0.9rem"},
+                                    ),
+                                    # Phase 9.2 Progressive Disclosure: Add help button if help parameters provided
+                                    (
+                                        help_key
+                                        and help_category
+                                        and html.Span(
+                                            [
+                                                dbc.Button(
+                                                    html.I(
+                                                        className="fas fa-question-circle"
+                                                    ),
+                                                    id={
+                                                        "type": "help-button",
+                                                        "category": help_category,
+                                                        "key": help_key,
+                                                    },
+                                                    size="sm",
+                                                    color="link",
+                                                    className="text-secondary p-0 ms-1",
+                                                    style={
+                                                        "border": "none",
+                                                        "background": "transparent",
+                                                        "fontSize": "0.6rem",
+                                                        "lineHeight": "1",
+                                                    },
+                                                    title=f"Get detailed help about {title.lower()}",
+                                                )
+                                            ],
+                                            className="ms-1",
+                                        )
+                                    )
+                                    or None,
+                                ],
+                                className="d-flex align-items-center",
                             ),
                             html.Span(
                                 value_text,

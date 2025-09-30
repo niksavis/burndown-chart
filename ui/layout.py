@@ -107,8 +107,13 @@ def create_app_layout(settings, statistics, is_sample_data):
     # Create dataframe from statistics
     statistics_df = pd.DataFrame(statistics)
 
+    # Import help system components
+    from ui.help_system import create_help_system_layout
+
     return dbc.Container(
         [
+            # Help System (Phase 9.2 Progressive Disclosure)
+            create_help_system_layout(),
             # Page initialization complete flag (hidden)
             dcc.Store(id="app-init-complete", data=False),
             # Persistent storage for the current data

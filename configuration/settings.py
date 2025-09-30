@@ -140,79 +140,15 @@ HELP_TEXTS = {
     """,
 }
 
-# PERT and Forecasting Help Texts
+# PERT and Forecasting Help Texts - Phase 9.1 Simplified
+# Note: Comprehensive content moved to configuration/help_content.py for Phase 9.2 help system
 FORECAST_HELP_TEXTS = {
-    "pert_methodology": """
-        PERT (Program Evaluation and Review Technique) uses three-point estimation for probabilistic forecasting:
-        
-        📊 **Formula Components:**
-        • Optimistic (O): Best-case scenario from top velocity periods
-        • Most Likely (ML): Current average velocity from recent data
-        • Pessimistic (P): Worst-case scenario from lowest velocity periods
-        • Expected (E): Weighted average = (O + 4×ML + P) ÷ 6
-        
-        🔢 **Mathematical Foundation:**
-        The formula weights the Most Likely estimate 4x more heavily than extreme scenarios,
-        following beta distribution principles for realistic project estimation.
-        
-        📈 **Confidence Intervals:**
-        Uncertainty range calculated as ±25% of variance between scenarios.
-        Wider ranges indicate higher uncertainty; narrower ranges show more predictable velocity.
-    """,
-    "optimistic_forecast": """
-        Best-case completion estimate based on your highest velocity periods.
-        
-        Calculated using the top performing periods from your historical data.
-        This represents what's possible if everything goes well and velocity improves.
-    """,
-    "most_likely_forecast": """
-        Most probable completion estimate based on current average velocity.
-        
-        Uses the mathematical average of your recent velocity data points.
-        This is typically the most reliable single-point estimate.
-    """,
-    "pessimistic_forecast": """
-        Worst-case completion estimate based on your lowest velocity periods.
-        
-        Calculated using the poorest performing periods from your historical data.
-        This helps identify risks and plan for potential delays.
-    """,
-    "expected_forecast": """
-        PERT Expected estimate using weighted average of all three scenarios.
-        
-        🔢 **Step-by-Step Calculation:**
-        1. Expected = (Optimistic + 4×Most Likely + Pessimistic) ÷ 6
-        2. Example: (8 + 4×12 + 20) ÷ 6 = (8 + 48 + 20) ÷ 6 = 76 ÷ 6 = 12.67 weeks
-        
-        📊 **Why This Formula:**
-        • Weights Most Likely 4x more than extremes (follows beta distribution)
-        • Balances optimism with realism for statistically sound estimates
-        • Reduces impact of outlier scenarios while acknowledging uncertainty
-        
-        💡 **Interpretation:** Most reliable single-point forecast for project planning.
-    """,
-    "three_point_estimation": """
-        Three-point estimation technique provides forecast ranges instead of single points.
-        
-        🎯 **Mathematical Advantage:**
-        Single estimates ignore uncertainty; ranges acknowledge project variability.
-        
-        📈 **Confidence Calculation:**
-        • Standard Deviation = (Pessimistic - Optimistic) ÷ 6
-        • Confidence Interval = Expected ± (Standard Deviation × 1.96) for 95% confidence
-        • Practical Range = Expected ± 25% of scenario variance
-        
-        🔍 **Data Requirements:**
-        • Minimum 3-5 weeks for basic estimates
-        • Optimal 6-10 weeks for statistical reliability
-        • More data = narrower confidence intervals = higher accuracy
-        
-        Benefits:
-        - Accounts for uncertainty and variability
-        - Provides confidence ranges for planning
-        - Helps identify best/worst case scenarios
-        - More accurate than single-point estimates
-    """,
+    "pert_methodology": "3-point estimation combining optimistic, likely, and pessimistic scenarios.",
+    "optimistic_forecast": "Best-case completion estimate from peak velocity periods.",
+    "most_likely_forecast": "Most probable estimate based on current average velocity.",
+    "pessimistic_forecast": "Worst-case estimate from lowest velocity periods.",
+    "expected_forecast": "Balanced forecast weighing likely scenario most heavily.",
+    "three_point_estimation": "Forecast ranges instead of single-point estimates.",
     "forecast-info": """
         Comprehensive guide to interpreting the forecast graph and its components.
         
@@ -231,493 +167,74 @@ FORECAST_HELP_TEXTS = {
     """,
 }
 
-# Weekly Velocity and Trend Help Texts
+# Weekly Velocity and Trend Help Texts - Phase 9.1 Simplified
+# Note: Comprehensive content moved to configuration/help_content.py for Phase 9.2 help system
 VELOCITY_HELP_TEXTS = {
-    "weekly_velocity": """
-        Weekly velocity measures your team's completion rate over time.
-        
-        Calculated using a rolling window of recent data points to show:
-        - Current team performance trends
-        - Consistency of delivery
-        - Seasonal or cyclical patterns
-    """,
-    "velocity_average": """
-        Average weekly completion rate over the selected time period.
-        
-        🔢 **Mathematical Formula:**
-        Average = Σ(Weekly Completions) ÷ Number of Weeks
-        
-        📊 **Step-by-Step Example:**
-        Week 1: 8 items, Week 2: 12 items, Week 3: 6 items, Week 4: 10 items
-        Average = (8 + 12 + 6 + 10) ÷ 4 = 36 ÷ 4 = 9.0 items/week
-        
-        💡 **Usage:** Smooths out weekly variations to show sustainable team capacity.
-        Best for: Stable teams with consistent velocity patterns.
-    """,
-    "velocity_median": """
-        Middle value of weekly completion rates when sorted from lowest to highest.
-        
-        🔢 **Mathematical Process:**
-        1. Sort all weekly values: [6, 8, 10, 12] (from example above)
-        2. Find middle position: For 4 values, average positions 2 & 3
-        3. Median = (8 + 10) ÷ 2 = 9.0 items/week
-        
-        📊 **Outlier Resistance:**
-        Average vs Median with outlier: [6, 8, 10, 40]
-        • Average = (6+8+10+40) ÷ 4 = 16.0 (skewed by outlier)
-        • Median = (8+10) ÷ 2 = 9.0 (stable despite outlier)
-        
-        💡 **Best for:** Teams with variable velocity or occasional exceptional weeks.
-    """,
-    "velocity_trend": """
-        Direction and magnitude of velocity change over recent periods.
-        
-        - UP Green: Velocity increasing (positive trend)
-        - DOWN Red: Velocity decreasing (negative trend)  
-        - = Gray: Velocity stable (minimal change)
-        
-        Percentage shows the rate of change compared to previous period.
-    """,
-    "ten_week_calculation": """
-        Velocity calculations use the most recent 10 weeks of data by default.
-        
-        This provides:
-        - Sufficient sample size for statistical reliability
-        - Recent enough to reflect current team capacity
-        - Balance between stability and responsiveness to changes
-    """,
-    "trend_significance": """
-        Trend changes are marked as statistically significant when they exceed normal variation.
-        
-        Significant trends (marked in bold) indicate real changes in team performance,
-        while non-significant trends may be due to normal weekly fluctuations.
-    """,
-    "weighted_moving_average": """
-        Exponentially weighted moving average emphasizes recent weeks over older data.
-        
-        🔢 **Mathematical Formula:**
-        WMA = 0.4×Week₁ + 0.3×Week₂ + 0.2×Week₃ + 0.1×Week₄
-        (Week₁ = most recent, Week₄ = oldest in 4-week window)
-        
-        📊 **Calculation Example:**
-        Most recent weeks: [12, 8, 10, 6] (newest to oldest)
-        WMA = 0.4×12 + 0.3×8 + 0.2×10 + 0.1×6
-        WMA = 4.8 + 2.4 + 2.0 + 0.6 = 9.8 items/week
-        
-        💡 **Advantage:** Responds faster to velocity changes than simple averages.
-        Weights sum to 1.0 (40% + 30% + 20% + 10% = 100%).
-    """,
+    "weekly_velocity": "Team's completion rate over recent weeks with trend indicators.",
+    "velocity_average": "Simple average of weekly completion rates over selected period.",
+    "velocity_median": "Middle value of weekly rates, resistant to outliers.",
+    "velocity_trend": "Direction of velocity change - up, down, or stable with percentage.",
+    "ten_week_calculation": "Uses 10 weeks of data for statistical reliability.",
+    "trend_significance": "Bold trends indicate statistically significant changes.",
+    "weighted_moving_average": "Recent weeks weighted more heavily in calculations.",
 }
 
 # Project Dashboard and Progress Help Texts
+# Project Overview Help Texts - Phase 9.1 Simplified
+# Note: Comprehensive content moved to configuration/help_content.py for Phase 9.2 help system
 PROJECT_HELP_TEXTS = {
-    "project_overview": """
-        High-level view of project completion status and progress metrics.
-        
-        Shows:
-        - Overall completion percentages for items and points
-        - Relationship between different work measurement methods
-        - Visual progress indicators with milestone markers
-    """,
-    "completion_percentage": """
-        Percentage of total work completed based on historical progress data.
-        
-        Items: (Completed Items ÷ Total Items) × 100%
-        Points: (Completed Points ÷ Total Points) × 100%
-        
-        Different percentages indicate varying complexity or estimation accuracy.
-    """,
-    "items_vs_points": """
-        Comparison between item-based and point-based progress tracking.
-        
-        - Similar percentages: Consistent estimation accuracy
-        - Different percentages: Items may vary in complexity
-        - Points typically reflect effort/complexity better than item count
-    """,
-    "weekly_averages": """
-        Average completion rates over recent weeks, showing sustainable team velocity.
-        
-        These metrics help predict future performance and identify capacity changes.
-        Consistent averages indicate stable team performance.
-    """,
-    "velocity_stability": """
-        Measure of how consistent your team's weekly completion rates are.
-        
-        - Stable: Low variation in weekly velocity (predictable)
-        - Moderate: Some variation but generally consistent
-        - Variable: High week-to-week changes (less predictable)
-    """,
-    "completion_timeline": """
-        Projected dates when different completion scenarios will be reached.
-        
-        Based on PERT calculations using historical velocity data to provide
-        realistic timeline expectations with confidence ranges.
-    """,
+    "project_overview": "High-level project completion status and progress metrics.",
+    "completion_percentage": "Percentage of work completed based on items or points.",
+    "items_vs_points": "Comparison of item-based vs point-based progress tracking.",
+    "weekly_averages": "Average completion rates showing sustainable team velocity.",
+    "velocity_stability": "Consistency of weekly completion rates - stable, moderate, or variable.",
+    "completion_timeline": "Projected completion dates based on PERT calculations.",
 }
 
 # Scope Change and Stability Help Texts
+# Scope Change and Stability Help Texts - Phase 9.1 Simplified
+# Note: Comprehensive content moved to configuration/help_content.py for Phase 9.2 help system
 SCOPE_HELP_TEXTS = {
-    "scope_change_rate": """
-        Percentage of new work discovered and added compared to the original project baseline.
-        
-        🔢 **Mathematical Formula:**
-        Scope Change Rate = (New Items Created ÷ Original Baseline) × 100%
-        
-        📊 **Step-by-Step Example:**
-        1. Original baseline: 50 items
-        2. New items discovered: 15 items  
-        3. Calculation: (15 ÷ 50) × 100% = 30%
-        4. Interpretation: 30% scope growth from baseline
-        
-        🎯 **Agile Context Guidelines:**
-        • <20%: Normal discovery and refinement (expected)
-        • 20-40%: Active learning and adaptation (healthy)
-        • >40%: Significant discovery, timeline impact (review priorities)
-        
-        💡 **Agile Philosophy:** Scope changes reflect learning and adaptation to user needs.
-    """,
-    "throughput_ratio": """
-        Ratio comparing new work discovery versus work completion velocity.
-        
-        🔢 **Mathematical Formula:**
-        Throughput Ratio = Total Created Items ÷ Total Completed Items
-        
-        📊 **Calculation Example:**
-        1. Items created this period: 8 items
-        2. Items completed this period: 10 items
-        3. Ratio = 8 ÷ 10 = 0.8
-        4. Interpretation: Completing 25% faster than discovering
-        
-        📈 **Interpretation Guide:**
-        • <1.0: Completing faster than discovering (catching up to backlog)
-        • =1.0: Balanced discovery and completion velocity (steady state)
-        • >1.0: Discovering faster than completing (expanding backlog)
-        
-        💡 **Purpose:** Understand balance between exploration and execution phases.
-    """,
-    "threshold_color_coding": """
-        Visual indicators based on velocity impact rather than absolute scope changes.
-        
-        🟢 Green: Changes within team's absorption capacity
-        🟡 Yellow: Changes may impact delivery timeline, monitor velocity
-        🔴 Red: Changes significantly outpacing completion, consider prioritization
-        
-        Focuses on sustainable pace rather than preventing necessary changes.
-    """,
-    "adaptability_index": """
-        Measures how well the team adapts to new requirements while maintaining velocity.
-        
-        📈 Scale: 0.0 (highly adaptive) to 1.0 (more predictable scope)
-        
-        Agile Perspective:
-        - Lower values (0.2-0.5): High adaptability, actively responding to feedback
-        - Mid values (0.5-0.7): Balanced adaptation and predictability
-        - Higher values (0.7-1.0): More stable scope, fewer discoveries
-        
-        Note: In agile projects, adaptability (lower values) is often more valuable than stability.
-    """,
-    "weekly_scope_patterns": """
-        Week-by-week tracking of requirement discovery patterns and velocity impact.
-        
-        🔍 Helps identify:
-        - Sprint boundaries and planning cycles
-        - User feedback integration patterns  
-        - Market response and adaptation cycles
-        - Sustainable discovery and delivery balance
-        
-        Shows the health of your discovery-to-delivery pipeline.
-    """,
-    "agile_scope_philosophy": """
-        In agile methodologies, scope changes are expected and valuable, not problems to avoid.
-        
-        💡 Healthy Agile Projects Show:
-        - Regular requirement discovery and refinement
-        - Balanced creation and completion velocity
-        - Adaptation based on user feedback and market changes
-        - Sustainable pace of change absorption
-        
-        These metrics help optimize the balance between exploration and execution.
-    """,
-    "scope_metrics_explanation": """
-        Comprehensive tracking of how project scope evolves over time with agile-friendly interpretation.
-        
-        📊 Key Metrics:
-        - Scope Change Rate: Percentage of new work discovered vs original baseline
-        - Throughput Ratio: Balance between new discoveries and completion velocity
-        - Adaptability Index: Team's responsiveness to changing requirements
-        - Growth Patterns: Week-by-week evolution of scope and priorities
-        
-        🎯 Purpose: Understand scope evolution patterns to optimize discovery-delivery balance.
-    """,
-    "jira_scope_calculation": """
-        JIRA scope calculator uses intelligent extrapolation for items without story points.
-        
-        🔢 **Core Formula:**
-        Remaining Total Points = Estimated Points + (avg_points_per_item × unestimated_items)
-        
-        📊 **Step-by-Step Process:**
-        1. Calculate average from items WITH points: avg = total_estimated_points ÷ estimated_items
-        2. Count items WITHOUT points: unestimated_items = remaining_items - estimated_items  
-        3. Extrapolate missing points: missing_points = avg × unestimated_items
-        4. Total forecast: remaining_total = estimated_points + missing_points
-        
-        🔄 **Historical Fallback Logic:**
-        When no remaining items have points, uses completed items for average:
-        avg_points_per_item = completed_points ÷ completed_items
-        
-        💡 **Why This Works:** Provides realistic forecasts even with incomplete estimation.
-    """,
-    "cumulative_chart": """
-        Shows the cumulative impact of scope changes over time compared to the original baseline.
-        
-        📈 Chart Features:
-        - Baseline (gray line): Original project scope
-        - Items line (teal): Running total of items added to scope
-        - Points line (orange): Running total of story points added to scope
-        - Growth areas: Visual representation of scope expansion
-        
-        💡 Agile Insight: Steady upward slopes indicate continuous discovery and adaptation.
-    """,
-    "weekly_growth": """
-        Week-by-week breakdown of scope additions and reductions showing discovery patterns.
-        
-        📊 Bar Chart Interpretation:
-        - Positive bars: New requirements, features, or scope additions discovered
-        - Negative bars: Scope reduction, backlog refinement, or completed items
-        - Variable heights: Natural agile rhythm of discovery and delivery
-        
-        🔍 Look for patterns in sprint cycles, user feedback integration, and market responses.
-    """,
+    "scope_change_rate": "Percentage of new work discovered vs original baseline.",
+    "throughput_ratio": "Ratio comparing discovery rate vs completion velocity.",
+    "threshold_color_coding": "Visual indicators showing velocity impact of scope changes.",
+    "adaptability_index": "Measures team adaptation to new requirements while maintaining velocity.",
+    "weekly_scope_patterns": "Week-by-week tracking of requirement discovery patterns.",
+    "agile_scope_philosophy": "Scope changes are expected and valuable in agile projects.",
+    "scope_metrics_explanation": "Comprehensive tracking of project scope evolution over time.",
+    "jira_scope_calculation": "Intelligent extrapolation for items without story points.",
+    "cumulative_chart": "Cumulative scope changes compared to original baseline.",
+    "weekly_growth": "Week-by-week scope additions and reductions showing discovery patterns.",
 }
 
-# Statistics Data and Collection Help Texts
+# Statistics Data and Collection Help Texts - Phase 9.1 Simplified
+# Note: Comprehensive content moved to configuration/help_content.py for Phase 9.2 help system
 STATISTICS_HELP_TEXTS = {
-    "date_field": """
-        Data collection date - typically weekly snapshots of project progress.
-        
-        Format: YYYY-MM-DD
-        Represents the end date of the measurement period (e.g., end of sprint, week).
-    """,
-    "completed_items": """
-        Number of work items (stories, tasks, tickets) finished during this period.
-        
-        Should represent truly "done" items that deliver value.
-        This is an incremental value for the specific time period.
-    """,
-    "completed_points": """
-        Story points or effort units completed during this period.
-        
-        Should match the pointing system used by your team (Fibonacci, T-shirt sizes, etc.).
-        This is an incremental value for the specific time period.
-    """,
-    "created_items": """
-        Number of new work items added to the project during this period.
-        
-        Includes newly discovered requirements, scope additions, and change requests.
-        Used to track scope growth and calculate throughput ratios.
-    """,
-    "created_points": """
-        Story points or effort for new work items added during this period.
-        
-        Helps measure the effort impact of scope changes, not just quantity.
-        Used for more accurate scope change impact analysis.
-    """,
-    "velocity_items": """
-        Calculated weekly completion rate for items based on historical data.
-        
-        Formula: Completed Items ÷ Time Period
-        Shows team's capacity for delivering discrete work units.
-    """,
-    "velocity_points": """
-        Calculated weekly completion rate for points based on historical data.
-        
-        Formula: Completed Points ÷ Time Period  
-        Shows team's capacity for delivering effort/complexity.
-    """,
-    "data_frequency": """
-        Statistics are typically collected as weekly snapshots for optimal forecasting.
-        
-        - Daily: Too granular, high noise
-        - Weekly: Optimal balance of freshness and stability
-        - Monthly: Too infrequent for agile projects
-        
-        Consistent collection intervals improve forecast accuracy.
-    """,
-    "cumulative_vs_incremental": """
-        Data values represent incremental work completed in each period, not cumulative totals.
-        
-        Incremental: Work done in this specific period
-        Cumulative: Total work done from project start
-        
-        Forecasting algorithms expect incremental values for velocity calculations.
-    """,
+    "date_field": "Data collection date - weekly snapshots in YYYY-MM-DD format.",
+    "completed_items": "Number of work items finished during this period.",
+    "completed_points": "Story points completed during this period.",
+    "created_items": "Number of new work items added during this period.",
+    "created_points": "Story points for new work items added during this period.",
+    "velocity_items": "Weekly completion rate for items based on historical data.",
+    "velocity_points": "Weekly completion rate for points based on historical data.",
+    "data_frequency": "Weekly snapshots provide optimal balance for forecasting.",
+    "cumulative_vs_incremental": "Values represent incremental work per period, not cumulative totals.",
 }
 
 # Chart and Visualization Help Texts
+# Chart and Visualization Help Texts - Phase 9.1 Simplified
+# Note: Comprehensive content moved to configuration/help_content.py for Phase 9.2 help system
 CHART_HELP_TEXTS = {
-    "weighted_moving_average": """
-        Weighted moving average gives more importance to recent weeks than older ones.
-        
-        Uses exponential weighting over the last 4 weeks:
-        - Week 1 (oldest): 0.1 weight (10%)
-        - Week 2: 0.2 weight (20%)
-        - Week 3: 0.3 weight (30%)
-        - Week 4 (newest): 0.4 weight (40%)
-        
-        This smooths out weekly variations while emphasizing recent performance trends.
-    """,
-    "forecast_vs_actual_bars": """
-        Chart distinguishes between historical and forecast data using visual cues:
-        
-        - Solid bars: Historical actual completed work
-        - Patterned bars (X pattern): Forecast predictions with confidence intervals
-        - Vertical line: Separates historical data from forecast projections
-        - Error bars: Show uncertainty range (±25% of PERT variance)
-        
-        Forecast bars display PERT 3-point estimates with statistical confidence ranges.
-    """,
-    "forecast_confidence_intervals": """
-        Confidence intervals show the uncertainty range around forecast predictions.
-        
-        🔢 **Mathematical Calculation:**
-        1. Most Likely (ML): PERT expected value (center of error bar)
-        2. Upper Bound = ML + 0.25 × (Optimistic - ML)
-        3. Lower Bound = ML - 0.25 × (ML - Pessimistic)
-        
-        📊 **Numerical Example:**
-        Optimistic = 15, Most Likely = 12, Pessimistic = 8
-        • Upper = 12 + 0.25×(15-12) = 12 + 0.75 = 12.75
-        • Lower = 12 - 0.25×(12-8) = 12 - 1.0 = 11.0
-        • Range: 11.0 to 12.75 (confidence interval)
-        
-        📈 **Interpretation:** Error bar width indicates forecast reliability.
-        Wider intervals = higher uncertainty; narrower intervals = more predictable outcomes.
-    """,
-    "exponential_weighting": """
-        Exponential weighting system emphasizes recent performance over older data.
-        
-        Weight distribution (0.1, 0.2, 0.3, 0.4):
-        - Totals 100% for mathematical accuracy
-        - Creates exponential decay pattern
-        - Recent weeks have 4x more influence than oldest week
-        
-        This captures current team velocity trends more accurately than simple averages.
-    """,
-    "weekly_chart_methodology": """
-        Weekly charts aggregate daily data into 7-day periods starting on Mondays.
-        
-        Features:
-        - Bar height shows total work completed that week
-        - Weighted trend line shows velocity patterns (exponential weighting)
-        - Forecast bars predict next week's performance using PERT methodology
-        - Error bars show confidence intervals (±25% of PERT variance)
-        - Consistent visualization across both items and points charts
-        
-        Helps identify velocity trends, capacity planning, and performance patterns with statistical rigor.
-    """,
-    "burndown_vs_burnup": """
-        Two complementary views of project progress with different perspectives:
-        
-        • Burndown Chart: Shows remaining work declining over time
-          - Y-axis: Work remaining (decreasing toward zero)
-          - Success: Line reaches zero by deadline
-          - Focus: How much work is left to complete
-        
-        • Burnup Chart: Shows completed work accumulating over time
-          - Y-axis: Work completed (increasing toward total)
-          - Success: Line reaches total scope by deadline
-          - Focus: How much work has been accomplished
-        
-        Both use identical PERT methodology and historical data for consistency.
-    """,
-    "pert_forecast_methodology": """
-        PERT (Program Evaluation Review Technique) creates realistic forecasts using three-point estimation:
-        
-        Historical Analysis:
-        • Analyzes your team's actual performance data
-        • Calculates optimistic, most likely, and pessimistic scenarios
-        • Uses weighted formula: (Optimistic + 4×Most Likely + Pessimistic) ÷ 6
-        
-        Forecast Integration:
-        • Projects completion dates based on current velocity trends
-        • Accounts for historical performance variability
-        • Provides confidence ranges for deadline achievement
-        
-        Visual indicators show all three scenarios with the expected outcome highlighted.
-    """,
-    "historical_data_influence": """
-        Forecast accuracy improves with more historical data points:
-        
-        Data Quality Impact:
-        • 3-5 weeks: Basic trends, high uncertainty
-        • 6-10 weeks: Moderate confidence, seasonal patterns emerge
-        • 10+ weeks: High confidence, reliable velocity patterns
-        
-        Forecast Precision:
-        • More data points = narrower confidence bands
-        • Recent performance weighted more heavily
-        • Automatic handling of scope changes and velocity shifts
-        
-        Recommendation: Use at least 6 weeks of data for reliable forecasting.
-    """,
-    "chart_legend_explained": """
-        Chart legend uses visual cues to distinguish different types of data:
-        
-        Line Types:
-        • Solid lines: Historical actual data (completed work)
-        • Dashed lines: PERT forecast projections
-        • Dotted lines: Confidence bands (uncertainty ranges)
-        
-        Visual Elements:
-        • Vertical deadline marker: Target completion date
-        • Milestone indicators: Interim project goals
-        • Scope change annotations: When requirements changed
-        
-        Color coding remains consistent across all chart views for easy comparison.
-    """,
-    "forecast_confidence_bands": """
-        Confidence bands show the uncertainty range around forecast predictions:
-        
-        Band Interpretation:
-        • Narrow bands: High confidence in forecast accuracy
-        • Wide bands: Greater uncertainty due to variable performance
-        • Band width based on historical velocity variability
-        
-        Calculation Method:
-        • Uses standard deviation of historical performance
-        • Accounts for recent trend stability
-        • Widens for longer-term projections
-        
-        These bands help with risk assessment and deadline planning decisions.
-    """,
-    "scope_change_indicators": """
-        Main chart annotations highlight when project scope changed:
-        
-        Scope Change Detection:
-        • Vertical markers show dates when scope increased/decreased
-        • Color coding: Green (scope reduction), Orange (scope increase)
-        • Magnitude indicators show size of scope changes
-        
-        Forecast Impact:
-        • Automatic recalculation of forecasts after scope changes
-        • Maintains forecast accuracy despite scope modifications
-        • Historical velocity adjusted for new scope reality
-        
-        Helps understand how scope changes affect completion predictions.
-    """,
-    "data_points_precision": """
-        Number of data points significantly affects forecast precision:
-        
-        Impact on Accuracy:
-        • Fewer points: More volatile forecasts, wider confidence bands
-        • More points: Stable forecasts, better trend identification
-        • Optimal range: 8-15 recent data points for best accuracy
-        
-        Dynamic Adjustment:
-        • System automatically selects optimal data range
-        • Balances recent performance with historical patterns
-        • Excludes outliers that might skew forecasts
-        
-        User can override to focus on specific time periods if needed.
-    """,
+    "weighted_moving_average": "Recent weeks weighted more heavily than older data (40%, 30%, 20%, 10%).",
+    "forecast_vs_actual_bars": "Solid bars show historical data, patterned bars show forecasts with error bars.",
+    "forecast_confidence_intervals": "Error bars show uncertainty range around forecast predictions.",
+    "exponential_weighting": "Recent performance emphasized over older data for better trend capture.",
+    "weekly_chart_methodology": "Weekly aggregation with PERT forecasts and confidence intervals.",
+    "burndown_vs_burnup": "Burndown shows remaining work, burnup shows completed work.",
+    "pert_forecast_methodology": "Three-point estimation using optimistic, likely, and pessimistic scenarios.",
+    "historical_data_influence": "More data points improve forecast accuracy - 6+ weeks recommended.",
+    "chart_legend_explained": "Visual cues distinguish historical data, forecasts, and confidence bands.",
+    "forecast_confidence_bands": "Band width indicates forecast uncertainty based on velocity variability.",
+    "scope_change_indicators": "Vertical markers show scope changes with automatic forecast adjustments.",
+    "data_points_precision": "8-15 recent data points provide optimal forecast accuracy.",
 }

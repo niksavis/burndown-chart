@@ -181,11 +181,13 @@ def create_forecast_graph_card():
     current_date = datetime.now().strftime("%Y%m%d")
     default_filename = f"burndown_forecast_{current_date}"
 
-    # Create the card header with tooltip
+    # Create the card header with tooltip and Phase 9.2 Progressive Disclosure help button
     header_content = create_card_header_with_tooltip(
         "Forecast Graph",
         tooltip_id="forecast-graph",
         tooltip_text=HELP_TEXTS["forecast_explanation"],
+        help_key="forecast_graph_overview",
+        help_category="forecast",
     )
 
     # Create the card body content
@@ -482,11 +484,13 @@ def create_pert_analysis_card():
     Returns:
         Dash Card component for PERT analysis
     """
-    # Create the card header with tooltip
+    # Create the card header with tooltip and Phase 9.2 Progressive Disclosure help button
     header_content = create_card_header_with_tooltip(
         "PERT Analysis",
         tooltip_id="pert-info",
         tooltip_text="PERT (Program Evaluation and Review Technique) estimates project completion time based on optimistic, pessimistic, and most likely scenarios.",
+        help_key="pert_analysis_detailed",
+        help_category="forecast",
     )
 
     # Create the card body content
@@ -516,11 +520,13 @@ def create_input_parameters_card(
     Returns:
         Dash Card component for input parameters
     """
-    # Create the card header with tooltip
+    # Create the card header with tooltip and Phase 9.2 Progressive Disclosure help button
     header_content = create_card_header_with_tooltip(
         "Input Parameters",
         tooltip_id="parameters",
         tooltip_text="Change these values to adjust your project forecast.",
+        help_key="input_parameters_guide",
+        help_category="forecast",
     )
 
     # Create the card body content
@@ -1409,11 +1415,13 @@ def create_statistics_data_card(current_statistics):
     import dash_bootstrap_components as dbc
     from ui.styles import NEUTRAL_COLORS, get_vertical_rhythm
 
-    # Create the card header with tooltip
+    # Create the card header with tooltip and Phase 9.2 Progressive Disclosure help button
     header_content = create_card_header_with_tooltip(
         "Weekly Progress Data",
         tooltip_id="statistics-data",
         tooltip_text="Weekly tracking of completed and newly created work items and story points. Each Monday date represents work done during that week (Monday through Sunday). This data drives all velocity calculations and forecasting.",
+        help_key="weekly_progress_data_explanation",
+        help_category="statistics",
     )
 
     # Convert to DataFrame for automatic column type detection
