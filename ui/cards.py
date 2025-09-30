@@ -1722,10 +1722,163 @@ def create_statistics_data_card(current_statistics):
     # Wrap the table in a responsive container
     responsive_table = create_responsive_table_wrapper(statistics_table)
 
+    # Create column explanations section
+    column_explanations = html.Div(
+        [
+            # Collapsible button for column explanations
+            dbc.Button(
+                [
+                    html.I(className="fas fa-info-circle me-2"),
+                    "Column Explanations",
+                ],
+                id="column-explanations-toggle",
+                color="info",
+                outline=True,
+                size="sm",
+                className="mb-2",
+            ),
+            # Collapsible content
+            dbc.Collapse(
+                dbc.Card(
+                    dbc.CardBody(
+                        [
+                            html.H6("Data Column Definitions", className="mb-3"),
+                            html.Div(
+                                [
+                                    # Week Start (Monday) explanation
+                                    html.Div(
+                                        [
+                                            html.Strong(
+                                                [
+                                                    html.I(
+                                                        className="fas fa-calendar-week me-1 text-primary"
+                                                    ),
+                                                    "Week Start (Monday):",
+                                                ]
+                                            ),
+                                            html.Span(
+                                                " Data collection date (weekly snapshots). Each Monday represents work done during that full week (Monday-Sunday).",
+                                                className="ms-1",
+                                            ),
+                                            create_info_tooltip(
+                                                "date-field-column",
+                                                STATISTICS_HELP_TEXTS["date_field"],
+                                            ),
+                                        ],
+                                        className="mb-2",
+                                    ),
+                                    # Items Done This Week explanation
+                                    html.Div(
+                                        [
+                                            html.Strong(
+                                                [
+                                                    html.I(
+                                                        className="fas fa-check-circle me-1 text-success"
+                                                    ),
+                                                    "Items Done This Week:",
+                                                ]
+                                            ),
+                                            html.Span(
+                                                " Number of work items (stories, tasks, tickets) completed during this weekly period.",
+                                                className="ms-1",
+                                            ),
+                                            create_info_tooltip(
+                                                "completed-items-column",
+                                                STATISTICS_HELP_TEXTS[
+                                                    "completed_items"
+                                                ],
+                                            ),
+                                        ],
+                                        className="mb-2",
+                                    ),
+                                    # Points Done This Week explanation
+                                    html.Div(
+                                        [
+                                            html.Strong(
+                                                [
+                                                    html.I(
+                                                        className="fas fa-star me-1 text-warning"
+                                                    ),
+                                                    "Points Done This Week:",
+                                                ]
+                                            ),
+                                            html.Span(
+                                                " Story points or effort units completed during this weekly period.",
+                                                className="ms-1",
+                                            ),
+                                            create_info_tooltip(
+                                                "completed-points-column",
+                                                STATISTICS_HELP_TEXTS[
+                                                    "completed_points"
+                                                ],
+                                            ),
+                                        ],
+                                        className="mb-2",
+                                    ),
+                                    # New Items Added explanation
+                                    html.Div(
+                                        [
+                                            html.Strong(
+                                                [
+                                                    html.I(
+                                                        className="fas fa-plus-circle me-1 text-info"
+                                                    ),
+                                                    "New Items Added:",
+                                                ]
+                                            ),
+                                            html.Span(
+                                                " Number of new work items added to the project during this period (scope growth).",
+                                                className="ms-1",
+                                            ),
+                                            create_info_tooltip(
+                                                "created-items-column",
+                                                STATISTICS_HELP_TEXTS["created_items"],
+                                            ),
+                                        ],
+                                        className="mb-2",
+                                    ),
+                                    # New Points Added explanation
+                                    html.Div(
+                                        [
+                                            html.Strong(
+                                                [
+                                                    html.I(
+                                                        className="fas fa-plus-square me-1 text-secondary"
+                                                    ),
+                                                    "New Points Added:",
+                                                ]
+                                            ),
+                                            html.Span(
+                                                " Story points for new work items added during this period (scope change impact).",
+                                                className="ms-1",
+                                            ),
+                                            create_info_tooltip(
+                                                "created-points-column",
+                                                STATISTICS_HELP_TEXTS["created_points"],
+                                            ),
+                                        ],
+                                        className="mb-0",
+                                    ),
+                                ],
+                                className="small",
+                            ),
+                        ]
+                    ),
+                    color="light",
+                ),
+                id="column-explanations-collapse",
+                is_open=False,
+            ),
+        ],
+        className="mb-3",
+    )
+
     # Create the card body content
     body_content = [
         # Add help text at the top
         help_text,
+        # Add column explanations section
+        column_explanations,
         # Add space between help text and table (removed export buttons from top)
         html.Div(className="mb-3"),
         # Add the responsive table

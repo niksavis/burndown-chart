@@ -618,3 +618,15 @@ def register(app):
         except Exception as e:
             logger.error(f"Error updating project scope from import: {e}")
             raise PreventUpdate
+
+    # Callback for column explanations toggle
+    @app.callback(
+        Output("column-explanations-collapse", "is_open"),
+        [Input("column-explanations-toggle", "n_clicks")],
+        [State("column-explanations-collapse", "is_open")],
+    )
+    def toggle_column_explanations(n_clicks, is_open):
+        """Toggle the column explanations collapse section."""
+        if n_clicks:
+            return not is_open
+        return is_open
