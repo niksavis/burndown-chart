@@ -19,6 +19,7 @@ import pandas as pd
 
 # Application imports
 from configuration import HELP_TEXTS, COLOR_PALETTE
+from configuration.settings import PROJECT_HELP_TEXTS, STATISTICS_HELP_TEXTS
 
 # Import styling functions from utility modules
 from ui.styles import (
@@ -1343,9 +1344,9 @@ def create_statistics_data_card(current_statistics):
 
     # Create the card header with tooltip
     header_content = create_card_header_with_tooltip(
-        "Statistics Data",
+        "Weekly Progress Data",
         tooltip_id="statistics-data",
-        tooltip_text=HELP_TEXTS["statistics_table"],
+        tooltip_text="Weekly tracking of completed and newly created work items and story points. Each Monday date represents work done during that week (Monday through Sunday). This data drives all velocity calculations and forecasting.",
     )
 
     # Convert to DataFrame for automatic column type detection
@@ -1626,27 +1627,27 @@ def create_statistics_data_card(current_statistics):
     # Define standard column configuration to ensure consistent columns
     columns = [
         {
-            "name": "Date (YYYY-MM-DD)",
+            "name": "Week Start (Monday)",
             "id": "date",
             "type": "text",
         },
         {
-            "name": "Items Completed",
+            "name": "Items Done This Week",
             "id": "completed_items",
             "type": "numeric",
         },
         {
-            "name": "Points Completed",
+            "name": "Points Done This Week",
             "id": "completed_points",
             "type": "numeric",
         },
         {
-            "name": "Items Created",
+            "name": "New Items Added",
             "id": "created_items",
             "type": "numeric",
         },
         {
-            "name": "Points Created",
+            "name": "New Points Added",
             "id": "created_points",
             "type": "numeric",
         },
@@ -1682,25 +1683,35 @@ def create_statistics_data_card(current_statistics):
             html.Small(
                 [
                     html.I(className="fas fa-info-circle me-1 text-info"),
-                    "Enter your weekly completed items and points. Use the ",
-                    html.Code("Add Row"),
-                    " button to add new entries.",
+                    "Enter weekly data for work completed and created. Each Monday date represents work done during that full week (Monday through Sunday, inclusive).",
                 ],
                 className="text-muted",
             ),
             html.Small(
                 [
+                    html.I(className="fas fa-calendar-week me-1 text-info"),
+                    html.Strong("Weekly Timeboxes: "),
+                    "Monday date = work completed/created from that Monday through the following Sunday (7-day period, inclusive). Use the ",
+                    html.Code("Add Row"),
+                    " button to add new weekly entries.",
+                ],
+                className="text-muted d-block mt-1",
+            ),
+            html.Small(
+                [
                     html.I(className="fas fa-plus-circle me-1 text-info"),
-                    "Include created items and points to track scope changes.",
+                    html.Strong("Scope Tracking: "),
+                    "Include both completed work (finished items/points) and created work (new items/points added to backlog) to track scope changes.",
                 ],
                 className="text-muted d-block mt-1",
             ),
             html.Small(
                 [
                     html.I(className="fas fa-calendar-alt me-1 text-info"),
-                    "Dates should be in ",
+                    html.Strong("Date Format: "),
+                    "Always use Monday dates in ",
                     html.Code("YYYY-MM-DD"),
-                    " format.",
+                    " format (e.g., 2025-09-22 for the week of Sept 22-28, inclusive).",
                 ],
                 className="text-muted d-block mt-1",
             ),
@@ -1732,7 +1743,7 @@ def create_statistics_data_card(current_statistics):
                             icon_class="fas fa-plus",
                         ),
                         dbc.Tooltip(
-                            "Adds a new row with date 7 days after the most recent entry",
+                            "Adds a new weekly entry with Monday date 7 days after the most recent entry. Enter work completed and created during that week (Monday-Sunday).",
                             target="add-row-button",
                             placement="top",
                         ),
@@ -1935,7 +1946,15 @@ def create_project_status_card(statistics_df, settings):
                                 # Items Completion
                                 dbc.Col(
                                     [
-                                        html.H6("Items Completion"),
+                                        html.H6(
+                                            [
+                                                "Items Completion",
+                                                create_info_tooltip(
+                                                    "items-completion-status",
+                                                    "Percentage of total work completed based on historical progress data. Items: (Completed Items ÷ Total Items) × 100%. Different percentages indicate varying complexity or estimation accuracy.",
+                                                ),
+                                            ]
+                                        ),
                                         html.Div(
                                             [
                                                 html.Span(
@@ -1968,7 +1987,15 @@ def create_project_status_card(statistics_df, settings):
                                 # Points Completion
                                 dbc.Col(
                                     [
-                                        html.H6("Points Completion"),
+                                        html.H6(
+                                            [
+                                                "Points Completion",
+                                                create_info_tooltip(
+                                                    "points-completion-status",
+                                                    "Percentage of total work completed based on historical progress data. Points: (Completed Points ÷ Total Points) × 100%. Points typically reflect effort/complexity better than item count.",
+                                                ),
+                                            ]
+                                        ),
                                         html.Div(
                                             [
                                                 html.Span(
@@ -2009,7 +2036,16 @@ def create_project_status_card(statistics_df, settings):
                                 # Weekly Averages
                                 dbc.Col(
                                     [
-                                        html.H6("Weekly Averages", className="mb-3"),
+                                        html.H6(
+                                            [
+                                                "Weekly Averages",
+                                                create_info_tooltip(
+                                                    "weekly-averages-status",
+                                                    "Average completion rates over recent weeks, showing sustainable team velocity. These metrics help predict future performance and identify capacity changes.",
+                                                ),
+                                            ],
+                                            className="mb-3",
+                                        ),
                                         html.Div(
                                             [
                                                 html.Div(
@@ -2051,7 +2087,16 @@ def create_project_status_card(statistics_df, settings):
                                 # Velocity Stability
                                 dbc.Col(
                                     [
-                                        html.H6("Velocity Stability", className="mb-3"),
+                                        html.H6(
+                                            [
+                                                "Velocity Stability",
+                                                create_info_tooltip(
+                                                    "velocity-stability-status",
+                                                    "Measure of how consistent your team's weekly completion rates are. Stable: Low variation (predictable). Variable: High week-to-week changes (less predictable).",
+                                                ),
+                                            ],
+                                            className="mb-3",
+                                        ),
                                         html.Div(
                                             [
                                                 html.I(
@@ -2253,7 +2298,15 @@ def create_project_summary_card(
                         [
                             # Title
                             html.H6(
-                                "Project Completion Forecast",
+                                [
+                                    "Project Completion Forecast",
+                                    create_info_tooltip(
+                                        id_suffix="project-completion-forecast",
+                                        help_text=PROJECT_HELP_TEXTS[
+                                            "completion_timeline"
+                                        ],
+                                    ),
+                                ],
                                 className="border-bottom pb-1 mb-3",
                                 style={"fontSize": "1.1rem", "fontWeight": "bold"},
                             ),
@@ -2280,6 +2333,12 @@ def create_project_summary_card(
                                                             "fontSize": "0.95rem",
                                                             "fontWeight": "bold",
                                                         },
+                                                    ),
+                                                    create_info_tooltip(
+                                                        id_suffix="items-completion-forecast",
+                                                        help_text=PROJECT_HELP_TEXTS[
+                                                            "completion_timeline"
+                                                        ],
                                                     ),
                                                 ],
                                                 className="mb-1",
@@ -2336,6 +2395,12 @@ def create_project_summary_card(
                                                                 "fontWeight": "bold",
                                                             },
                                                         ),
+                                                        create_info_tooltip(
+                                                            id_suffix="points-completion-forecast",
+                                                            help_text=PROJECT_HELP_TEXTS[
+                                                                "completion_timeline"
+                                                            ],
+                                                        ),
                                                     ],
                                                     className="mb-1",
                                                 ),
@@ -2377,7 +2442,13 @@ def create_project_summary_card(
                             ),
                             # Weekly velocity section
                             html.H6(
-                                "Weekly Velocity",
+                                [
+                                    "Weekly Velocity",
+                                    create_info_tooltip(
+                                        id_suffix="weekly-velocity-summary",
+                                        help_text=PROJECT_HELP_TEXTS["weekly_averages"],
+                                    ),
+                                ],
                                 className="border-bottom pb-1 mb-3",
                                 style={"fontSize": "1.1rem", "fontWeight": "bold"},
                             ),

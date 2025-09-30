@@ -10,6 +10,7 @@ that are used across the application.
 #######################################################################
 # Standard library imports
 from datetime import datetime, timedelta
+from typing import Optional
 
 # Third-party library imports
 from dash import html
@@ -17,9 +18,15 @@ import dash_bootstrap_components as dbc
 
 # Application imports
 from configuration import COLOR_PALETTE
+from configuration.settings import (
+    FORECAST_HELP_TEXTS,
+    VELOCITY_HELP_TEXTS,
+    PROJECT_HELP_TEXTS,
+)
 from ui.icon_utils import create_icon_text
 from ui.styles import create_form_feedback_style
 from ui.button_utils import create_button
+from ui.tooltip_utils import create_info_tooltip
 
 # Define common trend icons and colors
 TREND_ICONS = {
@@ -41,7 +48,11 @@ TREND_COLORS = {
 
 # Add these utility functions to help with PERT table components without breaking existing functionality
 def _create_header_with_icon(
-    icon_class: str, title: str, color: str = "#20c997"
+    icon_class: str,
+    title: str,
+    color: str = "#20c997",
+    tooltip_id: Optional[str] = None,
+    tooltip_text: Optional[str] = None,
 ) -> html.H5:
     """Create a header with an icon for PERT info sections.
 
@@ -49,18 +60,26 @@ def _create_header_with_icon(
         icon_class: The Font Awesome icon class to use
         title: The title text for the header
         color: The color to use for the icon, defaults to teal
+        tooltip_id: Optional ID suffix for tooltip
+        tooltip_text: Optional tooltip text to display
 
     Returns:
-        A styled H5 component with an icon and title
+        A styled H5 component with an icon, title, and optional tooltip
     """
+    header_content = [
+        html.I(
+            className=f"{icon_class} me-2",
+            style={"color": color},
+        ),
+        title,
+    ]
+
+    # Add tooltip if provided
+    if tooltip_id and tooltip_text:
+        header_content.append(create_info_tooltip(tooltip_id, tooltip_text))
+
     return html.H5(
-        [
-            html.I(
-                className=f"{icon_class} me-2",
-                style={"color": color},
-            ),
-            title,
-        ],
+        header_content,
         className="mb-3 border-bottom pb-2 d-flex align-items-center",
     )
 
@@ -88,7 +107,13 @@ def _create_forecast_row(
     # Style attribute for the background color only
     row_style = {"backgroundColor": bg_color}
 
-    label_content = [html.Span(label, className=" ".join(label_classes))]
+    # Handle label being either a string or a list (with tooltip)
+    if isinstance(label, list):
+        label_content = [html.Span(label[0], className=" ".join(label_classes))]
+        if len(label) > 1:  # Add tooltip if provided
+            label_content.extend(label[1:])
+    else:
+        label_content = [html.Span(label, className=" ".join(label_classes))]
 
     if icon and is_highlighted:
         # Wrap the icon in a Span element for type consistency
@@ -181,7 +206,13 @@ def _create_project_overview_section(
                                         },
                                     ),
                                     html.Span(
-                                        f"{items_percentage}% Complete",
+                                        [
+                                            f"{items_percentage}% Complete",
+                                            create_info_tooltip(
+                                                "combined-completion-percentage",
+                                                "Percentage of total work completed based on historical progress data. Items vs Points comparison shows estimation accuracy.",
+                                            ),
+                                        ],
                                         className=f"progress-label {'dark-text' if items_percentage > 40 else 'light-text'}",
                                     ),
                                 ],
@@ -202,6 +233,12 @@ def _create_project_overview_section(
                                                     ),
                                                     html.Strong(f"{completed_items}"),
                                                     f" of {actual_total_items} items",
+                                                    create_info_tooltip(
+                                                        id_suffix="items-progress-combined",
+                                                        help_text=PROJECT_HELP_TEXTS[
+                                                            "items_vs_points"
+                                                        ],
+                                                    ),
                                                 ],
                                                 className="me-3",
                                             ),
@@ -222,6 +259,10 @@ def _create_project_overview_section(
                                                             f"{completed_points}"
                                                         ),
                                                         f" of {actual_total_points} points",
+                                                        create_info_tooltip(
+                                                            "points-progress-combined",
+                                                            "Comparison between item-based and point-based progress tracking. Similar percentages indicate consistent estimation accuracy.",
+                                                        ),
                                                     ]
                                                 ),
                                             ]
@@ -257,11 +298,21 @@ def _create_project_overview_section(
                                                         },
                                                     ),
                                                     "Items Progress",
+                                                    create_info_tooltip(
+                                                        "items-progress-separate",
+                                                        "Progress tracking by item count. Shows (Completed Items ÷ Total Items) × 100%",
+                                                    ),
                                                 ],
                                                 className="fw-medium",
                                             ),
                                             html.Small(
-                                                f"{items_percentage}% Complete",
+                                                [
+                                                    f"{items_percentage}% Complete",
+                                                    create_info_tooltip(
+                                                        "items-completion-separate",
+                                                        "Percentage completion based on item count progress tracking",
+                                                    ),
+                                                ],
                                                 className="text-muted",
                                             ),
                                         ],
@@ -312,11 +363,25 @@ def _create_project_overview_section(
                                                             },
                                                         ),
                                                         "Points Progress",
+                                                        create_info_tooltip(
+                                                            id_suffix="points-progress-separate",
+                                                            help_text=PROJECT_HELP_TEXTS[
+                                                                "completion_percentage"
+                                                            ],
+                                                        ),
                                                     ],
                                                     className="fw-medium",
                                                 ),
                                                 html.Small(
-                                                    f"{points_percentage}% Complete",
+                                                    [
+                                                        f"{points_percentage}% Complete",
+                                                        create_info_tooltip(
+                                                            id_suffix="points-completion-separate",
+                                                            help_text=PROJECT_HELP_TEXTS[
+                                                                "completion_percentage"
+                                                            ],
+                                                        ),
+                                                    ],
                                                     className="text-muted",
                                                 ),
                                             ],
@@ -507,24 +572,48 @@ def _create_forecast_card(
                 style={"fontSize": "0.8rem"},
                 children=[
                     html.Div(
-                        "Method",
-                        className="text-muted",
+                        [
+                            "Method",
+                            create_info_tooltip(
+                                f"forecast-method-{metric_type}",
+                                FORECAST_HELP_TEXTS["three_point_estimation"],
+                            ),
+                        ],
+                        className="text-muted d-flex align-items-center",
                         style={"width": "25%"},
                     ),
                     html.Div(
-                        "Completion Date",
-                        className="text-muted text-center",
+                        [
+                            "Completion Date",
+                            create_info_tooltip(
+                                f"completion-date-{metric_type}",
+                                "Projected completion date based on historical velocity and PERT analysis.",
+                            ),
+                        ],
+                        className="text-muted text-center d-flex align-items-center justify-content-center",
                         style={"width": "45%"},
                     ),
                     html.Div(
-                        "Timeframe",
-                        className="text-muted text-end",
+                        [
+                            "Timeframe",
+                            create_info_tooltip(
+                                f"timeframe-{metric_type}",
+                                "Estimated duration to complete remaining work, shown in days (d) and weeks (w).",
+                            ),
+                        ],
+                        className="text-muted text-end d-flex align-items-center justify-content-end",
                         style={"width": "30%"},
                     ),
                 ],
             ),
             _create_forecast_row(
-                "PERT",
+                [
+                    "PERT",
+                    create_info_tooltip(
+                        f"pert-forecast-{metric_type}",
+                        FORECAST_HELP_TEXTS["expected_forecast"],
+                    ),
+                ],
                 completion_str,
                 f"{pert_time:.1f}d ({pert_time / 7:.1f}w)",
                 f"rgba({color == 'green' and '40,167,69' or '220,53,69'},0.08)",
@@ -533,7 +622,13 @@ def _create_forecast_card(
             ),
             # Average row
             _create_forecast_row(
-                "Average",
+                [
+                    "Average",
+                    create_info_tooltip(
+                        f"average-forecast-{metric_type}",
+                        VELOCITY_HELP_TEXTS["velocity_average"],
+                    ),
+                ],
                 avg_completion_str,
                 (
                     f"{avg_days:.1f}d ({weeks_avg:.1f}w)"
@@ -544,7 +639,13 @@ def _create_forecast_card(
             ),
             # Median row
             _create_forecast_row(
-                "Median",
+                [
+                    "Median",
+                    create_info_tooltip(
+                        f"median-forecast-{metric_type}",
+                        VELOCITY_HELP_TEXTS["velocity_median"],
+                    ),
+                ],
                 med_completion_str,
                 (
                     f"{med_days:.1f}d ({weeks_med:.1f}w)"
@@ -723,8 +824,14 @@ def _create_velocity_metric_card(
             html.Div(
                 [
                     html.Span(
-                        title,
-                        className="fw-medium",
+                        [
+                            title,
+                            create_info_tooltip(
+                                f"velocity-{title.lower()}",
+                                VELOCITY_HELP_TEXTS[f"velocity_{title.lower()}"],
+                            ),
+                        ],
+                        className="fw-medium d-flex align-items-center",
                     ),
                     html.Span(
                         [
@@ -736,9 +843,14 @@ def _create_velocity_metric_card(
                                 },
                             ),
                             f"{'+' if trend > 0 else ''}{trend}%",
+                            create_info_tooltip(
+                                f"velocity-trend-{title.lower()}",
+                                VELOCITY_HELP_TEXTS["velocity_trend"],
+                            ),
                         ],
                         style={"color": trend_color},
                         title="Change compared to previous period",
+                        className="d-flex align-items-center",
                     ),
                 ],
                 className="d-flex justify-content-between align-items-center mb-2",
@@ -819,6 +931,10 @@ def _create_velocity_metric_section(
                         style={"color": COLOR_PALETTE[metric_type]},
                     ),
                     html.Span("Items" if is_items else "Points", className="fw-medium"),
+                    create_info_tooltip(
+                        f"velocity-{metric_type}",
+                        VELOCITY_HELP_TEXTS["weekly_velocity"],
+                    ),
                 ],
                 className="d-flex align-items-center mb-3",  # Removed justify-content-center
             ),
@@ -934,8 +1050,14 @@ def _create_weekly_velocity_section(
             # Subtitle with period information
             html.Div(
                 html.Small(
-                    "Based on last 10 weeks of data",
-                    className="text-muted mb-3 d-block text-center",
+                    [
+                        "Based on last 10 weeks of data",
+                        create_info_tooltip(
+                            "velocity-data-period",
+                            VELOCITY_HELP_TEXTS["ten_week_calculation"],
+                        ),
+                    ],
+                    className="text-muted mb-3 d-flex align-items-center justify-content-center",
                 ),
                 className="mb-3",
             ),
@@ -950,8 +1072,12 @@ def _create_weekly_velocity_section(
                             style={"color": "#6c757d"},
                         ),
                         "10-week velocity data used for project forecasting.",
+                        create_info_tooltip(
+                            "ten-week-calculation",
+                            VELOCITY_HELP_TEXTS["ten_week_calculation"],
+                        ),
                     ],
-                    className="text-muted fst-italic small text-center",
+                    className="text-muted fst-italic small text-center d-flex align-items-center justify-content-center",
                 ),
                 className="mt-2",
             ),
@@ -1130,7 +1256,11 @@ def create_pert_info_table(
                 [
                     # Replace direct icon definition with utility function
                     _create_header_with_icon(
-                        "fas fa-project-diagram", "Project Overview", "#20c997"
+                        "fas fa-project-diagram",
+                        "Project Overview",
+                        "#20c997",
+                        "project-overview",
+                        PROJECT_HELP_TEXTS["project_overview"],
                     ),
                     html.Div(
                         [
@@ -1168,6 +1298,8 @@ def create_pert_info_table(
                                 "fas fa-calendar-check",
                                 "Completion Forecast",
                                 "#20c997",
+                                "completion-forecast",
+                                FORECAST_HELP_TEXTS["pert_methodology"],
                             ),
                             _create_completion_forecast_section(
                                 items_completion_str,
@@ -1205,15 +1337,12 @@ def create_pert_info_table(
                             # Add wrapper div with significant mobile-specific top margin and padding to prevent overlap
                             html.Div(
                                 [
-                                    html.H5(
-                                        [
-                                            html.I(
-                                                className="fas fa-tachometer-alt me-2",
-                                                style={"color": "#6610f2"},
-                                            ),
-                                            "Weekly Velocity",
-                                        ],
-                                        className="mb-3 border-bottom pb-2 d-flex align-items-center",
+                                    _create_header_with_icon(
+                                        "fas fa-tachometer-alt",
+                                        "Weekly Velocity",
+                                        "#6610f2",
+                                        "weekly-velocity",
+                                        VELOCITY_HELP_TEXTS["weekly_velocity"],
                                     ),
                                     _create_weekly_velocity_section(
                                         avg_weekly_items,
