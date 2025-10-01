@@ -174,4 +174,7 @@ cython_debug/
 .pypirc
 
 # Application-specific generated files
+project_data.json
+jira_cache.json
+app_settings.json
 
