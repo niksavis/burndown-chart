@@ -19,19 +19,7 @@ Interactive web app for tracking project progress and forecasting completion dat
    pip install -r requirements.txt
    ```
 
-3. **Initial Configuration (Optional):**
-
-   The app works immediately with sample data. For JIRA integration, you can either:
-   
-   - **Option A:** Configure via the web interface (recommended)
-   - **Option B:** Copy `app_settings.json.example` to `app_settings.json` and edit it
-   
-   ```bash
-   copy app_settings.json.example app_settings.json  # Windows
-   cp app_settings.json.example app_settings.json    # macOS/Linux
-   ```
-
-4. **Run:**
+3. **Run:**
 
    ```bash
    python app.py
