@@ -1,0 +1,275 @@
+/* 
+Progressive Disclosure Help System CSS
+Enhanced mobile responsiveness, accessibility, and performance optimizations
+*/
+
+/* Help Button Enhancements */
+.help-button-enhanced {
+  /* Enhanced touch targets for mobile */
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px !important; /* WCAG AA touch target minimum */
+  min-height: 44px !important;
+
+  /* Visual enhancements */
+  border-radius: 50% !important;
+  transition: all 0.2s ease-in-out;
+
+  /* Focus ring for keyboard accessibility */
+  outline: none;
+}
+
+.help-button-enhanced:focus {
+  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25);
+  transform: scale(1.05);
+}
+
+.help-button-enhanced:hover {
+  background-color: rgba(13, 110, 253, 0.1) !important;
+  transform: scale(1.1);
+}
+
+.help-button-enhanced:active {
+  transform: scale(0.95);
+}
+
+/* Help Modal Enhancements */
+.help-modal-enhanced .modal-content {
+  border-radius: 0.75rem;
+  border: none;
+  box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.175);
+  background-color: #fff; /* Ensure light background for Bootstrap FLATLY theme */
+  color: #212529; /* Ensure dark text for readability */
+}
+
+.help-modal-enhanced .modal-header {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+  padding: 1.5rem;
+}
+
+.help-modal-enhanced .modal-title {
+  font-weight: 600;
+  color: #212529;
+}
+
+/* Help Modal Body Content Enhancements */
+.help-modal-body {
+  /* Improved readability */
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  color: #495057;
+
+  /* Better mobile scrolling */
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+.help-modal-body h5 {
+  color: #0d6efd;
+  font-weight: 600;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #e9ecef;
+}
+
+.help-modal-body h5:first-child {
+  margin-top: 0;
+}
+
+.help-modal-body p {
+  margin-bottom: 1rem;
+  line-height: 1.6;
+}
+
+.help-modal-body ul {
+  padding-left: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.help-modal-body li {
+  margin-bottom: 0.5rem;
+  line-height: 1.5;
+}
+
+/* Code blocks and formulas */
+.help-modal-body code,
+.help-modal-body pre {
+  background-color: #f8f9fa !important;
+  border-radius: 0.375rem;
+  padding: 0.75rem 1rem;
+  font-family: "Monaco", "Courier New", "Consolas", monospace;
+  font-size: 0.85rem;
+  color: #495057 !important;
+  border: 1px solid #e9ecef;
+  line-height: 1.5;
+}
+
+.help-modal-body pre {
+  padding: 1rem;
+  margin: 1rem 0;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  display: block;
+  border-left: 3px solid #0d6efd;
+}
+
+/* Inline code snippets */
+.help-modal-body code {
+  padding: 0.2rem 0.4rem;
+  font-size: 0.875rem;
+  display: inline;
+  border-left: none;
+}
+
+/* Alert boxes for important information */
+.help-modal-body .alert {
+  border-radius: 0.5rem;
+  border: none;
+  padding: 1rem;
+  margin: 1rem 0;
+}
+
+.help-modal-body .alert-info {
+  background-color: #e7f3ff;
+  color: #0c5460;
+  border-left: 4px solid #0d6efd;
+}
+
+/* Progressive Disclosure Container */
+.progressive-disclosure-container {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 576px) {
+  .help-modal-enhanced .modal-dialog {
+    margin: 0.5rem;
+    max-width: calc(100vw - 1rem);
+  }
+
+  .help-modal-enhanced .modal-header,
+  .help-modal-enhanced .modal-body,
+  .help-modal-enhanced .modal-footer {
+    padding: 1rem;
+  }
+
+  .help-modal-body {
+    font-size: 0.9rem;
+    max-height: 60vh;
+  }
+
+  .help-button-enhanced {
+    min-width: 48px !important; /* Slightly larger on mobile */
+    min-height: 48px !important;
+  }
+}
+
+/* Tablet Responsiveness */
+@media (min-width: 577px) and (max-width: 991px) {
+  .help-modal-enhanced .modal-dialog {
+    max-width: 90vw;
+  }
+
+  .help-modal-body {
+    max-height: 65vh;
+  }
+}
+
+/* Desktop Optimizations */
+@media (min-width: 992px) {
+  .help-modal-body {
+    max-height: 70vh;
+  }
+
+  .help-modal-enhanced .modal-lg {
+    max-width: 900px;
+  }
+}
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: high) {
+  .help-button-enhanced {
+    border: 2px solid currentColor !important;
+  }
+
+  .help-modal-body {
+    color: #000;
+  }
+
+  .help-modal-body h5 {
+    color: #0056b3;
+    border-bottom-color: #000;
+  }
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  .help-button-enhanced,
+  .help-modal-enhanced * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* Dark Mode Support - Removed to maintain Bootstrap FLATLY theme consistency */
+/* The application uses Bootstrap FLATLY (light theme) so dark mode overrides cause conflicts */
+
+/* Print Styles for Help Content */
+@media print {
+  .help-button-enhanced {
+    display: none !important;
+  }
+
+  .help-modal-body {
+    font-size: 12pt;
+    line-height: 1.4;
+    color: #000;
+    background: #fff;
+  }
+}
+
+/* Performance Optimizations */
+.help-modal-body * {
+  /* Enable hardware acceleration for smooth scrolling */
+  will-change: transform;
+}
+
+/* Accessibility: Focus Management */
+.help-modal-enhanced[aria-hidden="false"] {
+  /* Trap focus within modal when open */
+  position: fixed;
+  z-index: 1055;
+}
+
+/* Loading State for Help Content */
+.help-content-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  color: #6c757d;
+}
+
+.help-content-loading::before {
+  content: "";
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid #e9ecef;
+  border-top-color: #0d6efd;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: 0.5rem;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

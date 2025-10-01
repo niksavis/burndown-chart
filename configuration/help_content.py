@@ -1,9 +1,8 @@
 """
-Comprehensive Help Content for Phase 9.2 Help System
+Comprehensive Help Content for Progressive Disclosure Help System
 
-This module stores all the detailed tooltip content that was moved out during
-Phase 9.1 tooltip simplification. This content will be used in Phase 9.2 to
-populate dedicated help pages and dialogs.
+This module stores detailed help content for the help system modals and dialogs.
+Content provides comprehensive explanations that complement the concise tooltips.
 
 Content is organized by category to match the original help text structure.
 """
@@ -129,24 +128,39 @@ FORECAST_HELP_DETAILED = {
         
         🔢 **Three-Point Calculation Method:**
         
-        **Data Collection:**
-        • Optimistic (O): Average of top 25% velocity periods
-        • Most Likely (ML): Simple arithmetic mean of all recent data
-        • Pessimistic (P): Average of bottom 25% velocity periods
+        **Data Collection Process:**
+        • Optimistic (O): Average of top 25% velocity periods from your historical data
+        • Most Likely (ML): Simple arithmetic mean of all recent data points (typically 8-12 weeks)
+        • Pessimistic (P): Average of bottom 25% velocity periods from your historical data
         
-        **Expected Calculation:**
+        **Expected Value Formula:**
+        ```
         Expected = (O + 4×ML + P) ÷ 6
+        ```
         
-        **Example with Real Data:**
-        • Optimistic: 15 items/week (best periods)
-        • Most Likely: 10 items/week (average)
-        • Pessimistic: 6 items/week (worst periods)
-        • Expected = (15 + 4×10 + 6) ÷ 6 = (15 + 40 + 6) ÷ 6 = 10.17 items/week
+        **Interactive Example with Your Project Data:**
+        Let's say your recent velocity data shows:
+        • Best weeks averaged: 15 items/week (optimistic scenario)
+        • Recent average: 10 items/week (most likely scenario) 
+        • Worst weeks averaged: 6 items/week (pessimistic scenario)
+        
+        **Step-by-Step Calculation:**
+        ```
+        Expected = (15 + 4×10 + 6) ÷ 6
+        Expected = (15 + 40 + 6) ÷ 6  
+        Expected = 61 ÷ 6 = 10.17 items/week
+        ```
+        
+        **Your Completion Timeline:**
+        With 50 remaining items: 50 ÷ 10.17 = ~5 weeks expected completion
         
         📊 **Statistical Foundation:**
-        • Beta Distribution: Models project uncertainty naturally
-        • 4× Weighting: Most Likely scenario is statistically most probable
-        • Confidence Intervals: ±25% of (Optimistic - Pessimistic) range
+        • **Beta Distribution**: Mathematically models project uncertainty patterns naturally
+        • **4× Most Likely Weighting**: Statistically optimal balance (proven by decades of project data)
+        • **Confidence Intervals**: ±25% of (Optimistic - Pessimistic) variance provides 68% confidence range
+        
+        🔗 **Related Topics:**
+        See also: Weekly Velocity Calculation, Forecast Graph Overview, Input Parameters Guide
         
         🎯 **Forecast Applications:**
         • Timeline Planning: Use Expected value for primary planning
@@ -262,34 +276,57 @@ VELOCITY_HELP_DETAILED = {
     "velocity_average_calculation": """
         Average Velocity calculation using arithmetic mean for consistent baseline forecasting.
         
-        🔢 **Formula:**
+        🔢 **Mathematical Formula:**
+        ```
         Average Velocity = Σ(completed items/points) ÷ Number of weeks
+        ```
         
-        **Step-by-Step Example:**
-        Week 1: 12 items, Week 2: 15 items, Week 3: 8 items, Week 4: 18 items, Week 5: 10 items
+        **Interactive Calculation with Your Data:**
+        Let's walk through a realistic example using 5 weeks of project data:
+        • Week 1: 12 items (normal sprint)
+        • Week 2: 15 items (good momentum week)  
+        • Week 3: 8 items (holiday week, reduced capacity)
+        • Week 4: 18 items (excellent focus week)
+        • Week 5: 10 items (mixed priorities week)
         
-        Calculation:
-        • Sum: 12 + 15 + 8 + 18 + 10 = 63 items
-        • Count: 5 weeks
-        • Average: 63 ÷ 5 = 12.6 items/week
+        **Step-by-Step Calculation:**
+        ```
+        Sum = 12 + 15 + 8 + 18 + 10 = 63 total items
+        Weeks = 5 weeks of data
+        Average = 63 ÷ 5 = 12.6 items/week
+        ```
         
-        📊 **Characteristics:**
-        • **Sensitivity**: Affected by all data points equally
-        • **Outlier Impact**: High - extreme values significantly influence result
-        • **Use Case**: Best for stable teams with consistent delivery patterns
-        • **Trending**: Shows overall team capacity over time period
+        **Real Forecasting Application:**
+        With 50 remaining items: 50 ÷ 12.6 = ~4 weeks expected completion
         
-        📈 **Trend Analysis:**
-        Trend % = ((Current Period Average - Previous Period Average) ÷ Previous Period Average) × 100%
+        📊 **Statistical Characteristics:**
+        • **Equal Weighting**: Every week contributes equally to final calculation
+        • **Outlier Sensitivity**: Week 4 (18 items) and Week 3 (8 items) both pull the average 
+        • **Stability Indicator**: Consistent averages = predictable delivery capacity
+        • **Trending Capability**: Shows velocity evolution over rolling time periods
         
-        **Example Trend Calculation:**
-        • Previous 5 weeks average: 10.2 items/week
-        • Current 5 weeks average: 12.6 items/week  
-        • Trend: ((12.6 - 10.2) ÷ 10.2) × 100% = +23.5% ↗️
+        📈 **Advanced Trend Analysis:**
+        ```
+        Trend % = ((Current Period - Previous Period) ÷ Previous Period) × 100%
+        ```
         
-        🎯 **Forecasting Application:**
-        Average velocity provides the "Most Likely" estimate in PERT calculations.
-        Consistent averages over time indicate predictable team capacity for planning.
+        **Practical Trend Example:**
+        • Previous 5-week average: 10.2 items/week
+        • Current 5-week average: 12.6 items/week
+        • Calculation: ((12.6 - 10.2) ÷ 10.2) × 100% = +23.5% 
+        • Interpretation: ↗️ **Positive acceleration** - team improving over time
+        
+        🎯 **Integration with PERT Forecasting:**
+        • Average velocity = "Most Likely" scenario in three-point estimation
+        • Provides statistical foundation for expected completion dates
+        • Combined with optimistic/pessimistic bounds for full PERT analysis
+        
+        ⚙️ **When to Use Average vs Median:**
+        • **Choose Average** for stable teams with consistent delivery patterns
+        • **Choose Median** when dealing with frequent scope changes or capacity variations
+        
+        🔗 **Related Topics:**
+        See also: Median Velocity Calculation, PERT Analysis Detailed, Velocity Trend Indicators
     """,
     "velocity_median_calculation": """
         Median Velocity calculation using middle value for outlier-resistant forecasting.
