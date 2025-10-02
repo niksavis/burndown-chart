@@ -1,7 +1,8 @@
 """
 Tab Navigation Module
 
-This module provides the tab-based navigation components for the application.
+This module provides the tab-based navigation components for the application
+with enhanced mobile-first responsive design and navigation patterns.
 """
 
 #######################################################################
@@ -17,42 +18,22 @@ from dash import html
 from configuration.settings import CHART_HELP_TEXTS
 from ui.grid_utils import create_tab_content as grid_create_tab_content
 from ui.tooltip_utils import create_info_tooltip
+from ui.mobile_navigation import (
+    create_mobile_navigation_system,
+    create_mobile_tab_wrapper,
+    get_mobile_tabs_config,
+)
 
 
 def create_tabs():
     """
-    Create tabs for navigating between different chart views.
+    Create tabs for navigating between different chart views with mobile-first design.
 
     Returns:
-        A Dash component containing the tab navigation interface
+        A Dash component containing the tab navigation interface with mobile enhancements
     """
-    # Tab configuration with icons and descriptions for better UX
-    tab_config = [
-        {
-            "id": "tab-burndown",
-            "label": "Burndown Chart",
-            "icon": "fas fa-chart-line",
-            "color": "#0d6efd",  # Primary blue
-        },
-        {
-            "id": "tab-items",
-            "label": "Items per Week",
-            "icon": "fas fa-tasks",
-            "color": "#20c997",  # Teal
-        },
-        {
-            "id": "tab-points",
-            "label": "Points per Week",
-            "icon": "fas fa-chart-bar",
-            "color": "#fd7e14",  # Orange
-        },
-        {
-            "id": "tab-scope-tracking",
-            "label": "Scope Changes",
-            "icon": "fas fa-project-diagram",
-            "color": "#6f42c1",  # Purple
-        },
-    ]
+    # Get mobile-optimized tab configuration
+    tab_config = get_mobile_tabs_config()
 
     # Generate tabs with enhanced markup for better visual feedback
     tabs = []
@@ -68,20 +49,24 @@ def create_tabs():
             )
         )
 
-    # Instead of using html.Style which doesn't exist, use dash's method for injecting CSS
-    return html.Div(
+    # Create mobile tab wrapper with navigation system
+    tab_navigation = create_mobile_tab_wrapper(
         [
-            # Add CSS styles using Dash's proper method
-            html.Div(
-                id="tab-icons-css",
-                style={"display": "none"},
-            ),
             dbc.Tabs(
                 tabs,
                 id="chart-tabs",
                 active_tab="tab-burndown",
                 className="mb-4 nav-tabs-modern",
-            ),
+            )
+        ]
+    )
+
+    return html.Div(
+        [
+            # Mobile navigation system (drawer + bottom nav)
+            create_mobile_navigation_system(),
+            # Tab navigation with mobile wrapper
+            tab_navigation,
             # Content div that will be filled based on active tab
             html.Div(html.Div(id="tab-content"), className="tab-content-container"),
         ]

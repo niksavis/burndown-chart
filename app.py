@@ -33,6 +33,9 @@ app = dash.Dash(
         "/assets/custom.css",  # Our custom CSS for standardized styling
         "/assets/help_system.css",  # Help system CSS for progressive disclosure
     ],
+    external_scripts=[
+        "/assets/mobile_navigation.js",  # Mobile navigation JavaScript for swipe gestures
+    ],
     suppress_callback_exceptions=True,  # Suppress exceptions for components created by callbacks
     meta_tags=[
         # PWA Meta Tags for Mobile-First Design

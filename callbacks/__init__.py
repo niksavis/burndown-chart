@@ -9,6 +9,7 @@ from callbacks import (
     # The 'export' module doesn't seem to exist and is causing an error
     # export,
     scope_metrics,  # Add the new scope_metrics module
+    mobile_navigation,  # Add mobile navigation callbacks
 )
 
 
@@ -20,3 +21,4 @@ def register_all_callbacks(app):
     # Remove this line since 'export' module doesn't exist
     # export.register(app)
     scope_metrics.register(app)  # Register the new callbacks
+    mobile_navigation.register(app)  # Register mobile navigation callbacks
