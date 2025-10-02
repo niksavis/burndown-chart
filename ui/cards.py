@@ -449,7 +449,7 @@ def create_forecast_info_card():
                                         id=f"{collapse_id}-button",
                                         color="link",
                                         size="sm",
-                                        className="p-0 border-0",
+                                        className="mobile-touch-target-sm border-0",
                                     ),
                                     create_info_tooltip(
                                         "forecast-info",
@@ -3024,7 +3024,7 @@ def create_items_forecast_info_card(statistics_df=None, pert_data=None):
                                         id=f"{collapse_id}-button",
                                         color="link",
                                         size="sm",
-                                        className="p-0 border-0",
+                                        className="mobile-touch-target-sm border-0",
                                     ),
                                     create_info_tooltip(
                                         "items-forecast-info",
@@ -3205,7 +3205,7 @@ def create_points_forecast_info_card(statistics_df=None, pert_data=None):
                                         id=f"{collapse_id}-button",
                                         color="link",
                                         size="sm",
-                                        className="p-0 border-0",
+                                        className="mobile-touch-target-sm border-0",
                                     ),
                                     create_info_tooltip(
                                         "points-forecast-info",

@@ -606,20 +606,20 @@ def create_input_style(
         "transition": "border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out",
     }
 
-    # Apply size
+    # Apply size with mobile-first touch target optimization
     size_styles = {
         "sm": {
-            "height": "calc(1.5em + 0.5rem + 2px)",
+            "height": "max(calc(1.5em + 0.5rem + 2px), 38px)",  # Minimum 38px for small inputs
             "padding": "0.25rem 0.5rem",
             "fontSize": "0.875rem",
         },
         "md": {
-            "height": "calc(1.5em + 0.75rem + 2px)",
+            "height": "max(calc(1.5em + 0.75rem + 2px), 44px)",  # Minimum 44px touch target
             "padding": "0.375rem 0.75rem",
             "fontSize": "1rem",
         },
         "lg": {
-            "height": "calc(1.5em + 1rem + 2px)",
+            "height": "max(calc(1.5em + 1rem + 2px), 48px)",  # Larger touch target for lg
             "padding": "0.5rem 1rem",
             "fontSize": "1.25rem",
         },
