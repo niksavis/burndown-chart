@@ -24,7 +24,7 @@ from configuration.server import get_server_config
 # APPLICATION SETUP
 #######################################################################
 
-# Initialize the Dash app
+# Initialize the Dash app with PWA support
 app = dash.Dash(
     __name__,
     external_stylesheets=[
@@ -34,7 +34,60 @@ app = dash.Dash(
         "/assets/help_system.css",  # Help system CSS for progressive disclosure
     ],
     suppress_callback_exceptions=True,  # Suppress exceptions for components created by callbacks
+    meta_tags=[
+        # PWA Meta Tags for Mobile-First Design
+        {
+            "name": "viewport",
+            "content": "width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes",
+        },
+        {"name": "theme-color", "content": "#0d6efd"},
+        {"name": "apple-mobile-web-app-capable", "content": "yes"},
+        {"name": "apple-mobile-web-app-status-bar-style", "content": "default"},
+        {"name": "apple-mobile-web-app-title", "content": "Burndown Chart"},
+        {"name": "mobile-web-app-capable", "content": "yes"},
+        # Performance and SEO
+        {
+            "name": "description",
+            "content": "Modern mobile-first agile project forecasting with JIRA integration",
+        },
+        {
+            "name": "keywords",
+            "content": "burndown chart, agile, project management, JIRA, forecasting",
+        },
+        {"property": "og:title", "content": "Burndown Chart Generator"},
+        {"property": "og:type", "content": "website"},
+        {
+            "property": "og:description",
+            "content": "Modern mobile-first agile project forecasting with JIRA integration",
+        },
+    ],
 )
+
+# Add PWA manifest link to app index
+app.index_string = """
+<!DOCTYPE html>
+<html>
+    <head>
+        {%metas%}
+        <title>{%title%}</title>
+        {%favicon%}
+        {%css%}
+        <!-- PWA Manifest -->
+        <link rel="manifest" href="/assets/manifest.json">
+        <!-- Apple Touch Icons -->
+        <link rel="apple-touch-icon" href="/assets/icon-192.png">
+        <link rel="apple-touch-icon" sizes="512x512" href="/assets/icon-512.png">
+    </head>
+    <body>
+        {%app_entry%}
+        <footer>
+            {%config%}
+            {%scripts%}
+            {%renderer%}
+        </footer>
+    </body>
+</html>
+"""
 
 # Set the layout function as the app's layout
 app.layout = serve_layout

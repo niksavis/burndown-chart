@@ -133,6 +133,10 @@ def create_app_layout(settings, statistics, is_sample_data):
             dcc.Store(id="date-range-weeks", data=None),
             # Store for selected chart type (burndown or burnup)
             dcc.Store(id="selected-chart-type", data="burndown"),
+            # Store for client-side chart caching (performance optimization)
+            dcc.Store(id="chart-cache", data={}),
+            # Store for UI state (loading states, active tabs, etc.)
+            dcc.Store(id="ui-state", data={"loading": False, "last_tab": None}),
             # Add an empty div to hold the forecast-graph (will be populated by callback)
             html.Div(
                 dcc.Graph(id="forecast-graph", style={"display": "none"}),

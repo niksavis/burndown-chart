@@ -25,6 +25,7 @@ from dash import (
     callback_context,
     dcc,
     html,
+    no_update,
 )
 from dash.exceptions import PreventUpdate
 
@@ -39,7 +40,6 @@ from data import (
 from ui import (
     create_compact_trend_indicator,
     create_pert_info_table,
-    create_tab_content,
 )
 from ui.loading_utils import (
     create_spinner,
@@ -812,9 +812,13 @@ def register(app):
             show_points=show_points,
         )
 
-    # Replace the existing render_tab_content callback with a consistent approach
+    # Performance-optimized tab content callback with lazy loading and caching
     @app.callback(
-        Output("tab-content", "children"),
+        [
+            Output("tab-content", "children"),
+            Output("chart-cache", "data"),
+            Output("ui-state", "data"),
+        ],
         [
             Input("chart-tabs", "active_tab"),
             Input("current-settings", "modified_timestamp"),
@@ -826,6 +830,8 @@ def register(app):
         [
             State("current-settings", "data"),
             State("current-statistics", "data"),
+            State("chart-cache", "data"),
+            State("ui-state", "data"),
         ],
     )
     def render_tab_content(
@@ -837,14 +843,51 @@ def register(app):
         show_points,  # Added parameter
         settings,
         statistics,
+        chart_cache,
+        ui_state,
     ):
         """
-        Render the appropriate content based on the selected tab.
-        This callback updates whenever tab selection changes or the underlying data changes.
-        Always defaults to burndown chart for a consistent experience when parameters change.
+        Render the appropriate content based on the selected tab with lazy loading and caching.
+        Only generates charts for the active tab to improve performance.
+        Target: <500ms chart rendering, immediate skeleton loading, <100ms cached responses.
         """
         if not settings or not statistics:
-            raise PreventUpdate
+            ui_state = ui_state or {"loading": False, "last_tab": None}
+            chart_cache = chart_cache or {}
+            error_content = create_content_placeholder(
+                type="chart",
+                text="No data available. Please load project data first.",
+                height="400px",
+            )
+            return error_content, chart_cache, ui_state
+
+        # Initialize cache and UI state if None
+        if chart_cache is None:
+            chart_cache = {}
+        if ui_state is None:
+            ui_state = {"loading": False, "last_tab": None}
+
+        # Clear old cache entries to prevent memory bloat (keep last 5)
+        if len(chart_cache) > 5:
+            oldest_keys = list(chart_cache.keys())[:-5]
+            for old_key in oldest_keys:
+                if old_key in chart_cache:
+                    del chart_cache[old_key]
+
+        # Create simplified cache key - only essential data for chart generation
+        data_hash = hash(str(statistics) + str(settings) + str(show_points))
+        cache_key = f"{active_tab}_{data_hash}"
+
+        # Check if we have cached content for this exact state
+        if cache_key in chart_cache:
+            # Return cached content immediately for <100ms response time
+            ui_state["loading"] = False
+            ui_state["last_tab"] = active_tab
+            return chart_cache[cache_key], chart_cache, ui_state
+
+        # Set loading state for new tab content generation
+        ui_state["loading"] = True
+        ui_state["last_tab"] = active_tab
 
         try:
             # Get values from settings
@@ -857,107 +900,137 @@ def register(app):
             # Convert statistics to DataFrame
             df = pd.DataFrame(statistics)
 
-            # Prepare charts for each tab
-            charts = {}
-
-            # Prepare trend data (items and points trends with forecasts)
-            items_trend, points_trend = _prepare_trend_data(statistics, pert_factor)
-
-            # Always generate all charts to ensure consistent React component structure
-            # Generate burndown and burnup charts
+            # LAZY LOADING: Only generate charts for the active tab
             show_milestone = settings.get("show_milestone", False)
             milestone = settings.get("milestone", None) if show_milestone else None
 
-            # Generate burndown chart
-            burndown_fig, _ = create_forecast_plot(
-                df=compute_cumulative_values(df, total_items, total_points)
-                if not df.empty
-                else df,
-                total_items=total_items,
-                total_points=total_points,
-                pert_factor=pert_factor,
-                deadline_str=deadline,
-                milestone_str=milestone,  # Pass milestone parameter
-                data_points_count=data_points_count,
-                show_points=show_points,  # Pass show_points parameter
-            )
+            if active_tab == "tab-burndown":
+                # Generate all required data for burndown tab
+                items_trend, points_trend = _prepare_trend_data(statistics, pert_factor)
 
-            # Generate burnup chart for the toggle
-            from visualization import create_burnup_chart
+                # Generate burndown chart only when needed
+                burndown_fig, _ = create_forecast_plot(
+                    df=compute_cumulative_values(df, total_items, total_points)
+                    if not df.empty
+                    else df,
+                    total_items=total_items,
+                    total_points=total_points,
+                    pert_factor=pert_factor,
+                    deadline_str=deadline,
+                    milestone_str=milestone,
+                    data_points_count=data_points_count,
+                    show_points=show_points,
+                )
 
-            burnup_fig, _ = create_burnup_chart(
-                df=df.copy() if not df.empty else df,
-                total_items=total_items,
-                total_points=total_points,
-                pert_factor=pert_factor,
-                deadline_str=deadline,
-                milestone_str=milestone,  # Pass milestone parameter
-                data_points_count=data_points_count,
-                show_points=show_points,  # Pass show_points parameter
-            )
+                # Generate burnup chart for the toggle (only if on burndown tab)
+                from visualization import create_burnup_chart
 
-            # Create burndown tab content - always create to ensure consistent structure
-            burndown_tab_content = _create_burndown_tab_content(
-                df,
-                items_trend,
-                points_trend,
-                burndown_fig,
-                burnup_fig,
-                settings,
-                "burndown",
-                show_points,
-            )
-            charts["tab-burndown"] = burndown_tab_content
+                burnup_fig, _ = create_burnup_chart(
+                    df=df.copy() if not df.empty else df,
+                    total_items=total_items,
+                    total_points=total_points,
+                    pert_factor=pert_factor,
+                    deadline_str=deadline,
+                    milestone_str=milestone,
+                    data_points_count=data_points_count,
+                    show_points=show_points,
+                )
 
-            # Always create weekly items chart with forecast
-            items_fig = create_weekly_items_chart(
-                statistics, date_range_weeks, pert_factor
-            )
-            charts["tab-items"] = _create_items_tab_content(items_trend, items_fig)
+                # Create burndown tab content with all required data
+                burndown_tab_content = _create_burndown_tab_content(
+                    df,
+                    items_trend,
+                    points_trend,
+                    burndown_fig,
+                    burnup_fig,
+                    settings,
+                    "burndown",
+                    show_points,
+                )
+                # Cache the result for next time
+                chart_cache[cache_key] = burndown_tab_content
+                ui_state["loading"] = False
+                return burndown_tab_content, chart_cache, ui_state
 
-            # Always create weekly points chart - but content depends on points toggle
-            if show_points:
-                points_fig = create_weekly_points_chart(
+            elif active_tab == "tab-items":
+                # Generate trend data and weekly items chart only when needed
+                items_trend, points_trend = _prepare_trend_data(statistics, pert_factor)
+                items_fig = create_weekly_items_chart(
                     statistics, date_range_weeks, pert_factor
                 )
-                charts["tab-points"] = _create_points_tab_content(
-                    points_trend, points_fig
-                )
-            else:
-                # Always create tab-points content, even if points tracking is disabled
-                charts["tab-points"] = html.Div(
-                    [
-                        html.Div(
-                            [
-                                html.H4(
-                                    "Points Tracking Disabled", className="text-muted"
-                                ),
-                                html.P(
-                                    "Enable the Points Tracking toggle in the Project Timeline form to view points forecasts.",
-                                    className="text-muted",
-                                ),
-                            ],
-                            className="alert alert-info text-center",
-                        )
-                    ]
-                )
+                items_tab_content = _create_items_tab_content(items_trend, items_fig)
+                # Cache the result for next time
+                chart_cache[cache_key] = items_tab_content
+                ui_state["loading"] = False
+                return items_tab_content, chart_cache, ui_state
 
-            # Always create scope tracking tab content
-            charts["tab-scope-tracking"] = _create_scope_tracking_tab_content(
-                df, settings, show_points
+            elif active_tab == "tab-points":
+                if show_points:
+                    # Generate trend data and weekly points chart only when needed
+                    items_trend, points_trend = _prepare_trend_data(
+                        statistics, pert_factor
+                    )
+                    points_fig = create_weekly_points_chart(
+                        statistics, date_range_weeks, pert_factor
+                    )
+                    points_tab_content = _create_points_tab_content(
+                        points_trend, points_fig
+                    )
+                    # Cache the result for next time
+                    chart_cache[cache_key] = points_tab_content
+                    ui_state["loading"] = False
+                    return points_tab_content, chart_cache, ui_state
+                else:
+                    # Points tracking disabled content
+                    points_disabled_content = html.Div(
+                        [
+                            html.Div(
+                                [
+                                    html.H4(
+                                        "Points Tracking Disabled",
+                                        className="text-muted",
+                                    ),
+                                    html.P(
+                                        "Enable the Points Tracking toggle in the Project Timeline form to view points forecasts.",
+                                        className="text-muted",
+                                    ),
+                                ],
+                                className="alert alert-info text-center",
+                            )
+                        ]
+                    )
+                    # Cache the result for next time
+                    chart_cache[cache_key] = points_disabled_content
+                    ui_state["loading"] = False
+                    return points_disabled_content, chart_cache, ui_state
+
+            elif active_tab == "tab-scope-tracking":
+                # Generate scope tracking content only when needed
+                scope_tab_content = _create_scope_tracking_tab_content(
+                    df, settings, show_points
+                )
+                # Cache the result for next time
+                chart_cache[cache_key] = scope_tab_content
+                ui_state["loading"] = False
+                return scope_tab_content, chart_cache, ui_state
+
+            # Default fallback (should not reach here)
+            fallback_content = create_content_placeholder(
+                type="chart", text="Select a tab to view data", height="400px"
             )
-
-            # Create content for the active tab
-            return create_tab_content(active_tab, charts)
+            ui_state["loading"] = False
+            return fallback_content, chart_cache, ui_state
 
         except Exception as e:
             logger.error(f"Error in render_tab_content callback: {e}")
-            return html.Div(
+            error_content = html.Div(
                 [
                     html.H4("Error Loading Chart", className="text-danger"),
                     html.P(f"An error occurred: {str(e)}"),
                 ]
             )
+            ui_state["loading"] = False
+            return error_content, chart_cache, ui_state
 
     # Enhance the existing update_date_range callback to immediately trigger chart updates
     @app.callback(

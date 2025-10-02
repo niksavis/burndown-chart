@@ -128,10 +128,23 @@ Get-Content "file.txt" | Measure-Object -Line                     # Instead of: 
 Select-String -Path "*.py" -Pattern "function"                     # Instead of: grep -r "function" *.py
 ```
 
+### ⚠️ **CRITICAL: Virtual Environment Activation**
+
+**ALWAYS prefix Python commands with virtual environment activation** - this is a Windows development environment that requires the virtual environment to be activated for EVERY new terminal window.
+
+**Required Pattern**: `.\.venv\Scripts\activate; [command]`
+
+**Why this is critical**:
+
+- Global Python instance lacks required packages
+- Virtual environment contains all project dependencies
+- Each new terminal window needs activation
+- Forgetting this causes import errors and missing dependencies
+
 ### Essential Commands
 
 ```powershell
-# Run application with hot reload
+# Run application with hot reload (ALWAYS activate venv first)
 .\.venv\Scripts\activate; python app.py
 
 # Run tests by category (current test structure)
@@ -141,6 +154,11 @@ Select-String -Path "*.py" -Pattern "function"                     # Instead of:
 
 # Performance profiling
 .\.venv\Scripts\activate; pytest --cov=ui --cov=visualization --durations=10
+
+# Any Python command pattern:
+.\.venv\Scripts\activate; python -c "import dash; print('Dependencies loaded')"
+.\.venv\Scripts\activate; pip list
+.\.venv\Scripts\activate; python -m pytest --version
 ```
 
 ### Modern Callback Patterns
