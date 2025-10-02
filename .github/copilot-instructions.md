@@ -231,6 +231,88 @@ Set-Alias cat Get-Content
 - **Visual Tests**: Mobile responsiveness and accessibility
 - **Performance Tests**: Load times and interaction latency
 
+#### ⚡ **Browser Automation: Playwright vs Selenium**
+
+**CRITICAL DECISION**: Always prefer Playwright over Selenium for new integration tests.
+
+**What Actually Works**:
+
+✅ **Playwright IS better than Selenium**:
+
+- **Faster execution**: ~3x faster test runs due to modern browser automation
+- **Better API**: Async/await support, cleaner syntax, built-in waiting
+- **More reliable**: Better element detection, reduced flakiness
+- **Modern browsers**: Native support for Chromium, Firefox, WebKit
+
+✅ **We CAN use Playwright with Dash apps**:
+
+- **Avoid Dash testing utilities**: `dash.testing.application_runners` requires Selenium
+- **Use direct app import**: Import app directly and serve with waitress/Flask
+- **Text-based selectors**: Use `has_text()` instead of dynamic React IDs
+- **Custom server management**: Start server in background thread for testing
+
+**Implementation Pattern**:
+
+```python
+# ✅ RECOMMENDED: Modern Playwright approach
+import pytest
+from playwright.sync_api import sync_playwright
+import waitress
+import threading
+import sys
+import os
+
+# Import app directly (avoid dash.testing utilities)
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+import app as dash_app
+
+class TestModernIntegration:
+    @pytest.fixture(scope="class")
+    def live_server(self):
+        """Start Dash app server for testing"""
+        app = dash_app.app
+
+        def run_server():
+            waitress.serve(app.server, host="127.0.0.1", port=8051, threads=1)
+
+        server_thread = threading.Thread(target=run_server, daemon=True)
+        server_thread.start()
+        time.sleep(3)  # Allow server startup
+
+        yield "http://127.0.0.1:8051"
+
+    def test_with_playwright(self, live_server):
+        """Modern browser automation test"""
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            page = browser.new_page()
+
+            page.goto(live_server)
+            page.wait_for_selector("#chart-tabs", timeout=10000)
+
+            # Use text-based selectors (more reliable than dynamic IDs)
+            tab_links = page.locator("#chart-tabs .nav-link")
+            items_tab = tab_links.filter(has_text="Items per Week")
+
+            items_tab.click()
+            page.wait_for_timeout(2000)
+
+            # Verify state with null-safe attribute checking
+            items_class = items_tab.get_attribute("class") or ""
+            assert "active" in items_class
+
+            browser.close()
+```
+
+**Why NOT to use Selenium**:
+
+❌ **Selenium Dependencies**: Dash's `testing.application_runners` imports selenium even when not needed
+❌ **Slower execution**: Legacy WebDriver protocol causes performance overhead  
+❌ **Flakier tests**: More prone to timing issues and element detection failures
+❌ **Complex setup**: Requires WebDriver management and browser configuration
+
+**Migration Strategy**: For existing selenium tests, gradually migrate to Playwright using the pattern above.
+
 ```python
 # Example: Mobile-first component test
 def test_chart_mobile_responsiveness():
@@ -320,6 +402,14 @@ class TestUIComponents:
 - Verify data flows between components
 - Test JIRA integration with real API calls (mocked in CI)
 - Validate chart rendering and interactions
+
+**Browser Automation Guidelines**:
+
+- ✅ **Use Playwright** for all new integration tests requiring browser automation
+- ✅ **Text-based selectors** (`has_text()`) for reliable element targeting
+- ✅ **Custom server management** to avoid Dash testing utility dependencies
+- ✅ **Null-safe attribute checking** (`get_attribute("class") or ""`) for robust assertions
+- ❌ **Avoid Selenium** unless specifically required for legacy compatibility
 
 ```python
 class TestDashboardWorkflows:

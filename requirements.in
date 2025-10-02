@@ -52,3 +52,9 @@ zipp==3.21.0
 
 # Tools dependencies
 networkx>=2.5  # For import analysis graph operations
+
+# Testing dependencies for mobile navigation integration tests
+psutil==7.1.0  # Required for dash.testing.application_runners
+multiprocess==0.70.18  # Required for dash testing framework
+playwright>=1.40.0  # Modern browser automation framework
+pytest-playwright>=0.4.0  # Playwright integration for pytest
