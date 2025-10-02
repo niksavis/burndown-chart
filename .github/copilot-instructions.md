@@ -105,6 +105,29 @@ def handle_user_action(n_clicks):
 
 **Windows Development Environment**: PowerShell with virtual environment activation required.
 
+### ⚠️ **CRITICAL: PowerShell-Only Commands**
+
+**ALWAYS use PowerShell commands** - this is a Windows development environment. Unix/Linux commands like `find`, `grep`, `ls`, `cat`, etc. will NOT work.
+
+**PowerShell Equivalents for Common Tasks:**
+
+```powershell
+# File operations (NOT find, ls, cat)
+Get-ChildItem -Recurse -Filter "*.py" | Select-Object -First 20    # Instead of: find . -name "*.py" | head -20
+Get-Content "file.txt" | Select-Object -First 10                   # Instead of: head -10 file.txt
+Get-ChildItem -Path "src/" -Recurse                                # Instead of: ls -la src/
+Get-Content "file.txt" | Where-Object { $_ -match "pattern" }      # Instead of: grep "pattern" file.txt
+
+# Process and system info
+Get-Process | Where-Object { $_.ProcessName -like "*python*" }     # Instead of: ps aux | grep python
+Get-Location                                                        # Instead of: pwd
+Set-Location "path"                                                # Instead of: cd path
+
+# File content and manipulation
+Get-Content "file.txt" | Measure-Object -Line                     # Instead of: wc -l file.txt
+Select-String -Path "*.py" -Pattern "function"                     # Instead of: grep -r "function" *.py
+```
+
 ### Essential Commands
 
 ```powershell
@@ -149,6 +172,37 @@ def search_with_debounce(search_value, timer_data):
     # Show loading immediately
     return no_update, True
 ```
+
+### 🔧 **Setting Up Unix-Like Tools (Optional)**
+
+If you need Unix-like commands for advanced development workflows, you can install one of these options:
+
+**Option 1: Windows Subsystem for Linux (WSL)**
+
+```powershell
+# Enable WSL (requires admin privileges)
+wsl --install
+# Then use: wsl find . -name "*.py" | head -20
+```
+
+**Option 2: Git Bash (comes with Git for Windows)**
+
+```bash
+# Use Git Bash terminal instead of PowerShell
+find . -name "*.py" -type f | head -20
+grep -r "function" --include="*.py" .
+```
+
+**Option 3: PowerShell with Unix-like aliases**
+
+```powershell
+# Add to your PowerShell profile
+Set-Alias grep Select-String
+Set-Alias ls Get-ChildItem
+Set-Alias cat Get-Content
+```
+
+**Recommended**: Stick with native PowerShell commands for consistency and reliability.
 
 ### Modern Testing Strategy
 
