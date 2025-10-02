@@ -54,35 +54,14 @@ class TestTabSwitchingBugFixPlaywright:
             # Navigate to the app
             page.goto(live_server)
 
-            # Wait for the page to load completely
-            page.wait_for_selector("body", timeout=10000)
-
-            # Debug: Print page content to see what's actually there
-            print("Page title:", page.title())
-            print("Page content preview:", page.content()[:500])
-
-            # Look for any tab-like elements
-            all_elements_with_id = page.query_selector_all("[id*='tab']")
-            print(f"Found {len(all_elements_with_id)} elements with 'tab' in ID:")
-            for elem in all_elements_with_id:
-                print(f"  - {elem.get_attribute('id')}: {elem.get_attribute('class')}")
-
             # Wait for chart tabs to load
             page.wait_for_selector("#chart-tabs", timeout=10000)
 
-            # Find tab buttons using the actual selectors that exist
+            # Find tab buttons using text-based selectors (more reliable than dynamic IDs)
             tab_links = page.locator("#chart-tabs .nav-link")
-            print(f"Found {tab_links.count()} tab links")
-
-            # Get the tabs by their text content instead of IDs
             burndown_tab = tab_links.filter(has_text="Burndown Chart")
             items_tab = tab_links.filter(has_text="Items per Week")
             points_tab = tab_links.filter(has_text="Points per Week")
-
-            # Debug: Check if elements exist
-            print(f"Burndown tab (by text) exists: {burndown_tab.count()}")
-            print(f"Items tab (by text) exists: {items_tab.count()}")
-            print(f"Points tab (by text) exists: {points_tab.count()}")
 
             # Test clicking on "Items per Week" tab
             items_tab.click()
@@ -138,9 +117,10 @@ class TestTabSwitchingBugFixPlaywright:
             # Wait for page load
             page.wait_for_selector("#chart-tabs", timeout=10000)
 
-            # Find tab buttons
-            items_tab = page.locator("#tab-items")
-            points_tab = page.locator("#tab-points")
+            # Find tab buttons using text-based selectors (same as first test)
+            tab_links = page.locator("#chart-tabs .nav-link")
+            items_tab = tab_links.filter(has_text="Items per Week")
+            points_tab = tab_links.filter(has_text="Points per Week")
 
             # Click on Items tab in mobile view
             items_tab.click()
@@ -177,9 +157,10 @@ class TestTabSwitchingBugFixPlaywright:
             page.wait_for_selector("#chart-tabs", timeout=10000)
 
             # Perform rapid tab switching to test for race conditions
-            burndown_tab = page.locator("#tab-burndown")
-            items_tab = page.locator("#tab-items")
-            points_tab = page.locator("#tab-points")
+            tab_links = page.locator("#chart-tabs .nav-link")
+            burndown_tab = tab_links.filter(has_text="Burndown Chart")
+            items_tab = tab_links.filter(has_text="Items per Week")
+            points_tab = tab_links.filter(has_text="Points per Week")
 
             # Rapid switching test
             for _ in range(3):
