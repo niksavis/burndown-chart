@@ -178,3 +178,13 @@ app_settings.json
 project_data.json
 jira_cache.json
 
+# Debug and test artifacts (root directory only - not tests/ folder)
+/test_*.py
+/debug_*.py
+*_test.png
+*_debug.png
+mobile_nav_*.png
+debug_*.png
+screenshot_*.png
+mobile_nav_error.png
+

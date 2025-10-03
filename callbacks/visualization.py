@@ -25,7 +25,6 @@ from dash import (
     callback_context,
     dcc,
     html,
-    no_update,
 )
 from dash.exceptions import PreventUpdate
 
@@ -52,6 +51,7 @@ from visualization import (
     create_weekly_items_chart,
     create_weekly_points_chart,
 )
+
 from visualization.charts import create_chart_with_loading
 from data.schema import DEFAULT_SETTINGS
 
@@ -112,6 +112,24 @@ def register(app):
     Args:
         app: Dash application instance
     """
+
+    # Client-side callback for dynamic viewport detection
+    app.clientside_callback(
+        """
+        function(n_intervals, init_complete) {
+            const width = window.innerWidth;
+            if (width < 768) {
+                return "mobile";
+            } else if (width < 1024) {
+                return "tablet";
+            } else {
+                return "desktop";
+            }
+        }
+        """,
+        Output("viewport-size", "data"),
+        [Input("viewport-detector", "n_intervals"), Input("app-init-complete", "data")]
+    )
 
     @app.callback(
         Output("app-init-complete", "data"), [Input("chart-tabs", "active_tab")]
@@ -615,7 +633,14 @@ def register(app):
                     dcc.Graph(
                         id="forecast-graph",
                         figure=current_figure,
-                        config={"displayModeBar": True, "responsive": True},
+                        config={
+                            "displayModeBar": False,  # Hidden via CSS for cleaner mobile experience
+                            "responsive": True,
+                            "scrollZoom": True,
+                            "doubleClick": "autosize",
+                            "showTips": True,
+                            "displaylogo": False,
+                        },
                         style={"height": f"{chart_height}px"},
                     ),
                     id="chart-container",

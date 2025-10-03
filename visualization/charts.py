@@ -25,6 +25,7 @@ from data import (
     generate_weekly_forecast,
 )
 from ui.tooltip_utils import create_hoverlabel_config, format_hover_template
+# Mobile optimization removed for simplicity - will implement via CSS and responsive config
 
 #######################################################################
 # CHART CREATION FUNCTIONS
@@ -589,6 +590,7 @@ def create_forecast_plot(
         forecast_visibility: Visibility mode for forecast traces ("legendonly", True, False)
         hover_mode: Hover mode for the plot ("x unified", "closest", etc.)
         show_points: Whether points tracking is enabled (default: True)
+        viewport_size: Target viewport size ("mobile", "tablet", "desktop")
 
     Returns:
         Tuple of (figure, pert_data_dict) where pert_data_dict contains all PERT forecast information
@@ -957,6 +959,7 @@ def create_weekly_items_chart(
         date_range_weeks: Number of weeks to display (default: 12 weeks)
         pert_factor: PERT factor for calculations (for forecast)
         include_forecast: Whether to include forecast data (default: True)
+        viewport_size: Target viewport size ("mobile", "tablet", "desktop")
 
     Returns:
         Plotly figure object with the weekly items chart
@@ -1185,6 +1188,7 @@ def create_weekly_points_chart(
         date_range_weeks: Number of weeks to display (default: 12 weeks)
         pert_factor: PERT factor for calculations (for forecast)
         include_forecast: Whether to include forecast data (default: True)
+        viewport_size: Target viewport size ("mobile", "tablet", "desktop")
 
     Returns:
         Plotly figure object with the weekly points chart

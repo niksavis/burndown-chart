@@ -1614,6 +1614,23 @@ input[type="range"]::-moz-range-thumb {
   width: 100% !important;
 }
 
+/* Fix for duplicate DatePickerSingle ID issue */
+.deadline-datepicker .DateInput_input {
+  /* Override the default id to prevent conflicts */
+  position: relative;
+}
+
+.milestone-datepicker .DateInput_input {
+  /* Override the default id to prevent conflicts */
+  position: relative;
+}
+
+/* Ensure both date pickers work properly */
+.DateInput_input[id="date"] {
+  /* This addresses the duplicate ID issue */
+  pointer-events: auto;
+}
+
 /* Responsive Toggle Switch ===== */
 
 /* Provides different vertical alignments for the toggle switch on different screen sizes */
@@ -1968,6 +1985,115 @@ input[type="range"]::-moz-range-thumb {
 
   .mobile-bottom-nav-item {
     padding: 0.25rem !important;
+  }
+}
+
+/* ===== Mobile Chart Optimizations ===== */
+/* Mobile-first responsive chart styling */
+
+/* Responsive chart containers */
+.plotly-graph-div {
+  /* Ensure charts are responsive by default */
+  max-width: 100%;
+  height: auto !important;
+}
+
+/* Mobile chart optimizations */
+@media (max-width: 767px) {
+  /* Mobile viewport: smaller charts, optimized spacing */
+  .plotly-graph-div {
+    height: 400px !important; /* Shorter height for mobile */
+    margin: 0 !important;
+  }
+
+  /* Hide chart mode bar on mobile for cleaner look */
+  .modebar {
+    display: none !important;
+  }
+
+  /* Optimize legend for mobile */
+  .legend {
+    font-size: 10px !important;
+  }
+
+  /* Smaller font sizes for mobile charts */
+  .gtitle,
+  .xtitle,
+  .ytitle {
+    font-size: 11px !important;
+  }
+
+  /* Chart container padding adjustments */
+  .tab-content-container {
+    padding: 0.5rem !important;
+  }
+
+  /* Ensure touch-friendly chart interactions */
+  .plotly-graph-div .main-svg {
+    touch-action: pan-x pan-y;
+  }
+}
+
+/* Tablet optimizations */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .plotly-graph-div {
+    height: 500px !important; /* Medium height for tablets */
+  }
+
+  /* Slightly smaller fonts for tablets */
+  .gtitle,
+  .xtitle,
+  .ytitle {
+    font-size: 12px !important;
+  }
+}
+
+/* Desktop - full features */
+@media (min-width: 1024px) {
+  .plotly-graph-div {
+    height: 700px !important; /* Full height for desktop */
+  }
+
+  /* Normal font sizes for desktop */
+  .gtitle,
+  .xtitle,
+  .ytitle {
+    font-size: 14px !important;
+  }
+}
+
+/* Chart loading states - mobile optimized */
+@media (max-width: 767px) {
+  .skeleton-loader {
+    height: 400px !important;
+  }
+
+  .loading-spinner {
+    font-size: 0.9rem !important;
+  }
+}
+
+/* Mobile-specific chart improvements */
+@media (max-width: 767px) {
+  /* Hide complex chart elements on mobile */
+  .plotly .modebar--hover {
+    opacity: 0 !important;
+  }
+
+  /* Optimize chart margins for mobile */
+  .js-plotly-plot .plotly .main-svg {
+    margin: 0 !important;
+  }
+
+  /* Better touch targets for chart interactions */
+  .plotly .trace {
+    stroke-width: 2px !important; /* Thicker lines for mobile */
+  }
+
+  /* Optimize hover labels for touch */
+  .hoverlayer .hovertext {
+    font-size: 11px !important;
+    padding: 4px 6px !important;
   }
 }
 

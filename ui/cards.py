@@ -573,7 +573,7 @@ def create_input_parameters_card(
                                         "%Y-%m-%d"
                                     ),
                                     style=create_datepicker_style(size="md"),
-                                    className="w-100",
+                                    className="w-100 deadline-datepicker",
                                 ),
                                 html.Div(
                                     id="deadline-feedback",
@@ -635,7 +635,7 @@ def create_input_parameters_card(
                                         "%Y-%m-%d"
                                     ),
                                     style=create_datepicker_style(size="md"),
-                                    className="w-100",
+                                    className="w-100 milestone-datepicker",
                                     disabled=not current_settings.get(
                                         "show_milestone", False
                                     ),

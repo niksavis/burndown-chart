@@ -102,20 +102,31 @@ def create_mobile_bottom_navigation(tabs_config, active_tab="tab-burndown"):
         nav_items.append(
             html.Div(
                 [
-                    dbc.Button(
+                    html.Button(
                         [
                             html.I(className=tab["icon"], style={"fontSize": "1.1rem"}),
                             html.Div(
-                                tab["label"].split()[0],  # Use first word only
+                                tab["short_label"],
                                 className="mobile-bottom-nav-label",
                             ),
                         ],
                         id=f"bottom-nav-{tab['id']}",
-                        color="link" if not is_active else "primary",
                         className=f"mobile-bottom-nav-item {'active' if is_active else ''}",
                         style={
                             "color": tab["color"] if is_active else "#6c757d",
                             "flexDirection": "column",
+                            "border": "none",
+                            "background": "rgba(13, 110, 253, 0.1)" if is_active else "transparent",
+                            "padding": "0.375rem",
+                            "minHeight": "44px",
+                            "minWidth": "44px",
+                            "display": "flex",
+                            "alignItems": "center",
+                            "justifyContent": "center",
+                            "textDecoration": "none",
+                            "transition": "all 0.2s ease",
+                            "borderRadius": "0.5rem",
+                            "fontWeight": "600" if is_active else "normal",
                         },
                     )
                 ],
@@ -242,14 +253,6 @@ def create_mobile_navigation_system():
             create_mobile_drawer_navigation(tabs_config),
             # Bottom navigation for mobile
             create_mobile_bottom_navigation(tabs_config),
-            # Store for mobile navigation state
-            dcc.Store(
-                id="mobile-nav-state",
-                data={
-                    "drawer_open": False,
-                    "active_tab": "tab-burndown",
-                    "swipe_enabled": True,
-                },
-            ),
+            # Mobile nav state store is now in main layout
         ]
     )

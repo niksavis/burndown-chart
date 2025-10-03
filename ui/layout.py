@@ -137,6 +137,25 @@ def create_app_layout(settings, statistics, is_sample_data):
             dcc.Store(id="chart-cache", data={}),
             # Store for UI state (loading states, active tabs, etc.)
             dcc.Store(id="ui-state", data={"loading": False, "last_tab": None}),
+            # Store for viewport size detection (mobile, tablet, desktop)
+            dcc.Store(id="viewport-size", data="desktop"),
+            # Interval component for dynamic viewport detection
+            dcc.Interval(
+                id="viewport-detector",
+                interval=1000,  # Check every second
+                n_intervals=0,
+                max_intervals=-1,  # Run indefinitely
+            ),
+            # Store for mobile navigation state
+            dcc.Store(
+                id="mobile-nav-state",
+                data={
+                    "drawer_open": False,
+                    "active_tab": "tab-burndown",
+                    "swipe_enabled": True,
+                },
+                storage_type="memory",  # Explicitly set storage type
+            ),
             # Add an empty div to hold the forecast-graph (will be populated by callback)
             html.Div(
                 dcc.Graph(id="forecast-graph", style={"display": "none"}),

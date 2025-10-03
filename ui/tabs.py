@@ -20,7 +20,6 @@ from ui.grid_utils import create_tab_content as grid_create_tab_content
 from ui.tooltip_utils import create_info_tooltip
 from ui.mobile_navigation import (
     create_mobile_navigation_system,
-    create_mobile_tab_wrapper,
     get_mobile_tabs_config,
 )
 
@@ -49,24 +48,24 @@ def create_tabs():
             )
         )
 
-    # Create mobile tab wrapper with navigation system
-    tab_navigation = create_mobile_tab_wrapper(
-        [
-            dbc.Tabs(
-                tabs,
-                id="chart-tabs",
-                active_tab="tab-burndown",
-                className="mb-4 nav-tabs-modern",
-            )
-        ]
-    )
-
+    # Create responsive tab navigation
+    # On mobile: Use drawer + bottom nav, on desktop: Use regular tabs
     return html.Div(
         [
-            # Mobile navigation system (drawer + bottom nav)
+            # Mobile navigation system (drawer + bottom nav) - only visible on mobile
             create_mobile_navigation_system(),
-            # Tab navigation with mobile wrapper
-            tab_navigation,
+            # Regular tab navigation - hidden on mobile, visible on desktop
+            html.Div(
+                [
+                    dbc.Tabs(
+                        tabs,
+                        id="chart-tabs",
+                        active_tab="tab-burndown",
+                        className="mb-4 nav-tabs-modern d-none d-md-flex",  # Hidden on mobile
+                    )
+                ],
+                className="desktop-tab-navigation",
+            ),
             # Content div that will be filled based on active tab
             html.Div(html.Div(id="tab-content"), className="tab-content-container"),
         ]

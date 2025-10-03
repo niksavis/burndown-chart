@@ -2,24 +2,18 @@
 Mobile Navigation Callbacks
 
 This module provides callbacks for mobile navigation functionality including
-drawer navigation, bottom navigation, and swipe gesture support.
+drawer navigation, bottom navigation, and swipe gestures.
 """
 
 #######################################################################
-# IMPORTS
+# IMPORTS  
 #######################################################################
-# Standard library imports
-
-# Third-party library imports
 from dash import callback, Input, Output, State, html, no_update, clientside_callback
-
-# Application imports
 
 
 #######################################################################
 # MOBILE NAVIGATION CALLBACKS
 #######################################################################
-
 
 @callback(
     [
@@ -64,162 +58,112 @@ def handle_mobile_drawer(menu_clicks, close_clicks, overlay_clicks, nav_state):
     return no_update, no_update, no_update
 
 
-@callback(
+# Clientside callback to handle mobile navigation tab switching
+clientside_callback(
+    """
+    function(burndown_clicks, items_clicks, points_clicks, scope_clicks) {
+        // Get the callback context to see which button was clicked
+        if (!window.dash_clientside.callback_context.triggered.length) {
+            return window.dash_clientside.no_update;
+        }
+        
+        const trigger_id = window.dash_clientside.callback_context.triggered[0].prop_id.split('.')[0];
+        
+        // Map mobile nav buttons to tab IDs
+        const tab_mapping = {
+            'bottom-nav-tab-burndown': 'tab-burndown',
+            'bottom-nav-tab-items': 'tab-items', 
+            'bottom-nav-tab-points': 'tab-points',
+            'bottom-nav-tab-scope-tracking': 'tab-scope-tracking'
+        };
+        
+        const target_tab = tab_mapping[trigger_id];
+        
+        if (target_tab) {
+            // Update JavaScript state immediately to prevent conflicts
+            if (window.mobileNavigation && window.mobileNavigation.mobileNavState) {
+                window.mobileNavigation.mobileNavState.currentTab = target_tab;
+            }
+            
+            return target_tab;
+        }
+        
+        return window.dash_clientside.no_update;
+    }
+    """,
+    Output("chart-tabs", "active_tab", allow_duplicate=True),
     [
-        Output("mobile-nav-state", "data", allow_duplicate=True),
-    ],
-    [
-        Input("drawer-tab-burndown", "n_clicks"),
-        Input("drawer-tab-items", "n_clicks"),
-        Input("drawer-tab-points", "n_clicks"),
-        Input("drawer-tab-scope-tracking", "n_clicks"),
         Input("bottom-nav-tab-burndown", "n_clicks"),
         Input("bottom-nav-tab-items", "n_clicks"),
         Input("bottom-nav-tab-points", "n_clicks"),
         Input("bottom-nav-tab-scope-tracking", "n_clicks"),
     ],
-    [State("mobile-nav-state", "data")],
     prevent_initial_call=True,
 )
-def handle_mobile_tab_navigation(
-    drawer_burndown,
-    drawer_items,
-    drawer_points,
-    drawer_scope,
-    bottom_burndown,
-    bottom_items,
-    bottom_points,
-    bottom_scope,
-    nav_state,
-):
-    """Handle tab navigation from mobile drawer and bottom navigation."""
-    from dash import ctx
-
-    if not ctx.triggered:
-        return no_update
-
-    if not nav_state:
-        nav_state = {
-            "drawer_open": False,
-            "active_tab": "tab-burndown",
-            "swipe_enabled": True,
-        }
-
-    # Determine which tab was clicked
-    trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
-
-    tab_mapping = {
-        "drawer-tab-burndown": "tab-burndown",
-        "drawer-tab-items": "tab-items",
-        "drawer-tab-points": "tab-points",
-        "drawer-tab-scope-tracking": "tab-scope-tracking",
-        "bottom-nav-tab-burndown": "tab-burndown",
-        "bottom-nav-tab-items": "tab-items",
-        "bottom-nav-tab-points": "tab-points",
-        "bottom-nav-tab-scope-tracking": "tab-scope-tracking",
-    }
-
-    new_tab = tab_mapping.get(trigger_id)
-    if new_tab:
-        nav_state["active_tab"] = new_tab
-        # Close drawer if it was opened via drawer navigation
-        if trigger_id.startswith("drawer-"):
-            nav_state["drawer_open"] = False
-
-        return nav_state
-
-    return no_update
 
 
-# Clientside callback to sync mobile nav state with tab changes
+# Use clientside callback to update mobile navigation styling without recreating elements
 clientside_callback(
     """
-    function(nav_state) {
-        // Sync mobile navigation with tab changes
-        if (!nav_state || !nav_state.active_tab) {
+    function(nav_state, active_tab) {
+        // Only update if we have an active tab
+        if (!active_tab) {
             return window.dash_clientside.no_update;
         }
         
-        // Find and click the appropriate tab
-        const targetTab = nav_state.active_tab;
-        const tabsContainer = document.getElementById('chart-tabs');
-        if (tabsContainer) {
-            const tabButtons = tabsContainer.querySelectorAll('[data-value="' + targetTab + '"]');
-            if (tabButtons.length > 0) {
-                tabButtons[0].click();
+        // Tab configuration (matching Python config)
+        const tabs_config = [
+            { id: 'tab-burndown', color: '#0d6efd' },
+            { id: 'tab-items', color: '#20c997' },
+            { id: 'tab-points', color: '#fd7e14' },
+            { id: 'tab-scope-tracking', color: '#6f42c1' }
+        ];
+        
+        // Update each button's styling without recreating elements
+        tabs_config.forEach(tab => {
+            const button = document.getElementById('bottom-nav-' + tab.id);
+            if (button) {
+                const is_active = tab.id === active_tab;
+                
+                // Update classes
+                if (is_active) {
+                    button.classList.add('active');
+                } else {
+                    button.classList.remove('active');
+                }
+                
+                // Update styles
+                button.style.color = is_active ? tab.color : '#6c757d';
+                button.style.background = is_active ? 'rgba(13, 110, 253, 0.1)' : 'transparent';
+                button.style.fontWeight = is_active ? '600' : 'normal';
             }
+        });
+        
+        return window.dash_clientside.no_update;
+    }
+    """,
+    Output("mobile-nav-state", "data", allow_duplicate=True),
+    [Input("mobile-nav-state", "data"), Input("chart-tabs", "active_tab")],
+    prevent_initial_call=True,
+)
+
+
+# Clientside callback to sync JavaScript state with active tab
+clientside_callback(
+    """
+    function(active_tab) {
+        // Synchronize JavaScript state with the actual active tab
+        if (window.mobileNavigation && window.mobileNavigation.mobileNavState && active_tab) {
+            window.mobileNavigation.mobileNavState.currentTab = active_tab;
         }
         
         return window.dash_clientside.no_update;
     }
     """,
     Output("mobile-nav-state", "data", allow_duplicate=True),
-    Input("mobile-nav-state", "data"),
+    Input("chart-tabs", "active_tab"),
     prevent_initial_call=True,
 )
-
-
-@callback(
-    Output("mobile-bottom-navigation", "children"),
-    [Input("mobile-nav-state", "data"), Input("chart-tabs", "active_tab")],
-    prevent_initial_call=True,
-)
-def update_bottom_navigation_active_state(nav_state, active_tab):
-    """Update the active state of bottom navigation items."""
-    if not nav_state:
-        nav_state = {
-            "drawer_open": False,
-            "active_tab": "tab-burndown",
-            "swipe_enabled": True,
-        }
-
-    # Use the active tab from the main tabs component or nav state
-    current_tab = active_tab or nav_state.get("active_tab", "tab-burndown")
-
-    from ui.mobile_navigation import get_mobile_tabs_config
-
-    tabs_config = get_mobile_tabs_config()
-    nav_items = []
-
-    for tab in tabs_config:
-        is_active = tab["id"] == current_tab
-        nav_items.append(
-            html.Div(
-                [
-                    html.Button(
-                        [
-                            html.I(className=tab["icon"], style={"fontSize": "1.1rem"}),
-                            html.Div(
-                                tab["short_label"], className="mobile-bottom-nav-label"
-                            ),
-                        ],
-                        id=f"bottom-nav-{tab['id']}",
-                        className=f"mobile-bottom-nav-item {'active' if is_active else ''}",
-                        style={
-                            "color": tab["color"] if is_active else "#6c757d",
-                            "flexDirection": "column",
-                            "border": "none",
-                            "background": "transparent"
-                            if not is_active
-                            else "rgba(13, 110, 253, 0.1)",
-                            "padding": "0.375rem",
-                            "minHeight": "44px",
-                            "minWidth": "44px",
-                            "display": "flex",
-                            "alignItems": "center",
-                            "justifyContent": "center",
-                            "textDecoration": "none",
-                            "transition": "all 0.2s ease",
-                            "borderRadius": "0.5rem",
-                            "fontWeight": "600" if is_active else "normal",
-                        },
-                    )
-                ],
-                className="mobile-bottom-nav-wrapper",
-            )
-        )
-
-    return nav_items
 
 
 # Clientside callback for touch feedback
@@ -252,40 +196,15 @@ clientside_callback(
         return window.dash_clientside.no_update;
     }
     """,
-    Output("mobile-nav-state", "data", allow_duplicate=True),
+    Output("ui-state", "data", allow_duplicate=True),
     Input("mobile-bottom-navigation", "children"),
     prevent_initial_call=True,
 )
 
 
-@callback(
-    Output("mobile-swipe-indicator", "style"),
-    Input("chart-tabs", "active_tab"),
-    prevent_initial_call=True,
-)
-def update_swipe_indicator(active_tab):
-    """Show/hide swipe indicator based on context."""
-    # Hide swipe indicator after user has interacted with tabs
-    return {"display": "none"}
-
-
-# Add interval component for swipe detection (to be added to layout)
-def create_swipe_detector():
-    """Create interval component for swipe gesture detection."""
-    from dash import dcc
-
-    return dcc.Interval(
-        id="mobile-swipe-detector",
-        interval=100,  # Check every 100ms
-        n_intervals=0,
-        max_intervals=0,  # Disabled by default, enabled by JavaScript
-    )
-
-
 #######################################################################
 # REGISTRATION FUNCTION
 #######################################################################
-
 
 def register(app):
     """Register mobile navigation callbacks with the app."""
