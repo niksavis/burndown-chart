@@ -1581,15 +1581,23 @@ input[type="range"]::-moz-range-thumb {
   align-items: center !important;
 }
 
-/* Fix for milestone date picker alignment with deadline picker */
-#milestone-picker {
-  margin-top: -1px !important; /* Compensate for the toggle component's effect */
+/* Timeline section date picker alignment */
+#milestone-picker,
+#deadline-picker {
   position: relative !important;
+  margin-top: 0 !important;
+}
+
+/* Pull up milestone picker to align with deadline picker */
+#milestone-picker {
+  transform: translateY(
+    -8px
+  ) !important; /* Move up to align with deadline picker */
 }
 
 /* Make the toggle component above the milestone picker not affect layout flow */
 .d-flex.align-items-center + #milestone-picker {
-  margin-top: -1px !important;
+  margin-top: 8px !important; /* Add consistent spacing between toggle and picker */
 }
 
 /* Ensure font and line heights match */
@@ -1633,24 +1641,81 @@ input[type="range"]::-moz-range-thumb {
 
 /* Responsive Toggle Switch ===== */
 
-/* Provides different vertical alignments for the toggle switch on different screen sizes */
-
-.responsive-toggle {
-  /* Default for desktop: translateY(2px) */
-  transform: translateY(3px);
-  min-height: 44px; /* Ensure adequate touch target */
+/* Standardize section layout */
+.col-md-6 {
   display: flex;
-  align-items: center;
-  padding: 0.5rem 0;
+  flex-direction: column;
+  justify-content: flex-start; /* Align content to top */
 }
 
-/* Mobile-specific alignment */
+/* Timeline section spacing */
+.mb-3.row .col-md-6 {
+  min-height: 120px; /* Ensure consistent height for both columns */
+}
+
+/* Container for toggle sections */
+.d-flex.align-items-center {
+  margin: 0;
+  min-height: 44px; /* Match toggle height */
+  gap: 0.75rem; /* Consistent spacing between elements */
+}
+
+/* Common section label styling */
+label.fw-medium {
+  margin: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  height: 44px; /* Match toggle height */
+  white-space: nowrap; /* Prevent wrapping */
+}
+
+/* Specific styling for deadline section */
+.col-md-6 > label.fw-medium {
+  margin-bottom: -0.625rem !important; /* Fine-tuned to match milestone picker exactly */
+}
+
+/* Info icon container */
+label.fw-medium div {
+  display: inline-block !important;
+  margin-left: 0.5rem !important; /* Space between label and icon */
+}
+
+/* Info icon itself */
+label.fw-medium .fa-info-circle {
+  margin-left: 0 !important; /* Reset margin as parent div handles spacing */
+}
+
+/* Toggle switch positioning */
+.responsive-toggle {
+  transform: none;
+  min-height: 44px; /* Touch target size */
+  display: flex;
+  align-items: center;
+  padding: 0.25rem 0;
+  margin-left: 2.5rem !important; /* Increased spacing between info icon and toggle */
+}
+
+/* Date picker alignment */
+#deadline-picker,
+#milestone-picker {
+  margin-top: 0.25rem !important; /* Reduced top margin for better alignment */
+}
+
+/* Deadline specific adjustments */
+#deadline-picker {
+  margin-top: 0.75rem !important; /* Match the height of milestone toggle */
+}
+
+/* Ensure consistent height for picker containers */
+.deadline-datepicker,
+.milestone-datepicker {
+  height: 44px !important;
+}
+
+/* Mobile-specific adjustments if needed */
 @media (max-width: 767px) {
   .responsive-toggle {
-    /* Override for mobile: translateY(13px) */
-    transform: translateY(13px);
-    min-height: 44px; /* Touch target compliance */
-    padding: 0.5rem 0;
+    min-height: 44px; /* Maintain touch target size */
   }
 }
 
