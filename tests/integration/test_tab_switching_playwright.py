@@ -114,13 +114,12 @@ class TestTabSwitchingBugFixPlaywright:
             # Navigate to the app
             page.goto(live_server)
 
-            # Wait for page load
-            page.wait_for_selector("#chart-tabs", timeout=10000)
+            # Wait for mobile navigation to be visible
+            page.wait_for_selector("#mobile-bottom-navigation", timeout=10000)
 
-            # Find tab buttons using text-based selectors (same as first test)
-            tab_links = page.locator("#chart-tabs .nav-link")
-            items_tab = tab_links.filter(has_text="Items per Week")
-            points_tab = tab_links.filter(has_text="Points per Week")
+            # Find tab buttons using mobile-specific selectors
+            items_tab = page.locator("#bottom-nav-tab-items")
+            points_tab = page.locator("#bottom-nav-tab-points")
 
             # Click on Items tab in mobile view
             items_tab.click()

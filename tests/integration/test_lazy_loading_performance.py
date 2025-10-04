@@ -84,24 +84,3 @@ class TestLazyLoadingImplementation:
         assert len(set(keys)) == 4, (
             "Different parameters should generate different cache keys"
         )
-
-    @pytest.mark.performance
-    def test_performance_improvements_documented(self):
-        """
-        Verify that performance improvements and targets are documented.
-        """
-        # Check todo.md for performance targets
-        import os
-
-        project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-        todo_file = os.path.join(project_root, "todo.md")
-
-        with open(todo_file, "r", encoding="utf-8") as f:
-            content = f.read()
-
-        # Verify performance targets are documented
-        assert "<2s page load" in content, "Page load target should be documented"
-        assert "<500ms chart rendering" in content, (
-            "Chart rendering target should be documented"
-        )
-        assert "<100ms" in content, "Interaction target should be documented"

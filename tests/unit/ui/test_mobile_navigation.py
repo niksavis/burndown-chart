@@ -127,14 +127,18 @@ class TestMobileNavigation:
     def test_mobile_navigation_system_integration(self):
         """Test complete mobile navigation system integration."""
         from ui.mobile_navigation import create_mobile_navigation_system
+        from ui.layout import serve_layout
 
+        # Check that navigation store exists in layout
+        layout = serve_layout()
+        layout_str = str(layout)
+        assert "mobile-nav-state" in layout_str
+
+        # Check that navigation system has core components
         nav_system = create_mobile_navigation_system()
         nav_system_str = str(nav_system)
-
-        # Check for all major components
         assert "mobile-drawer" in nav_system_str
         assert "mobile-bottom-navigation" in nav_system_str
-        assert "mobile-nav-state" in nav_system_str  # Store component
 
     def test_mobile_navigation_css_classes(self):
         """Test that mobile navigation uses correct CSS classes."""
