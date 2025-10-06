@@ -1581,23 +1581,11 @@ input[type="range"]::-moz-range-thumb {
   align-items: center !important;
 }
 
-/* Timeline section date picker alignment */
-#milestone-picker,
-#deadline-picker {
-  position: relative !important;
-  margin-top: 0 !important;
-}
-
-/* Pull up milestone picker to align with deadline picker */
+/* Timeline section date picker alignment - normalize both */
+#deadline-picker,
 #milestone-picker {
-  transform: translateY(
-    -8px
-  ) !important; /* Move up to align with deadline picker */
-}
-
-/* Make the toggle component above the milestone picker not affect layout flow */
-.d-flex.align-items-center + #milestone-picker {
-  margin-top: 8px !important; /* Add consistent spacing between toggle and picker */
+  position: relative !important;
+  margin-top: 0 !important; /* No margin - labels provide the spacing */
 }
 
 /* Ensure font and line heights match */
@@ -1639,72 +1627,45 @@ input[type="range"]::-moz-range-thumb {
   pointer-events: auto;
 }
 
+/* Fix calendar dropdown z-index to appear on top */
+.SingleDatePicker__picker {
+  z-index: 1060 !important; /* Higher than Bootstrap modals (1055) */
+}
+
+.DateRangePickerInput {
+  z-index: 1060 !important;
+}
+
+/* Ensure calendar overlay appears above all content */
+.SingleDatePicker_picker {
+  z-index: 1060 !important;
+}
+
 /* Responsive Toggle Switch ===== */
 
-/* Standardize section layout */
-.col-md-6 {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start; /* Align content to top */
-}
-
-/* Timeline section spacing */
-.mb-3.row .col-md-6 {
-  min-height: 120px; /* Ensure consistent height for both columns */
-}
-
-/* Container for toggle sections */
-.d-flex.align-items-center {
-  margin: 0;
-  min-height: 44px; /* Match toggle height */
-  gap: 0.75rem; /* Consistent spacing between elements */
-}
-
-/* Common section label styling */
-label.fw-medium {
-  margin: 0 !important;
-  display: inline-flex !important;
+/* Force both flex containers in timeline to have the same height */
+.mb-3.row .col-md-6 .d-flex.align-items-center.mb-2 {
+  min-height: 44px !important; /* Force same height for both deadline and milestone containers */
   align-items: center !important;
-  height: 44px; /* Match toggle height */
-  white-space: nowrap; /* Prevent wrapping */
 }
 
-/* Specific styling for deadline section */
-.col-md-6 > label.fw-medium {
-  margin-bottom: -0.625rem !important; /* Fine-tuned to match milestone picker exactly */
-}
-
-/* Info icon container */
-label.fw-medium div {
-  display: inline-block !important;
-  margin-left: 0.5rem !important; /* Space between label and icon */
-}
-
-/* Info icon itself */
-label.fw-medium .fa-info-circle {
-  margin-left: 0 !important; /* Reset margin as parent div handles spacing */
-}
-
-/* Toggle switch positioning */
+/* Clean toggle switch styling without complex positioning */
 .responsive-toggle {
-  transform: none;
   min-height: 44px; /* Touch target size */
-  display: flex;
-  align-items: center;
-  padding: 0.25rem 0;
-  margin-left: 2.5rem !important; /* Increased spacing between info icon and toggle */
+  display: flex !important;
+  align-items: center !important;
+  margin-bottom: 0 !important; /* Remove default Bootstrap margin */
+  flex-shrink: 0 !important; /* Prevent shrinking */
 }
 
-/* Date picker alignment */
-#deadline-picker,
-#milestone-picker {
-  margin-top: 0.25rem !important; /* Reduced top margin for better alignment */
+/* Ensure labels have consistent baseline alignment */
+label.fw-medium {
+  margin-bottom: 0 !important; /* Remove margin - flex container handles spacing */
+  line-height: 1.5 !important; /* Consistent line height */
+  flex-shrink: 0 !important; /* Prevent shrinking */
 }
 
-/* Deadline specific adjustments */
-#deadline-picker {
-  margin-top: 0.75rem !important; /* Match the height of milestone toggle */
-}
+/* Date picker alignment rule moved up - see above */
 
 /* Ensure consistent height for picker containers */
 .deadline-datepicker,
@@ -1712,9 +1673,10 @@ label.fw-medium .fa-info-circle {
   height: 44px !important;
 }
 
-/* Mobile-specific adjustments if needed */
+/* Mobile-specific adjustments */
 @media (max-width: 767px) {
   .responsive-toggle {
+    transform: translateY(4px); /* Slightly more adjustment on mobile */
     min-height: 44px; /* Maintain touch target size */
   }
 }

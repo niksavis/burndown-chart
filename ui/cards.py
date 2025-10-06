@@ -549,15 +549,25 @@ def create_input_parameters_card(
                         # Deadline
                         dbc.Col(
                             [
-                                html.Label(
+                                # Label in a flex container to match milestone structure exactly
+                                html.Div(
                                     [
-                                        "Deadline:",
-                                        create_info_tooltip(
-                                            "deadline",
-                                            HELP_TEXTS["deadline"],
+                                        html.Label(
+                                            [
+                                                "Deadline:",
+                                                create_info_tooltip(
+                                                    "deadline",
+                                                    HELP_TEXTS["deadline"],
+                                                ),
+                                            ],
+                                            className="fw-medium me-2",
+                                            style={
+                                                "display": "inline-flex",
+                                                "alignItems": "center",
+                                            },
                                         ),
                                     ],
-                                    className="fw-medium",
+                                    className="d-flex align-items-center mb-2",
                                 ),
                                 dcc.DatePickerSingle(
                                     id="deadline-picker",
@@ -589,10 +599,9 @@ def create_input_parameters_card(
                         # Milestone toggle and date picker in one column
                         dbc.Col(
                             [
-                                # Label and toggle combined in a flex container
+                                # Label, info icon, and toggle all in one row (like Points Tracking)
                                 html.Div(
                                     [
-                                        # Label for the milestone section
                                         html.Label(
                                             [
                                                 "Milestone:",
@@ -607,18 +616,17 @@ def create_input_parameters_card(
                                                 "alignItems": "center",
                                             },
                                         ),
-                                        # Toggle switch directly next to the label (without text label)
                                         dbc.Switch(
                                             id="milestone-toggle",
                                             value=current_settings.get(
                                                 "show_milestone", False
                                             ),
-                                            label="",  # Removed "Enable" text
+                                            label="",
                                             className="ms-2 responsive-toggle",
-                                            style={},  # Remove inline transform
+                                            style={},
                                         ),
                                     ],
-                                    className="d-flex align-items-center",  # Removed mb-2 to reduce bottom spacing
+                                    className="d-flex align-items-center mb-2",
                                 ),
                                 # Date picker in its own row
                                 dcc.DatePickerSingle(
