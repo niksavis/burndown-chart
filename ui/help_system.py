@@ -254,7 +254,7 @@ def create_help_system_layout():
     [
         Output("main-help-modal", "is_open"),
         Output("main-help-modal-content", "children"),
-        Output("main-help-modal", "title"),
+        Output("main-help-modal-title", "children"),
     ],
     [
         Input(
