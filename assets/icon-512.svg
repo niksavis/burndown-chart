@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#0d6efd" rx="64"/>
+  <g fill="white" stroke="white" stroke-width="4">
+    <!-- Chart bars representing burndown -->
+    <rect x="100" y="160" width="32" height="220" opacity="0.9"/>
+    <rect x="148" y="200" width="32" height="180" opacity="0.8"/>
+    <rect x="196" y="240" width="32" height="140" opacity="0.7"/>
+    <rect x="244" y="280" width="32" height="100" opacity="0.6"/>
+    <rect x="292" y="320" width="32" height="60" opacity="0.5"/>
+    <rect x="340" y="360" width="32" height="20" opacity="0.4"/>
+    
+    <!-- Trend line -->
+    <path d="M116 170 L164 210 L212 250 L260 290 L308 330 L356 370" stroke="white" stroke-width="6" fill="none" opacity="0.9"/>
+    
+    <!-- Target line -->
+    <path d="M100 160 L372 380" stroke="white" stroke-width="4" fill="none" stroke-dasharray="12,12" opacity="0.7"/>
+    
+    <!-- Chart title -->
+    <text x="256" y="100" text-anchor="middle" font-family="Arial, sans-serif" font-size="42" font-weight="bold">Burndown Chart</text>
+    
+    <!-- Axis labels -->
+    <text x="256" y="440" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" opacity="0.8">Time</text>
+    <text x="60" y="270" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" opacity="0.8" transform="rotate(-90 60 270)">Work</text>
+  </g>
+</svg>

@@ -27,6 +27,8 @@ from configuration.server import get_server_config
 # Initialize the Dash app with PWA support
 app = dash.Dash(
     __name__,
+    title="Burndown Chart Generator",  # Custom browser tab title
+    assets_folder="assets",  # Explicitly set assets folder
     external_stylesheets=[
         dbc.themes.FLATLY,
         "https://use.fontawesome.com/releases/v5.15.4/css/all.css",  # Font Awesome for icons
@@ -73,13 +75,15 @@ app.index_string = """
     <head>
         {%metas%}
         <title>{%title%}</title>
-        {%favicon%}
+        <!-- Custom Favicon -->
+        <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+        <link rel="shortcut icon" href="/assets/favicon.svg">
         {%css%}
         <!-- PWA Manifest -->
         <link rel="manifest" href="/assets/manifest.json">
         <!-- Apple Touch Icons -->
-        <link rel="apple-touch-icon" href="/assets/icon-192.png">
-        <link rel="apple-touch-icon" sizes="512x512" href="/assets/icon-512.png">
+        <link rel="apple-touch-icon" href="/assets/icon-192.svg">
+        <link rel="apple-touch-icon" sizes="512x512" href="/assets/icon-512.svg">
     </head>
     <body>
         {%app_entry%}

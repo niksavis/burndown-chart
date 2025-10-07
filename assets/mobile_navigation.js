@@ -24,13 +24,15 @@ if (typeof window.mobileNavState === "undefined") {
   };
 }
 
-// Tab configuration for mobile navigation
-const mobileTabsConfig = [
-  { id: "tab-burndown", label: "Burndown Chart", short_label: "Chart" },
-  { id: "tab-items", label: "Items per Week", short_label: "Items" },
-  { id: "tab-points", label: "Points per Week", short_label: "Points" },
-  { id: "tab-scope-tracking", label: "Scope Changes", short_label: "Scope" },
-];
+// Tab configuration for mobile navigation (check if already exists to prevent redeclaration)
+if (typeof window.mobileTabsConfig === "undefined") {
+  window.mobileTabsConfig = [
+    { id: "tab-burndown", label: "Burndown Chart", short_label: "Chart" },
+    { id: "tab-items", label: "Items per Week", short_label: "Items" },
+    { id: "tab-points", label: "Points per Week", short_label: "Points" },
+    { id: "tab-scope-tracking", label: "Scope Changes", short_label: "Scope" },
+  ];
+}
 
 /**
  * Initialize mobile navigation functionality
@@ -81,7 +83,7 @@ function initializeDrawerNavigation() {
   });
 
   // Add drawer item click handlers
-  mobileTabsConfig.forEach((tab) => {
+  window.mobileTabsConfig.forEach((tab) => {
     const drawerItem = document.getElementById(`drawer-${tab.id}`);
     if (drawerItem) {
       drawerItem.addEventListener("click", () => {
@@ -96,7 +98,7 @@ function initializeDrawerNavigation() {
  * Initialize bottom navigation
  */
 function initializeBottomNavigation() {
-  mobileTabsConfig.forEach((tab) => {
+  window.mobileTabsConfig.forEach((tab) => {
     const bottomNavItem = document.getElementById(`bottom-nav-${tab.id}`);
     if (bottomNavItem) {
       bottomNavItem.addEventListener("click", () => {
@@ -168,16 +170,19 @@ function handleSwipeGesture() {
     Math.abs(deltaX) > Math.abs(deltaY) &&
     Math.abs(deltaX) > mobileNavState.swipeThreshold
   ) {
-    const currentIndex = mobileTabsConfig.findIndex(
+    const currentIndex = window.mobileTabsConfig.findIndex(
       (tab) => tab.id === mobileNavState.currentTab
     );
 
     if (deltaX > 0 && currentIndex > 0) {
       // Swipe right - go to previous tab
-      switchToTab(mobileTabsConfig[currentIndex - 1].id);
-    } else if (deltaX < 0 && currentIndex < mobileTabsConfig.length - 1) {
+      switchToTab(window.mobileTabsConfig[currentIndex - 1].id);
+    } else if (
+      deltaX < 0 &&
+      currentIndex < window.mobileTabsConfig.length - 1
+    ) {
       // Swipe left - go to next tab
-      switchToTab(mobileTabsConfig[currentIndex + 1].id);
+      switchToTab(window.mobileTabsConfig[currentIndex + 1].id);
     }
   }
 }
@@ -273,7 +278,7 @@ function switchToTab(tabId) {
  * Update active states across all navigation elements
  */
 function updateTabActiveStates(activeTabId) {
-  mobileTabsConfig.forEach((tab) => {
+  window.mobileTabsConfig.forEach((tab) => {
     // Update drawer items
     const drawerItem = document.getElementById(`drawer-${tab.id}`);
     if (drawerItem) {
@@ -322,10 +327,12 @@ function handleOrientationChange() {
 /**
  * Debounced resize handler
  */
-let resizeTimeout;
+if (typeof window.resizeTimeout === "undefined") {
+  window.resizeTimeout = null;
+}
 function handleResize() {
-  clearTimeout(resizeTimeout);
-  resizeTimeout = setTimeout(handleOrientationChange, 250);
+  clearTimeout(window.resizeTimeout);
+  window.resizeTimeout = setTimeout(handleOrientationChange, 250);
 }
 
 // Initialize when DOM is ready
