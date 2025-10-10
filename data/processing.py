@@ -559,12 +559,14 @@ def daily_forecast_burnup(
 
 def calculate_weekly_averages(
     statistics_data: list[dict] | pd.DataFrame,
+    data_points_count: int | None = None,  # NEW PARAMETER
 ) -> tuple[float, float, float, float]:
     """
     Calculate average and median weekly items and points for the last 10 weeks.
 
     Args:
         statistics_data: List of dictionaries containing statistics data
+        data_points_count: Optional parameter to limit data to most recent N data points
 
     Returns:
         Tuple of (avg_weekly_items, avg_weekly_points, med_weekly_items, med_weekly_points)
@@ -576,6 +578,19 @@ def calculate_weekly_averages(
         or (not isinstance(statistics_data, pd.DataFrame) and len(statistics_data) == 0)
     ):
         return 0, 0, 0, 0
+
+    # Apply data points filtering before calculations
+    if data_points_count is not None and data_points_count > 0:
+        if (
+            isinstance(statistics_data, list)
+            and len(statistics_data) > data_points_count
+        ):
+            statistics_data = statistics_data[-data_points_count:]  # Take most recent
+        elif (
+            isinstance(statistics_data, pd.DataFrame)
+            and len(statistics_data) > data_points_count
+        ):
+            statistics_data = statistics_data.tail(data_points_count)
 
     # Create DataFrame and ensure numeric types
     df = pd.DataFrame(statistics_data)
@@ -638,6 +653,7 @@ def generate_weekly_forecast(
     statistics_data: list[dict] | pd.DataFrame,
     pert_factor: int = 3,
     forecast_weeks: int = 1,
+    data_points_count: int | None = None,  # NEW PARAMETER
 ) -> dict:
     """
     Generate a weekly forecast for items and points per week using PERT methodology.
@@ -646,10 +662,24 @@ def generate_weekly_forecast(
         statistics_data: List of dictionaries containing statistics data
         pert_factor: Number of data points to use for optimistic/pessimistic scenarios
         forecast_weeks: Number of weeks to forecast (default: 1)
+        data_points_count: Optional parameter to limit data to most recent N data points
 
     Returns:
         Dictionary containing forecast data for items and points
     """
+    # Apply data points filtering before forecast calculations
+    if data_points_count is not None and data_points_count > 0:
+        if (
+            isinstance(statistics_data, list)
+            and len(statistics_data) > data_points_count
+        ):
+            statistics_data = statistics_data[-data_points_count:]
+        elif (
+            isinstance(statistics_data, pd.DataFrame)
+            and len(statistics_data) > data_points_count
+        ):
+            statistics_data = statistics_data.tail(data_points_count)
+
     # Create DataFrame from statistics data
     df = pd.DataFrame(statistics_data).copy()
     if df.empty:
@@ -816,6 +846,7 @@ def calculate_performance_trend(
     statistics_data: list[dict] | pd.DataFrame,
     metric: str = "completed_items",
     weeks_to_compare: int = 4,
+    data_points_count: int | None = None,  # NEW PARAMETER
 ) -> dict:
     """
     Calculate performance trend indicators based on historical data.
@@ -824,6 +855,7 @@ def calculate_performance_trend(
         statistics_data: List of dictionaries containing statistics data
         metric: The metric to calculate trend for ("completed_items" or "completed_points")
         weeks_to_compare: Number of weeks to use for trend calculation
+        data_points_count: Optional parameter to limit data to most recent N data points
 
     Returns:
         Dictionary containing trend data:
@@ -833,6 +865,19 @@ def calculate_performance_trend(
         - previous_avg: Average value for previous period
         - is_significant: True if change is >20%
     """
+    # Apply data points filtering before trend calculations
+    if data_points_count is not None and data_points_count > 0:
+        if (
+            isinstance(statistics_data, list)
+            and len(statistics_data) > data_points_count
+        ):
+            statistics_data = statistics_data[-data_points_count:]
+        elif (
+            isinstance(statistics_data, pd.DataFrame)
+            and len(statistics_data) > data_points_count
+        ):
+            statistics_data = statistics_data.tail(data_points_count)
+
     # Check if statistics_data is empty or None
     if (
         statistics_data is None

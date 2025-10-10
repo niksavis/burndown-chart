@@ -6,7 +6,9 @@ import pandas as pd
 from datetime import datetime
 
 
-def calculate_scope_change_rate(df, baseline_items, baseline_points):
+def calculate_scope_change_rate(
+    df, baseline_items, baseline_points, data_points_count=None
+):
     """
     Calculate scope change rate as percentage of new items/points created over baseline.
 
@@ -16,7 +18,21 @@ def calculate_scope_change_rate(df, baseline_items, baseline_points):
     Where baseline = remaining total items + sum(completed_items)
 
     In agile projects, this tracks the rate of scope change rather than implying negative "creep".
+
+    Args:
+        df: DataFrame with project statistics
+        baseline_items: Baseline number of items
+        baseline_points: Baseline number of points
+        data_points_count: Optional parameter to limit data to most recent N data points
     """
+    # Apply data points filtering
+    if (
+        data_points_count is not None
+        and data_points_count > 0
+        and len(df) > data_points_count
+    ):
+        df = df.tail(data_points_count)
+
     # Get total created and completed items/points
     if df.empty:
         return {
@@ -85,7 +101,12 @@ def calculate_scope_change_rate(df, baseline_items, baseline_points):
 
 
 # For backwards compatibility
-calculate_scope_creep_rate = calculate_scope_change_rate
+def calculate_scope_creep_rate(
+    df, baseline_items, baseline_points, data_points_count=None
+):
+    return calculate_scope_change_rate(
+        df, baseline_items, baseline_points, data_points_count
+    )
 
 
 def calculate_total_project_scope(df, remaining_items, remaining_points):
@@ -121,12 +142,24 @@ def calculate_total_project_scope(df, remaining_items, remaining_points):
     return {"total_items": int(total_items), "total_points": int(total_points)}
 
 
-def calculate_weekly_scope_growth(df):
+def calculate_weekly_scope_growth(df, data_points_count=None):
     """
     Calculate weekly scope growth (created - completed).
 
     Weekly Scope Growth = Weekly Created Items - Weekly Completed Items
+
+    Args:
+        df: DataFrame with project statistics
+        data_points_count: Optional parameter to limit data to most recent N data points
     """
+    # Apply data points filtering
+    if (
+        data_points_count is not None
+        and data_points_count > 0
+        and len(df) > data_points_count
+    ):
+        df = df.tail(data_points_count)
+
     if df.empty:
         return pd.DataFrame(columns=["week", "items_growth", "points_growth"])
 
@@ -183,7 +216,9 @@ def get_week_start_date(year, week):
     return first_day
 
 
-def calculate_scope_stability_index(df, baseline_items, baseline_points):
+def calculate_scope_stability_index(
+    df, baseline_items, baseline_points, data_points_count=None
+):
     """
     Calculate scope stability index.
 
@@ -195,7 +230,21 @@ def calculate_scope_stability_index(df, baseline_items, baseline_points):
     Total Scope = Remaining items + Created items
 
     This avoids double counting completed items that may overlap with created items.
+
+    Args:
+        df: DataFrame with project statistics
+        baseline_items: Baseline number of items
+        baseline_points: Baseline number of points
+        data_points_count: Optional parameter to limit data to most recent N data points
     """
+    # Apply data points filtering
+    if (
+        data_points_count is not None
+        and data_points_count > 0
+        and len(df) > data_points_count
+    ):
+        df = df.tail(data_points_count)
+
     if df.empty or baseline_items == 0 or baseline_points == 0:
         return {"items_stability": 1.0, "points_stability": 1.0}
 
