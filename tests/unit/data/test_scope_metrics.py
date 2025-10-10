@@ -732,5 +732,300 @@ class TestGetWeekStartDate(unittest.TestCase):
                 self.assertEqual(date.weekday(), 0)  # Monday is 0
 
 
+class TestScopeMetricsDataPointsFiltering(unittest.TestCase):
+    """Test scope metrics functions with data_points_count parameter."""
+
+    def setUp(self):
+        """Set up test data."""
+        # Create test data representing 8 weeks of scope changes
+        self.scope_data = pd.DataFrame(
+            {
+                "date": [
+                    "2024-12-01",
+                    "2024-12-08",
+                    "2024-12-15",
+                    "2024-12-22",
+                    "2024-12-29",
+                    "2025-01-05",
+                    "2025-01-12",
+                    "2025-01-19",
+                ],
+                "completed_items": [10, 15, 8, 12, 20, 9, 14, 11],
+                "completed_points": [50, 75, 40, 60, 100, 45, 70, 55],
+                "created_items": [5, 3, 7, 2, 8, 4, 1, 6],
+                "created_points": [25, 15, 35, 10, 40, 20, 5, 30],
+            }
+        )
+
+        # Convert date column to datetime
+        self.scope_data["date"] = pd.to_datetime(self.scope_data["date"])
+
+        # Baseline values
+        self.baseline_items = 100
+        self.baseline_points = 500
+
+    def test_scope_creep_rate_with_data_points_filtering(self):
+        """Test calculate_scope_creep_rate with data_points_count parameter."""
+        # Test without filtering (all 8 weeks)
+        scope_all = calculate_scope_creep_rate(
+            self.scope_data, self.baseline_items, self.baseline_points
+        )
+
+        # Test with filtering (last 4 weeks only)
+        scope_filtered = calculate_scope_creep_rate(
+            self.scope_data,
+            self.baseline_items,
+            self.baseline_points,
+            data_points_count=4,
+        )
+
+        # Results should be different
+        self.assertNotEqual(scope_all["items_rate"], scope_filtered["items_rate"])
+        self.assertNotEqual(scope_all["points_rate"], scope_filtered["points_rate"])
+
+        # Structure should be maintained
+        self.assertIn("items_rate", scope_filtered)
+        self.assertIn("points_rate", scope_filtered)
+        self.assertIn("throughput_ratio", scope_filtered)
+
+        # Values should be numeric and reasonable
+        self.assertIsInstance(scope_filtered["items_rate"], (int, float))
+        self.assertIsInstance(scope_filtered["points_rate"], (int, float))
+
+    def test_scope_creep_rate_backward_compatibility(self):
+        """Test backward compatibility with data_points_count=None."""
+        scope_none = calculate_scope_creep_rate(
+            self.scope_data,
+            self.baseline_items,
+            self.baseline_points,
+            data_points_count=None,
+        )
+        scope_default = calculate_scope_creep_rate(
+            self.scope_data, self.baseline_items, self.baseline_points
+        )
+
+        # Should return identical results
+        self.assertEqual(scope_none, scope_default)
+
+    def test_scope_creep_rate_larger_than_available(self):
+        """Test when data_points_count is larger than available data."""
+        scope_large = calculate_scope_creep_rate(
+            self.scope_data,
+            self.baseline_items,
+            self.baseline_points,
+            data_points_count=20,
+        )
+        scope_all = calculate_scope_creep_rate(
+            self.scope_data, self.baseline_items, self.baseline_points
+        )
+
+        # Should return same result as using all data
+        self.assertEqual(scope_large, scope_all)
+
+    def test_scope_creep_rate_edge_cases(self):
+        """Test edge cases with zero and negative data_points_count."""
+        scope_all = calculate_scope_creep_rate(
+            self.scope_data, self.baseline_items, self.baseline_points
+        )
+
+        # Zero should behave like no filtering
+        scope_zero = calculate_scope_creep_rate(
+            self.scope_data,
+            self.baseline_items,
+            self.baseline_points,
+            data_points_count=0,
+        )
+        self.assertEqual(scope_zero, scope_all)
+
+        # Negative should behave like no filtering
+        scope_negative = calculate_scope_creep_rate(
+            self.scope_data,
+            self.baseline_items,
+            self.baseline_points,
+            data_points_count=-3,
+        )
+        self.assertEqual(scope_negative, scope_all)
+
+    def test_weekly_scope_growth_with_data_points_filtering(self):
+        """Test calculate_weekly_scope_growth with data_points_count parameter."""
+        # Test without filtering
+        growth_all = calculate_weekly_scope_growth(self.scope_data)
+
+        # Test with filtering (last 4 weeks only)
+        growth_filtered = calculate_weekly_scope_growth(
+            self.scope_data, data_points_count=4
+        )
+
+        # Results should have different numbers of weeks
+        self.assertNotEqual(len(growth_all), len(growth_filtered))
+        self.assertEqual(len(growth_filtered), 4)
+
+        # Structure should be maintained
+        expected_columns = ["week_label", "items_growth", "points_growth", "start_date"]
+        for col in expected_columns:
+            self.assertIn(col, growth_filtered.columns)
+
+        # All growth values should be numeric
+        self.assertTrue(
+            growth_filtered["items_growth"].dtype.kind in "bifc"
+        )  # numeric types
+        self.assertTrue(growth_filtered["points_growth"].dtype.kind in "bifc")
+
+    def test_weekly_scope_growth_backward_compatibility(self):
+        """Test backward compatibility for weekly scope growth."""
+        growth_none = calculate_weekly_scope_growth(
+            self.scope_data, data_points_count=None
+        )
+        growth_default = calculate_weekly_scope_growth(self.scope_data)
+
+        # Should return identical results
+        pd.testing.assert_frame_equal(growth_none, growth_default)
+
+    def test_weekly_scope_growth_small_dataset(self):
+        """Test weekly scope growth with very small filtered dataset."""
+        # Use only 1 data point
+        growth = calculate_weekly_scope_growth(self.scope_data, data_points_count=1)
+
+        # Should return 1 week of data
+        self.assertEqual(len(growth), 1)
+
+        # Should have valid structure
+        expected_columns = ["week_label", "items_growth", "points_growth", "start_date"]
+        for col in expected_columns:
+            self.assertIn(col, growth.columns)
+
+    def test_scope_stability_index_with_data_points_filtering(self):
+        """Test calculate_scope_stability_index with data_points_count parameter."""
+        # Test without filtering
+        stability_all = calculate_scope_stability_index(
+            self.scope_data, self.baseline_items, self.baseline_points
+        )
+
+        # Test with filtering (last 4 weeks only)
+        stability_filtered = calculate_scope_stability_index(
+            self.scope_data,
+            self.baseline_items,
+            self.baseline_points,
+            data_points_count=4,
+        )
+
+        # Results should be different
+        self.assertNotEqual(
+            stability_all["items_stability"], stability_filtered["items_stability"]
+        )
+        self.assertNotEqual(
+            stability_all["points_stability"], stability_filtered["points_stability"]
+        )
+
+        # Structure should be maintained
+        self.assertIn("items_stability", stability_filtered)
+        self.assertIn("points_stability", stability_filtered)
+
+        # Stability values should be between 0 and 1
+        self.assertGreaterEqual(stability_filtered["items_stability"], 0)
+        self.assertLessEqual(stability_filtered["items_stability"], 1)
+        self.assertGreaterEqual(stability_filtered["points_stability"], 0)
+        self.assertLessEqual(stability_filtered["points_stability"], 1)
+
+    def test_scope_stability_index_backward_compatibility(self):
+        """Test backward compatibility for scope stability index."""
+        stability_none = calculate_scope_stability_index(
+            self.scope_data,
+            self.baseline_items,
+            self.baseline_points,
+            data_points_count=None,
+        )
+        stability_default = calculate_scope_stability_index(
+            self.scope_data, self.baseline_items, self.baseline_points
+        )
+
+        # Should return identical results
+        self.assertEqual(stability_none, stability_default)
+
+    def test_scope_stability_index_empty_filtered_data(self):
+        """Test scope stability with empty DataFrame after filtering."""
+        empty_df = pd.DataFrame(
+            columns=[
+                "date",
+                "completed_items",
+                "completed_points",
+                "created_items",
+                "created_points",
+            ]
+        )
+
+        stability = calculate_scope_stability_index(
+            empty_df, self.baseline_items, self.baseline_points, data_points_count=5
+        )
+
+        # Should return perfect stability (1.0) for empty data
+        self.assertEqual(stability["items_stability"], 1.0)
+        self.assertEqual(stability["points_stability"], 1.0)
+
+    def test_all_scope_functions_with_specific_filtering(self):
+        """Test all scope functions work together with specific data_points_count."""
+        data_points_count = 3
+
+        # Test all functions with same filtering
+        scope_rate = calculate_scope_creep_rate(
+            self.scope_data,
+            self.baseline_items,
+            self.baseline_points,
+            data_points_count=data_points_count,
+        )
+
+        growth_data = calculate_weekly_scope_growth(
+            self.scope_data, data_points_count=data_points_count
+        )
+
+        stability = calculate_scope_stability_index(
+            self.scope_data,
+            self.baseline_items,
+            self.baseline_points,
+            data_points_count=data_points_count,
+        )
+
+        # All should return valid results
+        self.assertIsInstance(scope_rate["items_rate"], (int, float))
+        self.assertEqual(len(growth_data), data_points_count)
+        self.assertIsInstance(stability["items_stability"], (int, float))
+
+        # All should use consistent data (last 3 weeks)
+        self.assertGreaterEqual(len(growth_data), 1)
+        self.assertLessEqual(len(growth_data), data_points_count)
+
+    def test_scope_functions_with_zero_baseline(self):
+        """Test scope functions with zero baseline and data_points_count."""
+        # Test with zero baseline values
+        scope_rate = calculate_scope_creep_rate(
+            self.scope_data, baseline_items=0, baseline_points=0, data_points_count=4
+        )
+
+        # Should handle zero baseline gracefully
+        self.assertEqual(scope_rate["items_rate"], 0)
+        self.assertEqual(scope_rate["points_rate"], 0)
+        self.assertIn("throughput_ratio", scope_rate)
+
+    def test_backward_compatibility_alias_functions(self):
+        """Test that alias functions maintain backward compatibility with new parameter."""
+        # Test calculate_scope_creep_rate alias
+        creep_rate = calculate_scope_creep_rate(
+            self.scope_data,
+            self.baseline_items,
+            self.baseline_points,
+            data_points_count=4,
+        )
+
+        change_rate = calculate_scope_change_rate(
+            self.scope_data,
+            self.baseline_items,
+            self.baseline_points,
+            data_points_count=4,
+        )
+
+        # Should return identical results
+        self.assertEqual(creep_rate, change_rate)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -976,3 +976,382 @@ class TestCalculatePerformanceTrend(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestCalculateWeeklyAveragesDataPointsFiltering(unittest.TestCase):
+    """Test calculate_weekly_averages() function with data_points_count parameter."""
+
+    def setUp(self):
+        """Set up test data."""
+        # Create test data representing 8 weeks of statistics
+        self.statistics_data = [
+            {
+                "date": "2024-12-01",
+                "completed_items": 5,
+                "completed_points": 25,
+                "created_items": 1,
+                "created_points": 5,
+            },
+            {
+                "date": "2024-12-08",
+                "completed_items": 8,
+                "completed_points": 40,
+                "created_items": 2,
+                "created_points": 10,
+            },
+            {
+                "date": "2024-12-15",
+                "completed_items": 12,
+                "completed_points": 60,
+                "created_items": 3,
+                "created_points": 15,
+            },
+            {
+                "date": "2024-12-22",
+                "completed_items": 6,
+                "completed_points": 30,
+                "created_items": 0,
+                "created_points": 0,
+            },
+            {
+                "date": "2024-12-29",
+                "completed_items": 10,
+                "completed_points": 50,
+                "created_items": 4,
+                "created_points": 20,
+            },
+            {
+                "date": "2025-01-05",
+                "completed_items": 15,
+                "completed_points": 75,
+                "created_items": 2,
+                "created_points": 10,
+            },
+            {
+                "date": "2025-01-12",
+                "completed_items": 9,
+                "completed_points": 45,
+                "created_items": 5,
+                "created_points": 25,
+            },
+            {
+                "date": "2025-01-19",
+                "completed_items": 11,
+                "completed_points": 55,
+                "created_items": 1,
+                "created_points": 5,
+            },
+        ]
+
+    def test_data_points_count_filtering_basic(self):
+        """Test basic data_points_count filtering functionality."""
+        # Test without filtering (all 8 weeks)
+        result_all = calculate_weekly_averages(self.statistics_data)
+
+        # Test with filtering (last 4 weeks only)
+        result_filtered = calculate_weekly_averages(
+            self.statistics_data, data_points_count=4
+        )
+
+        # Results should be different
+        self.assertNotEqual(result_all, result_filtered)
+
+        # Verify structure is maintained
+        self.assertEqual(
+            len(result_all), 4
+        )  # (avg_items, avg_points, med_items, med_points)
+        self.assertEqual(len(result_filtered), 4)
+
+        # All values should be positive numbers
+        for value in result_filtered:
+            self.assertIsInstance(value, (int, float))
+            self.assertGreaterEqual(value, 0)
+
+    def test_data_points_count_larger_than_available(self):
+        """Test when data_points_count is larger than available data."""
+        # Request more data points than available
+        result_large = calculate_weekly_averages(
+            self.statistics_data, data_points_count=20
+        )
+        result_all = calculate_weekly_averages(self.statistics_data)
+
+        # Should return same result as using all data
+        self.assertEqual(result_large, result_all)
+
+    def test_data_points_count_zero_and_negative(self):
+        """Test edge cases with zero and negative data_points_count."""
+        result_all = calculate_weekly_averages(self.statistics_data)
+
+        # Zero should behave like no filtering
+        result_zero = calculate_weekly_averages(
+            self.statistics_data, data_points_count=0
+        )
+        self.assertEqual(result_zero, result_all)
+
+        # Negative should behave like no filtering
+        result_negative = calculate_weekly_averages(
+            self.statistics_data, data_points_count=-5
+        )
+        self.assertEqual(result_negative, result_all)
+
+    def test_data_points_count_none_backward_compatibility(self):
+        """Test backward compatibility with data_points_count=None."""
+        result_none = calculate_weekly_averages(
+            self.statistics_data, data_points_count=None
+        )
+        result_default = calculate_weekly_averages(self.statistics_data)
+
+        # Should return identical results
+        self.assertEqual(result_none, result_default)
+
+    def test_data_points_count_with_dataframe(self):
+        """Test data_points_count with pandas DataFrame input."""
+        df = pd.DataFrame(self.statistics_data)
+
+        # Test without filtering
+        result_all = calculate_weekly_averages(df)
+
+        # Test with filtering
+        result_filtered = calculate_weekly_averages(df, data_points_count=4)
+
+        # Results should be different
+        self.assertNotEqual(result_all, result_filtered)
+
+    def test_data_points_count_single_value(self):
+        """Test data_points_count with single data point."""
+        single_data = [self.statistics_data[0]]  # Just the first entry
+
+        result = calculate_weekly_averages(single_data, data_points_count=1)
+
+        # Should return reasonable values
+        self.assertEqual(len(result), 4)
+        # First entry: 5 items, 25 points
+        self.assertEqual(result[0], 5.0)  # avg_items
+        self.assertEqual(result[1], 25.0)  # avg_points
+        self.assertEqual(result[2], 5.0)  # med_items (same as avg for single point)
+        self.assertEqual(result[3], 25.0)  # med_points (same as avg for single point)
+
+    def test_data_points_count_empty_data(self):
+        """Test data_points_count with empty data."""
+        result = calculate_weekly_averages([], data_points_count=5)
+
+        # Should return zeros
+        self.assertEqual(result, (0, 0, 0, 0))
+
+    def test_data_points_count_specific_values(self):
+        """Test that filtering produces expected results with known data."""
+        # Use only the last 2 weeks of data
+        result_filtered = calculate_weekly_averages(
+            self.statistics_data, data_points_count=2
+        )
+
+        # Last 2 weeks: 9 items/45 points and 11 items/55 points
+        # Expected: avg_items = (9+11)/2 = 10, avg_points = (45+55)/2 = 50
+        # Expected: med_items = 10, med_points = 50 (average of two middle values)
+        self.assertAlmostEqual(result_filtered[0], 10.0, places=1)  # avg_items
+        self.assertAlmostEqual(result_filtered[1], 50.0, places=1)  # avg_points
+        self.assertAlmostEqual(result_filtered[2], 10.0, places=1)  # med_items
+        self.assertAlmostEqual(result_filtered[3], 50.0, places=1)  # med_points
+
+
+class TestGenerateWeeklyForecastDataPointsFiltering(unittest.TestCase):
+    """Test generate_weekly_forecast() function with data_points_count parameter."""
+
+    def setUp(self):
+        """Set up test data."""
+        # Create test data representing 6 weeks of statistics
+        self.statistics_data = [
+            {
+                "date": "2024-12-01",
+                "completed_items": 5,
+                "completed_points": 25,
+                "created_items": 1,
+                "created_points": 5,
+            },
+            {
+                "date": "2024-12-08",
+                "completed_items": 8,
+                "completed_points": 40,
+                "created_items": 2,
+                "created_points": 10,
+            },
+            {
+                "date": "2024-12-15",
+                "completed_items": 12,
+                "completed_points": 60,
+                "created_items": 3,
+                "created_points": 15,
+            },
+            {
+                "date": "2024-12-22",
+                "completed_items": 6,
+                "completed_points": 30,
+                "created_items": 0,
+                "created_points": 0,
+            },
+            {
+                "date": "2024-12-29",
+                "completed_items": 10,
+                "completed_points": 50,
+                "created_items": 4,
+                "created_points": 20,
+            },
+            {
+                "date": "2025-01-05",
+                "completed_items": 15,
+                "completed_points": 75,
+                "created_items": 2,
+                "created_points": 10,
+            },
+        ]
+
+    def test_forecast_with_data_points_filtering(self):
+        """Test that forecast changes when data_points_count is applied."""
+        # Test without filtering
+        forecast_all = generate_weekly_forecast(self.statistics_data, pert_factor=2)
+
+        # Test with filtering (last 3 weeks only)
+        forecast_filtered = generate_weekly_forecast(
+            self.statistics_data, pert_factor=2, data_points_count=3
+        )
+
+        # Forecasts should be different
+        self.assertNotEqual(
+            forecast_all["items"]["most_likely_value"],
+            forecast_filtered["items"]["most_likely_value"],
+        )
+
+        # Structure should be maintained
+        self.assertIn("items", forecast_filtered)
+        self.assertIn("points", forecast_filtered)
+        self.assertIn("most_likely_value", forecast_filtered["items"])
+        self.assertIn("optimistic_value", forecast_filtered["items"])
+        self.assertIn("pessimistic_value", forecast_filtered["items"])
+
+    def test_forecast_backward_compatibility(self):
+        """Test backward compatibility with data_points_count=None."""
+        forecast_none = generate_weekly_forecast(
+            self.statistics_data, pert_factor=2, data_points_count=None
+        )
+        forecast_default = generate_weekly_forecast(self.statistics_data, pert_factor=2)
+
+        # Should return identical results
+        self.assertEqual(
+            forecast_none["items"]["most_likely_value"],
+            forecast_default["items"]["most_likely_value"],
+        )
+
+    def test_forecast_with_small_dataset(self):
+        """Test forecast with small filtered dataset."""
+        # Use only 1 data point
+        forecast = generate_weekly_forecast(
+            self.statistics_data, pert_factor=2, data_points_count=1
+        )
+
+        # Should still return valid structure
+        self.assertIn("items", forecast)
+        self.assertIn("points", forecast)
+        self.assertIsInstance(forecast["items"]["most_likely_value"], (int, float))
+        self.assertGreaterEqual(forecast["items"]["most_likely_value"], 0)
+
+    def test_forecast_with_dataframe_input(self):
+        """Test forecast with pandas DataFrame and data_points_count."""
+        df = pd.DataFrame(self.statistics_data)
+
+        forecast_all = generate_weekly_forecast(df, pert_factor=2)
+        forecast_filtered = generate_weekly_forecast(
+            df, pert_factor=2, data_points_count=3
+        )
+
+        # Results should be different
+        self.assertNotEqual(
+            forecast_all["items"]["most_likely_value"],
+            forecast_filtered["items"]["most_likely_value"],
+        )
+
+
+class TestCalculatePerformanceTrendDataPointsFiltering(unittest.TestCase):
+    """Test calculate_performance_trend() function with data_points_count parameter."""
+
+    def setUp(self):
+        """Set up test data."""
+        # Create test data with clear trend pattern
+        self.statistics_data = [
+            {"date": "2024-11-01", "completed_items": 2, "completed_points": 10},
+            {"date": "2024-11-08", "completed_items": 4, "completed_points": 20},
+            {"date": "2024-11-15", "completed_items": 6, "completed_points": 30},
+            {"date": "2024-11-22", "completed_items": 8, "completed_points": 40},
+            {"date": "2024-11-29", "completed_items": 10, "completed_points": 50},
+            {"date": "2024-12-06", "completed_items": 12, "completed_points": 60},
+            {"date": "2024-12-13", "completed_items": 14, "completed_points": 70},
+            {"date": "2024-12-20", "completed_items": 16, "completed_points": 80},
+        ]
+
+    def test_trend_with_data_points_filtering(self):
+        """Test that trend analysis changes with data_points_count."""
+        # Test without filtering
+        trend_all = calculate_performance_trend(
+            self.statistics_data, "completed_items", weeks_to_compare=2
+        )
+
+        # Test with filtering (last 6 data points)
+        trend_filtered = calculate_performance_trend(
+            self.statistics_data,
+            "completed_items",
+            weeks_to_compare=2,
+            data_points_count=6,
+        )
+
+        # Both should detect upward trend, but values may differ
+        self.assertIn(trend_all["trend_direction"], ["up", "stable"])
+        self.assertIn(trend_filtered["trend_direction"], ["up", "stable"])
+
+        # Structure should be maintained
+        self.assertIn("percent_change", trend_filtered)
+        self.assertIn("current_avg", trend_filtered)
+        self.assertIn("previous_avg", trend_filtered)
+        self.assertIn("is_significant", trend_filtered)
+
+    def test_trend_backward_compatibility(self):
+        """Test backward compatibility with data_points_count=None."""
+        trend_none = calculate_performance_trend(
+            self.statistics_data,
+            "completed_items",
+            weeks_to_compare=2,
+            data_points_count=None,
+        )
+        trend_default = calculate_performance_trend(
+            self.statistics_data, "completed_items", weeks_to_compare=2
+        )
+
+        # Should return identical results
+        self.assertEqual(trend_none, trend_default)
+
+    def test_trend_insufficient_data(self):
+        """Test trend analysis when filtered data is insufficient."""
+        # Request too few data points for meaningful trend analysis
+        trend = calculate_performance_trend(
+            self.statistics_data,
+            "completed_items",
+            weeks_to_compare=4,
+            data_points_count=3,
+        )
+
+        # Should return stable trend due to insufficient data
+        self.assertEqual(trend["trend_direction"], "stable")
+        self.assertEqual(trend["percent_change"], 0)
+
+    def test_trend_with_dataframe_input(self):
+        """Test trend analysis with pandas DataFrame and data_points_count."""
+        df = pd.DataFrame(self.statistics_data)
+
+        trend_all = calculate_performance_trend(
+            df, "completed_items", weeks_to_compare=2
+        )
+        trend_filtered = calculate_performance_trend(
+            df, "completed_items", weeks_to_compare=2, data_points_count=6
+        )
+
+        # Both should be valid trend analysis results
+        self.assertIsInstance(trend_all["percent_change"], (int, float))
+        self.assertIsInstance(trend_filtered["percent_change"], (int, float))
