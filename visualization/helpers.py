@@ -84,12 +84,13 @@ def parse_deadline_milestone(deadline_str, milestone_str=None):
 #######################################################################
 
 
-def get_weekly_metrics(df):
+def get_weekly_metrics(df, data_points_count=None):
     """
     Calculate weekly metrics from the data frame.
 
     Args:
         df: DataFrame with historical data
+        data_points_count: Number of data points to use for calculations (default: None, uses all data)
 
     Returns:
         Tuple of (avg_weekly_items, avg_weekly_points, med_weekly_items, med_weekly_points)
@@ -105,8 +106,19 @@ def get_weekly_metrics(df):
     )
 
     if not df.empty:
-        # Get all four values from calculate_weekly_averages
-        results = calculate_weekly_averages(df.to_dict("records"))
+        # Apply filtering before calculating metrics
+        filtered_df = df
+        if (
+            data_points_count is not None
+            and data_points_count > 0
+            and len(df) > data_points_count
+        ):
+            filtered_df = df.tail(data_points_count)
+
+        # Get all four values from calculate_weekly_averages with filtering
+        results = calculate_weekly_averages(
+            filtered_df.to_dict("records"), data_points_count=data_points_count
+        )
         if isinstance(results, (list, tuple)) and len(results) >= 4:
             avg_weekly_items, avg_weekly_points, med_weekly_items, med_weekly_points = (
                 results

@@ -1187,6 +1187,7 @@ def create_pert_info_table(
     statistics_df=None,  # New parameter for statistics data
     milestone_str=None,  # Add parameter for milestone date string
     show_points=True,  # Add parameter for points tracking
+    data_points_count=None,  # NEW PARAMETER for data filtering
 ):
     """
     Create the PERT information table with improved organization and visual grouping.
@@ -1206,6 +1207,7 @@ def create_pert_info_table(
         statistics_df: DataFrame containing the statistics data
         milestone_str: Milestone date string from settings
         show_points: Whether points tracking is enabled (default: True)
+        data_points_count: Number of data points to use for calculations (default: None, uses all data)
 
     Returns:
         Dash component with improved PERT information display

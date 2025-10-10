@@ -949,7 +949,11 @@ def _handle_forecast_error(e):
 
 
 def create_weekly_items_chart(
-    statistics_data, date_range_weeks=12, pert_factor=3, include_forecast=True
+    statistics_data,
+    date_range_weeks=12,
+    pert_factor=3,
+    include_forecast=True,
+    data_points_count=None,
 ):
     """
     Create a bar chart showing weekly completed items with optional forecast for the next week.
@@ -959,13 +963,28 @@ def create_weekly_items_chart(
         date_range_weeks: Number of weeks to display (default: 12 weeks)
         pert_factor: PERT factor for calculations (for forecast)
         include_forecast: Whether to include forecast data (default: True)
+        data_points_count: Number of data points to use for calculations (default: None, uses all data)
         viewport_size: Target viewport size ("mobile", "tablet", "desktop")
 
     Returns:
         Plotly figure object with the weekly items chart
     """
-    # Create DataFrame from statistics data
-    df = pd.DataFrame(statistics_data).copy()
+    # Apply data points filtering before creating chart
+    filtered_statistics_data = statistics_data
+    if data_points_count is not None and data_points_count > 0:
+        if (
+            isinstance(statistics_data, list)
+            and len(statistics_data) > data_points_count
+        ):
+            filtered_statistics_data = statistics_data[-data_points_count:]
+        elif (
+            isinstance(statistics_data, pd.DataFrame)
+            and len(statistics_data) > data_points_count
+        ):
+            filtered_statistics_data = statistics_data.tail(data_points_count)
+
+    # Create DataFrame from filtered statistics data
+    df = pd.DataFrame(filtered_statistics_data).copy()
     if df.empty:
         # Return empty figure if no data
         fig = go.Figure()
@@ -1090,8 +1109,10 @@ def create_weekly_items_chart(
 
     # Add forecast data if requested
     if include_forecast and len(weekly_df) > 0:
-        # Generate forecast data
-        forecast_data = generate_weekly_forecast(statistics_data, pert_factor)
+        # Generate forecast data using filtered statistics data
+        forecast_data = generate_weekly_forecast(
+            filtered_statistics_data, pert_factor, data_points_count=data_points_count
+        )
 
         if forecast_data["items"]["dates"]:
             # Get items forecast for next week with confidence intervals
@@ -1178,7 +1199,11 @@ def create_weekly_items_chart(
 
 
 def create_weekly_points_chart(
-    statistics_data, date_range_weeks=12, pert_factor=3, include_forecast=True
+    statistics_data,
+    date_range_weeks=12,
+    pert_factor=3,
+    include_forecast=True,
+    data_points_count=None,
 ):
     """
     Create a bar chart showing weekly completed points with a weighted moving average line and optional forecast for next week.
@@ -1188,13 +1213,28 @@ def create_weekly_points_chart(
         date_range_weeks: Number of weeks to display (default: 12 weeks)
         pert_factor: PERT factor for calculations (for forecast)
         include_forecast: Whether to include forecast data (default: True)
+        data_points_count: Number of data points to use for calculations (default: None, uses all data)
         viewport_size: Target viewport size ("mobile", "tablet", "desktop")
 
     Returns:
         Plotly figure object with the weekly points chart
     """
-    # Create DataFrame from statistics data
-    df = pd.DataFrame(statistics_data).copy()
+    # Apply data points filtering before creating chart
+    filtered_statistics_data = statistics_data
+    if data_points_count is not None and data_points_count > 0:
+        if (
+            isinstance(statistics_data, list)
+            and len(statistics_data) > data_points_count
+        ):
+            filtered_statistics_data = statistics_data[-data_points_count:]
+        elif (
+            isinstance(statistics_data, pd.DataFrame)
+            and len(statistics_data) > data_points_count
+        ):
+            filtered_statistics_data = statistics_data.tail(data_points_count)
+
+    # Create DataFrame from filtered statistics data
+    df = pd.DataFrame(filtered_statistics_data).copy()
     if df.empty:
         # Return empty figure if no data
         fig = go.Figure()
@@ -1319,8 +1359,10 @@ def create_weekly_points_chart(
 
     # Add forecast data if requested
     if include_forecast and len(weekly_df) > 0:
-        # Generate forecast data
-        forecast_data = generate_weekly_forecast(statistics_data, pert_factor)
+        # Generate forecast data using filtered statistics data
+        forecast_data = generate_weekly_forecast(
+            filtered_statistics_data, pert_factor, data_points_count=data_points_count
+        )
 
         if forecast_data["points"]["dates"]:
             # Get points forecast for next week
@@ -1407,7 +1449,7 @@ def create_weekly_points_chart(
 
 
 def create_weekly_items_forecast_chart(
-    statistics_data, pert_factor=3, date_range_weeks=12
+    statistics_data, pert_factor=3, date_range_weeks=12, data_points_count=None
 ):
     """
     Create a chart showing weekly completed items with a 4-week forecast.
@@ -1416,12 +1458,27 @@ def create_weekly_items_forecast_chart(
         statistics_data: List of dictionaries containing statistics data
         pert_factor: Number of data points to use for optimistic/pessimistic scenarios
         date_range_weeks: Number of weeks of historical data to display (default: 12 weeks)
+        data_points_count: Number of data points to use for calculations (default: None, uses all data)
 
     Returns:
         Plotly figure object with the weekly items forecast chart
     """
-    # Create DataFrame from statistics data
-    df = pd.DataFrame(statistics_data).copy()
+    # Apply data points filtering before creating chart
+    filtered_statistics_data = statistics_data
+    if data_points_count is not None and data_points_count > 0:
+        if (
+            isinstance(statistics_data, list)
+            and len(statistics_data) > data_points_count
+        ):
+            filtered_statistics_data = statistics_data[-data_points_count:]
+        elif (
+            isinstance(statistics_data, pd.DataFrame)
+            and len(statistics_data) > data_points_count
+        ):
+            filtered_statistics_data = statistics_data.tail(data_points_count)
+
+    # Create DataFrame from filtered statistics data
+    df = pd.DataFrame(filtered_statistics_data).copy()
     if df.empty:
         # Return empty figure if no data
         fig = go.Figure()
@@ -1467,8 +1524,10 @@ def create_weekly_items_forecast_chart(
     # Format date for display
     weekly_df["week_label"] = weekly_df["start_date"].dt.strftime("%b %d")
 
-    # Generate forecast data
-    forecast_data = generate_weekly_forecast(statistics_data, pert_factor)
+    # Generate forecast data using filtered statistics data
+    forecast_data = generate_weekly_forecast(
+        filtered_statistics_data, pert_factor, data_points_count=data_points_count
+    )
 
     # Create the figure
     fig = go.Figure()
@@ -1611,7 +1670,7 @@ def create_weekly_items_forecast_chart(
 
 
 def create_weekly_points_forecast_chart(
-    statistics_data, pert_factor=3, date_range_weeks=12
+    statistics_data, pert_factor=3, date_range_weeks=12, data_points_count=None
 ):
     """
     Create a chart showing weekly completed points with a 4-week forecast.
@@ -1620,12 +1679,27 @@ def create_weekly_points_forecast_chart(
         statistics_data: List of dictionaries containing statistics data
         pert_factor: Number of data points to use for optimistic/pessimistic scenarios
         date_range_weeks: Number of weeks of historical data to display (default: 12 weeks)
+        data_points_count: Number of data points to use for calculations (default: None, uses all data)
 
     Returns:
         Plotly figure object with the weekly points forecast chart
     """
-    # Create DataFrame from statistics data
-    df = pd.DataFrame(statistics_data).copy()
+    # Apply data points filtering before creating chart
+    filtered_statistics_data = statistics_data
+    if data_points_count is not None and data_points_count > 0:
+        if (
+            isinstance(statistics_data, list)
+            and len(statistics_data) > data_points_count
+        ):
+            filtered_statistics_data = statistics_data[-data_points_count:]
+        elif (
+            isinstance(statistics_data, pd.DataFrame)
+            and len(statistics_data) > data_points_count
+        ):
+            filtered_statistics_data = statistics_data.tail(data_points_count)
+
+    # Create DataFrame from filtered statistics data
+    df = pd.DataFrame(filtered_statistics_data).copy()
     if df.empty:
         # Return empty figure if no data
         fig = go.Figure()
@@ -1689,8 +1763,10 @@ def create_weekly_points_forecast_chart(
 
         weekly_df["weighted_avg"] = weighted_avg
 
-    # Generate forecast data
-    forecast_data = generate_weekly_forecast(statistics_data, pert_factor)
+    # Generate forecast data using filtered statistics data
+    forecast_data = generate_weekly_forecast(
+        filtered_statistics_data, pert_factor, data_points_count=data_points_count
+    )
 
     # Create the figure
     fig = go.Figure()
@@ -1874,7 +1950,7 @@ def create_weekly_points_forecast_chart(
                 text=(
                     f"<b>Forecast Methodology:</b> Based on PERT analysis using historical data.<br>"
                     f"<b>Most Likely:</b> {forecast_data['points'].get('most_likely_value', 0):.1f} points/week (historical average)<br>"
-                    f"<b>Optimistic:</b> {forecast_data['points'].get('optimistic_value', 0)::.1f} points/week<br>"
+                    f"<b>Optimistic:</b> {forecast_data['points'].get('optimistic_value', 0):.1f} points/week<br>"
                     f"<b>Pessimistic:</b> {forecast_data['points'].get('pessimistic_value', 0):.1f} points/week<br>"
                     f"<b>Weighted Average:</b> More weight given to recent data (40% for most recent week, 30%, 20%, 10% for earlier weeks)"
                 ),

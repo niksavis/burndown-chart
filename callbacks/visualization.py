@@ -128,7 +128,7 @@ def register(app):
         }
         """,
         Output("viewport-size", "data"),
-        [Input("viewport-detector", "n_intervals"), Input("app-init-complete", "data")]
+        [Input("viewport-detector", "n_intervals"), Input("app-init-complete", "data")],
     )
 
     @app.callback(
@@ -280,9 +280,9 @@ def register(app):
             ),  # Pass show_points parameter
         )
 
-        # Calculate weekly averages for the info table
+        # Calculate weekly averages for the info table with filtering
         avg_weekly_items, avg_weekly_points, med_weekly_items, med_weekly_points = (
-            calculate_weekly_averages(statistics)
+            calculate_weekly_averages(statistics, data_points_count=data_points_count)
         )  # Calculate days to deadline
         deadline_date = pd.to_datetime(deadline)
         current_date = datetime.now()
@@ -306,28 +306,36 @@ def register(app):
             show_points=settings.get(
                 "show_points", False
             ),  # Pass show_points parameter
+            data_points_count=data_points_count,  # NEW PARAMETER
         )
 
         return project_dashboard_pert_info
 
-    def _prepare_trend_data(statistics, pert_factor):
+    def _prepare_trend_data(statistics, pert_factor, data_points_count=None):
         """
         Prepare trend and forecast data for visualizations.
 
         Args:
             statistics: Statistics data
             pert_factor: PERT factor for forecasts
+            data_points_count: Number of data points to use for calculations (default: None, uses all data)
 
         Returns:
             tuple: (items_trend, points_trend) dictionaries with trend and forecast data
         """
-        # Calculate trend indicators for items and points
-        items_trend = calculate_performance_trend(statistics, "completed_items", 4)
-        points_trend = calculate_performance_trend(statistics, "completed_points", 4)
+        # Calculate trend indicators for items and points with filtering
+        items_trend = calculate_performance_trend(
+            statistics, "completed_items", 4, data_points_count=data_points_count
+        )
+        points_trend = calculate_performance_trend(
+            statistics, "completed_points", 4, data_points_count=data_points_count
+        )
 
         # Generate weekly forecast data if statistics available
         if statistics:
-            forecast_data = generate_weekly_forecast(statistics, pert_factor)
+            forecast_data = generate_weekly_forecast(
+                statistics, pert_factor, data_points_count=data_points_count
+            )
 
             # Add forecast info to trend data if available
             if forecast_data:
@@ -751,10 +759,11 @@ def register(app):
         )
         from ui.scope_metrics import create_scope_metrics_dashboard
 
-        # Get threshold from settings or use default
+        # Get threshold and data_points_count from settings
         scope_creep_threshold = settings.get(
             "scope_creep_threshold", DEFAULT_SETTINGS["scope_creep_threshold"]
         )
+        data_points_count = settings.get("data_points_count", len(df))
 
         if df.empty:
             return html.Div(
@@ -796,14 +805,16 @@ def register(app):
             df["created_points"], errors="coerce"
         ).fillna(0)
 
-        # Calculate scope creep rate
+        # Calculate scope creep rate with data filtering
         scope_creep_rate = calculate_scope_creep_rate(
-            df, baseline_items, baseline_points
+            df, baseline_items, baseline_points, data_points_count=data_points_count
         )
 
         # Calculate weekly scope growth - ensure the function returns a DataFrame
         try:
-            weekly_growth_data = calculate_weekly_scope_growth(df)
+            weekly_growth_data = calculate_weekly_scope_growth(
+                df, data_points_count=data_points_count
+            )
             # Verify the result is a DataFrame
             if not isinstance(weekly_growth_data, pd.DataFrame):
                 logger.warning(
@@ -823,9 +834,9 @@ def register(app):
                 columns=["week_label", "items_growth", "points_growth", "start_date"]
             )
 
-        # Calculate scope stability index
+        # Calculate scope stability index with data filtering
         stability_index = calculate_scope_stability_index(
-            df, baseline_items, baseline_points
+            df, baseline_items, baseline_points, data_points_count=data_points_count
         )
 
         # Create the scope metrics dashboard
@@ -979,9 +990,14 @@ def register(app):
 
             elif active_tab == "tab-items":
                 # Generate trend data and weekly items chart only when needed
-                items_trend, points_trend = _prepare_trend_data(statistics, pert_factor)
+                items_trend, points_trend = _prepare_trend_data(
+                    statistics, pert_factor, data_points_count
+                )
                 items_fig = create_weekly_items_chart(
-                    statistics, date_range_weeks, pert_factor
+                    statistics,
+                    date_range_weeks,
+                    pert_factor,
+                    data_points_count=data_points_count,
                 )
                 items_tab_content = _create_items_tab_content(items_trend, items_fig)
                 # Cache the result for next time
@@ -993,10 +1009,13 @@ def register(app):
                 if show_points:
                     # Generate trend data and weekly points chart only when needed
                     items_trend, points_trend = _prepare_trend_data(
-                        statistics, pert_factor
+                        statistics, pert_factor, data_points_count
                     )
                     points_fig = create_weekly_points_chart(
-                        statistics, date_range_weeks, pert_factor
+                        statistics,
+                        date_range_weeks,
+                        pert_factor,
+                        data_points_count=data_points_count,
                     )
                     points_tab_content = _create_points_tab_content(
                         points_trend, points_fig
