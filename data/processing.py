@@ -625,8 +625,14 @@ def calculate_weekly_averages(
     # Sort by date again to ensure chronological order after grouping
     weekly_df = weekly_df.sort_values("start_date")
 
-    # Get the last 10 weeks or all if less than 10
-    recent_data = weekly_df.tail(10)
+    # Apply the 10-week limit only if data_points_count wasn't already applied
+    # When data_points_count is specified, we already filtered the input data,
+    # so use all the filtered weekly data
+    if data_points_count is not None:
+        recent_data = weekly_df  # Use all weeks from the filtered input
+    else:
+        # Legacy behavior: limit to last 10 weeks when no filtering specified
+        recent_data = weekly_df.tail(10)
 
     # Calculate averages and medians
     avg_weekly_items = recent_data["items"].mean()

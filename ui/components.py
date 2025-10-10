@@ -1102,6 +1102,8 @@ def _create_weekly_velocity_section(
     med_points_icon,
     med_points_icon_color,
     show_points=True,  # Add parameter for points tracking
+    data_points_count=None,  # NEW PARAMETER
+    total_data_points=None,  # NEW PARAMETER
 ):
     """
     Create the weekly velocity section.
@@ -1109,6 +1111,8 @@ def _create_weekly_velocity_section(
     Args:
         Multiple parameters for velocity metrics
         show_points: Whether points tracking is enabled (default: True)
+        data_points_count: Number of data points used for calculations (default: None)
+        total_data_points: Total data points available (default: None)
 
     Returns:
         dash.html.Div: Weekly velocity section
@@ -1152,17 +1156,9 @@ def _create_weekly_velocity_section(
             # Enhanced footer with data period explanation and tooltip
             html.Div(
                 html.Div(
-                    [
-                        html.I(
-                            className="fas fa-calendar-week me-1",
-                            style={"color": "#6c757d"},
-                        ),
-                        "Based on 10-week rolling average for forecasting accuracy",
-                        create_info_tooltip(
-                            "velocity-ten-week-calculation",
-                            VELOCITY_HELP_TEXTS["ten_week_calculation"],
-                        ),
-                    ],
+                    _create_velocity_footer_content(
+                        data_points_count, total_data_points
+                    ),
                     className="text-muted fst-italic small text-center d-flex align-items-center justify-content-center",
                 ),
                 className="mt-3",
@@ -1455,6 +1451,11 @@ def create_pert_info_table(
                                         med_points_icon,
                                         med_points_icon_color,
                                         show_points=show_points,  # Pass show_points parameter
+                                        data_points_count=data_points_count,  # NEW PARAMETER
+                                        total_data_points=len(statistics_df)
+                                        if statistics_df is not None
+                                        and not statistics_df.empty
+                                        else None,  # NEW PARAMETER
                                     ),
                                 ],
                                 className="mt-3 mt-lg-0",  # Add top margin for mobile
@@ -1802,3 +1803,38 @@ def create_error_alert(
         dismissable=True,
         className="error-alert",
     )
+
+
+def _create_velocity_footer_content(data_points_count=None, total_data_points=None):
+    """
+    Create footer content for velocity section showing data filtering context.
+
+    Args:
+        data_points_count: Number of data points used for calculations
+        total_data_points: Total data points available
+
+    Returns:
+        list: Footer content elements
+    """
+    # Update footer to show data filtering context
+    footer_text = "Based on 10-week rolling average for forecasting accuracy"
+    tooltip_key = "velocity-ten-week-calculation"
+    tooltip_text = VELOCITY_HELP_TEXTS["ten_week_calculation"]
+
+    if data_points_count is not None and total_data_points is not None:
+        if data_points_count < total_data_points:
+            footer_text = f"Based on last {data_points_count} weeks of data (filtered from {total_data_points} available weeks)"
+            tooltip_key = "velocity-data-filtering"
+            tooltip_text = f"Velocity calculations use the most recent {data_points_count} data points as selected by the 'Data Points to Include' slider."
+
+    return [
+        html.I(
+            className="fas fa-calendar-week me-1",
+            style={"color": "#6c757d"},
+        ),
+        footer_text,
+        create_info_tooltip(
+            tooltip_key,
+            tooltip_text,
+        ),
+    ]

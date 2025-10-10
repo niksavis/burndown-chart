@@ -367,7 +367,7 @@ def apply_layout_settings(fig):
     return fig
 
 
-def add_metrics_annotations(fig, metrics_data):
+def add_metrics_annotations(fig, metrics_data, data_points_count=None):
     """
     Add metrics as annotations below the x-axis of the plot.
 
@@ -376,6 +376,7 @@ def add_metrics_annotations(fig, metrics_data):
     Args:
         fig: Plotly figure object
         metrics_data: Dictionary with metrics to display
+        data_points_count: Number of data points used for velocity calculations (for label display)
 
     Returns:
         Updated figure with metrics annotations
@@ -479,12 +480,12 @@ def add_metrics_annotations(fig, metrics_data):
         },
         # Row 4 - Averages and other estimates
         {
-            "label": "Avg Weekly Items (10W)",
+            "label": f"Avg Weekly Items ({data_points_count or 'All'}W)",
             "value": metrics_data["avg_weekly_items"],
             "format": "{:.2f}",  # Changed from {:.1f} to show 2 decimal places
         },
         {
-            "label": "Avg Weekly Points (10W)",
+            "label": f"Avg Weekly Points ({data_points_count or 'All'}W)",
             "value": metrics_data["avg_weekly_points"]
             if points_data_available
             else None,
@@ -673,7 +674,7 @@ def create_forecast_plot(
 
         # Calculate weekly metrics
         avg_weekly_items, avg_weekly_points, med_weekly_items, med_weekly_points = (
-            _get_weekly_metrics(df)
+            _get_weekly_metrics(df, data_points_count)
         )
 
         # Calculate enhanced formatted strings for PERT estimates
@@ -712,7 +713,7 @@ def create_forecast_plot(
                 metrics_data = {}  # Default to empty dict if None
 
             # Add metrics annotations
-            fig = add_metrics_annotations(fig, metrics_data)
+            fig = add_metrics_annotations(fig, metrics_data, data_points_count)
         except Exception as metrics_error:
             # Log the error but continue without metrics
             logger = logging.getLogger("burndown_chart")
@@ -736,7 +737,7 @@ def create_forecast_plot(
 
             # Try to add metrics with the minimal data
             try:
-                fig = add_metrics_annotations(fig, metrics_data)
+                fig = add_metrics_annotations(fig, metrics_data, data_points_count)
             except Exception:
                 # If even this fails, just continue without metrics
                 pass
@@ -822,12 +823,13 @@ def _parse_deadline_milestone(deadline_str, milestone_str=None):
     return deadline, milestone
 
 
-def _get_weekly_metrics(df):
+def _get_weekly_metrics(df, data_points_count=None):
     """
     Calculate weekly metrics from the data frame.
 
     Args:
         df: DataFrame with historical data
+        data_points_count: Number of most recent data points to use (defaults to all)
 
     Returns:
         Tuple of (avg_weekly_items, avg_weekly_points, med_weekly_items, med_weekly_points)
@@ -840,8 +842,10 @@ def _get_weekly_metrics(df):
     )
 
     if not df.empty:
-        # Get all four values from calculate_weekly_averages
-        results = calculate_weekly_averages(df.to_dict("records"))
+        # Get all four values from calculate_weekly_averages with data_points_count
+        results = calculate_weekly_averages(
+            df.to_dict("records"), data_points_count=data_points_count
+        )
         if isinstance(results, (list, tuple)) and len(results) >= 4:
             avg_weekly_items, avg_weekly_points, med_weekly_items, med_weekly_points = (
                 results  # Ensure all are valid float values with preserved decimal places
@@ -3167,8 +3171,10 @@ def create_burnup_chart(
             0.0,
         )
         if not df.empty:
-            # Get all four values from calculate_weekly_averages
-            results = calculate_weekly_averages(df.to_dict("records"))
+            # Get all four values from calculate_weekly_averages with data_points_count
+            results = calculate_weekly_averages(
+                df.to_dict("records"), data_points_count=data_points_count
+            )
             if isinstance(results, (list, tuple)) and len(results) >= 4:
                 (
                     avg_weekly_items,
@@ -3200,7 +3206,7 @@ def create_burnup_chart(
                 metrics_data = {}  # Default to empty dict if None
 
             # Add metrics annotations in the same position as the burndown chart
-            fig = add_metrics_annotations(fig, metrics_data)
+            fig = add_metrics_annotations(fig, metrics_data, data_points_count)
         except Exception as metrics_error:
             # Log the error but continue without metrics
             logger = logging.getLogger("burndown_chart")
@@ -3228,7 +3234,7 @@ def create_burnup_chart(
 
             # Try to add metrics with the minimal data
             try:
-                fig = add_metrics_annotations(fig, metrics_data)
+                fig = add_metrics_annotations(fig, metrics_data, data_points_count)
             except Exception:
                 # If even this fails, just continue without metrics
                 pass
