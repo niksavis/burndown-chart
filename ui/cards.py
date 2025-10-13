@@ -63,9 +63,11 @@ def _get_default_data_source():
 
         app_settings = load_app_settings()
         # Use persisted value, default to JIRA (swapped order)
-        return app_settings.get("last_used_data_source", "JIRA")
-    except ImportError:
-        return "JIRA"  # Default to JIRA if import fails
+        data_source = app_settings.get("last_used_data_source", "JIRA")
+        # Return JIRA if the value is empty or None
+        return data_source if data_source else "JIRA"
+    except (ImportError, Exception):
+        return "JIRA"  # Default to JIRA if import fails or any other error
 
 
 def _get_default_jql_query():
@@ -96,7 +98,7 @@ def _get_default_jql_profile_id():
 
         app_settings = load_app_settings()
         return app_settings.get("active_jql_profile_id", "")
-    except ImportError:
+    except (ImportError, Exception):
         return ""
 
 
