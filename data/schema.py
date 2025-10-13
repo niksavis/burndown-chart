@@ -81,6 +81,46 @@ PROJECT_DATA_SCHEMA = {
     },
 }
 
+#######################################################################
+# JQL QUERY PROFILE SCHEMA
+#######################################################################
+
+# Schema for JQL query profiles
+JQL_QUERY_PROFILE_SCHEMA = {
+    "id": str,  # UUID for the profile
+    "name": str,  # User-friendly name
+    "jql": str,  # JQL query string
+    "description": str,  # Optional description
+    "created_at": str,  # ISO datetime when created
+    "last_used": str,  # ISO datetime when last used
+    "is_default": bool,  # Whether this is a default/system profile
+}
+
+# Default JQL query profiles
+DEFAULT_JQL_PROFILES = [
+    {
+        "id": "default-all-open",
+        "name": "All Open Issues",
+        "jql": "project = MYPROJECT AND status != Done",
+        "description": "All issues that are not completed",
+        "is_default": True,
+    },
+    {
+        "id": "default-recent-bugs",
+        "name": "Recent Bugs (Last 2 Weeks)",
+        "jql": "project = MYPROJECT AND type = Bug AND created >= -14d",
+        "description": "Bugs created in the last 2 weeks",
+        "is_default": True,
+    },
+    {
+        "id": "default-current-sprint",
+        "name": "Current Sprint",
+        "jql": "sprint in openSprints() AND status != Done",
+        "description": "Active sprint issues that are not completed",
+        "is_default": True,
+    },
+]
+
 
 def validate_project_data_structure(data: Dict[str, Any]) -> bool:
     """
@@ -152,3 +192,38 @@ def get_default_unified_data() -> Dict[str, Any]:
             "jira_query": "",
         },
     }
+
+
+def validate_query_profile(profile: Dict[str, Any]) -> bool:
+    """
+    Validate JQL query profile structure.
+
+    Args:
+        profile: Query profile dictionary to validate
+
+    Returns:
+        bool: True if valid, False otherwise
+    """
+    required_keys = ["id", "name", "jql"]
+
+    if not all(key in profile for key in required_keys):
+        return False
+
+    # Validate types
+    if not isinstance(profile["id"], str) or not profile["id"]:
+        return False
+
+    if not isinstance(profile["name"], str) or not profile["name"]:
+        return False
+
+    if not isinstance(profile["jql"], str):
+        return False
+
+    # Optional fields
+    if "description" in profile and not isinstance(profile["description"], str):
+        return False
+
+    if "is_default" in profile and not isinstance(profile["is_default"], bool):
+        return False
+
+    return True

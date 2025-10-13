@@ -53,17 +53,19 @@ StyleCellConditional = Dict[str, Any]
 
 def _get_default_data_source():
     """
-    Determine the default data source based on JIRA configuration.
+    Determine the default data source based on persisted settings.
 
     Returns:
-        str: "JIRA" if JIRA is configured, "CSV" otherwise
+        str: "JIRA" (default) or "CSV" based on last_used_data_source setting
     """
     try:
-        from data.persistence import should_sync_jira
+        from data.persistence import load_app_settings
 
-        return "JIRA" if should_sync_jira() else "CSV"
+        app_settings = load_app_settings()
+        # Use persisted value, default to JIRA (swapped order)
+        return app_settings.get("last_used_data_source", "JIRA")
     except ImportError:
-        return "CSV"
+        return "JIRA"  # Default to JIRA if import fails
 
 
 def _get_default_jql_query():
@@ -80,6 +82,22 @@ def _get_default_jql_query():
         return app_settings.get("jql_query", "project = JRASERVER")
     except ImportError:
         return "project = JRASERVER"
+
+
+def _get_default_jql_profile_id():
+    """
+    Get the active JQL profile ID from app settings.
+
+    Returns:
+        str: Profile ID from settings or empty string for custom query
+    """
+    try:
+        from data.persistence import load_app_settings
+
+        app_settings = load_app_settings()
+        return app_settings.get("active_jql_profile_id", "")
+    except ImportError:
+        return ""
 
 
 def _get_default_jira_api_endpoint():
@@ -1011,7 +1029,7 @@ def create_input_parameters_card(
                                         "Data Source:",
                                         create_info_tooltip(
                                             "data-source",
-                                            "Choose between JSON/CSV file upload or JIRA API data source.",
+                                            "Choose between JIRA API (recommended) or JSON/CSV file upload.",
                                         ),
                                     ],
                                     className="fw-medium mb-2",
@@ -1020,12 +1038,12 @@ def create_input_parameters_card(
                                     id="data-source-selection",
                                     options=[
                                         {
-                                            "label": "JSON/CSV Import",
-                                            "value": "CSV",
-                                        },
-                                        {
                                             "label": "JIRA API",
                                             "value": "JIRA",
+                                        },
+                                        {
+                                            "label": "JSON/CSV Import",
+                                            "value": "CSV",
                                         },
                                     ],
                                     value=_get_default_data_source(),

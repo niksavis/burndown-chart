@@ -68,6 +68,8 @@ def save_app_settings(
     jira_story_points_field=None,
     jira_cache_max_size=None,
     jira_max_results=None,
+    last_used_data_source=None,
+    active_jql_profile_id=None,
 ):
     """
     Save app-level settings to JSON file.
@@ -85,6 +87,8 @@ def save_app_settings(
         jira_story_points_field: Custom field ID for story points
         jira_cache_max_size: Maximum cache size in MB
         jira_max_results: Maximum number of results to fetch from JIRA API
+        last_used_data_source: Last selected data source (JIRA or CSV)
+        active_jql_profile_id: ID of the currently active JQL query profile
     """
     settings = {
         "pert_factor": pert_factor,
@@ -107,6 +111,12 @@ def save_app_settings(
         if jira_cache_max_size is not None
         else 100,
         "jira_max_results": jira_max_results if jira_max_results is not None else 1000,
+        "last_used_data_source": last_used_data_source
+        if last_used_data_source is not None
+        else "JIRA",  # Default to JIRA (swapped order)
+        "active_jql_profile_id": active_jql_profile_id
+        if active_jql_profile_id is not None
+        else "",
     }
 
     try:
@@ -144,6 +154,8 @@ def load_app_settings():
         "jira_token": "",
         "jira_story_points_field": "",
         "jira_cache_max_size": 100,
+        "last_used_data_source": "JIRA",  # Default to JIRA (swapped order)
+        "active_jql_profile_id": "",  # Empty means use custom query
     }
 
     try:
