@@ -16,7 +16,7 @@ from typing import Dict, List, Optional, Any
 
 # Application imports
 from configuration import logger
-from data.schema import DEFAULT_JQL_PROFILES, validate_query_profile
+from data.schema import validate_query_profile
 
 #######################################################################
 # CONSTANTS
@@ -68,29 +68,15 @@ def _save_profiles_to_disk(profiles: List[Dict[str, Any]]) -> bool:
 
 def load_query_profiles() -> List[Dict[str, Any]]:
     """
-    Load all query profiles (default + user-created).
+    Load user-created query profiles only.
 
     Returns:
-        List of query profile dictionaries with timestamps added to defaults
+        List of user-created query profile dictionaries
     """
-    # Start with default profiles
-    now = datetime.now().isoformat()
-    default_profiles = [
-        {
-            **profile,
-            "created_at": now,
-            "last_used": now,
-        }
-        for profile in DEFAULT_JQL_PROFILES
-    ]
-
-    # Load user-created profiles
+    # Load only user-created profiles (no default profiles)
     user_profiles = _load_profiles_from_disk()
 
-    # Combine: defaults first, then user profiles
-    all_profiles = default_profiles + user_profiles
-
-    return all_profiles
+    return user_profiles
 
 
 def get_query_profile_by_id(profile_id: str) -> Optional[Dict[str, Any]]:
@@ -296,3 +282,76 @@ def validate_profile_name_unique(name: str, exclude_id: Optional[str] = None) ->
                 return False
 
     return True
+
+
+def set_default_query(profile_id: str) -> bool:
+    """
+    Set a query profile as the default query.
+    Only one query can be default at a time.
+
+    Args:
+        profile_id: ID of the profile to set as default
+
+    Returns:
+        bool: True if set successfully, False otherwise
+    """
+    profiles = _load_profiles_from_disk()
+
+    # Remove default flag from all profiles first
+    for profile in profiles:
+        profile["is_default"] = False
+
+    # Set the specified profile as default
+    for profile in profiles:
+        if profile.get("id") == profile_id:
+            profile["is_default"] = True
+            profile["last_used"] = datetime.now().isoformat()
+
+            success = _save_profiles_to_disk(profiles)
+            if success:
+                logger.info(f"Set query profile '{profile['name']}' as default")
+            return success
+
+    logger.error(f"Query profile with ID '{profile_id}' not found")
+    return False
+
+
+def get_default_query() -> Optional[Dict[str, Any]]:
+    """
+    Get the current default query profile.
+
+    Returns:
+        Default query profile dictionary or None if no default is set
+    """
+    profiles = _load_profiles_from_disk()
+
+    for profile in profiles:
+        if profile.get("is_default", False):
+            return profile
+
+    return None
+
+
+def remove_default_query() -> bool:
+    """
+    Remove the default flag from all query profiles.
+
+    Returns:
+        bool: True if updated successfully, False otherwise
+    """
+    profiles = _load_profiles_from_disk()
+
+    # Remove default flag from all profiles
+    changed = False
+    for profile in profiles:
+        if profile.get("is_default", False):
+            profile["is_default"] = False
+            changed = True
+
+    if changed:
+        success = _save_profiles_to_disk(profiles)
+        if success:
+            logger.info("Removed default query setting")
+        return success
+
+    return True  # No change needed

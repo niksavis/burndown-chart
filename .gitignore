@@ -177,6 +177,7 @@ cython_debug/
 app_settings.json
 project_data.json
 jira_cache.json
+jira_query_profiles.json
 
 # Debug and test artifacts (root directory only - not tests/ folder)
 /test_*.py

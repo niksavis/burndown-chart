@@ -91,15 +91,17 @@ def _get_default_jql_profile_id():
     Get the active JQL profile ID from app settings.
 
     Returns:
-        str: Profile ID from settings or empty string for custom query
+        str: Profile ID from settings or "custom" for custom query
     """
     try:
         from data.persistence import load_app_settings
 
         app_settings = load_app_settings()
-        return app_settings.get("active_jql_profile_id", "")
+        active_id = app_settings.get("active_jql_profile_id", "")
+        # Default to "custom" if no active profile
+        return active_id if active_id else "custom"
     except (ImportError, Exception):
-        return ""
+        return "custom"
 
 
 def _get_default_jira_api_endpoint():
@@ -182,6 +184,51 @@ def _get_default_jira_max_results():
         return app_settings.get("jira_max_results", 1000)
     except ImportError:
         return 1000
+
+
+def _get_query_profile_options() -> List[Dict[str, Any]]:
+    """
+    Get options for the query profile dropdown.
+
+    Returns:
+        List of option dictionaries for the dropdown in format [{"label": str, "value": str}]
+    """
+    try:
+        from data.jira_query_manager import load_query_profiles
+
+        profiles = load_query_profiles()
+        options = []
+
+        # Add saved query profiles only (no default profiles)
+        for profile in profiles:
+            label = profile["name"]
+            if profile.get("is_default", False):
+                label += " ★"  # Add star indicator for default
+            options.append(
+                {
+                    "label": label,
+                    "value": profile["id"],
+                }
+            )
+
+        # Add "Custom Query" option at the end
+        options.append(
+            {
+                "label": "Custom Query...",
+                "value": "custom",
+            }
+        )
+
+        return options
+
+    except (ImportError, Exception):
+        # Fallback to just custom query option if query manager fails
+        return [
+            {
+                "label": "Custom Query...",
+                "value": "custom",
+            },
+        ]
 
 
 #######################################################################
@@ -1196,6 +1243,149 @@ def create_input_parameters_card(
                                 ),
                             ],
                         ),
+                        # Query Profile Selector - Full width on mobile
+                        dbc.Row(
+                            [
+                                dbc.Col(
+                                    [
+                                        html.Label(
+                                            [
+                                                "Saved Queries:",
+                                                create_info_tooltip(
+                                                    "Select from saved JIRA queries or choose 'Custom Query' to enter your own JQL",
+                                                    "saved-queries-tooltip",
+                                                ),
+                                            ],
+                                            className="fw-medium",
+                                        ),
+                                        dbc.InputGroup(
+                                            [
+                                                # Dropdown component styled to integrate seamlessly
+                                                dcc.Dropdown(
+                                                    id="jira-query-profile-selector",
+                                                    options=cast(
+                                                        Any,
+                                                        _get_query_profile_options(),
+                                                    ),
+                                                    value=_get_default_jql_profile_id(),
+                                                    placeholder="Select a saved query...",
+                                                    clearable=False,
+                                                    searchable=False,
+                                                    style={
+                                                        "border": "1px solid #dee2e6",
+                                                        "borderRight": "none",
+                                                        "borderRadius": "0.375rem 0 0 0.375rem",
+                                                        "minHeight": "38px",  # Match Input component height
+                                                        "flex": "1",
+                                                    },
+                                                ),
+                                                # Save Query Icon Button - matches Total Points pattern
+                                                dbc.InputGroupText(
+                                                    html.I(
+                                                        id="save-jql-query-button",
+                                                        className="fas fa-save text-primary",
+                                                        title="Save current JQL query as new profile",
+                                                        style={
+                                                            "cursor": "pointer",
+                                                            "padding": "4px",
+                                                        },
+                                                    ),
+                                                    style={
+                                                        "backgroundColor": NEUTRAL_COLORS[
+                                                            "gray-100"
+                                                        ],
+                                                        "borderRight": "none",
+                                                    },
+                                                ),
+                                                # Edit Query Icon Button - conditionally visible for user-created profiles
+                                                dbc.InputGroupText(
+                                                    html.I(
+                                                        id="edit-jql-query-button",
+                                                        className="fas fa-edit text-info",
+                                                        title="Edit selected query profile",
+                                                        style={
+                                                            "cursor": "pointer",
+                                                            "padding": "4px",
+                                                        },
+                                                    ),
+                                                    id="edit-jql-query-button-container",
+                                                    style={
+                                                        "backgroundColor": NEUTRAL_COLORS[
+                                                            "gray-100"
+                                                        ],
+                                                        "borderRight": "none",
+                                                        "display": "none",  # Hidden by default, shown via callback for user-created profiles
+                                                    },
+                                                ),
+                                                # Set as Default Query Icon Button - conditionally visible for user-created profiles
+                                                dbc.InputGroupText(
+                                                    html.I(
+                                                        id="set-default-jql-query-button",
+                                                        className="fas fa-star text-warning",
+                                                        title="Set as default query",
+                                                        style={
+                                                            "cursor": "pointer",
+                                                            "padding": "4px",
+                                                        },
+                                                    ),
+                                                    id="set-default-jql-query-button-container",
+                                                    style={
+                                                        "backgroundColor": NEUTRAL_COLORS[
+                                                            "gray-100"
+                                                        ],
+                                                        "borderRight": "none",
+                                                        "display": "none",  # Hidden by default, shown via callback for user-created profiles
+                                                    },
+                                                ),
+                                                # Load Default Query Icon Button - visible when there is a default query
+                                                dbc.InputGroupText(
+                                                    html.I(
+                                                        id="load-default-jql-query-button",
+                                                        className="fas fa-home text-success",
+                                                        title="Load default query",
+                                                        style={
+                                                            "cursor": "pointer",
+                                                            "padding": "4px",
+                                                        },
+                                                    ),
+                                                    id="load-default-jql-query-button-container",
+                                                    style={
+                                                        "backgroundColor": NEUTRAL_COLORS[
+                                                            "gray-100"
+                                                        ],
+                                                        "borderRight": "none",
+                                                        "display": "none",  # Hidden by default, shown via callback when default exists
+                                                    },
+                                                ),
+                                                # Delete Query Icon Button - conditionally visible for user-created profiles
+                                                dbc.InputGroupText(
+                                                    html.I(
+                                                        id="delete-jql-query-button",
+                                                        className="fas fa-trash text-danger",
+                                                        title="Delete selected query profile",
+                                                        style={
+                                                            "cursor": "pointer",
+                                                            "padding": "4px",
+                                                        },
+                                                    ),
+                                                    id="delete-jql-query-button-container",
+                                                    style={
+                                                        "backgroundColor": NEUTRAL_COLORS[
+                                                            "gray-100"
+                                                        ],
+                                                        "borderRadius": "0 0.375rem 0.375rem 0",
+                                                        "display": "none",  # Hidden by default, shown via callback for user-created profiles
+                                                    },
+                                                ),
+                                            ],
+                                            className="mb-2",
+                                        ),
+                                    ],
+                                    width=12,
+                                    className="mb-3",
+                                ),
+                            ],
+                        ),
                         # JQL Query - Full width on mobile
                         dbc.Row(
                             [
@@ -1215,6 +1405,12 @@ def create_input_parameters_card(
                                         html.Small(
                                             "Use JQL syntax to filter issues. Supports ScriptRunner functions.",
                                             className="text-muted",
+                                        ),
+                                        # Query Profile Status Indicator
+                                        html.Div(
+                                            id="query-profile-status",
+                                            className="text-info small mt-2",
+                                            children="💡 Currently using: Select a query profile",
                                         ),
                                         # Hidden element for JQL query save status callback
                                         html.Div(
@@ -1407,6 +1603,208 @@ def create_input_parameters_card(
                             ],
                         ),
                     ],
+                ),
+                # Save JQL Query Modal
+                dbc.Modal(
+                    [
+                        dbc.ModalHeader(
+                            dbc.ModalTitle("Save JQL Query"),
+                            close_button=True,
+                        ),
+                        dbc.ModalBody(
+                            [
+                                # Query Name Input
+                                html.Label(
+                                    "Query Name: *",
+                                    className="fw-medium mb-2",
+                                ),
+                                dbc.Input(
+                                    id="query-name-input",
+                                    type="text",
+                                    placeholder="e.g., My Sprint Query",
+                                    style=create_input_style(size="md"),
+                                    className="mb-3",
+                                ),
+                                html.Div(
+                                    id="query-name-validation",
+                                    className="text-danger small mb-3",
+                                    style={"display": "none"},
+                                ),
+                                # Query Description Input
+                                html.Label(
+                                    "Description (optional):",
+                                    className="fw-medium mb-2",
+                                ),
+                                dbc.Textarea(
+                                    id="query-description-input",
+                                    placeholder="Brief description of what this query returns...",
+                                    rows=3,
+                                    style=create_input_style(size="md"),
+                                    className="mb-3",
+                                ),
+                                # JQL Preview
+                                html.Label(
+                                    "JQL Preview:",
+                                    className="fw-medium mb-2",
+                                ),
+                                html.Div(
+                                    id="jql-preview-display",
+                                    className="p-2 bg-light border rounded small font-monospace text-muted",
+                                    style={
+                                        "min-height": "60px",
+                                        "max-height": "120px",
+                                        "overflow-y": "auto",
+                                    },
+                                    children="JQL query will appear here...",
+                                ),
+                            ],
+                        ),
+                        dbc.ModalFooter(
+                            [
+                                create_button(
+                                    text="Cancel",
+                                    id="cancel-save-query-button",
+                                    variant="outline-secondary",
+                                    size="sm",
+                                ),
+                                create_button(
+                                    text="Save Query",
+                                    id="confirm-save-query-button",
+                                    variant="primary",
+                                    size="sm",
+                                    icon_class="fas fa-check",
+                                ),
+                            ],
+                            className="d-flex justify-content-end gap-2",
+                        ),
+                    ],
+                    id="save-jql-query-modal",
+                    size="md",
+                    is_open=False,
+                    backdrop=True,
+                    scrollable=True,
+                ),
+                # Edit JQL Query Modal
+                dbc.Modal(
+                    [
+                        dbc.ModalHeader(
+                            dbc.ModalTitle("Edit JQL Query"),
+                            close_button=True,
+                        ),
+                        dbc.ModalBody(
+                            [
+                                # Query Name Input
+                                html.Label(
+                                    "Query Name: *",
+                                    className="fw-medium mb-2",
+                                ),
+                                dbc.Input(
+                                    id="edit-query-name-input",
+                                    type="text",
+                                    placeholder="e.g., My Sprint Query",
+                                    style=create_input_style(size="md"),
+                                    className="mb-3",
+                                ),
+                                html.Div(
+                                    id="edit-query-name-validation",
+                                    className="text-danger small mb-3",
+                                    style={"display": "none"},
+                                ),
+                                # Query Description Input
+                                html.Label(
+                                    "Description (optional):",
+                                    className="fw-medium mb-2",
+                                ),
+                                dbc.Textarea(
+                                    id="edit-query-description-input",
+                                    placeholder="Brief description of what this query returns...",
+                                    rows=3,
+                                    style=create_input_style(size="md"),
+                                    className="mb-3",
+                                ),
+                                # JQL Input
+                                html.Label(
+                                    "JQL Query: *",
+                                    className="fw-medium mb-2",
+                                ),
+                                dbc.Textarea(
+                                    id="edit-query-jql-input",
+                                    placeholder="Enter JQL query...",
+                                    rows=4,
+                                    style=create_input_style(size="md"),
+                                    className="mb-3",
+                                ),
+                            ],
+                        ),
+                        dbc.ModalFooter(
+                            [
+                                create_button(
+                                    text="Cancel",
+                                    id="cancel-edit-query-button",
+                                    variant="outline-secondary",
+                                    size="sm",
+                                ),
+                                create_button(
+                                    text="Save Changes",
+                                    id="confirm-edit-query-button",
+                                    variant="primary",
+                                    size="sm",
+                                    icon_class="fas fa-save",
+                                ),
+                            ],
+                        ),
+                    ],
+                    id="edit-query-modal",
+                    is_open=False,
+                    size="lg",
+                    scrollable=True,
+                ),
+                # Delete Query Confirmation Modal
+                dbc.Modal(
+                    [
+                        dbc.ModalHeader(
+                            dbc.ModalTitle("Delete Query?"),
+                            close_button=True,
+                        ),
+                        dbc.ModalBody(
+                            [
+                                html.P(
+                                    [
+                                        "Are you sure you want to delete ",
+                                        html.Strong(id="delete-query-name"),
+                                        "?",
+                                    ],
+                                    className="mb-3",
+                                ),
+                                html.P(
+                                    "This action cannot be undone.",
+                                    className="text-muted small mb-0",
+                                ),
+                            ],
+                        ),
+                        dbc.ModalFooter(
+                            [
+                                create_button(
+                                    text="Cancel",
+                                    id="cancel-delete-query-button",
+                                    variant="outline-secondary",
+                                    size="sm",
+                                ),
+                                create_button(
+                                    text="Delete",
+                                    id="confirm-delete-query-button",
+                                    variant="danger",
+                                    size="sm",
+                                    icon_class="fas fa-trash",
+                                ),
+                            ],
+                            className="d-flex justify-content-end gap-2",
+                        ),
+                    ],
+                    id="delete-jql-query-modal",
+                    size="sm",
+                    is_open=False,
+                    backdrop=True,
                 ),
                 # Hidden store components for JIRA data loading state
                 dcc.Store(id="jira-data-loader"),

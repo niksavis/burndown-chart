@@ -12,7 +12,7 @@ from datetime import datetime
 
 # Third-party library imports
 import dash
-from dash import Input, Output, State, html, no_update
+from dash import Input, Output, State, html, no_update, callback_context
 from dash.exceptions import PreventUpdate
 
 # Application imports
@@ -24,6 +24,7 @@ from configuration import (
     logger,
 )
 from data import calculate_total_points
+from ui.style_constants import NEUTRAL_COLORS
 
 #######################################################################
 # HELPER FUNCTIONS
@@ -1115,7 +1116,25 @@ def register(app):
                     estimated_points = 0  # Can't determine estimated points
 
                     if story_points_field and story_points_field.strip():
-                        status_message = f"⚠️ Points field '{story_points_field.strip()}' not found or no meaningful point values. Only total item count ({total_items}) calculated. Configure a valid points field for full scope calculation."
+                        # Get detailed field statistics from the scope calculation
+                        field_name = story_points_field.strip()
+                        metadata = project_scope.get("calculation_metadata", {})
+                        field_stats = metadata.get("field_stats", {})
+
+                        # Provide detailed explanation based on field statistics
+                        sample_size = field_stats.get("sample_size", 0)
+                        field_exists_count = field_stats.get("field_exists_count", 0)
+                        valid_points_count = field_stats.get("valid_points_count", 0)
+
+                        field_coverage = field_stats.get("field_coverage_percent", 0)
+
+                        if field_exists_count == 0:
+                            status_message = f"⚠️ Points field '{field_name}' not found in any JIRA issues. Only total item count ({total_items}) calculated. Check if '{field_name}' exists in your JIRA project and verify your JQL query includes issues with this field."
+                        elif field_coverage < 50:
+                            status_message = f"⚠️ Points field '{field_name}' has insufficient coverage ({field_coverage:.0f}% of issues have the field, need ≥50%). Found in {field_exists_count} of {sample_size} sample issues, with {valid_points_count} having point values. Only total item count ({total_items}) calculated. Consider refining your JQL query to include more issues with this field, or verify '{field_name}' is the correct custom field name."
+                        else:
+                            # This shouldn't happen if points_field_available is False, but just in case
+                            status_message = f"⚠️ Points field '{field_name}' validation failed unexpectedly ({field_coverage:.0f}% coverage). Only total item count ({total_items}) calculated."
                     else:
                         status_message = f"⚠️ No points field configured. Only total item count ({total_items}) calculated. Configure a valid points field for full scope calculation."
 
@@ -1328,3 +1347,496 @@ def register(app):
         [Input("jira-scope-calculate-btn", "n_clicks")],
         prevent_initial_call=True,
     )
+
+    #######################################################################
+    # JQL QUERY PROFILE MANAGEMENT CALLBACKS
+    #######################################################################
+
+    @app.callback(
+        Output("save-jql-query-modal", "is_open"),
+        Output("jql-preview-display", "children"),
+        [
+            Input("save-jql-query-button", "n_clicks"),
+            Input("cancel-save-query-button", "n_clicks"),
+            Input("confirm-save-query-button", "n_clicks"),
+        ],
+        [State("jira-jql-query", "value"), State("save-jql-query-modal", "is_open")],
+        prevent_initial_call=True,
+    )
+    def handle_save_query_modal(
+        save_clicks, cancel_clicks, confirm_clicks, jql_value, is_open
+    ):
+        """Handle opening and closing of the save query modal."""
+        ctx = callback_context
+
+        if not ctx.triggered:
+            raise PreventUpdate
+
+        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+
+        # Open modal when save button clicked
+        if trigger_id == "save-jql-query-button" and save_clicks:
+            jql_preview = jql_value or "No JQL query entered"
+            return True, jql_preview
+
+        # Close modal when cancel or confirm clicked
+        elif trigger_id in ["cancel-save-query-button", "confirm-save-query-button"]:
+            return False, no_update
+
+        raise PreventUpdate
+
+    @app.callback(
+        [
+            Output("jira-query-profile-selector", "options"),
+            Output("query-name-input", "value"),
+            Output("query-description-input", "value"),
+            Output("query-name-validation", "children"),
+            Output("query-name-validation", "style"),
+        ],
+        [Input("confirm-save-query-button", "n_clicks")],
+        [
+            State("query-name-input", "value"),
+            State("query-description-input", "value"),
+            State("jira-jql-query", "value"),
+        ],
+        prevent_initial_call=True,
+    )
+    def save_query_profile(save_clicks, query_name, description, jql_value):
+        """Save a new JQL query profile."""
+        if not save_clicks:
+            raise PreventUpdate
+
+        # Validate inputs
+        if not query_name or not query_name.strip():
+            return (
+                no_update,
+                no_update,
+                no_update,
+                "Query name is required",
+                {"display": "block"},
+            )
+
+        if not jql_value or not jql_value.strip():
+            return (
+                no_update,
+                no_update,
+                no_update,
+                "JQL query cannot be empty",
+                {"display": "block"},
+            )
+
+        try:
+            from data.jira_query_manager import (
+                save_query_profile as save_profile_func,
+                load_query_profiles,
+            )
+
+            # Save the profile
+            save_profile_func(
+                name=query_name.strip(),
+                jql=jql_value.strip(),
+                description=description.strip() if description else "",
+            )
+
+            # Reload options
+            updated_options = []
+            profiles = load_query_profiles()
+            for profile in profiles:
+                label = profile["name"]
+                if profile.get("is_default", False):
+                    label += " ★"  # Add star indicator for default
+                updated_options.append({"label": label, "value": profile["id"]})
+
+            # Add "Custom Query" option at the end
+            updated_options.append({"label": "Custom Query...", "value": "custom"})
+
+            # Clear form and hide validation
+            return (
+                updated_options,
+                "",
+                "",
+                "",
+                {"display": "none"},
+            )
+
+        except Exception as e:
+            logger.error(f"Error saving query profile: {e}")
+            return (
+                no_update,
+                no_update,
+                no_update,
+                f"Error saving query: {str(e)}",
+                {"display": "block"},
+            )
+
+    @app.callback(
+        [
+            Output("edit-jql-query-button-container", "style"),
+            Output("set-default-jql-query-button-container", "style"),
+            Output("load-default-jql-query-button-container", "style"),
+            Output("delete-jql-query-button-container", "style"),
+            Output("delete-query-name", "children"),
+        ],
+        [Input("jira-query-profile-selector", "value")],
+        prevent_initial_call=False,
+    )
+    def show_hide_profile_buttons(selected_profile_id):
+        """Show/hide profile action buttons based on selection and default status."""
+        logger.info(
+            f"DEBUG: show_hide_profile_buttons called with profile_id: {selected_profile_id}"
+        )
+
+        # Base button styles
+        hidden_style = {"display": "none"}
+        visible_style = {
+            "backgroundColor": NEUTRAL_COLORS["gray-100"],
+            "borderRight": "none",
+            "display": "block",
+        }
+        last_button_style = {
+            "backgroundColor": NEUTRAL_COLORS["gray-100"],
+            "borderRadius": "0 0.375rem 0.375rem 0",
+            "display": "block",
+        }
+
+        try:
+            from data.jira_query_manager import load_query_profiles, get_default_query
+
+            profiles = load_query_profiles()
+            default_query = get_default_query()
+            logger.info(
+                f"DEBUG: Loaded {len(profiles)} profiles, has default: {default_query is not None}"
+            )
+
+            # Initialize all buttons as hidden
+            edit_style = hidden_style
+            set_default_style = hidden_style
+            load_default_style = hidden_style
+            delete_style = hidden_style
+            delete_name = ""
+
+            # Show load default button if there's a default query
+            if default_query:
+                load_default_style = visible_style
+
+            if selected_profile_id and selected_profile_id != "custom":
+                # Find selected profile
+                selected_profile = next(
+                    (p for p in profiles if p["id"] == selected_profile_id), None
+                )
+
+                if selected_profile:
+                    logger.info(f"DEBUG: Selected profile: {selected_profile['name']}")
+
+                    # Show edit and delete buttons for user-created profiles
+                    edit_style = visible_style
+                    delete_style = (
+                        last_button_style if not default_query else visible_style
+                    )
+                    delete_name = selected_profile["name"]
+
+                    # Show "set as default" button only if not already default
+                    if not selected_profile.get("is_default", False):
+                        set_default_style = visible_style
+                        # Adjust delete button style if it's not the last button
+                        if default_query:
+                            delete_style = visible_style
+
+            return (
+                edit_style,
+                set_default_style,
+                load_default_style,
+                delete_style,
+                delete_name,
+            )
+
+        except Exception as e:
+            logger.error(f"Error managing profile buttons: {e}")
+            return hidden_style, hidden_style, hidden_style, hidden_style, ""
+
+    @app.callback(
+        Output("delete-jql-query-modal", "is_open"),
+        [
+            Input("delete-jql-query-button", "n_clicks"),
+            Input("cancel-delete-query-button", "n_clicks"),
+            Input("confirm-delete-query-button", "n_clicks"),
+        ],
+        [State("delete-jql-query-modal", "is_open")],
+        prevent_initial_call=True,
+    )
+    def handle_delete_query_modal(
+        delete_clicks, cancel_clicks, confirm_clicks, is_open
+    ):
+        """Handle opening and closing of the delete query modal."""
+        ctx = callback_context
+
+        if not ctx.triggered:
+            raise PreventUpdate
+
+        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+
+        # Open modal when delete button clicked
+        if trigger_id == "delete-jql-query-button" and delete_clicks:
+            return True
+
+        # Close modal when cancel or confirm clicked
+        elif trigger_id in [
+            "cancel-delete-query-button",
+            "confirm-delete-query-button",
+        ]:
+            return False
+
+        raise PreventUpdate
+
+    @app.callback(
+        Output("jira-query-profile-selector", "options", allow_duplicate=True),
+        Output("jira-query-profile-selector", "value"),
+        [Input("confirm-delete-query-button", "n_clicks")],
+        [State("jira-query-profile-selector", "value")],
+        prevent_initial_call=True,
+    )
+    def delete_query_profile(delete_clicks, current_profile_id):
+        """Delete the selected query profile."""
+        if not delete_clicks or not current_profile_id:
+            raise PreventUpdate
+
+        try:
+            from data.jira_query_manager import (
+                delete_query_profile,
+                load_query_profiles,
+            )
+
+            # Delete the profile
+            delete_query_profile(current_profile_id)
+
+            # Reload options
+            updated_options = []
+            profiles = load_query_profiles()
+            for profile in profiles:
+                label = profile["name"]
+                if profile.get("is_default", False):
+                    label += " ★"  # Add star indicator for default
+                updated_options.append({"label": label, "value": profile["id"]})
+
+            # Add "Custom Query" option at the end
+            updated_options.append({"label": "Custom Query...", "value": "custom"})
+
+            # Set to first profile or custom if none exist
+            default_value = profiles[0]["id"] if profiles else "custom"
+
+            return updated_options, default_value
+
+        except Exception as e:
+            logger.error(f"Error deleting query profile: {e}")
+            raise PreventUpdate
+
+    @app.callback(
+        Output("jira-jql-query", "value"),
+        [Input("jira-query-profile-selector", "value")],
+        prevent_initial_call=True,
+    )
+    def update_jql_from_profile(selected_profile_id):
+        """Update JQL textarea when a profile is selected."""
+        if not selected_profile_id:
+            raise PreventUpdate
+
+        try:
+            from data.jira_query_manager import get_query_profile_by_id
+
+            profile = get_query_profile_by_id(selected_profile_id)
+            if profile:
+                return profile["jql"]
+            else:
+                raise PreventUpdate
+
+        except Exception as e:
+            logger.error(f"Error loading profile JQL: {e}")
+            raise PreventUpdate
+
+    @app.callback(
+        [
+            Output("edit-query-modal", "is_open"),
+            Output("edit-query-name-input", "value"),
+            Output("edit-query-description-input", "value"),
+            Output("edit-query-jql-input", "value"),
+        ],
+        [
+            Input("edit-jql-query-button", "n_clicks"),
+            Input("cancel-edit-query-button", "n_clicks"),
+            Input("confirm-edit-query-button", "n_clicks"),
+        ],
+        [State("jira-query-profile-selector", "value")],
+        prevent_initial_call=True,
+    )
+    def handle_edit_query_modal(
+        edit_clicks, cancel_clicks, confirm_clicks, current_profile_id
+    ):
+        """Handle opening/closing edit query modal and populate fields."""
+        ctx = callback_context
+        if not ctx.triggered:
+            raise PreventUpdate
+
+        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+
+        if trigger_id == "edit-jql-query-button":
+            if not current_profile_id or current_profile_id == "custom":
+                raise PreventUpdate
+
+            try:
+                from data.jira_query_manager import get_query_profile_by_id
+
+                profile = get_query_profile_by_id(current_profile_id)
+                if profile:
+                    return (
+                        True,
+                        profile["name"],
+                        profile.get("description", ""),
+                        profile["jql"],
+                    )
+                else:
+                    raise PreventUpdate
+
+            except Exception as e:
+                logger.error(f"Error loading profile for edit: {e}")
+                raise PreventUpdate
+
+        # Close modal when cancel or confirm clicked
+        elif trigger_id in ["cancel-edit-query-button", "confirm-edit-query-button"]:
+            return False, no_update, no_update, no_update
+
+        raise PreventUpdate
+
+    @app.callback(
+        [
+            Output("jira-query-profile-selector", "options", allow_duplicate=True),
+            Output("edit-query-name-validation", "children"),
+            Output("edit-query-name-validation", "style"),
+        ],
+        [Input("confirm-edit-query-button", "n_clicks")],
+        [
+            State("edit-query-name-input", "value"),
+            State("edit-query-description-input", "value"),
+            State("edit-query-jql-input", "value"),
+            State("jira-query-profile-selector", "value"),
+        ],
+        prevent_initial_call=True,
+    )
+    def update_query_profile(
+        edit_clicks, query_name, description, jql_value, current_profile_id
+    ):
+        """Update existing JQL query profile."""
+        if not edit_clicks or not current_profile_id or current_profile_id == "custom":
+            raise PreventUpdate
+
+        # Validate inputs
+        if not query_name or not query_name.strip():
+            return no_update, "Query name is required", {"display": "block"}
+
+        if not jql_value or not jql_value.strip():
+            return no_update, "JQL query is required", {"display": "block"}
+
+        try:
+            from data.jira_query_manager import save_query_profile, load_query_profiles
+
+            # Update the profile
+            updated_profile = save_query_profile(
+                name=query_name.strip(),
+                jql=jql_value.strip(),
+                description=description.strip() if description else "",
+                profile_id=current_profile_id,
+            )
+
+            if updated_profile:
+                logger.info(f"Updated query profile: {updated_profile['name']}")
+
+                # Reload options
+                updated_options = []
+                profiles = load_query_profiles()
+                for profile in profiles:
+                    updated_options.append(
+                        {"label": profile["name"], "value": profile["id"]}
+                    )
+
+                # Add "Custom Query" option at the end
+                updated_options.append({"label": "Custom Query...", "value": "custom"})
+
+                return updated_options, "", {"display": "none"}
+            else:
+                return no_update, "Failed to update query profile", {"display": "block"}
+
+        except Exception as e:
+            logger.error(f"Error updating query profile: {e}")
+            return no_update, "Error updating query profile", {"display": "block"}
+
+    @app.callback(
+        Output("jira-query-profile-selector", "options", allow_duplicate=True),
+        [Input("set-default-jql-query-button", "n_clicks")],
+        [State("jira-query-profile-selector", "value")],
+        prevent_initial_call=True,
+    )
+    def set_query_as_default(set_default_clicks, current_profile_id):
+        """Set the selected query profile as default."""
+        if (
+            not set_default_clicks
+            or not current_profile_id
+            or current_profile_id == "custom"
+        ):
+            raise PreventUpdate
+
+        try:
+            from data.jira_query_manager import set_default_query, load_query_profiles
+
+            # Set as default
+            success = set_default_query(current_profile_id)
+
+            if success:
+                logger.info(f"Set profile {current_profile_id} as default")
+
+                # Reload options to reflect changes
+                updated_options = []
+                profiles = load_query_profiles()
+                for profile in profiles:
+                    label = profile["name"]
+                    if profile.get("is_default", False):
+                        label += " ★"  # Add star indicator for default
+                    updated_options.append({"label": label, "value": profile["id"]})
+
+                # Add "Custom Query" option at the end
+                updated_options.append({"label": "Custom Query...", "value": "custom"})
+
+                return updated_options
+            else:
+                logger.error("Failed to set query as default")
+                raise PreventUpdate
+
+        except Exception as e:
+            logger.error(f"Error setting query as default: {e}")
+            raise PreventUpdate
+
+    @app.callback(
+        [
+            Output("jira-query-profile-selector", "value", allow_duplicate=True),
+            Output("jira-jql-query", "value", allow_duplicate=True),
+        ],
+        [Input("load-default-jql-query-button", "n_clicks")],
+        prevent_initial_call=True,
+    )
+    def load_default_query(load_default_clicks):
+        """Load the default query profile."""
+        if not load_default_clicks:
+            raise PreventUpdate
+
+        try:
+            from data.jira_query_manager import get_default_query
+
+            default_query = get_default_query()
+            if default_query:
+                logger.info(f"Loading default query: {default_query['name']}")
+                return default_query["id"], default_query["jql"]
+            else:
+                logger.warning("No default query found")
+                raise PreventUpdate
+
+        except Exception as e:
+            logger.error(f"Error loading default query: {e}")
+            raise PreventUpdate
