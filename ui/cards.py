@@ -211,24 +211,12 @@ def _get_query_profile_options() -> List[Dict[str, Any]]:
                 }
             )
 
-        # Add "Custom Query" option at the end
-        options.append(
-            {
-                "label": "Custom Query...",
-                "value": "custom",
-            }
-        )
-
+        # Don't add "New Query" option - keep dropdown for saved queries only
         return options
 
     except (ImportError, Exception):
-        # Fallback to just custom query option if query manager fails
-        return [
-            {
-                "label": "Custom Query...",
-                "value": "custom",
-            },
-        ]
+        # Return empty list if query manager fails
+        return []
 
 
 #######################################################################
@@ -1243,185 +1231,230 @@ def create_input_parameters_card(
                                 ),
                             ],
                         ),
-                        # Query Profile Selector - Full width on mobile
-                        dbc.Row(
+                        # JQL Query Management Section - Better UX Flow
+                        html.Div(
                             [
-                                dbc.Col(
+                                html.H6(
                                     [
-                                        html.Label(
+                                        html.I(className="fas fa-code me-2"),
+                                        "JQL Query Management",
+                                    ],
+                                    className="mb-3 text-primary border-bottom pb-2",
+                                ),
+                                # Step 1: JQL Query Input
+                                dbc.Row(
+                                    [
+                                        dbc.Col(
                                             [
-                                                "Saved Queries:",
-                                                create_info_tooltip(
-                                                    "Select from saved JIRA queries or choose 'Custom Query' to enter your own JQL",
-                                                    "saved-queries-tooltip",
+                                                html.Label(
+                                                    "JQL Query:",
+                                                    className="fw-medium",
+                                                ),
+                                                dbc.Textarea(
+                                                    id="jira-jql-query",
+                                                    placeholder="project = MYPROJECT AND created >= startOfYear()",
+                                                    value=_get_default_jql_query(),
+                                                    rows=3,
+                                                    style=create_input_style(size="md"),
+                                                ),
+                                                html.Small(
+                                                    "Write your JQL query here, then use the buttons below to save or manage it.",
+                                                    className="text-muted",
                                                 ),
                                             ],
-                                            className="fw-medium",
+                                            width=12,
+                                            className="mb-3",
                                         ),
-                                        dbc.InputGroup(
+                                    ],
+                                ),
+                                # Step 2: Query Actions (directly below query input)
+                                dbc.Row(
+                                    [
+                                        dbc.Col(
                                             [
-                                                # Dropdown component styled to integrate seamlessly
-                                                dcc.Dropdown(
-                                                    id="jira-query-profile-selector",
-                                                    options=cast(
-                                                        Any,
-                                                        _get_query_profile_options(),
-                                                    ),
-                                                    value=_get_default_jql_profile_id(),
-                                                    placeholder="Select a saved query...",
-                                                    clearable=False,
-                                                    searchable=False,
-                                                    style={
-                                                        "border": "1px solid #dee2e6",
-                                                        "borderRight": "none",
-                                                        "borderRadius": "0.375rem 0 0 0.375rem",
-                                                        "minHeight": "38px",  # Match Input component height
-                                                        "flex": "1",
-                                                    },
-                                                ),
-                                                # Save Query Icon Button - matches Total Points pattern
-                                                dbc.InputGroupText(
-                                                    html.I(
-                                                        id="save-jql-query-button",
-                                                        className="fas fa-save text-primary",
-                                                        title="Save current JQL query as new profile",
-                                                        style={
-                                                            "cursor": "pointer",
-                                                            "padding": "4px",
-                                                        },
-                                                    ),
-                                                    style={
-                                                        "backgroundColor": NEUTRAL_COLORS[
-                                                            "gray-100"
-                                                        ],
-                                                        "borderRight": "none",
-                                                    },
-                                                ),
-                                                # Edit Query Icon Button - conditionally visible for user-created profiles
-                                                dbc.InputGroupText(
-                                                    html.I(
-                                                        id="edit-jql-query-button",
-                                                        className="fas fa-edit text-info",
-                                                        title="Edit selected query profile",
-                                                        style={
-                                                            "cursor": "pointer",
-                                                            "padding": "4px",
-                                                        },
-                                                    ),
-                                                    id="edit-jql-query-button-container",
-                                                    style={
-                                                        "backgroundColor": NEUTRAL_COLORS[
-                                                            "gray-100"
-                                                        ],
-                                                        "borderRight": "none",
-                                                        "display": "none",  # Hidden by default, shown via callback for user-created profiles
-                                                    },
-                                                ),
-                                                # Set as Default Query Icon Button - conditionally visible for user-created profiles
-                                                dbc.InputGroupText(
-                                                    html.I(
-                                                        id="set-default-jql-query-button",
-                                                        className="fas fa-star text-warning",
-                                                        title="Set as default query",
-                                                        style={
-                                                            "cursor": "pointer",
-                                                            "padding": "4px",
-                                                        },
-                                                    ),
-                                                    id="set-default-jql-query-button-container",
-                                                    style={
-                                                        "backgroundColor": NEUTRAL_COLORS[
-                                                            "gray-100"
-                                                        ],
-                                                        "borderRight": "none",
-                                                        "display": "none",  # Hidden by default, shown via callback for user-created profiles
-                                                    },
-                                                ),
-                                                # Load Default Query Icon Button - visible when there is a default query
-                                                dbc.InputGroupText(
-                                                    html.I(
-                                                        id="load-default-jql-query-button",
-                                                        className="fas fa-home text-success",
-                                                        title="Load default query",
-                                                        style={
-                                                            "cursor": "pointer",
-                                                            "padding": "4px",
-                                                        },
-                                                    ),
-                                                    id="load-default-jql-query-button-container",
-                                                    style={
-                                                        "backgroundColor": NEUTRAL_COLORS[
-                                                            "gray-100"
-                                                        ],
-                                                        "borderRight": "none",
-                                                        "display": "none",  # Hidden by default, shown via callback when default exists
-                                                    },
-                                                ),
-                                                # Delete Query Icon Button - conditionally visible for user-created profiles
-                                                dbc.InputGroupText(
-                                                    html.I(
-                                                        id="delete-jql-query-button",
-                                                        className="fas fa-trash text-danger",
-                                                        title="Delete selected query profile",
-                                                        style={
-                                                            "cursor": "pointer",
-                                                            "padding": "4px",
-                                                        },
-                                                    ),
-                                                    id="delete-jql-query-button-container",
-                                                    style={
-                                                        "backgroundColor": NEUTRAL_COLORS[
-                                                            "gray-100"
-                                                        ],
-                                                        "borderRadius": "0 0.375rem 0.375rem 0",
-                                                        "display": "none",  # Hidden by default, shown via callback for user-created profiles
-                                                    },
+                                                html.Div(
+                                                    [
+                                                        # Primary Action: Save current query
+                                                        html.Div(
+                                                            [
+                                                                html.Button(
+                                                                    [
+                                                                        html.I(
+                                                                            className="fas fa-save me-1"
+                                                                        ),
+                                                                        html.Span(
+                                                                            "Save Query",
+                                                                            className="d-none d-sm-inline",
+                                                                        ),
+                                                                    ],
+                                                                    id="save-jql-query-button",
+                                                                    className="btn btn-primary btn-sm me-2 mb-1",
+                                                                    title="Save current JQL query as new profile",
+                                                                ),
+                                                                html.Small(
+                                                                    "Save current query",
+                                                                    className="text-muted d-block d-sm-none",
+                                                                ),
+                                                            ],
+                                                            className="d-inline-block me-3 mb-2",
+                                                        ),
+                                                        # Secondary Actions: Manage saved queries
+                                                        html.Div(
+                                                            [
+                                                                html.Button(
+                                                                    [
+                                                                        html.I(
+                                                                            className="fas fa-edit me-1"
+                                                                        ),
+                                                                        html.Span(
+                                                                            "Edit",
+                                                                            className="d-none d-sm-inline",
+                                                                        ),
+                                                                    ],
+                                                                    id="edit-jql-query-button",
+                                                                    className="btn btn-outline-info btn-sm me-1 mb-1",
+                                                                    title="Edit selected query profile",
+                                                                    style={
+                                                                        "display": "none"
+                                                                    },
+                                                                ),
+                                                                html.Button(
+                                                                    [
+                                                                        html.I(
+                                                                            className="fas fa-star me-1"
+                                                                        ),
+                                                                        html.Span(
+                                                                            "Default",
+                                                                            className="d-none d-sm-inline",
+                                                                        ),
+                                                                    ],
+                                                                    id="load-default-jql-query-button",
+                                                                    className="btn btn-outline-success btn-sm me-1 mb-1",
+                                                                    title="Load default query",
+                                                                    style={
+                                                                        "display": "none"
+                                                                    },
+                                                                ),
+                                                                html.Button(
+                                                                    [
+                                                                        html.I(
+                                                                            className="fas fa-trash me-1"
+                                                                        ),
+                                                                        html.Span(
+                                                                            "Delete",
+                                                                            className="d-none d-sm-inline",
+                                                                        ),
+                                                                    ],
+                                                                    id="delete-jql-query-button",
+                                                                    className="btn btn-outline-danger btn-sm mb-1",
+                                                                    title="Delete selected query profile",
+                                                                    style={
+                                                                        "display": "none"
+                                                                    },
+                                                                ),
+                                                            ],
+                                                            className="d-inline-block",
+                                                        ),
+                                                    ],
+                                                    className="d-flex flex-wrap align-items-start",
                                                 ),
                                             ],
-                                            className="mb-2",
+                                            width=12,
+                                            className="mb-3",
                                         ),
                                     ],
-                                    width=12,
-                                    className="mb-3",
                                 ),
-                            ],
-                        ),
-                        # JQL Query - Full width on mobile
-                        dbc.Row(
-                            [
-                                dbc.Col(
+                                # Step 3: Load Saved Queries (Optional)
+                                dbc.Row(
                                     [
-                                        html.Label(
-                                            "JQL Query:",
-                                            className="fw-medium",
-                                        ),
-                                        dbc.Textarea(
-                                            id="jira-jql-query",
-                                            placeholder="project = MYPROJECT AND created >= startOfYear()",
-                                            value=_get_default_jql_query(),
-                                            rows=3,
-                                            style=create_input_style(size="md"),
-                                        ),
-                                        html.Small(
-                                            "Use JQL syntax to filter issues. Supports ScriptRunner functions.",
-                                            className="text-muted",
-                                        ),
-                                        # Query Profile Status Indicator
-                                        html.Div(
-                                            id="query-profile-status",
-                                            className="text-info small mt-2",
-                                            children="💡 Currently using: Select a query profile",
-                                        ),
-                                        # Hidden element for JQL query save status callback
-                                        html.Div(
-                                            id="jira-jql-query-save-status",
-                                            style={"display": "none"},
+                                        dbc.Col(
+                                            [
+                                                html.Div(
+                                                    [
+                                                        html.Label(
+                                                            [
+                                                                html.I(
+                                                                    className="fas fa-folder-open me-2"
+                                                                ),
+                                                                "Load from Saved Queries:",
+                                                                create_info_tooltip(
+                                                                    "load-saved-queries-help",
+                                                                    "Select a previously saved query to load into the editor above. You can also create new queries by typing directly in the JQL editor.",
+                                                                ),
+                                                            ],
+                                                            className="fw-medium mb-2",
+                                                        ),
+                                                        # Desktop layout: Dropdown
+                                                        dbc.InputGroup(
+                                                            [
+                                                                dcc.Dropdown(
+                                                                    id="jira-query-profile-selector",
+                                                                    options=cast(
+                                                                        Any,
+                                                                        _get_query_profile_options(),
+                                                                    ),
+                                                                    value=_get_default_jql_profile_id(),
+                                                                    placeholder="Choose a saved query to load...",
+                                                                    clearable=True,
+                                                                    searchable=False,
+                                                                    style={
+                                                                        "border": "1px solid #dee2e6",
+                                                                        "borderRadius": "0.375rem",
+                                                                        "minHeight": "38px",
+                                                                        "width": "100%",
+                                                                    },
+                                                                ),
+                                                            ],
+                                                            className="d-none d-md-flex mb-2",
+                                                        ),
+                                                        # Mobile layout: Dropdown
+                                                        html.Div(
+                                                            dcc.Dropdown(
+                                                                id="jira-query-profile-selector-mobile",
+                                                                options=cast(
+                                                                    Any,
+                                                                    _get_query_profile_options(),
+                                                                ),
+                                                                value=_get_default_jql_profile_id(),
+                                                                placeholder="Choose a saved query to load...",
+                                                                clearable=True,
+                                                                searchable=False,
+                                                                style={
+                                                                    "border": "1px solid #dee2e6",
+                                                                    "borderRadius": "0.375rem",
+                                                                    "minHeight": "38px",
+                                                                    "width": "100%",
+                                                                },
+                                                            ),
+                                                            className="d-md-none mb-2",
+                                                        ),
+                                                        # Query Status Information
+                                                        html.Div(
+                                                            id="query-profile-status",
+                                                            className="text-success small mt-1",
+                                                            children="",  # Will be populated by callback
+                                                        ),
+                                                    ],
+                                                    className="p-2 bg-light border rounded",
+                                                    style={
+                                                        "borderStyle": "dashed",
+                                                        "borderColor": "#dee2e6",
+                                                    },
+                                                ),
+                                                # Hidden element for JQL query save status callback
+                                                html.Div(
+                                                    id="jira-jql-query-save-status",
+                                                    style={"display": "none"},
+                                                ),
+                                            ],
+                                            width=12,
+                                            className="mb-3",
                                         ),
                                     ],
-                                    width=12,
-                                    className="mb-3",
                                 ),
                             ],
+                            className="mb-4 p-3 border rounded-3",
+                            style={"backgroundColor": "#f8f9fa"},
                         ),
                         # Personal Access Token - Full width on mobile
                         dbc.Row(
@@ -1642,6 +1675,17 @@ def create_input_parameters_card(
                                     style=create_input_style(size="md"),
                                     className="mb-3",
                                 ),
+                                # Set as Default Toggle
+                                dbc.Checkbox(
+                                    id="save-query-set-default-checkbox",
+                                    label="Set as default query",
+                                    value=False,
+                                    className="mb-3",
+                                ),
+                                html.Small(
+                                    "Default queries can be quickly loaded with one click. Only one query can be default at a time.",
+                                    className="text-muted mb-3 d-block",
+                                ),
                                 # JQL Preview
                                 html.Label(
                                     "JQL Preview:",
@@ -1733,6 +1777,17 @@ def create_input_parameters_card(
                                     rows=4,
                                     style=create_input_style(size="md"),
                                     className="mb-3",
+                                ),
+                                # Set as Default Toggle
+                                dbc.Checkbox(
+                                    id="edit-query-set-default-checkbox",
+                                    label="Set as default query",
+                                    value=False,
+                                    className="mb-3",
+                                ),
+                                html.Small(
+                                    "Default queries can be quickly loaded with one click. Only one query can be default at a time.",
+                                    className="text-muted mb-3 d-block",
                                 ),
                             ],
                         ),
