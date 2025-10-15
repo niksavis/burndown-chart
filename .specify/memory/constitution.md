@@ -1,15 +1,15 @@
 <!--
 Sync Impact Report:
-Version: 1.0.0 (Initial Ratification)
-Modified Principles: N/A (Initial creation)
-Added Sections: All sections - Core Principles (I-VII), Development Standards, Quality Gates, Governance
+Version: 1.0.1 (Test Isolation Clarification)
+Modified Principles: N/A
+Added Sections: Test Isolation requirements in Testing Gate (Phase -1) and Test Coverage Gate (Implementation)
 Removed Sections: N/A
 Templates Requiring Updates:
-  - ✅ plan-template.md: Will enforce Phase -1 gates from this constitution
-  - ✅ spec-template.md: Will reference constitutional requirements in acceptance criteria
-  - ✅ tasks-template.md: Will validate against quality gates during implementation
-  - ⚠ Future: Create amendment tracking in memory/amendments/ directory
-Follow-up TODOs: None - all placeholders resolved
+  - ✅ plan-template.md: Already enforces Phase -1 gates
+  - ✅ spec-template.md: Already references constitutional requirements
+  - ✅ tasks-template.md: Already validates against quality gates
+  - ✅ copilot-instructions.md: Updated with detailed test isolation patterns and examples
+Follow-up TODOs: None - test isolation requirements documented
 -->
 
 # Burndown Chart Constitution
@@ -304,6 +304,7 @@ Before writing ANY implementation code, validate these gates. Failing any gate r
 - [ ] **Playwright Approach**: Browser automation uses Playwright (with specific selectors and scenarios)?
 - [ ] **Test Files Identified**: Exact test file paths listed in implementation plan?
 - [ ] **Acceptance Criteria Testable**: Each acceptance criterion translates to executable test case?
+- [ ] **Test Isolation**: Tests use temporary files/directories and clean up all created resources (no pollution of project root)?
 
 **Rejection Criteria**: Features without clear test strategy or non-testable acceptance criteria.
 
@@ -324,8 +325,9 @@ These gates MUST pass before submitting code for review. Failing any gate requir
 - [ ] **Unit Tests Pass**: `.\.venv\Scripts\activate; pytest tests/unit/ -v` passes?
 - [ ] **Integration Tests Pass**: `.\.venv\Scripts\activate; pytest tests/integration/ -v` passes?
 - [ ] **No Skipped Tests**: All tests enabled unless documented exception approved?
+- [ ] **Test Isolation Verified**: Tests can run in any order and in isolation without failing (no shared state, proper cleanup)?
 
-**Rejection Criteria**: Pull requests with failing tests, skipped tests without approval, or missing test coverage for acceptance criteria.
+**Rejection Criteria**: Pull requests with failing tests, skipped tests without approval, missing test coverage for acceptance criteria, or tests that pollute the project workspace.
 
 #### Code Quality Gate
 - [ ] **No Lint Errors**: `.\.venv\Scripts\activate; pylint [changed_files]` passes?
@@ -460,8 +462,24 @@ For day-to-day development decisions not explicitly covered by constitutional pr
 
 ---
 
-**Version**: 1.0.0  
+**Version**: 1.0.1  
 **Ratified**: 2025-10-15  
-**Last Amended**: 2025-10-15  
+**Last Amended**: 2025-10-15 (Test Isolation Clarification - PATCH)  
 **Approver**: Project Owner  
 **Next Review**: 2026-01-15 (Quarterly review cycle)
+
+## Amendment History
+
+### Version 1.0.1 (2025-10-15) - PATCH
+
+**Change**: Added test isolation requirements to quality gates
+
+**Details**:
+- Added test isolation checkpoint to Testing Gate (Phase -1)
+- Added test isolation verification to Test Coverage Gate (Implementation)
+- Documented mandatory use of `tempfile` for test file operations
+- Added requirement that tests must run in any order without failures
+
+**Rationale**: Prevent test pollution of project workspace and ensure tests can run independently. Tests creating files in project root directory cause false failures when run in parallel or in different orders.
+
+**Impact**: No code changes required - existing tests already follow these patterns using `tempfile.TemporaryDirectory()` and `tempfile.NamedTemporaryFile()` fixtures.

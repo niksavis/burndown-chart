@@ -23,37 +23,6 @@ from data.schema import validate_query_profile
 #######################################################################
 QUERY_PROFILES_FILE = "jira_query_profiles.json"
 
-# Default query profiles (always available)
-DEFAULT_QUERY_PROFILES = [
-    {
-        "id": "default-all-issues",
-        "name": "All Open Issues",
-        "jql": "project = JRASERVER AND status != Done",
-        "description": "All issues that are not done",
-        "is_default": True,
-        "created_at": "2025-01-01T00:00:00",
-        "last_used": "2025-01-01T00:00:00",
-    },
-    {
-        "id": "default-recent-bugs",
-        "name": "Recent Bugs (Last 2 Weeks)",
-        "jql": "project = JRASERVER AND type = Bug AND created >= -2w",
-        "description": "Bugs created in the last 2 weeks",
-        "is_default": True,
-        "created_at": "2025-01-01T00:00:00",
-        "last_used": "2025-01-01T00:00:00",
-    },
-    {
-        "id": "default-current-sprint",
-        "name": "Current Sprint",
-        "jql": "project = JRASERVER AND sprint in openSprints()",
-        "description": "Issues in current sprint",
-        "is_default": True,
-        "created_at": "2025-01-01T00:00:00",
-        "last_used": "2025-01-01T00:00:00",
-    },
-]
-
 #######################################################################
 # QUERY PROFILE MANAGEMENT FUNCTIONS
 #######################################################################
@@ -99,19 +68,13 @@ def _save_profiles_to_disk(profiles: List[Dict[str, Any]]) -> bool:
 
 def load_query_profiles() -> List[Dict[str, Any]]:
     """
-    Load all query profiles (defaults + user-created).
+    Load all query profiles from disk.
 
     Returns:
-        List of query profile dictionaries (defaults first, then user profiles)
+        List of query profile dictionaries from jira_query_profiles.json
     """
-    # Start with default profiles (always available)
-    all_profiles = DEFAULT_QUERY_PROFILES.copy()
-
-    # Add user-created profiles
-    user_profiles = _load_profiles_from_disk()
-    all_profiles.extend(user_profiles)
-
-    return all_profiles
+    # Load user-created profiles from disk
+    return _load_profiles_from_disk()
 
 
 def get_query_profile_by_id(profile_id: str) -> Optional[Dict[str, Any]]:

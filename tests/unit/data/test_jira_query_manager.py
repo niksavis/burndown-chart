@@ -9,14 +9,15 @@ import json
 import os
 import tempfile
 import uuid
-from unittest.mock import patch, mock_open
+from unittest.mock import mock_open, patch
+
 import pytest
 
 from data.jira_query_manager import (
-    load_query_profiles,
-    save_query_profile,
     delete_query_profile,
     get_query_profile_by_id,
+    load_query_profiles,
+    save_query_profile,
     update_profile_last_used,
     validate_profile_name_unique,
 )
@@ -25,23 +26,17 @@ from data.jira_query_manager import (
 class TestQueryProfileManager:
     """Test JIRA query profile management functionality"""
 
-    def test_load_query_profiles_returns_defaults_when_no_file(self):
-        """Test that default profiles are returned when no user profiles exist"""
+    def test_load_query_profiles_returns_empty_when_no_file(self):
+        """Test that empty list is returned when no user profiles exist"""
         with patch("data.jira_query_manager.os.path.exists", return_value=False):
             profiles = load_query_profiles()
 
-            # Should return 3 default profiles
-            assert len(profiles) == 3
-            assert all(profile["is_default"] for profile in profiles)
+            # Should return empty list
+            assert len(profiles) == 0
+            assert profiles == []
 
-            # Verify default profile names
-            profile_names = [p["name"] for p in profiles]
-            assert "All Open Issues" in profile_names
-            assert "Recent Bugs (Last 2 Weeks)" in profile_names
-            assert "Current Sprint" in profile_names
-
-    def test_load_query_profiles_combines_defaults_and_user_profiles(self):
-        """Test that user profiles are combined with default profiles"""
+    def test_load_query_profiles_returns_user_profiles(self):
+        """Test that user profiles are loaded from file"""
         mock_user_profiles = [
             {
                 "id": str(uuid.uuid4()),
@@ -60,15 +55,12 @@ class TestQueryProfileManager:
         ):
             profiles = load_query_profiles()
 
-            # Should have 3 defaults + 1 user profile
-            assert len(profiles) == 4
+            # Should have only 1 user profile
+            assert len(profiles) == 1
 
-            # First 3 should be defaults
-            assert all(profiles[i]["is_default"] for i in range(3))
-
-            # Last should be user profile
-            assert not profiles[3]["is_default"]
-            assert profiles[3]["name"] == "Custom Query"
+            # Should be the user profile
+            assert not profiles[0]["is_default"]
+            assert profiles[0]["name"] == "Custom Query"
 
     def test_save_query_profile_creates_new_profile(self):
         """Test saving a new query profile"""
