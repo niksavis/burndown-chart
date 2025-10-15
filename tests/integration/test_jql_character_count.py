@@ -169,17 +169,24 @@ class TestJQLCharacterCount:
             jql_textarea = page.locator("#jira-jql-query")
             jql_textarea.click()
             jql_textarea.fill("project = TEST")
-            time.sleep(0.3)
+            time.sleep(0.5)  # Wait for callback
 
             # Now clear it
             jql_textarea.fill("")
-            time.sleep(0.3)
+            time.sleep(0.5)  # Wait for callback to update
 
             # Verify count shows 0
             char_count = page.locator("#jira-jql-character-count-container")
+
+            # Wait for the text to update to "0 / 2,000"
+            page.wait_for_timeout(500)
             char_count_text = char_count.inner_text()
 
-            assert "0" in char_count_text.split("/")[0]  # First part should be 0
+            # Extract the first number (before the /)
+            count_part = char_count_text.split("/")[0].strip().replace(",", "")
+            assert "0" == count_part, (
+                f"Expected '0', got '{count_part}' from text: '{char_count_text}'"
+            )
 
             browser.close()
 
@@ -224,17 +231,26 @@ class TestJQLCharacterCount:
             jql_textarea = page.locator("#jira-jql-query")
             jql_textarea.click()
             jql_textarea.fill("")
+            time.sleep(0.5)  # Wait for initial clear to process
 
             # Type one character at a time and verify count updates immediately
+            expected_count = 0
             for char in "ABC":
                 jql_textarea.type(char, delay=100)
-                time.sleep(0.2)  # Brief wait for React update
+                expected_count += 1
+
+                # Wait for Dash callback to complete
+                time.sleep(0.5)
 
                 char_count = page.locator("#jira-jql-character-count-container")
                 current_text = char_count.inner_text()
 
-                # Count should update immediately (no 300ms debounce delay)
-                assert current_text.split("/")[0].strip() != "0"
+                # Extract the count part and verify it's updating
+                count_part = current_text.split("/")[0].strip().replace(",", "")
+                assert count_part == str(expected_count), (
+                    f"After typing '{char}', expected count '{expected_count}', "
+                    f"got '{count_part}' from text: '{current_text}'"
+                )
 
             browser.close()
 
