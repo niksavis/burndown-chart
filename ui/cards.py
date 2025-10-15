@@ -42,6 +42,11 @@ from ui.tooltip_utils import (
     create_dismissible_tooltip,
     create_expandable_tooltip,
 )
+# Import character count components (Feature 001-add-jql-query)
+from ui.components import (
+    create_character_count_display,
+    should_show_character_warning,
+)
 
 # Type definition for StyleCellConditional
 StyleCellConditional = Dict[str, Any]
@@ -1256,6 +1261,17 @@ def create_input_parameters_card(
                                                     value=_get_default_jql_query(),
                                                     rows=3,
                                                     style=create_input_style(size="md"),
+                                                ),
+                                                # Character count display (Feature 001-add-jql-query)
+                                                html.Div(
+                                                    id="jira-jql-character-count-container",
+                                                    children=[
+                                                        create_character_count_display(
+                                                            count=len(_get_default_jql_query() or ""),
+                                                            warning=should_show_character_warning(_get_default_jql_query())
+                                                        )
+                                                    ],
+                                                    className="mb-2"
                                                 ),
                                                 html.Small(
                                                     "Write your JQL query here, then use the buttons below to save or manage it.",

@@ -1909,3 +1909,36 @@ def register(app):
         except Exception as e:
             logger.error(f"Error loading default query: {e}")
             raise PreventUpdate
+
+    # JQL Character Count Callback (Feature 001-add-jql-query, TASK-108)
+    @app.callback(
+        Output("jira-jql-character-count-container", "children"),
+        Input("jira-jql-query", "value"),
+        prevent_initial_call=False,
+    )
+    def update_jql_character_count(jql_value):
+        """
+        Update character count display when JQL query changes.
+        
+        Per FR-002: Shows warning when approaching 1800 chars (JIRA's limit is 2000).
+        Provides instant feedback without debouncing (updates are lightweight).
+        
+        Args:
+            jql_value: Current JQL query text
+            
+        Returns:
+            Updated character count display component
+        """
+        from ui.components import (
+            create_character_count_display,
+            count_jql_characters,
+            should_show_character_warning,
+        )
+        
+        if jql_value is None:
+            jql_value = ""
+        
+        count = count_jql_characters(jql_value)
+        warning = should_show_character_warning(jql_value)
+        
+        return create_character_count_display(count=count, warning=warning)
