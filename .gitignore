@@ -179,6 +179,11 @@ project_data.json
 jira_cache.json
 jira_query_profiles.json
 
+# Spec Kit temporary/build files (following official spec-kit .gitignore pattern)
+sdd-*/
+.genreleases/
+*.zip
+
 # Debug and test artifacts (root directory only - not tests/ folder)
 /test_*.py
 /debug_*.py
