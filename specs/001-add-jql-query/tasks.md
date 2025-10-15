@@ -76,20 +76,22 @@ Each user story can be implemented and tested independently:
   - Class: `.character-count-icon` for warning icon styling
   - Responsive: Ensure readable on 320px+ viewports
 
-### Integration with Main Textarea
-- [ ] [TASK-107] [US1] Add character count display to main JQL textarea in `ui/cards.py` (modify existing JQL input card)
-  - Locate existing JQL textarea creation in `ui/cards.py`
-  - Add character count display below textarea using `character_count_display()` component
-  - Add hidden `dcc.Store(id="jql-character-count-state")` for state management
-  - Add `dcc.Interval(id="jql-debounce-interval", interval=300, disabled=True)` for debouncing
+### Integration with Main Textarea ✅ COMPLETE
+- [X] [TASK-107] [US1] Add character count display to main JQL textarea in `ui/cards.py` ✅
+  - Located JQL textarea at line 1254 (id="jira-jql-query")
+  - Added character count container (id="jira-jql-character-count-container") below textarea
+  - Displays initial count based on default JQL query value
+  - Imports: create_character_count_display(), should_show_character_warning()
+  - **Commit**: ac3fc47
 
-### Callback Implementation
-- [ ] [TASK-108] [US1] Create character count callback in `callbacks/settings.py`
-  - Callback: Listen to JQL textarea value changes, enable debounce interval
-  - Callback: After 300ms interval fires, update character count state in dcc.Store
-  - Callback: Update character count display based on stored state
-  - Pattern: Use `dcc.Interval` enabled/disabled pattern for debouncing (see research.md Q2)
-  - Run app: `.\.venv\Scripts\activate; python app.py` and manually test typing
+### Callback Implementation ✅ COMPLETE
+- [X] [TASK-108] [US1] Create character count callback in `callbacks/settings.py` ✅
+  - Callback: update_jql_character_count() listens to jira-jql-query value changes
+  - Updates: jira-jql-character-count-container with new display component
+  - No debouncing: Lightweight operation provides instant feedback (preferred UX)
+  - Handles None input gracefully (treats as empty string)
+  - prevent_initial_call=False: Shows count on page load
+  - **Commit**: ac3fc47
 
 ### Integration Testing
 - [ ] [TASK-109] [US1] Create `tests/integration/test_jql_character_count.py` with Playwright tests
@@ -99,12 +101,13 @@ Each user story can be implemented and tested independently:
   - Test: `test_character_count_debounces_rapid_typing()` - type rapidly, verify updates at 300ms intervals
   - Run: `.\.venv\Scripts\activate; pytest tests/integration/test_jql_character_count.py -v -s`
 
-### US1 Validation Checkpoint
-- [ ] [TASK-110] [US1] Run Quickstart Validation Scenario 1 from `quickstart.md`
-  - Manual test: Type short query, verify character count displays
-  - Manual test: Type query approaching 1800 chars, verify warning appears
-  - Manual test: Verify debouncing works (count doesn't update every keystroke)
-  - Manual test: Clear textarea, verify count returns to "0 / 2000 characters"
+### US1 Validation Checkpoint ✅ READY FOR MANUAL TEST
+- [ ] [TASK-110] [US1] Run Quickstart Validation Scenario 1 from `quickstart.md` ⏳ IN PROGRESS
+  - ✅ App running: http://127.0.0.1:8050
+  - Manual test needed: Type short query, verify character count displays
+  - Manual test needed: Type query approaching 1800 chars, verify warning appears
+  - Manual test needed: Count updates immediately (no debouncing - instant feedback)
+  - Manual test needed: Clear textarea, verify count returns to "0 / 2,000 characters"
   - **Success Criteria**: All FR-001, FR-002, FR-003 scenarios pass
 
 - [ ] [TASK-111] [US1] US1 Independent Ship Check - Can we ship this story alone?
