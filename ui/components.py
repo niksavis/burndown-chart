@@ -367,7 +367,7 @@ def parse_jql_syntax(query):
             i += 1
             continue
 
-        # Parse words (potential keywords or field names)
+        # Parse words (potential keywords, functions, or field names)
         start = i
         while (
             i < len(query_str)
@@ -378,8 +378,12 @@ def parse_jql_syntax(query):
 
         word = query_str[start:i]
 
-        # Check if it's a keyword (case-insensitive)
-        if is_jql_keyword(word):
+        # Check if it's a ScriptRunner function (exact case match)
+        from ui.jql_syntax_highlighter import is_scriptrunner_function
+        if is_scriptrunner_function(word):
+            token_type = "function"
+        # Check if it's a JQL keyword (case-insensitive)
+        elif is_jql_keyword(word):
             token_type = "keyword"
         else:
             # Could be a field name or value
@@ -395,6 +399,7 @@ def render_syntax_tokens(tokens) -> list:
     Render syntax tokens to Dash HTML components.
 
     Converts tokens to html.Mark elements with CSS classes per FR-006.
+    Supports token types: keyword, string, operator, function, error.
 
     Args:
         tokens: List of SyntaxToken dicts
@@ -410,14 +415,27 @@ def render_syntax_tokens(tokens) -> list:
     for token in tokens:
         text = token.get("text", "")
         token_type = token.get("type", "text")
+        error_type = token.get("error_type")  # Optional error classification
 
+        # Render error tokens with appropriate styling
+        if token_type == "error":
+            if error_type == "unclosed_string":
+                rendered.append(html.Mark(text, className="jql-error-unclosed"))
+            elif error_type == "invalid_operator":
+                rendered.append(html.Mark(text, className="jql-error-invalid"))
+            else:
+                # Generic error styling
+                rendered.append(html.Mark(text, className="jql-error-invalid"))
+        # Render ScriptRunner functions with highlighting
+        elif token_type == "function":
+            rendered.append(html.Mark(text, className="jql-function"))
         # Render keywords with highlighting
-        if token_type == "keyword":
+        elif token_type == "keyword":
             rendered.append(html.Mark(text, className="jql-keyword"))
         # Render strings with highlighting
         elif token_type == "string":
             rendered.append(html.Mark(text, className="jql-string"))
-        # Render operators with highlighting (optional enhancement)
+        # Render operators with highlighting
         elif token_type == "operator":
             rendered.append(html.Mark(text, className="jql-operator"))
         # Render plain text as-is
