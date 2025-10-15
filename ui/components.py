@@ -380,6 +380,7 @@ def parse_jql_syntax(query):
 
         # Check if it's a ScriptRunner function (exact case match)
         from ui.jql_syntax_highlighter import is_scriptrunner_function
+
         if is_scriptrunner_function(word):
             token_type = "function"
         # Check if it's a JQL keyword (case-insensitive)

@@ -9,14 +9,14 @@ Tests cover:
 """
 
 from dash import html
-from ui.jql_syntax_highlighter import (
-    create_jql_syntax_highlighter,
-    is_scriptrunner_function,
-    detect_syntax_errors,
-    SCRIPTRUNNER_FUNCTIONS
-)
-from ui.components import parse_jql_syntax, render_syntax_tokens
 
+from ui.components import parse_jql_syntax, render_syntax_tokens
+from ui.jql_syntax_highlighter import (
+    SCRIPTRUNNER_FUNCTIONS,
+    create_jql_syntax_highlighter,
+    detect_syntax_errors,
+    is_scriptrunner_function,
+)
 
 #######################################################################
 # TEST: T009 - Component Structure
@@ -29,8 +29,7 @@ class TestComponentStructure:
     def test_create_basic_component(self):
         """Test basic component creation with default parameters."""
         component = create_jql_syntax_highlighter(
-            component_id="test-jql",
-            value="project = TEST"
+            component_id="test-jql", value="project = TEST"
         )
 
         # Should return a wrapper div
@@ -42,22 +41,21 @@ class TestComponentStructure:
     def test_component_contains_two_children(self):
         """Test component has highlight div and textarea."""
         component = create_jql_syntax_highlighter(
-            component_id="test-jql",
-            value="project = TEST"
+            component_id="test-jql", value="project = TEST"
         )
 
         # Access children directly from component object
         children = component.children
         assert children is not None, "Component should have children"
         assert len(children) == 2
-        
+
         # First child is highlight div
         highlight_div = children[0]
         highlight_json = highlight_div.to_plotly_json()
         assert highlight_json["type"] == "Div"
         assert highlight_json["props"]["id"] == "test-jql-highlight"
-        
-        # Second child is textarea  
+
+        # Second child is textarea
         textarea = children[1]
         textarea_json = textarea.to_plotly_json()
         assert textarea_json["type"] == "Textarea"
@@ -72,13 +70,13 @@ class TestComponentStructure:
             placeholder="Enter query",
             rows=10,
             disabled=True,
-            aria_label="Custom Input"
+            aria_label="Custom Input",
         )
 
         assert component.children is not None
         textarea = component.children[1]
         textarea_props = textarea.to_plotly_json()["props"]
-        
+
         assert textarea_props["placeholder"] == "Enter query"
         assert textarea_props["rows"] == 10
         assert textarea_props["disabled"] is True
@@ -91,7 +89,7 @@ class TestComponentStructure:
         assert component_min.children is not None
         textarea_min = component_min.children[1]
         assert textarea_min.to_plotly_json()["props"]["rows"] == 1
-        
+
         # Maximum
         component_max = create_jql_syntax_highlighter("test2", rows=50)
         assert component_max.children is not None
@@ -102,7 +100,7 @@ class TestComponentStructure:
         """Test queries exceeding 5000 chars are truncated."""
         long_query = "x" * 6000
         component = create_jql_syntax_highlighter("test", value=long_query)
-        
+
         assert component.children is not None
         textarea = component.children[1]
         textarea_children = textarea.to_plotly_json()["props"]["children"]
@@ -122,7 +120,7 @@ class TestTokenRendering:
         tokens = parse_jql_syntax("project = TEST AND status IN (Done)")
         keyword_tokens = [t for t in tokens if t["type"] == "keyword"]
         keyword_texts = [t["text"] for t in keyword_tokens]
-        
+
         assert "AND" in keyword_texts
         assert "IN" in keyword_texts
 
@@ -149,12 +147,12 @@ class TestTokenRendering:
         """Test tokens are rendered to HTML with CSS classes."""
         tokens = [
             {"text": "AND", "type": "keyword", "start": 0, "end": 3},
-            {"text": "=", "type": "operator", "start": 4, "end": 5}
+            {"text": "=", "type": "operator", "start": 4, "end": 5},
         ]
-        
+
         rendered = render_syntax_tokens(tokens)
         assert len(rendered) == 2
-        
+
         # Check keyword has CSS class
         keyword_json = rendered[0].to_plotly_json()
         assert keyword_json["type"] == "Mark"
@@ -164,16 +162,22 @@ class TestTokenRendering:
         """Test ScriptRunner function tokens render with purple styling."""
         tokens = [{"text": "linkedIssuesOf", "type": "function", "start": 0, "end": 14}]
         rendered = render_syntax_tokens(tokens)
-        
+
         function_json = rendered[0].to_plotly_json()
         assert "jql-function" in function_json["props"]["className"]
 
     def test_render_error_tokens(self):
         """Test error tokens render with error styling."""
         tokens = [
-            {"text": '"unclosed', "type": "error", "error_type": "unclosed_string", "start": 0, "end": 9}
+            {
+                "text": '"unclosed',
+                "type": "error",
+                "error_type": "unclosed_string",
+                "start": 0,
+                "end": 9,
+            }
         ]
-        
+
         rendered = render_syntax_tokens(tokens)
         error_json = rendered[0].to_plotly_json()
         assert "jql-error-unclosed" in error_json["props"]["className"]
@@ -201,7 +205,7 @@ class TestEdgeCases:
         """Test detect_syntax_errors() finds unclosed strings."""
         tokens = [{"text": '"unclosed', "type": "string", "start": 0, "end": 9}]
         errors = detect_syntax_errors(tokens)
-        
+
         assert len(errors) == 1
         assert errors[0]["error_type"] == "unclosed_string"
 
@@ -214,12 +218,13 @@ class TestEdgeCases:
     def test_very_long_query_performance(self):
         """Test performance with 5000 char query."""
         long_query = "project = TEST AND " * 250
-        
+
         import time
+
         start_time = time.time()
         tokens = parse_jql_syntax(long_query[:5000])
         elapsed_ms = (time.time() - start_time) * 1000
-        
+
         # Should complete in < 50ms per FR-010
         assert elapsed_ms < 50
         assert len(tokens) > 0
@@ -236,10 +241,9 @@ class TestAccessibility:
     def test_component_has_aria_label(self):
         """Test textarea has accessibility label."""
         component = create_jql_syntax_highlighter(
-            component_id="test-jql",
-            aria_label="JQL Query Input"
+            component_id="test-jql", aria_label="JQL Query Input"
         )
-        
+
         assert component.children is not None
         textarea = component.children[1]
         textarea_props = textarea.to_plotly_json()["props"]
@@ -248,7 +252,7 @@ class TestAccessibility:
     def test_highlight_div_not_editable(self):
         """Test highlight div is contentEditable=false."""
         component = create_jql_syntax_highlighter("test")
-        
+
         assert component.children is not None
         highlight_div = component.children[0]
         highlight_props = highlight_div.to_plotly_json()["props"]
@@ -257,7 +261,7 @@ class TestAccessibility:
     def test_component_supports_disabled_state(self):
         """Test component respects disabled state."""
         component = create_jql_syntax_highlighter("test", disabled=True)
-        
+
         assert component.children is not None
         textarea = component.children[1]
         textarea_props = textarea.to_plotly_json()["props"]

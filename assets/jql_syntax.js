@@ -1,208 +1,217 @@
 /**
  * JQL Syntax Highlighting - JavaScript Layer
- * 
+ *
  * Provides real-time scroll synchronization and performance optimization
  * for dual-layer syntax-highlighted JQL textareas.
- * 
+ *
  * Features:
  * - Scroll synchronization between textarea and highlight div
  * - requestAnimationFrame throttling for 60fps rendering
  * - Automatic component detection via data attributes
  * - Mobile-responsive touch event handling
- * 
+ *
  * Performance Constraints (per FR-010, FR-011):
  * - Render latency: < 50ms
  * - Frame rate: 60fps (16.67ms per frame)
  * - Max query length: 5000 characters
- * 
+ *
  * Browser Support: Latest 6 months (Chrome, Firefox, Safari, Edge)
- * 
+ *
  * Usage:
  * This script automatically initializes on page load for any component
  * with class "jql-syntax-wrapper". No manual initialization required.
  */
 
-(function() {
-    'use strict';
+(function () {
+  "use strict";
 
-    //=========================================================================
-    // CONFIGURATION
-    //=========================================================================
+  //=========================================================================
+  // CONFIGURATION
+  //=========================================================================
 
-    const CONFIG = {
-        WRAPPER_CLASS: 'jql-syntax-wrapper',
-        INPUT_CLASS: 'jql-syntax-input',
-        HIGHLIGHT_CLASS: 'jql-syntax-highlight',
-        MAX_QUERY_LENGTH: 5000,
-        SCROLL_THROTTLE_MS: 16 // ~60fps (16.67ms per frame)
-    };
+  const CONFIG = {
+    WRAPPER_CLASS: "jql-syntax-wrapper",
+    INPUT_CLASS: "jql-syntax-input",
+    HIGHLIGHT_CLASS: "jql-syntax-highlight",
+    MAX_QUERY_LENGTH: 5000,
+    SCROLL_THROTTLE_MS: 16, // ~60fps (16.67ms per frame)
+  };
 
-    //=========================================================================
-    // STATE MANAGEMENT
-    //=========================================================================
+  //=========================================================================
+  // STATE MANAGEMENT
+  //=========================================================================
 
-    // Track scroll animation frames to prevent multiple simultaneous updates
-    const scrollAnimationFrames = new Map();
+  // Track scroll animation frames to prevent multiple simultaneous updates
+  const scrollAnimationFrames = new Map();
 
-    //=========================================================================
-    // SCROLL SYNCHRONIZATION
-    //=========================================================================
+  //=========================================================================
+  // SCROLL SYNCHRONIZATION
+  //=========================================================================
 
-    /**
-     * Synchronize scroll position from textarea to highlight div.
-     * Uses requestAnimationFrame for 60fps rendering.
-     * 
-     * @param {HTMLTextAreaElement} textarea - Source textarea element
-     * @param {HTMLDivElement} highlightDiv - Target highlight div element
-     */
-    function syncScroll(textarea, highlightDiv) {
-        // Cancel any pending animation frame for this component
-        const existingFrame = scrollAnimationFrames.get(textarea);
-        if (existingFrame) {
-            cancelAnimationFrame(existingFrame);
-        }
-
-        // Schedule scroll sync on next animation frame
-        const frameId = requestAnimationFrame(() => {
-            highlightDiv.scrollTop = textarea.scrollTop;
-            highlightDiv.scrollLeft = textarea.scrollLeft;
-            scrollAnimationFrames.delete(textarea);
-        });
-
-        scrollAnimationFrames.set(textarea, frameId);
+  /**
+   * Synchronize scroll position from textarea to highlight div.
+   * Uses requestAnimationFrame for 60fps rendering.
+   *
+   * @param {HTMLTextAreaElement} textarea - Source textarea element
+   * @param {HTMLDivElement} highlightDiv - Target highlight div element
+   */
+  function syncScroll(textarea, highlightDiv) {
+    // Cancel any pending animation frame for this component
+    const existingFrame = scrollAnimationFrames.get(textarea);
+    if (existingFrame) {
+      cancelAnimationFrame(existingFrame);
     }
 
-    /**
-     * Set up scroll event listeners for a textarea/highlight pair.
-     * 
-     * @param {HTMLTextAreaElement} textarea - Textarea element
-     * @param {HTMLDivElement} highlightDiv - Highlight div element
-     */
-    function setupScrollSync(textarea, highlightDiv) {
-        if (!textarea || !highlightDiv) {
-            console.warn('[JQL Syntax] Missing textarea or highlight div for scroll sync');
-            return;
-        }
+    // Schedule scroll sync on next animation frame
+    const frameId = requestAnimationFrame(() => {
+      highlightDiv.scrollTop = textarea.scrollTop;
+      highlightDiv.scrollLeft = textarea.scrollLeft;
+      scrollAnimationFrames.delete(textarea);
+    });
 
-        // Sync scroll on textarea scroll event
-        textarea.addEventListener('scroll', () => {
-            syncScroll(textarea, highlightDiv);
-        }, { passive: true });
+    scrollAnimationFrames.set(textarea, frameId);
+  }
 
-        // Initial sync
+  /**
+   * Set up scroll event listeners for a textarea/highlight pair.
+   *
+   * @param {HTMLTextAreaElement} textarea - Textarea element
+   * @param {HTMLDivElement} highlightDiv - Highlight div element
+   */
+  function setupScrollSync(textarea, highlightDiv) {
+    if (!textarea || !highlightDiv) {
+      console.warn(
+        "[JQL Syntax] Missing textarea or highlight div for scroll sync"
+      );
+      return;
+    }
+
+    // Sync scroll on textarea scroll event
+    textarea.addEventListener(
+      "scroll",
+      () => {
         syncScroll(textarea, highlightDiv);
+      },
+      { passive: true }
+    );
+
+    // Initial sync
+    syncScroll(textarea, highlightDiv);
+  }
+
+  //=========================================================================
+  // COMPONENT INITIALIZATION
+  //=========================================================================
+
+  /**
+   * Initialize JQL syntax highlighting for a single wrapper component.
+   *
+   * @param {HTMLElement} wrapper - Wrapper div containing textarea and highlight div
+   */
+  function initializeComponent(wrapper) {
+    const textarea = wrapper.querySelector(`.${CONFIG.INPUT_CLASS}`);
+    const highlightDiv = wrapper.querySelector(`.${CONFIG.HIGHLIGHT_CLASS}`);
+
+    if (!textarea) {
+      console.warn("[JQL Syntax] No textarea found in wrapper", wrapper);
+      return;
     }
 
-    //=========================================================================
-    // COMPONENT INITIALIZATION
-    //=========================================================================
-
-    /**
-     * Initialize JQL syntax highlighting for a single wrapper component.
-     * 
-     * @param {HTMLElement} wrapper - Wrapper div containing textarea and highlight div
-     */
-    function initializeComponent(wrapper) {
-        const textarea = wrapper.querySelector(`.${CONFIG.INPUT_CLASS}`);
-        const highlightDiv = wrapper.querySelector(`.${CONFIG.HIGHLIGHT_CLASS}`);
-
-        if (!textarea) {
-            console.warn('[JQL Syntax] No textarea found in wrapper', wrapper);
-            return;
-        }
-
-        if (!highlightDiv) {
-            console.warn('[JQL Syntax] No highlight div found in wrapper', wrapper);
-            return;
-        }
-
-        // Set up scroll synchronization
-        setupScrollSync(textarea, highlightDiv);
-
-        console.log('[JQL Syntax] Component initialized:', textarea.id);
+    if (!highlightDiv) {
+      console.warn("[JQL Syntax] No highlight div found in wrapper", wrapper);
+      return;
     }
 
-    /**
-     * Initialize all JQL syntax highlighting components on the page.
-     */
-    function initializeAll() {
-        const wrappers = document.querySelectorAll(`.${CONFIG.WRAPPER_CLASS}`);
+    // Set up scroll synchronization
+    setupScrollSync(textarea, highlightDiv);
 
-        if (wrappers.length === 0) {
-            console.log('[JQL Syntax] No components found on page');
-            return;
-        }
+    console.log("[JQL Syntax] Component initialized:", textarea.id);
+  }
 
-        wrappers.forEach(wrapper => {
-            initializeComponent(wrapper);
-        });
+  /**
+   * Initialize all JQL syntax highlighting components on the page.
+   */
+  function initializeAll() {
+    const wrappers = document.querySelectorAll(`.${CONFIG.WRAPPER_CLASS}`);
 
-        console.log(`[JQL Syntax] Initialized ${wrappers.length} component(s)`);
+    if (wrappers.length === 0) {
+      console.log("[JQL Syntax] No components found on page");
+      return;
     }
 
-    //=========================================================================
-    // MUTATION OBSERVER (for Dash dynamic updates)
-    //=========================================================================
+    wrappers.forEach((wrapper) => {
+      initializeComponent(wrapper);
+    });
 
-    /**
-     * Watch for new JQL syntax components added to DOM via Dash callbacks.
-     * Automatically initializes new components when detected.
-     */
-    function setupMutationObserver() {
-        const observer = new MutationObserver(mutations => {
-            let newComponentsFound = false;
+    console.log(`[JQL Syntax] Initialized ${wrappers.length} component(s)`);
+  }
 
-            mutations.forEach(mutation => {
-                mutation.addedNodes.forEach(node => {
-                    if (node.nodeType === Node.ELEMENT_NODE) {
-                        // Check if added node is a wrapper
-                        if (node.classList && node.classList.contains(CONFIG.WRAPPER_CLASS)) {
-                            initializeComponent(node);
-                            newComponentsFound = true;
-                        }
+  //=========================================================================
+  // MUTATION OBSERVER (for Dash dynamic updates)
+  //=========================================================================
 
-                        // Check if added node contains wrappers
-                        const nestedWrappers = node.querySelectorAll && 
-                                             node.querySelectorAll(`.${CONFIG.WRAPPER_CLASS}`);
-                        if (nestedWrappers && nestedWrappers.length > 0) {
-                            nestedWrappers.forEach(wrapper => {
-                                initializeComponent(wrapper);
-                            });
-                            newComponentsFound = true;
-                        }
-                    }
-                });
-            });
+  /**
+   * Watch for new JQL syntax components added to DOM via Dash callbacks.
+   * Automatically initializes new components when detected.
+   */
+  function setupMutationObserver() {
+    const observer = new MutationObserver((mutations) => {
+      let newComponentsFound = false;
 
-            if (newComponentsFound) {
-                console.log('[JQL Syntax] New components detected and initialized');
+      mutations.forEach((mutation) => {
+        mutation.addedNodes.forEach((node) => {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            // Check if added node is a wrapper
+            if (
+              node.classList &&
+              node.classList.contains(CONFIG.WRAPPER_CLASS)
+            ) {
+              initializeComponent(node);
+              newComponentsFound = true;
             }
+
+            // Check if added node contains wrappers
+            const nestedWrappers =
+              node.querySelectorAll &&
+              node.querySelectorAll(`.${CONFIG.WRAPPER_CLASS}`);
+            if (nestedWrappers && nestedWrappers.length > 0) {
+              nestedWrappers.forEach((wrapper) => {
+                initializeComponent(wrapper);
+              });
+              newComponentsFound = true;
+            }
+          }
         });
+      });
 
-        observer.observe(document.body, {
-            childList: true,
-            subtree: true
-        });
+      if (newComponentsFound) {
+        console.log("[JQL Syntax] New components detected and initialized");
+      }
+    });
 
-        console.log('[JQL Syntax] Mutation observer active');
-    }
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+    });
 
-    //=========================================================================
-    // AUTO-INITIALIZATION
-    //=========================================================================
+    console.log("[JQL Syntax] Mutation observer active");
+  }
 
-    /**
-     * Initialize on DOM ready and set up mutation observer for Dash updates.
-     */
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
-            initializeAll();
-            setupMutationObserver();
-        });
-    } else {
-        // DOM already loaded
-        initializeAll();
-        setupMutationObserver();
-    }
+  //=========================================================================
+  // AUTO-INITIALIZATION
+  //=========================================================================
 
+  /**
+   * Initialize on DOM ready and set up mutation observer for Dash updates.
+   */
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", () => {
+      initializeAll();
+      setupMutationObserver();
+    });
+  } else {
+    // DOM already loaded
+    initializeAll();
+    setupMutationObserver();
+  }
 })();
