@@ -12,7 +12,7 @@ import json
 import os
 import uuid
 from datetime import datetime
-from typing import Dict, List, Optional, Any
+from typing import Any, Dict, List, Optional
 
 # Application imports
 from configuration import logger
@@ -68,15 +68,13 @@ def _save_profiles_to_disk(profiles: List[Dict[str, Any]]) -> bool:
 
 def load_query_profiles() -> List[Dict[str, Any]]:
     """
-    Load user-created query profiles only.
+    Load all query profiles from disk.
 
     Returns:
-        List of user-created query profile dictionaries
+        List of query profile dictionaries from jira_query_profiles.json
     """
-    # Load only user-created profiles (no default profiles)
-    user_profiles = _load_profiles_from_disk()
-
-    return user_profiles
+    # Load user-created profiles from disk
+    return _load_profiles_from_disk()
 
 
 def get_query_profile_by_id(profile_id: str) -> Optional[Dict[str, Any]]:

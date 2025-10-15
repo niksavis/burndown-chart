@@ -455,6 +455,191 @@ td.cell--editable:not(.cell-selected) .dash-cell-value::after {
   background-size: 1rem 1rem;
 }
 
+/* ===================================================================
+   JQL Character Count Styles (Feature 001-add-jql-query)
+   ================================================================ */
+
+/* Character count display component */
+.character-count-display {
+  font-size: 0.875rem;
+  color: #6c757d;
+  margin-top: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  text-align: right;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  transition: color 0.2s ease-in-out;
+}
+
+/* Warning state - approaching JIRA's 2000 character limit */
+.character-count-warning {
+  color: #ff8800 !important;
+  font-weight: 600;
+}
+
+/* Mobile responsiveness - ensure readable on small screens */
+@media (max-width: 576px) {
+  .character-count-display {
+    font-size: 0.8125rem; /* Slightly smaller on mobile */
+    padding: 0.375rem 0.5rem;
+  }
+}
+
+/* Dark mode support (if enabled in future) */
+@media (prefers-color-scheme: dark) {
+  .character-count-display {
+    color: #9ca3af;
+  }
+
+  .character-count-warning {
+    color: #ffa940 !important;
+  }
+}
+
+/* Print styles - hide character count in print */
+@media print {
+  .character-count-display {
+    display: none;
+  }
+}
+
+/* ================================================================
+   JQL SYNTAX HIGHLIGHTING (Feature 001-add-jql-query, Phase 2)
+   ================================================================ */
+
+/* Base mark element reset - html.Mark has yellow background by default */
+mark.jql-keyword,
+mark.jql-string,
+mark.jql-operator {
+  background-color: transparent;
+  padding: 0;
+  border-radius: 2px;
+}
+
+/* JQL Keywords - blue color with emphasis */
+.jql-keyword {
+  color: #0066cc;
+  font-weight: 600;
+}
+
+/* JQL String literals - green color */
+.jql-string {
+  color: #22863a;
+}
+
+/* JQL Operators - default color (optional enhancement) */
+.jql-operator {
+  color: #6c757d;
+  font-weight: 500;
+}
+
+/* Mobile responsiveness - maintain readability on small screens */
+@media (max-width: 576px) {
+  .jql-keyword,
+  .jql-string,
+  .jql-operator {
+    font-size: inherit; /* Match parent font size */
+  }
+}
+
+/* Dark mode support (if enabled in future) */
+@media (prefers-color-scheme: dark) {
+  .jql-keyword {
+    color: #4dabf7; /* Lighter blue for dark mode */
+  }
+
+  .jql-string {
+    color: #51cf66; /* Lighter green for dark mode */
+  }
+
+  .jql-operator {
+    color: #adb5bd; /* Lighter gray for dark mode */
+  }
+}
+
+/* Print styles - remove syntax highlighting in print */
+@media print {
+  .jql-keyword,
+  .jql-string,
+  .jql-operator {
+    color: inherit;
+    font-weight: inherit;
+    background-color: transparent;
+  }
+}
+
+/* ================================================================
+   MOBILE RESPONSIVE ENHANCEMENTS (Feature 001-add-jql-query, Phase 3)
+   ================================================================ */
+
+/* Mobile viewport optimizations for JQL textarea and related components */
+@media (max-width: 767px) {
+  /* JQL textarea mobile styling */
+  #jira-jql-query,
+  textarea[id*="jql"] {
+    font-size: 14px !important;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    line-height: 1.5;
+  }
+
+  /* Character count display - smaller font on mobile */
+  .character-count-display {
+    font-size: 12px !important;
+    padding: 0.25rem 0.5rem;
+  }
+
+  /* Syntax highlighting - maintain readability */
+  .jql-keyword,
+  .jql-string,
+  .jql-operator {
+    font-size: 14px;
+    /* Ensure adequate touch targets for interactive elements */
+    line-height: 1.6;
+  }
+}
+
+/* Extra small devices (iPhone SE, small phones) */
+@media (max-width: 375px) {
+  #jira-jql-query,
+  textarea[id*="jql"] {
+    font-size: 13px !important;
+    padding: 0.5rem;
+  }
+
+  .character-count-display {
+    font-size: 11px !important;
+  }
+}
+
+/* Tablet optimizations (iPad portrait) */
+@media (min-width: 768px) and (max-width: 1024px) {
+  #jira-jql-query,
+  textarea[id*="jql"] {
+    font-size: 15px !important;
+  }
+
+  .character-count-display {
+    font-size: 13px;
+  }
+}
+
+/* Touch target optimization - ensure 44px minimum for interactive elements */
+@media (hover: none) and (pointer: coarse) {
+  /* Touch device detection */
+  textarea,
+  button,
+  input[type="submit"],
+  input[type="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Increase padding for better touch interaction */
+  #jira-jql-query {
+    padding: 0.75rem !important;
+  }
+}
+
 /* ===== General Grid Alignment ===== */
 
 /* Consistent card styling */

@@ -6,8 +6,8 @@ Covers the recently implemented end-to-end functionality for multiple JQL querie
 """
 
 import json
-import tempfile
 import os
+import tempfile
 from unittest.mock import patch
 
 # Note: Following the coding instructions to avoid dash.testing utilities
@@ -25,7 +25,7 @@ class TestDataSourceSwitchingIntegration:
             # Mock the settings file path
             with patch("data.persistence.SETTINGS_FILE", settings_file):
                 # Step 1: Import and use save function
-                from data.persistence import save_app_settings, load_app_settings
+                from data.persistence import load_app_settings, save_app_settings
 
                 # Save settings with CSV as data source
                 save_app_settings(
@@ -68,10 +68,10 @@ class TestDataSourceSwitchingIntegration:
             ):
                 # Step 1: Create a query profile
                 from data.jira_query_manager import (
-                    save_query_profile,
                     get_query_profile_by_id,
+                    save_query_profile,
                 )
-                from data.persistence import save_app_settings, load_app_settings
+                from data.persistence import load_app_settings, save_app_settings
 
                 profile = save_query_profile(
                     name="Integration Test Query",
@@ -104,8 +104,8 @@ class TestDataSourceSwitchingIntegration:
                     "data.persistence.load_app_settings", return_value=loaded_settings
                 ):
                     from ui.cards import (
-                        _get_default_jql_profile_id,
                         _get_default_data_source,
+                        _get_default_jql_profile_id,
                     )
 
                     ui_profile_id = _get_default_jql_profile_id()
@@ -167,7 +167,7 @@ class TestDataSourceSwitchingIntegration:
             settings_file = os.path.join(temp_dir, "app_settings.json")
 
             with patch("data.persistence.SETTINGS_FILE", settings_file):
-                from data.persistence import save_app_settings, load_app_settings
+                from data.persistence import load_app_settings, save_app_settings
 
                 # Step 1: Initial state - JIRA selected
                 save_app_settings(
@@ -197,31 +197,17 @@ class TestDataSourceSwitchingIntegration:
                 assert settings3["last_used_data_source"] == "JIRA"
                 assert settings3["active_jql_profile_id"] == "default-all-issues"
 
-    def test_default_profiles_availability(self):
-        """Test that default query profiles are always available"""
-        # This test doesn't require file mocking as it tests the default behavior
+    def test_empty_profiles_when_no_file(self):
+        """Test that no profiles are returned when file doesn't exist"""
+        # This test verifies the new behavior - no default profiles
         from data.jira_query_manager import load_query_profiles
 
-        # Even with no user profiles file, should have defaults
+        # With no user profiles file, should return empty list
         with patch("data.jira_query_manager.os.path.exists", return_value=False):
             profiles = load_query_profiles()
 
-            assert len(profiles) == 3
-
-            profile_names = [p["name"] for p in profiles]
-            assert "All Open Issues" in profile_names
-            assert "Recent Bugs (Last 2 Weeks)" in profile_names
-            assert "Current Sprint" in profile_names
-
-            # All should be marked as default
-            assert all(p["is_default"] for p in profiles)
-
-            # All should have required fields
-            for profile in profiles:
-                assert "id" in profile
-                assert "jql" in profile
-                assert "created_at" in profile
-                assert "last_used" in profile
+            assert len(profiles) == 0
+            assert profiles == []
 
     def test_error_handling_integration(self):
         """Test error handling across the data source switching system"""

@@ -12,7 +12,7 @@ from datetime import datetime
 
 # Third-party library imports
 import dash
-from dash import Input, Output, State, html, no_update, callback_context
+from dash import Input, Output, State, callback_context, html, no_update
 from dash.exceptions import PreventUpdate
 
 # Application imports
@@ -24,7 +24,6 @@ from configuration import (
     logger,
 )
 from data import calculate_total_points
-
 
 #######################################################################
 # HELPER FUNCTIONS
@@ -844,8 +843,8 @@ def register(app):
             if data_source == "JIRA":
                 # Handle JIRA data import
                 from data.jira_simple import (
-                    sync_jira_data,
                     get_cache_status,
+                    sync_jira_data,
                     validate_jira_config,
                 )
                 from data.persistence import load_app_settings
@@ -1435,9 +1434,11 @@ def register(app):
 
         try:
             from data.jira_query_manager import (
-                save_query_profile as save_profile_func,
                 load_query_profiles,
                 set_default_query,
+            )
+            from data.jira_query_manager import (
+                save_query_profile as save_profile_func,
             )
 
             # Save the profile
@@ -1524,7 +1525,7 @@ def register(app):
         visible_style = {"display": "inline-block"}
 
         try:
-            from data.jira_query_manager import load_query_profiles, get_default_query
+            from data.jira_query_manager import get_default_query, load_query_profiles
 
             profiles = load_query_profiles()
             default_query = get_default_query()
@@ -1824,10 +1825,10 @@ def register(app):
 
         try:
             from data.jira_query_manager import (
-                save_query_profile,
                 load_query_profiles,
-                set_default_query,
                 remove_default_query,
+                save_query_profile,
+                set_default_query,
             )
 
             # Update the profile
@@ -1909,3 +1910,36 @@ def register(app):
         except Exception as e:
             logger.error(f"Error loading default query: {e}")
             raise PreventUpdate
+
+    # JQL Character Count Callback (Feature 001-add-jql-query, TASK-108)
+    @app.callback(
+        Output("jira-jql-character-count-container", "children"),
+        Input("jira-jql-query", "value"),
+        prevent_initial_call=False,
+    )
+    def update_jql_character_count(jql_value):
+        """
+        Update character count display when JQL query changes.
+
+        Per FR-002: Shows warning when approaching 1800 chars (JIRA's limit is 2000).
+        Provides instant feedback without debouncing (updates are lightweight).
+
+        Args:
+            jql_value: Current JQL query text
+
+        Returns:
+            Updated character count display component
+        """
+        from ui.components import (
+            count_jql_characters,
+            create_character_count_display,
+            should_show_character_warning,
+        )
+
+        if jql_value is None:
+            jql_value = ""
+
+        count = count_jql_characters(jql_value)
+        warning = should_show_character_warning(jql_value)
+
+        return create_character_count_display(count=count, warning=warning)

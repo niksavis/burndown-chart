@@ -12,35 +12,42 @@ of the application, such as the forecast graph card, info card, etc.
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, cast
 
-# Third-party library imports
-from dash import html, dcc
 import dash_bootstrap_components as dbc
 import pandas as pd
 
+# Third-party library imports
+from dash import dcc, html
+
 # Application imports
-from configuration import HELP_TEXTS, COLOR_PALETTE
+from configuration import COLOR_PALETTE, HELP_TEXTS
 from configuration.settings import (
+    CHART_HELP_TEXTS,
     PROJECT_HELP_TEXTS,
     STATISTICS_HELP_TEXTS,
-    CHART_HELP_TEXTS,
+)
+from ui.button_utils import create_button
+
+# Import character count components (Feature 001-add-jql-query)
+from ui.components import (
+    create_character_count_display,
+    should_show_character_warning,
 )
 
 # Import styling functions from utility modules
 from ui.styles import (
     NEUTRAL_COLORS,
-    create_standardized_card,
     create_card_header_with_tooltip,
-    create_rhythm_text,
     create_datepicker_style,
     create_form_feedback_style,
     create_input_style,
+    create_rhythm_text,
+    create_standardized_card,
 )
-from ui.button_utils import create_button
 from ui.tooltip_utils import (
-    create_info_tooltip,
-    create_enhanced_tooltip,
     create_dismissible_tooltip,
+    create_enhanced_tooltip,
     create_expandable_tooltip,
+    create_info_tooltip,
 )
 
 # Type definition for StyleCellConditional
@@ -91,17 +98,15 @@ def _get_default_jql_profile_id():
     Get the active JQL profile ID from app settings.
 
     Returns:
-        str: Profile ID from settings or "custom" for custom query
+        str: Profile ID from settings or empty string if none
     """
     try:
         from data.persistence import load_app_settings
 
         app_settings = load_app_settings()
-        active_id = app_settings.get("active_jql_profile_id", "")
-        # Default to "custom" if no active profile
-        return active_id if active_id else "custom"
+        return app_settings.get("active_jql_profile_id", "")
     except (ImportError, Exception):
-        return "custom"
+        return ""
 
 
 def _get_default_jira_api_endpoint():
@@ -1257,6 +1262,22 @@ def create_input_parameters_card(
                                                     rows=3,
                                                     style=create_input_style(size="md"),
                                                 ),
+                                                # Character count display (Feature 001-add-jql-query)
+                                                html.Div(
+                                                    id="jira-jql-character-count-container",
+                                                    children=[
+                                                        create_character_count_display(
+                                                            count=len(
+                                                                _get_default_jql_query()
+                                                                or ""
+                                                            ),
+                                                            warning=should_show_character_warning(
+                                                                _get_default_jql_query()
+                                                            ),
+                                                        )
+                                                    ],
+                                                    className="mb-2",
+                                                ),
                                                 html.Small(
                                                     "Write your JQL query here, then use the buttons below to save or manage it.",
                                                     className="text-muted",
@@ -1889,10 +1910,11 @@ def create_statistics_data_card(current_statistics):
     Returns:
         Dash Card component for statistics data
     """
-    import pandas as pd
-    import numpy as np
-    from dash import html, dash_table
     import dash_bootstrap_components as dbc
+    import numpy as np
+    import pandas as pd
+    from dash import dash_table, html
+
     from ui.styles import NEUTRAL_COLORS, get_vertical_rhythm
 
     # Create the card header with tooltip and Phase 9.2 Progressive Disclosure help button
@@ -2497,8 +2519,8 @@ def create_project_status_card(statistics_df, settings):
         A Dash card component for project status summary
     """
     try:
-        import pandas as pd
         import dash_bootstrap_components as dbc
+        import pandas as pd
         from dash import html
 
         # Extract key metrics from settings (these represent remaining work)

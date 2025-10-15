@@ -353,6 +353,14 @@ tests/
 - Include mobile viewport testing for UI components
 - Test keyboard navigation and accessibility features
 
+**Test Isolation Requirements (CRITICAL)**:
+
+- **No Side Effects**: Tests MUST NOT create files in project root directory
+- **Temporary Resources**: Use `tempfile.TemporaryDirectory()` or `tempfile.NamedTemporaryFile()` for file operations
+- **Proper Cleanup**: Use pytest fixtures with `yield` to ensure cleanup even if test fails
+- **Independent Execution**: Tests must pass when run individually, in parallel, or in any order
+- **No Shared State**: Each test must set up and tear down its own state
+
 ```python
 import pytest
 from dash.testing.application_runners import import_app
@@ -625,6 +633,98 @@ def mock_jira_response():
             }
         ]
     }
+```
+
+**Test Isolation Patterns (MANDATORY)**:
+
+All tests that create files MUST use temporary directories/files with proper cleanup:
+
+```python
+import os
+import tempfile
+import pytest
+
+@pytest.fixture
+def temp_settings_file():
+    """Create isolated temporary file for testing - proper cleanup guaranteed"""
+    with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".json") as f:
+        temp_file = f.name
+    
+    yield temp_file  # Test runs here
+    
+    # Cleanup - executes even if test fails
+    if os.path.exists(temp_file):
+        os.unlink(temp_file)
+
+@pytest.fixture
+def temp_directory():
+    """Create isolated temporary directory for testing"""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        yield temp_dir
+        # Automatic cleanup when context exits
+
+# Example: Test with file isolation
+def test_save_settings(temp_settings_file):
+    """Test settings persistence without polluting project directory"""
+    from data.persistence import save_app_settings
+    
+    # Mock the actual file path to use our temp file
+    with patch("data.persistence.SETTINGS_FILE", temp_settings_file):
+        settings = {"pert_factor": 1.5, "deadline": "2025-12-31"}
+        save_app_settings(settings)
+        
+        # Verify file was created
+        assert os.path.exists(temp_settings_file)
+        
+        # Verify content
+        with open(temp_settings_file, "r") as f:
+            loaded = json.load(f)
+        assert loaded["pert_factor"] == 1.5
+    
+    # Cleanup happens automatically via fixture
+
+# Example: Integration test with directory isolation
+def test_jira_cache_workflow(temp_directory):
+    """Test JIRA caching without creating files in project root"""
+    cache_file = os.path.join(temp_directory, "jira_cache.json")
+    
+    # All file operations happen in temp_directory
+    cache_jira_response(mock_issues, "project = TEST", "key,status", cache_file)
+    
+    # Verify cache works
+    cache_loaded, issues = load_jira_cache("project = TEST", "key,status", cache_file)
+    assert cache_loaded is True
+    assert len(issues) > 0
+    
+    # No cleanup needed - temp_directory auto-deletes
+
+# ❌ NEVER DO THIS - Pollutes project directory
+def test_bad_example():
+    """BAD: Creates files in project root without cleanup"""
+    save_app_settings({"pert_factor": 1.5})  # Writes to real app_settings.json
+    # This will break other tests and pollute the workspace!
+
+# ✅ ALWAYS DO THIS - Use temporary isolated resources
+def test_good_example(temp_settings_file):
+    """GOOD: Uses temporary file with guaranteed cleanup"""
+    with patch("data.persistence.SETTINGS_FILE", temp_settings_file):
+        save_app_settings({"pert_factor": 1.5})
+    # Cleanup is automatic via fixture
+```
+
+**Verifying Test Isolation**:
+
+Run tests in different orders to ensure isolation:
+
+```powershell
+# Run tests in random order (requires pytest-randomly)
+.\.venv\Scripts\activate; pytest tests/unit/ --random-order
+
+# Run single test in isolation
+.\.venv\Scripts\activate; pytest tests/unit/data/test_processing.py::test_specific_function -v
+
+# Run all tests to verify no cross-contamination
+.\.venv\Scripts\activate; pytest tests/ -v
 ```
 
 ## User Experience Patterns

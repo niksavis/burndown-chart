@@ -9,27 +9,29 @@ that are used across the application.
 # IMPORTS
 #######################################################################
 # Standard library imports
+import time
 from datetime import datetime, timedelta
 from typing import Optional
 
+import dash_bootstrap_components as dbc
+
 # Third-party library imports
 from dash import html
-import dash_bootstrap_components as dbc
 
 # Application imports
 from configuration import COLOR_PALETTE
 from configuration.settings import (
     FORECAST_HELP_TEXTS,
-    VELOCITY_HELP_TEXTS,
     PROJECT_HELP_TEXTS,
+    VELOCITY_HELP_TEXTS,
 )
+from ui.button_utils import create_button
 from ui.icon_utils import create_icon_text
 from ui.styles import create_form_feedback_style
-from ui.button_utils import create_button
 from ui.tooltip_utils import (
-    create_info_tooltip,
-    create_formula_tooltip,
     create_calculation_step_tooltip,
+    create_formula_tooltip,
+    create_info_tooltip,
     create_statistical_context_tooltip,
 )
 
@@ -45,6 +47,385 @@ TREND_COLORS = {
     "up": "#28a745",  # Green
     "down": "#dc3545",  # Red
 }
+
+#######################################################################
+# JQL CHARACTER COUNT (Feature 001-add-jql-query)
+#######################################################################
+
+# Character count configuration (from data-model.md)
+CHARACTER_COUNT_WARNING_THRESHOLD = 1800
+CHARACTER_COUNT_MAX_REFERENCE = 2000
+
+
+def count_jql_characters(query) -> int:
+    """
+    Count characters in JQL query string.
+
+    Handles unicode, whitespace, and edge cases per FR-001.
+
+    Args:
+        query: JQL query string (str, None, or other types)
+
+    Returns:
+        int: Character count (0 if None/empty)
+    """
+    if query is None:
+        return 0
+
+    # Convert to string if not already (handles numeric input)
+    query_str = str(query) if not isinstance(query, str) else query
+
+    return len(query_str)
+
+
+def should_show_character_warning(query) -> bool:
+    """
+    Determine if character count warning should be shown.
+
+    Per FR-002: Warning at 1800 characters (approaching JIRA's 2000 limit).
+
+    Args:
+        query: JQL query string
+
+    Returns:
+        bool: True if count >= 1800, False otherwise
+    """
+    count = count_jql_characters(query)
+    return count >= CHARACTER_COUNT_WARNING_THRESHOLD
+
+
+def create_character_count_display(count: int, warning: bool) -> html.Div:
+    """
+    Create character count display component.
+
+    Per FR-003: Shows "X / 2000 characters" with warning styling.
+
+    Args:
+        count: Current character count
+        warning: Whether to apply warning styling
+
+    Returns:
+        html.Div: Character count display component
+    """
+    # Format count with thousands separator for readability
+    count_str = f"{count:,}" if count < 10000 else f"{count:,}"
+    limit_str = f"{CHARACTER_COUNT_MAX_REFERENCE:,}"
+
+    # Apply warning CSS class if needed
+    css_classes = "character-count-display"
+    if warning:
+        css_classes += " character-count-warning"
+
+    return html.Div(
+        f"{count_str} / {limit_str} characters",
+        id="jql-character-count-display",
+        className=css_classes,
+    )
+
+
+def create_character_count_state(count: int, warning: bool, textarea_id: str) -> dict:
+    """
+    Create character count state dictionary for dcc.Store.
+
+    Per data-model.md CharacterCountState schema.
+
+    Args:
+        count: Current character count
+        warning: Warning state
+        textarea_id: ID of textarea ("main" or "dialog")
+
+    Returns:
+        dict: State matching CharacterCountState TypedDict
+    """
+    # Validate textarea_id
+    valid_ids = {"main", "dialog"}
+    if textarea_id not in valid_ids:
+        textarea_id = "main"  # Default to main if invalid
+
+    return {
+        "count": count,
+        "warning": warning,
+        "textarea_id": textarea_id,
+        "last_updated": time.time(),
+    }
+
+
+#######################################################################
+# JQL SYNTAX HIGHLIGHTING (Feature 001-add-jql-query, Phase 2)
+#######################################################################
+
+# JQL keyword registry (from data-model.md Section 3)
+JQL_KEYWORDS = frozenset(
+    [
+        # Logical Operators
+        "AND",
+        "OR",
+        "NOT",
+        # Comparison Operators
+        "IN",
+        "NOT IN",
+        # State Operators
+        "IS",
+        "IS NOT",
+        "WAS",
+        "WAS NOT",
+        "WAS IN",
+        "WAS NOT IN",
+        "CHANGED",
+        # Special Values
+        "EMPTY",
+        "NULL",
+        # Text Operators
+        "CONTAINS",
+        "NOT CONTAINS",
+        "~",
+        "!~",  # Contains/Not Contains operators
+        # Ordering & Pagination
+        "ORDER BY",
+        "ASC",
+        "DESC",
+        # Functions (commonly used)
+        "currentUser",
+        "now",
+        "startOfDay",
+        "endOfDay",
+        "startOfWeek",
+        "endOfWeek",
+        "startOfMonth",
+        "endOfMonth",
+        "startOfYear",
+        "endOfYear",
+    ]
+)
+"""
+JQL keyword registry for syntax highlighting.
+
+This frozenset contains all recognized JQL keywords, operators, and common functions.
+Keywords are matched case-insensitively by is_jql_keyword() and parse_jql_syntax().
+
+Extensibility:
+    To add new keywords, operators, or functions:
+    1. Add the uppercase string to the appropriate category above
+    2. Multi-word keywords (e.g., "ORDER BY", "NOT IN") are supported
+    3. The parser will automatically detect them in queries
+    4. CSS class .jql-keyword will be applied for styling
+
+    Example - Adding new function keywords:
+        "membersOf",
+        "linkedIssuesOf",
+        "issueFunction",
+
+    Example - Adding new operators:
+        "BEFORE",
+        "AFTER",
+        "DURING",
+
+Note: Functions like currentUser(), now(), etc. are detected without parentheses.
+The parser handles parentheses and arguments separately as plain text.
+"""
+
+
+def is_jql_keyword(word: str) -> bool:
+    """
+    Check if a word is a JQL keyword.
+
+    Case-insensitive keyword detection per FR-004.
+
+    Args:
+        word: Word to check
+
+    Returns:
+        bool: True if word is a JQL keyword, False otherwise
+    """
+    if not word:
+        return False
+
+    # Check case-insensitively
+    word_upper = word.upper().strip()
+
+    # Check single keywords first
+    if word_upper in JQL_KEYWORDS:
+        return True
+
+    # Check multi-word keywords (e.g., "ORDER BY", "NOT IN")
+    # This handles cases where parser might split them
+    for keyword in JQL_KEYWORDS:
+        if " " in keyword and word_upper in keyword:
+            return True
+
+    return False
+
+
+def parse_jql_syntax(query):
+    """
+    Parse JQL query into syntax tokens for highlighting.
+
+    Tokenizes query into keywords, strings, operators, and text per FR-004, FR-005.
+
+    Tokenization Approach:
+        This parser uses a character-by-character state machine approach:
+        1. String Detection: Quotes (", ') trigger string token capture until closing quote
+        2. Word Boundaries: Whitespace and operators define token boundaries
+        3. Keyword Matching: Words are checked against JQL_KEYWORDS (case-insensitive)
+        4. Operator Detection: Special characters (=, !, <, >, ~) create operator tokens
+        5. Fallback: Everything else is plain text
+
+        The parser preserves exact character positions (start/end indices) for each token,
+        allowing accurate reconstruction of the original query with highlighting applied.
+
+    Token Types:
+        - "keyword": JQL reserved words (AND, OR, IN, IS, etc.)
+        - "string": Quoted text literals ("Done", 'In Progress')
+        - "operator": Comparison symbols (=, !=, <, >, ~, !~)
+        - "text": Field names, values, and other plain text
+
+    Args:
+        query: JQL query string (str or None)
+
+    Returns:
+        List[dict]: List of SyntaxToken dicts with keys: text, type, start, end
+                   Returns empty list if query is None/empty
+
+    Example:
+        >>> parse_jql_syntax('project = TEST AND status = "Done"')
+        [
+            {"text": "project", "type": "text", "start": 0, "end": 7},
+            {"text": " ", "type": "text", "start": 7, "end": 8},
+            {"text": "=", "type": "operator", "start": 8, "end": 9},
+            {"text": " ", "type": "text", "start": 9, "end": 10},
+            {"text": "TEST", "type": "text", "start": 10, "end": 14},
+            {"text": " ", "type": "text", "start": 14, "end": 15},
+            {"text": "AND", "type": "keyword", "start": 15, "end": 18},
+            ...
+        ]
+    """
+    if query is None or query == "":
+        return []
+
+    query_str = str(query)
+    tokens = []
+    i = 0
+
+    while i < len(query_str):
+        # Skip whitespace (but track it as text tokens for accurate rendering)
+        if query_str[i].isspace():
+            start = i
+            while i < len(query_str) and query_str[i].isspace():
+                i += 1
+            tokens.append(
+                {"text": query_str[start:i], "type": "text", "start": start, "end": i}
+            )
+            continue
+
+        # Parse quoted strings (both double and single quotes)
+        if query_str[i] in ('"', "'"):
+            quote_char = query_str[i]
+            start = i
+            i += 1
+
+            # Find matching closing quote
+            while i < len(query_str) and query_str[i] != quote_char:
+                # Handle escaped quotes
+                if query_str[i] == "\\" and i + 1 < len(query_str):
+                    i += 2
+                else:
+                    i += 1
+
+            # Include closing quote if found
+            if i < len(query_str):
+                i += 1
+
+            tokens.append(
+                {"text": query_str[start:i], "type": "string", "start": start, "end": i}
+            )
+            continue
+
+        # Parse operators
+        if query_str[i] in "=!<>~":
+            start = i
+            # Handle multi-character operators (!=, >=, <=, !~)
+            if i + 1 < len(query_str) and query_str[i + 1] in "=~":
+                i += 2
+            else:
+                i += 1
+
+            tokens.append(
+                {
+                    "text": query_str[start:i],
+                    "type": "operator",
+                    "start": start,
+                    "end": i,
+                }
+            )
+            continue
+
+        # Parse special characters (parentheses, commas)
+        if query_str[i] in "(),":
+            tokens.append(
+                {"text": query_str[i], "type": "text", "start": i, "end": i + 1}
+            )
+            i += 1
+            continue
+
+        # Parse words (potential keywords or field names)
+        start = i
+        while (
+            i < len(query_str)
+            and not query_str[i].isspace()
+            and query_str[i] not in "=!<>~\"'(),"
+        ):
+            i += 1
+
+        word = query_str[start:i]
+
+        # Check if it's a keyword (case-insensitive)
+        if is_jql_keyword(word):
+            token_type = "keyword"
+        else:
+            # Could be a field name or value
+            token_type = "text"
+
+        tokens.append({"text": word, "type": token_type, "start": start, "end": i})
+
+    return tokens
+
+
+def render_syntax_tokens(tokens) -> list:
+    """
+    Render syntax tokens to Dash HTML components.
+
+    Converts tokens to html.Mark elements with CSS classes per FR-006.
+
+    Args:
+        tokens: List of SyntaxToken dicts
+
+    Returns:
+        list: List of html.Mark components or strings for rendering
+    """
+    if not tokens:
+        return []
+
+    rendered = []
+
+    for token in tokens:
+        text = token.get("text", "")
+        token_type = token.get("type", "text")
+
+        # Render keywords with highlighting
+        if token_type == "keyword":
+            rendered.append(html.Mark(text, className="jql-keyword"))
+        # Render strings with highlighting
+        elif token_type == "string":
+            rendered.append(html.Mark(text, className="jql-string"))
+        # Render operators with highlighting (optional enhancement)
+        elif token_type == "operator":
+            rendered.append(html.Mark(text, className="jql-operator"))
+        # Render plain text as-is
+        else:
+            rendered.append(text)
+
+    return rendered
+
 
 #######################################################################
 # PERT INFO TABLE COMPONENT
