@@ -42,5 +42,8 @@
   "files.associations": {
     "*.md": "markdown",
     "requirements.in": "pip-requirements"
-  }
+  },
+
+  // Markdown and markdownlint settings
+  "markdownlint.run": "onSave"
 }

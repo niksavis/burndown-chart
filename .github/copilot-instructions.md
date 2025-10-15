@@ -721,8 +721,6 @@ def load_chart_data_async(n_clicks):
     return load_statistics()  # Use actual function from data module
 ```
 
-## Data Architecture Best Practices
-
 ### Simple Caching Strategy
 
 **JSON File Persistence with Caching**:
@@ -880,3 +878,7 @@ def create_accessible_chart(figure_data: Dict, title: str):
         }
     )
 ```
+
+## Documentation Guidelines
+
+**Markdown**: Use standard markdown syntax. The `.markdownlint.json` config disables problematic rules for Copilot-generated content.
