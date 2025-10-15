@@ -1,4 +1,4 @@
-# Burndown Chart Generator - Development Best Practices
+﻿# Burndown Chart Generator - Development Best Practices
 
 ## Project Vision
 
