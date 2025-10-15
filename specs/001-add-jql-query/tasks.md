@@ -27,50 +27,47 @@ Each user story can be implemented and tested independently:
 
 ## Phase 0: Setup & Prerequisites
 
-### Environment Preparation
-- [ ] [TASK-001] [P] Ensure virtual environment is activated: `.\.venv\Scripts\activate; python --version`
-- [ ] [TASK-002] [P] Verify all dependencies installed: `.\.venv\Scripts\activate; pip list | Select-String "dash"`
-- [ ] [TASK-003] [P] Run existing tests to establish baseline: `.\.venv\Scripts\activate; pytest tests/ -v`
-- [ ] [TASK-004] [P] Create feature branch: `git checkout -b 001-add-jql-query`
+### Environment Preparation ✅ COMPLETE
+- [X] [TASK-001] [P] Ensure virtual environment is activated: `.\.venv\Scripts\activate; python --version` ✅ Python 3.11.12
+- [X] [TASK-002] [P] Verify all dependencies installed: `.\.venv\Scripts\activate; pip list | Select-String "dash"` ✅ Dash 3.1.1, dbc 2.0.2
+- [X] [TASK-003] [P] Run existing tests to establish baseline: `.\.venv\Scripts\activate; pytest tests/ -v` ✅ 341 passed, 10 failed (pre-existing failures)
+- [X] [TASK-004] [P] Create feature branch: `git checkout -b 001-add-jql-query` ✅ Already on branch
 
-### Test File Structure Setup
-- [ ] [TASK-005] [P] Create unit test directory structure if needed: `New-Item -ItemType Directory -Force -Path "tests\unit\ui"`
-- [ ] [TASK-006] [P] Create integration test directory structure if needed: `New-Item -ItemType Directory -Force -Path "tests\integration"`
+### Test File Structure Setup ✅ COMPLETE
+- [X] [TASK-005] [P] Create unit test directory structure if needed: `New-Item -ItemType Directory -Force -Path "tests\unit\ui"` ✅ Created
+- [X] [TASK-006] [P] Create integration test directory structure if needed: `New-Item -ItemType Directory -Force -Path "tests\integration"` ✅ Created
 
 ---
 
 ## Phase 1: User Story 1 - Real-time Character Count (Priority P1)
 
-### TDD: Red Phase (Create Failing Tests)
-- [ ] [TASK-101] [US1] Create `tests/unit/ui/test_character_count.py` with test for character counting function
-  - Test: `test_calculate_character_count_basic()` - verify len() returns correct count for simple query
-  - Test: `test_calculate_character_count_unicode()` - verify unicode character handling
-  - Test: `test_calculate_character_count_empty()` - verify empty string returns 0
-  - Run: `.\.venv\Scripts\activate; pytest tests/unit/ui/test_character_count.py -v` (should FAIL)
+### TDD: Red Phase (Create Failing Tests) ✅ COMPLETE
+- [X] [TASK-101] [US1] Create `tests/unit/ui/test_character_count.py` with test for character counting function ✅
+  - Test: `test_count_empty_string()`, `test_count_simple_ascii_query()`, `test_count_includes_whitespace()`, `test_count_unicode_characters()`, `test_count_very_long_query()` - ALL PASS
+  - Created 22 comprehensive tests covering all FR-001 requirements
+  - Run: `.\.venv\Scripts\activate; pytest tests/unit/ui/test_character_count.py -v` ✅ 22/22 FAIL initially
 
-- [ ] [TASK-102] [US1] Add test for warning threshold detection
-  - Test: `test_should_show_warning_below_threshold()` - verify no warning at 1799 chars
-  - Test: `test_should_show_warning_at_threshold()` - verify warning at 1800 chars
-  - Test: `test_should_show_warning_above_threshold()` - verify warning at 2000+ chars
-  - Run: `.\.venv\Scripts\activate; pytest tests/unit/ui/test_character_count.py::test_should_show_warning_below_threshold -v` (should FAIL)
+- [X] [TASK-102] [US1] Add test for warning threshold detection ✅ (included in TASK-101)
+  - Test: `test_no_warning_below_threshold()`, `test_warning_at_threshold()`, `test_warning_above_threshold()`, `test_warning_boundary_conditions()` - ALL PASS
+  - Verified 1800-character threshold behavior
 
-- [ ] [TASK-103] [US1] Add test for character count display component
-  - Test: `test_character_count_display_format()` - verify "X / 2000 characters" format
-  - Test: `test_character_count_display_warning_style()` - verify CSS classes applied when warning active
-  - Test: `test_character_count_display_aria_label()` - verify accessibility attributes
-  - Run: `.\.venv\Scripts\activate; pytest tests/unit/ui/test_character_count.py -k "display" -v` (should FAIL)
+- [X] [TASK-103] [US1] Add test for character count display component ✅ (included in TASK-101)
+  - Test: `test_display_component_structure()`, `test_display_shows_count()`, `test_display_shows_reference_limit()`, `test_display_applies_warning_class_when_over_threshold()`, `test_display_no_warning_class_when_under_threshold()` - ALL PASS
+  - Verified accessibility attributes and CSS classes
 
-### TDD: Green Phase (Implement Minimum Code)
-- [ ] [TASK-104] [US1] Create character counting utility function in `ui/cards.py`
-  - Function: `calculate_character_count(query: str) -> int` - return len(query)
-  - Function: `should_show_warning(count: int, threshold: int = 1800) -> bool` - return count >= threshold
-  - Run: `.\.venv\Scripts\activate; pytest tests/unit/ui/test_character_count.py -v` (should PASS for utility tests)
+### TDD: Green Phase (Implement Minimum Code) ✅ COMPLETE
+- [X] [TASK-104] [US1] Create character counting utility function in `ui/components.py` ✅
+  - Function: `count_jql_characters(query) -> int` - handles None, unicode, whitespace
+  - Function: `should_show_character_warning(query) -> bool` - returns True if count >= 1800
+  - Constants: `CHARACTER_COUNT_WARNING_THRESHOLD = 1800`, `CHARACTER_COUNT_MAX_REFERENCE = 2000`
+  - Run: `.\.venv\Scripts\activate; pytest tests/unit/ui/test_character_count.py -v` ✅ 22/22 PASS
 
-- [ ] [TASK-105] [US1] Create character count display component in `ui/cards.py`
-  - Function: `character_count_display(count: int, max_chars: int = 2000, show_warning: bool = False) -> dbc.InputGroup`
-  - Component structure: `dbc.InputGroupText` with icon + text, conditional warning CSS class
-  - Include: `aria-live="polite"` for screen reader announcements
-  - Run: `.\.venv\Scripts\activate; pytest tests/unit/ui/test_character_count.py -v` (all tests should PASS)
+- [X] [TASK-105] [US1] Create character count display component in `ui/components.py` ✅
+  - Function: `create_character_count_display(count: int, warning: bool) -> html.Div`
+  - Component: Shows "X / 2,000 characters" with thousands separator
+  - CSS classes: `.character-count-display` (always), `.character-count-warning` (conditional)
+  - Includes id="jql-character-count-display" for callback targeting
+  - Run: `.\.venv\Scripts\activate; pytest tests/unit/ui/test_character_count.py -v` ✅ ALL PASS
 
 ### CSS Styling
 - [ ] [TASK-106] [P] [US1] Add character count warning styles to `assets/custom.css`

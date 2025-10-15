@@ -9,27 +9,29 @@ that are used across the application.
 # IMPORTS
 #######################################################################
 # Standard library imports
+import time
 from datetime import datetime, timedelta
 from typing import Optional
 
+import dash_bootstrap_components as dbc
+
 # Third-party library imports
 from dash import html
-import dash_bootstrap_components as dbc
 
 # Application imports
 from configuration import COLOR_PALETTE
 from configuration.settings import (
     FORECAST_HELP_TEXTS,
-    VELOCITY_HELP_TEXTS,
     PROJECT_HELP_TEXTS,
+    VELOCITY_HELP_TEXTS,
 )
+from ui.button_utils import create_button
 from ui.icon_utils import create_icon_text
 from ui.styles import create_form_feedback_style
-from ui.button_utils import create_button
 from ui.tooltip_utils import (
-    create_info_tooltip,
-    create_formula_tooltip,
     create_calculation_step_tooltip,
+    create_formula_tooltip,
+    create_info_tooltip,
     create_statistical_context_tooltip,
 )
 
@@ -45,6 +47,108 @@ TREND_COLORS = {
     "up": "#28a745",  # Green
     "down": "#dc3545",  # Red
 }
+
+#######################################################################
+# JQL CHARACTER COUNT (Feature 001-add-jql-query)
+#######################################################################
+
+# Character count configuration (from data-model.md)
+CHARACTER_COUNT_WARNING_THRESHOLD = 1800
+CHARACTER_COUNT_MAX_REFERENCE = 2000
+
+
+def count_jql_characters(query) -> int:
+    """
+    Count characters in JQL query string.
+
+    Handles unicode, whitespace, and edge cases per FR-001.
+
+    Args:
+        query: JQL query string (str, None, or other types)
+
+    Returns:
+        int: Character count (0 if None/empty)
+    """
+    if query is None:
+        return 0
+
+    # Convert to string if not already (handles numeric input)
+    query_str = str(query) if not isinstance(query, str) else query
+
+    return len(query_str)
+
+
+def should_show_character_warning(query) -> bool:
+    """
+    Determine if character count warning should be shown.
+
+    Per FR-002: Warning at 1800 characters (approaching JIRA's 2000 limit).
+
+    Args:
+        query: JQL query string
+
+    Returns:
+        bool: True if count >= 1800, False otherwise
+    """
+    count = count_jql_characters(query)
+    return count >= CHARACTER_COUNT_WARNING_THRESHOLD
+
+
+def create_character_count_display(count: int, warning: bool) -> html.Div:
+    """
+    Create character count display component.
+
+    Per FR-003: Shows "X / 2000 characters" with warning styling.
+
+    Args:
+        count: Current character count
+        warning: Whether to apply warning styling
+
+    Returns:
+        html.Div: Character count display component
+    """
+    # Format count with thousands separator for readability
+    count_str = f"{count:,}" if count < 10000 else f"{count:,}"
+    limit_str = f"{CHARACTER_COUNT_MAX_REFERENCE:,}"
+
+    # Apply warning CSS class if needed
+    css_classes = "character-count-display"
+    if warning:
+        css_classes += " character-count-warning"
+
+    return html.Div(
+        f"{count_str} / {limit_str} characters",
+        id="jql-character-count-display",
+        className=css_classes,
+    )
+
+
+def create_character_count_state(count: int, warning: bool, textarea_id: str) -> dict:
+    """
+    Create character count state dictionary for dcc.Store.
+
+    Per data-model.md CharacterCountState schema.
+
+    Args:
+        count: Current character count
+        warning: Warning state
+        textarea_id: ID of textarea ("main" or "dialog")
+
+    Returns:
+        dict: State matching CharacterCountState TypedDict
+    """
+    # Validate textarea_id
+    valid_ids = {"main", "dialog"}
+    if textarea_id not in valid_ids:
+        textarea_id = "main"  # Default to main if invalid
+
+    return {
+        "count": count,
+        "warning": warning,
+        "textarea_id": textarea_id,
+        "last_updated": time.time(),
+    }
+
 
 #######################################################################
 # PERT INFO TABLE COMPONENT
