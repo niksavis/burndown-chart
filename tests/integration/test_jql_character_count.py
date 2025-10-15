@@ -13,12 +13,13 @@ Following project testing guidelines from .github/copilot-instructions.md:
 - Custom server management (direct app import)
 """
 
-import pytest
-import time
-import threading
-import sys
 import os
-from playwright.sync_api import sync_playwright, expect
+import sys
+import threading
+import time
+
+import pytest
+from playwright.sync_api import expect, sync_playwright
 
 # Import app directly to avoid Dash testing utility dependencies
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
@@ -35,6 +36,7 @@ class TestJQLCharacterCount:
 
         def run_server():
             import waitress
+
             waitress.serve(app.server, host="127.0.0.1", port=8051, threads=1)
 
         server_thread = threading.Thread(target=run_server, daemon=True)
@@ -88,7 +90,7 @@ class TestJQLCharacterCount:
             # Verify count shows 14 characters
             char_count = page.locator("#jira-jql-character-count-container")
             char_count_text = char_count.inner_text()
-            
+
             assert "14" in char_count_text
             assert "2,000" in char_count_text or "2000" in char_count_text
 
@@ -116,7 +118,7 @@ class TestJQLCharacterCount:
             # Verify warning class is applied
             char_count = page.locator("#jira-jql-character-count-container")
             char_count_html = char_count.inner_html()
-            
+
             assert "character-count-warning" in char_count_html
             assert "1,800" in char_count_html or "1800" in char_count_html
 
@@ -144,8 +146,12 @@ class TestJQLCharacterCount:
             # Verify warning class is NOT applied
             char_count = page.locator("#jira-jql-character-count-container")
             char_count_html = char_count.inner_html()
-            
-            assert "character-count-warning" not in char_count_html or "character-count-display character-count-warning" not in char_count_html
+
+            assert (
+                "character-count-warning" not in char_count_html
+                or "character-count-display character-count-warning"
+                not in char_count_html
+            )
             assert "1,799" in char_count_html or "1799" in char_count_html
 
             browser.close()
@@ -172,7 +178,7 @@ class TestJQLCharacterCount:
             # Verify count shows 0
             char_count = page.locator("#jira-jql-character-count-container")
             char_count_text = char_count.inner_text()
-            
+
             assert "0" in char_count_text.split("/")[0]  # First part should be 0
 
             browser.close()
@@ -200,7 +206,7 @@ class TestJQLCharacterCount:
             char_count = page.locator("#jira-jql-character-count-container")
             char_count_html = char_count.inner_html()
             char_count_text = char_count.inner_text()
-            
+
             assert "character-count-warning" in char_count_html
             assert "2,500" in char_count_text or "2500" in char_count_text
 
@@ -223,10 +229,10 @@ class TestJQLCharacterCount:
             for char in "ABC":
                 jql_textarea.type(char, delay=100)
                 time.sleep(0.2)  # Brief wait for React update
-                
+
                 char_count = page.locator("#jira-jql-character-count-container")
                 current_text = char_count.inner_text()
-                
+
                 # Count should update immediately (no 300ms debounce delay)
                 assert current_text.split("/")[0].strip() != "0"
 
@@ -243,6 +249,7 @@ class TestJQLCharacterCountAccessibility:
 
         def run_server():
             import waitress
+
             waitress.serve(app.server, host="127.0.0.1", port=8052, threads=1)
 
         server_thread = threading.Thread(target=run_server, daemon=True)
