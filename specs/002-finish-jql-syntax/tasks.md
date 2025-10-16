@@ -92,11 +92,11 @@ Phase 6 (Polish)
 
 **Independent Test Criteria**:
 ✅ User can type "project = TEST AND status = Done" and see:
-  - "AND" highlighted in blue (keyword)
-  - "=" highlighted in gray (operator)
-  - Quoted strings highlighted in green
-  - Cursor position remains stable during typing
-  - Highlighting updates within 50ms per keystroke
+- "AND" highlighted in blue (keyword)
+- "=" highlighted in gray (operator)
+- Quoted strings highlighted in green
+- Cursor position remains stable during typing
+- Highlighting updates within 50ms per keystroke
 
 **Acceptance Scenarios**: 5 scenarios from spec.md (see User Story 1)
 
@@ -140,9 +140,9 @@ Phase 6 (Polish)
 
 **Independent Test Criteria**:
 ✅ User can type "issueFunction in linkedIssuesOf('TEST-1')" and see:
-  - "issueFunction" highlighted as keyword (blue)
-  - "in" highlighted as keyword (blue)
-  - "linkedIssuesOf" highlighted as function (purple)
+- "issueFunction" highlighted as keyword (blue)
+- "in" highlighted as keyword (blue)
+- "linkedIssuesOf" highlighted as function (purple)
 
 **Acceptance Scenarios**: 3 scenarios from spec.md (see User Story 2)
 
@@ -167,8 +167,8 @@ Phase 6 (Polish)
 
 **Independent Test Criteria**:
 ✅ User can type 'status = "Done' (unclosed quote) and see:
-  - Orange background with red wavy underline on '"Done'
-  - No application crash or visual glitches
+- Orange background with red wavy underline on '"Done'
+- No application crash or visual glitches
 
 **Acceptance Scenarios**: 3 scenarios from spec.md (see User Story 3)
 
