@@ -189,7 +189,9 @@ def register(app):
             Input("milestone-picker", "date"),  # Added milestone picker input
             Input("points-toggle", "value"),  # Added points toggle input
             # Add all JIRA inputs for immediate saving
-            Input("jira-jql-query", "value"),
+            Input(
+                "jira-jql-query", "data"
+            ),  # Note: JQL editor uses dcc.Store with 'data' property
             Input("jira-url", "value"),
             Input("jira-token", "value"),
             Input("jira-story-points-field", "value"),
@@ -644,7 +646,9 @@ def register(app):
         ],
         [
             Input("jira-url", "value"),
-            Input("jira-jql-query", "value"),
+            Input(
+                "jira-jql-query", "data"
+            ),  # Note: JQL editor uses dcc.Store with 'data' property
         ],
         [
             State("jira-token", "value"),
@@ -801,7 +805,9 @@ def register(app):
         [Input("update-data-unified", "n_clicks")],
         [
             State("data-source-selection", "value"),
-            State("jira-jql-query", "value"),
+            State(
+                "jira-jql-query", "data"
+            ),  # Note: JQL editor uses dcc.Store with 'data' property
             State("jira-url", "value"),
             State("jira-token", "value"),
             State("jira-story-points-field", "value"),
@@ -1035,7 +1041,9 @@ def register(app):
         ],
         [Input("jira-scope-calculate-btn", "n_clicks")],
         [
-            State("jira-jql-query", "value"),
+            State(
+                "jira-jql-query", "data"
+            ),  # Note: JQL editor uses dcc.Store with 'data' property
             State("jira-url", "value"),
             State("jira-token", "value"),
             State("jira-story-points-field", "value"),
@@ -1359,7 +1367,10 @@ def register(app):
             Input("cancel-save-query-button", "n_clicks"),
             Input("confirm-save-query-button", "n_clicks"),
         ],
-        [State("jira-jql-query", "value"), State("save-jql-query-modal", "is_open")],
+        [
+            State("jira-jql-query", "data"),
+            State("save-jql-query-modal", "is_open"),
+        ],  # Note: JQL editor uses dcc.Store with 'data' property
         prevent_initial_call=True,
     )
     def handle_save_query_modal(
@@ -1399,7 +1410,9 @@ def register(app):
         [
             State("query-name-input", "value"),
             State("query-description-input", "value"),
-            State("jira-jql-query", "value"),
+            State(
+                "jira-jql-query", "data"
+            ),  # Note: JQL editor uses dcc.Store with 'data' property
             State("save-query-set-default-checkbox", "value"),
         ],
         prevent_initial_call=True,
@@ -1676,7 +1689,9 @@ def register(app):
             raise PreventUpdate
 
     @app.callback(
-        Output("jira-jql-query", "value"),
+        Output(
+            "jira-jql-query", "data"
+        ),  # Note: JQL editor uses dcc.Store with 'data' property
         [Input("jira-query-profile-selector", "value")],
         prevent_initial_call=True,
     )
@@ -1886,7 +1901,9 @@ def register(app):
     @app.callback(
         [
             Output("jira-query-profile-selector", "value", allow_duplicate=True),
-            Output("jira-jql-query", "value", allow_duplicate=True),
+            Output(
+                "jira-jql-query", "data", allow_duplicate=True
+            ),  # Note: JQL editor uses dcc.Store with 'data' property
         ],
         [Input("load-default-jql-query-button", "n_clicks")],
         prevent_initial_call=True,
@@ -1914,7 +1931,9 @@ def register(app):
     # JQL Character Count Callback (Feature 001-add-jql-query, TASK-108)
     @app.callback(
         Output("jira-jql-character-count-container", "children"),
-        Input("jira-jql-query", "value"),
+        Input(
+            "jira-jql-query", "data"
+        ),  # Note: JQL editor uses dcc.Store with 'data' property
         prevent_initial_call=False,
     )
     def update_jql_character_count(jql_value):

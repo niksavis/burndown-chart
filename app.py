@@ -15,10 +15,11 @@ import dash
 import dash_bootstrap_components as dbc
 from waitress import serve
 
-# Application imports
-from ui import serve_layout
 from callbacks import register_all_callbacks
 from configuration.server import get_server_config
+
+# Application imports
+from ui import serve_layout
 
 #######################################################################
 # APPLICATION SETUP
@@ -36,6 +37,13 @@ app = dash.Dash(
         "/assets/help_system.css",  # Help system CSS for progressive disclosure
     ],
     external_scripts=[
+        # NOTE: CodeMirror 6 CDN commented out - ES module incompatible with script tags
+        # Will be integrated properly when implementing full editor (T023-T024)
+        # For now, using simple textarea with Python callback sync
+        # "https://cdn.jsdelivr.net/npm/codemirror@6/dist/index.min.js",
+        # "/assets/jql_language_mode.js",  # JQL tokenizer - disabled until CodeMirror integration
+        # "/assets/jql_editor_init.js",  # Editor initialization - disabled, using simple textarea
+        # "/assets/jql_editor_debug.js",  # DEBUG script - disabled
         "/assets/mobile_navigation.js",  # Mobile navigation JavaScript for swipe gestures
     ],
     suppress_callback_exceptions=True,  # Suppress exceptions for components created by callbacks

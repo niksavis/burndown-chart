@@ -1,4 +1,10 @@
-# Tasks: Complete JQL Syntax Highlighting with Real-time Visual Feedback
+# Tasks: Complete JQL Syntax Highlig- [X]- [X] T006 Remove deprecated render_syntax_tokens() function from ui/components.py
+- [X] T007 [P] Delete deprecated assets/jql_syntax.css file
+- [X] T008 [P] Delete deprecated assets/jql_syntax.js file
+- [X] T009 [P] Remove tests for deprecated functions from tests/unit/ui/test_components.py (if they exist)4 Define JQL token CSS classes in assets/custom.css (.cm-jql-keyword, .cm-jql-string, .cm-jql-operator, .cm-jql-function, .cm-jql-scriptrunner, .cm-jql-field, .cm-jql-error with WCAG AA compliant colors)
+- [X] T005 Remove deprecated parse_jql_syntax() function from ui/components.py
+- [X] T006 Remove deprecated render_syntax_tokens() function from ui/components.py
+- [ ] T007 [P] Delete deprecated assets/jql_syntax.css fileg with Real-time Visual Feedback
 
 **Input**: Design documents from `/specs/002-finish-jql-syntax/`
 **Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/api-contracts.md
@@ -20,9 +26,9 @@
 
 **Purpose**: Prepare project for CodeMirror 6 integration via CDN (NO Python package installation needed)
 
-- [ ] T001 Add CodeMirror 6 library to app.py external_scripts from CDN (https://cdn.jsdelivr.net/npm/codemirror@6/dist/index.min.js)
-- [ ] T002 Verify CodeMirror loads in browser by opening app and checking browser console for EditorView object
-- [ ] T003 [P] Install Playwright for integration testing (.\.venv\Scripts\activate; pip install pytest-playwright; playwright install chromium)
+- [X] T001 Add CodeMirror 6 library to app.py external_scripts from CDN (https://cdn.jsdelivr.net/npm/codemirror@6/dist/index.min.js)
+- [X] T002 Verify CodeMirror loads in browser by opening app and checking browser console for EditorView object
+- [X] T003 [P] Install Playwright for integration testing (.\.venv\Scripts\activate; pip install pytest-playwright; playwright install chromium)
 
 **Checkpoint**: CodeMirror CDN loading verified, Playwright installed, ready for implementation
 
@@ -34,7 +40,7 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 Define JQL token CSS classes in assets/custom.css (.cm-jql-keyword, .cm-jql-string, .cm-jql-operator, .cm-jql-function, .cm-jql-scriptrunner, .cm-jql-field, .cm-jql-error with WCAG AA compliant colors)
+- [X] T004 Define JQL token CSS classes in assets/custom.css (.cm-jql-keyword, .cm-jql-string, .cm-jql-operator, .cm-jql-function, .cm-jql-scriptrunner, .cm-jql-field, .cm-jql-error with WCAG AA compliant colors)
 - [ ] T005 Remove deprecated parse_jql_syntax() function from ui/components.py
 - [ ] T006 Remove deprecated render_syntax_tokens() function from ui/components.py
 - [ ] T007 [P] Delete deprecated assets/jql_syntax.css file
@@ -55,24 +61,24 @@
 
 **NOTE: Tests verify visual highlighting behavior**
 
-- [ ] T010 [P] [US1] Create test_jql_editor_workflow.py in tests/integration/dashboard/ with Playwright setup (server fixture, browser launch)
-- [ ] T011 [P] [US1] Add Playwright test for keyword highlighting in tests/integration/dashboard/test_jql_editor_workflow.py::test_keyword_highlighting (type "AND", verify blue color)
-- [ ] T012 [P] [US1] Add Playwright test for string highlighting in tests/integration/dashboard/test_jql_editor_workflow.py::test_string_highlighting (type '"Done"', verify green color)
-- [ ] T013 [P] [US1] Add Playwright test for operator highlighting in tests/integration/dashboard/test_jql_editor_workflow.py::test_operator_highlighting (type '=', verify gray color)
-- [ ] T014 [P] [US1] Add Playwright test for cursor stability in tests/integration/dashboard/test_jql_editor_workflow.py::test_cursor_position_stable (type quickly, verify no jumps)
-- [ ] T015 [P] [US1] Add Playwright test for paste performance in tests/integration/dashboard/test_jql_editor_workflow.py::test_paste_large_query (paste 500 chars, verify <300ms highlighting)
+- [X] T010 [P] [US1] Create test_jql_editor_workflow.py in tests/integration/dashboard/ with Playwright setup (server fixture, browser launch)
+- [X] T011 [P] [US1] Add Playwright test for keyword highlighting in tests/integration/dashboard/test_jql_editor_workflow.py::test_keyword_highlighting (type "AND", verify blue color)
+- [X] T012 [P] [US1] Add Playwright test for string highlighting in tests/integration/dashboard/test_jql_editor_workflow.py::test_string_highlighting (type '"Done"', verify green color)
+- [X] T013 [P] [US1] Add Playwright test for operator highlighting in tests/integration/dashboard/test_jql_editor_workflow.py::test_operator_highlighting (type '=', verify gray color)
+- [X] T014 [P] [US1] Add Playwright test for cursor stability in tests/integration/dashboard/test_jql_editor_workflow.py::test_cursor_position_stable (type quickly, verify no jumps)
+- [X] T015 [P] [US1] Add Playwright test for paste performance in tests/integration/dashboard/test_jql_editor_workflow.py::test_paste_large_query (paste 500 chars, verify <300ms highlighting)
 
 ### Implementation for User Story 1
 
-- [ ] T016 [US1] Create ui/jql_editor.py with create_jql_editor() function that returns html.Div() containing: html.Div(className="jql-editor-container") for CodeMirror, dcc.Store(id=editor_id) for state sync, html.Textarea(id=f"{editor_id}-hidden") for accessibility fallback
-- [ ] T017 [US1] Create assets/jql_language_mode.js with StreamLanguage.define() for JQL tokenizer (keywords: AND/OR/NOT/IN/IS/WAS, operators: =/!=/~/!~/</>/<=/>= regex patterns, strings: quoted text regex), export as window.jqlLanguageMode
-- [ ] T018 [US1] Create assets/jql_editor_init.js that finds .jql-editor-container elements, initializes CodeMirror EditorView with jqlLanguageMode, syncs editor changes to dcc.Store using updateListener
-- [ ] T019 [US1] Implement keyword tokenization in assets/jql_language_mode.js token() function with case-insensitive matching for AND, OR, NOT, IN, IS, WAS, EMPTY, NULL, ORDER, BY, ASC, DESC (return "jql-keyword")
-- [ ] T020 [US1] Implement operator tokenization in assets/jql_language_mode.js token() function for =, !=, ~, !~, <, >, <=, >= (return "jql-operator")
-- [ ] T021 [US1] Implement string literal tokenization in assets/jql_language_mode.js token() function for double-quoted and single-quoted text (return "jql-string")
-- [ ] T022 [US1] Implement field name tokenization in assets/jql_language_mode.js token() function for identifiers before operators (return "jql-field")
-- [ ] T023 [US1] Update app.py layout to replace dbc.Textarea with create_jql_editor() for "jira-jql-query" component
-- [ ] T024 [US1] Verify existing callbacks in callbacks/settings.py work with new editor by checking they read from dcc.Store(id="jira-jql-query") data property (may need to update from "value" to "data")
+- [X] T016 [US1] Create ui/jql_editor.py with create_jql_editor() function that returns html.Div() containing: html.Div(className="jql-editor-container") for CodeMirror, dcc.Store(id=editor_id) for state sync, html.Textarea(id=f"{editor_id}-hidden") for accessibility fallback
+- [X] T017 [US1] Create assets/jql_language_mode.js with StreamLanguage.define() for JQL tokenizer (keywords: AND/OR/NOT/IN/IS/WAS, operators: =/!=/~/!~/</>/<=/>= regex patterns, strings: quoted text regex), export as window.jqlLanguageMode
+- [X] T018 [US1] Create assets/jql_editor_init.js that finds .jql-editor-container elements, initializes CodeMirror EditorView with jqlLanguageMode, syncs editor changes to dcc.Store using updateListener
+- [X] T019 [US1] Implement keyword tokenization in assets/jql_language_mode.js token() function with case-insensitive matching for AND, OR, NOT, IN, IS, WAS, EMPTY, NULL, ORDER, BY, ASC, DESC (return "jql-keyword")
+- [X] T020 [US1] Implement operator tokenization in assets/jql_language_mode.js token() function for =, !=, ~, !~, <, >, <=, >= (return "jql-operator")
+- [X] T021 [US1] Implement string literal tokenization in assets/jql_language_mode.js token() function for double-quoted and single-quoted text (return "jql-string")
+- [X] T022 [US1] Implement field name tokenization in assets/jql_language_mode.js token() function for identifiers before operators (return "jql-field")
+- [X] T023 [US1] Update app.py layout to replace dbc.Textarea with create_jql_editor() for "jira-jql-query" component
+- [X] T024 [US1] Verify existing callbacks in callbacks/settings.py work with new editor by checking they read from dcc.Store(id="jira-jql-query") data property (may need to update from "value" to "data")
 
 **Checkpoint**: At this point, User Story 1 should be fully functional - basic JQL syntax highlighting works for keywords, strings, operators
 
