@@ -3,19 +3,21 @@
 **Feature**: Complete JQL Syntax Highlighting with Real-time Visual Feedback  
 **Branch**: `002-finish-jql-syntax`  
 **Date**: 2025-10-20  
-**Approach**: Library-based with CodeMirror 6
+**Approach**: Library-based with CodeMirror 6 via CDN
+
+**CRITICAL UPDATE (2025-10-20)**: No `dash-codemirror` Python package exists on PyPI. Implementation uses CodeMirror 6 loaded via CDN with JavaScript initialization. Python side returns standard Dash HTML components (`html.Div()` + `dcc.Store()`).
 
 ---
 
 ## Overview
 
-This document defines the contracts (interfaces) for the JQL syntax highlighting feature. Since this is a **library-based UI feature**, contracts are defined as:
+This document defines the contracts (interfaces) for the JQL syntax highlighting feature. Since this is a **library-based UI feature using CDN**, contracts are defined as:
 
-1. **Python Function Contracts**: Dash component factory functions
-2. **JavaScript Module Contracts**: CodeMirror language mode exports
+1. **Python Function Contracts**: Dash container component factory (`html.Div()` + `dcc.Store()`)
+2. **JavaScript Module Contracts**: CodeMirror language mode and initialization logic
 3. **Dash Callback Contracts**: NO NEW CALLBACKS (existing callbacks work unchanged)
 
-**Key Decision**: Use CodeMirror 6 library instead of custom parsing, so NO server-side tokenization contracts needed.
+**Key Decision**: Use CodeMirror 6 via CDN (not Python package), so NO Dash component wrapper needed - just standard HTML containers.
 
 ---
 
@@ -23,7 +25,7 @@ This document defines the contracts (interfaces) for the JQL syntax highlighting
 
 ### 1. create_jql_editor (NEW)
 
-**Purpose**: Create CodeMirror editor component configured for JQL syntax highlighting.
+**Purpose**: Create Dash HTML container components that JavaScript will turn into a CodeMirror editor.
 
 **Location**: `ui/jql_editor.py`
 
@@ -36,19 +38,27 @@ def create_jql_editor(
     placeholder: str = "Enter JQL query (e.g., project = TEST)",
     aria_label: str = "JQL Query Editor",
     height: str = "200px"
-) -> dash_codemirror.DashCodeMirror:
+) -> html.Div:
     """
-    Create CodeMirror editor with JQL syntax highlighting.
+    Create container div with dcc.Store() for CodeMirror editor integration.
+    
+    JavaScript initialization code (assets/jql_editor_init.js) will:
+    1. Find containers with class "jql-editor-container"
+    2. Initialize CodeMirror editor in each container
+    3. Sync editor value to dcc.Store() for Dash callbacks
     
     Args:
-        editor_id: Dash component ID (used in callbacks)
-        value: Initial query text
+        editor_id: Dash component ID for dcc.Store() (used in callbacks)
+        value: Initial query text (synced to editor on page load)
         placeholder: Placeholder text when empty
         aria_label: Accessibility label for screen readers
-        height: Editor height (CSS value: "200px", "auto", "50vh")
+        height: Container height (CSS value: "200px", "auto", "50vh")
         
     Returns:
-        DashCodeMirror component configured with JQL language mode
+        html.Div containing:
+        - html.Div(className="jql-editor-container") for CodeMirror
+        - dcc.Store(id=editor_id) for Dash callback state
+        - html.Textarea(id=f"{editor_id}-hidden") for accessibility fallback
         
     Example:
         >>> editor = create_jql_editor(
@@ -58,76 +68,85 @@ def create_jql_editor(
         ...     aria_label="JQL Query Editor",
         ...     height="200px"
         ... )
-        >>> editor.id
+        >>> editor.children[0].className  # Container div
+        'jql-editor-container'
+        >>> editor.children[1].id  # dcc.Store
         'jira-jql-query'
-        >>> editor.options["mode"]
-        'jql'
     """
 ```
 
-**Component Properties** (Dash component attributes):
+**Return Structure** (Dash components):
 
 ```python
-{
-    # Required
-    "id": str,                    # Dash component ID for callbacks
-    "value": str,                 # Current query text (controlled component)
+html.Div([
+    # Container for CodeMirror (JavaScript initializes editor here)
+    html.Div(
+        id=f"{editor_id}-codemirror-container",
+        className="jql-editor-container",
+        **{
+            "aria-label": aria_label,
+            "role": "textbox",
+            "data-placeholder": placeholder,
+            "data-initial-value": value
+        }
+    ),
     
-    # Options (CodeMirror configuration)
-    "options": {
-        "mode": "jql",            # Language mode identifier (custom JQL mode)
-        "theme": "default",       # Visual theme
-        "lineNumbers": False,     # Hide line numbers (mobile-first)
-        "lineWrapping": True,     # Wrap long lines (mobile-friendly)
-        "placeholder": str,       # Placeholder text
-        "readOnly": False,        # Editable by default
-        "tabSize": 2,             # Tab width
-        "indentUnit": 2           # Indent size
-    },
+    # Hidden store for Dash callback synchronization
+    dcc.Store(
+        id=editor_id,  # e.g., "jira-jql-query"
+        data=value
+    ),
     
-    # Styling
-    "height": str,                # CSS height value
-    "className": str,             # Additional CSS classes
-    
-    # Accessibility
-    "aria-label": str             # Screen reader label (REQUIRED)
-}
+    # Hidden textarea for accessibility and form compatibility
+    html.Textarea(
+        id=f"{editor_id}-hidden",
+        value=value,
+        style={"display": "none"},
+        **{"aria-label": aria_label}
+    )
+], style={"height": height})
 ```
 
 **Contract Guarantees**:
 
-- ✅ Always returns valid `DashCodeMirror` component (never None)
-- ✅ Component ID matches `editor_id` parameter
-- ✅ Component has `aria-label` for accessibility
-- ✅ Mobile-first configuration (`lineWrapping=True`, `lineNumbers=False`)
-- ✅ JQL language mode configured (`mode="jql"`)
+- ✅ Always returns valid `html.Div` component (never None)
+- ✅ dcc.Store ID matches `editor_id` parameter exactly
+- ✅ Container has `aria-label` for accessibility
+- ✅ Container has `data-placeholder` attribute for JavaScript
+- ✅ Container has `data-initial-value` attribute for JavaScript
+- ✅ Mobile-first: No line numbers, wrapping enabled (configured in JavaScript)
 
 **Error Handling**:
 
 - No exceptions raised for invalid input
-- Missing `dash-codemirror` library → `ImportError` (dependency check at import time)
+- Missing `dash` or `dash.dcc` → `ImportError` (dependency check at import time)
 
-**Usage in Dash Callbacks**:
+**Integration with Existing Callbacks**:
 
 ```python
 from dash import callback, Input, Output, State
 from ui.jql_editor import create_jql_editor
 
-# Layout
+# Layout - replace dbc.Textarea with create_jql_editor()
 app.layout = html.Div([
+    # OLD (dbc.Textarea):
+    # dbc.Textarea(id="jira-jql-query", value="", placeholder="...")
+    
+    # NEW (create_jql_editor):
     create_jql_editor(
-        editor_id="jira-jql-query",
-        value=initial_query,
+        editor_id="jira-jql-query",  # Same ID as before
+        value="",
+        placeholder="Enter JQL query (e.g., project = TEST)",
         aria_label="JQL Query Editor"
     ),
     html.Button("Update Data", id="update-data-btn")
 ])
 
-# Callback (NO CHANGES from existing textarea callback)
+# Callback - NO CHANGES NEEDED (same ID, same "data" property from dcc.Store)
 @callback(
     Output("data-output", "children"),
     Input("update-data-btn", "n_clicks"),
-    State("jira-jql-query", "value")  # Same ID, same "value" prop
+    State("jira-jql-query", "data")  # dcc.Store "data" property
 )
 def update_data(n_clicks, jql_query):
     # Query validation and JIRA API call

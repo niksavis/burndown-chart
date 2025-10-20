@@ -15,73 +15,167 @@
 
 ---
 
-## Decision: CodeMirror 6 with dash-codemirror
+## Decision: CodeMirror 6 via CDN + JavaScript Integration
 
-**Selected Library**: CodeMirror 6 via `dash-codemirror` component  
-**Package**: `dash-codemirror` (Dash-compatible React wrapper)  
-**Version**: Latest stable (6.x)  
+**Selected Library**: CodeMirror 6 (JavaScript library)  
+**Integration Method**: CDN + client-side JavaScript initialization  
+**Version**: Latest stable (6.x) from CDN  
 **License**: MIT (permissive, compatible with project)
 
-### Rationale
+### Reality Check: No Dash-Native Package Exists
 
-**Why CodeMirror 6**:
-1. **Dash Integration**: `dash-codemirror` package provides official Dash component wrapper - no custom React integration needed
+**⚠️ CRITICAL UPDATE (2025-10-20)**: The originally assumed `dash-codemirror` package **DOES NOT EXIST on PyPI**. 
+
+**Actual Implementation Approach**:
+1. Include CodeMirror 6 library via CDN in `assets/` directory
+2. Create custom JavaScript file (`assets/jql_language_mode.js`) to initialize editor
+3. Use standard Dash `html.Div()` as container element
+4. JavaScript attaches CodeMirror to the div on page load
+5. Use `dcc.Store` or JavaScript to manage value synchronization with Dash callbacks
+
+### Rationale (Updated for CDN Approach)
+
+**Why CodeMirror 6 (JavaScript via CDN)**:
+1. **No Package Dependency**: Works directly in browser, no Python package needed
 2. **Mobile Performance**: Native touch event handling, optimized for mobile viewports, responsive design out of the box
-3. **Custom Language Modes**: Excellent API for defining custom languages via Lezer parser or simple token-based modes
+3. **Custom Language Modes**: Excellent API for defining custom languages via StreamLanguage for simple token-based modes
 4. **Bundle Size**: ~100KB gzipped (smaller than Monaco Editor ~1.5MB)
 5. **Performance**: Specifically designed for real-time editing with lazy rendering and efficient re-parsing
 6. **Accessibility**: Built-in screen reader support, keyboard navigation, ARIA attributes
 7. **Active Maintenance**: Modern codebase (2021+), active community, regular updates
+8. **Simple Integration**: Standard JavaScript initialization pattern works with any web framework
+
+**Why NOT create custom Dash component**:
+- ❌ Requires React knowledge and complex build toolchain
+- ❌ Overkill for simple syntax highlighting feature
+- ❌ Harder to maintain and update
+- ✅ CDN approach is simpler and follows existing project patterns
 
 **Why NOT Monaco Editor**:
 - ❌ Heavier bundle size (1.5MB+ vs 100KB)
-- ❌ No official Dash component (would require custom React wrapper)
+- ❌ No official Dash component (would require same CDN approach but with larger payload)
 - ❌ Designed for full IDE features (overkill for syntax highlighting only)
 - ❌ More complex configuration for simple use cases
 
 **Why NOT Ace Editor**:
 - ❌ Aging codebase (2010s architecture)
 - ❌ Less active development
-- ❌ No official Dash integration
 - ❌ Weaker mobile support compared to CodeMirror 6
 
 ### Alternatives Considered
 
-| Library          | Dash Integration  | Mobile Support | Bundle Size | Custom Language | Rejected Because                  |
-| ---------------- | ----------------- | -------------- | ----------- | --------------- | --------------------------------- |
-| **CodeMirror 6** | ✅ dash-codemirror | ✅ Excellent    | 100KB       | ✅ Lezer parser  | **SELECTED**                      |
-| Monaco Editor    | ❌ Custom needed   | ⚠️ Good         | 1.5MB+      | ✅ Monarch       | Too heavy, no Dash support        |
-| Ace Editor       | ❌ Custom needed   | ⚠️ Fair         | 200KB       | ✅ TextMate      | Aging, less maintained            |
-| Prism.js         | ✅ Easy            | ✅ Excellent    | 2KB         | ⚠️ Read-only     | Not an editor (highlighting only) |
-| Highlight.js     | ✅ Easy            | ✅ Excellent    | 23KB        | ⚠️ Read-only     | Not an editor (highlighting only) |
+| Library          | Integration Method | Mobile Support | Bundle Size | Custom Language  | Selected?                         |
+| ---------------- | ------------------ | -------------- | ----------- | ---------------- | --------------------------------- |
+| **CodeMirror 6** | ✅ CDN + JS         | ✅ Excellent    | 100KB       | ✅ StreamLanguage | **SELECTED**                      |
+| Monaco Editor    | ⚠️ CDN + JS         | ⚠️ Good         | 1.5MB+      | ✅ Monarch        | Too heavy, complex for simple use |
+| Ace Editor       | ✅ CDN + JS         | ⚠️ Fair         | 200KB       | ✅ TextMate       | Aging, less maintained            |
+| Prism.js         | ✅ CDN + JS         | ✅ Excellent    | 2KB         | ⚠️ Read-only      | Not an editor (highlighting only) |
+| Highlight.js     | ✅ CDN + JS         | ✅ Excellent    | 23KB        | ⚠️ Read-only      | Not an editor (highlighting only) |
+
+**Note**: All modern code editors require JavaScript. The choice is whether to use a native Dash component (doesn't exist for CodeMirror) or CDN approach (standard for JavaScript libraries).
 
 ---
 
-## Implementation Approach: CodeMirror 6 Custom Language Mode
+## Implementation Approach: CodeMirror 6 via CDN
 
-### Installation
+### Installation (Updated)
 
-```bash
-pip install dash-codemirror
+**No Python Package Required**
+
+Instead, include CodeMirror 6 via CDN in the Dash app:
+
+**Step 1**: Create `assets/codemirror-bundle.js` with CodeMirror CDN imports:
+
+```javascript
+// Import CodeMirror 6 from CDN (auto-loaded by Dash from assets/)
+// Alternative: Use external_scripts in Dash app initialization
+```
+
+**Step 2**: Use `external_scripts` in `app.py`:
+
+```python
+app = Dash(
+    __name__,
+    external_scripts=[
+        # CodeMirror 6 core (ESM bundle)
+        "https://cdn.jsdelivr.net/npm/codemirror@6/dist/index.js",
+        # Additional modules as needed
+    ]
+)
 ```
 
 **Dependency Impact**:
-- Adds ~100KB to JavaScript bundle (gzipped)
-- No additional Python dependencies beyond dash-codemirror
+- Adds ~100KB to JavaScript bundle (gzipped, loaded from CDN)
+- No Python package dependencies
 - MIT license (compatible)
+- CDN provides caching and fast delivery
 
 ### Custom JQL Language Mode Definition
 
 CodeMirror 6 uses **StreamLanguage** for simple token-based syntax highlighting.
 
 **Implementation Strategy**:
-- Define JQL keywords, operators, functions in JavaScript
+- Define JQL keywords, operators, functions in JavaScript (`assets/jql_language_mode.js`)
 - Use StreamLanguage.define() to create token-based highlighter
 - No need for full Lezer parser (JQL is simple enough for regex-based tokenization)
+- Initialize editor in client-side JavaScript that attaches to a Dash `html.Div()` container
 
-### Dash Component Wrapper (Python)
+### Dash Component Integration (Updated)
 
-Create `create_jql_editor()` function that wraps dash-codemirror component with JQL language mode configuration.
+**No Custom Dash Component Needed**
+
+Instead, use standard Dash HTML components with JavaScript initialization:
+
+**Python Side** (`ui/jql_editor.py`):
+
+```python
+import dash_html_components as html
+from dash import dcc
+
+def create_jql_editor(editor_id, value="", placeholder="", aria_label="JQL Query Editor", height="200px"):
+    """Create container div that JavaScript will turn into CodeMirror editor."""
+    return html.Div([
+        # Container for CodeMirror (JavaScript will initialize here)
+        html.Div(id=f"{editor_id}-codemirror-container", className="jql-editor-container"),
+        
+        # Hidden store for value synchronization with Dash callbacks
+        dcc.Store(id=editor_id, data=value),
+        
+        # Hidden input for accessibility and form compatibility
+        html.Textarea(
+            id=f"{editor_id}-hidden",
+            value=value,
+            style={"display": "none"},
+            **{"aria-label": aria_label}
+        )
+    ], style={"height": height})
+```
+
+**JavaScript Side** (`assets/jql_editor_init.js`):
+
+```javascript
+// Initialize CodeMirror editors after page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Find all editor containers
+    const containers = document.querySelectorAll('.jql-editor-container');
+    
+    containers.forEach(container => {
+        // Initialize CodeMirror with JQL language mode
+        const editor = new EditorView({
+            doc: "",
+            extensions: [
+                basicSetup,
+                StreamLanguage.define(jqlLanguageMode), // Custom JQL mode
+                // ... other extensions
+            ],
+            parent: container
+        });
+        
+        // Sync with Dash Store on changes
+        // ... synchronization logic
+    });
+});
+```
 
 ---
 

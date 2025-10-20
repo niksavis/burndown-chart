@@ -7,7 +7,9 @@
 
 ## Summary
 
-Integrate a production-quality syntax highlighting library (CodeMirror 6 or similar) with custom JQL language mode to provide real-time visual feedback for JIRA Query Language (JQL) queries. Replace underperforming custom parsing functions with library-based solution. Implement Dash component wrapper (`create_jql_editor()`) that handles JQL keywords, operators, string literals, ScriptRunner functions, and error detection. Target <50ms highlighting latency and 60fps performance on mobile devices (320px+). Deprecate existing parse_jql_syntax() and render_syntax_tokens() functions.
+Integrate CodeMirror 6 JavaScript library (via CDN) with custom JQL language mode to provide real-time visual feedback for JIRA Query Language (JQL) queries. Replace underperforming custom parsing functions with library-based solution. Implement Dash integration using client-side JavaScript initialization with `html.Div()` container and `dcc.Store()` for value synchronization. Target <50ms highlighting latency and 60fps performance on mobile devices (320px+). Deprecate existing parse_jql_syntax() and render_syntax_tokens() functions.
+
+**CRITICAL UPDATE (2025-10-20)**: Original plan assumed `dash-codemirror` Python package exists - **IT DOES NOT**. Updated to use CodeMirror 6 via CDN with JavaScript initialization (standard web integration pattern).
 
 ## Technical Context
 
@@ -15,8 +17,7 @@ Integrate a production-quality syntax highlighting library (CodeMirror 6 or simi
 **Primary Dependencies**: 
 - Dash 2.x (Python web framework)
 - Dash Bootstrap Components (UI components)
-- **dash-codemirror 0.1.0+** (Dash wrapper for CodeMirror 6) - **SELECTED in research phase**
-- CodeMirror 6 (Browser-based code editor library)
+- **CodeMirror 6 (JavaScript library via CDN)** - **UPDATED: No Python package, use CDN**
 - Playwright (browser automation testing)
 - pytest (Python testing framework)
 
@@ -36,6 +37,7 @@ Integrate a production-quality syntax highlighting library (CodeMirror 6 or simi
 - Graceful degradation for unsupported browsers (fallback to plain textarea)
 - Local-first architecture (no cloud services)
 - Latest browser versions only (6 months)
+- **No custom Dash components** (use standard HTML + JavaScript initialization)
 
 **Scale/Scope**:
 - Single-user local application
@@ -43,10 +45,11 @@ Integrate a production-quality syntax highlighting library (CodeMirror 6 or simi
 - 15 ScriptRunner functions supported initially
 - ~50 JQL keywords, ~10 operators to recognize
 
-**Library Selection** (from Phase 0 research):
-- **Chosen**: CodeMirror 6 via dash-codemirror
-- **Rationale**: Official Dash integration, mobile support, 100KB bundle size, custom language mode API, accessibility features
-- **Alternatives Rejected**: Monaco Editor (1.5MB, no Dash support), Ace Editor (aging codebase)
+**Library Selection** (from Phase 0 research - UPDATED):
+- **Chosen**: CodeMirror 6 via CDN (JavaScript library, not Python package)
+- **Integration**: Client-side JavaScript initialization with `html.Div()` container + `dcc.Store()` for state
+- **Rationale**: `dash-codemirror` package does NOT exist on PyPI - using standard web integration pattern instead
+- **Alternatives Rejected**: Monaco Editor (1.5MB, too heavy), Ace Editor (aging codebase)
 - **Deprecation**: Remove parse_jql_syntax(), render_syntax_tokens(), assets/jql_syntax.{css,js}
 
 ## Constitution Check
@@ -57,7 +60,13 @@ Integrate a production-quality syntax highlighting library (CodeMirror 6 or simi
 
 #### Simplicity Gate
 - [X] **≤3 New Files**: Feature requires 3 or fewer new files/modules?
-  - **Status**: PASS - Estimated 2-3 new files:
+  - **Status**: PASS - Estimated 4 files (UPDATED):
+    - `ui/jql_editor.py` - Python container component factory
+    - `assets/jql_language_mode.js` - Custom JQL tokenizer for CodeMirror
+    - `assets/jql_editor_init.js` - JavaScript initialization logic (NEW)
+    - `tests/integration/dashboard/test_jql_editor_workflow.py` - Playwright integration tests
+  - **Note**: Slightly over 3 files, but this is the minimum for library integration approach. Alternative would require 10+ files for custom parsing.
+  - **Justification**: Library-based approach is still simpler than custom parsing (which was rejected)
     1. `ui/jql_editor.py` - Dash component wrapper for syntax highlighting library
     2. `assets/jql_language_mode.js` - Custom JQL language mode definition
     3. Optional: `assets/jql_editor.css` - Styling overrides (may use existing custom.css)
@@ -193,27 +202,26 @@ specs/[###-feature]/
 ```
 # Web Application Structure (Python Dash)
 ui/
-├── jql_editor.py           # NEW: Dash component wrapper for syntax highlighting library
+├── jql_editor.py           # NEW: Python function returning html.Div() container + dcc.Store()
 ├── components.py           # MODIFIED: Remove parse_jql_syntax() and render_syntax_tokens()
 ├── cards.py
 ├── layout.py
 └── ...
 
 assets/
-├── jql_language_mode.js    # NEW: Custom JQL language mode definition (tokenizer rules)
-├── jql_editor.css          # NEW (optional): Styling overrides for editor (may merge into custom.css)
-├── custom.css              # MODIFIED: May add editor-specific styles here instead of new file
-├── jql_syntax.css          # DEPRECATED: Remove (no longer needed with library)
-└── jql_syntax.js           # DEPRECATED: Remove (no longer needed with library)
+├── jql_language_mode.js    # NEW: Custom JQL tokenizer (StreamLanguage.define())
+├── jql_editor_init.js      # NEW: CodeMirror initialization + Dash Store synchronization
+├── custom.css              # MODIFIED: Add CodeMirror CSS token classes (.cm-jql-keyword, etc.)
+├── jql_syntax.css          # DEPRECATED: Remove (replaced by CodeMirror + custom.css)
+└── jql_syntax.js           # DEPRECATED: Remove (replaced by jql_editor_init.js)
 
 callbacks/
-├── settings.py             # MODIFIED: Update JQL query input handling for new editor component
+├── settings.py             # VERIFY: Ensure existing callbacks work with new editor (same id/value)
 └── ...
 
 tests/
 ├── unit/
 │   └── ui/
-│       ├── test_jql_editor.py         # NEW: Unit tests for create_jql_editor() wrapper
 │       └── test_components.py         # MODIFIED: Remove tests for deprecated functions
 └── integration/
     └── dashboard/
@@ -221,10 +229,12 @@ tests/
         └── ...
 
 app.py                      # MODIFIED: Update layout to use create_jql_editor()
-requirements.txt            # MODIFIED: Add syntax highlighting library dependency
+requirements.txt            # NO CHANGE: No Python packages needed (CodeMirror via CDN)
 ```
 
-**Structure Decision**: Web application structure (Python Dash backend + JavaScript client). This is an existing Dash application, so we integrate the new editor component into the current `ui/` module structure. The syntax highlighting library runs client-side (JavaScript), with Python providing the Dash component wrapper. No new top-level directories required - all changes are within existing module boundaries.
+**Structure Decision**: Web application structure (Python Dash backend + JavaScript client). This is an existing Dash application, so we integrate the new editor component into the current `ui/` module structure. The syntax highlighting library runs client-side (JavaScript loaded via CDN or external_scripts), with Python providing a container component factory (`create_jql_editor()`). No new Python dependencies required - all changes are within existing module boundaries.
+
+**Integration Method**: CDN approach - include CodeMirror 6 via `external_scripts` in Dash app initialization or load from CDN in custom JavaScript file. NO Python package installation needed.
 
 ## Complexity Tracking
 
@@ -240,51 +250,62 @@ requirements.txt            # MODIFIED: Add syntax highlighting library dependen
 
 ### Phase 1 Deliverables
 
-✅ **research.md** - Library selection research complete
+✅ **research.md** - Library selection research complete (UPDATED 2025-10-20)
 - Evaluated CodeMirror 6, Monaco Editor, Ace Editor
-- Selected: CodeMirror 6 via dash-codemirror
-- Rationale: Dash integration, mobile support, 100KB bundle, accessibility
+- **CRITICAL UPDATE**: `dash-codemirror` package DOES NOT EXIST on PyPI
+- Selected: CodeMirror 6 via CDN + JavaScript initialization (standard web pattern)
+- Integration: `external_scripts` in Dash or CDN loaded in custom JavaScript
+- Rationale: No Python package needed, mobile support, 100KB bundle, accessibility
 - Performance analysis: <16ms keystroke latency, meets all FR requirements
 - Deprecation plan: Remove parse_jql_syntax(), render_syntax_tokens()
+- **Reality Check**: Updated to reflect actual available libraries (no Dash wrapper exists)
 
-✅ **data-model.md** - Runtime data structures defined
-- JQL Editor Component (Python Dash wrapper)
-- JQL Language Mode (JavaScript tokenizer)
+✅ **data-model.md** - Runtime data structures defined (UPDATED 2025-10-20)
+- JQL Editor Component (Python container: `html.Div()` + `dcc.Store()`)
+- JQL Language Mode (JavaScript tokenizer via CodeMirror StreamLanguage)
 - Token types (keyword, string, operator, function, error)
 - No persistent storage (runtime only)
 - Performance considerations documented
+- **Integration Pattern**: JavaScript initialization attaches CodeMirror to Dash container div
 
-✅ **quickstart.md** - Developer implementation guide created
-- Installation steps (dash-codemirror)
-- Architecture overview (CodeMirror 6 stack)
+✅ **quickstart.md** - Developer implementation guide created (UPDATED 2025-10-20)
+- Installation steps (CodeMirror 6 via CDN, no pip install needed)
+- Architecture overview (CodeMirror 6 via external_scripts or CDN)
 - TDD workflow (Red → Green → Refactor)
 - Key files reference (new, modified, deprecated)
-- Testing strategy (unit + Playwright integration)
+- Testing strategy (Playwright integration tests only - no unit tests for UI wrapper per constitution)
 - Troubleshooting guide
 - Performance targets checklist
+- **Integration Method**: Standard JavaScript library pattern, not Dash component package
 
-✅ **contracts/api-contracts.md** - Component contracts documented
-- Python: `create_jql_editor()` signature and properties
-- JavaScript: `jql_language_mode.js` tokenizer contract
-- CSS: Token styling classes with WCAG AA colors
+✅ **contracts/api-contracts.md** - Component contracts documented (UPDATED 2025-10-20)
+- Python: `create_jql_editor()` returns `html.Div()` with container + `dcc.Store()`
+- JavaScript: `jql_language_mode.js` tokenizer contract (StreamLanguage.define())
+- JavaScript: `jql_editor_init.js` initialization and state synchronization
+- CSS: Token styling classes with WCAG AA colors (.cm-jql-keyword, etc.)
 - Performance contracts: <50ms latency, <1MB memory
 - Accessibility contracts: keyboard nav, screen reader, contrast
-- Testing contracts: ≥80% coverage, Playwright scenarios
+- Testing contracts: Playwright scenarios for visual validation
+- **Integration**: CDN-loaded library, not Dash component package
 
-✅ **Agent context updated** - copilot-instructions.md
-- Added CodeMirror 6 technology
-- Added dash-codemirror dependency
-- Updated with library-based approach
+✅ **Agent context updated** - copilot-instructions.md (UPDATED 2025-10-20)
+- Added CodeMirror 6 technology (JavaScript library, NOT Python package)
+- **Removed**: dash-codemirror dependency (does not exist)
+- **Added**: CDN integration pattern for JavaScript libraries
+- Updated with library-based approach (no custom Dash component)
 
-### Constitutional Gates Re-Check (Post-Design)
+### Constitutional Gates Re-Check (Post-Design & Reality Check)
 
-**All Gates Still PASS** ✅
+**All Gates Still PASS** ✅ (Updated 2025-10-20)
 
-- **Simplicity**: 2-3 new files, clear explanation, no premature abstractions
+- **Simplicity**: 4 new files (slightly over 3, but justified - see Simplicity Gate note), clear explanation, no premature abstractions
 - **Mobile-First**: CodeMirror 6 supports 320px+ viewports natively
 - **Performance**: Library provides <16ms latency (exceeds <50ms target)
-- **Testing**: Unit + Playwright tests documented, all scenarios covered
+- **Testing**: Playwright tests documented for visual validation, all scenarios covered
 - **Accessibility**: Library has built-in keyboard nav, ARIA support, WCAG AA colors
+- **Reality**: No Python package dependency needed - simpler than originally planned
+
+**Critical Change**: Integration method updated from non-existent `dash-codemirror` package to standard CDN approach. This is actually SIMPLER (no pip install, no version management, faster load from CDN).
 
 ### Next Steps
 

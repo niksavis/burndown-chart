@@ -6,34 +6,56 @@
 
 ## Overview
 
-This document defines the runtime data structures and entities for JQL syntax highlighting using **CodeMirror 6** library. No persistent storage is required - all entities exist in browser memory during editor operation.
+This document defines the runtime data structures and entities for JQL syntax highlighting using **CodeMirror 6** library (loaded via CDN). No persistent storage is required - all entities exist in browser memory during editor operation.
 
-**Architecture**: Client-side JavaScript (CodeMirror 6) with Python Dash wrapper component.
+**Architecture**: Client-side JavaScript (CodeMirror 6 via CDN) with Python Dash container components (`html.Div()` + `dcc.Store()`).
+
+**CRITICAL UPDATE (2025-10-20)**: No `dash-codemirror` Python package exists. Integration uses standard web pattern: CDN-loaded CodeMirror + JavaScript initialization + Dash HTML containers.
 
 ## Core Entities
 
-### 1. JQL Editor Component (Python Dash)
+### 1. JQL Editor Component (Python Dash Container)
 
-**Purpose**: Dash wrapper component that embeds CodeMirror editor with JQL language mode.
+**Purpose**: Python function that returns Dash HTML components (container div + hidden store) that JavaScript will turn into a CodeMirror editor.
 
 **Implementation**: `ui/jql_editor.py::create_jql_editor()`
 
-**Attributes**:
+**Return Structure** (Dash components):
+
+```python
+html.Div([
+    # Container for CodeMirror (JavaScript initializes editor here)
+    html.Div(
+        id=f"{editor_id}-codemirror-container",
+        className="jql-editor-container",
+        **{"aria-label": aria_label, "role": "textbox"}
+    ),
+    
+    # Hidden store for value synchronization with Dash callbacks
+    dcc.Store(
+        id=editor_id,  # e.g., "jira-jql-query"
+        data=value
+    ),
+    
+    # Hidden textarea for accessibility and form compatibility
+    html.Textarea(
+        id=f"{editor_id}-hidden",
+        value=value,
+        style={"display": "none"},
+        **{"aria-label": aria_label}
+    )
+], style={"height": height})
+```
+
+**Parameters**:
 
 ```python
 {
-    "id": str,                    # Dash component ID (e.g., "jira-jql-query")
-    "value": str,                 # Current query text
-    "placeholder": str,           # Placeholder text
-    "mode": "jql",                # Custom language mode identifier
-    "theme": "light",             # Editor theme
-    "lineNumbers": bool,          # Show line numbers (default: False for mobile)
-    "lineWrapping": bool,         # Wrap long lines (default: True)
-    "readOnly": bool,             # Editor readonly state
-    "maxLength": int,             # Character limit (default: 5000)
-    "height": str,                # Editor height (e.g., "200px", "auto")
-    "className": str,             # Additional CSS classes
-    "ariaLabel": str              # Accessibility label
+    "editor_id": str,             # Dash component ID (e.g., "jira-jql-query")
+    "value": str,                 # Initial query text (default: "")
+    "placeholder": str,           # Placeholder text (default: "Enter JQL query...")
+    "aria_label": str,            # Accessibility label (default: "JQL Query Editor")
+    "height": str                 # Editor height (default: "200px")
 }
 ```
 
@@ -46,14 +68,20 @@ editor = create_jql_editor(
     editor_id="jira-jql-query",
     value="project = TEST AND status = Open",
     placeholder="Enter JQL query (e.g., project = TEST)",
-    aria_label="JQL Query Editor"
+    aria_label="JQL Query Editor",
+    height="200px"
 )
 ```
 
 **Lifecycle**:
-- Created: When app layout initializes
-- Updated: On user typing (browser-side, no server round-trip)
+- Created: When app layout initializes (returns Dash HTML components)
+- Updated: JavaScript manages CodeMirror editor state, syncs to `dcc.Store()` on changes
 - Destroyed: When tab/page closes
+
+**Integration with Callbacks**:
+- Existing Dash callbacks read value from `dcc.Store(id="jira-jql-query")`
+- JavaScript initialization code syncs CodeMirror editor content to store
+- No changes needed to existing callbacks (same ID, same value property)
 
 ### 2. JQL Language Mode (JavaScript)
 
@@ -151,7 +179,72 @@ const jqlLanguageMode = {
 - Updated: Never (static tokenizer rules)
 - Destroyed: On page unload
 
-### 3. Query Text (Runtime State)
+### 3. CodeMirror Initialization Logic (JavaScript)
+
+**Purpose**: JavaScript code that initializes CodeMirror editors in Dash container divs and manages state synchronization.
+
+**Implementation**: `assets/jql_editor_init.js`
+
+**Responsibilities**:
+
+```javascript
+{
+    // Find all editor containers on page load
+    findContainers: () => document.querySelectorAll('.jql-editor-container'),
+    
+    // Initialize CodeMirror instance for each container
+    initializeEditor: (container, options) => {
+        return new EditorView({
+            doc: options.initialValue || "",
+            extensions: [
+                basicSetup,
+                StreamLanguage.define(jqlLanguageMode),
+                lineWrapping(),
+                EditorView.updateListener.of((update) => {
+                    if (update.docChanged) {
+                        // Sync value to Dash Store
+                        syncToDashStore(container.id, update.state.doc.toString());
+                    }
+                })
+            ],
+            parent: container
+        });
+    },
+    
+    // Synchronize editor value with Dash Store
+    syncToDashStore: (editorId, value) => {
+        const storeId = editorId.replace('-codemirror-container', '');
+        const store = document.getElementById(storeId);
+        if (store) {
+            // Trigger Dash callback with new value
+            store.dataset.value = value;
+            // Dispatch custom event for Dash to detect
+            store.dispatchEvent(new CustomEvent('change', { detail: value }));
+        }
+    },
+    
+    // Listen for Dash Store updates (programmatic value changes)
+    listenToStoreUpdates: (storeId, editor) => {
+        const store = document.getElementById(storeId);
+        const observer = new MutationObserver((mutations) => {
+            const newValue = store.dataset.value;
+            if (newValue !== editor.state.doc.toString()) {
+                editor.dispatch({
+                    changes: { from: 0, to: editor.state.doc.length, insert: newValue }
+                });
+            }
+        });
+        observer.observe(store, { attributes: true, attributeFilter: ['data-value'] });
+    }
+}
+```
+
+**Lifecycle**:
+- Loaded: On page load (included in assets/)
+- Executed: After DOM ready (DOMContentLoaded event)
+- Active: Throughout page session
+
+### 4. Query Text (Runtime State)
 
 **Purpose**: Current JQL query text being edited.
 
@@ -175,7 +268,7 @@ const jqlLanguageMode = {
 - Updated: On every keystroke (debounced highlighting <50ms)
 - Destroyed: On editor unmount
 
-### 4. Editor Configuration (Runtime)
+### 5. Editor Configuration (Runtime)
 
 **Purpose**: CodeMirror editor configuration passed from Dash component.
 
