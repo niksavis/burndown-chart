@@ -52,33 +52,26 @@
    * Safe to call multiple times - skips already initialized editors.
    */
   function initializeJQLEditors() {
-    // NOTE: Currently using textarea fallback, not full CodeMirror integration
-    // We don't wait for CodeMirror/jqlLanguageMode - proceed directly with textarea
-
-    // Log availability for debugging
+    // Check if CodeMirror and jqlLanguageMode are available
     const jqlModeAvailable = typeof window.jqlLanguageMode !== "undefined";
     const codeMirrorAvailable =
-      (typeof CodeMirror !== "undefined" && CodeMirror.EditorView) ||
-      (typeof window.CodeMirror !== "undefined" &&
-        window.CodeMirror.EditorView) ||
-      typeof CM !== "undefined";
+      typeof CodeMirror !== "undefined" || typeof window.CM !== "undefined";
 
     if (jqlModeAvailable && codeMirrorAvailable) {
       console.log(
-        "[JQL Editor] Both jqlLanguageMode and CodeMirror available - full editor possible"
-      );
-    } else if (jqlModeAvailable) {
-      console.log(
-        "[JQL Editor] jqlLanguageMode available, CodeMirror not loaded - using textarea fallback"
+        "[JQL Editor] CodeMirror and jqlLanguageMode available - initializing full editor"
       );
     } else {
-      console.log(
-        "[JQL Editor] Using plain textarea fallback (CodeMirror/jqlLanguageMode not loaded)"
+      console.warn(
+        "[JQL Editor] CodeMirror or jqlLanguageMode not available - using textarea fallback"
       );
+      console.log("  jqlLanguageMode:", jqlModeAvailable ? "✓" : "✗");
+      console.log("  CodeMirror:", codeMirrorAvailable ? "✓" : "✗");
     }
 
     // Find all editor containers
     const containers = document.querySelectorAll(".jql-editor-container");
+    console.log(`[JQL Editor] Found ${containers.length} editor container(s)`);
 
     containers.forEach((container) => {
       // Skip if already initialized
@@ -87,6 +80,16 @@
           "[JQL Editor] Skipping already initialized container:",
           container.id
         );
+        return;
+      }
+
+      // Also check if CodeMirror already exists in this container
+      if (container._cmEditor || container.querySelector(".CodeMirror")) {
+        console.log(
+          "[JQL Editor] Skipping container with existing CodeMirror:",
+          container.id
+        );
+        initializedEditors.add(container); // Mark as initialized
         return;
       }
 
@@ -131,8 +134,12 @@
     let storeElement = document.getElementById(editorId);
 
     if (!storeElement) {
-      console.warn(`[JQL Editor] Store element not found with ID: ${editorId}`);
-      console.log("[JQL Editor] Searching for Store by selector...");
+      console.log(
+        `[JQL Editor] Store not in DOM with ID: ${editorId} (expected for dcc.Store)`
+      );
+      console.log(
+        "[JQL Editor] Attempting alternate Store detection methods..."
+      );
 
       // Try finding by data-dash-store attribute or other methods
       storeElement =
@@ -140,13 +147,14 @@
         document.querySelector(`#${CSS.escape(editorId)}`);
 
       if (!storeElement) {
-        console.error(
-          "[JQL Editor] Could not find Store element by any method"
+        console.log(
+          "[JQL Editor] Store element not in DOM (this is normal for dcc.Store components)"
         );
         console.log(
-          "[JQL Editor] Proceeding without Store sync (textarea will still be editable)"
+          "[JQL Editor] Python callbacks will handle textarea ↔ Store synchronization"
         );
         // Don't return - we can still create an editable textarea
+        // The Python callbacks in callbacks/jql_editor.py handle Store sync
       } else {
         console.log(
           "[JQL Editor] Found Store element using alternate selector"
@@ -208,108 +216,179 @@
     editorId,
     storeElement
   ) {
-    // Note: This is a simplified implementation
-    // Full CodeMirror 6 initialization requires proper imports and extensions
-    // This is a placeholder that demonstrates the integration pattern
+    // Check if CodeMirror 5 is available
+    if (typeof CodeMirror === "undefined" || !CodeMirror.fromTextArea) {
+      console.warn(
+        "[JQL Editor] CodeMirror 5 not available, using textarea fallback"
+      );
+      return createTextareaFallback(
+        container,
+        initialValue,
+        placeholder,
+        editorId,
+        storeElement
+      );
+    }
 
-    // STRATEGY: Instead of creating a new textarea, use the existing hidden one
-    // This prevents Dash from removing our dynamically created element
+    // Check if JQL mode is registered
+    if (!window.jqlLanguageMode) {
+      console.warn("[JQL Editor] JQL mode not loaded, using textarea fallback");
+      return createTextareaFallback(
+        container,
+        initialValue,
+        placeholder,
+        editorId,
+        storeElement
+      );
+    }
+
     console.log(
-      "[JQL Editor] Looking for hidden textarea:",
-      `${editorId}-hidden`
+      "[JQL Editor] Creating CodeMirror 5 editor with JQL syntax highlighting"
     );
-    const hiddenTextarea = document.getElementById(`${editorId}-hidden`);
 
-    if (hiddenTextarea) {
-      console.log("[JQL Editor] Found hidden textarea, making it visible...");
+    // Find or create textarea for CodeMirror
+    let textarea =
+      container.querySelector("textarea") ||
+      document.getElementById(`${editorId}-textarea`);
 
-      // Move it into the container
-      container.appendChild(hiddenTextarea);
+    if (!textarea) {
+      console.log("[JQL Editor] Creating new textarea element for CodeMirror");
+      textarea = document.createElement("textarea");
+      textarea.id = `${editorId}-textarea`;
+      textarea.value = initialValue;
+      container.appendChild(textarea);
+    } else {
+      console.log("[JQL Editor] Using existing textarea:", textarea.id);
+      // Update value if needed
+      if (initialValue && !textarea.value) {
+        textarea.value = initialValue;
+      }
+    }
 
-      // Make it visible and style it
-      hiddenTextarea.style.display = "block";
-      hiddenTextarea.style.width = "100%";
-      hiddenTextarea.style.minHeight = "100px";
-      hiddenTextarea.style.fontFamily = "Monaco, Menlo, monospace";
-      hiddenTextarea.style.fontSize = "14px";
-      hiddenTextarea.style.padding = "8px";
-      hiddenTextarea.style.border = "1px solid #ced4da";
-      hiddenTextarea.style.borderRadius = "4px";
-      hiddenTextarea.style.resize = "vertical";
-      hiddenTextarea.className = "jql-editor-textarea";
+    try {
+      // Create CodeMirror editor from textarea
+      const editor = CodeMirror.fromTextArea(textarea, {
+        mode: "jql", // Use our custom JQL mode
+        lineNumbers: false, // No line numbers for single queries
+        lineWrapping: true, // Wrap long queries
+        theme: "default", // Use default theme (styled via CSS)
+        placeholder: placeholder,
+        indentWithTabs: false,
+        indentUnit: 2,
+        tabSize: 2,
+        autofocus: false,
+        // Additional options for better UX
+        extraKeys: {
+          Tab: false, // Disable tab capture for accessibility
+        },
+      });
 
-      console.log(
-        "[JQL Editor] Hidden textarea readOnly:",
-        hiddenTextarea.readOnly
-      );
-      console.log(
-        "[JQL Editor] Hidden textarea disabled:",
-        hiddenTextarea.disabled
-      );
-      console.log("[JQL Editor] Hidden textarea value:", hiddenTextarea.value);
+      console.log("[JQL Editor] CodeMirror editor created successfully");
 
-      // Sync changes to dcc.Store (if available)
+      // Sync CodeMirror changes to textarea (Python callbacks handle textarea ↔ Store)
       if (storeElement) {
-        hiddenTextarea.addEventListener("input", function () {
-          console.log("[JQL Editor] Textarea input event - syncing to Store");
-          updateStoreValue(storeElement, hiddenTextarea.value);
+        // If Store element found (rare), sync directly
+        editor.on("change", function (cm) {
+          const value = cm.getValue();
+          updateStoreValue(storeElement, value);
         });
+        console.log("[JQL Editor] Direct Store sync enabled");
       } else {
-        console.warn(
-          "[JQL Editor] No Store element found - textarea editable but won't sync to Dash callbacks"
+        // Normal case: Python callbacks handle textarea → Store sync
+        // CodeMirror.fromTextArea() automatically updates the hidden textarea
+        console.log(
+          "[JQL Editor] Textarea sync enabled (Python callbacks handle Store)"
         );
       }
 
-      console.log("[JQL Editor] Textarea moved to container and made visible");
-      return { textarea: hiddenTextarea };
-    }
+      // Store editor reference
+      container._cmEditor = editor;
 
-    // Fallback: create a new textarea if hidden one not found
-    console.log("[JQL Editor] Hidden textarea not found, creating new one...");
-    const textarea = document.createElement("textarea");
-    textarea.className = "jql-editor-textarea";
-    textarea.value = initialValue;
-    textarea.placeholder = placeholder;
-    textarea.style.width = "100%";
-    textarea.style.minHeight = "100px";
-    textarea.style.fontFamily = "Monaco, Menlo, monospace";
-    textarea.style.fontSize = "14px";
-    textarea.style.padding = "8px";
-    textarea.style.border = "1px solid #ced4da";
-    textarea.style.borderRadius = "4px";
-    textarea.style.resize = "vertical";
+      // Style the CodeMirror wrapper
+      const cmWrapper = container.querySelector(".CodeMirror");
+      if (cmWrapper) {
+        cmWrapper.style.height = "auto";
+        cmWrapper.style.minHeight = "100px";
+        cmWrapper.style.border = "1px solid #ced4da";
+        cmWrapper.style.borderRadius = "4px";
+        cmWrapper.style.fontSize = "14px";
+        console.log("[JQL Editor] CodeMirror wrapper styled");
+      }
 
-    console.log("[JQL Editor] Textarea readonly:", textarea.readOnly);
-    console.log("[JQL Editor] Textarea disabled:", textarea.disabled);
-
-    // Sync changes to dcc.Store (if available)
-    if (storeElement) {
-      textarea.addEventListener("input", function () {
-        console.log("[JQL Editor] Textarea input event - syncing to Store");
-        updateStoreValue(storeElement, textarea.value);
-      });
-    } else {
-      console.warn(
-        "[JQL Editor] No Store element found - textarea editable but won't sync to Dash callbacks"
+      return editor;
+    } catch (error) {
+      console.error("[JQL Editor] Error creating CodeMirror editor:", error);
+      console.log("[JQL Editor] Falling back to plain textarea");
+      return createTextareaFallback(
+        container,
+        initialValue,
+        placeholder,
+        editorId,
+        storeElement
       );
     }
+  }
 
-    container.appendChild(textarea);
-    console.log(
-      "[JQL Editor] Textarea appended to container, children count:",
-      container.children.length
-    );
+  /**
+   * Create a plain textarea fallback when CodeMirror is not available.
+   */
+  function createTextareaFallback(
+    container,
+    initialValue,
+    placeholder,
+    editorId,
+    storeElement
+  ) {
+    console.log("[JQL Editor] Creating textarea fallback");
 
-    return { textarea }; // Return object for consistency
+    // Find existing textarea or create new one
+    let textarea =
+      container.querySelector("textarea") ||
+      document.getElementById(`${editorId}-textarea`);
+
+    if (!textarea) {
+      textarea = document.createElement("textarea");
+      textarea.id = `${editorId}-textarea`;
+      textarea.className = "jql-editor-textarea form-control";
+      textarea.value = initialValue;
+      textarea.placeholder = placeholder;
+      textarea.style.fontFamily = "Monaco, Menlo, monospace";
+      textarea.style.fontSize = "14px";
+      textarea.style.minHeight = "100px";
+      textarea.style.width = "100%";
+      textarea.style.resize = "vertical";
+      container.appendChild(textarea);
+    }
+
+    // Ensure textarea is visible and editable
+    textarea.style.display = "block";
+    textarea.readOnly = false;
+    textarea.disabled = false;
+
+    // Sync changes to dcc.Store
+    if (storeElement) {
+      textarea.addEventListener("input", function () {
+        console.log("[JQL Editor] Textarea input - syncing to Store");
+        updateStoreValue(storeElement, textarea.value);
+      });
+    }
+
+    console.log("[JQL Editor] Textarea fallback created");
+    return { textarea: textarea };
   }
 
   /**
    * Get current value from dcc.Store element.
    *
-   * @param {HTMLElement} storeElement - dcc.Store DOM element
+   * @param {HTMLElement} storeElement - dcc.Store DOM element (can be null)
    * @returns {string} Current store value
    */
   function getStoreValue(storeElement) {
+    // Return empty string if no store element
+    if (!storeElement) {
+      return "";
+    }
+
     try {
       // dcc.Store stores data in a data attribute
       const dataAttr = storeElement.getAttribute("data-dash-store-data");
@@ -328,10 +407,15 @@
    * Update dcc.Store with new editor value.
    * Triggers Dash callbacks listening to this Store.
    *
-   * @param {HTMLElement} storeElement - dcc.Store DOM element
+   * @param {HTMLElement} storeElement - dcc.Store DOM element (can be null)
    * @param {string} value - New value to store
    */
   function updateStoreValue(storeElement, value) {
+    // Skip if no store element
+    if (!storeElement) {
+      return;
+    }
+
     try {
       // Update Store's data attribute
       storeElement.setAttribute("data-dash-store-data", JSON.stringify(value));

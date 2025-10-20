@@ -102,19 +102,26 @@ def create_jql_editor(
                 data=initial_value,
                 storage_type="memory",  # Don't persist across sessions
             ),
-            # Visible textarea - simple fallback until CodeMirror is properly integrated
-            # This textarea syncs to dcc.Store via callback in callbacks/jql_editor.py
-            html.Textarea(
-                id=f"{editor_id}-textarea",
-                children=initial_value,  # Use 'children' for initial content, callbacks use 'value'
-                placeholder=placeholder,
-                className="jql-editor-textarea form-control",
-                style={
-                    "fontFamily": "Monaco, Menlo, 'Ubuntu Mono', Consolas, monospace",
-                    "fontSize": "14px",
-                    "minHeight": "100px",
-                    "resize": "vertical",
-                },
+            # CodeMirror container (JavaScript will initialize CodeMirror here)
+            html.Div(
+                className="jql-editor-container",
+                id=f"{editor_id}-container",
+                children=[
+                    # Fallback textarea (visible until CodeMirror initializes, then hidden)
+                    html.Textarea(
+                        id=f"{editor_id}-textarea",
+                        children=initial_value,  # Use 'children' for initial content
+                        placeholder=placeholder,
+                        className="jql-editor-textarea form-control",
+                        style={
+                            "fontFamily": "Monaco, Menlo, 'Ubuntu Mono', Consolas, monospace",
+                            "fontSize": "14px",
+                            "minHeight": "100px",
+                            "resize": "vertical",
+                            "width": "100%",
+                        },
+                    ),
+                ],
             ),
         ],
     )

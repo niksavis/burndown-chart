@@ -22,7 +22,7 @@ import pytest
 from playwright.sync_api import Page, expect
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def base_url():
     """Base URL for the application."""
     return "http://127.0.0.1:8050"
@@ -51,16 +51,18 @@ class TestKeywordHighlighting:
         - Verify "AND" is highlighted with blue color (keyword style)
         - Highlighting updates in real-time (<50ms per SC-001)
         """
-        # Find JQL editor container
-        editor = page.locator(".jql-editor-container").first
-        expect(editor).to_be_visible()
+        # Find CodeMirror editor
+        cm_wrapper = page.locator(".CodeMirror").first
+        expect(cm_wrapper).to_be_visible()
 
-        # Type keyword
-        editor.click()
-        editor.type("AND", delay=50)  # 50ms delay simulates normal typing
+        # Click to focus, clear existing text, and type keyword with spaces
+        cm_wrapper.click()
+        page.keyboard.press("Control+A")  # Select all
+        page.keyboard.press("Delete")  # Clear
+        page.keyboard.type(" AND ", delay=50)  # Spaces ensure word boundary
 
         # Wait for highlighting to apply
-        time.sleep(0.1)  # 100ms buffer (< 50ms target + margin)
+        time.sleep(0.2)  # 200ms buffer for CodeMirror
 
         # Verify keyword has blue color class
         keyword_element = page.locator(".cm-jql-keyword").filter(has_text="AND").first
@@ -240,3 +242,107 @@ class TestPastePerformance:
         assert elapsed_ms < 1000, (
             f"Paste took {elapsed_ms:.2f}ms (target < 300ms core operation)"
         )
+
+
+class TestScriptRunnerFunctionHighlighting:
+    """Test ScriptRunner extension function highlighting (User Story 2)."""
+
+    def test_scriptrunner_function_highlighting(self, page: Page):
+        """
+        Test T025: ScriptRunner function highlighted in purple.
+
+        User Story 2 - Acceptance Criteria:
+        - Type "linkedIssuesOf(" in JQL editor
+        - Verify "linkedIssuesOf" is highlighted with purple color (#9b59b6)
+        - ScriptRunner functions have distinct color from regular JQL keywords
+        """
+        # Find CodeMirror editor
+        cm_wrapper = page.locator(".CodeMirror").first
+        expect(cm_wrapper).to_be_visible()
+
+        # Clear and type ScriptRunner function
+        cm_wrapper.click()
+        page.keyboard.press("Control+A")
+        page.keyboard.press("Delete")
+        page.keyboard.type("linkedIssuesOf(", delay=50)
+
+        time.sleep(0.2)
+
+        # Verify ScriptRunner function has purple color class
+        scriptrunner_element = (
+            page.locator(".cm-jql-scriptrunner").filter(has_text="linkedIssuesOf").first
+        )
+        expect(scriptrunner_element).to_be_visible()
+
+        # Verify computed style (purple color #6f42c1 from custom.css)
+        color = scriptrunner_element.evaluate("el => window.getComputedStyle(el).color")
+        # RGB for #6f42c1 is rgb(111, 66, 193)
+        assert color == "rgb(111, 66, 193)", (
+            f"Expected purple (rgb(111, 66, 193)), got {color}"
+        )
+
+    def test_issuefunction_keyword(self, page: Page):
+        """
+        Test T026: issueFunction keyword highlighted correctly.
+
+        User Story 2 - Acceptance Criteria:
+        - Type "issueFunction in" in JQL editor
+        - Verify "issueFunction" highlighted as ScriptRunner function
+        - Verify "in" highlighted as JQL keyword (different color)
+        """
+        # Find CodeMirror editor
+        cm_wrapper = page.locator(".CodeMirror").first
+        expect(cm_wrapper).to_be_visible()
+
+        # Clear and type issueFunction with keyword
+        cm_wrapper.click()
+        page.keyboard.press("Control+A")
+        page.keyboard.press("Delete")
+        page.keyboard.type("issueFunction in ", delay=50)
+
+        time.sleep(0.2)
+
+        # Verify issueFunction is purple (ScriptRunner)
+        issuefunction_element = (
+            page.locator(".cm-jql-scriptrunner").filter(has_text="issueFunction").first
+        )
+        expect(issuefunction_element).to_be_visible()
+
+        # Verify "in" is blue (JQL keyword)
+        in_keyword = page.locator(".cm-jql-keyword").filter(has_text="in").first
+        expect(in_keyword).to_be_visible()
+
+    def test_multiple_scriptrunner_functions(self, page: Page):
+        """
+        Test T027: Multiple ScriptRunner functions in single query.
+
+        User Story 2 - Acceptance Criteria:
+        - Type query with 3+ ScriptRunner functions
+        - Verify ALL functions are highlighted correctly
+        - Verify mixed syntax (ScriptRunner + standard JQL) works
+        """
+        # Find CodeMirror editor
+        cm_wrapper = page.locator(".CodeMirror").first
+        expect(cm_wrapper).to_be_visible()
+
+        # Clear and type query with multiple ScriptRunner functions
+        query = "issueFunction in linkedIssuesOf('TEST-1') AND hasComments()"
+        cm_wrapper.click()
+        page.keyboard.press("Control+A")
+        page.keyboard.press("Delete")
+        page.keyboard.type(query, delay=50)
+
+        time.sleep(0.3)  # Allow time for all highlighting
+
+        # Verify all 3 ScriptRunner functions are highlighted
+        scriptrunner_functions = page.locator(".cm-jql-scriptrunner")
+
+        # Should find at least: issueFunction, linkedIssuesOf, hasComments
+        count = scriptrunner_functions.count()
+        assert count >= 3, (
+            f"Expected at least 3 ScriptRunner functions highlighted, found {count}"
+        )
+
+        # Verify "AND" keyword is still blue (not affected by ScriptRunner)
+        and_keyword = page.locator(".cm-jql-keyword").filter(has_text="AND").first
+        expect(and_keyword).to_be_visible()

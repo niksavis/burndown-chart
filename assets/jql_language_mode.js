@@ -1,11 +1,11 @@
 /**
- * JQL Language Mode for CodeMirror 6
+ * JQL Language Mode for CodeMirror 5
  *
  * Defines syntax highlighting rules for JIRA Query Language (JQL).
  * Implements tokenization for keywords, operators, strings, fields, functions, and errors.
  *
  * Architecture:
- *   - Uses CodeMirror 6's StreamLanguage API for character-by-character parsing
+ *   - Uses CodeMirror 5's mode API for character-by-character parsing
  *   - State machine approach: tracks parser state across lines
  *   - Returns token types that map to CSS classes (.cm-jql-*)
  *
@@ -19,11 +19,11 @@
  *   - "jql-error": Syntax errors (unclosed quotes, invalid syntax)
  *
  * Usage:
- *   This file is loaded via script tag and exposes window.jqlLanguageMode.
+ *   This file is loaded via script tag and registers the mode with CodeMirror.
  *   The editor initialization script (jql_editor_init.js) uses this mode.
  *
  * Requirements:
- *   - CodeMirror 6 must be loaded first (via CDN in app.py)
+ *   - CodeMirror 5 must be loaded first (via CDN in app.py)
  *   - CSS token classes must be defined in custom.css
  */
 
@@ -84,10 +84,25 @@ const JQL_FUNCTIONS = new Set([
   "endOfYear",
 ]);
 
-// ScriptRunner Functions (will be added in User Story 2)
-// Placeholder for future implementation
+// ScriptRunner Functions (User Story 2 - T028)
+// Top 15 most commonly used ScriptRunner extension functions
 const SCRIPTRUNNER_FUNCTIONS = new Set([
-  // Will be populated in T028
+  "linkedIssuesOf",
+  "issuesInEpics",
+  "subtasksOf",
+  "parentsOf",
+  "epicsOf",
+  "hasLinks",
+  "hasComments",
+  "hasAttachments",
+  "lastUpdated",
+  "expression",
+  "dateCompare",
+  "aggregateExpression",
+  "issueFieldMatch",
+  "linkedIssuesOfRecursive",
+  "workLogged",
+  "issueFunction", // Special keyword that can be used standalone
 ]);
 
 /**
@@ -210,6 +225,12 @@ const jqlLanguageMode = {
   /**
    * Tokenize word (keyword, function, or field name).
    * Performs case-insensitive keyword matching.
+   *
+   * Priority Ordering (T030):
+   *   1. ScriptRunner functions (even without parentheses)
+   *   2. Functions with parentheses
+   *   3. JQL keywords
+   *   4. Field names (default)
    */
   tokenizeWord: function (stream, state) {
     const start = stream.pos;
@@ -222,14 +243,15 @@ const jqlLanguageMode = {
     const word = stream.string.substring(start, stream.pos);
     const wordUpper = word.toUpperCase();
 
+    // T030: Check ScriptRunner functions FIRST (before keywords)
+    // This prevents "issueFunction" from being treated as generic keyword
+    if (SCRIPTRUNNER_FUNCTIONS.has(word)) {
+      return "jql-scriptrunner";
+    }
+
     // Check if next character is opening parenthesis (function call)
     stream.eatSpace();
     if (stream.peek() === "(") {
-      // Check if it's a ScriptRunner function
-      if (SCRIPTRUNNER_FUNCTIONS.has(word)) {
-        return "jql-scriptrunner";
-      }
-
       // Check if it's a standard JQL function
       if (JQL_FUNCTIONS.has(word)) {
         return "jql-function";
@@ -268,4 +290,12 @@ const jqlLanguageMode = {
 // Export for use in jql_editor_init.js
 if (typeof window !== "undefined") {
   window.jqlLanguageMode = jqlLanguageMode;
+}
+
+// Register with CodeMirror 5 if available
+if (typeof CodeMirror !== "undefined" && CodeMirror.defineMode) {
+  CodeMirror.defineMode("jql", function () {
+    return jqlLanguageMode;
+  });
+  console.log("[JQL Mode] Registered JQL mode with CodeMirror 5");
 }

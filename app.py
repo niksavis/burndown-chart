@@ -33,17 +33,18 @@ app = dash.Dash(
     external_stylesheets=[
         dbc.themes.FLATLY,
         "https://use.fontawesome.com/releases/v5.15.4/css/all.css",  # Font Awesome for icons
-        "/assets/custom.css",  # Our custom CSS for standardized styling
+        "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css",  # CodeMirror base styles
+        "/assets/custom.css",  # Our custom CSS for standardized styling (includes CodeMirror theme overrides)
         "/assets/help_system.css",  # Help system CSS for progressive disclosure
     ],
     external_scripts=[
-        # NOTE: CodeMirror 6 CDN commented out - ES module incompatible with script tags
-        # Will be integrated properly when implementing full editor (T023-T024)
-        # For now, using simple textarea with Python callback sync
-        # "https://cdn.jsdelivr.net/npm/codemirror@6/dist/index.min.js",
-        # "/assets/jql_language_mode.js",  # JQL tokenizer - disabled until CodeMirror integration
-        # "/assets/jql_editor_init.js",  # Editor initialization - disabled, using simple textarea
-        # "/assets/jql_editor_debug.js",  # DEBUG script - disabled
+        # CodeMirror 5 (legacy) - Better script tag support than CM6
+        # CM6 requires ES modules which don't work well with Dash script loading
+        # CM5 provides adequate syntax highlighting for our use case
+        "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/sql/sql.min.js",  # Base for query language
+        "/assets/jql_language_mode.js",  # JQL tokenizer for syntax highlighting
+        "/assets/jql_editor_init.js",  # Editor initialization - progressive enhancement
         "/assets/mobile_navigation.js",  # Mobile navigation JavaScript for swipe gestures
     ],
     suppress_callback_exceptions=True,  # Suppress exceptions for components created by callbacks

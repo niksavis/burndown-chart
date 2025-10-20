@@ -41,11 +41,11 @@
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
 - [X] T004 Define JQL token CSS classes in assets/custom.css (.cm-jql-keyword, .cm-jql-string, .cm-jql-operator, .cm-jql-function, .cm-jql-scriptrunner, .cm-jql-field, .cm-jql-error with WCAG AA compliant colors)
-- [ ] T005 Remove deprecated parse_jql_syntax() function from ui/components.py
-- [ ] T006 Remove deprecated render_syntax_tokens() function from ui/components.py
-- [ ] T007 [P] Delete deprecated assets/jql_syntax.css file
-- [ ] T008 [P] Delete deprecated assets/jql_syntax.js file
-- [ ] T009 [P] Remove tests for deprecated functions from tests/unit/ui/test_components.py (if they exist)
+- [X] T005 Remove deprecated parse_jql_syntax() function from ui/components.py
+- [X] T006 Remove deprecated render_syntax_tokens() function from ui/components.py
+- [X] T007 [P] Delete deprecated assets/jql_syntax.css file
+- [X] T008 [P] Delete deprecated assets/jql_syntax.js file
+- [X] T009 [P] Remove tests for deprecated functions from tests/unit/ui/test_components.py (if they exist)
 
 **Checkpoint**: Foundation ready - CSS defined, deprecated code removed, user story implementation can begin
 
@@ -92,15 +92,15 @@
 
 ### Tests for User Story 2 (Playwright Integration Tests)
 
-- [ ] T025 [P] [US2] Add Playwright test for ScriptRunner function highlighting in tests/integration/dashboard/test_jql_editor_workflow.py::test_scriptrunner_function_highlighting (type "linkedIssuesOf(", verify purple color)
-- [ ] T026 [P] [US2] Add Playwright test for issueFunction keyword in tests/integration/dashboard/test_jql_editor_workflow.py::test_issuefunction_keyword (type "issueFunction in", verify highlighted)
-- [ ] T027 [P] [US2] Add Playwright test for multiple ScriptRunner functions in tests/integration/dashboard/test_jql_editor_workflow.py::test_multiple_scriptrunner_functions (type query with 3+ functions, verify all highlighted)
+- [X] T025 [P] [US2] Add Playwright test for ScriptRunner function highlighting in tests/integration/dashboard/test_jql_editor_workflow.py::test_scriptrunner_function_highlighting (type "linkedIssuesOf(", verify purple color)
+- [X] T026 [P] [US2] Add Playwright test for issueFunction keyword in tests/integration/dashboard/test_jql_editor_workflow.py::test_issuefunction_keyword (type "issueFunction in", verify highlighted)
+- [X] T027 [P] [US2] Add Playwright test for multiple ScriptRunner functions in tests/integration/dashboard/test_jql_editor_workflow.py::test_multiple_scriptrunner_functions (type query with 3+ functions, verify all highlighted)
 
 ### Implementation for User Story 2
 
-- [ ] T028 [US2] Add ScriptRunner function patterns to assets/jql_language_mode.js token() function for top 15 functions: linkedIssuesOf, issuesInEpics, subtasksOf, parentsOf, epicsOf, hasLinks, hasComments, hasAttachments, lastUpdated, expression, dateCompare, aggregateExpression, issueFieldMatch, linkedIssuesOfRecursive, workLogged (return "jql-scriptrunner")
-- [ ] T029 [US2] Add standard JQL function patterns to assets/jql_language_mode.js token() function for currentUser(), now(), startOfDay(), endOfDay(), startOfWeek(), endOfWeek() (return "jql-function")
-- [ ] T030 [US2] Implement priority ordering in assets/jql_language_mode.js token() function: ScriptRunner functions BEFORE generic keywords to prevent false keyword matches
+- [X] T028 [US2] Add ScriptRunner function patterns to assets/jql_language_mode.js token() function for top 15 functions: linkedIssuesOf, issuesInEpics, subtasksOf, parentsOf, epicsOf, hasLinks, hasComments, hasAttachments, lastUpdated, expression, dateCompare, aggregateExpression, issueFieldMatch, linkedIssuesOfRecursive, workLogged (return "jql-scriptrunner")
+- [X] T029 [US2] Add standard JQL function patterns to assets/jql_language_mode.js token() function for currentUser(), now(), startOfDay(), endOfDay(), startOfWeek(), endOfWeek() (return "jql-function")
+- [X] T030 [US2] Implement priority ordering in assets/jql_language_mode.js token() function: ScriptRunner functions BEFORE generic keywords to prevent false keyword matches
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work - basic JQL + ScriptRunner syntax highlighting
 
