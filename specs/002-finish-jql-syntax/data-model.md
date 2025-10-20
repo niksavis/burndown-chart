@@ -1,493 +1,518 @@
-# Data Model: JQL Syntax Highlighting
+# Data Model: JQL Syntax Highlighting Runtime Entities
 
 **Feature**: Complete JQL Syntax Highlighting with Real-time Visual Feedback
-**Date**: 2025-10-15
+**Branch**: `002-finish-jql-syntax`
+**Last Updated**: 2025-10-20
 
 ## Overview
 
-This document defines the data structures and entities for implementing real-time JQL syntax highlighting. The feature extends existing entities from feature 001-add-jql-query (SyntaxToken, JQL_KEYWORDS) and introduces new entities for visual rendering and error detection.
+This document defines the runtime data structures and entities for JQL syntax highlighting using **CodeMirror 6** library. No persistent storage is required - all entities exist in browser memory during editor operation.
 
----
+**Architecture**: Client-side JavaScript (CodeMirror 6) with Python Dash wrapper component.
 
-## Entity Definitions
+## Core Entities
 
-### 1. SyntaxToken (EXISTING - from feature 001)
+### 1. JQL Editor Component (Python Dash)
 
-**Purpose**: Represents a parsed segment of JQL query with type and position information.
+**Purpose**: Dash wrapper component that embeds CodeMirror editor with JQL language mode.
 
-**Schema**:
+**Implementation**: `ui/jql_editor.py::create_jql_editor()`
+
+**Attributes**:
+
 ```python
 {
-    "text": str,       # The actual text content of the token
-    "type": str,       # Token type: "keyword", "string", "operator", "text", "function", "error"
-    "start": int,      # Start index in original query string (0-based)
-    "end": int         # End index in original query string (exclusive)
+    "id": str,                    # Dash component ID (e.g., "jira-jql-query")
+    "value": str,                 # Current query text
+    "placeholder": str,           # Placeholder text
+    "mode": "jql",                # Custom language mode identifier
+    "theme": "light",             # Editor theme
+    "lineNumbers": bool,          # Show line numbers (default: False for mobile)
+    "lineWrapping": bool,         # Wrap long lines (default: True)
+    "readOnly": bool,             # Editor readonly state
+    "maxLength": int,             # Character limit (default: 5000)
+    "height": str,                # Editor height (e.g., "200px", "auto")
+    "className": str,             # Additional CSS classes
+    "ariaLabel": str              # Accessibility label
 }
 ```
-
-**Validation Rules**:
-- `text`: Non-empty string, must match `query[start:end]`
-- `type`: Must be one of: "keyword", "string", "operator", "text", "function", "error"
-- `start`: Non-negative integer, less than query length
-- `end`: Greater than `start`, not exceeding query length
-
-**Constraints**:
-- Tokens must not overlap (token[i].end <= token[i+1].start)
-- All tokens together must cover entire query string (no gaps)
 
 **Example**:
+
 ```python
-{
-    "text": "AND",
-    "type": "keyword",
-    "start": 15,
-    "end": 18
-}
-```
+from ui.jql_editor import create_jql_editor
 
-**State Transitions**: None (immutable after parsing)
-
-**Relationships**:
-- Belongs to: JQL Query (as list of tokens)
-- Used by: render_syntax_tokens() for HTML generation
-
----
-
-### 2. JQLQuery (EXISTING - Extended)
-
-**Purpose**: Container for JQL query text and associated metadata (character count, parsed tokens).
-
-**Schema**:
-```python
-{
-    "query_text": str,               # Raw JQL query string
-    "character_count": int,          # Total character count (from count_jql_characters)
-    "tokens": List[SyntaxToken],     # Parsed syntax tokens
-    "errors": List[SyntaxError],     # Detected syntax errors (NEW)
-    "last_parsed": float             # Timestamp of last parse (NEW)
-}
-```
-
-**Validation Rules**:
-- `query_text`: String, max 5000 characters (performance constraint per FR-011)
-- `character_count`: Must equal `len(query_text)`
-- `tokens`: List of valid SyntaxToken objects
-- `errors`: List of SyntaxError objects (can be empty)
-- `last_parsed`: Unix timestamp (seconds since epoch)
-
-**Example**:
-```python
-{
-    "query_text": "project = TEST AND status = \"Done\"",
-    "character_count": 35,
-    "tokens": [
-        {"text": "project", "type": "text", "start": 0, "end": 7},
-        {"text": " ", "type": "text", "start": 7, "end": 8},
-        {"text": "=", "type": "operator", "start": 8, "end": 9},
-        # ... more tokens
-    ],
-    "errors": [],
-    "last_parsed": 1729012345.67
-}
-```
-
----
-
-### 3. SyntaxError (NEW)
-
-**Purpose**: Represents a detected syntax error in JQL query with position and type information.
-
-**Schema**:
-```python
-{
-    "error_type": str,      # Error type: "unclosed_string", "invalid_operator"
-    "start": int,           # Start index of error in query string
-    "end": int,             # End index of error in query string
-    "token": SyntaxToken,   # The problematic token
-    "message": str          # Human-readable error description
-}
-```
-
-**Validation Rules**:
-- `error_type`: Must be one of: "unclosed_string", "invalid_operator"
-- `start`, `end`: Valid indices matching token position
-- `token`: Valid SyntaxToken object
-- `message`: Non-empty descriptive string
-
-**Example**:
-```python
-{
-    "error_type": "unclosed_string",
-    "start": 20,
-    "end": 25,
-    "token": {
-        "text": "\"Done",
-        "type": "string",
-        "start": 20,
-        "end": 25
-    },
-    "message": "Unclosed string literal"
-}
-```
-
-**State Transitions**: None (immutable after detection)
-
----
-
-### 4. HighlightedComponent (NEW)
-
-**Purpose**: Dash component for rendering syntax-highlighted JQL textarea with dual-layer overlay.
-
-**Schema** (Component Props):
-```python
-{
-    "id": str,                      # Unique component ID
-    "value": str,                   # Current query text
-    "placeholder": str,             # Placeholder text
-    "rows": int,                    # Textarea rows
-    "maxLength": int,               # Max character limit (5000)
-    "disabled": bool,               # Disabled state
-    "className": str,               # Additional CSS classes
-    "style": dict,                  # Inline styles
-    "aria_label": str               # Accessibility label
-}
-```
-
-**Internal State** (Client-side):
-```javascript
-{
-    highlightedHtml: string,        // Rendered syntax-highlighted HTML
-    scrollTop: number,              // Current scroll position
-    scrollLeft: number,             // Horizontal scroll position
-    cursorPosition: number,         # Cursor index in text
-    rafId: number | null,           // requestAnimationFrame ID
-    lastParsedText: string          // Last parsed query text (for change detection)
-}
-```
-
-**Validation Rules**:
-- `id`: Required, unique within page
-- `value`: String, max 5000 characters
-- `rows`: Positive integer, typically 3-10
-- `maxLength`: Must be 5000 (performance constraint)
-
-**Example**:
-```python
-HighlightedComponent(
-    id="jql-query-input",
-    value="project = TEST",
-    placeholder="Enter JQL query...",
-    rows=5,
-    maxLength=5000,
-    aria_label="JQL Query Input"
+editor = create_jql_editor(
+    editor_id="jira-jql-query",
+    value="project = TEST AND status = Open",
+    placeholder="Enter JQL query (e.g., project = TEST)",
+    aria_label="JQL Query Editor"
 )
 ```
 
----
+**Lifecycle**:
+- Created: When app layout initializes
+- Updated: On user typing (browser-side, no server round-trip)
+- Destroyed: When tab/page closes
 
-### 5. ScriptRunnerFunction (NEW)
+### 2. JQL Language Mode (JavaScript)
 
-**Purpose**: Extended JQL function from ScriptRunner plugin with metadata.
+**Purpose**: Custom CodeMirror language mode that defines JQL syntax tokenization rules.
 
-**Schema**:
-```python
+**Implementation**: `assets/jql_language_mode.js`
+
+**Token Types**:
+
+```javascript
 {
-    "name": str,            # Function name (e.g., "linkedIssuesOf")
-    "category": str,        # Function category (e.g., "Issue Links", "Date")
-    "syntax": str,          # Function syntax pattern (e.g., "issueFunction in linkedIssuesOf('KEY')")
-    "description": str      # Brief function description (optional, for future enhancement)
-}
-```
-
-**Validation Rules**:
-- `name`: Non-empty string, must match Python identifier rules
-- `category`: String, typically one of ScriptRunner categories
-- `syntax`: Non-empty string showing usage pattern
-
-**Constants** (Python):
-```python
-SCRIPTRUNNER_FUNCTIONS = frozenset([
-    "linkedIssuesOf", "issuesInEpics", "subtasksOf", "parentsOf", "epicsOf",
-    "hasLinks", "hasComments", "hasAttachments", "lastUpdated", "expression",
-    "dateCompare", "aggregateExpression", "issueFieldMatch",
-    "linkedIssuesOfRecursive", "workLogged"
-])
-
-SCRIPTRUNNER_CATEGORIES = {
-    "linkedIssuesOf": "Issue Links",
-    "issuesInEpics": "Issue Links",
-    "subtasksOf": "Issue Links",
-    "parentsOf": "Issue Links",
-    "epicsOf": "Issue Links",
-    "hasLinks": "Issue Links",
-    "hasComments": "Comments",
-    "hasAttachments": "Attachments",
-    "lastUpdated": "Date",
-    "expression": "Calculations",
-    "dateCompare": "Date",
-    "aggregateExpression": "Calculations",
-    "issueFieldMatch": "Match Functions",
-    "linkedIssuesOfRecursive": "Issue Links",
-    "workLogged": "Worklogs"
-}
-```
-
-**Example**:
-```python
-{
-    "name": "linkedIssuesOf",
-    "category": "Issue Links",
-    "syntax": "issueFunction in linkedIssuesOf('KEY')",
-    "description": "Returns issues linked to specified issue"
-}
-```
-
----
-
-## Data Flow
-
-### 1. Query Input → Parsing → Rendering
-
-```
-User Types
-    ↓
-Textarea onChange Event
-    ↓
-JavaScript Event Handler (debounced with requestAnimationFrame)
-    ↓
-Dash Callback: update_jql_highlighting()
-    ↓
-parse_jql_syntax(query_text) → List[SyntaxToken]
-    ↓
-detect_syntax_errors(tokens) → List[SyntaxError]
-    ↓
-render_syntax_tokens(tokens, errors) → List[Dash components]
-    ↓
-Update Contenteditable Div (highlighting overlay)
-    ↓
-Sync Scroll Position (JavaScript)
-```
-
-### 2. Syntax Highlighting Rendering Pipeline
-
-```
-SyntaxToken List
-    ↓
-Group by type (keyword, string, operator, function, error)
-    ↓
-Map to CSS classes:
-    - keyword → .jql-keyword (blue)
-    - string → .jql-string (green)
-    - operator → .jql-operator (gray)
-    - function → .jql-function (purple)
-    - error → .jql-error-unclosed / .jql-error-invalid (red underline/orange bg)
-    ↓
-Wrap in html.Mark components
-    ↓
-Return list of Dash html components
-    ↓
-Render in contenteditable div (aria-hidden="true")
-```
-
-### 3. Error Detection Flow
-
-```
-Parsed Tokens
-    ↓
-Iterate through tokens
-    ↓
-For each string token:
-    Check if starts with quote but doesn't end with matching quote
-        → Create SyntaxError(type="unclosed_string")
-    ↓
-For each operator token:
-    Check if operator is in VALID_OPERATORS set
-    If not → Create SyntaxError(type="invalid_operator")
-    ↓
-Return List[SyntaxError]
-    ↓
-Apply error styling to tokens
-```
-
----
-
-## State Management
-
-### Client-Side State (dcc.Store)
-
-**jql-syntax-state** (NEW):
-```python
-{
-    "last_parsed_query": str,      # Last successfully parsed query (for change detection)
-    "parse_timestamp": float,      # Unix timestamp of last parse
-    "error_count": int,            # Number of detected errors
-    "performance_metrics": {       # Performance tracking
-        "last_parse_time_ms": float,
-        "avg_parse_time_ms": float,
-        "frame_rate": float        # Rendering FPS
+    keyword: {
+        pattern: /\b(AND|OR|NOT|IN|IS|WAS|...)\b/i,
+        style: "jql-keyword",     // CSS class: color #0066cc
+        examples: ["AND", "OR", "NOT", "IN", "IS", "WAS"]
+    },
+    
+    operator: {
+        pattern: /[=!<>~]+/,
+        style: "jql-operator",    // CSS class: color #6c757d
+        examples: ["=", "!=", "~", ">", "<="]
+    },
+    
+    string: {
+        pattern: /"[^"]*"?|'[^']*'?/,
+        style: "jql-string",      // CSS class: color #22863a
+        examples: ['"Done"', "'In Progress'"]
+    },
+    
+    function: {
+        pattern: /\b(currentUser|now|startOfDay|...)\(\)/,
+        style: "jql-function",    // CSS class: color #8b008b
+        examples: ["currentUser()", "now()", "startOfDay()"]
+    },
+    
+    scriptrunner_function: {
+        pattern: /\b(linkedIssuesOf|issueFunction|...)\(/,
+        style: "jql-scriptrunner", // CSS class: color #8b008b
+        examples: ["linkedIssuesOf(", "issueFunction("]
+    },
+    
+    field: {
+        pattern: /\b[a-zA-Z_][a-zA-Z0-9_]*\b(?=\s*[=!<>~])/,
+        style: "jql-field",       // CSS class: color #24292e
+        examples: ["project", "status", "assignee"]
+    },
+    
+    error: {
+        pattern: /"[^"]*$|'[^']*$/,  // Unclosed quotes
+        style: "jql-error",       // CSS class: red underline
+        examples: ['"unclosed', "'missing quote"]
     }
 }
 ```
 
-**Purpose**: Track parsing state and performance metrics for optimization.
+**Tokenizer State Machine**:
 
-**Validation Rules**:
-- `last_parsed_query`: String, max 5000 characters
-- `parse_timestamp`: Valid Unix timestamp
-- `error_count`: Non-negative integer
-- `performance_metrics`: All values non-negative floats
-
----
-
-## Constants
-
-### Token Types
-```python
-TOKEN_TYPES = ["keyword", "string", "operator", "text", "function", "error"]
+```javascript
+const jqlLanguageMode = {
+    startState: () => ({ inString: false, stringDelimiter: null }),
+    
+    token: (stream, state) => {
+        // Error detection: unclosed strings
+        if (state.inString && stream.eol()) {
+            state.inString = false;
+            return "jql-error";
+        }
+        
+        // String literals (highest priority)
+        if (stream.match(/^"[^"]*"/)) return "jql-string";
+        if (stream.match(/^'[^']*'/)) return "jql-string";
+        
+        // ScriptRunner functions (before generic keywords)
+        if (stream.match(/\b(linkedIssuesOf|issueFunction|...)\(/i)) {
+            return "jql-scriptrunner";
+        }
+        
+        // JQL keywords
+        if (stream.match(/\b(AND|OR|NOT|IN|...)\b/i)) {
+            return "jql-keyword";
+        }
+        
+        // Operators
+        if (stream.match(/[=!<>~]+/)) return "jql-operator";
+        
+        // Default: advance stream
+        stream.next();
+        return null;
+    }
+};
 ```
 
-### Error Types
-```python
-ERROR_TYPES = ["unclosed_string", "invalid_operator"]
+**Lifecycle**:
+- Created: On page load (loaded from `assets/jql_language_mode.js`)
+- Updated: Never (static tokenizer rules)
+- Destroyed: On page unload
+
+### 3. Query Text (Runtime State)
+
+**Purpose**: Current JQL query text being edited.
+
+**Storage**: Browser memory (CodeMirror editor internal state)
+
+**Attributes**:
+
+```javascript
+{
+    text: string,                 // Full query text
+    cursorPosition: number,       // Character offset of cursor
+    selectionStart: number,       // Selection start offset
+    selectionEnd: number,         // Selection end offset
+    length: number,               // Character count
+    tokens: Array<Token>          // Tokenized representation (internal)
+}
 ```
 
-### Valid Operators (JQL Specification)
-```python
-VALID_OPERATORS = frozenset(["=", "!=", "<", ">", "<=", ">=", "~", "!~", "IN", "NOT IN", "IS", "IS NOT", "WAS", "WAS IN", "WAS NOT", "WAS NOT IN"])
+**Lifecycle**:
+- Created: When editor initializes with value
+- Updated: On every keystroke (debounced highlighting <50ms)
+- Destroyed: On editor unmount
+
+### 4. Editor Configuration (Runtime)
+
+**Purpose**: CodeMirror editor configuration passed from Dash component.
+
+**Storage**: Browser memory (component props)
+
+**Attributes**:
+
+```javascript
+{
+    mode: "jql",                  // Language mode identifier
+    theme: "default",             // Visual theme
+    lineNumbers: false,           // Mobile-first: no line numbers
+    lineWrapping: true,           // Mobile-first: wrap long lines
+    indentUnit: 2,                // Indent size
+    tabSize: 2,                   // Tab width
+    readOnly: false,              // Editable by default
+    maxLength: 5000,              // Character limit
+    placeholder: string,          // Placeholder text
+    autofocus: false,             // Focus on mount
+    ariaLabel: string             // Accessibility label
+}
 ```
 
-### Performance Thresholds
-```python
-MAX_PARSE_TIME_MS = 50           # FR-005: Max latency per keystroke
-MIN_FRAME_RATE = 60              # FR-011: Maintain 60fps during typing
-MAX_QUERY_LENGTH = 5000          # FR-011: Performance tested up to 5000 chars
-PASTE_RENDER_TIME_MS = 300       # SC-007: Paste operation render time
+**Lifecycle**:
+- Created: On component mount
+- Updated: On prop changes from Dash
+- Destroyed: On component unmount
+
+## Token Types Reference
+
+### Keyword Token
+
+**Syntax**: JQL reserved words (case-insensitive)
+**Style**: Bold, blue (#0066cc)
+**Examples**: `AND`, `OR`, `NOT`, `IN`, `IS`, `WAS`, `EMPTY`, `NULL`
+**Count**: ~50 keywords
+
+### Operator Token
+
+**Syntax**: Comparison and logical operators
+**Style**: Gray (#6c757d)
+**Examples**: `=`, `!=`, `~`, `!~`, `>`, `<`, `>=`, `<=`
+**Count**: ~10 operators
+
+### String Token
+
+**Syntax**: Double-quoted or single-quoted text
+**Style**: Green (#22863a)
+**Examples**: `"Done"`, `'In Progress'`, `"Epic: PROJ-123"`
+**Validation**: Unclosed quotes trigger error state
+
+### Function Token
+
+**Syntax**: Standard JQL functions with parentheses
+**Style**: Purple (#8b008b)
+**Examples**: `currentUser()`, `now()`, `startOfDay()`, `endOfWeek()`
+**Count**: ~20 built-in functions
+
+### ScriptRunner Function Token
+
+**Syntax**: ScriptRunner plugin functions with parentheses
+**Style**: Purple (#8b008b, same as standard functions)
+**Examples**: `linkedIssuesOf()`, `issueFunction()`, `hasSubtasks()`
+**Count**: ~15 ScriptRunner functions (initial support)
+
+### Field Token
+
+**Syntax**: Field names (detected before operators)
+**Style**: Default text color (#24292e)
+**Examples**: `project`, `status`, `assignee`, `customfield_10001`
+**Validation**: None (any valid identifier)
+
+### Error Token
+
+**Syntax**: Malformed syntax (unclosed quotes)
+**Style**: Red wavy underline
+**Examples**: `"unclosed`, `'missing end quote`
+**Detection**: Real-time as user types
+
+## Data Flow
+
+### User Types → Highlighting
+
+```
+User keystroke
+    ↓
+Browser captures event
+    ↓
+CodeMirror updates internal state
+    ↓
+JQL Language Mode tokenizes text (<50ms)
+    ↓
+CodeMirror applies CSS classes to tokens
+    ↓
+Browser renders highlighted text (60fps)
 ```
 
----
+**Performance Requirements**:
+- Keystroke to highlight: <50ms (FR-005, SC-001)
+- Typing at 100 WPM: Zero dropped keystrokes (FR-010)
+- Mobile devices: 60fps rendering (FR-011)
 
-## Validation Functions
+### Dash Callback → Query Validation
 
-### validate_syntax_token(token: dict) -> bool
-```python
-def validate_syntax_token(token: dict) -> bool:
-    """
-    Validate SyntaxToken structure and constraints.
-    
-    Returns:
-        bool: True if valid, False otherwise
-    """
-    if not isinstance(token, dict):
-        return False
-    
-    required_keys = ["text", "type", "start", "end"]
-    if not all(key in token for key in required_keys):
-        return False
-    
-    if token["type"] not in TOKEN_TYPES:
-        return False
-    
-    if not isinstance(token["start"], int) or not isinstance(token["end"], int):
-        return False
-    
-    if token["start"] < 0 or token["end"] <= token["start"]:
-        return False
-    
-    if token["text"] != token["text"][token["start"]:token["end"]]:
-        return False
-    
-    return True
+```
+User clicks "Update Data"
+    ↓
+Dash callback fires with editor value
+    ↓
+Python receives query text
+    ↓
+Validate query syntax (optional)
+    ↓
+Send to JIRA API
+    ↓
+Display results or error
 ```
 
-### validate_syntax_error(error: dict) -> bool
+**Note**: Syntax highlighting is visual-only. Query validation happens server-side in existing `data/jira_simple.py` logic.
+
+## No Persistent Storage
+
+**Key Design Decision**: Syntax highlighting is ephemeral - no data persists between sessions.
+
+**What is NOT stored**:
+- ❌ Tokenized query representation
+- ❌ Cursor position
+- ❌ Editor configuration
+- ❌ Highlighting state
+
+**What IS stored** (existing functionality, unchanged):
+- ✅ JQL query text in `app_settings.json` (via existing settings callback)
+- ✅ JIRA cached results in `jira_cache.json` (via existing caching logic)
+
+## Performance Considerations
+
+### Memory Usage
+
+**Estimated Memory**:
+- CodeMirror library: ~500KB (gzipped: ~100KB)
+- JQL language mode: ~5KB
+- Query text (5000 chars): ~10KB
+- Token array (worst case): ~50KB
+- **Total**: ~565KB in browser memory
+
+**Mobile Impact**: Acceptable for devices with ≥1GB RAM (target: 2GB+ devices per constitution)
+
+### CPU Usage
+
+**Tokenization Complexity**: O(n) where n = query length
+- Average query: 200 characters → <5ms
+- Large query: 2000 characters → <50ms (within target)
+- Paste operation: 1000 characters → <300ms (SC-007)
+
+**Debouncing**: CodeMirror handles internal debouncing/throttling automatically.
+
+## Error Handling
+
+### Syntax Errors (Client-Side)
+
+**Detection**: JQL language mode tokenizer identifies unclosed quotes
+**Display**: Red wavy underline (CSS class: `.jql-error`)
+**User Feedback**: Visual indicator only (no blocking errors)
+
+### Validation Errors (Server-Side)
+
+**Detection**: Existing JIRA API error responses
+**Display**: Existing error toast/banner in Dash UI
+**Location**: `callbacks/settings.py` (unchanged)
+
+## Integration Points
+
+### Dash Component Integration
+
+**Location**: `app.py` layout
+**Change**: Replace `dbc.Textarea` with `create_jql_editor()`
+
+**Before**:
 ```python
-def validate_syntax_error(error: dict) -> bool:
-    """
-    Validate SyntaxError structure and constraints.
-    
-    Returns:
-        bool: True if valid, False otherwise
-    """
-    if not isinstance(error, dict):
-        return False
-    
-    required_keys = ["error_type", "start", "end", "token", "message"]
-    if not all(key in error for key in required_keys):
-        return False
-    
-    if error["error_type"] not in ERROR_TYPES:
-        return False
-    
-    if not validate_syntax_token(error["token"]):
-        return False
-    
-    return True
+dbc.Textarea(
+    id="jira-jql-query",
+    placeholder="Enter JQL query",
+    value=app_settings.get("jira_jql_query", "")
+)
 ```
 
----
+**After**:
+```python
+from ui.jql_editor import create_jql_editor
 
-## Schema Evolution
+create_jql_editor(
+    editor_id="jira-jql-query",
+    value=app_settings.get("jira_jql_query", ""),
+    placeholder="Enter JQL query (e.g., project = TEST AND status = Open)",
+    aria_label="JQL Query Editor"
+)
+```
 
-### Backward Compatibility
+### Callback Integration
 
-**Feature 001 Compatibility**:
-- Existing `parse_jql_syntax()` and `render_syntax_tokens()` functions remain unchanged
-- New token type "function" added without breaking existing "keyword", "string", "operator", "text"
-- Existing CSS classes (.jql-keyword, .jql-string, .jql-operator) remain valid
-- Character count functionality (count_jql_characters, should_show_character_warning) unaffected
+**Location**: `callbacks/settings.py`
+**Change**: None required - callback already receives `Input("jira-jql-query", "value")`
+
+**Existing Callback** (unchanged):
+```python
+@callback(
+    Output("jira-cache-status", "children"),
+    Input("update-data-unified", "n_clicks"),
+    State("jira-jql-query", "value"),
+    ...
+)
+def update_jira_data(n_clicks, jql_query, ...):
+    # Query validation and JIRA API call (unchanged)
+    ...
+```
+
+## Accessibility Data
+
+### Screen Reader Announcements
+
+**Query Text**: Announced via `role="textbox"` and `aria-label="JQL Query Editor"`
+**Character Count**: Announced via existing ARIA live region (unchanged)
+**Syntax Errors**: Visual-only (no ARIA announcements to avoid noise)
+
+### Keyboard Navigation
+
+**Supported Keys**:
+- Arrow keys: Move cursor (handled by CodeMirror)
+- Tab: Navigate to next form field (handled by browser)
+- Ctrl+A: Select all text (handled by CodeMirror)
+- Backspace/Delete: Edit text (handled by CodeMirror)
+
+**Not Supported**:
+- Screen reader text navigation (CodeMirror limitation - will document in quickstart)
+
+## Testing Data
+
+### Unit Test Fixtures
+
+**Location**: `tests/unit/ui/test_jql_editor.py`
+
+**Sample Queries**:
+```python
+SAMPLE_QUERIES = {
+    "simple": "project = TEST",
+    "complex": 'project = TEST AND status = "In Progress" AND assignee = currentUser()',
+    "scriptrunner": "project = TEST AND issueFunction in linkedIssuesOf('PROJ-123')",
+    "error": 'project = TEST AND summary ~ "unclosed',
+    "long": "project = TEST AND " + " OR ".join([f"status = {i}" for i in range(100)])
+}
+```
+
+### Integration Test Scenarios
+
+**Location**: `tests/integration/dashboard/test_jql_editor_workflow.py`
+
+**Playwright Selectors**:
+```python
+SELECTORS = {
+    "editor": "[data-testid='jql-editor'] .CodeMirror",
+    "keyword_token": ".cm-jql-keyword",
+    "string_token": ".cm-jql-string",
+    "error_token": ".cm-jql-error",
+    "character_count": "#jql-character-count"
+}
+```
+
+**Performance Measurement**:
+```javascript
+// Measure keystroke latency with Performance API
+performance.mark("keystroke-start");
+editor.type("AND");
+performance.mark("highlight-complete");
+performance.measure("latency", "keystroke-start", "highlight-complete");
+```
+
+## Migration from Legacy Implementation
+
+### Deprecated Entities
+
+**Functions to Remove**:
+- `ui/components.py::parse_jql_syntax()` - Custom regex-based tokenizer
+- `ui/components.py::render_syntax_tokens()` - HTML generation for highlighted spans
+
+**Assets to Remove**:
+- `assets/jql_syntax.css` - Custom syntax highlighting styles
+- `assets/jql_syntax.js` - Dual-layer textarea synchronization logic
+
+### Data Structure Changes
+
+**No breaking changes**: Editor component maintains same Dash callback interface (`id`, `value` props).
 
 **Migration Path**:
-- No data migration required (no persisted data structures)
-- Feature toggle: If syntax highlighting disabled, falls back to plain textarea
-- Graceful degradation: If browser lacks required features, plain textarea used
+1. Install dash-codemirror: `pip install dash-codemirror`
+2. Create `ui/jql_editor.py` with `create_jql_editor()` wrapper
+3. Create `assets/jql_language_mode.js` with tokenizer rules
+4. Update `app.py` layout to use new component
+5. Remove deprecated functions and assets
+6. Update tests
 
-### Future Extensions
+## Appendix: CodeMirror 6 Data Structures (Internal)
 
-**Potential Schema Additions** (Out of Scope for Feature 002):
-- **AutocompleteSuggestion**: For future autocomplete feature
-  ```python
-  {
-      "text": str,
-      "type": str,  # "field", "value", "function"
-      "insert_position": int,
-      "description": str
-  }
-  ```
+**Note**: These are library internals - provided for reference only. Our code does not directly manipulate these structures.
 
-- **SemanticValidationError**: For future JIRA API validation
-  ```python
-  {
-      "error_type": "invalid_field" | "invalid_value",
-      "field_name": str,
-      "suggestion": str
-  }
-  ```
+### EditorState
 
----
+```typescript
+interface EditorState {
+    doc: Text;              // Document text
+    selection: Selection;   // Cursor/selection state
+    facets: FacetState;     // Configuration
+    values: StateField[];   // Plugin state
+}
+```
 
-## Summary
+### Token
 
-**Core Entities**:
-1. **SyntaxToken**: Parsed query segment (EXISTING, extended with "function" type)
-2. **JQLQuery**: Query container (EXISTING, extended with errors and timestamp)
-3. **SyntaxError**: Detected syntax error (NEW)
-4. **HighlightedComponent**: Dual-layer textarea component (NEW)
-5. **ScriptRunnerFunction**: ScriptRunner function metadata (NEW)
+```typescript
+interface Token {
+    type: string;           // Token type (e.g., "jql-keyword")
+    from: number;           // Start position
+    to: number;             // End position
+    value: string;          // Token text
+}
+```
 
-**Key Relationships**:
-- JQLQuery → contains → List[SyntaxToken]
-- JQLQuery → contains → List[SyntaxError]
-- SyntaxError → references → SyntaxToken
-- HighlightedComponent → renders → JQLQuery with highlighting
+### ViewUpdate
 
-**Validation Constraints**:
-- Max query length: 5000 characters
-- Max parse time: 50ms
-- Token type enumeration enforced
-- Position indices validated (no overlaps, no gaps)
+```typescript
+interface ViewUpdate {
+    startState: EditorState;
+    state: EditorState;
+    transactions: Transaction[];
+    changes: ChangeSet;
+    geometryChanged: boolean;
+    focusChanged: boolean;
+}
+```
 
-**Data Flow**:
-1. User input → Parsing → Token list
-2. Token list → Error detection → Error list
-3. Token + Error lists → Rendering → Highlighted HTML
-4. Performance metrics tracked in client-side state
+**Usage**: Our `create_jql_editor()` wrapper configures these via dash-codemirror props, but does not directly access internal state.

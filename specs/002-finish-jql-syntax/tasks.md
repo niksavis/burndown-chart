@@ -1,372 +1,343 @@
-# Implementation Tasks: Complete JQL Syntax Highlighting
+# Tasks: Complete JQL Syntax Highlighting with Real-time Visual Feedback
 
-**Feature**: Complete JQL Syntax Highlighting with Real-time Visual Feedback  
-**Branch**: `002-finish-jql-syntax`  
-**Date**: 2025-10-15  
-**Status**: Ready for Implementation
+**Input**: Design documents from `/specs/002-finish-jql-syntax/`
+**Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/api-contracts.md
 
-## Overview
+**Organization**: Tasks grouped by user story to enable independent implementation and testing
 
-This document provides dependency-ordered, TDD-driven tasks for implementing real-time JQL syntax highlighting. Tasks are organized by user story to enable independent implementation and testing.
+**Tests**: Integration tests using Playwright for visual validation (no unit tests for library wrapper per constitution)
 
-**Implementation Approach**: Test-Driven Development (TDD) - Red → Green → Refactor
-- Write failing tests first (RED)
-- Implement minimum code to pass tests (GREEN)
-- Refactor for quality (REFACTOR)
+## Format: `[ID] [P?] [Story] Description`
+- **[P]**: Can run in parallel (different files, no dependencies)
+- **[Story]**: Which user story this task belongs to (e.g., US1, US2, US3)
+- Include exact file paths in descriptions
 
 ---
 
-## Task Summary
+## Phase 1: Setup (Shared Infrastructure)
 
-| Phase     | Story      | Task Count | Can Parallelize | Independent Test                        |
-| --------- | ---------- | ---------- | --------------- | --------------------------------------- |
-| Phase 1   | Setup      | 3          | No              | N/A (infrastructure)                    |
-| Phase 2   | Foundation | 5          | 2 tasks         | N/A (shared code)                       |
-| Phase 3   | US1 (P1)   | 14         | 6 tasks         | ✅ Keyword/operator highlighting visible |
-| Phase 4   | US2 (P2)   | 6          | 3 tasks         | ✅ ScriptRunner functions highlighted    |
-| Phase 5   | US3 (P3)   | 6          | 3 tasks         | ✅ Syntax errors indicated               |
-| Phase 6   | Polish     | 4          | 2 tasks         | N/A (cross-cutting)                     |
-| **Total** |            | **38**     | **16 parallel** | **3 independent stories**               |
+**Purpose**: Install dependencies and prepare project for CodeMirror 6 integration
+
+- [ ] T001 Install dash-codemirror package via pip in requirements.txt
+- [ ] T002 Verify dash-codemirror import works in Python environment
+- [ ] T003 [P] Add CSS token styling classes to assets/custom.css for JQL syntax highlighting
+
+**Checkpoint**: Dependencies installed and ready for implementation
+
+---
+
+## Phase 2: Foundational (Blocking Prerequisites)
+
+**Purpose**: Core CSS and deprecation cleanup that MUST be complete before user stories
+
+**⚠️ CRITICAL**: No user story work can begin until this phase is complete
+
+- [ ] T004 Define JQL token CSS classes in assets/custom.css (.cm-jql-keyword, .cm-jql-string, .cm-jql-operator, .cm-jql-function, .cm-jql-scriptrunner, .cm-jql-field, .cm-jql-error with WCAG AA compliant colors)
+- [ ] T005 Remove deprecated parse_jql_syntax() function from ui/components.py
+- [ ] T006 Remove deprecated render_syntax_tokens() function from ui/components.py
+- [ ] T007 [P] Delete deprecated assets/jql_syntax.css file
+- [ ] T008 [P] Delete deprecated assets/jql_syntax.js file
+- [ ] T009 [P] Remove tests for deprecated functions from tests/unit/ui/test_components.py (if they exist)
+
+**Checkpoint**: Foundation ready - CSS defined, deprecated code removed, user story implementation can begin
+
+---
+
+## Phase 3: User Story 1 - Real-time Visual Syntax Highlighting Overlay (Priority: P1) 🎯 MVP
+
+**Goal**: Display color-coded syntax highlighting for JQL keywords, strings, and operators in real-time as users type
+
+**Independent Test**: Type "project = TEST AND status = 'Done'" in the JQL editor and verify keywords appear blue, strings appear green, operators appear gray, all updating in real-time (<50ms latency)
+
+### Tests for User Story 1 (Playwright Integration Tests)
+
+**NOTE: Tests verify visual highlighting behavior**
+
+- [ ] T010 [P] [US1] Create test_jql_editor_workflow.py in tests/integration/dashboard/ with Playwright setup (server fixture, browser launch)
+- [ ] T011 [P] [US1] Add Playwright test for keyword highlighting in tests/integration/dashboard/test_jql_editor_workflow.py::test_keyword_highlighting (type "AND", verify blue color)
+- [ ] T012 [P] [US1] Add Playwright test for string highlighting in tests/integration/dashboard/test_jql_editor_workflow.py::test_string_highlighting (type '"Done"', verify green color)
+- [ ] T013 [P] [US1] Add Playwright test for operator highlighting in tests/integration/dashboard/test_jql_editor_workflow.py::test_operator_highlighting (type '=', verify gray color)
+- [ ] T014 [P] [US1] Add Playwright test for cursor stability in tests/integration/dashboard/test_jql_editor_workflow.py::test_cursor_position_stable (type quickly, verify no jumps)
+- [ ] T015 [P] [US1] Add Playwright test for paste performance in tests/integration/dashboard/test_jql_editor_workflow.py::test_paste_large_query (paste 500 chars, verify <300ms highlighting)
+
+### Implementation for User Story 1
+
+- [ ] T016 [US1] Create ui/jql_editor.py with create_jql_editor() function that returns DashCodeMirror component configured with mode="jql", lineWrapping=True, lineNumbers=False, aria-label
+- [ ] T017 [US1] Create assets/jql_language_mode.js with StreamLanguage.define() for JQL tokenizer (keywords: AND/OR/NOT/IN/IS/WAS, operators: =/!=/~/!~/</>/<=/>= regex patterns, strings: quoted text regex)
+- [ ] T018 [US1] Implement keyword tokenization in assets/jql_language_mode.js token() function with case-insensitive matching for AND, OR, NOT, IN, IS, WAS, EMPTY, NULL, ORDER, BY, ASC, DESC (return "jql-keyword")
+- [ ] T019 [US1] Implement operator tokenization in assets/jql_language_mode.js token() function for =, !=, ~, !~, <, >, <=, >= (return "jql-operator")
+- [ ] T020 [US1] Implement string literal tokenization in assets/jql_language_mode.js token() function for double-quoted and single-quoted text (return "jql-string")
+- [ ] T021 [US1] Implement field name tokenization in assets/jql_language_mode.js token() function for identifiers before operators (return "jql-field")
+- [ ] T022 [US1] Update app.py layout to replace dbc.Textarea with create_jql_editor() for "jira-jql-query" component
+- [ ] T023 [US1] Verify existing callbacks in callbacks/settings.py work unchanged with new editor component (same id="jira-jql-query", same value property)
+
+**Checkpoint**: At this point, User Story 1 should be fully functional - basic JQL syntax highlighting works for keywords, strings, operators
+
+---
+
+## Phase 4: User Story 2 - ScriptRunner Extension Syntax Support (Priority: P2)
+
+**Goal**: Extend syntax highlighting to recognize ScriptRunner-specific functions (linkedIssuesOf, issueFunction, etc.) with distinct purple coloring
+
+**Independent Test**: Type "issueFunction in linkedIssuesOf('TEST-1')" and verify "issueFunction", "in", and "linkedIssuesOf" are highlighted in purple as functions
+
+### Tests for User Story 2 (Playwright Integration Tests)
+
+- [ ] T024 [P] [US2] Add Playwright test for ScriptRunner function highlighting in tests/integration/dashboard/test_jql_editor_workflow.py::test_scriptrunner_function_highlighting (type "linkedIssuesOf(", verify purple color)
+- [ ] T025 [P] [US2] Add Playwright test for issueFunction keyword in tests/integration/dashboard/test_jql_editor_workflow.py::test_issuefunction_keyword (type "issueFunction in", verify highlighted)
+- [ ] T026 [P] [US2] Add Playwright test for multiple ScriptRunner functions in tests/integration/dashboard/test_jql_editor_workflow.py::test_multiple_scriptrunner_functions (type query with 3+ functions, verify all highlighted)
+
+### Implementation for User Story 2
+
+- [ ] T027 [US2] Add ScriptRunner function patterns to assets/jql_language_mode.js token() function for top 15 functions: linkedIssuesOf, issuesInEpics, subtasksOf, parentsOf, epicsOf, hasLinks, hasComments, hasAttachments, lastUpdated, expression, dateCompare, aggregateExpression, issueFieldMatch, linkedIssuesOfRecursive, workLogged (return "jql-scriptrunner")
+- [ ] T028 [US2] Add standard JQL function patterns to assets/jql_language_mode.js token() function for currentUser(), now(), startOfDay(), endOfDay(), startOfWeek(), endOfWeek() (return "jql-function")
+- [ ] T029 [US2] Implement priority ordering in assets/jql_language_mode.js token() function: ScriptRunner functions BEFORE generic keywords to prevent false keyword matches
+
+**Checkpoint**: At this point, User Stories 1 AND 2 should both work - basic JQL + ScriptRunner syntax highlighting
+
+---
+
+## Phase 5: User Story 3 - Error Prevention with Invalid Syntax Indication (Priority: P3)
+
+**Goal**: Visual indicators for syntax errors (unclosed quotes, invalid operators) to help users fix issues before query submission
+
+**Independent Test**: Type 'status = "Done' (unclosed quote) and verify red wavy underline appears on the problematic text
+
+### Tests for User Story 3 (Playwright Integration Tests)
+
+- [ ] T030 [P] [US3] Add Playwright test for unclosed string error in tests/integration/dashboard/test_jql_editor_workflow.py::test_unclosed_string_error (type 'status = "Done', verify red underline/error indicator)
+- [ ] T031 [P] [US3] Add Playwright test for invalid operator error in tests/integration/dashboard/test_jql_editor_workflow.py::test_invalid_operator_error (type "===", verify error highlighting if library supports)
+- [ ] T032 [P] [US3] Add Playwright test for error disappears when fixed in tests/integration/dashboard/test_jql_editor_workflow.py::test_error_indicator_clears (type unclosed quote, then close quote, verify error clears)
+
+### Implementation for User Story 3
+
+- [ ] T033 [US3] Implement unclosed string detection in assets/jql_language_mode.js token() function with state tracking (inString flag, check stream.eol(), return "jql-error")
+- [ ] T034 [US3] Add error state management to assets/jql_language_mode.js startState() function (inString: false, stringDelimiter: null)
+- [ ] T035 [US3] Implement unclosed quote error pattern in assets/jql_language_mode.js token() function to detect strings ending at EOL without closing quote (return "jql-error")
+
+**Checkpoint**: All user stories should now be independently functional - full JQL syntax highlighting with error detection
+
+---
+
+## Phase 6: Mobile & Performance Validation
+
+**Purpose**: Verify mobile responsiveness and performance targets across all user stories
+
+- [ ] T036 [P] Add Playwright test for mobile viewport in tests/integration/dashboard/test_jql_editor_workflow.py::test_mobile_viewport_320px (set viewport 320x568, type query, verify highlighting works)
+- [ ] T037 [P] Add Playwright test for keystroke latency in tests/integration/dashboard/test_jql_editor_workflow.py::test_keystroke_latency_under_50ms (measure with Performance API, assert <50ms)
+- [ ] T038 [P] Add Playwright test for 60fps typing in tests/integration/dashboard/test_jql_editor_workflow.py::test_typing_60fps (type at 100 WPM, verify no dropped frames using Performance API)
+- [ ] T039 Add Playwright test for large query performance in tests/integration/dashboard/test_jql_editor_workflow.py::test_large_query_5000_chars (paste 5000 char query, verify <300ms highlighting)
+
+**Checkpoint**: Performance and mobile requirements validated across all user stories
+
+---
+
+## Phase 7: Polish & Cross-Cutting Concerns
+
+**Purpose**: Final cleanup and documentation
+
+- [ ] T040 [P] Update readme.md with CodeMirror 6 usage instructions and JQL syntax highlighting examples
+- [ ] T041 [P] Add inline documentation to ui/jql_editor.py create_jql_editor() function with parameter descriptions and usage examples
+- [ ] T042 [P] Add inline documentation to assets/jql_language_mode.js with token type descriptions and pattern explanations
+- [ ] T043 Verify all deprecated functions removed by searching codebase for parse_jql_syntax and render_syntax_tokens references (should find zero matches)
+- [ ] T044 Run full test suite to verify no regressions in existing functionality (pytest tests/ -v)
+- [ ] T045 Validate quickstart.md instructions by following step-by-step and confirming all examples work
+
+**Checkpoint**: Feature complete, documented, and validated
 
 ---
 
 ## Dependencies & Execution Order
 
+### Phase Dependencies
+
+- **Setup (Phase 1)**: No dependencies - can start immediately
+- **Foundational (Phase 2)**: Depends on Setup (T001-T003) - BLOCKS all user stories
+- **User Story 1 (Phase 3)**: Depends on Foundational (T004-T009) - Core highlighting
+- **User Story 2 (Phase 4)**: Depends on User Story 1 (T016-T023) - Extends base highlighting with ScriptRunner
+- **User Story 3 (Phase 5)**: Depends on User Story 1 (T016-T023) - Adds error detection to base highlighting
+- **Mobile & Performance (Phase 6)**: Depends on all user stories (T010-T035) - Validates complete feature
+- **Polish (Phase 7)**: Depends on all previous phases - Final cleanup
+
 ### User Story Dependencies
 
-```
-Phase 1 (Setup)
-    ↓
-Phase 2 (Foundation)
-    ↓
-Phase 3 (US1 - P1) ← MVP (minimum viable product)
-    ↓ (optional dependency)
-Phase 4 (US2 - P2) ← Can start independently if US1 complete
-    ↓ (optional dependency)
-Phase 5 (US3 - P3) ← Can start independently if US1 complete
-    ↓
-Phase 6 (Polish)
-```
+- **User Story 1 (P1)**: Foundation ONLY (T004-T009) - No dependencies on other stories
+  - **Delivers independently**: Basic JQL syntax highlighting (keywords, strings, operators)
+  - **MVP scope**: This story alone is sufficient for initial release
 
-**Independent Stories**: US1, US2, US3 can be implemented in parallel after Foundation complete.
+- **User Story 2 (P2)**: User Story 1 (T016-T023) - Extends tokenizer with ScriptRunner patterns
+  - **Delivers independently**: Full ScriptRunner support on top of US1
+  - **Can be skipped**: If ScriptRunner not needed, US1 still delivers value
 
-**MVP Scope**: Phase 1 + Phase 2 + Phase 3 (US1) = Core syntax highlighting functionality
+- **User Story 3 (P3)**: User Story 1 (T016-T023) - Adds error state to tokenizer
+  - **Delivers independently**: Error detection on top of US1
+  - **Can be skipped**: If error detection not priority, US1+US2 still deliver value
 
----
+### Within Each User Story
 
-## Phase 1: Setup & Environment (3 tasks)
+**User Story 1**:
+1. Tests can run in parallel (T010-T015) - ALL SHOULD FAIL initially
+2. Core implementation (T016-T017) - Create wrapper and language mode
+3. Tokenizer patterns (T018-T021) - Can run in parallel once T017 exists
+4. Integration (T022-T023) - Replace component in app layout
+5. Tests should NOW PASS
 
-**Goal**: Prepare development environment and project structure for syntax highlighting implementation.
+**User Story 2**:
+1. Tests can run in parallel (T024-T026) - ALL SHOULD FAIL initially
+2. Implementation (T027-T029) - Extend language mode with ScriptRunner
+3. Tests should NOW PASS
 
-**Blocking**: All tasks are sequential (must complete before Phase 2).
+**User Story 3**:
+1. Tests can run in parallel (T030-T032) - ALL SHOULD FAIL initially
+2. Implementation (T033-T035) - Add error detection to language mode
+3. Tests should NOW PASS
 
-### Tasks
+### Parallel Opportunities
 
-- [ ] T001 Create new Python module ui/jql_syntax_highlighter.py with module docstring and imports
-- [ ] T002 Create new CSS file assets/jql_syntax.css with file header comment
-- [ ] T003 Create new JavaScript file assets/jql_syntax.js with file header comment and IIFE wrapper
+**Setup (Phase 1)**:
+- T001-T003: All can run in parallel (different concerns)
 
----
+**Foundational (Phase 2)**:
+- T004: CSS definitions (blocks nothing)
+- T005-T006: Python function removal (can run in parallel)
+- T007-T009: Asset cleanup (can run in parallel with T005-T006)
 
-## Phase 2: Foundation - Shared Components (5 tasks)
+**User Story 1 (Phase 3)**:
+- T010-T015: All tests can be written in parallel
+- T018-T021: All tokenizer patterns can be implemented in parallel (once T017 exists)
 
-**Goal**: Implement shared parsing enhancements and constants needed by all user stories.
+**User Story 2 (Phase 4)**:
+- T024-T026: All tests can be written in parallel
+- T027-T028: Function patterns can be implemented in parallel
 
-**Blocking**: Must complete before any user story implementation (US1, US2, US3).
+**User Story 3 (Phase 5)**:
+- T030-T032: All tests can be written in parallel
+- T033-T035: Error detection can be implemented in parallel
 
-### Tasks
+**Mobile & Performance (Phase 6)**:
+- T036-T039: All tests can run in parallel
 
-- [ ] T004 [P] Add SCRIPTRUNNER_FUNCTIONS frozenset to ui/jql_syntax_highlighter.py with 15 core functions
-- [ ] T005 [P] Add is_scriptrunner_function() helper function to ui/jql_syntax_highlighter.py
-- [ ] T006 Modify parse_jql_syntax() in ui/components.py to detect "function" token type when preceded by "issueFunction in"
-- [ ] T007 Modify render_syntax_tokens() in ui/components.py to handle "function" and "error" token types with appropriate CSS classes
-- [ ] T008 Add .jql-function, .jql-error-unclosed, .jql-error-invalid CSS classes to assets/custom.css
-
-**Parallel Opportunities**: T004 and T005 can be completed in parallel (independent functions).
-
----
-
-## Phase 3: User Story 1 (P1) - Real-time Visual Syntax Highlighting (14 tasks)
-
-**Goal**: Implement core dual-layer textarea with real-time syntax highlighting for keywords, strings, and operators.
-
-**Independent Test Criteria**:
-✅ User can type "project = TEST AND status = Done" and see:
-- "AND" highlighted in blue (keyword)
-- "=" highlighted in gray (operator)
-- Quoted strings highlighted in green
-- Cursor position remains stable during typing
-- Highlighting updates within 50ms per keystroke
-
-**Acceptance Scenarios**: 5 scenarios from spec.md (see User Story 1)
-
-### Phase 3A: Tests (TDD Red - 4 tasks)
-
-- [ ] T009 [P] [US1] Write test_create_jql_syntax_highlighter_returns_div() in tests/unit/ui/test_jql_syntax_highlighter.py
-- [ ] T010 [P] [US1] Write test_component_has_textarea_and_highlight_div() in tests/unit/ui/test_jql_syntax_highlighter.py
-- [ ] T011 [P] [US1] Write test_keyword_highlighting_appears() Playwright test in tests/integration/dashboard/test_jql_highlighting_workflow.py
-- [ ] T012 [P] [US1] Write test_operator_highlighting_appears() Playwright test in tests/integration/dashboard/test_jql_highlighting_workflow.py
-
-**Parallel Opportunities**: All 4 test tasks can be written simultaneously (independent test cases).
-
-### Phase 3B: Component Implementation (TDD Green - 3 tasks)
-
-- [ ] T013 [US1] Implement create_jql_syntax_highlighter() in ui/jql_syntax_highlighter.py returning html.Div with dual-layer structure
-- [ ] T014 [US1] Add .jql-syntax-wrapper, .jql-syntax-input, .jql-syntax-highlight CSS to assets/jql_syntax.css with positioning and z-index
-- [ ] T015 [US1] Verify tests T009-T010 pass (pytest tests/unit/ui/test_jql_syntax_highlighter.py::test_create*)
-
-### Phase 3C: JavaScript Synchronization (3 tasks)
-
-- [ ] T016 [P] [US1] Write test_scroll_synchronization() Playwright test in tests/integration/dashboard/test_jql_highlighting_workflow.py
-- [ ] T017 [US1] Implement initializeSyntaxHighlighting() and syncScrollPosition() in assets/jql_syntax.js
-- [ ] T018 [US1] Verify test T016 passes (pytest tests/integration/dashboard/test_jql_highlighting_workflow.py::test_scroll*)
-
-### Phase 3D: Dash Callback Integration (4 tasks)
-
-- [ ] T019 [P] [US1] Write test_update_highlighting_callback() unit test in tests/unit/ui/test_jql_syntax_highlighter.py
-- [ ] T020 [US1] Implement update_jql_syntax_highlighting() callback in callbacks/settings.py
-- [ ] T021 [US1] Update app layout to use create_jql_syntax_highlighter() for JQL textarea
-- [ ] T022 [US1] Verify all US1 tests pass and acceptance scenarios validated (pytest tests/ -k "US1 or highlighting")
-
-**Parallel Opportunities**: Test writing (T009-T012, T016, T019) can be done in parallel.
-
----
-
-## Phase 4: User Story 2 (P2) - ScriptRunner Extension Support (6 tasks)
-
-**Goal**: Extend syntax highlighting to recognize and highlight ScriptRunner JQL functions in purple.
-
-**Dependencies**: Requires Phase 2 (Foundation) complete. Can start after US1 if desired, but not required.
-
-**Independent Test Criteria**:
-✅ User can type "issueFunction in linkedIssuesOf('TEST-1')" and see:
-- "issueFunction" highlighted as keyword (blue)
-- "in" highlighted as keyword (blue)
-- "linkedIssuesOf" highlighted as function (purple)
-
-**Acceptance Scenarios**: 3 scenarios from spec.md (see User Story 2)
-
-### Tasks
-
-- [ ] T023 [P] [US2] Write test_is_scriptrunner_function_returns_true_for_valid() in tests/unit/ui/test_jql_syntax_highlighter.py
-- [ ] T024 [P] [US2] Write test_is_scriptrunner_function_returns_false_for_invalid() in tests/unit/ui/test_jql_syntax_highlighter.py
-- [ ] T025 [P] [US2] Write test_scriptrunner_function_highlighted_purple() Playwright test in tests/integration/dashboard/test_jql_highlighting_workflow.py
-- [ ] T026 [US2] Update parse_jql_syntax() context detection to mark ScriptRunner functions as "function" token type
-- [ ] T027 [US2] Verify render_syntax_tokens() applies .jql-function class to function tokens
-- [ ] T028 [US2] Verify all US2 tests pass and acceptance scenarios validated (pytest tests/ -k "US2 or scriptrunner")
-
-**Parallel Opportunities**: Test writing (T023-T025) can be done in parallel.
-
----
-
-## Phase 5: User Story 3 (P3) - Error Indication (6 tasks)
-
-**Goal**: Add visual error indicators for unclosed strings and invalid operators.
-
-**Dependencies**: Requires Phase 2 (Foundation) complete. Can start after US1 if desired, but not required.
-
-**Independent Test Criteria**:
-✅ User can type 'status = "Done' (unclosed quote) and see:
-- Orange background with red wavy underline on '"Done'
-- No application crash or visual glitches
-
-**Acceptance Scenarios**: 3 scenarios from spec.md (see User Story 3)
-
-### Tasks
-
-- [ ] T029 [P] [US3] Write test_detect_unclosed_string_error() in tests/unit/ui/test_jql_syntax_highlighter.py
-- [ ] T030 [P] [US3] Write test_detect_invalid_operator_error() in tests/unit/ui/test_jql_syntax_highlighter.py
-- [ ] T031 [P] [US3] Write test_error_indication_displayed() Playwright test in tests/integration/dashboard/test_jql_highlighting_workflow.py
-- [ ] T032 [US3] Implement detect_syntax_errors() in ui/jql_syntax_highlighter.py checking for unclosed quotes and invalid operators
-- [ ] T033 [US3] Update update_jql_syntax_highlighting() callback to call detect_syntax_errors() and apply error styling to tokens
-- [ ] T034 [US3] Verify all US3 tests pass and acceptance scenarios validated (pytest tests/ -k "US3 or error")
-
-**Parallel Opportunities**: Test writing (T029-T031) can be done in parallel.
-
----
-
-## Phase 6: Polish & Cross-Cutting Concerns (4 tasks)
-
-**Goal**: Performance optimization, mobile testing, and documentation.
-
-**Dependencies**: Requires US1 complete (other stories optional).
-
-### Tasks
-
-- [ ] T035 [P] Write test_mobile_viewport_highlighting() Playwright test for 320px viewport in tests/integration/dashboard/test_jql_highlighting_workflow.py
-- [ ] T036 [P] Write test_parse_performance_under_50ms() performance test in tests/unit/ui/test_jql_syntax_highlighter.py
-- [ ] T037 Run full test suite and verify 100% passing (pytest tests/ -v --cov=ui --cov=callbacks)
-- [ ] T038 Update README.md or CHANGELOG.md with feature description and usage instructions
-
-**Parallel Opportunities**: Test writing (T035-T036) can be done in parallel.
+**Polish (Phase 7)**:
+- T040-T042: All documentation can be written in parallel
 
 ---
 
 ## Parallel Execution Examples
 
-### Maximum Parallelization (16 tasks can run simultaneously)
+### Phase 3 (User Story 1) - Maximum Parallelization
 
-**Foundation Phase** (2 parallel):
+**Parallel Group 1 - Tests** (can all run simultaneously):
 ```
-Developer A: T004 (SCRIPTRUNNER_FUNCTIONS) + T005 (is_scriptrunner_function)
-Developer B: T008 (CSS classes)
-```
-
-**US1 Tests** (6 parallel):
-```
-Developer A: T009, T010 (unit tests)
-Developer B: T011, T012 (integration tests)
-Developer C: T016 (scroll test)
-Developer D: T019 (callback test)
+T010: Create test file with Playwright setup
+T011: Add keyword highlighting test
+T012: Add string highlighting test  
+T013: Add operator highlighting test
+T014: Add cursor stability test
+T015: Add paste performance test
 ```
 
-**US2 Tests** (3 parallel):
+**Sequential**: T016, T017 (must create files first)
+
+**Parallel Group 2 - Tokenizer Patterns** (can all run simultaneously after T017):
 ```
-Developer A: T023, T024 (unit tests)
-Developer B: T025 (integration test)
+T018: Keyword tokenization
+T019: Operator tokenization
+T020: String tokenization
+T021: Field tokenization
 ```
 
-**US3 Tests** (3 parallel):
+**Sequential**: T022, T023 (integrate into app)
+
+### Phase 4 (User Story 2) - ScriptRunner Extension
+
+**Parallel Group 1 - Tests**:
 ```
-Developer A: T029, T030 (unit tests)
-Developer B: T031 (integration test)
+T024: ScriptRunner function test
+T025: issueFunction keyword test
+T026: Multiple functions test
 ```
 
-**Polish** (2 parallel):
+**Parallel Group 2 - Implementation**:
 ```
-Developer A: T035 (mobile test)
-Developer B: T036 (performance test)
+T027: Add ScriptRunner patterns
+T028: Add standard JQL functions
+T029: Priority ordering fix
 ```
+
+### Recommended MVP Scope
+
+**Minimum Viable Product**: User Story 1 ONLY (T001-T023)
+
+**Delivers**:
+- ✅ Real-time syntax highlighting for JQL keywords (blue)
+- ✅ String literals highlighted (green)
+- ✅ Operators highlighted (gray)
+- ✅ <50ms latency, 60fps typing
+- ✅ Mobile-first (320px+ viewports)
+- ✅ Replaces underperforming custom functions
+
+**Skipped in MVP**:
+- ❌ ScriptRunner function support (User Story 2)
+- ❌ Error detection for unclosed quotes (User Story 3)
+
+**Incremental Delivery Path**:
+1. **MVP Release**: User Story 1 → Get feedback
+2. **Enhancement 1**: Add User Story 2 → ScriptRunner users benefit
+3. **Enhancement 2**: Add User Story 3 → Error prevention benefit
+
+---
+
+## Task Summary
+
+**Total Tasks**: 45
+
+**Breakdown by Phase**:
+- Setup: 3 tasks
+- Foundational: 6 tasks
+- User Story 1 (P1 - MVP): 14 tasks (6 tests + 8 implementation)
+- User Story 2 (P2): 6 tasks (3 tests + 3 implementation)
+- User Story 3 (P3): 6 tasks (3 tests + 3 implementation)
+- Mobile & Performance: 4 tasks (validation)
+- Polish: 6 tasks (documentation)
+
+**Parallel Opportunities**: 32 tasks can run in parallel (marked with [P])
+
+**Independent Test Criteria**:
+- US1: Type "project = TEST AND status = 'Done'" → See blue/green/gray highlighting
+- US2: Type "issueFunction in linkedIssuesOf('TEST-1')" → See purple function highlighting  
+- US3: Type 'status = "Done' → See red error indicator on unclosed quote
+
+**Suggested MVP**: Tasks T001-T023 (Setup + Foundational + User Story 1)
 
 ---
 
 ## Implementation Strategy
 
-### MVP (Minimum Viable Product)
+### Incremental Delivery (Recommended)
 
-**Phases**: 1 + 2 + 3 = **Setup + Foundation + US1**  
-**Tasks**: T001-T022 (22 tasks)  
-**Delivers**: Core syntax highlighting with keywords, strings, operators visible in real-time
+**Week 1**: MVP (User Story 1)
+- Complete Setup (T001-T003)
+- Complete Foundational (T004-T009)
+- Complete User Story 1 (T010-T023)
+- **Release**: Basic JQL syntax highlighting
 
-**Timeline Estimate**: 2-3 days with TDD workflow
+**Week 2**: ScriptRunner Support (User Story 2)
+- Complete User Story 2 (T024-T029)
+- **Release**: Enhanced with ScriptRunner functions
 
-### Full Feature (All User Stories)
+**Week 3**: Error Detection (User Story 3)
+- Complete User Story 3 (T030-T035)
+- Complete Mobile & Performance (T036-T039)
+- **Release**: Full feature with error prevention
 
-**Phases**: 1 + 2 + 3 + 4 + 5 + 6  
-**Tasks**: T001-T038 (38 tasks)  
-**Delivers**: Complete syntax highlighting with ScriptRunner support and error indication
+**Week 4**: Polish
+- Complete Polish (T040-T045)
+- **Release**: Production-ready with documentation
 
-**Timeline Estimate**: 3-4 days with TDD workflow
+### Big Bang Delivery (Alternative)
 
-### Incremental Delivery Strategy
+Complete all tasks T001-T045 before release
+- **Pros**: Single comprehensive release
+- **Cons**: Longer time to user feedback, higher integration risk
 
-1. **Sprint 1**: MVP (US1) - Deliver core highlighting
-2. **Sprint 2**: US2 (ScriptRunner) - Deliver advanced query support
-3. **Sprint 3**: US3 (Errors) + Polish - Deliver error prevention
-
----
-
-## Testing Commands
-
-### Run Tests by User Story
-
-```powershell
-# US1 tests only
-.\.venv\Scripts\activate; pytest tests/ -k "US1 or highlighting" -v
-
-# US2 tests only
-.\.venv\Scripts\activate; pytest tests/ -k "US2 or scriptrunner" -v
-
-# US3 tests only
-.\.venv\Scripts\activate; pytest tests/ -k "US3 or error" -v
-
-# All unit tests
-.\.venv\Scripts\activate; pytest tests/unit/ui/test_jql_syntax_highlighter.py -v
-
-# All integration tests
-.\.venv\Scripts\activate; pytest tests/integration/dashboard/test_jql_highlighting_workflow.py -v
-
-# Full test suite with coverage
-.\.venv\Scripts\activate; pytest tests/ -v --cov=ui --cov=callbacks --cov-report=html
-```
-
-### Performance Validation
-
-```powershell
-# Verify <50ms parse time
-.\.venv\Scripts\activate; pytest tests/unit/ui/test_jql_syntax_highlighter.py::test_parse_performance_under_50ms -v
-
-# Measure actual parse time
-.\.venv\Scripts\activate; python -c "
-import time
-from ui.components import parse_jql_syntax
-query = 'project = TEST AND ' * 500  # ~5000 chars
-start = time.time()
-tokens = parse_jql_syntax(query)
-duration = (time.time() - start) * 1000
-print(f'Parse time: {duration:.2f}ms (target: <50ms)')
-"
-```
-
----
-
-## Task Validation Checklist
-
-Before marking a task complete, verify:
-
-- [ ] **Tests Written First** (TDD Red): Failing test exists before implementation
-- [ ] **Tests Pass** (TDD Green): Implementation passes all related tests
-- [ ] **Code Quality** (TDD Refactor): Code follows Python style guide, has docstrings, type hints
-- [ ] **No Regressions**: Existing tests still pass (pytest tests/ -v)
-- [ ] **Performance**: No degradation in page load or interaction time
-- [ ] **Mobile**: Works on 320px viewport (if UI change)
-- [ ] **Accessibility**: Keyboard navigation and screen reader compatibility maintained
-- [ ] **Documentation**: Docstrings and inline comments added
-
----
-
-## Progress Tracking
-
-### Completion Status
-
-| Phase               | Tasks Complete | Total Tasks | Percentage |
-| ------------------- | -------------- | ----------- | ---------- |
-| Phase 1: Setup      | 0              | 3           | 0%         |
-| Phase 2: Foundation | 0              | 5           | 0%         |
-| Phase 3: US1 (P1)   | 0              | 14          | 0%         |
-| Phase 4: US2 (P2)   | 0              | 6           | 0%         |
-| Phase 5: US3 (P3)   | 0              | 6           | 0%         |
-| Phase 6: Polish     | 0              | 4           | 0%         |
-| **Overall**         | **0**          | **38**      | **0%**     |
-
-### Milestones
-
-- [ ] **Milestone 1**: MVP Complete (US1) - Tasks T001-T022
-- [ ] **Milestone 2**: ScriptRunner Support (US2) - Tasks T023-T028
-- [ ] **Milestone 3**: Error Indication (US3) - Tasks T029-T034
-- [ ] **Milestone 4**: Production Ready - All tasks complete
-
----
-
-## Notes
-
-**TDD Workflow Reminder**:
-1. Write failing test (RED)
-2. Run test to verify it fails: `pytest <test_file>::<test_name> -v`
-3. Implement minimum code (GREEN)
-4. Run test to verify it passes: `pytest <test_file>::<test_name> -v`
-5. Refactor for quality (REFACTOR)
-6. Run all tests to verify no regressions: `pytest tests/ -v`
-
-**File Paths**:
-- Python modules: `ui/jql_syntax_highlighter.py`, `ui/components.py`, `callbacks/settings.py`
-- CSS: `assets/jql_syntax.css`, `assets/custom.css`
-- JavaScript: `assets/jql_syntax.js`
-- Tests: `tests/unit/ui/test_jql_syntax_highlighter.py`, `tests/integration/dashboard/test_jql_highlighting_workflow.py`
-
-**Performance Targets**:
-- Parse time: <50ms for 5000 char queries (FR-005)
-- Render time: <300ms for paste operations (SC-007)
-- Frame rate: 60fps during typing (FR-011)
-
-**Browser Support**: Latest versions only (last 6 months) of Chrome, Firefox, Safari, Edge per FR-015
+**Recommendation**: Use incremental delivery - get MVP feedback early, adjust priorities based on user needs

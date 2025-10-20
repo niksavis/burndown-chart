@@ -87,22 +87,24 @@ As a user composing a JQL query, I want to see visual indicators for common synt
 
 ### Functional Requirements
 
-- **FR-001**: System MUST render syntax highlighting as a visual overlay or inline display synchronized with the JQL textarea content
+- **FR-001**: System MUST use an established syntax highlighting library component with custom JQL language mode definition (NOT custom dual-layer textarea implementation)
 - **FR-002**: System MUST highlight JQL keywords (AND, OR, NOT, IN, IS, WAS, etc.) in blue (#0066cc) with bold font weight
 - **FR-003**: System MUST highlight string literals (quoted text) in green (#22863a) including the surrounding quotes
 - **FR-004**: System MUST highlight operators (=, !=, <, >, <=, >=, ~, !~) in gray (#6c757d) with medium font weight
 - **FR-005**: System MUST update syntax highlighting in real-time as the user types, with maximum 50ms delay from keystroke to highlight update
-- **FR-006**: System MUST preserve cursor position and text selection during syntax highlighting updates
+- **FR-006**: System MUST preserve cursor position and text selection during syntax highlighting updates (library handles natively)
 - **FR-007**: System MUST support core ScriptRunner JQL functions (top 15 most commonly used): linkedIssuesOf, issuesInEpics, subtasksOf, parentsOf, epicsOf, hasLinks, hasComments, hasAttachments, lastUpdated, expression, dateCompare, aggregateExpression, issueFieldMatch, linkedIssuesOfRecursive, workLogged
 - **FR-008**: System MUST recognize ScriptRunner extension syntax patterns (e.g., "issueFunction in linkedIssuesOf('KEY')")
 - **FR-009**: System MUST indicate unclosed strings (quotes) with a warning visual indicator (e.g., red underline or orange background)
 - **FR-010**: System MUST indicate invalid operators with error highlighting (e.g., red color)
 - **FR-011**: System MUST maintain 60fps during typing with syntax highlighting active for queries up to 5000 characters
-- **FR-012**: System MUST use the existing parse_jql_syntax() and render_syntax_tokens() functions from ui/components.py
+- **FR-012**: System MUST integrate via Dash component wrapper function (e.g., create_jql_editor()) that returns configured library component
 - **FR-013**: System MUST work on mobile devices (320px+ viewports) without performance degradation
 - **FR-014**: System MUST be case-insensitive for keyword matching (AND, and, And all highlighted the same)
 - **FR-015**: System MUST support latest versions only of modern browsers (Chrome, Firefox, Safari, Edge) released within last 6 months
 - **FR-016**: System MUST gracefully degrade to plain textarea without syntax highlighting when browser lacks required features (no error messages, all core functionality remains available)
+- **FR-017**: System MUST define custom JQL language mode with tokenizer rules for keywords, operators, strings, functions, and ScriptRunner extensions
+- **FR-018**: System MUST deprecate and remove existing parse_jql_syntax() and render_syntax_tokens() functions from ui/components.py (underperforming code)
 
 ### Key Entities
 
@@ -110,9 +112,10 @@ As a user composing a JQL query, I want to see visual indicators for common synt
   - Attributes: query text, parsed tokens, highlighting overlay, cursor position
   - Constraints: Must handle queries up to 5000 characters with <50ms highlight latency
 
-- **Syntax Token**: A parsed segment of the JQL query
-  - Attributes: text content, type (keyword/string/operator/text), start position, end position
-  - Types: keyword, string, operator, text, error
+- **JQL Language Mode**: Custom syntax definition for the highlighting library
+  - Tokenizer rules: keyword patterns, operator patterns, string literal patterns, function patterns
+  - Token types: keyword, string, operator, text, function, error
+  - Configuration: case-insensitive keyword matching, ScriptRunner function recognition
 
 - **ScriptRunner Function**: Extended JQL function from ScriptRunner plugin
   - Core functions (top 15): linkedIssuesOf, issuesInEpics, subtasksOf, parentsOf, epicsOf, hasLinks, hasComments, hasAttachments, lastUpdated, expression, dateCompare, aggregateExpression, issueFieldMatch, linkedIssuesOfRecursive, workLogged
@@ -124,36 +127,39 @@ As a user composing a JQL query, I want to see visual indicators for common synt
 
 ### Measurable Outcomes
 
-- **SC-001**: Users can see syntax highlighting appear within 50ms of typing each character in JQL queries up to 2000 characters
-- **SC-002**: Users typing at 100 words per minute experience zero dropped keystrokes or cursor position glitches
+- **SC-001**: Users can see syntax highlighting appear within 50ms of typing each character in JQL queries up to 2000 characters (validated with Chrome DevTools Performance profiler)
+- **SC-002**: Users typing at 100 words per minute experience zero dropped keystrokes or cursor position glitches (library handles natively)
 - **SC-003**: 95% of common JQL syntax errors (unclosed quotes, invalid operators) are visually indicated before query submission
 - **SC-004**: Users can compose queries using ScriptRunner syntax with the same visual guidance as native JIRA JQL
 - **SC-005**: Syntax highlighting works on mobile devices (iPhone SE, 320px viewport) without causing input lag or visual artifacts
-- **SC-006**: Users can select and edit highlighted text without visual glitches or loss of cursor position
-- **SC-007**: Pasting large queries (1000+ characters) results in complete syntax highlighting within 300ms
+- **SC-006**: Users can select and edit highlighted text without visual glitches or loss of cursor position (library handles natively)
+- **SC-007**: Pasting large queries (1000+ characters) results in complete syntax highlighting within 300ms (validated with Chrome DevTools Performance profiler)
+- **SC-008**: Deprecated parse_jql_syntax() and render_syntax_tokens() functions are removed from codebase with no remaining references
 
 ## Problem Statement *(optional - helps communicate why)*
 
-The current implementation (feature 001-add-jql-query) provides character counting and syntax parsing functions, but the syntax highlighting is not visible to users. The parse_jql_syntax() and render_syntax_tokens() functions exist and are tested, but there is no visual component to display the highlighted syntax in the textarea.
+The current implementation (feature 001-add-jql-query) provides character counting and custom syntax parsing functions (parse_jql_syntax() and render_syntax_tokens()), but the syntax highlighting is not visible to users and the custom parsing implementation has performance issues.
 
 This creates a poor user experience because:
 - Users cannot visually distinguish JQL keywords from field names and values
 - Syntax errors (unclosed quotes, typos in keywords) are not caught until JIRA rejects the query
 - Complex queries with multiple AND/OR conditions are hard to read and verify
 - ScriptRunner power users have no visual guidance for extension-specific syntax
+- The existing custom parsing functions are underperforming and need to be replaced
 
-The technical constraint is that HTML textareas cannot display inline HTML formatting. The solution requires implementing a visual overlay technique (e.g., synchronized div behind/over textarea, or contenteditable div mimicking textarea behavior).
+The optimal solution is to use an established, battle-tested syntax highlighting library with custom language mode support rather than maintaining a custom implementation. This provides better performance, mobile support, and accessibility out of the box.
 
 ## Proposed Solution *(optional - high-level approach)*
 
-Implement a dual-layer textarea approach:
+Integrate an established syntax highlighting library with custom JQL language mode:
 
-1. **Visible Layer (Highlighting)**: A contenteditable div or absolutely-positioned div with syntax-highlighted HTML using existing render_syntax_tokens()
-2. **Invisible Layer (Input)**: The actual textarea positioned beneath/over the highlighting layer with transparent text color
-3. **Synchronization**: Scroll position and cursor position kept in sync between layers using JavaScript
-4. **Mobile Support**: Touch events properly routed to the underlying textarea for native keyboard behavior
+1. **Library Selection**: Use a modern, mobile-friendly syntax highlighting library that supports custom language mode definitions (e.g., CodeMirror 6, Monaco Editor, or similar)
+2. **Custom JQL Language Mode**: Define JQL syntax rules including keywords (AND, OR, NOT, etc.), operators (=, !=, ~, etc.), string literals, and ScriptRunner function patterns
+3. **Dash Component Wrapper**: Create a `create_jql_editor()` function that wraps the library component and integrates with Dash's component system
+4. **Deprecation**: Remove existing underperforming parse_jql_syntax() and render_syntax_tokens() functions - library handles all parsing and rendering
+5. **Performance Validation**: Use browser DevTools Performance profiler to verify <50ms update latency and 60fps during typing
 
-This approach leverages the existing parsing infrastructure while providing real-time visual feedback without modifying the proven character counting functionality.
+This approach provides production-quality syntax highlighting with native mobile support, accessibility features, and better performance than a custom implementation.
 
 ## Clarifications
 
@@ -163,15 +169,23 @@ This approach leverages the existing parsing infrastructure while providing real
 - Q: What ScriptRunner functions should be supported in syntax highlighting? → A: Core functions (top 10-15 most commonly used from ScriptRunner documentation)
 - Q: What should happen when users access the app with unsupported/older browsers? → A: Graceful degradation (plain textarea, no highlighting)
 
+### Session 2025-10-16
+
+- Q: Should we build a custom dual-layer textarea solution or use an established syntax highlighting component library? → A: Use established syntax highlighting component library (NOT custom dual-layer solution)
+- Q: Which syntax highlighting library should we use that supports custom JQL language definitions? → A: Custom syntax definition with flexible library (mobile-friendly, fast, supports custom language modes)
+- Q: Should we keep or deprecate the existing parse_jql_syntax() and render_syntax_tokens() functions? → A: Deprecate existing parse/render functions - library handles all parsing and rendering (remove underperforming code)
+- Q: How should the syntax highlighting component integrate with the Dash application? → A: Create Dash component wrapper function (e.g., create_jql_editor()) for library component
+- Q: How should we validate performance targets (50ms updates, 300ms for large queries)? → A: Use browser DevTools Performance profiler for real-world measurements
+
 ## Assumptions *(optional)*
 
-- The existing parse_jql_syntax() function is production-ready and performant for queries up to 5000 characters
-- The existing JQL_KEYWORDS frozenset can be extended to include ScriptRunner keywords without performance impact
+- Modern syntax highlighting libraries (CodeMirror 6, Monaco, etc.) support custom language mode definitions for domain-specific languages like JQL
 - Users expect syntax highlighting similar to code editors (VSCode, Sublime Text) with keywords in blue, strings in green
-- The CSS classes (.jql-keyword, .jql-string, .jql-operator) defined in assets/custom.css are sufficient for base styling
 - ScriptRunner extension is commonly used, making support for its syntax a valuable enhancement
 - Mobile users will benefit from syntax highlighting despite smaller screen sizes
-- The character count feature (from 001-add-jql-query) should continue working alongside syntax highlighting
+- The character count feature (from 001-add-jql-query) should continue working alongside syntax highlighting (library provides character count APIs)
+- Established libraries provide better performance and maintainability than custom implementations
+- Deprecating underperforming custom parsing functions is acceptable when replaced with superior library implementation
 
 ## Out of Scope *(optional)*
 
@@ -186,24 +200,28 @@ This approach leverages the existing parsing infrastructure while providing real
 
 ## Dependencies *(optional)*
 
-- **Existing Feature 001**: Depends on parse_jql_syntax() and render_syntax_tokens() functions from ui/components.py
-- **CSS Framework**: Uses Dash Bootstrap Components and assets/custom.css for styling
-- **Browser APIs**: Requires contenteditable or absolute positioning CSS for overlay technique
+- **Syntax Highlighting Library**: Requires adding a new dependency for the chosen library (e.g., dash-codemirror, react-monaco-editor, or similar Dash-compatible component)
+- **CSS Framework**: Uses Dash Bootstrap Components and assets/custom.css for styling and theme integration
+- **Browser APIs**: Modern browsers with ES6+ support (latest versions from last 6 months)
 - **ScriptRunner Documentation**: Reference list from https://docs.adaptavist.com/sr4js/latest/features/jql-functions/included-jql-functions (50+ functions available, implementing top 15 core functions initially)
+- **Performance Profiling**: Chrome DevTools Performance profiler for validating <50ms latency and 60fps targets
 
 ## Risks & Mitigations *(optional)*
 
-- **Risk**: Cursor position synchronization between layers may be difficult on mobile browsers
-  - **Mitigation**: Use native textarea for input, only display highlighting behind it; test on real iOS/Android devices early
+- **Risk**: Adding a new library dependency increases bundle size and maintenance burden
+  - **Mitigation**: Choose well-maintained library with active community; evaluate bundle size impact; ensure license compatibility; library benefits (performance, mobile support, accessibility) outweigh maintenance cost
 
-- **Risk**: Performance degradation on large queries (2000+ characters) due to real-time parsing
-  - **Mitigation**: Implement debouncing (50ms) and use requestAnimationFrame for rendering; profile with Chrome DevTools
+- **Risk**: Performance degradation on large queries (2000+ characters) due to real-time highlighting
+  - **Mitigation**: Choose library with proven performance at scale; validate with Chrome DevTools Performance profiler; test with 5000-character queries; library should handle debouncing and optimization internally
 
 - **Risk**: Syntax highlighting may conflict with existing character count feature
-  - **Mitigation**: Keep features independent; character count uses plain textarea value, highlighting uses parsed tokens
+  - **Mitigation**: Integrate character count using library's APIs (most provide document length methods); test character count accuracy with highlighted queries
 
-- **Risk**: Browser compatibility issues with contenteditable or absolute positioning technique
-  - **Mitigation**: Target latest browser versions only (last 6 months); use modern CSS/JS features without polyfills; implement graceful degradation to plain textarea for unsupported browsers; test on current Chrome, Firefox, Safari, Edge releases
+- **Risk**: Browser compatibility issues with modern library features
+  - **Mitigation**: Target latest browser versions only (last 6 months); implement graceful degradation to plain textarea for unsupported browsers; test on current Chrome, Firefox, Safari, Edge releases
 
 - **Risk**: Users may expect autocomplete or validation features beyond syntax highlighting
   - **Mitigation**: Clearly scope this feature as "visual highlighting only" in documentation; mark advanced features as out of scope
+
+- **Risk**: Library may not support JQL syntax out of the box
+  - **Mitigation**: Choose library with flexible custom language mode API; define JQL tokenizer rules based on existing JQL_KEYWORDS and operator patterns; leverage library documentation and examples for custom language modes
