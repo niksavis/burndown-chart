@@ -34,6 +34,7 @@ from ui.grid_utils import (
     create_two_column_layout,
 )
 from ui.tabs import create_tabs
+from ui.jira_config_modal import create_jira_config_modal
 
 #######################################################################
 # LAYOUT FUNCTION
@@ -112,6 +113,8 @@ def create_app_layout(settings, statistics, is_sample_data):
 
     return dbc.Container(
         [
+            # JIRA Configuration Modal (Feature 003-jira-config-separation)
+            create_jira_config_modal(),
             # Help System (Phase 9.2 Progressive Disclosure)
             create_help_system_layout(),
             # Page initialization complete flag (hidden)

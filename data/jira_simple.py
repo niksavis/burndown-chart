@@ -156,7 +156,9 @@ def fetch_jira_issues(
             "fields": fields,
         }
 
-        logger.info(f"Fetching JIRA issues with JQL: {jql}")
+        logger.info(f"Fetching JIRA issues from: {url}")
+        logger.info(f"Using JQL: {jql}")
+        logger.info(f"Max results: {max_results}, Fields: {fields}")
         response = requests.get(url, headers=headers, params=params, timeout=30)
 
         # Enhanced error handling for ScriptRunner and JQL issues
@@ -714,14 +716,308 @@ def test_jql_query(config: Dict) -> Tuple[bool, str]:
 
             return False, f"JQL query invalid: {error_details}"
 
-        # If we get here, the query is valid
-        data = response.json()
-        total = data.get("total", 0)
-        logger.info(f"JQL query valid - would return {total} issues")
-
-        return True, f"JQL query is valid (would return {total} issues)"
+        # If we get here, the query returned 200 OK - try to parse response
+        try:
+            data = response.json()
+            total = data.get("total", 0)
+            logger.info(f"JQL query valid - would return {total} issues")
+            return True, f"JQL query is valid (would return {total} issues)"
+        except ValueError as json_error:
+            # Response was 200 OK but body is not valid JSON - API version likely not supported
+            logger.error(f"JIRA returned HTTP 200 but invalid JSON: {json_error}")
+            logger.error(f"Response body (first 200 chars): {response.text[:200]}")
+            return (
+                False,
+                "JIRA API returned invalid response (HTTP 200 but not JSON). Your JIRA server may not support this API version. Try switching to API v2 in Configure JIRA.",
+            )
 
     except requests.exceptions.RequestException as e:
         return False, f"Network error testing JQL query: {e}"
     except Exception as e:
         return False, f"Error testing JQL query: {e}"
+
+
+#######################################################################
+# JIRA CONFIGURATION FUNCTIONS (Feature 003-jira-config-separation)
+#######################################################################
+
+
+def construct_jira_endpoint(base_url: str, api_version: str = "v3") -> str:
+    """
+    Construct full JIRA API endpoint from base URL and version.
+
+    Args:
+        base_url: Base JIRA URL (e.g., "https://company.atlassian.net")
+        api_version: API version ("v2" or "v3")
+
+    Returns:
+        Full endpoint URL (e.g., "https://company.atlassian.net/rest/api/3/search")
+
+    Raises:
+        ValueError: If URL format is invalid
+    """
+    # Remove trailing slashes
+    clean_url = base_url.rstrip("/")
+
+    # Validate URL format
+    if not clean_url.startswith(("http://", "https://")):
+        raise ValueError("URL must start with http:// or https://")
+
+    if not clean_url:
+        raise ValueError("URL cannot be empty")
+
+    # Construct endpoint based on API version
+    api_path = "/rest/api/2/search" if api_version == "v2" else "/rest/api/3/search"
+
+    return f"{clean_url}{api_path}"
+
+
+def test_jira_connection(base_url: str, token: str, api_version: str = "v3") -> Dict:
+    """
+    Test JIRA connection by calling serverInfo endpoint.
+
+    This validates the base URL and token without requiring a JQL query.
+    Uses the serverInfo endpoint which is lightweight and doesn't require authentication
+    for connectivity check, but we include the token to verify authentication.
+
+    Args:
+        base_url: Base JIRA URL (e.g., "https://company.atlassian.net")
+        token: Personal access token
+        api_version: API version ("v2" or "v3")
+
+    Returns:
+        Dictionary with test results:
+        {
+            "success": bool,
+            "message": str,
+            "response_time_ms": int,
+            "server_info": dict (if successful),
+            "error_code": str (if failed),
+            "error_details": str (if failed),
+            "timestamp": str (ISO 8601)
+        }
+    """
+    import time
+
+    timestamp = datetime.now().isoformat()
+    start_time = time.time()
+
+    try:
+        # Validate base URL format first
+        clean_url = base_url.rstrip("/")
+        if not clean_url.startswith(("http://", "https://")):
+            return {
+                "success": False,
+                "message": "Please enter a valid JIRA URL starting with https://",
+                "timestamp": timestamp,
+                "response_time_ms": None,
+                "error_code": "invalid_url_format",
+                "error_details": "URL must start with http:// or https://",
+            }
+
+        # Construct serverInfo endpoint (use API v2 as it's more universally supported)
+        server_info_url = f"{clean_url}/rest/api/2/serverInfo"
+
+        # Prepare headers with authentication
+        headers = {"Accept": "application/json", "Content-Type": "application/json"}
+
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+
+        # Make request with timeout
+        logger.info(f"Testing JIRA connection to: {server_info_url}")
+        response = requests.get(server_info_url, headers=headers, timeout=10)
+
+        response_time_ms = int((time.time() - start_time) * 1000)
+
+        # Check response status
+        if response.status_code == 200:
+            server_info = response.json()
+
+            # Additional check: Verify the search endpoint with specified API version
+            search_endpoint = construct_jira_endpoint(base_url, api_version)
+            logger.info(f"Verifying search endpoint: {search_endpoint}")
+
+            # Test with a minimal JQL query (just get 1 result)
+            test_jql = "order by created DESC"
+            search_headers = headers.copy()
+            search_response = requests.get(
+                search_endpoint,
+                headers=search_headers,
+                params={"jql": test_jql, "maxResults": 1},
+                timeout=10,
+            )
+
+            # If search endpoint fails, provide specific guidance
+            if search_response.status_code in (400, 404):
+                api_version_name = "v3" if api_version == "v3" else "v2"
+                opposite_version = "v2" if api_version == "v3" else "v3"
+
+                # Log the actual error for debugging
+                logger.warning(
+                    f"API version check: {api_version_name} NOT available (status {search_response.status_code})"
+                )
+                try:
+                    error_data = search_response.json()
+                    logger.warning(f"Search endpoint error details: {error_data}")
+                except Exception:
+                    logger.warning(
+                        f"Search endpoint returned {search_response.status_code} without JSON body"
+                    )
+
+                return {
+                    "success": False,
+                    "message": f"Server connected but API {api_version_name} not available",
+                    "timestamp": timestamp,
+                    "response_time_ms": response_time_ms,
+                    "error_code": "api_version_mismatch",
+                    "error_details": f"Your JIRA server does not support REST API {api_version_name}. The search endpoint returned {search_response.status_code}. Try switching to API {opposite_version} in the configuration.",
+                }
+
+            # If search works, return full success (only accept 200 OK with valid JSON)
+            if search_response.status_code == 200:
+                # Verify response body is valid JSON
+                try:
+                    search_data = search_response.json()
+                    # Verify it has expected structure
+                    if "issues" in search_data or "total" in search_data:
+                        logger.info(
+                            f"API version check: {api_version} VERIFIED (status 200, valid JSON)"
+                        )
+                        return {
+                            "success": True,
+                            "message": f"Connection successful (API {api_version} verified)",
+                            "timestamp": timestamp,
+                            "response_time_ms": response_time_ms,
+                            "server_info": {
+                                "version": server_info.get("version", "unknown"),
+                                "serverTitle": server_info.get(
+                                    "serverTitle", "JIRA Server"
+                                ),
+                                "baseUrl": server_info.get("baseUrl", clean_url),
+                            },
+                        }
+                    else:
+                        # Got JSON but wrong structure
+                        logger.warning(
+                            f"API {api_version} returned JSON but unexpected structure: {list(search_data.keys())}"
+                        )
+                except ValueError as json_error:
+                    # Status 200 but body is not JSON - API version doesn't work
+                    logger.warning(
+                        f"API {api_version} returned 200 but invalid JSON: {json_error}"
+                    )
+                    logger.warning(
+                        f"Response body (first 200 chars): {search_response.text[:200]}"
+                    )
+
+                # If we get here, v3 returns 200 but doesn't work properly
+                api_version_name = "v3" if api_version == "v3" else "v2"
+                opposite_version = "v2" if api_version == "v3" else "v3"
+                return {
+                    "success": False,
+                    "message": f"Server connected but API {api_version_name} not available",
+                    "timestamp": timestamp,
+                    "response_time_ms": response_time_ms,
+                    "error_code": "api_version_mismatch",
+                    "error_details": f"Your JIRA server does not properly support REST API {api_version_name} (returned 200 but invalid response). Try switching to API {opposite_version} in the configuration.",
+                }
+
+            # Search endpoint returned any other error - treat as API version issue
+            api_version_name = "v3" if api_version == "v3" else "v2"
+            opposite_version = "v2" if api_version == "v3" else "v3"
+
+            logger.warning(
+                f"API version check: {api_version_name} NOT available (unexpected status {search_response.status_code})"
+            )
+
+            return {
+                "success": False,
+                "message": f"Server connected but API {api_version_name} not available",
+                "timestamp": timestamp,
+                "response_time_ms": response_time_ms,
+                "error_code": "api_version_mismatch",
+                "error_details": f"Your JIRA server does not support REST API {api_version_name}. The search endpoint returned {search_response.status_code}. Try switching to API {opposite_version} in the configuration.",
+            }
+
+        elif response.status_code == 401:
+            return {
+                "success": False,
+                "message": "Authentication failed - invalid token",
+                "timestamp": timestamp,
+                "response_time_ms": response_time_ms,
+                "error_code": "authentication_failed",
+                "error_details": "401 Unauthorized: Invalid or expired token. Please verify your personal access token in JIRA settings.",
+            }
+
+        elif response.status_code == 403:
+            return {
+                "success": False,
+                "message": "Access forbidden - insufficient permissions",
+                "timestamp": timestamp,
+                "response_time_ms": response_time_ms,
+                "error_code": "authentication_failed",
+                "error_details": "403 Forbidden: Token does not have sufficient permissions to access JIRA API.",
+            }
+
+        elif response.status_code == 404:
+            return {
+                "success": False,
+                "message": "JIRA server not found - verify URL",
+                "timestamp": timestamp,
+                "response_time_ms": response_time_ms,
+                "error_code": "server_unreachable",
+                "error_details": "404 Not Found: The JIRA server could not be found at this URL. Please verify the base URL is correct.",
+            }
+
+        else:
+            # Generic HTTP error
+            error_text = response.text[:200] if response.text else "No error details"
+            return {
+                "success": False,
+                "message": f"Connection failed: HTTP {response.status_code}",
+                "timestamp": timestamp,
+                "response_time_ms": response_time_ms,
+                "error_code": "unexpected_error",
+                "error_details": f"HTTP {response.status_code}: {error_text}",
+            }
+
+    except requests.exceptions.Timeout:
+        return {
+            "success": False,
+            "message": "Connection timeout - check network and try again",
+            "timestamp": timestamp,
+            "response_time_ms": None,
+            "error_code": "connection_timeout",
+            "error_details": "Request timed out after 10 seconds. Check network connection, firewall settings, or VPN.",
+        }
+
+    except requests.exceptions.ConnectionError as e:
+        return {
+            "success": False,
+            "message": "Cannot reach JIRA server - verify URL",
+            "timestamp": timestamp,
+            "response_time_ms": None,
+            "error_code": "server_unreachable",
+            "error_details": f"Connection error: {str(e)}. Check if the URL is correct and the server is accessible.",
+        }
+
+    except requests.exceptions.RequestException as e:
+        return {
+            "success": False,
+            "message": "Network error occurred",
+            "timestamp": timestamp,
+            "response_time_ms": None,
+            "error_code": "unexpected_error",
+            "error_details": f"Request error: {str(e)}",
+        }
+
+    except Exception as e:
+        return {
+            "success": False,
+            "message": f"Unexpected error: {str(e)}",
+            "timestamp": timestamp,
+            "response_time_ms": None,
+            "error_code": "unexpected_error",
+            "error_details": f"Exception: {type(e).__name__}: {str(e)}",
+        }

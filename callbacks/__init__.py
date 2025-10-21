@@ -3,6 +3,7 @@ Callbacks module for the burndown chart application.
 """
 
 from callbacks import (
+    jira_config,  # JIRA configuration modal callbacks (Feature 003)
     jql_editor,  # JQL editor textarea-to-store sync
     mobile_navigation,  # Add mobile navigation callbacks
     # The 'export' module doesn't seem to exist and is causing an error

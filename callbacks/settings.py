@@ -188,12 +188,6 @@ def register(app):
             Input("milestone-toggle", "value"),  # Added milestone toggle input
             Input("milestone-picker", "date"),  # Added milestone picker input
             Input("points-toggle", "value"),  # Added points toggle input
-            # JIRA URL/token inputs still as Input for immediate saving
-            Input("jira-url", "value"),
-            Input("jira-token", "value"),
-            Input("jira-story-points-field", "value"),
-            Input("jira-cache-max-size", "value"),
-            Input("jira-max-results", "value"),
         ],
         [
             State("app-init-complete", "data"),
@@ -214,12 +208,6 @@ def register(app):
         show_milestone,  # Added parameter
         milestone,  # Added parameter
         show_points,  # Added parameter
-        # JIRA parameters for immediate saving (except JQL query)
-        jira_api_endpoint,
-        jira_token,
-        jira_story_points_field,
-        jira_cache_max_size,
-        jira_max_results,
         # State parameters (read but don't trigger callback)
         init_complete,
         jql_query,  # PERFORMANCE FIX: JQL query moved to State to prevent keystroke lag
@@ -273,8 +261,11 @@ def register(app):
             "show_points": show_points,  # Added to settings
         }
 
-        # Save app-level settings - use current JIRA input values for immediate persistence
-        from data.persistence import save_app_settings
+        # Save app-level settings - load JIRA values from jira_config (Feature 003-jira-config-separation)
+        from data.persistence import save_app_settings, load_jira_configuration
+
+        # Load current JIRA configuration
+        jira_config = load_jira_configuration()
 
         save_app_settings(
             pert_factor,
@@ -286,19 +277,15 @@ def register(app):
             jql_query.strip()
             if jql_query and jql_query.strip()
             else "project = JRASERVER",  # Use current JQL input
-            jira_api_endpoint.strip()
-            if jira_api_endpoint and jira_api_endpoint.strip()
-            else "https://jira.atlassian.com/rest/api/2/search",  # Use current JIRA API endpoint input
-            jira_token.strip() if jira_token else "",  # Use current JIRA token input
-            jira_story_points_field.strip()
-            if jira_story_points_field
-            else "",  # Use current story points field input
-            jira_cache_max_size
-            if jira_cache_max_size is not None
-            else 100,  # Use current cache size input
-            jira_max_results
-            if jira_max_results is not None
-            else 1000,  # Use current max results input
+            # Load JIRA values from jira_config instead of removed UI fields
+            jira_config.get("base_url", "https://jira.atlassian.com")
+            + "/rest/api/"
+            + jira_config.get("api_version", "v2")
+            + "/search",
+            jira_config.get("token", ""),
+            jira_config.get("points_field", ""),
+            jira_config.get("cache_size_mb", 100),
+            jira_config.get("max_results_per_call", 1000),
         )
 
         # Save project data using unified format
@@ -692,11 +679,6 @@ def register(app):
             State(
                 "jira-jql-query", "value"
             ),  # JQL textarea uses standard "value" property
-            State("jira-url", "value"),
-            State("jira-token", "value"),
-            State("jira-story-points-field", "value"),
-            State("jira-cache-max-size", "value"),
-            State("jira-max-results", "value"),
         ],
         prevent_initial_call=True,
     )
@@ -704,11 +686,6 @@ def register(app):
         n_clicks,
         data_source,
         jql_query,
-        jira_api_endpoint,
-        jira_token,
-        story_points_field,
-        cache_max_size,
-        jira_max_results,
     ):
         """
         Handle unified data update button click.
@@ -745,6 +722,33 @@ def register(app):
                 )
                 logger.info(f"[UPDATE DATA] Received data_source: '{data_source}'")
 
+                # Load JIRA configuration from jira_config
+                from data.persistence import load_jira_configuration
+
+                jira_config = load_jira_configuration()
+
+                # Check if JIRA is configured (FR-018: Error handling for unconfigured state)
+                is_configured = (
+                    jira_config.get("configured", False)
+                    and jira_config.get("base_url", "").strip() != ""
+                    and jira_config.get("token", "").strip() != ""
+                )
+
+                if not is_configured:
+                    cache_status = get_cache_status()
+                    validation_errors = html.Div(
+                        [
+                            html.I(className="fas fa-exclamation-triangle me-2"),
+                            html.Span("JIRA is not configured. "),
+                            html.Span(
+                                "Please click the 'Configure JIRA' button above to set up your JIRA connection.",
+                                className="fw-medium",
+                            ),
+                        ],
+                        className="text-warning small",
+                    )
+                    return None, None, cache_status, validation_errors, no_update
+
                 # Use JQL query from input or fall back to settings
                 app_settings = load_app_settings()
                 settings_jql = (
@@ -757,42 +761,23 @@ def register(app):
                     f"JQL Query - Input: '{jql_query}', Settings: '{app_settings.get('jql_query', 'N/A')}', Final: '{settings_jql}'"
                 )
 
-                # Process and clean JIRA configuration inputs
-                final_jira_api_endpoint = (
-                    jira_api_endpoint.strip()
-                    if jira_api_endpoint and jira_api_endpoint.strip()
-                    else "https://jira.atlassian.com/rest/api/2/search"
-                )
-                final_jira_token = jira_token.strip() if jira_token else ""
-                final_story_points_field = (
-                    story_points_field.strip() if story_points_field else ""
-                )
-                final_cache_max_size = (
-                    cache_max_size if cache_max_size and cache_max_size > 0 else 100
-                )
-                final_max_results = (
-                    jira_max_results
-                    if jira_max_results and jira_max_results > 0
-                    else 1000
+                # Load JIRA configuration values from jira_config and construct endpoint
+                from data.jira_simple import construct_jira_endpoint
+
+                base_url = jira_config.get("base_url", "https://jira.atlassian.com")
+                api_version = jira_config.get("api_version", "v2")
+                final_jira_api_endpoint = construct_jira_endpoint(base_url, api_version)
+                final_jira_token = jira_config.get("token", "")
+                final_story_points_field = jira_config.get("points_field", "")
+                final_cache_max_size = jira_config.get("cache_size_mb", 100)
+                final_max_results = jira_config.get("max_results_per_call", 1000)
+
+                # Check if JQL query has changed and needs saving
+                jql_changed = settings_jql != app_settings.get(
+                    "jql_query", "project = JRASERVER"
                 )
 
-                # Check if any JIRA settings have changed and need saving
-                settings_changed = (
-                    settings_jql != app_settings.get("jql_query", "project = JRASERVER")
-                    or final_jira_api_endpoint
-                    != app_settings.get(
-                        "jira_api_endpoint",
-                        "https://jira.atlassian.com/rest/api/2/search",
-                    )
-                    or final_jira_token != app_settings.get("jira_token", "")
-                    or final_story_points_field
-                    != app_settings.get("jira_story_points_field", "")
-                    or final_cache_max_size
-                    != app_settings.get("jira_cache_max_size", 100)
-                    or final_max_results != app_settings.get("jira_max_results", 1000)
-                )
-
-                if settings_changed:
+                if jql_changed:
                     from data.persistence import save_app_settings
 
                     save_app_settings(
@@ -807,14 +792,12 @@ def register(app):
                         final_jira_token,
                         final_story_points_field,
                         final_cache_max_size,
-                        final_max_results,  # Use current UI input
+                        final_max_results,
                     )
-                    logger.info(
-                        f"JIRA configuration updated and saved: JQL='{settings_jql}', API Endpoint='{final_jira_api_endpoint}', Points Field='{final_story_points_field}', Cache Size={final_cache_max_size}, Max Results={final_max_results}"
-                    )
+                    logger.info(f"JQL query updated and saved: JQL='{settings_jql}'")
 
-                # Create JIRA config from UI inputs (override environment/settings)
-                jira_config = {
+                # Create JIRA config for sync_jira_data (using loaded values)
+                jira_config_for_sync = {
                     "api_endpoint": final_jira_api_endpoint,
                     "jql_query": settings_jql,
                     "token": final_jira_token,
@@ -824,7 +807,9 @@ def register(app):
                 }
 
                 # Validate configuration
-                is_valid, validation_message = validate_jira_config(jira_config)
+                is_valid, validation_message = validate_jira_config(
+                    jira_config_for_sync
+                )
                 if not is_valid:
                     cache_status = get_cache_status()
                     validation_errors = html.Div(
@@ -836,8 +821,8 @@ def register(app):
                     )
                     return None, None, cache_status, validation_errors, no_update
 
-                # Use sync_jira_data with the UI configuration
-                success, message = sync_jira_data(settings_jql, jira_config)
+                # Use sync_jira_data with the loaded configuration
+                success, message = sync_jira_data(settings_jql, jira_config_for_sync)
                 cache_status = get_cache_status()
                 if success:
                     # Load the updated statistics data after JIRA import
@@ -934,22 +919,12 @@ def register(app):
             State(
                 "jira-jql-query", "value"
             ),  # JQL textarea uses standard "value" property
-            State("jira-url", "value"),
-            State("jira-token", "value"),
-            State("jira-story-points-field", "value"),
-            State("jira-cache-max-size", "value"),
-            State("jira-max-results", "value"),
         ],
         prevent_initial_call=True,
     )
     def calculate_jira_project_scope(
         n_clicks,
         jql_query,
-        jira_api_endpoint,
-        jira_token,
-        story_points_field,
-        cache_max_size,
-        jira_max_results,
     ):
         """
         Calculate project scope based on JIRA issues using status categories.
@@ -958,19 +933,45 @@ def register(app):
             raise PreventUpdate
 
         try:
-            from data.persistence import calculate_project_scope_from_jira
+            from data.persistence import (
+                calculate_project_scope_from_jira,
+                load_jira_configuration,
+            )
 
-            # Build UI config from form inputs
+            # Load JIRA configuration
+            jira_config = load_jira_configuration()
+
+            # Check if JIRA is configured (FR-018: Error handling for unconfigured state)
+            is_configured = (
+                jira_config.get("configured", False)
+                and jira_config.get("base_url", "").strip() != ""
+                and jira_config.get("token", "").strip() != ""
+            )
+
+            if not is_configured:
+                current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                status_message = "⚠️ JIRA is not configured. Please click the 'Configure JIRA' button to set up your JIRA connection before calculating project scope."
+                return (
+                    html.Div(status_message, className="text-warning"),
+                    f"Last attempt: {current_time}",
+                    no_update,
+                    no_update,
+                    no_update,
+                )
+
+            # Build UI config from loaded jira_config
+            from data.jira_simple import construct_jira_endpoint
+
+            base_url = jira_config.get("base_url", "https://jira.atlassian.com")
+            api_version = jira_config.get("api_version", "v2")
+
             ui_config = {
                 "jql_query": jql_query or "",
-                "api_endpoint": jira_api_endpoint
-                or "https://jira.atlassian.com/rest/api/2/search",
-                "token": jira_token or "",
-                "story_points_field": story_points_field.strip()
-                if story_points_field
-                else "",
-                "cache_max_size_mb": int(cache_max_size) if cache_max_size else 50,
-                "max_results": int(jira_max_results) if jira_max_results else 1000,
+                "api_endpoint": construct_jira_endpoint(base_url, api_version),
+                "token": jira_config.get("token", ""),
+                "story_points_field": jira_config.get("points_field", ""),
+                "cache_max_size_mb": jira_config.get("cache_size_mb", 100),
+                "max_results": jira_config.get("max_results_per_call", 1000),
             }
 
             # Calculate project scope from JIRA (no saving to file!)
@@ -1012,9 +1013,11 @@ def register(app):
                     )  # Still get total remaining
                     estimated_points = 0  # Can't determine estimated points
 
-                    if story_points_field and story_points_field.strip():
+                    # Get points field from jira_config
+                    points_field = jira_config.get("points_field", "")
+                    if points_field and points_field.strip():
                         # Get detailed field statistics from the scope calculation
-                        field_name = story_points_field.strip()
+                        field_name = points_field.strip()
                         metadata = project_scope.get("calculation_metadata", {})
                         field_stats = metadata.get("field_stats", {})
 
@@ -1866,22 +1869,12 @@ def register(app):
         [Input("test-jql-query-button", "n_clicks")],
         [
             State("jira-jql-query", "value"),
-            State("jira-url", "value"),
-            State("jira-token", "value"),
-            State("jira-story-points-field", "value"),
-            State("jira-cache-max-size", "value"),
-            State("jira-max-results", "value"),
         ],
         prevent_initial_call=True,
     )
     def test_jql_query_validity(
         n_clicks,
         jql_query,
-        jira_api_endpoint,
-        jira_token,
-        story_points_field,
-        cache_max_size,
-        jira_max_results,
     ):
         """
         Test JQL query validity - useful for ScriptRunner function validation.
@@ -1907,27 +1900,50 @@ def register(app):
 
         try:
             from data.jira_simple import test_jql_query, validate_jql_for_scriptrunner
-            from data.persistence import load_app_settings
+            from data.persistence import load_jira_configuration
 
-            # Build JIRA config from UI inputs
-            app_settings = load_app_settings()
+            # Load JIRA configuration
+            loaded_jira_config = load_jira_configuration()
+
+            # Check if JIRA is configured (FR-018: Error handling for unconfigured state)
+            is_configured = (
+                loaded_jira_config.get("configured", False)
+                and loaded_jira_config.get("base_url", "").strip() != ""
+                and loaded_jira_config.get("token", "").strip() != ""
+            )
+
+            if not is_configured:
+                return (
+                    html.Div(
+                        [
+                            html.I(
+                                className="fas fa-exclamation-triangle me-2 text-warning"
+                            ),
+                            html.Strong("JIRA Not Configured", className="text-dark"),
+                            html.Br(),
+                            html.Small(
+                                "Please click the 'Configure JIRA' button above to set up your JIRA connection before testing queries.",
+                                className="text-dark opacity-75",
+                            ),
+                        ],
+                        className="alert alert-light border-warning mb-0",
+                    ),
+                    {"display": "block"},
+                )
+
+            # Build JIRA config for testing with current JQL query
+            from data.jira_simple import construct_jira_endpoint
+
+            base_url = loaded_jira_config.get("base_url", "https://jira.atlassian.com")
+            api_version = loaded_jira_config.get("api_version", "v2")
+
             jira_config = {
                 "jql_query": jql_query.strip(),
-                "api_endpoint": jira_api_endpoint.strip()
-                if jira_api_endpoint and jira_api_endpoint.strip()
-                else app_settings.get(
-                    "jira_api_endpoint", "https://jira.atlassian.com/rest/api/2/search"
-                ),
-                "token": jira_token.strip()
-                if jira_token
-                else app_settings.get("jira_token", ""),
-                "story_points_field": story_points_field.strip()
-                if story_points_field
-                else app_settings.get("jira_story_points_field", ""),
-                "cache_max_size_mb": cache_max_size
-                or app_settings.get("jira_cache_max_size", 100),
-                "max_results": jira_max_results
-                or app_settings.get("jira_max_results", 1000),
+                "api_endpoint": construct_jira_endpoint(base_url, api_version),
+                "token": loaded_jira_config.get("token", ""),
+                "story_points_field": loaded_jira_config.get("points_field", ""),
+                "cache_max_size_mb": loaded_jira_config.get("cache_size_mb", 100),
+                "max_results": loaded_jira_config.get("max_results_per_call", 1000),
             }
 
             # First, check for ScriptRunner function warnings
