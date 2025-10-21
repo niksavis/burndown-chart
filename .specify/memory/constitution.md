@@ -1,15 +1,15 @@
 <!--
 Sync Impact Report:
-Version: 1.1.0 (Relaxed Testing Requirements)
-Modified Principles: III. Test-First Development - Integration tests now optional during implementation
-Added Sections: Flexible testing approach in Testing Gate and Test Coverage Gate
-Removed Sections: Strict TDD requirement for integration tests during implementation
+Version: 1.2.0 (Pragmatic Development Gates)
+Modified Principles: Multiple quality gates relaxed to reduce AI agent overhead
+Added Sections: Flexible validation approach for gates, "good enough" thresholds
+Removed Sections: Overly strict gate requirements that block development without clear benefit
 Templates Requiring Updates:
-  - ✅ plan-template.md: Already allows flexible test scheduling
-  - ✅ spec-template.md: Already references constitutional requirements
-  - ✅ tasks-template.md: Already validates against quality gates
-  - ✅ copilot-instructions.md: Updated with flexible testing patterns
-Follow-up TODOs: None - testing flexibility documented
+  - ✅ plan-template.md: Gates already flexible
+  - ✅ spec-template.md: Already allows pragmatic approaches
+  - ✅ tasks-template.md: Gate validation flexible
+  - ✅ copilot-instructions.md: Reflects pragmatic development
+Follow-up TODOs: None - pragmatic gates documented
 -->
 
 # Burndown Chart Constitution
@@ -20,34 +20,34 @@ Follow-up TODOs: None - testing flexibility documented
 
 ## Core Principles
 
-### I. Mobile-First Design (NON-NEGOTIABLE)
+### I. Mobile-First Design (IMPORTANT)
 
-All features MUST work flawlessly on mobile devices (320px+) before any desktop optimization.
+Features should work well on mobile devices (320px+), but perfection is not required before desktop work.
 
 **Requirements**:
-- Design and implement all UI components for 320px+ mobile screens first
-- Use progressive enhancement to add features for tablet (768px+) and desktop (1024px+)
-- Maintain 44px minimum touch target size for all interactive elements
-- Test responsive behavior at breakpoints: 320px, 768px, 1024px, 1440px
-- Full feature parity across all devices - no mobile-degraded functionality
+- Consider mobile screens (320px+) during design and implementation
+- Use responsive design patterns (Bootstrap grid, media queries)
+- Aim for 44px minimum touch target size for interactive elements
+- Test on mobile during or after implementation - doesn't need to be perfect upfront
+- Full feature parity preferred, but acceptable degradation if documented
 
-**Rationale**: Mobile users represent a significant portion of agile team workflows. Features that work on mobile screens inherently work on larger screens, but the reverse is not true.
+**Rationale**: Mobile users are important. Mobile-friendly design improves usability for everyone. However, requiring flawless mobile implementation before any desktop work creates unnecessary delays.
 
-**Validation**: Every feature specification must include mobile viewport designs and acceptance criteria for 320px+ screens.
+**Validation**: Feature should be usable on mobile screens. Desktop-only features require explicit justification.
 
-### II. Performance Standards (NON-NEGOTIABLE)
+### II. Performance Standards (ASPIRATIONAL TARGETS)
 
-All features MUST meet these measurable performance targets before merging to main.
+Features should feel responsive, but exact millisecond targets are guidelines, not gates.
 
-**Mandatory Targets**:
-- **Initial Page Load**: < 2 seconds (from navigation to interactive state)
-- **Chart Rendering**: < 500ms (from data availability to visual completion)
-- **User Interactions**: < 100ms response time (button clicks, form inputs, navigation)
-- **Mobile Data Usage**: Minimize API payload size, implement efficient caching
+**Performance Goals**:
+- **Initial Page Load**: Should feel fast (aim for < 2 seconds)
+- **Chart Rendering**: Should feel instant (aim for < 500ms)
+- **User Interactions**: Should respond immediately (aim for < 100ms)
+- **Mobile Data Usage**: Be mindful of payload size, use caching where sensible
 
-**Rationale**: Performance directly impacts user satisfaction and adoption. Agile teams need rapid access to project metrics without waiting for slow interfaces.
+**Rationale**: Performance matters, but obsessing over exact milliseconds wastes time. Focus on making features feel responsive during normal usage. Performance optimization can happen iteratively if issues arise.
 
-**Validation**: Performance testing required before code review. Use browser DevTools Performance profiler and Lighthouse metrics. Failing to meet targets requires optimization work or feature re-scoping.
+**Validation**: Manual testing during development. If it feels slow, investigate. Formal performance profiling happens when there's a real problem, not as routine gatekeeping.
 
 ### III. Test-First Development (FLEXIBLE APPROACH)
 
@@ -142,22 +142,20 @@ Minimize dependencies to maintain simplicity and reduce maintenance burden.
 
 **Validation**: Pull requests adding dependencies without specification approval will be rejected.
 
-### VII. Accessibility (NON-NEGOTIABLE)
+### VII. Accessibility (IMPORTANT)
 
-WCAG 2.1 Level AA compliance required for all user-facing components.
+Features should be accessible, with WCAG 2.1 Level AA as the goal, not a blocking gate.
 
-**Mandatory Requirements**:
-- **Keyboard Navigation**: All interactive elements accessible via keyboard (Tab, Enter, Space, Arrow keys)
-- **Screen Readers**: Proper ARIA labels, semantic HTML elements, meaningful alt text for images
-- **Color Contrast**: 
-  - Minimum 4.5:1 ratio for normal text
-  - Minimum 3:1 ratio for large text and UI components
-- **Focus Management**: Visible focus indicators, logical tab order, focus trapping in modals
-- **Testing**: Keyboard navigation tests for all new interactive features
+**Accessibility Guidelines**:
+- **Keyboard Navigation**: Interactive elements should work with keyboard (Tab, Enter, Space)
+- **Screen Readers**: Use semantic HTML, add labels to form fields
+- **Color Contrast**: Aim for readable contrast (4.5:1 for text)
+- **Focus Management**: Visible focus indicators on interactive elements
+- **Testing**: Quick keyboard navigation test during development
 
-**Rationale**: Accessibility is a legal requirement and ethical imperative. Many agile team members rely on assistive technologies. Accessible design benefits all users through improved usability.
+**Rationale**: Accessibility is important and beneficial. However, requiring perfect WCAG compliance before merge creates delays. Aim for good accessibility, fix issues when found, improve iteratively.
 
-**Validation**: Features without accessibility testing will be rejected. Use browser DevTools Accessibility Inspector and screen reader testing (NVDA or Windows Narrator) before code review.
+**Validation**: Features should pass basic keyboard navigation tests. Use DevTools Accessibility Inspector to catch obvious issues. Comprehensive accessibility audits can happen periodically, not per-feature.
 
 ## Development Standards
 
@@ -280,49 +278,52 @@ def process_jira_data(
 
 Before writing ANY implementation code, validate these gates. Failing any gate requires revision of the feature specification or implementation plan.
 
-#### Simplicity Gate
-- [ ] **≤3 New Files**: Feature requires 3 or fewer new files/modules?
+#### Simplicity Gate (GUIDANCE, NOT BLOCKING)
+- [ ] **Reasonable Scope**: Feature scope is proportional to value delivered?
 - [ ] **No Future-Proofing**: Not anticipating hypothetical future requirements?
-- [ ] **Explainable**: Can explain entire implementation in < 5 sentences?
+- [ ] **Explainable**: Can explain the general approach in a paragraph?
 - [ ] **No Premature Abstraction**: Not creating abstractions without concrete use cases?
 
-**Rejection Criteria**: Features requiring >3 new files or introducing speculative abstractions without clear immediate need.
+**Guidance**: Prefer simple solutions. If a feature genuinely requires >3 new files due to logical separation of concerns, that's acceptable. Focus on avoiding unnecessary complexity, not counting files.
 
-#### Mobile-First Gate
-- [ ] **320px+ Design**: All UI components designed for 320px+ viewports first?
-- [ ] **Progressive Enhancement**: Documented how larger screens add features (not lose them)?
-- [ ] **Touch Targets**: All interactive elements ≥ 44px?
-- [ ] **Responsive Verification**: Design mockups exist for 320px, 768px, 1024px breakpoints?
+**Rejection Criteria**: Features with unjustified complexity or speculative abstractions without clear immediate need.
 
-**Rejection Criteria**: Desktop-first designs or features that degrade on mobile screens.
+#### Mobile-First Gate (VALIDATE DURING IMPLEMENTATION)
+- [ ] **Mobile Consideration**: Feature approach considers mobile screens (320px+)?
+- [ ] **Progressive Enhancement**: Plan won't break mobile functionality?
+- [ ] **Touch Targets**: Interactive elements will be appropriately sized (≥ 44px)?
 
-#### Performance Gate
-- [ ] **Impact Analysis**: Performance impact analyzed for page load, rendering, interactions?
-- [ ] **Caching Strategy**: Expensive operations use caching or lazy loading?
-- [ ] **Non-Blocking**: No blocking operations in UI thread (use background callbacks)?
-- [ ] **Lazy Loading**: Heavy components load on-demand, not on initial page load?
+**Validation Timing**: Design mockups and multi-breakpoint testing can be done during/after implementation. The goal is mobile-friendly results, not upfront bureaucracy.
 
-**Rejection Criteria**: Features with unanalyzed performance impact or known performance regressions without mitigation plan.
+**Rejection Criteria**: Desktop-only designs that explicitly exclude or break mobile usage.
 
-#### Testing Gate
-- [ ] **Test Strategy**: Unit and integration test approach documented?
-- [ ] **Unit Test Plan**: Identified which components need unit tests during implementation?
-- [ ] **Integration Test Plan**: Documented integration test scenarios (can be executed at end of implementation)?
-- [ ] **Playwright Approach**: Browser automation will use Playwright (with specific selectors and scenarios documented)?
-- [ ] **Acceptance Criteria Testable**: Each acceptance criterion translates to executable test case?
-- [ ] **Test Isolation**: Tests will use temporary files/directories and clean up all created resources (no pollution of project root)?
+#### Performance Gate (AWARENESS, NOT DETAILED ANALYSIS)
+- [ ] **Performance Awareness**: Considered whether feature might impact performance?
+- [ ] **Obvious Optimizations**: Heavy operations will use caching or lazy loading if clearly needed?
+- [ ] **Non-Blocking**: Long-running operations won't freeze the UI?
 
-**Rejection Criteria**: Features without clear test strategy or non-testable acceptance criteria.
+**Validation Timing**: Detailed performance analysis and measurement happens after implementation, not before. Focus on avoiding obvious performance mistakes.
 
-**Note**: Integration tests with Playwright may be written and executed after implementation is complete, as a final validation step before merge. Unit tests for business logic should be written during implementation.
+**Rejection Criteria**: Features with known severe performance issues (e.g., loading 10MB on page load) without mitigation.
 
-#### Accessibility Gate
-- [ ] **Keyboard Navigation**: Approach for keyboard-only usage documented?
-- [ ] **ARIA Labels**: Plan for dynamic content announcements to screen readers?
-- [ ] **Color Contrast**: Design mockups verified for 4.5:1 text contrast?
-- [ ] **Screen Reader Compatibility**: Semantic HTML and ARIA roles planned?
+#### Testing Gate (PRAGMATIC APPROACH)
+- [ ] **Testing Approach**: General idea of how feature will be tested (unit, integration, or manual)?
+- [ ] **Acceptance Criteria Testable**: Feature requirements are verifiable (not vague)?
+- [ ] **Test Isolation Awareness**: Know that tests should clean up after themselves?
 
-**Rejection Criteria**: Features without accessibility considerations or plans for WCAG 2.1 AA compliance.
+**Validation Timing**: Detailed test plans, specific selectors, and comprehensive test scenarios can be developed during implementation. The goal is testable features, not upfront test design documents.
+
+**Rejection Criteria**: Features with no idea how they'll be validated or fundamentally untestable requirements.
+
+**Note**: Integration tests with Playwright may be written after implementation. Unit tests for complex business logic are recommended during implementation but not strictly required upfront.
+
+#### Accessibility Gate (AWARENESS, NOT DETAILED PLANNING)
+- [ ] **Accessibility Awareness**: Considered that feature should be accessible (keyboard, screen readers)?
+- [ ] **Semantic HTML**: Will use appropriate HTML elements (buttons, links, headings)?
+
+**Validation Timing**: Specific ARIA labels, color contrast verification, and detailed accessibility testing happen during/after implementation. Use browser DevTools to catch issues.
+
+**Rejection Criteria**: Features that fundamentally break accessibility (e.g., mouse-only interactions, text-in-images without alt text).
 
 ### Implementation Gates (During Development)
 
@@ -339,30 +340,36 @@ These gates MUST pass before submitting code for review. Failing any gate requir
 
 **Flexible Execution**: Integration tests may be written and executed after implementation is complete, as the final checkpoint before merge approval. This prevents Playwright setup complexity from blocking development progress. However, all tests must pass before code review approval.
 
-#### Code Quality Gate
-- [ ] **No Lint Errors**: `.\.venv\Scripts\activate; pylint [changed_files]` passes?
-- [ ] **Type Hints Present**: All public functions have type hints?
-- [ ] **Docstrings Present**: All public functions have Google-style docstrings?
-- [ ] **No Hardcoded Values**: Configuration uses settings files (app_settings.json)?
-- [ ] **Markdown Lint Compliance**: All Markdown files comply with [markdownlint rules](https://github.com/DavidAnson/markdownlint/tree/main/doc)?
+#### Code Quality Gate (REASONABLE STANDARDS)
+- [ ] **No Critical Lint Errors**: Major linting issues resolved (unused imports, obvious bugs)?
+- [ ] **Key Functions Documented**: Complex or public-facing functions have docstrings?
+- [ ] **Type Hints for Complex Code**: Type hints added where they improve code clarity?
+- [ ] **No Hardcoded Secrets**: Sensitive values (tokens, passwords) not in code?
+- [ ] **Markdown Readable**: Markdown files are well-formatted (markdownlint optional)?
 
-**Rejection Criteria**: Linting errors (Python or Markdown), missing documentation, hardcoded configuration values.
+**Pragmatic Approach**: Focus on code quality that matters. Pedantic linting rules (line length, import order) can be relaxed. Type hints are helpful but not mandatory for every function. Documentation where it adds value.
 
-#### Runtime Performance Validation
-- [ ] **Page Load Verified**: Initial page load measured < 2s (Chrome DevTools Performance)?
-- [ ] **Chart Rendering Verified**: Chart render time measured < 500ms?
-- [ ] **No Console Errors**: Browser console shows no errors or warnings?
-- [ ] **Mobile Performance**: Tested on throttled connection (Fast 3G in DevTools)?
+**Rejection Criteria**: Code with serious bugs, security issues, or completely undocumented complex logic.
 
-**Rejection Criteria**: Performance regressions without documented justification and optimization plan.
+#### Runtime Performance Validation (SUBJECTIVE TESTING)
+- [ ] **Performance Feels Reasonable**: Feature doesn't feel sluggish or broken during manual testing?
+- [ ] **No Console Errors**: Browser console shows no critical errors?
 
-#### Accessibility Validation
-- [ ] **Keyboard Navigation Tested**: All features usable with keyboard only (Tab, Enter, Space)?
-- [ ] **Screen Reader Tested**: Content readable with NVDA or Windows Narrator?
-- [ ] **Color Contrast Verified**: DevTools Accessibility Inspector shows no contrast violations?
-- [ ] **ARIA Labels Present**: Dynamic content and interactions have proper ARIA attributes?
+**Pragmatic Approach**: Exact millisecond measurements (< 2s, < 500ms) are aspirational targets, not blocking gates. If the feature feels responsive during manual testing, that's sufficient. Performance optimization can happen iteratively.
 
-**Rejection Criteria**: Accessibility failures without documented remediation plan.
+**Validation Timing**: Detailed performance profiling with DevTools happens if there's a noticeable problem, not as a routine gate.
+
+**Rejection Criteria**: Features with obvious performance issues that make the app unusable (e.g., 30-second load times, frozen UI).
+
+#### Accessibility Validation (BASIC COMPLIANCE)
+- [ ] **Keyboard Navigation Works**: Feature can be used with keyboard (Tab, Enter)?
+- [ ] **No Obvious Accessibility Issues**: Quick check with DevTools Accessibility Inspector shows no critical violations?
+
+**Pragmatic Approach**: Comprehensive screen reader testing and detailed ARIA attribute verification are aspirational goals, not blocking gates. Focus on avoiding obvious accessibility mistakes (keyboard traps, invisible focus, missing labels on form fields).
+
+**Validation Timing**: Detailed accessibility audit happens if accessibility issues are reported or for high-impact features. Basic accessibility is validated during manual testing.
+
+**Rejection Criteria**: Features that fundamentally break keyboard navigation or screen reader compatibility.
 
 ## Governance
 
@@ -473,13 +480,50 @@ For day-to-day development decisions not explicitly covered by constitutional pr
 
 ---
 
-**Version**: 1.1.0  
+**Version**: 1.2.0  
 **Ratified**: 2025-10-15  
-**Last Amended**: 2025-10-21 (Relaxed Testing Requirements - MINOR)  
+**Last Amended**: 2025-10-21 (Pragmatic Development Gates - MINOR)  
 **Approver**: Project Owner  
 **Next Review**: 2026-01-15 (Quarterly review cycle)
 
 ## Amendment History
+
+### Version 1.2.0 (2025-10-21) - MINOR
+
+**Change**: Relaxed multiple quality gates to reduce AI agent overhead and improve development velocity
+
+**Details**:
+- **Simplicity Gate**: Removed arbitrary "≤3 new files" rule, changed to guidance about reasonable scope
+- **Mobile-First Gate**: Changed from "NON-NEGOTIABLE" to "IMPORTANT", allows validation during/after implementation
+- **Performance Gate**: Changed from requiring detailed analysis upfront to awareness of potential issues
+- **Performance Standards**: Changed from "NON-NEGOTIABLE" exact millisecond targets to "ASPIRATIONAL TARGETS"
+- **Testing Gate**: Reduced from detailed upfront test planning to general testing approach
+- **Accessibility Gate**: Changed from requiring detailed upfront planning to basic awareness
+- **Accessibility Principle**: Changed from "NON-NEGOTIABLE" WCAG compliance to "IMPORTANT" goal with pragmatic approach
+- **Code Quality Gate**: Relaxed from strict pylint/type hints/docstrings for all functions to reasonable standards
+- **Runtime Performance Validation**: Changed from precise measurements to subjective testing ("feels reasonable")
+- **Accessibility Validation**: Reduced from comprehensive testing to basic keyboard navigation checks
+
+**Rationale**: Many constitutional gates were creating excessive overhead for AI agents, requiring multiple iterations to satisfy pedantic requirements that didn't provide proportional value. The overly strict gates forced AI agents to spend significant token budgets on:
+- Detailed upfront design documents for every gate
+- Precise measurements and analysis before implementation
+- Comprehensive test plans before writing any code
+- Perfect accessibility and performance before merge
+
+This amendment shifts focus from bureaucratic gatekeeping to pragmatic development:
+- **Upfront gates** are now awareness checks, not detailed plans
+- **Implementation gates** focus on working code, not perfect code
+- **Validation** happens during/after implementation when it makes sense
+- **Quality targets** are aspirational goals, not blocking requirements
+
+**Impact**: 
+- Significantly reduces AI agent request overhead (estimated 30-50% reduction in planning phase requests)
+- Allows faster iteration and implementation without sacrificing meaningful quality
+- Maintains important principles (testing, accessibility, performance) while removing bureaucracy
+- Shifts from "perfect before merge" to "good enough, improve iteratively"
+- Enables developers to focus on delivering value rather than satisfying checkboxes
+
+**Migration**: Immediately applicable to all new features. Existing features with strict compliance remain valid but not required.
 
 ### Version 1.1.0 (2025-10-21) - MINOR
 
