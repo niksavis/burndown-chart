@@ -38,7 +38,7 @@ Requirements:
     - CSS token classes (.cm-jql-*) must be defined in assets/custom.css
 """
 
-from dash import dcc, html
+from dash import html
 
 
 def create_jql_editor(
@@ -46,82 +46,70 @@ def create_jql_editor(
     initial_value: str = "",
     placeholder: str = "Enter JQL query (e.g., project = TEST AND status = Done)",
     class_name: str = "",
+    rows: int = 3,
 ) -> html.Div:
     """
-    Create a JQL editor component with CodeMirror 6 syntax highlighting.
+    Create a JQL editor component with CodeMirror 5 syntax highlighting.
 
-    Returns a Dash component structure that JavaScript will enhance with CodeMirror:
-    - Container div with .jql-editor-container class (JavaScript target)
-    - dcc.Store for value synchronization with callbacks
-    - Hidden textarea for accessibility and progressive enhancement
+    CRITICAL: Returns a dbc.Textarea component (source of truth for callbacks)
+    wrapped in a container that JavaScript will enhance with CodeMirror overlay.
+
+    This maintains backward compatibility - callbacks read from textarea "value" property
+    exactly as before, while CodeMirror provides syntax highlighting as a visual enhancement.
 
     Args:
-        editor_id: Unique identifier for this editor instance.
-                  Used as base for Store ID and container data attribute.
-        initial_value: Initial JQL query to display in editor (default: empty string)
-        placeholder: Placeholder text shown when editor is empty
-        class_name: Additional CSS classes to apply to outer container (default: empty)
+        editor_id: Unique identifier for textarea (e.g., "jira-jql-query")
+        initial_value: Initial JQL query to display
+        placeholder: Placeholder text when empty
+        class_name: Additional CSS classes for wrapper
+        rows: Number of textarea rows (default: 3)
 
     Returns:
         html.Div containing:
-            - html.Div with className="jql-editor-container" (CodeMirror mount point)
-            - dcc.Store with id=editor_id (holds current editor value)
-            - html.Textarea (hidden, accessibility fallback)
+            - dbc.Textarea with id=editor_id (callbacks read from this)
+            - JavaScript will enhance this textarea with CodeMirror
 
     Example:
         ```python
-        # Create editor
+        # Create editor (drop-in replacement for dbc.Textarea)
         editor = create_jql_editor(
             editor_id="jira-jql-query",
             initial_value="project = TEST",
-            placeholder="Search issues..."
+            placeholder="Enter JQL query...",
+            rows=3
         )
 
-        # Use in callback (read from Store's "data" property)
+        # Callbacks work exactly as before (read from "value" property)
         @app.callback(
             Output("results", "children"),
-            Input("jira-jql-query", "data")
+            Input("jira-jql-query", "value")  # Note: "value" not "data"
         )
         def update_results(jql_query):
             return f"Searching: {jql_query}"
         ```
 
     Technical Notes:
-        - CodeMirror initialization happens in assets/jql_editor_init.js
-        - Editor value syncs to dcc.Store on every change (via updateListener)
-        - JavaScript finds editors by .jql-editor-container class
-        - Container ID links to Store ID (remove "-container" suffix to get Store ID)
-        - Hidden textarea maintains value if JavaScript fails to load
+        - This is a dbc.Textarea first, CodeMirror enhancement second
+        - JavaScript (assets/jql_editor_init.js) creates CodeMirror from textarea
+        - CodeMirror syncs changes back to textarea automatically
+        - Callbacks work unchanged - they read from textarea.value
+        - CodeMirror is purely cosmetic enhancement (graceful degradation if JS fails)
     """
+    import dash_bootstrap_components as dbc
+
+    from ui.styles import create_input_style
+
     return html.Div(
         className=f"jql-editor-wrapper {class_name}".strip(),
         children=[
-            # Store for value synchronization (callbacks read from this)
-            dcc.Store(
-                id=editor_id,
-                data=initial_value,
-                storage_type="memory",  # Don't persist across sessions
-            ),
-            # CodeMirror container (JavaScript will initialize CodeMirror here)
-            html.Div(
-                className="jql-editor-container",
-                id=f"{editor_id}-container",
-                children=[
-                    # Fallback textarea (visible until CodeMirror initializes, then hidden)
-                    html.Textarea(
-                        id=f"{editor_id}-textarea",
-                        children=initial_value,  # Use 'children' for initial content
-                        placeholder=placeholder,
-                        className="jql-editor-textarea form-control",
-                        style={
-                            "fontFamily": "Monaco, Menlo, 'Ubuntu Mono', Consolas, monospace",
-                            "fontSize": "14px",
-                            "minHeight": "100px",
-                            "resize": "vertical",
-                            "width": "100%",
-                        },
-                    ),
-                ],
+            # Source of truth: regular Dash textarea that callbacks can read
+            dbc.Textarea(
+                id=editor_id,  # Callbacks read from Input("jira-jql-query", "value")
+                value=initial_value,  # Use "value" property for dbc.Textarea
+                placeholder=placeholder,
+                rows=rows,
+                className="jql-editor-textarea",  # JavaScript finds by this class
+                style=create_input_style(size="md"),
             ),
         ],
     )

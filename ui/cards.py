@@ -1262,6 +1262,7 @@ def create_input_parameters_card(
                                                     editor_id="jira-jql-query",
                                                     initial_value=_get_default_jql_query(),
                                                     placeholder="project = MYPROJECT AND created >= startOfYear()",
+                                                    rows=3,
                                                 ),
                                                 # Character count display (Feature 001-add-jql-query)
                                                 html.Div(

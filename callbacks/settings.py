@@ -190,8 +190,8 @@ def register(app):
             Input("points-toggle", "value"),  # Added points toggle input
             # Add all JIRA inputs for immediate saving
             Input(
-                "jira-jql-query", "data"
-            ),  # Note: JQL editor uses dcc.Store with 'data' property
+                "jira-jql-query", "value"
+            ),  # JQL textarea uses standard "value" property
             Input("jira-url", "value"),
             Input("jira-token", "value"),
             Input("jira-story-points-field", "value"),
@@ -647,8 +647,8 @@ def register(app):
         [
             Input("jira-url", "value"),
             Input(
-                "jira-jql-query", "data"
-            ),  # Note: JQL editor uses dcc.Store with 'data' property
+                "jira-jql-query", "value"
+            ),  # JQL textarea uses standard "value" property
         ],
         [
             State("jira-token", "value"),
@@ -806,8 +806,8 @@ def register(app):
         [
             State("data-source-selection", "value"),
             State(
-                "jira-jql-query", "data"
-            ),  # Note: JQL editor uses dcc.Store with 'data' property
+                "jira-jql-query", "value"
+            ),  # JQL textarea uses standard "value" property
             State("jira-url", "value"),
             State("jira-token", "value"),
             State("jira-story-points-field", "value"),
@@ -854,6 +854,12 @@ def register(app):
                     validate_jira_config,
                 )
                 from data.persistence import load_app_settings
+
+                # CRITICAL DEBUG: Log what we receive from the Store
+                logger.info(
+                    f"[UPDATE DATA] Received jql_query from Store: '{jql_query}' (type: {type(jql_query)})"
+                )
+                logger.info(f"[UPDATE DATA] Received data_source: '{data_source}'")
 
                 # Use JQL query from input or fall back to settings
                 app_settings = load_app_settings()
@@ -1042,8 +1048,8 @@ def register(app):
         [Input("jira-scope-calculate-btn", "n_clicks")],
         [
             State(
-                "jira-jql-query", "data"
-            ),  # Note: JQL editor uses dcc.Store with 'data' property
+                "jira-jql-query", "value"
+            ),  # JQL textarea uses standard "value" property
             State("jira-url", "value"),
             State("jira-token", "value"),
             State("jira-story-points-field", "value"),
@@ -1368,9 +1374,9 @@ def register(app):
             Input("confirm-save-query-button", "n_clicks"),
         ],
         [
-            State("jira-jql-query", "data"),
+            State("jira-jql-query", "value"),
             State("save-jql-query-modal", "is_open"),
-        ],  # Note: JQL editor uses dcc.Store with 'data' property
+        ],  # JQL textarea uses standard "value" property
         prevent_initial_call=True,
     )
     def handle_save_query_modal(
@@ -1411,8 +1417,8 @@ def register(app):
             State("query-name-input", "value"),
             State("query-description-input", "value"),
             State(
-                "jira-jql-query", "data"
-            ),  # Note: JQL editor uses dcc.Store with 'data' property
+                "jira-jql-query", "value"
+            ),  # JQL textarea uses standard "value" property
             State("save-query-set-default-checkbox", "value"),
         ],
         prevent_initial_call=True,
@@ -1690,8 +1696,8 @@ def register(app):
 
     @app.callback(
         Output(
-            "jira-jql-query", "data"
-        ),  # Note: JQL editor uses dcc.Store with 'data' property
+            "jira-jql-query", "value"
+        ),  # JQL textarea uses standard "value" property
         [Input("jira-query-profile-selector", "value")],
         prevent_initial_call=True,
     )
@@ -1902,8 +1908,8 @@ def register(app):
         [
             Output("jira-query-profile-selector", "value", allow_duplicate=True),
             Output(
-                "jira-jql-query", "data", allow_duplicate=True
-            ),  # Note: JQL editor uses dcc.Store with 'data' property
+                "jira-jql-query", "value", allow_duplicate=True
+            ),  # JQL textarea uses standard "value" property
         ],
         [Input("load-default-jql-query-button", "n_clicks")],
         prevent_initial_call=True,
@@ -1932,8 +1938,8 @@ def register(app):
     @app.callback(
         Output("jira-jql-character-count-container", "children"),
         Input(
-            "jira-jql-query", "data"
-        ),  # Note: JQL editor uses dcc.Store with 'data' property
+            "jira-jql-query", "value"
+        ),  # JQL textarea uses standard "value" property
         prevent_initial_call=False,
     )
     def update_jql_character_count(jql_value):
@@ -1962,3 +1968,4 @@ def register(app):
         warning = should_show_character_warning(jql_value)
 
         return create_character_count_display(count=count, warning=warning)
+
