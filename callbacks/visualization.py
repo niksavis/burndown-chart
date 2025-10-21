@@ -36,14 +36,15 @@ from data import (
     compute_cumulative_values,
     generate_weekly_forecast,
 )
+from data.schema import DEFAULT_SETTINGS
 from ui import (
     create_compact_trend_indicator,
     create_pert_info_table,
 )
 from ui.loading_utils import (
-    create_spinner,
-    create_skeleton_loader,
     create_content_placeholder,
+    create_skeleton_loader,
+    create_spinner,
 )
 from ui.tooltip_utils import create_info_tooltip
 from visualization import (
@@ -51,9 +52,7 @@ from visualization import (
     create_weekly_items_chart,
     create_weekly_points_chart,
 )
-
 from visualization.charts import create_chart_with_loading
-from data.schema import DEFAULT_SETTINGS
 
 # Setup logging
 logger = logging.getLogger("burndown_chart")
@@ -754,8 +753,8 @@ def register(app):
         """
         from data.scope_metrics import (
             calculate_scope_creep_rate,
-            calculate_weekly_scope_growth,
             calculate_scope_stability_index,
+            calculate_weekly_scope_growth,
         )
         from ui.scope_metrics import create_scope_metrics_dashboard
 
@@ -1295,10 +1294,15 @@ def register(app):
             return html.Div(
                 [
                     html.Div(
-                        className="alert alert-danger",
+                        className="alert alert-light border-danger mb-3",
                         children=[
-                            html.I(className="fas fa-exclamation-triangle me-2"),
-                            f"Error displaying chart: {str(e)}",
+                            html.I(
+                                className="fas fa-exclamation-triangle me-2 text-danger"
+                            ),
+                            html.Span(
+                                f"Error displaying chart: {str(e)}",
+                                className="text-dark",
+                            ),
                         ],
                     ),
                     dcc.Graph(
@@ -1343,8 +1347,7 @@ def register_loading_callbacks(app):
     Args:
         app: Dash application instance
     """
-    from dash import Input, Output, State, callback_context
-    from dash import html
+    from dash import Input, Output, State, callback_context, html
 
     @app.callback(
         Output("forecast-chart-container", "children"),
@@ -1379,8 +1382,9 @@ def register_loading_callbacks(app):
 
         try:
             # In a real implementation, we would pass this to create_forecast_plot
-            from visualization.charts import create_forecast_plot
             import pandas as pd
+
+            from visualization.charts import create_forecast_plot
 
             # This would normally be properly processed data
             df = pd.DataFrame(data.get("statistics", []))
@@ -1550,11 +1554,12 @@ def register_loading_callbacks(app):
             time.sleep(1)
 
             # In a real implementation, parse_contents would be called here
-            from dash import dash_table
-            import pandas as pd
             import base64
             import io
             import json
+
+            import pandas as pd
+            from dash import dash_table
 
             # This would be the actual content processing logic
             try:

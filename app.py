@@ -15,10 +15,11 @@ import dash
 import dash_bootstrap_components as dbc
 from waitress import serve
 
-# Application imports
-from ui import serve_layout
 from callbacks import register_all_callbacks
 from configuration.server import get_server_config
+
+# Application imports
+from ui import serve_layout
 
 #######################################################################
 # APPLICATION SETUP
@@ -32,10 +33,18 @@ app = dash.Dash(
     external_stylesheets=[
         dbc.themes.FLATLY,
         "https://use.fontawesome.com/releases/v5.15.4/css/all.css",  # Font Awesome for icons
-        "/assets/custom.css",  # Our custom CSS for standardized styling
+        "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css",  # CodeMirror base styles
+        "/assets/custom.css",  # Our custom CSS for standardized styling (includes CodeMirror theme overrides)
         "/assets/help_system.css",  # Help system CSS for progressive disclosure
     ],
     external_scripts=[
+        # CodeMirror 5 (legacy) - Better script tag support than CM6
+        # CM6 requires ES modules which don't work well with Dash script loading
+        # CM5 provides adequate syntax highlighting for our use case
+        "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/sql/sql.min.js",  # Base for query language
+        "/assets/jql_language_mode.js",  # JQL tokenizer for syntax highlighting
+        "/assets/jql_editor_init.js",  # Editor initialization - progressive enhancement
         "/assets/mobile_navigation.js",  # Mobile navigation JavaScript for swipe gestures
     ],
     suppress_callback_exceptions=True,  # Suppress exceptions for components created by callbacks

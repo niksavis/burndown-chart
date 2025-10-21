@@ -188,15 +188,20 @@ def register(app):
             Input("milestone-toggle", "value"),  # Added milestone toggle input
             Input("milestone-picker", "date"),  # Added milestone picker input
             Input("points-toggle", "value"),  # Added points toggle input
-            # Add all JIRA inputs for immediate saving
-            Input("jira-jql-query", "value"),
+            # JIRA URL/token inputs still as Input for immediate saving
             Input("jira-url", "value"),
             Input("jira-token", "value"),
             Input("jira-story-points-field", "value"),
             Input("jira-cache-max-size", "value"),
             Input("jira-max-results", "value"),
         ],
-        [State("app-init-complete", "data")],
+        [
+            State("app-init-complete", "data"),
+            # PERFORMANCE FIX: Move JQL query to State to prevent callback on every keystroke
+            State(
+                "jira-jql-query", "value"
+            ),  # JQL textarea - only read on other input changes
+        ],
     )
     def update_and_save_settings(
         pert_factor,
@@ -209,14 +214,15 @@ def register(app):
         show_milestone,  # Added parameter
         milestone,  # Added parameter
         show_points,  # Added parameter
-        # Add all JIRA parameters for immediate saving
-        jql_query,
+        # JIRA parameters for immediate saving (except JQL query)
         jira_api_endpoint,
         jira_token,
         jira_story_points_field,
         jira_cache_max_size,
         jira_max_results,
+        # State parameters (read but don't trigger callback)
         init_complete,
+        jql_query,  # PERFORMANCE FIX: JQL query moved to State to prevent keystroke lag
     ):
         """
         Update current settings and save to disk when changed.
@@ -637,127 +643,9 @@ def register(app):
             return {"display": "block"}
         return {"display": "none"}
 
-    @app.callback(
-        [
-            Output("jira-cache-status", "children"),
-            Output("jira-validation-errors", "children"),
-        ],
-        [
-            Input("jira-url", "value"),
-            Input("jira-jql-query", "value"),
-        ],
-        [
-            State("jira-token", "value"),
-            State("jira-story-points-field", "value"),
-            State("jira-cache-max-size", "value"),
-            State("jira-max-results", "value"),
-        ],
-        prevent_initial_call=True,
-    )
-    def update_jira_cache_and_validation(
-        api_endpoint,
-        jql_query,
-        jira_token,
-        story_points_field,
-        cache_max_size,
-        jira_max_results,
-    ):
-        """
-        Update JIRA cache status and show validation information.
-
-        Args:
-            api_endpoint: JIRA API endpoint URL
-            jql_query: JQL query for filtering issues
-            jira_token: Personal access token
-            story_points_field: Custom field ID for story points mapping (optional)
-            cache_max_size: Maximum cache size in MB
-
-        Returns:
-            Tuple containing cache status and validation errors
-        """
-        # Initialize return values
-        cache_status = ""
-        validation_errors = ""
-
-        try:
-            from data.jira_simple import (
-                get_cache_status,
-                validate_jira_config,
-            )
-
-            # Get current cache status
-            cache_status = get_cache_status()
-
-            # Create JIRA config from UI inputs (same logic as unified button)
-            jira_config = {
-                "api_endpoint": api_endpoint
-                or "https://jira.atlassian.com/rest/api/2/search",
-                "jql_query": jql_query or "project = JRASERVER",
-                "token": jira_token or "",
-                "story_points_field": story_points_field.strip()
-                if story_points_field and story_points_field.strip()
-                else "",
-                "cache_max_size_mb": cache_max_size or 100,
-            }
-
-            # Show current validation status using UI config
-            is_valid, error_message = validate_jira_config(jira_config)
-
-            if is_valid:
-                validation_errors = html.Div(
-                    [
-                        html.I(className="fas fa-check-circle me-2"),
-                        "JIRA configuration is valid",
-                    ],
-                    className="text-success small",
-                )
-            else:
-                validation_errors = html.Div(
-                    [
-                        html.I(className="fas fa-exclamation-triangle me-2"),
-                        f"Configuration invalid: {error_message}",
-                    ],
-                    className="text-warning small",
-                )
-
-            # Format cache status for display
-            if cache_status:
-                cache_status_display = html.Div(
-                    [
-                        html.I(className="fas fa-database me-2"),
-                        f"Cache: {cache_status}",
-                    ],
-                    className="text-muted small",
-                )
-            else:
-                cache_status_display = html.Div(
-                    [html.I(className="fas fa-database me-2"), "No cache available"],
-                    className="text-muted small",
-                )
-
-            return (
-                cache_status_display,
-                validation_errors,
-            )
-
-        except ImportError:
-            # JIRA integration not available
-            return html.Div(
-                [
-                    html.I(className="fas fa-exclamation-triangle me-2"),
-                    "JIRA integration not available",
-                ],
-                className="text-warning small",
-            ), ""
-        except Exception as e:
-            logger.error(f"Error in JIRA cache callback: {e}")
-            return html.Div(
-                [
-                    html.I(className="fas fa-exclamation-triangle me-2"),
-                    f"Error: {str(e)}",
-                ],
-                className="text-danger small",
-            ), ""
+    # PERFORMANCE FIX: Removed real-time JIRA validation callback that was causing keystroke lag
+    # Validation now happens only when user attempts to use JIRA connection (Update Data/Calculate Scope)
+    # This eliminates the callback that was triggering on every JQL query keystroke
 
     # Add a callback to trigger JIRA data loading when data source is selected
     @app.callback(
@@ -801,7 +689,9 @@ def register(app):
         [Input("update-data-unified", "n_clicks")],
         [
             State("data-source-selection", "value"),
-            State("jira-jql-query", "value"),
+            State(
+                "jira-jql-query", "value"
+            ),  # JQL textarea uses standard "value" property
             State("jira-url", "value"),
             State("jira-token", "value"),
             State("jira-story-points-field", "value"),
@@ -848,6 +738,12 @@ def register(app):
                     validate_jira_config,
                 )
                 from data.persistence import load_app_settings
+
+                # CRITICAL DEBUG: Log what we receive from the Store
+                logger.info(
+                    f"[UPDATE DATA] Received jql_query from Store: '{jql_query}' (type: {type(jql_query)})"
+                )
+                logger.info(f"[UPDATE DATA] Received data_source: '{data_source}'")
 
                 # Use JQL query from input or fall back to settings
                 app_settings = load_app_settings()
@@ -1035,7 +931,9 @@ def register(app):
         ],
         [Input("jira-scope-calculate-btn", "n_clicks")],
         [
-            State("jira-jql-query", "value"),
+            State(
+                "jira-jql-query", "value"
+            ),  # JQL textarea uses standard "value" property
             State("jira-url", "value"),
             State("jira-token", "value"),
             State("jira-story-points-field", "value"),
@@ -1359,7 +1257,10 @@ def register(app):
             Input("cancel-save-query-button", "n_clicks"),
             Input("confirm-save-query-button", "n_clicks"),
         ],
-        [State("jira-jql-query", "value"), State("save-jql-query-modal", "is_open")],
+        [
+            State("jira-jql-query", "value"),
+            State("save-jql-query-modal", "is_open"),
+        ],  # JQL textarea uses standard "value" property
         prevent_initial_call=True,
     )
     def handle_save_query_modal(
@@ -1399,7 +1300,9 @@ def register(app):
         [
             State("query-name-input", "value"),
             State("query-description-input", "value"),
-            State("jira-jql-query", "value"),
+            State(
+                "jira-jql-query", "value"
+            ),  # JQL textarea uses standard "value" property
             State("save-query-set-default-checkbox", "value"),
         ],
         prevent_initial_call=True,
@@ -1676,7 +1579,9 @@ def register(app):
             raise PreventUpdate
 
     @app.callback(
-        Output("jira-jql-query", "value"),
+        Output(
+            "jira-jql-query", "value"
+        ),  # JQL textarea uses standard "value" property
         [Input("jira-query-profile-selector", "value")],
         prevent_initial_call=True,
     )
@@ -1886,7 +1791,9 @@ def register(app):
     @app.callback(
         [
             Output("jira-query-profile-selector", "value", allow_duplicate=True),
-            Output("jira-jql-query", "value", allow_duplicate=True),
+            Output(
+                "jira-jql-query", "value", allow_duplicate=True
+            ),  # JQL textarea uses standard "value" property
         ],
         [Input("load-default-jql-query-button", "n_clicks")],
         prevent_initial_call=True,
@@ -1912,34 +1819,300 @@ def register(app):
             raise PreventUpdate
 
     # JQL Character Count Callback (Feature 001-add-jql-query, TASK-108)
-    @app.callback(
+    # PERFORMANCE FIX: Use client-side callback for character counting to avoid Python callback overhead
+    # Updated to match create_character_count_display format and thresholds
+    app.clientside_callback(
+        """
+        function(jql_value) {
+            if (!jql_value) {
+                jql_value = '';
+            }
+            const count = jql_value.length;
+            const WARNING_THRESHOLD = 1800;  // Match Python constant
+            const MAX_REFERENCE = 2000;      // Match Python constant
+            const warning = count >= WARNING_THRESHOLD;
+            
+            // Format count with thousands separator for readability (simplified for JS)
+            const countStr = count.toLocaleString();
+            const limitStr = MAX_REFERENCE.toLocaleString();
+            
+            // Apply warning CSS class if needed (match Python function)
+            const cssClasses = warning ? 
+                'character-count-display character-count-warning' : 
+                'character-count-display';
+            
+            // Return a proper Dash HTML component structure
+            return {
+                'namespace': 'dash_html_components',
+                'type': 'Div',
+                'props': {
+                    'children': `${countStr} / ${limitStr} characters`,
+                    'className': cssClasses,
+                    'id': 'jql-character-count-display'
+                }
+            };
+        }
+        """,
         Output("jira-jql-character-count-container", "children"),
         Input("jira-jql-query", "value"),
-        prevent_initial_call=False,
     )
-    def update_jql_character_count(jql_value):
+
+    # JQL Query Test Callback (Feature: ScriptRunner function validation)
+    @app.callback(
+        [
+            Output("jql-test-results", "children"),
+            Output("jql-test-results", "style"),
+        ],
+        [Input("test-jql-query-button", "n_clicks")],
+        [
+            State("jira-jql-query", "value"),
+            State("jira-url", "value"),
+            State("jira-token", "value"),
+            State("jira-story-points-field", "value"),
+            State("jira-cache-max-size", "value"),
+            State("jira-max-results", "value"),
+        ],
+        prevent_initial_call=True,
+    )
+    def test_jql_query_validity(
+        n_clicks,
+        jql_query,
+        jira_api_endpoint,
+        jira_token,
+        story_points_field,
+        cache_max_size,
+        jira_max_results,
+    ):
         """
-        Update character count display when JQL query changes.
-
-        Per FR-002: Shows warning when approaching 1800 chars (JIRA's limit is 2000).
-        Provides instant feedback without debouncing (updates are lightweight).
-
-        Args:
-            jql_value: Current JQL query text
-
-        Returns:
-            Updated character count display component
+        Test JQL query validity - useful for ScriptRunner function validation.
         """
-        from ui.components import (
-            count_jql_characters,
-            create_character_count_display,
-            should_show_character_warning,
-        )
+        if not n_clicks:
+            raise PreventUpdate
 
-        if jql_value is None:
-            jql_value = ""
+        if not jql_query or not jql_query.strip():
+            return (
+                html.Div(
+                    [
+                        html.I(
+                            className="fas fa-exclamation-triangle me-2 text-primary"
+                        ),
+                        html.Span(
+                            "Please enter a JQL query to test.", className="text-dark"
+                        ),
+                    ],
+                    className="alert alert-info mb-0 border-primary",
+                ),
+                {"display": "block"},
+            )
 
-        count = count_jql_characters(jql_value)
-        warning = should_show_character_warning(jql_value)
+        try:
+            from data.jira_simple import test_jql_query, validate_jql_for_scriptrunner
+            from data.persistence import load_app_settings
 
-        return create_character_count_display(count=count, warning=warning)
+            # Build JIRA config from UI inputs
+            app_settings = load_app_settings()
+            jira_config = {
+                "jql_query": jql_query.strip(),
+                "api_endpoint": jira_api_endpoint.strip()
+                if jira_api_endpoint and jira_api_endpoint.strip()
+                else app_settings.get(
+                    "jira_api_endpoint", "https://jira.atlassian.com/rest/api/2/search"
+                ),
+                "token": jira_token.strip()
+                if jira_token
+                else app_settings.get("jira_token", ""),
+                "story_points_field": story_points_field.strip()
+                if story_points_field
+                else app_settings.get("jira_story_points_field", ""),
+                "cache_max_size_mb": cache_max_size
+                or app_settings.get("jira_cache_max_size", 100),
+                "max_results": jira_max_results
+                or app_settings.get("jira_max_results", 1000),
+            }
+
+            # First, check for ScriptRunner function warnings
+            is_compatible, scriptrunner_warning = validate_jql_for_scriptrunner(
+                jql_query
+            )
+
+            # Test the query
+            is_valid, test_message = test_jql_query(jira_config)
+
+            if is_valid:
+                if is_compatible:
+                    # PURE SUCCESS: Gray background with green icon (consistent design)
+                    success_content = [
+                        html.I(className="fas fa-check-circle me-2 text-success"),
+                        html.Strong("JQL Query Valid", className="text-dark"),
+                        html.Br(),
+                        html.Small(test_message, className="text-dark opacity-75"),
+                    ]
+                    alert_class = "alert alert-light border-success mb-0"
+                else:
+                    # SUCCESS WITH WARNING: Gray background with colored icons
+                    success_content = [
+                        html.I(className="fas fa-check-circle me-2 text-success"),
+                        html.Strong("JQL Query Valid", className="text-dark"),
+                        html.Br(),
+                        html.Small(test_message, className="text-dark opacity-75"),
+                        html.Br(),
+                        html.Br(),
+                        html.I(
+                            className="fas fa-exclamation-triangle me-2 text-warning"
+                        ),
+                        html.Strong(
+                            "ScriptRunner Functions Detected",
+                            className="text-dark",
+                        ),
+                        html.Br(),
+                        html.Small(
+                            scriptrunner_warning, className="text-dark opacity-75"
+                        ),
+                    ]
+                    alert_class = "alert alert-light border-warning mb-0"
+
+                return (
+                    html.Div(
+                        success_content,
+                        className=alert_class,
+                    ),
+                    {"display": "block"},
+                )
+            else:
+                # Query validation failed - consistent gray background design
+                error_content = [
+                    html.I(className="fas fa-times-circle me-2 text-danger"),
+                    html.Strong("JQL Query Invalid", className="text-dark"),
+                    html.Br(),
+                    html.Div(
+                        [
+                            html.Strong(
+                                "JIRA API Error:", className="text-dark mt-2 d-block"
+                            ),
+                            html.Code(
+                                test_message,
+                                className="text-dark d-block p-2 bg-light border rounded mt-1",
+                            ),
+                        ]
+                    ),
+                ]
+
+                # Add specific guidance for ScriptRunner issues with UI-appropriate colors
+                if not is_compatible:
+                    error_content.extend(
+                        [
+                            html.Br(),
+                            html.Br(),
+                            html.I(className="fas fa-lightbulb me-2 text-primary"),
+                            html.Strong(
+                                "ScriptRunner Functions Detected",
+                                className="text-dark",
+                            ),
+                            html.Br(),
+                            html.Small(
+                                "Your query contains ScriptRunner functions (issueFunction, subtasksOf, epicsOf, etc.). "
+                                "These require the ScriptRunner add-on to be installed on your JIRA instance. "
+                                "If the error mentions 'function' or 'unknown function', ScriptRunner may not be available.",
+                                className="text-dark",
+                            ),
+                        ]
+                    )
+
+                return (
+                    html.Div(
+                        error_content,
+                        className="alert alert-light border-danger mb-0",  # Soft light background with danger border
+                    ),
+                    {"display": "block"},
+                )
+
+        except ImportError:
+            return (
+                html.Div(
+                    [
+                        html.I(
+                            className="fas fa-exclamation-triangle me-2 text-secondary"
+                        ),
+                        html.Span(
+                            "JIRA integration not available - cannot test query.",
+                            className="text-secondary",
+                        ),
+                    ],
+                    className="alert alert-light border-secondary mb-0",
+                ),
+                {"display": "block"},
+            )
+        except Exception as e:
+            logger.error(f"Error testing JQL query: {e}")
+            return (
+                html.Div(
+                    [
+                        html.I(className="fas fa-times-circle me-2 text-danger"),
+                        html.Span(
+                            f"Error testing query: {str(e)}", className="text-dark"
+                        ),
+                    ],
+                    className="alert alert-light border-danger mb-0",
+                ),
+                {"display": "block"},
+            )
+
+    # Add clientside callback for Test Query button loading state
+    app.clientside_callback(
+        """
+        function(n_clicks) {
+            if (n_clicks && n_clicks > 0) {
+                setTimeout(function() {
+                    const button = document.getElementById('test-jql-query-button');
+                    const resultsArea = document.getElementById('jql-test-results');
+                    
+                    if (button) {
+                        console.log('[JQL Test] Button clicked - setting lock to TRUE');
+                        
+                        // Lock test results to prevent hiding during test
+                        if (typeof window.setJQLTestResultsLock === 'function') {
+                            window.setJQLTestResultsLock(true);
+                        }
+                        
+                        // Remove the hidden class to allow Dash callback to show results
+                        if (resultsArea) {
+                            console.log('[JQL Test] Removing hidden class from results area');
+                            resultsArea.className = resultsArea.className.replace('jql-test-results-hidden', '').trim();
+                        }
+                        
+                        // Set loading state
+                        button.disabled = true;
+                        button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Testing...';
+                        
+                        // Reset after timeout or when operation completes
+                        const resetButton = function() {
+                            if (button && button.disabled) {
+                                button.disabled = false;
+                                button.innerHTML = '<i class="fas fa-check-circle me-1"></i><span class="d-none d-sm-inline">Test Query</span>';
+                            }
+                        };
+                        
+                        // Shorter timeout for test operations
+                        setTimeout(resetButton, 5000);
+                        
+                        // Monitor for completion using children changes instead of style
+                        const observer = new MutationObserver(function(mutations) {
+                            if (resultsArea && resultsArea.children.length > 0) {
+                                setTimeout(resetButton, 500); // Reset after results appear
+                                observer.disconnect();
+                            }
+                        });
+                        
+                        if (resultsArea) {
+                            observer.observe(resultsArea, { childList: true });
+                        }
+                    }
+                }, 50);
+            }
+            return null;
+        }
+        """,
+        Output("test-jql-query-button", "title"),
+        [Input("test-jql-query-button", "n_clicks")],
+        prevent_initial_call=True,
+    )

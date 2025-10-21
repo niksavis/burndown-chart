@@ -33,6 +33,9 @@ from ui.components import (
     should_show_character_warning,
 )
 
+# Import JQL editor component (Feature 002-finish-jql-syntax)
+from ui.jql_editor import create_jql_editor
+
 # Import styling functions from utility modules
 from ui.styles import (
     NEUTRAL_COLORS,
@@ -1255,12 +1258,11 @@ def create_input_parameters_card(
                                                     "JQL Query:",
                                                     className="fw-medium",
                                                 ),
-                                                dbc.Textarea(
-                                                    id="jira-jql-query",
+                                                create_jql_editor(
+                                                    editor_id="jira-jql-query",
+                                                    initial_value=_get_default_jql_query(),
                                                     placeholder="project = MYPROJECT AND created >= startOfYear()",
-                                                    value=_get_default_jql_query(),
-                                                    rows=3,
-                                                    style=create_input_style(size="md"),
+                                                    rows=1,
                                                 ),
                                                 # Character count display (Feature 001-add-jql-query)
                                                 html.Div(
@@ -1314,6 +1316,30 @@ def create_input_parameters_card(
                                                                 ),
                                                                 html.Small(
                                                                     "Save current query",
+                                                                    className="text-muted d-block d-sm-none",
+                                                                ),
+                                                            ],
+                                                            className="d-inline-block me-2 mb-2",
+                                                        ),
+                                                        # Test Query button for ScriptRunner validation
+                                                        html.Div(
+                                                            [
+                                                                html.Button(
+                                                                    [
+                                                                        html.I(
+                                                                            className="fas fa-check-circle me-1"
+                                                                        ),
+                                                                        html.Span(
+                                                                            "Test Query",
+                                                                            className="d-none d-sm-inline",
+                                                                        ),
+                                                                    ],
+                                                                    id="test-jql-query-button",
+                                                                    className="btn btn-outline-success btn-sm me-2 mb-1",
+                                                                    title="Test JQL query validity (useful for ScriptRunner functions)",
+                                                                ),
+                                                                html.Small(
+                                                                    "Test validity",
                                                                     className="text-muted d-block d-sm-none",
                                                                 ),
                                                             ],
@@ -1378,6 +1404,13 @@ def create_input_parameters_card(
                                                         ),
                                                     ],
                                                     className="d-flex flex-wrap align-items-start",
+                                                ),
+                                                # Test results display
+                                                html.Div(
+                                                    id="jql-test-results",
+                                                    children="",
+                                                    className="mt-2",
+                                                    style={"display": "none"},
                                                 ),
                                             ],
                                             width=12,

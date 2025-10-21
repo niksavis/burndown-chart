@@ -3,13 +3,14 @@ Callbacks module for the burndown chart application.
 """
 
 from callbacks import (
-    statistics,
-    visualization,
-    settings,
+    jql_editor,  # JQL editor textarea-to-store sync
+    mobile_navigation,  # Add mobile navigation callbacks
     # The 'export' module doesn't seem to exist and is causing an error
     # export,
     scope_metrics,  # Add the new scope_metrics module
-    mobile_navigation,  # Add mobile navigation callbacks
+    settings,
+    statistics,
+    visualization,
 )
 
 
@@ -22,3 +23,4 @@ def register_all_callbacks(app):
     # export.register(app)
     scope_metrics.register(app)  # Register the new callbacks
     mobile_navigation.register(app)  # Register mobile navigation callbacks
+    jql_editor.register_jql_editor_callbacks(app)  # Register JQL editor sync

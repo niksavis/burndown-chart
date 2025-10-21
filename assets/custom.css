@@ -2310,4 +2310,113 @@ label.fw-medium {
   }
 }
 
-/* ===== Table Standardization ===== */
+/* ===== JQL Syntax Highlighting Tokens ===== */
+/* WCAG AA compliant colors for syntax highlighting in JQL editor */
+/* Contrast ratios tested against #ffffff background */
+
+.cm-jql-keyword {
+  color: #0056b3; /* Blue for keywords (AND, OR, NOT, IN, IS, WAS, etc.) */
+  font-weight: 600;
+}
+
+.cm-jql-string {
+  color: #28a745; /* Green for string literals ("Done", 'TEST', etc.) */
+}
+
+.cm-jql-operator {
+  color: #6c757d; /* Gray for operators (=, !=, ~, !~, <, >, <=, >=) */
+}
+
+.cm-jql-function {
+  color: #6610f2; /* Purple for standard JQL functions (currentUser(), now(), etc.) */
+  font-weight: 500;
+}
+
+.cm-jql-scriptrunner {
+  color: #6f42c1; /* Distinct purple for ScriptRunner functions (linkedIssuesOf, issueFunction, etc.) */
+  font-weight: 600;
+}
+
+.cm-jql-field {
+  color: #212529; /* Dark gray for field names (project, status, assignee, etc.) */
+}
+
+.cm-jql-error {
+  color: #dc3545; /* Red for syntax errors */
+  text-decoration: wavy underline;
+  text-decoration-color: #dc3545;
+}
+
+/* CodeMirror editor container styling */
+.jql-editor-container {
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  padding: 8px;
+  min-height: 40px;
+  font-family: "Monaco", "Menlo", "Ubuntu Mono", "Consolas", monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  background-color: #ffffff;
+}
+
+.jql-editor-container:focus-within {
+  border-color: #0d6efd;
+  outline: 0;
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* Mobile responsiveness for JQL editor */
+@media (max-width: 767px) {
+  .jql-editor-container {
+    font-size: 13px;
+    padding: 6px;
+    min-height: 32px;
+  }
+}
+
+/* CodeMirror height reduction - target the actual CodeMirror DOM elements */
+.CodeMirror {
+  height: auto !important;
+  min-height: 20px !important; /* Reduced from default 50px by 60% */
+}
+
+.CodeMirror-sizer {
+  min-height: 20px !important; /* Reduced from default 50px by 60% */
+}
+
+.CodeMirror-scroll {
+  min-height: 20px !important; /* Reduced from default 50px by 60% */
+  height: auto !important;
+}
+
+.CodeMirror-gutters {
+  height: 20px !important; /* Match the reduced height */
+}
+
+/* Mobile CodeMirror height adjustment */
+@media (max-width: 767px) {
+  .CodeMirror {
+    min-height: 16px !important; /* Even smaller on mobile */
+  }
+
+  .CodeMirror-sizer {
+    min-height: 16px !important;
+  }
+
+  .CodeMirror-scroll {
+    min-height: 16px !important;
+  }
+
+  .CodeMirror-gutters {
+    height: 16px !important;
+  }
+}
+
+/* ================================================================
+   JQL Test Results Visibility Control (Feature 002-finish-jql-syntax)
+   ================================================================ */
+
+/* Hide test results when user types (prevents conflicts with Dash callbacks) */
+.jql-test-results-hidden {
+  display: none !important;
+}

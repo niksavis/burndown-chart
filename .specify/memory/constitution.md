@@ -220,6 +220,7 @@ def handle_action(n_clicks, input_value):
 - Inline comments for complex logic (explain "why", not "what")
 - Type hints for function signatures
 - Update README.md for significant feature additions
+- All Markdown files must comply with [markdownlint rules](https://github.com/DavidAnson/markdownlint/tree/main/doc)
 
 **Type Hints**:
 ```python
@@ -334,8 +335,9 @@ These gates MUST pass before submitting code for review. Failing any gate requir
 - [ ] **Type Hints Present**: All public functions have type hints?
 - [ ] **Docstrings Present**: All public functions have Google-style docstrings?
 - [ ] **No Hardcoded Values**: Configuration uses settings files (app_settings.json)?
+- [ ] **Markdown Lint Compliance**: All Markdown files comply with [markdownlint rules](https://github.com/DavidAnson/markdownlint/tree/main/doc)?
 
-**Rejection Criteria**: Linting errors, missing documentation, hardcoded configuration values.
+**Rejection Criteria**: Linting errors (Python or Markdown), missing documentation, hardcoded configuration values.
 
 #### Runtime Performance Validation
 - [ ] **Page Load Verified**: Initial page load measured < 2s (Chrome DevTools Performance)?
