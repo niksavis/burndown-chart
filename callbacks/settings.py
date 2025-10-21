@@ -2064,7 +2064,22 @@ def register(app):
             if (n_clicks && n_clicks > 0) {
                 setTimeout(function() {
                     const button = document.getElementById('test-jql-query-button');
+                    const resultsArea = document.getElementById('jql-test-results');
+                    
                     if (button) {
+                        console.log('[JQL Test] Button clicked - setting lock to TRUE');
+                        
+                        // Lock test results to prevent hiding during test
+                        if (typeof window.setJQLTestResultsLock === 'function') {
+                            window.setJQLTestResultsLock(true);
+                        }
+                        
+                        // Remove the hidden class to allow Dash callback to show results
+                        if (resultsArea) {
+                            console.log('[JQL Test] Removing hidden class from results area');
+                            resultsArea.className = resultsArea.className.replace('jql-test-results-hidden', '').trim();
+                        }
+                        
                         // Set loading state
                         button.disabled = true;
                         button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Testing...';
@@ -2080,18 +2095,16 @@ def register(app):
                         // Shorter timeout for test operations
                         setTimeout(resetButton, 5000);
                         
-                        // Monitor for completion
+                        // Monitor for completion using children changes instead of style
                         const observer = new MutationObserver(function(mutations) {
-                            const resultsArea = document.getElementById('jql-test-results');
-                            if (resultsArea && resultsArea.style.display !== 'none') {
+                            if (resultsArea && resultsArea.children.length > 0) {
                                 setTimeout(resetButton, 500); // Reset after results appear
                                 observer.disconnect();
                             }
                         });
                         
-                        const targetNode = document.getElementById('jql-test-results');
-                        if (targetNode) {
-                            observer.observe(targetNode, { attributes: true, attributeFilter: ['style'] });
+                        if (resultsArea) {
+                            observer.observe(resultsArea, { childList: true });
                         }
                     }
                 }, 50);

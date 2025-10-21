@@ -39,13 +39,29 @@
   /**
    * Hide JQL test results when user starts typing or loads new query
    */
+  let testResultsLocked = false; // Flag to prevent hiding when test is in progress
+
   function hideJQLTestResults() {
+    // Don't hide if test results are locked (test in progress or results showing)
+    if (testResultsLocked) {
+      console.log("[JQL Test] Hide blocked - lock is TRUE");
+      return;
+    }
+
+    console.log("[JQL Test] Hiding test results - lock is FALSE");
     const testResultsDiv = document.getElementById("jql-test-results");
     if (testResultsDiv) {
-      testResultsDiv.style.display = "none";
-      testResultsDiv.innerHTML = "";
+      // Use className to hide (CSS will override inline style with !important)
+      // DON'T clear innerHTML - let Dash manage the content
+      testResultsDiv.className = "jql-test-results-hidden";
     }
   }
+
+  // Expose functions globally for the test button callback
+  window.setJQLTestResultsLock = function (locked) {
+    console.log("[JQL Test] Lock changed:", testResultsLocked, "→", locked);
+    testResultsLocked = locked;
+  };
 
   /**
    * Initialize CodeMirror on all JQL editor textareas.
@@ -266,13 +282,21 @@
 
         // PERFORMANCE FIX: Optimized change handling with minimal throttling
         let syncTimeout;
-        editor.on("change", function (cm) {
+        editor.on("change", function (cm, changeObj) {
           // Minimal throttle to reduce lag while maintaining responsiveness for character count
           clearTimeout(syncTimeout);
           syncTimeout = setTimeout(syncCodeMirrorToTextarea, 50); // Reduced from 150ms to 50ms
 
-          // Hide JQL test results when user starts typing
-          hideJQLTestResults();
+          // Only hide test results on user input (not programmatic changes)
+          // Check if this is a user-initiated change
+          if (changeObj.origin && changeObj.origin !== "setValue") {
+            // When user starts typing, unlock the test results first
+            if (typeof window.setJQLTestResultsLock === "function") {
+              window.setJQLTestResultsLock(false);
+            }
+            // Then hide them (hideJQLTestResults will check the lock internally)
+            hideJQLTestResults();
+          }
         });
 
         // CRITICAL: Force sync when focus leaves CodeMirror (before callbacks fire)
@@ -300,8 +324,7 @@
             // Use setValue without triggering change event to avoid infinite loop
             editor.setValue(textareaValue);
 
-            // Hide JQL test results when query is loaded programmatically
-            hideJQLTestResults();
+            // Don't hide test results on programmatic changes - only on user input
           }
         };
 
