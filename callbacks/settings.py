@@ -1820,6 +1820,7 @@ def register(app):
 
     # JQL Character Count Callback (Feature 001-add-jql-query, TASK-108)
     # PERFORMANCE FIX: Use client-side callback for character counting to avoid Python callback overhead
+    # Updated to match create_character_count_display format and thresholds
     app.clientside_callback(
         """
         function(jql_value) {
@@ -1827,13 +1828,27 @@ def register(app):
                 jql_value = '';
             }
             const count = jql_value.length;
-            const maxChars = 8000; // JQL query limit
-            const isNearLimit = count > maxChars * 0.8;
+            const WARNING_THRESHOLD = 1800;  // Match Python constant
+            const MAX_REFERENCE = 2000;      // Match Python constant
+            const warning = count >= WARNING_THRESHOLD;
             
+            // Format count with thousands separator for readability (simplified for JS)
+            const countStr = count.toLocaleString();
+            const limitStr = MAX_REFERENCE.toLocaleString();
+            
+            // Apply warning CSS class if needed (match Python function)
+            const cssClasses = warning ? 
+                'character-count-display character-count-warning' : 
+                'character-count-display';
+            
+            // Return a proper Dash HTML component structure
             return {
+                'namespace': 'dash_html_components',
+                'type': 'Div',
                 'props': {
-                    'children': `${count} characters${count > maxChars ? ' (exceeds limit!)' : ''}`,
-                    'className': isNearLimit ? 'text-warning small mt-1' : 'text-muted small mt-1'
+                    'children': `${countStr} / ${limitStr} characters`,
+                    'className': cssClasses,
+                    'id': 'jql-character-count-display'
                 }
             };
         }

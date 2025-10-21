@@ -264,12 +264,12 @@
           }
         };
 
-        // PERFORMANCE FIX: Optimized change handling with throttling
+        // PERFORMANCE FIX: Optimized change handling with minimal throttling
         let syncTimeout;
         editor.on("change", function (cm) {
-          // Throttle sync to reduce lag during fast typing
+          // Minimal throttle to reduce lag while maintaining responsiveness for character count
           clearTimeout(syncTimeout);
-          syncTimeout = setTimeout(syncCodeMirrorToTextarea, 150);
+          syncTimeout = setTimeout(syncCodeMirrorToTextarea, 50); // Reduced from 150ms to 50ms
 
           // Hide JQL test results when user starts typing
           hideJQLTestResults();
