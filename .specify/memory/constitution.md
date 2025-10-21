@@ -1,15 +1,15 @@
 <!--
 Sync Impact Report:
-Version: 1.0.1 (Test Isolation Clarification)
-Modified Principles: N/A
-Added Sections: Test Isolation requirements in Testing Gate (Phase -1) and Test Coverage Gate (Implementation)
-Removed Sections: N/A
+Version: 1.1.0 (Relaxed Testing Requirements)
+Modified Principles: III. Test-First Development - Integration tests now optional during implementation
+Added Sections: Flexible testing approach in Testing Gate and Test Coverage Gate
+Removed Sections: Strict TDD requirement for integration tests during implementation
 Templates Requiring Updates:
-  - ✅ plan-template.md: Already enforces Phase -1 gates
+  - ✅ plan-template.md: Already allows flexible test scheduling
   - ✅ spec-template.md: Already references constitutional requirements
   - ✅ tasks-template.md: Already validates against quality gates
-  - ✅ copilot-instructions.md: Updated with detailed test isolation patterns and examples
-Follow-up TODOs: None - test isolation requirements documented
+  - ✅ copilot-instructions.md: Updated with flexible testing patterns
+Follow-up TODOs: None - testing flexibility documented
 -->
 
 # Burndown Chart Constitution
@@ -49,29 +49,33 @@ All features MUST meet these measurable performance targets before merging to ma
 
 **Validation**: Performance testing required before code review. Use browser DevTools Performance profiler and Lighthouse metrics. Failing to meet targets requires optimization work or feature re-scoping.
 
-### III. Test-First Development (NON-NEGOTIABLE)
+### III. Test-First Development (FLEXIBLE APPROACH)
 
-Test-Driven Development (TDD) is mandatory for all feature work using the Red-Green-Refactor cycle.
+Testing is mandatory but follows a pragmatic approach that balances quality with development velocity.
 
-**Process**:
-1. Write failing tests that specify desired behavior
-2. Obtain user approval of test scenarios
-3. Verify tests fail (RED)
-4. Implement minimum code to pass tests (GREEN)
-5. Refactor for quality and maintainability (REFACTOR)
-6. No implementation code before corresponding tests exist
+**Testing Strategy**:
+1. **Unit Tests**: Required during implementation for isolated components and business logic
+   - Write unit tests before or alongside implementation code
+   - Test pure functions, data transformations, calculations
+   - Use pytest with proper test isolation (tempfile, cleanup)
+   
+2. **Integration Tests**: Required as final validation before merge, optional during implementation
+   - Playwright-based browser automation tests verify end-to-end workflows
+   - Can be written after implementation is complete
+   - Should run as final checkpoint before code review/merge
+   - Focus on user-visible behavior and acceptance criteria
 
 **Technology Requirements**:
 - **Playwright-First**: All browser automation tests MUST use Playwright (NOT Selenium)
 - **pytest Framework**: All unit and integration tests use pytest
 - **Test Structure**: 
-  - `tests/unit/` for isolated component tests
-  - `tests/integration/` for end-to-end workflow tests
-- **Coverage Requirement**: All acceptance criteria must have corresponding test cases
+  - `tests/unit/` for isolated component tests (required during implementation)
+  - `tests/integration/` for end-to-end workflow tests (required before merge)
+- **Coverage Requirement**: All acceptance criteria must have corresponding test cases (unit or integration)
 
-**Rationale**: TDD ensures code correctness, prevents regressions, and serves as living documentation. Playwright offers superior performance and reliability compared to Selenium for Dash applications.
+**Rationale**: Unit tests provide rapid feedback during development. Integration tests with Playwright can be time-consuming to set up and may block progress if required too early. Running integration tests as a final validation step ensures quality without slowing development.
 
-**Validation**: Pull requests without tests for new features will be rejected. Test files must exist before implementation files in commit history.
+**Validation**: Pull requests must have passing unit tests for new logic and integration tests for user-facing features. Integration tests may be written after implementation but must pass before merge approval.
 
 ### IV. Windows Development Environment (CRITICAL)
 
@@ -302,12 +306,15 @@ Before writing ANY implementation code, validate these gates. Failing any gate r
 
 #### Testing Gate
 - [ ] **Test Strategy**: Unit and integration test approach documented?
-- [ ] **Playwright Approach**: Browser automation uses Playwright (with specific selectors and scenarios)?
-- [ ] **Test Files Identified**: Exact test file paths listed in implementation plan?
+- [ ] **Unit Test Plan**: Identified which components need unit tests during implementation?
+- [ ] **Integration Test Plan**: Documented integration test scenarios (can be executed at end of implementation)?
+- [ ] **Playwright Approach**: Browser automation will use Playwright (with specific selectors and scenarios documented)?
 - [ ] **Acceptance Criteria Testable**: Each acceptance criterion translates to executable test case?
-- [ ] **Test Isolation**: Tests use temporary files/directories and clean up all created resources (no pollution of project root)?
+- [ ] **Test Isolation**: Tests will use temporary files/directories and clean up all created resources (no pollution of project root)?
 
 **Rejection Criteria**: Features without clear test strategy or non-testable acceptance criteria.
+
+**Note**: Integration tests with Playwright may be written and executed after implementation is complete, as a final validation step before merge. Unit tests for business logic should be written during implementation.
 
 #### Accessibility Gate
 - [ ] **Keyboard Navigation**: Approach for keyboard-only usage documented?
@@ -322,13 +329,15 @@ Before writing ANY implementation code, validate these gates. Failing any gate r
 These gates MUST pass before submitting code for review. Failing any gate requires additional work before review.
 
 #### Test Coverage Gate
-- [ ] **All Criteria Tested**: Every acceptance criterion has corresponding test case?
+- [ ] **All Criteria Tested**: Every acceptance criterion has corresponding test case (unit or integration)?
 - [ ] **Unit Tests Pass**: `.\.venv\Scripts\activate; pytest tests/unit/ -v` passes?
-- [ ] **Integration Tests Pass**: `.\.venv\Scripts\activate; pytest tests/integration/ -v` passes?
+- [ ] **Integration Tests Pass**: `.\.venv\Scripts\activate; pytest tests/integration/ -v` passes (execute as final validation)?
 - [ ] **No Skipped Tests**: All tests enabled unless documented exception approved?
 - [ ] **Test Isolation Verified**: Tests can run in any order and in isolation without failing (no shared state, proper cleanup)?
 
 **Rejection Criteria**: Pull requests with failing tests, skipped tests without approval, missing test coverage for acceptance criteria, or tests that pollute the project workspace.
+
+**Flexible Execution**: Integration tests may be written and executed after implementation is complete, as the final checkpoint before merge approval. This prevents Playwright setup complexity from blocking development progress. However, all tests must pass before code review approval.
 
 #### Code Quality Gate
 - [ ] **No Lint Errors**: `.\.venv\Scripts\activate; pylint [changed_files]` passes?
@@ -464,13 +473,35 @@ For day-to-day development decisions not explicitly covered by constitutional pr
 
 ---
 
-**Version**: 1.0.1  
+**Version**: 1.1.0  
 **Ratified**: 2025-10-15  
-**Last Amended**: 2025-10-15 (Test Isolation Clarification - PATCH)  
+**Last Amended**: 2025-10-21 (Relaxed Testing Requirements - MINOR)  
 **Approver**: Project Owner  
 **Next Review**: 2026-01-15 (Quarterly review cycle)
 
 ## Amendment History
+
+### Version 1.1.0 (2025-10-21) - MINOR
+
+**Change**: Relaxed integration testing requirements to improve development velocity
+
+**Details**:
+- Modified Principle III (Test-First Development) from "NON-NEGOTIABLE" strict TDD to "FLEXIBLE APPROACH"
+- Integration tests (Playwright) now optional during implementation, required before merge
+- Unit tests still required during implementation for business logic
+- Updated Testing Gate (Phase -1) to clarify integration tests can be executed at end
+- Updated Test Coverage Gate to allow integration tests as final validation step
+- Added guidance that Playwright setup complexity should not block development
+
+**Rationale**: Strict TDD with Playwright integration tests during implementation causes excessive friction and slows development. Playwright tests are valuable for final validation but their setup complexity (server management, browser automation, timing issues) creates bottlenecks during active development. Unit tests provide sufficient guidance during implementation, while integration tests verify end-to-end behavior before merge.
+
+**Impact**: 
+- Allows developers to complete implementation without being blocked by Playwright test setup
+- Integration tests remain mandatory but can be written after implementation
+- All tests must still pass before code review approval
+- No reduction in test coverage - only timing flexibility
+
+**Migration**: No code changes required - existing projects can continue current testing practices or adopt more flexible approach for new features.
 
 ### Version 1.0.1 (2025-10-15) - PATCH
 
