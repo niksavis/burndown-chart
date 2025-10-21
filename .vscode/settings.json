@@ -1,49 +1,13 @@
 {
-  // Spec Kit settings (for GitHub Copilot slash commands)
-  "chat.promptFilesRecommendations": {
-    "speckit.constitution": true,
-    "speckit.specify": true,
-    "speckit.plan": true,
-    "speckit.tasks": true,
-    "speckit.implement": true
-  },
-  "chat.tools.terminal.autoApprove": {
-    ".specify/scripts/bash/": true,
-    ".specify/scripts/powershell/": true
-  },
-
-  // Python settings (restored from original + enhanced)
-  "python.testing.pytestEnabled": true,
-  "python.testing.unittestEnabled": false,
-  "python.testing.cwd": "${workspaceFolder}",
-  "python.testing.pytestArgs": ["tests", "-v"],
-  "python.testing.unittestArgs": ["-v", "-s", "./tests", "-p", "test_*.py"],
-  "python.defaultInterpreterPath": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
-  "python.interpreter.infoVisibility": "always",
-  "python.terminal.activateEnvironment": true,
-  "python.analysis.autoImportCompletions": true,
-  "python.analysis.extraPaths": ["${workspaceFolder}"],
-  "python.envFile": "${workspaceFolder}/.env",
-
-  // Additional Python tooling (keeping the enhancements)
-  "python.linting.enabled": true,
-  "python.linting.pylintEnabled": false,
-  "python.linting.flake8Enabled": true,
-  "python.formatting.provider": "black",
-  "python.sortImports.args": ["--profile", "black"],
-
-  // Editor settings
-  "editor.formatOnSave": true,
-  "editor.codeActionsOnSave": {
-    "source.organizeImports": "explicit"
-  },
-
-  // File associations
-  "files.associations": {
-    "*.md": "markdown",
-    "requirements.in": "pip-requirements"
-  },
-
-  // Markdown and markdownlint settings
-  "markdownlint.run": "onSave"
+    "chat.promptFilesRecommendations": {
+        "speckit.constitution": true,
+        "speckit.specify": true,
+        "speckit.plan": true,
+        "speckit.tasks": true,
+        "speckit.implement": true
+    },
+    "chat.tools.terminal.autoApprove": {
+        ".specify/scripts/bash/": true,
+        ".specify/scripts/powershell/": true
+    }
 }
