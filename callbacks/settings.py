@@ -188,17 +188,20 @@ def register(app):
             Input("milestone-toggle", "value"),  # Added milestone toggle input
             Input("milestone-picker", "date"),  # Added milestone picker input
             Input("points-toggle", "value"),  # Added points toggle input
-            # Add all JIRA inputs for immediate saving
-            Input(
-                "jira-jql-query", "value"
-            ),  # JQL textarea uses standard "value" property
+            # JIRA URL/token inputs still as Input for immediate saving
             Input("jira-url", "value"),
             Input("jira-token", "value"),
             Input("jira-story-points-field", "value"),
             Input("jira-cache-max-size", "value"),
             Input("jira-max-results", "value"),
         ],
-        [State("app-init-complete", "data")],
+        [
+            State("app-init-complete", "data"),
+            # PERFORMANCE FIX: Move JQL query to State to prevent callback on every keystroke
+            State(
+                "jira-jql-query", "value"
+            ),  # JQL textarea - only read on other input changes
+        ],
     )
     def update_and_save_settings(
         pert_factor,
@@ -211,14 +214,15 @@ def register(app):
         show_milestone,  # Added parameter
         milestone,  # Added parameter
         show_points,  # Added parameter
-        # Add all JIRA parameters for immediate saving
-        jql_query,
+        # JIRA parameters for immediate saving (except JQL query)
         jira_api_endpoint,
         jira_token,
         jira_story_points_field,
         jira_cache_max_size,
         jira_max_results,
+        # State parameters (read but don't trigger callback)
         init_complete,
+        jql_query,  # PERFORMANCE FIX: JQL query moved to State to prevent keystroke lag
     ):
         """
         Update current settings and save to disk when changed.
@@ -639,129 +643,9 @@ def register(app):
             return {"display": "block"}
         return {"display": "none"}
 
-    @app.callback(
-        [
-            Output("jira-cache-status", "children"),
-            Output("jira-validation-errors", "children"),
-        ],
-        [
-            Input("jira-url", "value"),
-            Input(
-                "jira-jql-query", "value"
-            ),  # JQL textarea uses standard "value" property
-        ],
-        [
-            State("jira-token", "value"),
-            State("jira-story-points-field", "value"),
-            State("jira-cache-max-size", "value"),
-            State("jira-max-results", "value"),
-        ],
-        prevent_initial_call=True,
-    )
-    def update_jira_cache_and_validation(
-        api_endpoint,
-        jql_query,
-        jira_token,
-        story_points_field,
-        cache_max_size,
-        jira_max_results,
-    ):
-        """
-        Update JIRA cache status and show validation information.
-
-        Args:
-            api_endpoint: JIRA API endpoint URL
-            jql_query: JQL query for filtering issues
-            jira_token: Personal access token
-            story_points_field: Custom field ID for story points mapping (optional)
-            cache_max_size: Maximum cache size in MB
-
-        Returns:
-            Tuple containing cache status and validation errors
-        """
-        # Initialize return values
-        cache_status = ""
-        validation_errors = ""
-
-        try:
-            from data.jira_simple import (
-                get_cache_status,
-                validate_jira_config,
-            )
-
-            # Get current cache status
-            cache_status = get_cache_status()
-
-            # Create JIRA config from UI inputs (same logic as unified button)
-            jira_config = {
-                "api_endpoint": api_endpoint
-                or "https://jira.atlassian.com/rest/api/2/search",
-                "jql_query": jql_query or "project = JRASERVER",
-                "token": jira_token or "",
-                "story_points_field": story_points_field.strip()
-                if story_points_field and story_points_field.strip()
-                else "",
-                "cache_max_size_mb": cache_max_size or 100,
-            }
-
-            # Show current validation status using UI config
-            is_valid, error_message = validate_jira_config(jira_config)
-
-            if is_valid:
-                validation_errors = html.Div(
-                    [
-                        html.I(className="fas fa-check-circle me-2"),
-                        "JIRA configuration is valid",
-                    ],
-                    className="text-success small",
-                )
-            else:
-                validation_errors = html.Div(
-                    [
-                        html.I(className="fas fa-exclamation-triangle me-2"),
-                        f"Configuration invalid: {error_message}",
-                    ],
-                    className="text-warning small",
-                )
-
-            # Format cache status for display
-            if cache_status:
-                cache_status_display = html.Div(
-                    [
-                        html.I(className="fas fa-database me-2"),
-                        f"Cache: {cache_status}",
-                    ],
-                    className="text-muted small",
-                )
-            else:
-                cache_status_display = html.Div(
-                    [html.I(className="fas fa-database me-2"), "No cache available"],
-                    className="text-muted small",
-                )
-
-            return (
-                cache_status_display,
-                validation_errors,
-            )
-
-        except ImportError:
-            # JIRA integration not available
-            return html.Div(
-                [
-                    html.I(className="fas fa-exclamation-triangle me-2"),
-                    "JIRA integration not available",
-                ],
-                className="text-warning small",
-            ), ""
-        except Exception as e:
-            logger.error(f"Error in JIRA cache callback: {e}")
-            return html.Div(
-                [
-                    html.I(className="fas fa-exclamation-triangle me-2"),
-                    f"Error: {str(e)}",
-                ],
-                className="text-danger small",
-            ), ""
+    # PERFORMANCE FIX: Removed real-time JIRA validation callback that was causing keystroke lag
+    # Validation now happens only when user attempts to use JIRA connection (Update Data/Calculate Scope)
+    # This eliminates the callback that was triggering on every JQL query keystroke
 
     # Add a callback to trigger JIRA data loading when data source is selected
     @app.callback(
@@ -1935,37 +1819,25 @@ def register(app):
             raise PreventUpdate
 
     # JQL Character Count Callback (Feature 001-add-jql-query, TASK-108)
-    @app.callback(
+    # PERFORMANCE FIX: Use client-side callback for character counting to avoid Python callback overhead
+    app.clientside_callback(
+        """
+        function(jql_value) {
+            if (!jql_value) {
+                jql_value = '';
+            }
+            const count = jql_value.length;
+            const maxChars = 8000; // JQL query limit
+            const isNearLimit = count > maxChars * 0.8;
+            
+            return {
+                'props': {
+                    'children': `${count} characters${count > maxChars ? ' (exceeds limit!)' : ''}`,
+                    'className': isNearLimit ? 'text-warning small mt-1' : 'text-muted small mt-1'
+                }
+            };
+        }
+        """,
         Output("jira-jql-character-count-container", "children"),
-        Input(
-            "jira-jql-query", "value"
-        ),  # JQL textarea uses standard "value" property
-        prevent_initial_call=False,
+        Input("jira-jql-query", "value"),
     )
-    def update_jql_character_count(jql_value):
-        """
-        Update character count display when JQL query changes.
-
-        Per FR-002: Shows warning when approaching 1800 chars (JIRA's limit is 2000).
-        Provides instant feedback without debouncing (updates are lightweight).
-
-        Args:
-            jql_value: Current JQL query text
-
-        Returns:
-            Updated character count display component
-        """
-        from ui.components import (
-            count_jql_characters,
-            create_character_count_display,
-            should_show_character_warning,
-        )
-
-        if jql_value is None:
-            jql_value = ""
-
-        count = count_jql_characters(jql_value)
-        warning = should_show_character_warning(jql_value)
-
-        return create_character_count_display(count=count, warning=warning)
-

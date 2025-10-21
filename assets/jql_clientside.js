@@ -22,7 +22,7 @@ window.dash_clientside.jqlEditor = {
    * @returns {string} Value to store in dcc.Store
    */
   syncInputToStore: function (inputValue) {
-    console.log("[JQL Clientside] Syncing Input → Store:", inputValue);
+    // PERFORMANCE FIX: Removed verbose logging that was slowing down input
     return inputValue || "";
   },
 
@@ -36,7 +36,7 @@ window.dash_clientside.jqlEditor = {
    * @returns {string} Value to set in hidden sync Input
    */
   syncStoreToInput: function (storeValue) {
-    console.log("[JQL Clientside] Syncing Store → Input:", storeValue);
+    // PERFORMANCE FIX: Removed verbose logging that was slowing down input
     return storeValue || "";
   },
 };

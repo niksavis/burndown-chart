@@ -62,7 +62,10 @@
 
     // Find all JQL editor textareas
     const textareas = document.querySelectorAll("textarea.jql-editor-textarea");
-    console.log(`[JQL Editor] Found ${textareas.length} textarea(s)`);
+    // Reduced logging: only log if no textareas found or more than expected
+    if (textareas.length === 0 || textareas.length > 2) {
+      console.log(`[JQL Editor] Found ${textareas.length} textarea(s)`);
+    }
 
     textareas.forEach((textarea) => {
       // Skip if already initialized
@@ -76,18 +79,18 @@
         textarea.nextSibling.classList &&
         textarea.nextSibling.classList.contains("CodeMirror")
       ) {
-        console.log(
-          "[JQL Editor] Skipping textarea with existing CodeMirror:",
-          textarea.id
-        );
+        // Reduced logging: only log in debug mode
         initializedTextareas.add(textarea);
         return;
       }
 
-      console.log(
-        "[JQL Editor] Initializing CodeMirror for textarea:",
-        textarea.id
-      );
+      // Reduced logging: only log initialization attempts
+      if (window.location.search.includes("debug=true")) {
+        console.log(
+          "[JQL Editor] Initializing CodeMirror for textarea:",
+          textarea.id
+        );
+      }
 
       try {
         // Create CodeMirror from textarea
@@ -129,20 +132,13 @@
             if (editor) {
               const cmValue = editor.getValue();
               if (cmValue !== originalValue) {
-                console.log(
-                  "[JQL Editor] Value getter - returning CodeMirror value:",
-                  cmValue.substring(0, 30)
-                );
                 return cmValue;
               }
             }
             return originalValue;
           },
           set: function (val) {
-            console.log(
-              "[JQL Editor] Value setter - setting both textarea and CodeMirror:",
-              val.substring(0, 30)
-            );
+            // PERFORMANCE FIX: Removed verbose logging that was slowing down input
             originalValue = val;
             if (editor && editor.getValue() !== val) {
               editor.setValue(val);
@@ -156,76 +152,72 @@
 
           // Global force sync function for critical operations
           window.forceJQLSync = function () {
-            const oldValue = textarea._originalValue;
-            const newValue = editor.getValue();
-            console.log(
-              `[JQL Editor] Force sync - old: "${oldValue.substring(
-                0,
-                30
-              )}" new: "${newValue.substring(0, 30)}"`
-            );
             syncCodeMirrorToTextarea();
-            console.log("[JQL Editor] Forced sync completed");
             return editor.getValue();
           };
 
-          // Enhanced debug function to check all values
-          window.checkAllValues = function () {
-            console.log("=== ALL VALUES CHECK ===");
-            console.log("CodeMirror value:", editor.getValue());
-            console.log(
-              "Textarea DOM value:",
-              Object.getOwnPropertyDescriptor(
-                HTMLTextAreaElement.prototype,
-                "value"
-              ).get.call(textarea)
-            );
-            console.log("Textarea custom value:", textarea.value);
-            console.log("Textarea _originalValue:", textarea._originalValue);
-            console.log(
-              "Textarea attribute value:",
-              textarea.getAttribute("value")
-            );
-            console.log("========================");
-          };
-
-          window.debugJQL = {
-            getTextareaValue: () => textarea.value,
-            getCodeMirrorValue: () => editor.getValue(),
-            setTextareaValue: (val) => {
-              textarea.value = val;
-              console.log("Set textarea to:", val);
-            },
-            setCodeMirrorValue: (val) => {
-              editor.setValue(val);
-              console.log("Set CodeMirror to:", val);
-            },
-            checkSync: () => {
-              const ta = textarea.value;
-              const cm = editor.getValue();
+          // Enhanced debug function to check all values (only available in debug mode)
+          if (window.location.search.includes("debug=true")) {
+            window.checkAllValues = function () {
+              console.log("=== ALL VALUES CHECK ===");
+              console.log("CodeMirror value:", editor.getValue());
               console.log(
-                "Sync check - Textarea:",
-                ta,
-                "CodeMirror:",
-                cm,
-                "Match:",
-                ta === cm
+                "Textarea DOM value:",
+                Object.getOwnPropertyDescriptor(
+                  HTMLTextAreaElement.prototype,
+                  "value"
+                ).get.call(textarea)
               );
-              return ta === cm;
-            },
-            forceSync: () => {
-              syncCodeMirrorToTextarea();
-              console.log("Forced sync from CodeMirror to textarea");
-            },
-            syncFromTextarea: () => {
-              const ta = textarea.value;
-              editor.setValue(ta);
-              console.log("Forced sync from textarea to CodeMirror");
-            },
-          };
-          console.log(
-            "[JQL Editor] Debug functions available at window.debugJQL"
-          );
+              console.log("Textarea custom value:", textarea.value);
+              console.log("Textarea _originalValue:", textarea._originalValue);
+              console.log(
+                "Textarea attribute value:",
+                textarea.getAttribute("value")
+              );
+              console.log("========================");
+            };
+          }
+
+          // Debug functions (only available in debug mode)
+          if (window.location.search.includes("debug=true")) {
+            window.debugJQL = {
+              getTextareaValue: () => textarea.value,
+              getCodeMirrorValue: () => editor.getValue(),
+              setTextareaValue: (val) => {
+                textarea.value = val;
+                console.log("Set textarea to:", val);
+              },
+              setCodeMirrorValue: (val) => {
+                editor.setValue(val);
+                console.log("Set CodeMirror to:", val);
+              },
+              checkSync: () => {
+                const ta = textarea.value;
+                const cm = editor.getValue();
+                console.log(
+                  "Sync check - Textarea:",
+                  ta,
+                  "CodeMirror:",
+                  cm,
+                  "Match:",
+                  ta === cm
+                );
+                return ta === cm;
+              },
+              forceSync: () => {
+                syncCodeMirrorToTextarea();
+                console.log("Forced sync from CodeMirror to textarea");
+              },
+              syncFromTextarea: () => {
+                const ta = textarea.value;
+                editor.setValue(ta);
+                console.log("Forced sync from textarea to CodeMirror");
+              },
+            };
+            console.log(
+              "[JQL Editor] Debug functions available at window.debugJQL"
+            );
+          }
         }
 
         // CRITICAL: Ensure bidirectional sync between CodeMirror and textarea
@@ -237,10 +229,7 @@
           const oldValue = textarea._originalValue;
 
           if (oldValue !== value) {
-            console.log(
-              "[JQL Editor] Syncing CodeMirror to textarea:",
-              `"${oldValue.substring(0, 30)}" → "${value.substring(0, 30)}"`
-            );
+            // PERFORMANCE FIX: Removed verbose logging to reduce lag
 
             // Update both the original value and DOM value
             textarea._originalValue = value;
@@ -261,37 +250,29 @@
             // Also dispatch change event for backward compatibility
             const changeEvent = new Event("change", { bubbles: true });
             textarea.dispatchEvent(changeEvent);
-
-            console.log("[JQL Editor] Sync completed - events dispatched");
-          } else {
-            console.log("[JQL Editor] Values already synced, no update needed");
           }
         };
 
+        // PERFORMANCE FIX: Optimized change handling with throttling
+        let syncTimeout;
         editor.on("change", function (cm) {
-          // Immediate sync on every change
-          syncCodeMirrorToTextarea();
-
-          // Also set a flag to force sync before any potential callback
-          textarea._pendingSync = true;
-
-          // Clear the flag after a short delay
-          setTimeout(() => {
-            textarea._pendingSync = false;
-          }, 100);
+          // Throttle sync to reduce lag during fast typing
+          clearTimeout(syncTimeout);
+          syncTimeout = setTimeout(syncCodeMirrorToTextarea, 150);
         });
 
         // CRITICAL: Force sync when focus leaves CodeMirror (before callbacks fire)
         editor.on("blur", function (cm) {
-          console.log("[JQL Editor] CodeMirror blur - forcing sync");
+          // Clear any pending throttled sync and do immediate sync
+          clearTimeout(syncTimeout);
           syncCodeMirrorToTextarea();
         });
 
-        // Also sync on key events that might trigger callbacks
+        // Force immediate sync on Enter key (common callback trigger)
         editor.on("keydown", function (cm, event) {
-          // Force sync on Enter key (common trigger for forms)
           if (event.key === "Enter" || event.keyCode === 13) {
-            setTimeout(syncCodeMirrorToTextarea, 10); // Small delay to let CodeMirror update
+            clearTimeout(syncTimeout);
+            setTimeout(syncCodeMirrorToTextarea, 10);
           }
         });
 
@@ -301,10 +282,7 @@
           const editorValue = editor.getValue() || "";
 
           if (textareaValue !== editorValue) {
-            console.log(
-              "[JQL Editor] Syncing textarea to CodeMirror:",
-              textareaValue.substring(0, 50)
-            );
+            // PERFORMANCE FIX: Removed verbose logging
             // Use setValue without triggering change event to avoid infinite loop
             editor.setValue(textareaValue);
           }
@@ -331,6 +309,7 @@
         });
 
         // Method 2: Poll for value changes (handles React property updates)
+        // PERFORMANCE FIX: Reduced polling frequency to improve performance
         let lastKnownValue = textarea.value || "";
         const pollInterval = setInterval(function () {
           const currentValue = textarea.value || "";
@@ -338,7 +317,7 @@
             lastKnownValue = currentValue;
             syncTextareaToCodeMirror();
           }
-        }, 200); // Poll every 200ms
+        }, 750); // PERFORMANCE FIX: Increased from 200ms to 750ms for better performance
 
         // Method 3: Listen for standard DOM events
         textarea.addEventListener("input", syncTextareaToCodeMirror);
@@ -371,19 +350,13 @@
             button.addEventListener(
               "click",
               function (e) {
-                console.log(
-                  `[JQL Editor] ${buttonId} clicked - forcing immediate sync`
-                );
+                // PERFORMANCE FIX: Removed verbose logging
                 // Force sync immediately and synchronously
+                clearTimeout(syncTimeout); // Clear any pending throttled sync
                 syncCodeMirrorToTextarea();
 
-                // Also force a second sync after a tiny delay to handle any race conditions
-                setTimeout(() => {
-                  syncCodeMirrorToTextarea();
-                  console.log(
-                    `[JQL Editor] ${buttonId} - secondary sync completed`
-                  );
-                }, 1);
+                // Secondary sync with small delay for race conditions
+                setTimeout(syncCodeMirrorToTextarea, 1);
               },
               true
             ); // Use capture phase to run before other handlers
@@ -410,9 +383,8 @@
                     button.addEventListener(
                       "click",
                       function (e) {
-                        console.log(
-                          `[JQL Editor] ${buttonId} clicked (dynamic) - forcing sync`
-                        );
+                        // PERFORMANCE FIX: Removed verbose logging
+                        clearTimeout(syncTimeout);
                         syncCodeMirrorToTextarea();
                       },
                       true
@@ -441,7 +413,10 @@
           cmWrapper.style.maxHeight = "400px";
         }
 
-        console.log("[JQL Editor] Successfully initialized:", textarea.id);
+        // PERFORMANCE FIX: Only log in debug mode
+        if (window.location.search.includes("debug=true")) {
+          console.log("[JQL Editor] Successfully initialized:", textarea.id);
+        }
       } catch (error) {
         console.error("[JQL Editor] Failed to initialize editor:", error);
       }
@@ -474,7 +449,10 @@
       });
 
       if (shouldReinitialize) {
-        console.log("[JQL Editor] DOM changed, re-initializing editors");
+        // PERFORMANCE FIX: Only log in debug mode
+        if (window.location.search.includes("debug=true")) {
+          console.log("[JQL Editor] DOM changed, re-initializing editors");
+        }
         initializeJQLEditors();
       }
     });
@@ -558,29 +536,13 @@
       if (isCriticalButton) {
         // Force sync if JQL editor exists
         if (window.forceJQLSync) {
-          console.log(
-            `[JQL Editor] Critical button ${target.id} clicked - forcing global sync`
-          );
-          const currentValue = window.forceJQLSync();
-          console.log(
-            `[JQL Editor] Synced value: "${currentValue.substring(0, 50)}..."`
-          );
+          // PERFORMANCE FIX: Removed verbose logging
+          window.forceJQLSync();
 
-          // Extra aggressive sync for Update Data button specifically
+          // Extra sync for Update Data button specifically
           if (target.id === "update-data-unified") {
-            console.log(
-              "[JQL Editor] Update Data clicked - performing extra sync"
-            );
-
-            // Force immediate sync one more time after a tiny delay
             setTimeout(() => {
-              const doubleCheckValue = window.forceJQLSync();
-              console.log(
-                `[JQL Editor] Update Data double-check sync: "${doubleCheckValue.substring(
-                  0,
-                  50
-                )}..."`
-              );
+              window.forceJQLSync();
             }, 10);
           }
         }
@@ -594,29 +556,21 @@
     const updateButton = document.getElementById("update-data-unified");
     if (updateButton) {
       updateButton.addEventListener("mousedown", function (e) {
-        console.log("[JQL Editor] Update Data mousedown - pre-emptive sync");
         if (window.forceJQLSync) {
-          const syncValue = window.forceJQLSync();
-          console.log(
-            `[JQL Editor] Pre-click sync value: "${syncValue.substring(
-              0,
-              50
-            )}..."`
-          );
+          window.forceJQLSync();
         }
       });
 
       updateButton.addEventListener("click", function (e) {
-        console.log("[JQL Editor] Update Data click - immediate sync");
         if (window.forceJQLSync) {
-          const syncValue = window.forceJQLSync();
-          console.log(
-            `[JQL Editor] Click sync value: "${syncValue.substring(0, 50)}..."`
-          );
+          window.forceJQLSync();
         }
       });
 
-      console.log("[JQL Editor] Update Data button sync listeners added");
+      // PERFORMANCE FIX: Only log in debug mode
+      if (window.location.search.includes("debug=true")) {
+        console.log("[JQL Editor] Update Data button sync listeners added");
+      }
     }
   }
 
@@ -627,7 +581,7 @@
     setupUpdateDataSync();
   }
 
-  // Test sync function
+  // Test sync function (simplified logging)
   window.testJQLEditorSync = function (
     testValue = "project = SYNCTEST",
     editorId = "jira-jql-query"
@@ -640,14 +594,12 @@
       return false;
     }
 
-    console.log("🧪 Testing JQL Editor sync with value:", testValue);
+    console.log("🧪 Testing JQL Editor sync");
 
     // Test CodeMirror → Textarea
-    console.log("  Setting CodeMirror value...");
     editor.setValue(testValue);
 
     setTimeout(() => {
-      console.log("  Textarea value after CodeMirror update:", textarea.value);
       console.log(
         "  ✅ CodeMirror → Textarea sync:",
         textarea.value === testValue ? "WORKS" : "FAILED"
@@ -655,15 +607,10 @@
 
       // Test Textarea → CodeMirror
       const reverseTest = testValue + " REVERSE";
-      console.log("  Setting textarea value to:", reverseTest);
       textarea.value = reverseTest;
       textarea.dispatchEvent(new Event("input", { bubbles: true }));
 
       setTimeout(() => {
-        console.log(
-          "  CodeMirror value after textarea update:",
-          editor.getValue()
-        );
         console.log(
           "  ✅ Textarea → CodeMirror sync:",
           editor.getValue() === reverseTest ? "WORKS" : "FAILED"
