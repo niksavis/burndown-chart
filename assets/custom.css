@@ -2352,7 +2352,7 @@ label.fw-medium {
   border: 1px solid #ced4da;
   border-radius: 4px;
   padding: 8px;
-  min-height: 100px;
+  min-height: 40px;
   font-family: "Monaco", "Menlo", "Ubuntu Mono", "Consolas", monospace;
   font-size: 14px;
   line-height: 1.5;
@@ -2370,6 +2370,44 @@ label.fw-medium {
   .jql-editor-container {
     font-size: 13px;
     padding: 6px;
-    min-height: 80px;
+    min-height: 32px;
+  }
+}
+
+/* CodeMirror height reduction - target the actual CodeMirror DOM elements */
+.CodeMirror {
+  height: auto !important;
+  min-height: 20px !important; /* Reduced from default 50px by 60% */
+}
+
+.CodeMirror-sizer {
+  min-height: 20px !important; /* Reduced from default 50px by 60% */
+}
+
+.CodeMirror-scroll {
+  min-height: 20px !important; /* Reduced from default 50px by 60% */
+  height: auto !important;
+}
+
+.CodeMirror-gutters {
+  height: 20px !important; /* Match the reduced height */
+}
+
+/* Mobile CodeMirror height adjustment */
+@media (max-width: 767px) {
+  .CodeMirror {
+    min-height: 16px !important; /* Even smaller on mobile */
+  }
+
+  .CodeMirror-sizer {
+    min-height: 16px !important;
+  }
+
+  .CodeMirror-scroll {
+    min-height: 16px !important;
+  }
+
+  .CodeMirror-gutters {
+    height: 16px !important;
   }
 }

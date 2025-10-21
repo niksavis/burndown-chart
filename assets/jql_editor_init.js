@@ -37,6 +37,17 @@
   const initializedTextareas = new WeakSet();
 
   /**
+   * Hide JQL test results when user starts typing or loads new query
+   */
+  function hideJQLTestResults() {
+    const testResultsDiv = document.getElementById("jql-test-results");
+    if (testResultsDiv) {
+      testResultsDiv.style.display = "none";
+      testResultsDiv.innerHTML = "";
+    }
+  }
+
+  /**
    * Initialize CodeMirror on all JQL editor textareas.
    * Safe to call multiple times - skips already initialized textareas.
    */
@@ -259,6 +270,9 @@
           // Throttle sync to reduce lag during fast typing
           clearTimeout(syncTimeout);
           syncTimeout = setTimeout(syncCodeMirrorToTextarea, 150);
+
+          // Hide JQL test results when user starts typing
+          hideJQLTestResults();
         });
 
         // CRITICAL: Force sync when focus leaves CodeMirror (before callbacks fire)
@@ -285,6 +299,9 @@
             // PERFORMANCE FIX: Removed verbose logging
             // Use setValue without triggering change event to avoid infinite loop
             editor.setValue(textareaValue);
+
+            // Hide JQL test results when query is loaded programmatically
+            hideJQLTestResults();
           }
         };
 

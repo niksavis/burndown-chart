@@ -1841,3 +1841,250 @@ def register(app):
         Output("jira-jql-character-count-container", "children"),
         Input("jira-jql-query", "value"),
     )
+
+    # JQL Query Test Callback (Feature: ScriptRunner function validation)
+    @app.callback(
+        [
+            Output("jql-test-results", "children"),
+            Output("jql-test-results", "style"),
+        ],
+        [Input("test-jql-query-button", "n_clicks")],
+        [
+            State("jira-jql-query", "value"),
+            State("jira-url", "value"),
+            State("jira-token", "value"),
+            State("jira-story-points-field", "value"),
+            State("jira-cache-max-size", "value"),
+            State("jira-max-results", "value"),
+        ],
+        prevent_initial_call=True,
+    )
+    def test_jql_query_validity(
+        n_clicks,
+        jql_query,
+        jira_api_endpoint,
+        jira_token,
+        story_points_field,
+        cache_max_size,
+        jira_max_results,
+    ):
+        """
+        Test JQL query validity - useful for ScriptRunner function validation.
+        """
+        if not n_clicks:
+            raise PreventUpdate
+
+        if not jql_query or not jql_query.strip():
+            return (
+                html.Div(
+                    [
+                        html.I(
+                            className="fas fa-exclamation-triangle me-2 text-primary"
+                        ),
+                        html.Span(
+                            "Please enter a JQL query to test.", className="text-dark"
+                        ),
+                    ],
+                    className="alert alert-info mb-0 border-primary",
+                ),
+                {"display": "block"},
+            )
+
+        try:
+            from data.jira_simple import test_jql_query, validate_jql_for_scriptrunner
+            from data.persistence import load_app_settings
+
+            # Build JIRA config from UI inputs
+            app_settings = load_app_settings()
+            jira_config = {
+                "jql_query": jql_query.strip(),
+                "api_endpoint": jira_api_endpoint.strip()
+                if jira_api_endpoint and jira_api_endpoint.strip()
+                else app_settings.get(
+                    "jira_api_endpoint", "https://jira.atlassian.com/rest/api/2/search"
+                ),
+                "token": jira_token.strip()
+                if jira_token
+                else app_settings.get("jira_token", ""),
+                "story_points_field": story_points_field.strip()
+                if story_points_field
+                else app_settings.get("jira_story_points_field", ""),
+                "cache_max_size_mb": cache_max_size
+                or app_settings.get("jira_cache_max_size", 100),
+                "max_results": jira_max_results
+                or app_settings.get("jira_max_results", 1000),
+            }
+
+            # First, check for ScriptRunner function warnings
+            is_compatible, scriptrunner_warning = validate_jql_for_scriptrunner(
+                jql_query
+            )
+
+            # Test the query
+            is_valid, test_message = test_jql_query(jira_config)
+
+            if is_valid:
+                if is_compatible:
+                    # PURE SUCCESS: Gray background with green icon (consistent design)
+                    success_content = [
+                        html.I(className="fas fa-check-circle me-2 text-success"),
+                        html.Strong("JQL Query Valid", className="text-dark"),
+                        html.Br(),
+                        html.Small(test_message, className="text-dark opacity-75"),
+                    ]
+                    alert_class = "alert alert-light border-success mb-0"
+                else:
+                    # SUCCESS WITH WARNING: Gray background with colored icons
+                    success_content = [
+                        html.I(className="fas fa-check-circle me-2 text-success"),
+                        html.Strong("JQL Query Valid", className="text-dark"),
+                        html.Br(),
+                        html.Small(test_message, className="text-dark opacity-75"),
+                        html.Br(),
+                        html.Br(),
+                        html.I(
+                            className="fas fa-exclamation-triangle me-2 text-warning"
+                        ),
+                        html.Strong(
+                            "ScriptRunner Functions Detected",
+                            className="text-dark",
+                        ),
+                        html.Br(),
+                        html.Small(
+                            scriptrunner_warning, className="text-dark opacity-75"
+                        ),
+                    ]
+                    alert_class = "alert alert-light border-warning mb-0"
+
+                return (
+                    html.Div(
+                        success_content,
+                        className=alert_class,
+                    ),
+                    {"display": "block"},
+                )
+            else:
+                # Query validation failed - consistent gray background design
+                error_content = [
+                    html.I(className="fas fa-times-circle me-2 text-danger"),
+                    html.Strong("JQL Query Invalid", className="text-dark"),
+                    html.Br(),
+                    html.Div(
+                        [
+                            html.Strong(
+                                "JIRA API Error:", className="text-dark mt-2 d-block"
+                            ),
+                            html.Code(
+                                test_message,
+                                className="text-dark d-block p-2 bg-light border rounded mt-1",
+                            ),
+                        ]
+                    ),
+                ]
+
+                # Add specific guidance for ScriptRunner issues with UI-appropriate colors
+                if not is_compatible:
+                    error_content.extend(
+                        [
+                            html.Br(),
+                            html.Br(),
+                            html.I(className="fas fa-lightbulb me-2 text-primary"),
+                            html.Strong(
+                                "ScriptRunner Functions Detected",
+                                className="text-dark",
+                            ),
+                            html.Br(),
+                            html.Small(
+                                "Your query contains ScriptRunner functions (issueFunction, subtasksOf, epicsOf, etc.). "
+                                "These require the ScriptRunner add-on to be installed on your JIRA instance. "
+                                "If the error mentions 'function' or 'unknown function', ScriptRunner may not be available.",
+                                className="text-dark",
+                            ),
+                        ]
+                    )
+
+                return (
+                    html.Div(
+                        error_content,
+                        className="alert alert-light border-danger mb-0",  # Soft light background with danger border
+                    ),
+                    {"display": "block"},
+                )
+
+        except ImportError:
+            return (
+                html.Div(
+                    [
+                        html.I(
+                            className="fas fa-exclamation-triangle me-2 text-secondary"
+                        ),
+                        html.Span(
+                            "JIRA integration not available - cannot test query.",
+                            className="text-secondary",
+                        ),
+                    ],
+                    className="alert alert-light border-secondary mb-0",
+                ),
+                {"display": "block"},
+            )
+        except Exception as e:
+            logger.error(f"Error testing JQL query: {e}")
+            return (
+                html.Div(
+                    [
+                        html.I(className="fas fa-times-circle me-2 text-danger"),
+                        html.Span(
+                            f"Error testing query: {str(e)}", className="text-dark"
+                        ),
+                    ],
+                    className="alert alert-light border-danger mb-0",
+                ),
+                {"display": "block"},
+            )
+
+    # Add clientside callback for Test Query button loading state
+    app.clientside_callback(
+        """
+        function(n_clicks) {
+            if (n_clicks && n_clicks > 0) {
+                setTimeout(function() {
+                    const button = document.getElementById('test-jql-query-button');
+                    if (button) {
+                        // Set loading state
+                        button.disabled = true;
+                        button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Testing...';
+                        
+                        // Reset after timeout or when operation completes
+                        const resetButton = function() {
+                            if (button && button.disabled) {
+                                button.disabled = false;
+                                button.innerHTML = '<i class="fas fa-check-circle me-1"></i><span class="d-none d-sm-inline">Test Query</span>';
+                            }
+                        };
+                        
+                        // Shorter timeout for test operations
+                        setTimeout(resetButton, 5000);
+                        
+                        // Monitor for completion
+                        const observer = new MutationObserver(function(mutations) {
+                            const resultsArea = document.getElementById('jql-test-results');
+                            if (resultsArea && resultsArea.style.display !== 'none') {
+                                setTimeout(resetButton, 500); // Reset after results appear
+                                observer.disconnect();
+                            }
+                        });
+                        
+                        const targetNode = document.getElementById('jql-test-results');
+                        if (targetNode) {
+                            observer.observe(targetNode, { attributes: true, attributeFilter: ['style'] });
+                        }
+                    }
+                }, 50);
+            }
+            return null;
+        }
+        """,
+        Output("test-jql-query-button", "title"),
+        [Input("test-jql-query-button", "n_clicks")],
+        prevent_initial_call=True,
+    )
