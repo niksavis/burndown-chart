@@ -36,6 +36,9 @@ from ui.components import (
 # Import JQL editor component (Feature 002-finish-jql-syntax)
 from ui.jql_editor import create_jql_editor
 
+# Import JIRA config button (Feature 003-jira-config-separation)
+from ui.jira_config_modal import create_jira_config_button
+
 # Import styling functions from utility modules
 from ui.styles import (
     NEUTRAL_COLORS,
@@ -112,38 +115,8 @@ def _get_default_jql_profile_id():
         return ""
 
 
-def _get_default_jira_api_endpoint():
-    """
-    Get the default JIRA API endpoint from app settings.
-
-    Returns:
-        str: JIRA API endpoint from settings or default value
-    """
-    try:
-        from data.persistence import load_app_settings
-
-        app_settings = load_app_settings()
-        return app_settings.get(
-            "jira_api_endpoint", "https://jira.atlassian.com/rest/api/2/search"
-        )
-    except ImportError:
-        return "https://jira.atlassian.com/rest/api/2/search"
-
-
-def _get_default_jira_token():
-    """
-    Get the default JIRA token from app settings.
-
-    Returns:
-        str: JIRA token from settings or default value
-    """
-    try:
-        from data.persistence import load_app_settings
-
-        app_settings = load_app_settings()
-        return app_settings.get("jira_token", "")
-    except ImportError:
-        return ""
+# Legacy JIRA helper functions removed - JIRA configuration is now managed
+# via the JIRA Configuration modal (jira_config structure in app_settings.json)
 
 
 def _get_default_jira_story_points_field():
@@ -1217,27 +1190,13 @@ def create_input_parameters_card(
                         else "none"
                     },
                     children=[
-                        # JIRA API Endpoint - Full width on mobile
-                        dbc.Row(
-                            [
-                                dbc.Col(
-                                    [
-                                        html.Label(
-                                            "JIRA API Endpoint (URL):",
-                                            className="fw-medium",
-                                        ),
-                                        dbc.Input(
-                                            id="jira-url",
-                                            type="text",
-                                            placeholder="https://your-jira.com/rest/api/2/search",
-                                            value=_get_default_jira_api_endpoint(),
-                                            style=create_input_style(size="md"),
-                                        ),
-                                    ],
-                                    width=12,
-                                    className="mb-3",
-                                ),
-                            ],
+                        # Configure JIRA Button (Feature 003-jira-config-separation)
+                        create_jira_config_button(),
+                        # JIRA Configuration Status Indicator
+                        html.Div(
+                            id="jira-config-status-indicator",
+                            className="mt-2 mb-3",
+                            children=[],  # Will be populated by callback
                         ),
                         # JQL Query Management Section - Better UX Flow
                         html.Div(
@@ -1509,98 +1468,6 @@ def create_input_parameters_card(
                             ],
                             className="mb-4 p-3 border rounded-3",
                             style={"backgroundColor": "#f8f9fa"},
-                        ),
-                        # Personal Access Token - Full width on mobile
-                        dbc.Row(
-                            [
-                                dbc.Col(
-                                    [
-                                        html.Label(
-                                            "Personal Access Token (optional):",
-                                            className="fw-medium",
-                                        ),
-                                        dbc.Input(
-                                            id="jira-token",
-                                            type="password",
-                                            placeholder="Optional for public projects",
-                                            value=_get_default_jira_token(),
-                                            style=create_input_style(size="md"),
-                                        ),
-                                    ],
-                                    width=12,
-                                    className="mb-3",
-                                ),
-                            ],
-                        ),
-                        # Points Field - Full width on mobile
-                        dbc.Row(
-                            [
-                                dbc.Col(
-                                    [
-                                        html.Label(
-                                            "Points Field (optional):",
-                                            className="fw-medium",
-                                        ),
-                                        dbc.Input(
-                                            id="jira-story-points-field",
-                                            type="text",
-                                            placeholder="Leave empty if no story points, or enter your JIRA field ID",
-                                            value=_get_default_jira_story_points_field(),
-                                            style=create_input_style(size="md"),
-                                        ),
-                                    ],
-                                    width=12,
-                                    className="mb-3",
-                                ),
-                            ],
-                        ),
-                        # Cache Size Limit - Full width on mobile
-                        dbc.Row(
-                            [
-                                dbc.Col(
-                                    [
-                                        html.Label(
-                                            "Cache Size Limit (MB):",
-                                            className="fw-medium",
-                                        ),
-                                        dbc.Input(
-                                            id="jira-cache-max-size",
-                                            type="number",
-                                            placeholder="100",
-                                            value=_get_default_jira_cache_max_size(),
-                                            min=1,
-                                            max=1000,
-                                            style=create_input_style(size="md"),
-                                        ),
-                                    ],
-                                    width=12,
-                                    className="mb-3",
-                                ),
-                            ],
-                        ),
-                        # Max Results Limit - Full width on mobile
-                        dbc.Row(
-                            [
-                                dbc.Col(
-                                    [
-                                        html.Label(
-                                            "Max Results per API Call:",
-                                            className="fw-medium",
-                                        ),
-                                        dbc.Input(
-                                            id="jira-max-results",
-                                            type="number",
-                                            placeholder="1000",
-                                            value=_get_default_jira_max_results(),
-                                            min=1,
-                                            max=50000,
-                                            style=create_input_style(size="md"),
-                                        ),
-                                    ],
-                                    width=12,
-                                    className="mb-3",
-                                ),
-                            ],
                         ),
                         # Update Data Button Section - Full width on mobile with standardized button styling
                         dbc.Row(

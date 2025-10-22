@@ -63,16 +63,14 @@ def save_app_settings(
     milestone=None,
     show_points=None,
     jql_query=None,
-    jira_api_endpoint=None,
-    jira_token=None,
-    jira_story_points_field=None,
-    jira_cache_max_size=None,
-    jira_max_results=None,
     last_used_data_source=None,
     active_jql_profile_id=None,
 ):
     """
     Save app-level settings to JSON file.
+
+    Note: JIRA configuration is now managed separately via save_jira_configuration().
+    This function no longer handles individual JIRA settings.
 
     Args:
         pert_factor: PERT factor value
@@ -82,11 +80,6 @@ def save_app_settings(
         milestone: Milestone date string
         show_points: Whether to show points tracking and forecasting
         jql_query: JQL query for JIRA integration
-        jira_api_endpoint: Full JIRA API endpoint URL
-        jira_token: Personal access token for JIRA API
-        jira_story_points_field: Custom field ID for story points
-        jira_cache_max_size: Maximum cache size in MB
-        jira_max_results: Maximum number of results to fetch from JIRA API
         last_used_data_source: Last selected data source (JIRA or CSV)
         active_jql_profile_id: ID of the currently active JQL query profile
     """
@@ -100,17 +93,6 @@ def save_app_settings(
         "milestone": milestone,
         "show_points": show_points if show_points is not None else False,
         "jql_query": jql_query if jql_query is not None else "project = JRASERVER",
-        "jira_api_endpoint": jira_api_endpoint
-        if jira_api_endpoint is not None
-        else "https://jira.atlassian.com/rest/api/2/search",
-        "jira_token": jira_token if jira_token is not None else "",
-        "jira_story_points_field": jira_story_points_field
-        if jira_story_points_field is not None
-        else "",
-        "jira_cache_max_size": jira_cache_max_size
-        if jira_cache_max_size is not None
-        else 100,
-        "jira_max_results": jira_max_results if jira_max_results is not None else 1000,
         "last_used_data_source": last_used_data_source
         if last_used_data_source is not None
         else "JIRA",  # Default to JIRA (swapped order)
@@ -118,6 +100,15 @@ def save_app_settings(
         if active_jql_profile_id is not None
         else "",
     }
+
+    # Preserve jira_config if it exists (Feature 003-jira-config-separation)
+    try:
+        existing_settings = load_app_settings()
+        if "jira_config" in existing_settings:
+            settings["jira_config"] = existing_settings["jira_config"]
+            logger.debug("Preserved existing jira_config during save")
+    except Exception as e:
+        logger.debug(f"Could not load existing settings to preserve jira_config: {e}")
 
     try:
         # Write to a temporary file first
@@ -202,11 +193,6 @@ def load_app_settings():
                 migrated_settings["milestone"],
                 migrated_settings["show_points"],
                 migrated_settings["jql_query"],
-                "https://jira.atlassian.com/rest/api/2/search",  # Default API endpoint for migration
-                "",  # Empty JIRA token for migration
-                "",  # Empty story points field for migration
-                100,  # Default cache size for migration
-                1000,  # Default max results for migration
             )
 
             # Extract project data from legacy format and save separately
@@ -1148,3 +1134,295 @@ def _backup_legacy_files() -> None:
 
     # Note: Don't backup project_data.json as we're updating it in place
     # The legacy migration preserves existing data
+
+
+#######################################################################
+# JIRA CONFIGURATION FUNCTIONS (Feature 003-jira-config-separation)
+#######################################################################
+
+
+def get_default_jira_config() -> Dict[str, Any]:
+    """
+    Get default JIRA configuration structure.
+
+    Returns:
+        Dictionary containing default JIRA configuration
+    """
+    return {
+        "base_url": "",
+        "api_version": "v3",
+        "token": "",
+        "cache_size_mb": 100,
+        "max_results_per_call": 100,
+        "points_field": "customfield_10016",
+        "configured": False,
+        "last_test_timestamp": None,
+        "last_test_success": None,
+    }
+
+
+def migrate_jira_config(app_settings: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Migrate legacy JIRA settings to new jira_config structure.
+
+    Preserves existing values from legacy fields:
+    - jira_token → jira_config.token
+    - JIRA_URL env var → jira_config.base_url
+    - jira_api_endpoint → extract base_url and api_version
+    - jira_story_points_field → jira_config.points_field
+    - jira_cache_max_size → jira_config.cache_size_mb
+    - jira_max_results → jira_config.max_results_per_call
+
+    Args:
+        app_settings: Current app settings dictionary
+
+    Returns:
+        Updated app settings with jira_config structure
+    """
+    import os
+
+    # Start with default configuration
+    jira_config = get_default_jira_config()
+
+    # Migrate legacy token field
+    legacy_token = app_settings.get("jira_token", "")
+    if legacy_token:
+        jira_config["token"] = legacy_token
+        jira_config["configured"] = True
+
+    # Migrate base URL from environment variable or endpoint
+    jira_url_env = os.getenv("JIRA_URL", "")
+    if jira_url_env:
+        jira_config["base_url"] = jira_url_env.rstrip("/")
+        jira_config["configured"] = True
+
+    # Try to extract base URL from legacy jira_api_endpoint
+    legacy_endpoint = app_settings.get("jira_api_endpoint", "")
+    if legacy_endpoint and not jira_config["base_url"]:
+        # Extract base URL from endpoint like "https://company.atlassian.net/rest/api/2/search"
+        if "/rest/api/" in legacy_endpoint:
+            base_url = legacy_endpoint.split("/rest/api/")[0]
+            jira_config["base_url"] = base_url
+
+            # Detect API version from endpoint
+            if "/rest/api/3/" in legacy_endpoint:
+                jira_config["api_version"] = "v3"
+            elif "/rest/api/2/" in legacy_endpoint:
+                jira_config["api_version"] = "v2"
+
+    # Migrate other legacy fields
+    if "jira_story_points_field" in app_settings:
+        points_field = app_settings.get("jira_story_points_field", "")
+        if points_field:
+            jira_config["points_field"] = points_field
+
+    if "jira_cache_max_size" in app_settings:
+        cache_size = app_settings.get("jira_cache_max_size")
+        if cache_size is not None:
+            jira_config["cache_size_mb"] = int(cache_size)
+
+    if "jira_max_results" in app_settings:
+        max_results = app_settings.get("jira_max_results")
+        if max_results is not None:
+            jira_config["max_results_per_call"] = int(max_results)
+
+    # Add jira_config to settings
+    app_settings["jira_config"] = jira_config
+
+    logger.info("Migrated legacy JIRA settings to new jira_config structure")
+
+    return app_settings
+
+
+def cleanup_legacy_jira_fields(app_settings: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Remove legacy JIRA fields from app_settings after migration to jira_config.
+
+    Removes these fields that are now in jira_config:
+    - jira_api_endpoint (replaced by base_url + api_version)
+    - jira_token (replaced by jira_config.token)
+    - jira_story_points_field (replaced by jira_config.points_field)
+    - jira_cache_max_size (replaced by jira_config.cache_size_mb)
+    - jira_max_results (replaced by jira_config.max_results_per_call)
+
+    Args:
+        app_settings: Current app settings dictionary
+
+    Returns:
+        Cleaned app settings without legacy fields
+    """
+    legacy_fields = [
+        "jira_api_endpoint",
+        "jira_token",
+        "jira_story_points_field",
+        "jira_cache_max_size",
+        "jira_max_results",
+    ]
+
+    removed_fields = []
+    for field in legacy_fields:
+        if field in app_settings:
+            del app_settings[field]
+            removed_fields.append(field)
+
+    if removed_fields:
+        logger.info(f"Removed legacy JIRA fields: {', '.join(removed_fields)}")
+
+    return app_settings
+
+
+def load_jira_configuration() -> Dict[str, Any]:
+    """
+    Load JIRA configuration from app_settings.json.
+    Automatically migrates legacy configuration if needed.
+
+    Returns:
+        Dictionary containing JIRA configuration with all fields
+    """
+    app_settings = load_app_settings()
+
+    # Check if migration is needed
+    if "jira_config" not in app_settings:
+        app_settings = migrate_jira_config(app_settings)
+
+        # Save migrated settings back to file
+        try:
+            with open(APP_SETTINGS_FILE, "w") as f:
+                json.dump(app_settings, f, indent=2)
+            logger.info("Saved migrated JIRA configuration to app_settings.json")
+        except Exception as e:
+            logger.error(f"Error saving migrated JIRA configuration: {e}")
+
+    # Cleanup legacy fields after migration if they still exist
+    if any(
+        field in app_settings
+        for field in [
+            "jira_api_endpoint",
+            "jira_token",
+            "jira_story_points_field",
+            "jira_cache_max_size",
+            "jira_max_results",
+        ]
+    ):
+        app_settings = cleanup_legacy_jira_fields(app_settings)
+        # Save cleaned settings
+        try:
+            with open(APP_SETTINGS_FILE, "w") as f:
+                json.dump(app_settings, f, indent=2)
+            logger.info("Removed legacy JIRA fields from app_settings.json")
+        except Exception as e:
+            logger.error(f"Error saving cleaned JIRA configuration: {e}")
+
+    return app_settings.get("jira_config", get_default_jira_config())
+
+
+def validate_jira_config(config: Dict[str, Any]) -> tuple[bool, str]:
+    """
+    Validate JIRA configuration fields.
+
+    Args:
+        config: Configuration dictionary with JIRA settings
+
+    Returns:
+        Tuple of (is_valid, error_message)
+    """
+    # Base URL validation
+    if not config.get("base_url"):
+        return (False, "Base URL is required")
+
+    base_url = config["base_url"]
+    if not base_url.startswith(("http://", "https://")):
+        return (False, "Base URL must start with http:// or https://")
+
+    # Remove trailing slash for validation
+    clean_url = base_url.rstrip("/")
+    if not clean_url:
+        return (False, "Base URL cannot be empty after removing trailing slash")
+
+    # API version validation
+    api_version = config.get("api_version", "v3")
+    if api_version not in ["v2", "v3"]:
+        return (False, "API version must be 'v2' or 'v3'")
+
+    # Token validation
+    if not config.get("token"):
+        return (False, "Personal access token is required")
+
+    token = config["token"].strip()
+    if not token:
+        return (False, "Personal access token cannot be empty")
+
+    # Cache size validation
+    cache_size = config.get("cache_size_mb", 100)
+    try:
+        cache_size = int(cache_size)
+        if not (10 <= cache_size <= 1000):
+            return (False, "Cache size must be between 10 and 1000 MB")
+    except (ValueError, TypeError):
+        return (False, "Cache size must be a valid integer")
+
+    # Max results validation
+    max_results = config.get("max_results_per_call", 100)
+    try:
+        max_results = int(max_results)
+        if not (10 <= max_results <= 1000):
+            return (False, "Max results must be between 10 and 1000 (JIRA API limit)")
+    except (ValueError, TypeError):
+        return (False, "Max results must be a valid integer")
+
+    # Points field validation (optional, but must match pattern if provided)
+    points_field = config.get("points_field", "")
+    if points_field:
+        # Basic pattern validation for JIRA custom field format
+        if not points_field.startswith("customfield_"):
+            return (
+                False,
+                "Points field must start with 'customfield_' (e.g., 'customfield_10016')",
+            )
+
+        # Check if the part after customfield_ is numeric
+        try:
+            field_id = points_field.replace("customfield_", "")
+            int(field_id)
+        except ValueError:
+            return (
+                False,
+                "Points field must be in format 'customfield_XXXXX' where XXXXX is numeric",
+            )
+
+    return (True, "")
+
+
+def save_jira_configuration(config: Dict[str, Any]) -> bool:
+    """
+    Save JIRA configuration to app_settings.json.
+
+    Args:
+        config: Configuration dictionary with JIRA settings
+
+    Returns:
+        True if save successful, False otherwise
+    """
+    try:
+        # Validate configuration first
+        is_valid, error_msg = validate_jira_config(config)
+        if not is_valid:
+            logger.error(f"Invalid JIRA configuration: {error_msg}")
+            return False
+
+        # Load current settings
+        app_settings = load_app_settings()
+
+        # Update jira_config section
+        app_settings["jira_config"] = config
+
+        # Save back to file
+        with open(APP_SETTINGS_FILE, "w") as f:
+            json.dump(app_settings, f, indent=2)
+
+        logger.info("JIRA configuration saved successfully")
+        return True
+
+    except Exception as e:
+        logger.error(f"Error saving JIRA configuration: {e}")
+        return False
