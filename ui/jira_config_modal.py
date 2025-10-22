@@ -200,16 +200,19 @@ def create_jira_config_modal():
             ),
             dbc.ModalFooter(
                 [
+                    # Left-aligned: Cancel (tertiary action)
                     dbc.Button(
                         "Cancel",
                         id="jira-config-cancel-button",
                         color="secondary",
-                        className="me-2",
+                        className="me-auto",  # Push to left, add space to right
                     ),
+                    # Right-aligned group: Test Connection + Save Configuration
                     dbc.Button(
                         [html.I(className="fas fa-plug me-2"), "Test Connection"],
                         id="jira-test-connection-button",
                         color="info",
+                        outline=True,  # Less prominent than Save
                         className="me-2",
                     ),
                     dbc.Button(

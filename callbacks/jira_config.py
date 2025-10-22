@@ -177,6 +177,7 @@ def test_jira_connection_callback(n_clicks, base_url, api_version, token):
             ],
             color="success",
             dismissable=True,
+            duration=4000,  # Auto-dismiss after 4 seconds
         )
     else:
         # Check if this is an API version mismatch error
@@ -302,7 +303,7 @@ def save_jira_configuration_callback(
 
         if success:
             logger.info("JIRA configuration saved successfully")
-            # Close modal and show success message (with optional cache warning)
+            # Keep modal open, show success message with auto-dismiss
             success_message = dbc.Alert(
                 [
                     html.Strong("✓ Configuration Saved"),
@@ -318,9 +319,9 @@ def save_jira_configuration_callback(
 
             # Combine success message with cache warning if present
             if cache_warning:
-                return (False, html.Div([success_message, cache_warning]))
+                return (no_update, html.Div([success_message, cache_warning]))
             else:
-                return (False, success_message)
+                return (no_update, success_message)
         else:
             logger.error("Failed to save JIRA configuration")
             return (
@@ -613,3 +614,9 @@ def show_api_version_warning(selected_version, is_open):
     except Exception as e:
         logger.debug(f"Could not load config for version warning: {e}")
         return html.Div()
+
+
+#######################################################################
+# NOTE: Auto-dismiss alerts (4-second duration) provide clean UX
+#       without needing explicit clear-on-close callback
+#######################################################################

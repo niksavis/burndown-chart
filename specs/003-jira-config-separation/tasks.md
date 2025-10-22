@@ -85,6 +85,8 @@
 - [X] T026 [US2] Add validation warning in callbacks/jira_config.py for high cache_size_mb values (>500MB) per data-model.md business rule
 - [X] T027 [US2] Update "Save Configuration" callback in callbacks/jira_config.py to preserve existing jira_config fields not shown in form
 - [X] T028 [US2] Add API version change warning in ui/jira_config_modal.py (inform users when switching v2 ↔ v3) per research.md Section 2
+- [X] T032.5 [US2] Remove legacy JIRA field duplication: update save_app_settings() to stop writing duplicate fields, update get_jira_config() to read from jira_config structure, remove unused helper functions, add automatic cleanup on load
+- [X] T032.6 [UX] Improve modal button layout and message behavior: separate Save/Close actions, keep modal open after save, auto-dismiss success messages (4s), improve button hierarchy (Cancel left, Test/Save right)
 - [ ] T029 [US2] Test configuration update workflow: modify token, test connection (verify new token validated), save, verify JQL query profiles remain intact
 - [ ] T030 [US2] Test cancel workflow: open modal, change settings, click cancel, reopen modal, verify changes were not saved
 - [ ] T031 [US2] Test API version switch: change v3 to v2, save, verify construct_jira_endpoint() generates correct path (/rest/api/2/search)
