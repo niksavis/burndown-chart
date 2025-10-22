@@ -87,9 +87,9 @@
 - [X] T028 [US2] Add API version change warning in ui/jira_config_modal.py (inform users when switching v2 ↔ v3) per research.md Section 2
 - [X] T032.5 [US2] Remove legacy JIRA field duplication: update save_app_settings() to stop writing duplicate fields, update get_jira_config() to read from jira_config structure, remove unused helper functions, add automatic cleanup on load
 - [X] T032.6 [UX] Improve modal button layout and message behavior: separate Save/Close actions, keep modal open after save, auto-dismiss success messages (4s), improve button hierarchy (Cancel left, Test/Save right)
-- [ ] T029 [US2] Test configuration update workflow: modify token, test connection (verify new token validated), save, verify JQL query profiles remain intact
-- [ ] T030 [US2] Test cancel workflow: open modal, change settings, click cancel, reopen modal, verify changes were not saved
-- [ ] T031 [US2] Test API version switch: change v3 to v2, save, verify construct_jira_endpoint() generates correct path (/rest/api/2/search)
+- [X] T029 [US2] Test configuration update workflow: modify token, test connection (verify new token validated), save, verify JQL query profiles remain intact
+- [X] T030 [US2] Test cancel workflow: open modal, change settings, click cancel, reopen modal, verify changes were not saved
+- [X] T031 [US2] Test API version switch: change v3 to v2, save, verify construct_jira_endpoint() generates correct path (/rest/api/2/search)
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work - initial config and modification workflows are functional
 
@@ -112,9 +112,9 @@
 - [X] T038 [US3] Update any callbacks in callbacks/settings.py that reference legacy jira_token field to use jira_config structure from persistence
 - [X] T039 [US3] Add configuration status indicator to Data Source card (e.g., "JIRA Connected ✓" or "Configure JIRA to begin")
 - [X] T040 [US3] Add error handling for unconfigured state: display helpful message with "Configure JIRA" button when user tries to query without configuration per FR-018
-- [ ] T041 [US3] Test simplified Data Source interface: verify only JQL query fields remain, count fields removed (target: 5+ per SC-005)
-- [ ] T042 [US3] Test unconfigured workflow: reset app_settings.json jira_config, restart app, verify user prompted to configure before querying
-- [ ] T043 [US3] Test error message with config link: simulate query with invalid token, verify error suggests opening configuration modal
+- [X] T041 [US3] Test simplified Data Source interface: verify only JQL query fields remain, count fields removed (target: 5+ per SC-005)
+- [X] T042 [US3] Test unconfigured workflow: reset app_settings.json jira_config, restart app, verify user prompted to configure before querying
+- [X] T043 [US3] Test error message with config link: simulate query with invalid token, verify error suggests opening configuration modal
 
 **Checkpoint**: All user stories should now be independently functional - JIRA configuration is fully separated from JQL query interface
 
