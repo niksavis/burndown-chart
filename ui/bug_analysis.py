@@ -5,7 +5,8 @@ Provides UI components for bug metrics display, charts, and analysis tab layout.
 
 from dash import html
 import dash_bootstrap_components as dbc
-from typing import Dict
+from typing import Dict, List
+from data.bug_insights import InsightSeverity
 
 
 def create_bug_metrics_card(bug_metrics: Dict) -> dbc.Card:
@@ -157,6 +158,141 @@ def create_bug_metrics_card(bug_metrics: Dict) -> dbc.Card:
                         )
                     ]
                 ),
+            ]
+        ),
+        className="mb-3",
+    )
+
+
+def create_quality_insights_panel(insights: List[Dict]) -> dbc.Card:
+    """Create quality insights panel with severity icons and expandable details.
+
+    Args:
+        insights: List of insight dictionaries with:
+            - type: InsightType enum
+            - severity: InsightSeverity enum
+            - message: Short insight message
+            - actionable_recommendation: Detailed recommendation
+
+    Returns:
+        Dash Bootstrap Components Card with quality insights
+    """
+    if not insights:
+        return dbc.Card(
+            dbc.CardBody(
+                [
+                    html.H4("Quality Insights", className="card-title"),
+                    html.Div(
+                        [
+                            html.I(className="fas fa-lightbulb me-2"),
+                            html.Span(
+                                "No insights available - continue monitoring bug trends."
+                            ),
+                        ],
+                        className="alert alert-info",
+                    ),
+                ]
+            ),
+            className="mb-3",
+        )
+
+    def get_severity_config(severity: InsightSeverity) -> Dict:
+        """Get icon and color configuration for severity level."""
+        severity_configs = {
+            InsightSeverity.CRITICAL: {
+                "icon": "fa-exclamation-triangle",
+                "color": "danger",
+                "badge_text": "Critical",
+            },
+            InsightSeverity.WARNING: {
+                "icon": "fa-exclamation-circle",
+                "color": "warning",
+                "badge_text": "Warning",
+            },
+            InsightSeverity.INFO: {
+                "icon": "fa-info-circle",
+                "color": "success",
+                "badge_text": "Info",
+            },
+        }
+        return severity_configs.get(severity, severity_configs[InsightSeverity.INFO])
+
+    # Create insight items with expandable details
+    insight_items = []
+    for idx, insight in enumerate(insights):
+        severity_config = get_severity_config(insight["severity"])
+
+        # Create collapse ID for this insight
+        collapse_id = f"insight-collapse-{idx}"
+
+        insight_item = dbc.Card(
+            [
+                dbc.CardHeader(
+                    dbc.Row(
+                        [
+                            dbc.Col(
+                                [
+                                    html.I(
+                                        className=f"fas {severity_config['icon']} me-2"
+                                    ),
+                                    html.Span(insight["message"]),
+                                ],
+                                width=10,
+                            ),
+                            dbc.Col(
+                                [
+                                    dbc.Badge(
+                                        severity_config["badge_text"],
+                                        color=severity_config["color"],
+                                        className="me-2",
+                                    ),
+                                    dbc.Button(
+                                        html.I(className="fas fa-chevron-down"),
+                                        id=f"insight-toggle-{idx}",
+                                        color="link",
+                                        size="sm",
+                                        className="p-0",
+                                    ),
+                                ],
+                                width=2,
+                                className="text-end",
+                            ),
+                        ],
+                        align="center",
+                    ),
+                    className=f"bg-{severity_config['color']} bg-opacity-10 border-{severity_config['color']}",
+                    style={"cursor": "pointer"},
+                    id=f"insight-header-{idx}",
+                ),
+                dbc.Collapse(
+                    dbc.CardBody(
+                        [
+                            html.H6("Recommendation:", className="fw-bold mb-2"),
+                            html.P(
+                                insight["actionable_recommendation"],
+                                className="mb-0",
+                            ),
+                        ]
+                    ),
+                    id=collapse_id,
+                    is_open=False,
+                ),
+            ],
+            className="mb-2",
+        )
+        insight_items.append(insight_item)
+
+    return dbc.Card(
+        dbc.CardBody(
+            [
+                html.H4(
+                    [
+                        html.I(className="fas fa-lightbulb me-2"),
+                        "Quality Insights",
+                    ],
+                    className="card-title mb-3",
+                ),
+                html.Div(insight_items),
             ]
         ),
         className="mb-3",

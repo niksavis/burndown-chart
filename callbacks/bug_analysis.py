@@ -19,7 +19,8 @@ import dash_bootstrap_components as dbc
 # Application imports
 from data.bug_processing import filter_bug_issues, calculate_bug_metrics_summary
 from data.persistence import load_unified_project_data
-from ui.bug_analysis import create_bug_metrics_card
+from ui.bug_analysis import create_bug_metrics_card, create_quality_insights_panel
+from data.bug_insights import generate_quality_insights
 from configuration.settings import get_bug_analysis_config
 
 #######################################################################
@@ -140,6 +141,9 @@ def update_bug_metrics(active_tab: str, data_points_count: int):
         date_to = datetime.now()
         date_from = date_to - timedelta(weeks=data_points_count or 12)
 
+        # Initialize weekly_stats (needed for quality insights)
+        weekly_stats = []
+
         # Calculate weekly bug statistics
         try:
             logger.info(
@@ -163,6 +167,8 @@ def update_bug_metrics(active_tab: str, data_points_count: int):
             logger.error(
                 f"Bug count: {len(bug_issues)}, date_from: {date_from}, date_to: {date_to}"
             )
+            # Set empty weekly_stats for insights
+            weekly_stats = []
             trends_chart = dbc.Card(
                 dbc.CardBody(
                     [
@@ -201,26 +207,14 @@ def update_bug_metrics(active_tab: str, data_points_count: int):
                 dbc.Row([dbc.Col([metrics_card], width=12)], className="mb-4"),
                 # Bug trends chart
                 dbc.Row([dbc.Col([trends_chart], width=12)], className="mb-4"),
-                # Placeholder for future insights
+                # Quality insights panel (T078-T082)
                 dbc.Row(
                     [
                         dbc.Col(
                             [
-                                html.Div(
-                                    [
-                                        html.I(
-                                            className="fas fa-lightbulb fa-3x text-muted mb-3"
-                                        ),
-                                        html.H5(
-                                            "Quality Insights Coming Soon",
-                                            className="text-muted",
-                                        ),
-                                        html.P(
-                                            "Actionable recommendations will be displayed here.",
-                                            className="text-muted small",
-                                        ),
-                                    ],
-                                    className="text-center p-5 border rounded bg-light",
+                                # Generate quality insights from metrics and statistics
+                                create_quality_insights_panel(
+                                    generate_quality_insights(bug_metrics, weekly_stats)
                                 )
                             ],
                             width=12,
