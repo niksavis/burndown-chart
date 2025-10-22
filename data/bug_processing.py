@@ -289,23 +289,122 @@ def calculate_bug_metrics_summary(
 
 
 def forecast_bug_resolution(
-    open_bugs: int, weekly_stats: List[Dict], confidence_level: float = 0.95
+    open_bugs: int, weekly_stats: List[Dict], use_last_n_weeks: int = 8
 ) -> Dict:
-    """Forecast bug resolution timeline with confidence intervals.
+    """Forecast when open bugs will be resolved based on historical closure rates.
+
+    Calculates optimistic, most likely, and pessimistic forecasts using
+    average closure rate and standard deviation from recent history.
 
     Args:
-        open_bugs: Current count of open bugs
-        weekly_stats: Historical weekly bug statistics
-        confidence_level: Statistical confidence level (0.0-1.0)
+        open_bugs: Number of currently open bugs
+        weekly_stats: List of weekly bug statistics with bugs_resolved counts
+        use_last_n_weeks: Number of recent weeks to analyze (default: 8)
 
     Returns:
-        Bug forecast dictionary with optimistic/pessimistic estimates
+        Dict with forecast data:
+            - optimistic_weeks: Best case weeks to resolution (avg + 1 std dev)
+            - most_likely_weeks: Expected weeks to resolution (avg rate)
+            - pessimistic_weeks: Worst case weeks to resolution (avg - 1 std dev)
+            - optimistic_date: Best case completion date (ISO format)
+            - most_likely_date: Expected completion date (ISO format)
+            - pessimistic_date: Worst case completion date (ISO format)
+            - avg_closure_rate: Average bugs resolved per week
+            - insufficient_data: True if forecast cannot be calculated
 
-    See: contracts/bug_forecasting.contract.md for detailed specification
+    Example:
+        >>> weekly_stats = [
+        ...     {"week_start": "2025-01-01", "bugs_resolved": 5},
+        ...     {"week_start": "2025-01-08", "bugs_resolved": 6},
+        ...     {"week_start": "2025-01-15", "bugs_resolved": 4},
+        ...     {"week_start": "2025-01-22", "bugs_resolved": 5},
+        ... ]
+        >>> forecast = forecast_bug_resolution(10, weekly_stats)
+        >>> forecast["most_likely_weeks"]  # ~2 weeks with 5 bugs/week rate
+        2
     """
-    # TODO: Implement forecasting per contract
-    return {}
+    # Handle zero open bugs - immediate completion
+    if open_bugs == 0:
+        return {
+            "optimistic_weeks": 0,
+            "most_likely_weeks": 0,
+            "pessimistic_weeks": 0,
+            "optimistic_date": calculate_future_date(0),
+            "most_likely_date": calculate_future_date(0),
+            "pessimistic_date": calculate_future_date(0),
+            "avg_closure_rate": 0,
+            "insufficient_data": False,
+        }
 
+    # Need at least 4 weeks of data for meaningful forecast
+    if len(weekly_stats) < 4:
+        return {
+            "optimistic_weeks": 0,
+            "most_likely_weeks": 0,
+            "pessimistic_weeks": 0,
+            "optimistic_date": "",
+            "most_likely_date": "",
+            "pessimistic_date": "",
+            "avg_closure_rate": 0,
+            "insufficient_data": True,
+        }
+
+    # Extract closure rates from recent weeks
+    recent_stats = weekly_stats[-use_last_n_weeks:]
+    closure_rates = [week.get("bugs_resolved", 0) for week in recent_stats]
+
+    # Calculate average closure rate
+    avg_closure_rate = sum(closure_rates) / len(closure_rates)
+
+    # Check for zero closure rate (no progress)
+    if avg_closure_rate == 0:
+        return {
+            "optimistic_weeks": 0,
+            "most_likely_weeks": 0,
+            "pessimistic_weeks": 0,
+            "optimistic_date": "",
+            "most_likely_date": "",
+            "pessimistic_date": "",
+            "avg_closure_rate": 0,
+            "insufficient_data": True,
+        }
+
+    # Calculate standard deviation for confidence intervals
+    std_dev = calculate_standard_deviation(closure_rates)
+
+    # Calculate optimistic rate (avg + 1 std dev)
+    optimistic_rate = avg_closure_rate + std_dev
+    optimistic_rate = max(optimistic_rate, avg_closure_rate)  # At least avg
+
+    # Calculate pessimistic rate (avg - 1 std dev, minimum 0.1)
+    pessimistic_rate = avg_closure_rate - std_dev
+    pessimistic_rate = max(pessimistic_rate, 0.1)  # Avoid division by zero
+
+    # Calculate weeks to complete
+    optimistic_weeks = int(open_bugs / optimistic_rate) + (
+        1 if open_bugs % optimistic_rate > 0 else 0
+    )
+    most_likely_weeks = int(open_bugs / avg_closure_rate) + (
+        1 if open_bugs % avg_closure_rate > 0 else 0
+    )
+    pessimistic_weeks = int(open_bugs / pessimistic_rate) + (
+        1 if open_bugs % pessimistic_rate > 0 else 0
+    )
+
+    # Ensure ordering: optimistic <= likely <= pessimistic
+    optimistic_weeks = min(optimistic_weeks, most_likely_weeks)
+    pessimistic_weeks = max(pessimistic_weeks, most_likely_weeks)
+
+    return {
+        "optimistic_weeks": optimistic_weeks,
+        "most_likely_weeks": most_likely_weeks,
+        "pessimistic_weeks": pessimistic_weeks,
+        "optimistic_date": calculate_future_date(optimistic_weeks),
+        "most_likely_date": calculate_future_date(most_likely_weeks),
+        "pessimistic_date": calculate_future_date(pessimistic_weeks),
+        "avg_closure_rate": round(avg_closure_rate, 2),
+        "insufficient_data": False,
+    }
 
 def get_iso_week(date: datetime) -> str:
     """Convert date to ISO week format (YYYY-Www).
@@ -344,8 +443,12 @@ def calculate_standard_deviation(values: List[float]) -> float:
     Returns:
         Standard deviation
     """
-    # TODO: Implement standard deviation calculation
-    return 0.0
+    if not values or len(values) < 2:
+        return 0.0
+
+    mean = sum(values) / len(values)
+    variance = sum((x - mean) ** 2 for x in values) / len(values)
+    return variance**0.5
 
 
 def calculate_future_date(
@@ -360,5 +463,10 @@ def calculate_future_date(
     Returns:
         ISO date string
     """
-    # TODO: Implement future date calculation
-    return ""
+    from datetime import timedelta
+
+    if base_date is None:
+        base_date = datetime.now()
+
+    future_date = base_date + timedelta(weeks=weeks_ahead)
+    return future_date.date().isoformat()
