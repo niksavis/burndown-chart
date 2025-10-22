@@ -32,32 +32,40 @@ logger = logging.getLogger(__name__)
 
 
 @callback(
-    Output("bug-metrics-card", "children"),
-    Input("chart-tabs", "active_tab"),
+    [Output("bug-metrics-card", "children"), Output("bug-trends-chart", "children")],
+    [Input("chart-tabs", "active_tab"), Input("data-points-input", "value")],
     prevent_initial_call=False,
 )
-def update_bug_metrics(active_tab: str):
+def update_bug_metrics(active_tab: str, data_points_count: int):
     """
-    Update bug metrics card when tab is activated.
+    Update bug metrics card and trend chart when tab is activated or timeline changes.
 
     This callback listens to:
     - Tab activation (tab-bug-analysis)
+    - Timeline filter changes (data-points-input) - T042
 
     Args:
         active_tab: Currently active tab ID
+        data_points_count: Number of weeks to include (from timeline filter)
 
     Returns:
-        Dash component with bug metrics card content
+        Tuple of (bug metrics card, bug trends chart) components
     """
     # Only update when bug analysis tab is active
     if active_tab != "tab-bug-analysis":
-        return html.Div()  # Return empty div for other tabs
+        return html.Div(), html.Div()  # Return empty divs for other tabs
 
     logger.info(f"Bug metrics callback triggered for tab: {active_tab}")
 
     try:
         # Load bug analysis configuration
         bug_config = get_bug_analysis_config()
+
+        # Get JIRA configuration for points field
+        from data.persistence import load_jira_configuration
+        
+        jira_config = load_jira_configuration()
+        points_field = jira_config.get("points_field", "customfield_10016")
 
         # Get JIRA issues - try multiple sources
         all_issues = []
@@ -72,15 +80,13 @@ def update_bug_metrics(active_tab: str):
         if not all_issues:
             try:
                 from data.jira_simple import load_jira_cache
-                from data.persistence import load_app_settings, load_jira_configuration
+                from data.persistence import load_app_settings
 
                 settings = load_app_settings()
-                jira_config = load_jira_configuration()
                 jql_query = settings.get("jql_query", "")
 
                 # Include points field if configured (must match cached fields)
                 base_fields = "key,created,resolutiondate,status,issuetype"
-                points_field = jira_config.get("points_field", "")
                 fields = (
                     f"{base_fields},{points_field}" if points_field else base_fields
                 )
@@ -114,18 +120,51 @@ def update_bug_metrics(active_tab: str):
             f"{bug_metrics['resolution_rate']:.1%} resolution rate"
         )
 
-        # Create and return metrics card
-        return create_bug_metrics_card(bug_metrics)
+        # Create metrics card
+        metrics_card = create_bug_metrics_card(bug_metrics)
+
+        # Calculate bug statistics for trend chart (T041)
+        # Import calculate_bug_statistics
+        from data.bug_processing import calculate_bug_statistics
+        from datetime import datetime, timedelta
+
+        # Determine date range based on data_points_count (timeline filter)
+        date_to = datetime.now()
+        date_from = date_to - timedelta(weeks=data_points_count or 12)
+
+        # Calculate weekly bug statistics
+        try:
+            weekly_stats = calculate_bug_statistics(
+                bug_issues, date_from, date_to, story_points_field=points_field
+            )
+
+            # Create bug trends chart
+            from ui.bug_charts import BugTrendChart
+
+            trends_chart = BugTrendChart(weekly_stats, viewport_size="mobile")
+        except ValueError as ve:
+            # Handle edge case: not enough bugs for statistics
+            logger.warning(f"Could not calculate bug statistics: {ve}")
+            trends_chart = html.Div(
+                [
+                    html.I(className="fas fa-info-circle me-2"),
+                    "Not enough bug data to display trends.",
+                ],
+                className="alert alert-info",
+            )
+
+        return metrics_card, trends_chart
 
     except Exception as e:
         logger.error(f"Error updating bug metrics: {e}", exc_info=True)
-        return html.Div(
+        error_msg = html.Div(
             [
                 html.I(className="fas fa-exclamation-triangle me-2"),
                 f"Error loading bug metrics: {str(e)}",
             ],
             className="alert alert-danger",
         )
+        return error_msg, html.Div()
 
 
 #######################################################################

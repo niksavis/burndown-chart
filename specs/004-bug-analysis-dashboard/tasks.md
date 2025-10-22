@@ -85,25 +85,25 @@
 
 ### Tests for User Story 2
 
-- [ ] T028 [P] [US2] Add test_calculate_bug_statistics_weekly_bins() to test_bug_processing.py
-- [ ] T029 [P] [US2] Add test_bug_statistics_iso_week_assignment() to verify ISO week logic
-- [ ] T030 [P] [US2] Add test_bug_statistics_cumulative_open() to verify running totals
-- [ ] T031 [P] [US2] Add test_bug_statistics_empty_weeks() to verify weeks with zero activity
-- [ ] T032 [P] [US2] Create `tests/unit/ui/test_bug_charts.py` with test_bug_trend_chart_data()
+- [X] T028 [P] [US2] Add test_calculate_bug_statistics_weekly_bins() to test_bug_processing.py
+- [X] T029 [P] [US2] Add test_bug_statistics_iso_week_assignment() to verify ISO week logic
+- [X] T030 [P] [US2] Add test_bug_statistics_cumulative_open() to verify running totals
+- [X] T031 [P] [US2] Add test_bug_statistics_empty_weeks() to verify weeks with zero activity
+- [X] T032 [P] [US2] Create `tests/unit/ui/test_bug_charts.py` with test_bug_trend_chart_data()
 
 ### Implementation for User Story 2
 
-- [ ] T033 [P] [US2] Implement `data/bug_processing.py::calculate_bug_statistics()` per bug_statistics.contract.md including bugs resolved within timeline regardless of creation date (FR-020)
-- [ ] T034 [US2] Add ISO week calculation helper functions (get_iso_week, get_week_start_date)
-- [ ] T035 [US2] Implement weekly binning logic for bugs_created and bugs_resolved
-- [ ] T036 [US2] Implement cumulative_open_bugs running sum calculation
-- [ ] T037 [P] [US2] Implement `visualization/mobile_charts.py::create_bug_trend_chart()` returning Plotly figure with mobile optimization
-- [ ] T037a [US2] Add red/orange background highlights and warning icons to bug trend chart for 3+ consecutive weeks where creation > closure (FR-014)
-- [ ] T038 [P] [US2] Create `ui/bug_charts.py::BugTrendChart()` component wrapper calling visualization.mobile_charts.create_bug_trend_chart()
-- [ ] T039 [US2] Validate bug trend chart color contrast ratio (4.5:1 minimum) for creation vs closure lines
-- [ ] T040 [US2] Update bug_analysis_tab() layout to include bug trend chart
-- [ ] T041 [US2] Add bug_trend_chart_update() callback to callbacks/bug_analysis.py
-- [ ] T042 [US2] Implement date range filtering for bug trend chart
+- [X] T033 [P] [US2] Implement `data/bug_processing.py::calculate_bug_statistics()` per bug_statistics.contract.md including bugs resolved within timeline regardless of creation date (FR-020)
+- [X] T034 [US2] Add ISO week calculation helper functions (get_iso_week, get_week_start_date)
+- [X] T035 [US2] Implement weekly binning logic for bugs_created and bugs_resolved
+- [X] T036 [US2] Implement cumulative_open_bugs running sum calculation
+- [X] T037 [P] [US2] Implement `visualization/mobile_charts.py::create_bug_trend_chart()` returning Plotly figure with mobile optimization
+- [X] T037a [US2] Add red/orange background highlights and warning icons to bug trend chart for 3+ consecutive weeks where creation > closure (FR-014)
+- [X] T038 [P] [US2] Create `ui/bug_charts.py::BugTrendChart()` component wrapper calling visualization.mobile_charts.create_bug_trend_chart()
+- [X] T039 [US2] Validate bug trend chart color contrast ratio (4.5:1 minimum) for creation vs closure lines
+- [X] T040 [US2] Update bug_analysis_tab() layout to include bug trend chart
+- [X] T041 [US2] Add bug_trend_chart_update() callback to callbacks/bug_analysis.py
+- [X] T042 [US2] Implement date range filtering for bug trend chart
 
 **Checkpoint**: Bug trends visualize correctly showing creation vs closure over time with warnings
 

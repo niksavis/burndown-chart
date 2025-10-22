@@ -196,7 +196,11 @@ def create_bug_analysis_tab() -> html.Div:
             dbc.Row(
                 [dbc.Col([html.Div(id="bug-metrics-card")], width=12)], className="mb-4"
             ),
-            # Placeholder for future charts and insights
+            # Bug trends chart (will be populated by callback)
+            dbc.Row(
+                [dbc.Col([html.Div(id="bug-trends-chart")], width=12)], className="mb-4"
+            ),
+            # Placeholder for future insights
             dbc.Row(
                 [
                     dbc.Col(
@@ -204,13 +208,14 @@ def create_bug_analysis_tab() -> html.Div:
                             html.Div(
                                 [
                                     html.I(
-                                        className="fas fa-chart-area fa-3x text-muted mb-3"
+                                        className="fas fa-lightbulb fa-3x text-muted mb-3"
                                     ),
                                     html.H5(
-                                        "Bug Trends Coming Soon", className="text-muted"
+                                        "Quality Insights Coming Soon",
+                                        className="text-muted",
                                     ),
                                     html.P(
-                                        "Bug creation and resolution trends will be displayed here.",
+                                        "Actionable recommendations will be displayed here.",
                                         className="text-muted small",
                                     ),
                                 ],

@@ -12,6 +12,7 @@ for responsive data visualization on mobile devices.
 from typing import Dict, Any
 
 # Third-party library imports
+import plotly.graph_objects as go
 
 
 def get_mobile_chart_config(viewport_size: str = "mobile") -> Dict[str, Any]:
@@ -231,3 +232,157 @@ def create_mobile_optimized_chart(figure_data: Dict, viewport_size: str = "mobil
     else:
         # It's figure data dictionary
         return figure_data  # Return as-is if not a figure object
+
+
+def create_bug_trend_chart(weekly_stats: list[Dict], viewport_size: str = "mobile") -> go.Figure:
+    """
+    Create bug trend chart showing bugs created vs resolved per week.
+    
+    Implements T037 - Bug trend visualization with mobile optimization.
+    Implements T037a - Visual warnings for 3+ consecutive weeks of negative trends.
+    
+    Args:
+        weekly_stats: List of weekly bug statistics from calculate_bug_statistics()
+        viewport_size: "mobile", "tablet", or "desktop"
+        
+    Returns:
+        Plotly Figure object with bug trend visualization
+    """
+    import plotly.graph_objects as go
+    
+    if not weekly_stats:
+        # Return empty chart with message
+        fig = go.Figure()
+        fig.add_annotation(
+            text="No bug data available for the selected period",
+            xref="paper",
+            yref="paper",
+            x=0.5,
+            y=0.5,
+            showarrow=False,
+            font=dict(size=14, color="gray"),
+        )
+        fig.update_layout(
+            title="Bug Trends: Creation vs Resolution",
+            xaxis=dict(visible=False),
+            yaxis=dict(visible=False),
+        )
+        return fig
+    
+    # Extract data for plotting
+    weeks = [stat["week"] for stat in weekly_stats]
+    bugs_created = [stat["bugs_created"] for stat in weekly_stats]
+    bugs_resolved = [stat["bugs_resolved"] for stat in weekly_stats]
+    
+    # Create figure with two traces
+    fig = go.Figure()
+    
+    # Bugs created line (red/orange color)
+    fig.add_trace(
+        go.Scatter(
+            x=weeks,
+            y=bugs_created,
+            name="Bugs Created",
+            mode="lines+markers",
+            line=dict(color="#dc3545", width=2),  # Red color
+            marker=dict(size=6),
+            hovertemplate="<b>%{x}</b><br>Created: %{y}<extra></extra>",
+        )
+    )
+    
+    # Bugs resolved line (green color)
+    fig.add_trace(
+        go.Scatter(
+            x=weeks,
+            y=bugs_resolved,
+            name="Bugs Closed",
+            mode="lines+markers",
+            line=dict(color="#28a745", width=2),  # Green color
+            marker=dict(size=6),
+            hovertemplate="<b>%{x}</b><br>Closed: %{y}<extra></extra>",
+        )
+    )
+    
+    # T037a: Add visual warnings for 3+ consecutive weeks where creation > closure
+    warning_shapes = []
+    consecutive_negative_weeks = 0
+    warning_start_idx = None
+    
+    for idx, stat in enumerate(weekly_stats):
+        if stat["bugs_created"] > stat["bugs_resolved"]:
+            consecutive_negative_weeks += 1
+            if consecutive_negative_weeks == 1:
+                warning_start_idx = idx
+        else:
+            # Check if we had 3+ consecutive negative weeks
+            if consecutive_negative_weeks >= 3 and warning_start_idx is not None:
+                # Add background highlight for warning period
+                warning_shapes.append(
+                    dict(
+                        type="rect",
+                        xref="x",
+                        yref="paper",
+                        x0=weeks[warning_start_idx],
+                        x1=weeks[idx - 1],
+                        y0=0,
+                        y1=1,
+                        fillcolor="rgba(220, 53, 69, 0.15)",  # Light red
+                        layer="below",
+                        line_width=0,
+                    )
+                )
+            consecutive_negative_weeks = 0
+            warning_start_idx = None
+    
+    # Check final period if it ends with warnings
+    if consecutive_negative_weeks >= 3 and warning_start_idx is not None:
+        warning_shapes.append(
+            dict(
+                type="rect",
+                xref="x",
+                yref="paper",
+                x0=weeks[warning_start_idx],
+                x1=weeks[-1],
+                y0=0,
+                y1=1,
+                fillcolor="rgba(220, 53, 69, 0.15)",  # Light red
+                layer="below",
+                line_width=0,
+            )
+        )
+    
+    # Configure layout
+    layout_config = get_mobile_chart_layout(viewport_size)
+    
+    fig.update_layout(
+        title="Bug Trends: Creation vs Resolution",
+        xaxis=dict(
+            title="Week",
+            tickangle=-45 if viewport_size == "mobile" else 0,
+            tickfont=dict(size=10 if viewport_size == "mobile" else 12),
+        ),
+        yaxis=dict(
+            title="Bug Count",
+            tickfont=dict(size=10 if viewport_size == "mobile" else 12),
+        ),
+        shapes=warning_shapes,  # Add warning highlights
+        hovermode="x unified",
+        **layout_config,
+    )
+    
+    # Add legend configuration
+    fig.update_layout(
+        showlegend=True,
+        legend=dict(
+            orientation="h" if viewport_size == "mobile" else "v",
+            yanchor="bottom",
+            y=-0.3 if viewport_size == "mobile" else 1.0,
+            xanchor="left" if viewport_size == "mobile" else "left",
+            x=0 if viewport_size == "mobile" else 1.02,
+            bgcolor="rgba(255,255,255,0.8)",
+            bordercolor="rgba(0,0,0,0.1)",
+            borderwidth=1,
+        )
+    )
+    
+    return fig

@@ -80,8 +80,128 @@ def calculate_bug_statistics(
 
     See: contracts/bug_statistics.contract.md for detailed specification
     """
-    # TODO: Implement weekly statistics calculation per contract
-    return []
+    # Validate inputs
+    if not isinstance(bug_issues, list) or len(bug_issues) == 0:
+        raise ValueError("Cannot calculate statistics from empty bug list")
+
+    if not isinstance(date_from, datetime) or not isinstance(date_to, datetime):
+        raise ValueError("date_from and date_to must be datetime objects")
+
+    if date_from >= date_to:
+        raise ValueError(
+            f"date_from ({date_from}) must be before date_to ({date_to})"
+        )
+
+    # Initialize weekly statistics for all weeks in range
+    weekly_stats = {}
+    current_date = date_from
+
+    while current_date < date_to:
+        week_key = get_iso_week(current_date)
+        if week_key not in weekly_stats:
+            weekly_stats[week_key] = {
+                "week": week_key,
+                "week_start_date": get_week_start_date(week_key),
+                "bugs_created": 0,
+                "bugs_resolved": 0,
+                "bugs_points_created": 0,
+                "bugs_points_resolved": 0,
+                "net_bugs": 0,
+                "net_points": 0,
+                "cumulative_open_bugs": 0,
+            }
+        # Move to next day
+        current_date = current_date.replace(day=current_date.day + 1)
+        if current_date.day == 1:  # Handle month rollover
+            break
+        if current_date > date_to:
+            break
+
+    # Ensure we have the complete range by using ISO week range
+    start_week = get_iso_week(date_from)
+    end_week = get_iso_week(date_to)
+
+    # Fill any missing weeks
+    year_start, week_start = map(int, start_week.split("-W"))
+    year_end, week_end = map(int, end_week.split("-W"))
+
+    for year in range(year_start, year_end + 1):
+        start = week_start if year == year_start else 1
+        end = week_end if year == year_end else 53
+        for week in range(start, end + 1):
+            week_key = f"{year}-W{week:02d}"
+            if week_key not in weekly_stats:
+                weekly_stats[week_key] = {
+                    "week": week_key,
+                    "week_start_date": get_week_start_date(week_key),
+                    "bugs_created": 0,
+                    "bugs_resolved": 0,
+                    "bugs_points_created": 0,
+                    "bugs_points_resolved": 0,
+                    "net_bugs": 0,
+                    "net_points": 0,
+                    "cumulative_open_bugs": 0,
+                }
+
+    # Aggregate bugs into weekly bins
+    for bug in bug_issues:
+        fields = bug.get("fields", {})
+
+        # Parse created date
+        created_str = fields.get("created", "")
+        if created_str:
+            try:
+                created_date = datetime.strptime(created_str[:19], "%Y-%m-%dT%H:%M:%S")
+                created_week = get_iso_week(created_date)
+
+                # Only count bugs created within the analysis period
+                if created_week in weekly_stats:
+                    weekly_stats[created_week]["bugs_created"] += 1
+
+                    # Add story points
+                    points = fields.get(story_points_field) or 0
+                    weekly_stats[created_week]["bugs_points_created"] += points
+
+            except ValueError:
+                # Skip bugs with invalid date format
+                continue
+
+        # Parse resolved date
+        resolved_str = fields.get("resolutiondate")
+        if resolved_str:
+            try:
+                resolved_date = datetime.strptime(resolved_str[:19], "%Y-%m-%dT%H:%M:%S")
+                resolved_week = get_iso_week(resolved_date)
+
+                # Count bugs resolved within the analysis period
+                if resolved_week in weekly_stats:
+                    weekly_stats[resolved_week]["bugs_resolved"] += 1
+
+                    # Add story points
+                    points = fields.get(story_points_field) or 0
+                    weekly_stats[resolved_week]["bugs_points_resolved"] += points
+
+            except ValueError:
+                # Skip bugs with invalid date format
+                continue
+
+    # Calculate derived fields and cumulative totals
+    cumulative_bugs = 0
+    sorted_weeks = sorted(weekly_stats.keys())
+
+    for week_key in sorted_weeks:
+        stat = weekly_stats[week_key]
+
+        # Calculate net changes
+        stat["net_bugs"] = stat["bugs_created"] - stat["bugs_resolved"]
+        stat["net_points"] = stat["bugs_points_created"] - stat["bugs_points_resolved"]
+
+        # Calculate cumulative open bugs
+        cumulative_bugs += stat["net_bugs"]
+        stat["cumulative_open_bugs"] = cumulative_bugs
+
+    # Return as ordered list
+    return [weekly_stats[week] for week in sorted_weeks]
 
 
 def calculate_bug_metrics_summary(
@@ -218,8 +338,8 @@ def get_iso_week(date: datetime) -> str:
     Returns:
         ISO week string (e.g., "2025-W03")
     """
-    # TODO: Implement ISO week conversion
-    return ""
+    iso_calendar = date.isocalendar()
+    return f"{iso_calendar[0]}-W{iso_calendar[1]:02d}"
 
 
 def get_week_start_date(iso_week: str) -> str:
@@ -231,8 +351,10 @@ def get_week_start_date(iso_week: str) -> str:
     Returns:
         ISO date string of week start
     """
-    # TODO: Implement week start date calculation
-    return ""
+    year, week = iso_week.split("-W")
+    # ISO week format: %G (ISO year), %V (ISO week number), %u (ISO weekday, 1=Monday)
+    week_start = datetime.strptime(f"{year}-W{week}-1", "%G-W%V-%u")
+    return week_start.date().isoformat()
 
 
 def calculate_standard_deviation(values: List[float]) -> float:

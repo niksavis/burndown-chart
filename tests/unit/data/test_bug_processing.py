@@ -378,5 +378,213 @@ class TestBugMetricsSummary:
         assert summary["resolution_rate"] == 0.0
 
 
+class TestBugStatistics:
+    """Test suite for calculate_bug_statistics function (Phase 4)."""
+
+    def test_calculate_bug_statistics_weekly_bins(self):
+        """Test weekly binning of bug creation and resolution (T028)."""
+        from datetime import datetime
+        from data.bug_processing import calculate_bug_statistics
+
+        # Create bugs across multiple weeks
+        bug_issues = [
+            {
+                "key": "BUG-1",
+                "fields": {
+                    "created": "2025-01-06T10:00:00.000+0000",  # Week 2
+                    "resolutiondate": "2025-01-13T10:00:00.000+0000",  # Week 3
+                    "customfield_10016": 3,
+                },
+            },
+            {
+                "key": "BUG-2",
+                "fields": {
+                    "created": "2025-01-08T10:00:00.000+0000",  # Week 2
+                    "resolutiondate": None,  # Open
+                    "customfield_10016": 5,
+                },
+            },
+            {
+                "key": "BUG-3",
+                "fields": {
+                    "created": "2025-01-15T10:00:00.000+0000",  # Week 3
+                    "resolutiondate": "2025-01-20T10:00:00.000+0000",  # Week 4
+                    "customfield_10016": None,  # No points
+                },
+            },
+        ]
+
+        date_from = datetime(2025, 1, 1)
+        date_to = datetime(2025, 1, 31)
+
+        stats = calculate_bug_statistics(bug_issues, date_from, date_to)
+
+        # Verify we have stats for all 5 weeks in January 2025
+        assert len(stats) == 5
+
+        # Verify Week 2 stats (2 bugs created, 0 resolved)
+        week2 = next((s for s in stats if s["week"] == "2025-W02"), None)
+        assert week2 is not None
+        assert week2["bugs_created"] == 2
+        assert week2["bugs_resolved"] == 0
+        assert week2["bugs_points_created"] == 8  # 3 + 5
+        assert week2["bugs_points_resolved"] == 0
+
+        # Verify Week 3 stats (1 bug created, 1 resolved)
+        week3 = next((s for s in stats if s["week"] == "2025-W03"), None)
+        assert week3 is not None
+        assert week3["bugs_created"] == 1
+        assert week3["bugs_resolved"] == 1
+        assert week3["bugs_points_created"] == 0  # BUG-3 has no points
+        assert week3["bugs_points_resolved"] == 3  # BUG-1
+
+    def test_bug_statistics_iso_week_assignment(self):
+        """Test ISO week assignment logic (T029)."""
+        from datetime import datetime
+        from data.bug_processing import calculate_bug_statistics
+
+        # Create bug on Sunday (end of week) and Monday (start of week)
+        bug_issues = [
+            {
+                "key": "BUG-SUNDAY",
+                "fields": {
+                    "created": "2025-01-12T23:59:59.000+0000",  # Sunday of Week 2
+                    "resolutiondate": None,
+                    "customfield_10016": 1,
+                },
+            },
+            {
+                "key": "BUG-MONDAY",
+                "fields": {
+                    "created": "2025-01-13T00:00:00.000+0000",  # Monday of Week 3
+                    "resolutiondate": None,
+                    "customfield_10016": 1,
+                },
+            },
+        ]
+
+        date_from = datetime(2025, 1, 1)
+        date_to = datetime(2025, 1, 31)
+
+        stats = calculate_bug_statistics(bug_issues, date_from, date_to)
+
+        # Verify Sunday bug is in Week 2
+        week2 = next((s for s in stats if s["week"] == "2025-W02"), None)
+        assert week2 is not None
+        assert week2["bugs_created"] == 1  # BUG-SUNDAY
+
+        # Verify Monday bug is in Week 3
+        week3 = next((s for s in stats if s["week"] == "2025-W03"), None)
+        assert week3 is not None
+        assert week3["bugs_created"] == 1  # BUG-MONDAY
+
+    def test_bug_statistics_cumulative_open(self):
+        """Test cumulative open bugs running total (T030)."""
+        from datetime import datetime
+        from data.bug_processing import calculate_bug_statistics
+
+        bug_issues = [
+            {
+                "key": "BUG-1",
+                "fields": {
+                    "created": "2025-01-06T10:00:00.000+0000",  # Week 2
+                    "resolutiondate": None,  # Open
+                    "customfield_10016": 3,
+                },
+            },
+            {
+                "key": "BUG-2",
+                "fields": {
+                    "created": "2025-01-08T10:00:00.000+0000",  # Week 2
+                    "resolutiondate": None,  # Open
+                    "customfield_10016": 5,
+                },
+            },
+            {
+                "key": "BUG-3",
+                "fields": {
+                    "created": "2025-01-15T10:00:00.000+0000",  # Week 3
+                    "resolutiondate": "2025-01-20T10:00:00.000+0000",  # Week 4
+                    "customfield_10016": 2,
+                },
+            },
+        ]
+
+        date_from = datetime(2025, 1, 1)
+        date_to = datetime(2025, 1, 31)
+
+        stats = calculate_bug_statistics(bug_issues, date_from, date_to)
+
+        # Week 1: 0 bugs created, cumulative = 0
+        week1 = next((s for s in stats if s["week"] == "2025-W01"), None)
+        assert week1 is not None
+        assert week1["cumulative_open_bugs"] == 0
+
+        # Week 2: 2 bugs created, 0 resolved, cumulative = 2
+        week2 = next((s for s in stats if s["week"] == "2025-W02"), None)
+        assert week2 is not None
+        assert week2["net_bugs"] == 2
+        assert week2["cumulative_open_bugs"] == 2
+
+        # Week 3: 1 bug created, 0 resolved, cumulative = 3
+        week3 = next((s for s in stats if s["week"] == "2025-W03"), None)
+        assert week3 is not None
+        assert week3["net_bugs"] == 1
+        assert week3["cumulative_open_bugs"] == 3
+
+        # Week 4: 0 bugs created, 1 resolved, cumulative = 2
+        week4 = next((s for s in stats if s["week"] == "2025-W04"), None)
+        assert week4 is not None
+        assert week4["net_bugs"] == -1
+        assert week4["cumulative_open_bugs"] == 2
+
+    def test_bug_statistics_empty_weeks(self):
+        """Test weeks with zero bug activity (T031)."""
+        from datetime import datetime
+        from data.bug_processing import calculate_bug_statistics
+
+        # Create bugs only in Week 2 and Week 4
+        bug_issues = [
+            {
+                "key": "BUG-1",
+                "fields": {
+                    "created": "2025-01-06T10:00:00.000+0000",  # Week 2
+                    "resolutiondate": None,
+                    "customfield_10016": 3,
+                },
+            },
+            {
+                "key": "BUG-2",
+                "fields": {
+                    "created": "2025-01-22T10:00:00.000+0000",  # Week 4
+                    "resolutiondate": None,
+                    "customfield_10016": 5,
+                },
+            },
+        ]
+
+        date_from = datetime(2025, 1, 1)
+        date_to = datetime(2025, 1, 31)
+
+        stats = calculate_bug_statistics(bug_issues, date_from, date_to)
+
+        # Verify all 5 weeks are included even if empty
+        assert len(stats) == 5
+
+        # Verify Week 1 has zero activity but is still present
+        week1 = next((s for s in stats if s["week"] == "2025-W01"), None)
+        assert week1 is not None
+        assert week1["bugs_created"] == 0
+        assert week1["bugs_resolved"] == 0
+        assert week1["net_bugs"] == 0
+
+        # Verify Week 3 has zero activity but is still present
+        week3 = next((s for s in stats if s["week"] == "2025-W03"), None)
+        assert week3 is not None
+        assert week3["bugs_created"] == 0
+        assert week3["bugs_resolved"] == 0
+        assert week3["net_bugs"] == 0
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
