@@ -12,8 +12,9 @@ handling bug metrics updates and interactivity with timeline filters.
 import logging
 
 # Third-party library imports
-from dash import Input, Output, callback
+from dash import Input, Output, callback, no_update
 from dash import html
+import dash_bootstrap_components as dbc
 
 # Application imports
 from data.bug_processing import filter_bug_issues, calculate_bug_metrics_summary
@@ -32,13 +33,17 @@ logger = logging.getLogger(__name__)
 
 
 @callback(
-    [Output("bug-metrics-card", "children"), Output("bug-trends-chart", "children")],
+    Output("bug-analysis-tab-content", "children"),
     [Input("chart-tabs", "active_tab"), Input("data-points-input", "value")],
     prevent_initial_call=False,
 )
 def update_bug_metrics(active_tab: str, data_points_count: int):
     """
-    Update bug metrics card and trend chart when tab is activated or timeline changes.
+    Update bug analysis tab content when tab is activated or timeline changes.
+
+    This callback follows the same pattern as other tabs (Items per Week, etc.)
+    by returning the entire tab content instead of updating nested placeholder divs.
+    This prevents issues with click events and chart disappearance.
 
     This callback listens to:
     - Tab activation (tab-bug-analysis)
@@ -49,13 +54,16 @@ def update_bug_metrics(active_tab: str, data_points_count: int):
         data_points_count: Number of weeks to include (from timeline filter)
 
     Returns:
-        Tuple of (bug metrics card, bug trends chart) components
+        Complete bug analysis tab content (html.Div)
     """
     # Only update when bug analysis tab is active
     if active_tab != "tab-bug-analysis":
-        return html.Div(), html.Div()  # Return empty divs for other tabs
+        logger.debug(f"Skipping update for inactive tab: {active_tab}")
+        return no_update  # Don't update if not our tab
 
-    logger.info(f"Bug metrics callback triggered for tab: {active_tab}")
+    logger.info(
+        f"Bug metrics callback triggered for tab: {active_tab}, data_points: {data_points_count}"
+    )
 
     try:
         # Load bug analysis configuration
@@ -134,8 +142,15 @@ def update_bug_metrics(active_tab: str, data_points_count: int):
 
         # Calculate weekly bug statistics
         try:
+            logger.info(
+                f"Attempting to calculate statistics with {len(bug_issues)} bugs from {date_from} to {date_to}"
+            )
             weekly_stats = calculate_bug_statistics(
                 bug_issues, date_from, date_to, story_points_field=points_field
+            )
+
+            logger.info(
+                f"Successfully calculated {len(weekly_stats)} weeks of statistics"
             )
 
             # Create bug trends chart
@@ -144,27 +159,120 @@ def update_bug_metrics(active_tab: str, data_points_count: int):
             trends_chart = BugTrendChart(weekly_stats, viewport_size="mobile")
         except ValueError as ve:
             # Handle edge case: not enough bugs for statistics
-            logger.warning(f"Could not calculate bug statistics: {ve}")
-            trends_chart = html.Div(
-                [
-                    html.I(className="fas fa-info-circle me-2"),
-                    "Not enough bug data to display trends.",
-                ],
-                className="alert alert-info",
+            logger.error(f"Could not calculate bug statistics: {ve}")
+            logger.error(
+                f"Bug count: {len(bug_issues)}, date_from: {date_from}, date_to: {date_to}"
+            )
+            trends_chart = dbc.Card(
+                dbc.CardBody(
+                    [
+                        html.I(className="fas fa-info-circle me-2"),
+                        f"Not enough bug data to display trends. ({ve})",
+                    ]
+                ),
+                className="border-info bg-light text-info mb-3",
             )
 
-        return metrics_card, trends_chart
+        # Return complete tab content (matches Items per Week pattern)
+        return html.Div(
+            [
+                # Header
+                dbc.Row(
+                    [
+                        dbc.Col(
+                            [
+                                html.H2(
+                                    [
+                                        html.I(className="fas fa-bug me-2"),
+                                        "Bug Analysis Dashboard",
+                                    ],
+                                    className="mb-3",
+                                ),
+                                html.P(
+                                    "Track bug creation, resolution trends, and quality metrics to maintain project health.",
+                                    className="text-muted",
+                                ),
+                            ]
+                        )
+                    ],
+                    className="mb-4",
+                ),
+                # Bug metrics card
+                dbc.Row([dbc.Col([metrics_card], width=12)], className="mb-4"),
+                # Bug trends chart
+                dbc.Row([dbc.Col([trends_chart], width=12)], className="mb-4"),
+                # Placeholder for future insights
+                dbc.Row(
+                    [
+                        dbc.Col(
+                            [
+                                html.Div(
+                                    [
+                                        html.I(
+                                            className="fas fa-lightbulb fa-3x text-muted mb-3"
+                                        ),
+                                        html.H5(
+                                            "Quality Insights Coming Soon",
+                                            className="text-muted",
+                                        ),
+                                        html.P(
+                                            "Actionable recommendations will be displayed here.",
+                                            className="text-muted small",
+                                        ),
+                                    ],
+                                    className="text-center p-5 border rounded bg-light",
+                                )
+                            ],
+                            width=12,
+                        )
+                    ]
+                ),
+            ]
+        )
 
     except Exception as e:
         logger.error(f"Error updating bug metrics: {e}", exc_info=True)
-        error_msg = html.Div(
+        # Return complete error page (not just error cards)
+        return html.Div(
             [
-                html.I(className="fas fa-exclamation-triangle me-2"),
-                f"Error loading bug metrics: {str(e)}",
-            ],
-            className="alert alert-danger",
+                dbc.Row(
+                    [
+                        dbc.Col(
+                            [
+                                html.H2(
+                                    [
+                                        html.I(className="fas fa-bug me-2"),
+                                        "Bug Analysis Dashboard",
+                                    ],
+                                    className="mb-3",
+                                ),
+                            ]
+                        )
+                    ],
+                    className="mb-4",
+                ),
+                dbc.Row(
+                    [
+                        dbc.Col(
+                            [
+                                dbc.Card(
+                                    dbc.CardBody(
+                                        [
+                                            html.I(
+                                                className="fas fa-exclamation-triangle me-2"
+                                            ),
+                                            f"Error loading bug analysis: {str(e)}",
+                                        ]
+                                    ),
+                                    className="border-danger bg-light text-danger mb-3",
+                                )
+                            ],
+                            width=12,
+                        )
+                    ]
+                ),
+            ]
         )
-        return error_msg, html.Div()
 
 
 #######################################################################

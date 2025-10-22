@@ -354,6 +354,11 @@ def create_bug_trend_chart(
     # Configure layout
     layout_config = get_mobile_chart_layout(viewport_size)
 
+    # Remove xaxis/yaxis from layout_config to avoid conflicts (we'll set them explicitly)
+    layout_config_clean = {
+        k: v for k, v in layout_config.items() if k not in ["xaxis", "yaxis", "yaxis2"]
+    }
+
     fig.update_layout(
         title="Bug Trends: Creation vs Resolution",
         xaxis=dict(
@@ -367,7 +372,7 @@ def create_bug_trend_chart(
         ),
         shapes=warning_shapes,  # Add warning highlights
         hovermode="x unified",
-        **layout_config,
+        **layout_config_clean,
     )
 
     # Add legend configuration

@@ -9,14 +9,13 @@ and mobile optimization.
 #######################################################################
 from typing import Dict, List
 from dash import dcc, html
-import dash_bootstrap_components as dbc
 
 
 def BugTrendChart(
     weekly_stats: List[Dict],
     viewport_size: str = "mobile",
     show_error_boundaries: bool = True,
-) -> dbc.Card:
+) -> html.Div:
     """
     Create bug trend chart component wrapper.
 
@@ -42,55 +41,47 @@ def BugTrendChart(
 
         chart_config = get_mobile_chart_config(viewport_size)
 
-        # Create chart component (config parameter accepts dict)
-        chart_component = dcc.Graph(
-            figure=fig,
-            config=chart_config,  # type: ignore
-            className="bug-trend-chart",
-            style={"height": "400px" if viewport_size == "mobile" else "500px"},
-        )
-
-        # Wrap in card for consistent styling
-        return dbc.Card(
-            dbc.CardBody(
-                [
-                    html.H5(
-                        [
-                            html.I(className="fas fa-chart-line me-2"),
-                            "Bug Trends Over Time",
-                        ],
-                        className="card-title mb-3",
-                    ),
-                    chart_component,
-                    html.Hr(className="my-3"),
-                    html.Small(
-                        [
-                            html.I(className="fas fa-info-circle me-1"),
-                            "Red highlighted areas indicate 3+ weeks of bugs created exceeding bugs closed.",
-                        ],
-                        className="text-muted",
-                    ),
-                ]
-            ),
-            className="mb-3",
+        # Return chart directly without Card wrapper (like Items per Week tab)
+        # This prevents Bootstrap dismissal issues
+        return html.Div(
+            [
+                html.Div(
+                    [
+                        html.I(className="fas fa-chart-line me-2"),
+                        "Bug Trends Over Time",
+                    ],
+                    className="mb-3 border-bottom pb-2 d-flex align-items-center fw-bold",
+                ),
+                dcc.Graph(
+                    id="bug-trend-graph",
+                    figure=fig,
+                    config=chart_config,  # type: ignore
+                    style={"height": "500px"},
+                ),
+                html.Small(
+                    [
+                        html.I(className="fas fa-info-circle me-1"),
+                        "Red highlighted areas indicate 3+ weeks of bugs created exceeding bugs closed.",
+                    ],
+                    className="text-muted d-block mt-2",
+                ),
+            ]
         )
 
     except Exception as e:
-        # Error boundary - return error message card
+        # Error boundary - return error message without Card
         if show_error_boundaries:
-            return dbc.Card(
-                dbc.CardBody(
-                    [
-                        html.H5("Bug Trends Chart", className="card-title mb-3"),
-                        html.Div(
-                            [
-                                html.I(className="fas fa-exclamation-triangle me-2"),
-                                html.Span(f"Error loading bug trends: {str(e)}"),
-                            ],
-                            className="alert alert-danger",
-                        ),
-                    ]
-                ),
+            return html.Div(
+                [
+                    html.H5("Bug Trends Chart", className="mb-3"),
+                    html.Div(
+                        [
+                            html.I(className="fas fa-exclamation-triangle me-2"),
+                            html.Span(f"Error loading bug trends: {str(e)}"),
+                        ],
+                        className="text-danger p-3 border border-danger rounded bg-light",
+                    ),
+                ],
                 className="mb-3",
             )
         else:

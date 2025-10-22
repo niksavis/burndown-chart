@@ -164,68 +164,17 @@ def create_bug_metrics_card(bug_metrics: Dict) -> dbc.Card:
 
 
 def create_bug_analysis_tab() -> html.Div:
-    """Create bug analysis tab layout.
+    """Create bug analysis tab layout placeholder.
+
+    Returns a simple placeholder div that will be populated by the callback.
+    This matches the pattern used by other tabs (Items per Week, etc.) where
+    the entire tab content is returned by a callback instead of using nested
+    placeholder divs.
 
     Returns:
-        Dash HTML Div containing the bug analysis tab layout
+        Dash HTML Div placeholder for bug analysis tab content
     """
     return html.Div(
-        [
-            # Header
-            dbc.Row(
-                [
-                    dbc.Col(
-                        [
-                            html.H2(
-                                [
-                                    html.I(className="fas fa-bug me-2"),
-                                    "Bug Analysis Dashboard",
-                                ],
-                                className="mb-3",
-                            ),
-                            html.P(
-                                "Track bug creation, resolution trends, and quality metrics to maintain project health.",
-                                className="text-muted",
-                            ),
-                        ]
-                    )
-                ],
-                className="mb-4",
-            ),
-            # Bug metrics card (will be populated by callback)
-            dbc.Row(
-                [dbc.Col([html.Div(id="bug-metrics-card")], width=12)], className="mb-4"
-            ),
-            # Bug trends chart (will be populated by callback)
-            dbc.Row(
-                [dbc.Col([html.Div(id="bug-trends-chart")], width=12)], className="mb-4"
-            ),
-            # Placeholder for future insights
-            dbc.Row(
-                [
-                    dbc.Col(
-                        [
-                            html.Div(
-                                [
-                                    html.I(
-                                        className="fas fa-lightbulb fa-3x text-muted mb-3"
-                                    ),
-                                    html.H5(
-                                        "Quality Insights Coming Soon",
-                                        className="text-muted",
-                                    ),
-                                    html.P(
-                                        "Actionable recommendations will be displayed here.",
-                                        className="text-muted small",
-                                    ),
-                                ],
-                                className="text-center p-5 border rounded bg-light",
-                            )
-                        ],
-                        width=12,
-                    )
-                ]
-            ),
-        ],
         id="bug-analysis-tab-content",
+        children=html.Div("Loading bug analysis...", className="text-center p-5"),
     )

@@ -92,30 +92,8 @@ def calculate_bug_statistics(
 
     # Initialize weekly statistics for all weeks in range
     weekly_stats = {}
-    current_date = date_from
 
-    while current_date < date_to:
-        week_key = get_iso_week(current_date)
-        if week_key not in weekly_stats:
-            weekly_stats[week_key] = {
-                "week": week_key,
-                "week_start_date": get_week_start_date(week_key),
-                "bugs_created": 0,
-                "bugs_resolved": 0,
-                "bugs_points_created": 0,
-                "bugs_points_resolved": 0,
-                "net_bugs": 0,
-                "net_points": 0,
-                "cumulative_open_bugs": 0,
-            }
-        # Move to next day
-        current_date = current_date.replace(day=current_date.day + 1)
-        if current_date.day == 1:  # Handle month rollover
-            break
-        if current_date > date_to:
-            break
-
-    # Ensure we have the complete range by using ISO week range
+    # Get ISO week range (this is the proper way to handle date ranges)
     start_week = get_iso_week(date_from)
     end_week = get_iso_week(date_to)
 
