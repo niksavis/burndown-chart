@@ -115,38 +115,8 @@ def _get_default_jql_profile_id():
         return ""
 
 
-def _get_default_jira_api_endpoint():
-    """
-    Get the default JIRA API endpoint from app settings.
-
-    Returns:
-        str: JIRA API endpoint from settings or default value
-    """
-    try:
-        from data.persistence import load_app_settings
-
-        app_settings = load_app_settings()
-        return app_settings.get(
-            "jira_api_endpoint", "https://jira.atlassian.com/rest/api/2/search"
-        )
-    except ImportError:
-        return "https://jira.atlassian.com/rest/api/2/search"
-
-
-def _get_default_jira_token():
-    """
-    Get the default JIRA token from app settings.
-
-    Returns:
-        str: JIRA token from settings or default value
-    """
-    try:
-        from data.persistence import load_app_settings
-
-        app_settings = load_app_settings()
-        return app_settings.get("jira_token", "")
-    except ImportError:
-        return ""
+# Legacy JIRA helper functions removed - JIRA configuration is now managed
+# via the JIRA Configuration modal (jira_config structure in app_settings.json)
 
 
 def _get_default_jira_story_points_field():

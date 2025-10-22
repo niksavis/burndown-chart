@@ -146,6 +146,18 @@ def test_jira_connection_callback(n_clicks, base_url, api_version, token):
     logger.info(f"Testing JIRA connection to {base_url}")
     result = test_jira_connection(base_url.strip(), token.strip(), api_version)
 
+    # Save test result to configuration (T025 - User Story 2)
+    try:
+        config = load_jira_configuration()
+        config["last_test_timestamp"] = result.get("timestamp")
+        config["last_test_success"] = result["success"]
+        save_jira_configuration(config)
+        logger.debug(
+            f"Saved test result: success={result['success']}, timestamp={result.get('timestamp')}"
+        )
+    except Exception as e:
+        logger.warning(f"Could not save test result: {e}")
+
     if result["success"]:
         server_info = result.get("server_info", {})
         message = result.get("message", "Connection successful")
@@ -256,27 +268,59 @@ def save_jira_configuration_callback(
                 ),
             )
 
+        # Warn about high cache sizes (T026 - User Story 2)
+        cache_warning = None
+        if config["cache_size_mb"] > 500:
+            cache_warning = dbc.Alert(
+                [
+                    html.I(className="fas fa-exclamation-triangle me-2"),
+                    html.Strong("High Cache Size: "),
+                    html.Span(
+                        f"{config['cache_size_mb']}MB may impact disk space. "
+                        "Consider reducing if you experience storage issues."
+                    ),
+                ],
+                color="warning",
+                className="mb-2",
+            )
+            logger.info(
+                f"Warning: High cache size configured: {config['cache_size_mb']}MB"
+            )
+
+        # Preserve existing fields not in form (T027 - User Story 2)
+        try:
+            existing_config = load_jira_configuration()
+            # Preserve fields like last_test_timestamp, last_test_success
+            for key in ["last_test_timestamp", "last_test_success"]:
+                if key in existing_config and key not in config:
+                    config[key] = existing_config[key]
+        except Exception as e:
+            logger.debug(f"Could not preserve existing fields: {e}")
+
         # Save configuration
         success = save_jira_configuration(config)
 
         if success:
             logger.info("JIRA configuration saved successfully")
-            # Close modal and show success message
-            return (
-                False,
-                dbc.Alert(
-                    [
-                        html.Strong("✓ Configuration Saved"),
-                        html.P(
-                            "JIRA settings have been saved successfully.",
-                            className="mb-0 mt-2",
-                        ),
-                    ],
-                    color="success",
-                    dismissable=True,
-                    duration=4000,  # Auto-dismiss after 4 seconds
-                ),
+            # Close modal and show success message (with optional cache warning)
+            success_message = dbc.Alert(
+                [
+                    html.Strong("✓ Configuration Saved"),
+                    html.P(
+                        "JIRA settings have been saved successfully.",
+                        className="mb-0 mt-2",
+                    ),
+                ],
+                color="success",
+                dismissable=True,
+                duration=4000,  # Auto-dismiss after 4 seconds
             )
+
+            # Combine success message with cache warning if present
+            if cache_warning:
+                return (False, html.Div([success_message, cache_warning]))
+            else:
+                return (False, success_message)
         else:
             logger.error("Failed to save JIRA configuration")
             return (
@@ -454,3 +498,118 @@ def update_jira_config_status(modal_is_open, save_clicks):
             ],
             className="d-flex align-items-center",
         )
+
+
+#######################################################################
+# CALLBACK: TEST CONNECTION
+#######################################################################
+
+
+@callback(
+    Output("jira-last-test-display", "children"),
+    Input("jira-config-modal", "is_open"),
+)
+def display_last_test_info(is_open):
+    """
+    Display last connection test timestamp and result.
+
+    Args:
+        is_open: Whether the modal is currently open
+
+    Returns:
+        Component showing last test information or empty div
+    """
+    if not is_open:
+        raise PreventUpdate
+
+    try:
+        config = load_jira_configuration()
+        last_test_timestamp = config.get("last_test_timestamp")
+        last_test_success = config.get("last_test_success")
+
+        if last_test_timestamp is None:
+            return html.Div()  # No test history yet
+
+        # Format the timestamp
+        from datetime import datetime
+
+        try:
+            dt = datetime.fromisoformat(last_test_timestamp.replace("Z", "+00:00"))
+            formatted_time = dt.strftime("%Y-%m-%d %H:%M:%S")
+        except Exception:
+            formatted_time = last_test_timestamp
+
+        # Determine status icon and color
+        if last_test_success:
+            icon = "fas fa-check-circle"
+            color = "success"
+            status_text = "Successful"
+        else:
+            icon = "fas fa-exclamation-circle"
+            color = "warning"
+            status_text = "Failed"
+
+        return dbc.Alert(
+            [
+                html.I(className=f"{icon} me-2"),
+                html.Span(f"Last test: {formatted_time} - ", className="fw-bold"),
+                html.Span(status_text),
+            ],
+            color=color,
+            className="py-2 small",
+        )
+    except Exception as e:
+        logger.debug(f"Could not load last test info: {e}")
+        return html.Div()  # Silently return empty if error
+
+
+#######################################################################
+# CALLBACK: SHOW API VERSION WARNING
+#######################################################################
+
+
+@callback(
+    Output("jira-api-version-warning", "children"),
+    Input("jira-api-version-select", "value"),
+    State("jira-config-modal", "is_open"),
+)
+def show_api_version_warning(selected_version, is_open):
+    """
+    Display warning when user changes API version.
+
+    Args:
+        selected_version: Currently selected API version (v2 or v3)
+        is_open: Whether the modal is currently open
+
+    Returns:
+        Warning alert or empty div
+    """
+    if not is_open:
+        raise PreventUpdate
+
+    try:
+        config = load_jira_configuration()
+        current_version = config.get("api_version", "v3")
+
+        # Show warning if version changed from saved config
+        if selected_version != current_version:
+            opposite_version = "v2" if selected_version == "v3" else "v3"
+
+            return dbc.Alert(
+                [
+                    html.I(className="fas fa-info-circle me-2"),
+                    html.Strong("API Version Change: "),
+                    html.Span(
+                        f"Switching from {opposite_version} to {selected_version}. "
+                        "The API endpoint will be updated automatically. "
+                        "Test the connection after saving to verify compatibility."
+                    ),
+                ],
+                color="info",
+                className="py-2 small",
+            )
+        else:
+            return html.Div()  # No change, no warning
+    except Exception as e:
+        logger.debug(f"Could not load config for version warning: {e}")
+        return html.Div()

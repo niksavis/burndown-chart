@@ -80,11 +80,11 @@
 
 ### Implementation for User Story 2
 
-- [ ] T024 [US2] Add pre-filled form state handling to "Load Configuration" callback in callbacks/jira_config.py (display current values when user has existing config)
-- [ ] T025 [US2] Add last_test_timestamp and last_test_success display to modal in ui/jira_config_modal.py (show when connection was last tested)
-- [ ] T026 [US2] Add validation warning in callbacks/jira_config.py for high cache_size_mb values (>500MB) per data-model.md business rule
-- [ ] T027 [US2] Update "Save Configuration" callback in callbacks/jira_config.py to preserve existing jira_config fields not shown in form
-- [ ] T028 [US2] Add API version change warning in ui/jira_config_modal.py (inform users when switching v2 ↔ v3) per research.md Section 2
+- [X] T024 [US2] Add pre-filled form state handling to "Load Configuration" callback in callbacks/jira_config.py (display current values when user has existing config)
+- [X] T025 [US2] Add last_test_timestamp and last_test_success display to modal in ui/jira_config_modal.py (show when connection was last tested)
+- [X] T026 [US2] Add validation warning in callbacks/jira_config.py for high cache_size_mb values (>500MB) per data-model.md business rule
+- [X] T027 [US2] Update "Save Configuration" callback in callbacks/jira_config.py to preserve existing jira_config fields not shown in form
+- [X] T028 [US2] Add API version change warning in ui/jira_config_modal.py (inform users when switching v2 ↔ v3) per research.md Section 2
 - [ ] T029 [US2] Test configuration update workflow: modify token, test connection (verify new token validated), save, verify JQL query profiles remain intact
 - [ ] T030 [US2] Test cancel workflow: open modal, change settings, click cancel, reopen modal, verify changes were not saved
 - [ ] T031 [US2] Test API version switch: change v3 to v2, save, verify construct_jira_endpoint() generates correct path (/rest/api/2/search)

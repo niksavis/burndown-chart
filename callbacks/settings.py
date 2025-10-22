@@ -262,10 +262,7 @@ def register(app):
         }
 
         # Save app-level settings - load JIRA values from jira_config (Feature 003-jira-config-separation)
-        from data.persistence import save_app_settings, load_jira_configuration
-
-        # Load current JIRA configuration
-        jira_config = load_jira_configuration()
+        from data.persistence import save_app_settings
 
         save_app_settings(
             pert_factor,
@@ -277,15 +274,7 @@ def register(app):
             jql_query.strip()
             if jql_query and jql_query.strip()
             else "project = JRASERVER",  # Use current JQL input
-            # Load JIRA values from jira_config instead of removed UI fields
-            jira_config.get("base_url", "https://jira.atlassian.com")
-            + "/rest/api/"
-            + jira_config.get("api_version", "v2")
-            + "/search",
-            jira_config.get("token", ""),
-            jira_config.get("points_field", ""),
-            jira_config.get("cache_size_mb", 100),
-            jira_config.get("max_results_per_call", 1000),
+            # Note: JIRA configuration is now managed separately via save_jira_configuration()
         )
 
         # Save project data using unified format
@@ -788,11 +777,6 @@ def register(app):
                         app_settings["milestone"],
                         app_settings["show_points"],
                         settings_jql,
-                        final_jira_api_endpoint,
-                        final_jira_token,
-                        final_story_points_field,
-                        final_cache_max_size,
-                        final_max_results,
                     )
                     logger.info(f"JQL query updated and saved: JQL='{settings_jql}'")
 

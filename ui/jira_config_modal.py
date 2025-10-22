@@ -34,6 +34,8 @@ def create_jira_config_modal():
                 [
                     # Connection status feedback area
                     html.Div(id="jira-connection-status", className="mb-3"),
+                    # Last test timestamp display (T025 - User Story 2)
+                    html.Div(id="jira-last-test-display", className="mb-3"),
                     # Connection Settings (Base URL + API Version in one row)
                     dbc.Row(
                         [
@@ -83,8 +85,10 @@ def create_jira_config_modal():
                                 width=12,
                             ),
                         ],
-                        className="mb-3",
+                        className="mb-2",
                     ),
+                    # API version change warning (T028 - User Story 2)
+                    html.Div(id="jira-api-version-warning", className="mb-3"),
                     # Authentication (Full width for security)
                     dbc.Row(
                         [

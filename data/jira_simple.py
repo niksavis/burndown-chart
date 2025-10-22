@@ -31,13 +31,22 @@ DEFAULT_CACHE_MAX_SIZE_MB = 100
 
 def get_jira_config(settings_jql_query: str | None = None) -> Dict:
     """
-    Load JIRA configuration with priority hierarchy: UI settings → App Settings → Environment → Default.
+    Load JIRA configuration with priority hierarchy: jira_config → Environment → Default.
+
+    This function reads from the jira_config structure in app_settings.json (managed via
+    the JIRA Configuration modal). Falls back to environment variables if config not found.
 
     Args:
-        settings_jql_query: JQL query from UI settings (highest priority)
+        settings_jql_query: JQL query parameter (highest priority for JQL only)
 
     Returns:
-        Dictionary containing JIRA configuration
+        Dictionary containing JIRA configuration with keys:
+        - jql_query: JQL query string
+        - api_endpoint: Full JIRA API endpoint URL
+        - token: JIRA authentication token
+        - story_points_field: Custom field ID for story points
+        - cache_max_size_mb: Maximum cache size in MB
+        - max_results: Maximum results per API call
     """
     # Load app settings first
     try:
@@ -47,41 +56,56 @@ def get_jira_config(settings_jql_query: str | None = None) -> Dict:
     except Exception:
         app_settings = {}
 
-    # Configuration hierarchy: UI settings → App settings → Environment → Default
+    # Load jira_config structure (new configuration system)
+    try:
+        from data.persistence import load_jira_configuration
+
+        jira_config = load_jira_configuration()
+    except Exception:
+        jira_config = {}
+
+    # Configuration hierarchy: Parameter → App settings → Environment → Default
     jql_query = (
-        settings_jql_query  # UI settings (highest priority)
+        settings_jql_query  # JQL from parameter (highest priority)
         or app_settings.get("jql_query", "")  # App settings
         or os.getenv("JIRA_DEFAULT_JQL", "")  # Environment variable
         or "project = JRASERVER"  # Default fallback
     )
 
+    # Build API endpoint from jira_config or environment
+    base_url = jira_config.get("base_url") or os.getenv("JIRA_BASE_URL", "")
+    api_version = jira_config.get("api_version") or os.getenv("JIRA_API_VERSION", "v2")
+
+    if base_url:
+        api_endpoint = construct_jira_endpoint(base_url, api_version)
+    else:
+        api_endpoint = os.getenv(
+            "JIRA_API_ENDPOINT", "https://jira.atlassian.com/rest/api/2/search"
+        )
+
     config = {
         "jql_query": jql_query,
-        "api_endpoint": (
-            app_settings.get("jira_api_endpoint", "")  # App settings
-            or os.getenv("JIRA_API_ENDPOINT", "")  # Environment variable
-            or "https://jira.atlassian.com/rest/api/2/search"  # Default fallback
-        ),
+        "api_endpoint": api_endpoint,
         "token": (
-            app_settings.get("jira_token", "")  # App settings
+            jira_config.get("token", "")  # jira_config (new structure)
             or os.getenv("JIRA_TOKEN", "")  # Environment variable
             or ""  # Default
         ),
         "story_points_field": (
-            app_settings.get("jira_story_points_field", "")  # App settings
+            jira_config.get("points_field", "")  # jira_config (new structure)
             or os.getenv("JIRA_STORY_POINTS_FIELD", "")  # Environment variable
             or ""  # Default
         ),
         "cache_max_size_mb": int(
-            app_settings.get(
-                "jira_cache_max_size", DEFAULT_CACHE_MAX_SIZE_MB
-            )  # App settings
+            jira_config.get(
+                "cache_size_mb", DEFAULT_CACHE_MAX_SIZE_MB
+            )  # jira_config (new structure)
             or os.getenv(
                 "JIRA_CACHE_MAX_SIZE_MB", DEFAULT_CACHE_MAX_SIZE_MB
             )  # Environment variable
         ),
         "max_results": int(
-            app_settings.get("jira_max_results", 1000)  # App settings
+            jira_config.get("max_results_per_call", 1000)  # jira_config (new structure)
             or os.getenv("JIRA_MAX_RESULTS", 1000)  # Environment variable
         ),
     }
