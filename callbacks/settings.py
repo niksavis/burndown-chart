@@ -717,10 +717,10 @@ def register(app):
                 jira_config = load_jira_configuration()
 
                 # Check if JIRA is configured (FR-018: Error handling for unconfigured state)
+                # Token is optional for public JIRA servers
                 is_configured = (
                     jira_config.get("configured", False)
                     and jira_config.get("base_url", "").strip() != ""
-                    and jira_config.get("token", "").strip() != ""
                 )
 
                 if not is_configured:
@@ -926,10 +926,10 @@ def register(app):
             jira_config = load_jira_configuration()
 
             # Check if JIRA is configured (FR-018: Error handling for unconfigured state)
+            # Token is optional for public JIRA servers
             is_configured = (
                 jira_config.get("configured", False)
                 and jira_config.get("base_url", "").strip() != ""
-                and jira_config.get("token", "").strip() != ""
             )
 
             if not is_configured:
@@ -1890,10 +1890,10 @@ def register(app):
             loaded_jira_config = load_jira_configuration()
 
             # Check if JIRA is configured (FR-018: Error handling for unconfigured state)
+            # Token is optional for public JIRA servers
             is_configured = (
                 loaded_jira_config.get("configured", False)
                 and loaded_jira_config.get("base_url", "").strip() != ""
-                and loaded_jira_config.get("token", "").strip() != ""
             )
 
             if not is_configured:

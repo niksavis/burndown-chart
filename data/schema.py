@@ -170,8 +170,10 @@ def get_default_unified_data() -> Dict[str, Any]:
     """
     Return default unified data structure.
 
+    Includes default bug_analysis section for backward compatibility.
+
     Returns:
-        Dict: Default unified project data structure
+        Dict: Default unified project data structure with bug_analysis
     """
     from datetime import datetime
 
@@ -191,6 +193,7 @@ def get_default_unified_data() -> Dict[str, Any]:
             "version": "2.0",
             "jira_query": "",
         },
+        "bug_analysis": get_default_bug_analysis_data(),
     }
 
 
@@ -227,3 +230,202 @@ def validate_query_profile(profile: Dict[str, Any]) -> bool:
         return False
 
     return True
+
+
+#######################################################################
+# BUG ANALYSIS SCHEMA
+#######################################################################
+
+# Bug Issue type definition (matches data-model.md)
+BUG_ISSUE_SCHEMA = {
+    "key": str,  # JIRA issue key (e.g., "PROJ-123")
+    "type": str,  # Mapped issue type ("Bug", "Defect", "Incident")
+    "original_type": str,  # Original JIRA type name
+    "created_date": str,  # Creation timestamp (ISO format)
+    "resolved_date": str,  # Resolution timestamp (ISO format, None if open)
+    "status": str,  # JIRA status name
+    "story_points": int,  # Story points (None if not estimated)
+    "week_created": str,  # Week identifier (ISO format: "2025-W01")
+    "week_resolved": str,  # Week resolved (None if open)
+}
+
+# Weekly Bug Statistics type definition (matches data-model.md)
+WEEKLY_BUG_STATISTICS_SCHEMA = {
+    "week": str,  # ISO week identifier (e.g., "2025-W03")
+    "week_start_date": str,  # ISO date of week start (e.g., "2025-01-13")
+    "bugs_created": int,  # Count of bugs created this week
+    "bugs_resolved": int,  # Count of bugs resolved this week
+    "bugs_points_created": int,  # Story points created this week
+    "bugs_points_resolved": int,  # Story points resolved this week
+    "net_bugs": int,  # bugs_created - bugs_resolved
+    "net_points": int,  # bugs_points_created - bugs_points_resolved
+    "cumulative_open_bugs": int,  # Running total of open bugs
+}
+
+# Bug Metrics Summary type definition (matches data-model.md)
+BUG_METRICS_SUMMARY_SCHEMA = {
+    "total_bugs": int,  # Total bugs in project
+    "open_bugs": int,  # Currently open bugs
+    "closed_bugs": int,  # Resolved bugs
+    "resolution_rate": float,  # closed_bugs / total_bugs (0.0-1.0)
+    "avg_resolution_time_days": float,  # Average days to close a bug
+    "bugs_created_last_4_weeks": int,  # Recent bug creation rate
+    "bugs_resolved_last_4_weeks": int,  # Recent bug resolution rate
+    "trend_direction": str,  # "improving" | "stable" | "degrading"
+    "total_bug_points": int,  # Total story points for bugs
+    "open_bug_points": int,  # Points for open bugs
+    "capacity_consumed_by_bugs": float,  # Percentage of capacity (0.0-1.0)
+}
+
+# Quality Insight type definition (matches data-model.md)
+QUALITY_INSIGHT_SCHEMA = {
+    "id": str,  # Unique insight ID (e.g., "LOW_RESOLUTION_RATE")
+    "type": str,  # Insight type: "warning", "recommendation", "positive"
+    "severity": str,  # Severity: "critical", "high", "medium", "low"
+    "title": str,  # Short title (max 60 chars)
+    "message": str,  # Detailed message (max 200 chars)
+    "metrics": Dict[str, float],  # Supporting metrics
+    "actionable": bool,  # Whether insight has recommended action
+    "action_text": str,  # Recommended action (if actionable)
+    "created_at": str,  # When insight was generated (ISO format)
+}
+
+# Bug Forecast type definition (matches data-model.md)
+BUG_FORECAST_SCHEMA = {
+    "open_bugs": int,  # Current open bug count
+    "avg_closure_rate": float,  # Average bugs closed per week
+    "optimistic_weeks": int,  # Best-case weeks to resolution
+    "pessimistic_weeks": int,  # Worst-case weeks to resolution
+    "most_likely_weeks": int,  # Most likely weeks to resolution
+    "optimistic_date": str,  # Best-case completion date (ISO)
+    "pessimistic_date": str,  # Worst-case completion date (ISO)
+    "most_likely_date": str,  # Most likely completion date (ISO)
+    "confidence_level": float,  # Statistical confidence (0.0-1.0)
+    "insufficient_data": bool,  # True if not enough history
+}
+
+# Bug Analysis Data Container (extends unified data structure)
+BUG_ANALYSIS_DATA_SCHEMA = {
+    "enabled": bool,  # Feature toggle
+    "bug_issues": list,  # List[BugIssue]
+    "weekly_bug_statistics": list,  # List[WeeklyBugStatistics]
+    "bug_metrics_summary": Dict[str, Any],  # BugMetricsSummary
+    "quality_insights": list,  # List[QualityInsight]
+    "bug_forecast": Dict[str, Any],  # BugForecast
+    "last_updated": str,  # ISO timestamp
+}
+
+
+def validate_bug_issue(issue: Dict[str, Any]) -> bool:
+    """Validate a bug issue matches schema.
+
+    Args:
+        issue: Bug issue dictionary to validate
+
+    Returns:
+        bool: True if valid, False otherwise
+    """
+    required_fields = ["key", "type", "created_date", "status"]
+
+    if not all(field in issue for field in required_fields):
+        return False
+
+    # Validate key format (basic check)
+    if not isinstance(issue["key"], str) or "-" not in issue["key"]:
+        return False
+
+    return True
+
+
+def validate_weekly_bug_statistics(stats: Dict[str, Any]) -> bool:
+    """Validate weekly bug statistics matches schema.
+
+    Args:
+        stats: Weekly bug statistics dictionary to validate
+
+    Returns:
+        bool: True if valid, False otherwise
+    """
+    required_fields = [
+        "week",
+        "week_start_date",
+        "bugs_created",
+        "bugs_resolved",
+        "bugs_points_created",
+        "bugs_points_resolved",
+        "net_bugs",
+        "net_points",
+        "cumulative_open_bugs",
+    ]
+
+    if not all(field in stats for field in required_fields):
+        return False
+
+    # Validate counts are non-negative
+    count_fields = [
+        "bugs_created",
+        "bugs_resolved",
+        "bugs_points_created",
+        "bugs_points_resolved",
+        "cumulative_open_bugs",
+    ]
+
+    for field in count_fields:
+        if not isinstance(stats[field], int) or stats[field] < 0:
+            return False
+
+    return True
+
+
+def validate_bug_analysis_data(data: Dict[str, Any]) -> bool:
+    """Validate bug analysis data structure.
+
+    Args:
+        data: Bug analysis data dictionary to validate
+
+    Returns:
+        bool: True if valid, False otherwise
+    """
+    required_keys = [
+        "enabled",
+        "bug_issues",
+        "weekly_bug_statistics",
+        "bug_metrics_summary",
+        "quality_insights",
+        "bug_forecast",
+        "last_updated",
+    ]
+
+    if not all(key in data for key in required_keys):
+        return False
+
+    # Validate types
+    if not isinstance(data["enabled"], bool):
+        return False
+
+    if not isinstance(data["bug_issues"], list):
+        return False
+
+    if not isinstance(data["weekly_bug_statistics"], list):
+        return False
+
+    return True
+
+
+def get_default_bug_analysis_data() -> Dict[str, Any]:
+    """Return default bug analysis data structure.
+
+    Returns:
+        Dict: Default bug analysis data structure
+    """
+    from datetime import datetime
+
+    return {
+        "enabled": False,
+        "bug_issues": [],
+        "weekly_bug_statistics": [],
+        "bug_metrics_summary": {},
+        "quality_insights": [],
+        "bug_forecast": {},
+        "last_updated": datetime.now().isoformat(),
+    }

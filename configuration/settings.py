@@ -11,6 +11,7 @@ help texts and logging configuration for the application.
 import logging
 import pandas as pd
 from datetime import datetime, timedelta
+from typing import Dict
 
 #######################################################################
 # LOGGING CONFIGURATION
@@ -238,3 +239,37 @@ CHART_HELP_TEXTS = {
     "scope_change_indicators": "Vertical markers show scope changes with automatic forecast adjustments.",
     "data_points_precision": "8-15 recent data points provide optimal forecast accuracy.",
 }
+
+
+#######################################################################
+# BUG ANALYSIS CONFIGURATION
+#######################################################################
+def get_bug_analysis_config() -> Dict:
+    """Get bug analysis configuration from app settings.
+
+    Returns:
+        Dictionary containing bug analysis configuration with defaults:
+        - enabled: Whether bug analysis is enabled
+        - issue_type_mappings: Dict mapping JIRA type names to "bug" category
+        - default_bug_type: Default bug type name ("Bug")
+
+    Example:
+        >>> config = get_bug_analysis_config()
+        >>> config["enabled"]
+        True
+        >>> "Bug" in config["issue_type_mappings"]
+        True
+    """
+    from data.persistence import load_app_settings
+
+    settings = load_app_settings()
+
+    # Default bug analysis configuration
+    default_config = {
+        "enabled": True,
+        "issue_type_mappings": {"Bug": "bug", "Defect": "bug", "Incident": "bug"},
+        "default_bug_type": "Bug",
+    }
+
+    # Return bug_analysis_config if present, otherwise default
+    return settings.get("bug_analysis_config", default_config)

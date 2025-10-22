@@ -1057,6 +1057,16 @@ def register(app):
                 ui_state["loading"] = False
                 return scope_tab_content, chart_cache, ui_state
 
+            elif active_tab == "tab-bug-analysis":
+                # Generate bug analysis tab content
+                from ui.bug_analysis import create_bug_analysis_tab
+
+                bug_analysis_content = create_bug_analysis_tab()
+                # Cache the result for next time
+                chart_cache[cache_key] = bug_analysis_content
+                ui_state["loading"] = False
+                return bug_analysis_content, chart_cache, ui_state
+
             # Default fallback (should not reach here)
             fallback_content = create_content_placeholder(
                 type="chart", text="Select a tab to view data", height="400px"

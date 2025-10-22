@@ -116,7 +116,9 @@ def create_mobile_bottom_navigation(tabs_config, active_tab="tab-burndown"):
                             "color": tab["color"] if is_active else "#6c757d",
                             "flexDirection": "column",
                             "border": "none",
-                            "background": "rgba(13, 110, 253, 0.1)" if is_active else "transparent",
+                            "background": "rgba(13, 110, 253, 0.1)"
+                            if is_active
+                            else "transparent",
                             "padding": "0.375rem",
                             "minHeight": "44px",
                             "minWidth": "44px",
@@ -206,7 +208,9 @@ def get_mobile_tabs_config():
     Returns:
         List of tab configuration dictionaries optimized for mobile
     """
-    return [
+    from configuration.settings import get_bug_analysis_config
+
+    tabs = [
         {
             "id": "tab-burndown",
             "label": "Burndown Chart",
@@ -236,6 +240,21 @@ def get_mobile_tabs_config():
             "color": "#6f42c1",
         },
     ]
+
+    # Conditionally add Bug Analysis tab if enabled
+    bug_config = get_bug_analysis_config()
+    if bug_config.get("enabled", True):  # Default to True
+        tabs.append(
+            {
+                "id": "tab-bug-analysis",
+                "label": "Bug Analysis",
+                "short_label": "Bugs",
+                "icon": "fas fa-bug",
+                "color": "#dc3545",
+            }
+        )
+
+    return tabs
 
 
 def create_mobile_navigation_system():

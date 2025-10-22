@@ -128,13 +128,13 @@ def test_jira_connection_callback(n_clicks, base_url, api_version, token):
     if not n_clicks:
         raise PreventUpdate
 
-    # Validate required fields
-    if not base_url or not token:
+    # Validate required fields (only base_url is required, token is optional for public servers)
+    if not base_url:
         return dbc.Alert(
             [
-                html.Strong("⚠ Missing Required Fields"),
+                html.Strong("⚠ Missing Required Field"),
                 html.P(
-                    "Please fill in both Base URL and Personal Access Token before testing the connection.",
+                    "Please fill in the JIRA Base URL before testing the connection.",
                     className="mb-0 mt-2",
                 ),
             ],
@@ -142,9 +142,11 @@ def test_jira_connection_callback(n_clicks, base_url, api_version, token):
             dismissable=True,
         )
 
-    # Call test function
-    logger.info(f"Testing JIRA connection to {base_url}")
-    result = test_jira_connection(base_url.strip(), token.strip(), api_version)
+    # Call test function (token is optional)
+    logger.info(f"Testing JIRA connection to {base_url} (authenticated: {bool(token)})")
+    result = test_jira_connection(
+        base_url.strip(), token.strip() if token else "", api_version
+    )
 
     # Save test result to configuration (T025 - User Story 2)
     try:
@@ -409,11 +411,10 @@ def update_jira_config_status(modal_is_open, save_clicks):
     try:
         jira_config = load_jira_configuration()
 
-        # Check if JIRA is configured (has base_url and token)
+        # Check if JIRA is configured (has base_url, token is optional for public servers)
         is_configured = (
             jira_config.get("configured", False)
             and jira_config.get("base_url", "").strip() != ""
-            and jira_config.get("token", "").strip() != ""
         )
 
         if is_configured:

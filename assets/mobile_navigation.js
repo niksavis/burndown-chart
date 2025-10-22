@@ -31,6 +31,11 @@ if (typeof window.mobileTabsConfig === "undefined") {
     { id: "tab-items", label: "Items per Week", short_label: "Items" },
     { id: "tab-points", label: "Points per Week", short_label: "Points" },
     { id: "tab-scope-tracking", label: "Scope Changes", short_label: "Scope" },
+    {
+      id: "tab-bug-analysis",
+      label: "Bug Analysis & Quality",
+      short_label: "Bugs",
+    },
   ];
 }
 

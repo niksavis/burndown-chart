@@ -168,7 +168,8 @@ def fetch_jira_issues(
 
         # Parameters - only fetch required fields
         # Include story points field only if specified
-        base_fields = "key,created,resolutiondate,status"
+        # Include issuetype for bug analysis
+        base_fields = "key,created,resolutiondate,status,issuetype"
         if config.get("story_points_field") and config["story_points_field"].strip():
             fields = f"{base_fields},{config['story_points_field']}"
         else:
@@ -293,7 +294,7 @@ def load_jira_cache(
         # If no field info in old cache, check if current config needs story points field
         if not cached_fields and current_fields:
             # Extract story points field from current fields
-            base_fields = "key,created,resolutiondate,status"
+            base_fields = "key,created,resolutiondate,status,issuetype"
             if current_fields != base_fields:  # User has story points field configured
                 logger.info(
                     "Cache has no field info, but story points field is configured. Cache invalidated for field compatibility."
@@ -564,7 +565,7 @@ def sync_jira_scope_and_data(
             return False, "Cache file validation failed", {}
 
         # Calculate current fields that would be requested
-        base_fields = "key,created,resolutiondate,status"
+        base_fields = "key,created,resolutiondate,status,issuetype"
         if config.get("story_points_field") and config["story_points_field"].strip():
             current_fields = f"{base_fields},{config['story_points_field']}"
         else:
