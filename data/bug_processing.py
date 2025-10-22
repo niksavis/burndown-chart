@@ -88,9 +88,7 @@ def calculate_bug_statistics(
         raise ValueError("date_from and date_to must be datetime objects")
 
     if date_from >= date_to:
-        raise ValueError(
-            f"date_from ({date_from}) must be before date_to ({date_to})"
-        )
+        raise ValueError(f"date_from ({date_from}) must be before date_to ({date_to})")
 
     # Initialize weekly statistics for all weeks in range
     weekly_stats = {}
@@ -170,7 +168,9 @@ def calculate_bug_statistics(
         resolved_str = fields.get("resolutiondate")
         if resolved_str:
             try:
-                resolved_date = datetime.strptime(resolved_str[:19], "%Y-%m-%dT%H:%M:%S")
+                resolved_date = datetime.strptime(
+                    resolved_str[:19], "%Y-%m-%dT%H:%M:%S"
+                )
                 resolved_week = get_iso_week(resolved_date)
 
                 # Count bugs resolved within the analysis period

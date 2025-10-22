@@ -63,7 +63,7 @@ def update_bug_metrics(active_tab: str, data_points_count: int):
 
         # Get JIRA configuration for points field
         from data.persistence import load_jira_configuration
-        
+
         jira_config = load_jira_configuration()
         points_field = jira_config.get("points_field", "customfield_10016")
 

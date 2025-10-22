@@ -19,29 +19,29 @@ def BugTrendChart(
 ) -> dbc.Card:
     """
     Create bug trend chart component wrapper.
-    
+
     Implements T038 - BugTrendChart component wrapper.
     Wraps visualization.mobile_charts.create_bug_trend_chart() with error handling.
-    
+
     Args:
         weekly_stats: List of weekly bug statistics from calculate_bug_statistics()
         viewport_size: "mobile", "tablet", or "desktop"
         show_error_boundaries: Whether to show error boundaries
-        
+
     Returns:
         Dash Bootstrap Components Card with bug trend chart
     """
     try:
         from visualization.mobile_charts import create_bug_trend_chart
-        
+
         # Create the chart figure
         fig = create_bug_trend_chart(weekly_stats, viewport_size)
-        
+
         # Get mobile-optimized config
         from visualization.mobile_charts import get_mobile_chart_config
-        
+
         chart_config = get_mobile_chart_config(viewport_size)
-        
+
         # Create chart component (config parameter accepts dict)
         chart_component = dcc.Graph(
             figure=fig,
@@ -49,7 +49,7 @@ def BugTrendChart(
             className="bug-trend-chart",
             style={"height": "400px" if viewport_size == "mobile" else "500px"},
         )
-        
+
         # Wrap in card for consistent styling
         return dbc.Card(
             dbc.CardBody(
@@ -74,7 +74,7 @@ def BugTrendChart(
             ),
             className="mb-3",
         )
-        
+
     except Exception as e:
         # Error boundary - return error message card
         if show_error_boundaries:
