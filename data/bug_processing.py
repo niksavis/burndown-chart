@@ -406,6 +406,7 @@ def forecast_bug_resolution(
         "insufficient_data": False,
     }
 
+
 def get_iso_week(date: datetime) -> str:
     """Convert date to ISO week format (YYYY-Www).
 

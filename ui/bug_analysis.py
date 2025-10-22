@@ -299,6 +299,188 @@ def create_quality_insights_panel(insights: List[Dict]) -> dbc.Card:
     )
 
 
+def create_bug_forecast_card(forecast: Dict, open_bugs: int) -> dbc.Card:
+    """Create bug resolution forecast card.
+
+    Args:
+        forecast: Forecast dictionary with:
+            - optimistic_weeks: Best case weeks to resolution
+            - most_likely_weeks: Expected weeks to resolution
+            - pessimistic_weeks: Worst case weeks to resolution
+            - optimistic_date: Best case completion date (ISO format)
+            - most_likely_date: Expected completion date (ISO format)
+            - pessimistic_date: Worst case completion date (ISO format)
+            - avg_closure_rate: Average bugs resolved per week
+            - insufficient_data: True if forecast cannot be calculated
+        open_bugs: Number of currently open bugs
+
+    Returns:
+        Dash Bootstrap Components Card with forecast information
+    """
+    # Handle insufficient data case
+    if forecast.get("insufficient_data", False):
+        return dbc.Card(
+            dbc.CardBody(
+                [
+                    html.H4("Bug Resolution Forecast", className="card-title"),
+                    html.Div(
+                        [
+                            html.I(className="fas fa-info-circle me-2"),
+                            html.Span(
+                                "Insufficient data for forecasting. Need at least 4 weeks of bug resolution history."
+                            ),
+                        ],
+                        className="alert alert-warning",
+                    ),
+                ]
+            ),
+            className="mb-3",
+        )
+
+    # Handle zero open bugs
+    if open_bugs == 0:
+        return dbc.Card(
+            dbc.CardBody(
+                [
+                    html.H4("Bug Resolution Forecast", className="card-title"),
+                    html.Div(
+                        [
+                            html.I(className="fas fa-check-circle me-2 text-success"),
+                            html.Span("All bugs resolved! No open bugs remaining."),
+                        ],
+                        className="alert alert-success",
+                    ),
+                ]
+            ),
+            className="mb-3",
+        )
+
+    # Extract forecast data
+    optimistic_weeks = forecast.get("optimistic_weeks", 0)
+    most_likely_weeks = forecast.get("most_likely_weeks", 0)
+    pessimistic_weeks = forecast.get("pessimistic_weeks", 0)
+    optimistic_date = forecast.get("optimistic_date", "")
+    most_likely_date = forecast.get("most_likely_date", "")
+    pessimistic_date = forecast.get("pessimistic_date", "")
+    avg_closure_rate = forecast.get("avg_closure_rate", 0.0)
+
+    # Format dates for display (YYYY-MM-DD -> Mon DD, YYYY)
+    from datetime import datetime
+
+    def format_date(iso_date: str) -> str:
+        """Format ISO date for display."""
+        if not iso_date:
+            return "N/A"
+        try:
+            date_obj = datetime.fromisoformat(iso_date)
+            return date_obj.strftime("%b %d, %Y")
+        except (ValueError, AttributeError):
+            return iso_date
+
+    optimistic_date_formatted = format_date(optimistic_date)
+    most_likely_date_formatted = format_date(most_likely_date)
+    pessimistic_date_formatted = format_date(pessimistic_date)
+
+    return dbc.Card(
+        dbc.CardBody(
+            [
+                html.H4("Bug Resolution Forecast", className="card-title mb-3"),
+                html.P(
+                    [
+                        html.I(className="fas fa-chart-line me-2"),
+                        html.Span(
+                            f"Based on {open_bugs} open bugs and average closure rate of {avg_closure_rate} bugs/week"
+                        ),
+                    ],
+                    className="text-muted small mb-3",
+                ),
+                # Forecast scenarios
+                dbc.Row(
+                    [
+                        # Optimistic scenario
+                        dbc.Col(
+                            [
+                                html.Div(
+                                    [
+                                        html.I(
+                                            className="fas fa-smile fa-2x text-success mb-2"
+                                        ),
+                                        html.H4(optimistic_weeks, className="mb-0"),
+                                        html.P("weeks", className="text-muted small"),
+                                        html.P(
+                                            optimistic_date_formatted,
+                                            className="font-weight-bold",
+                                        ),
+                                        html.P(
+                                            "Optimistic",
+                                            className="text-success small mb-0",
+                                        ),
+                                    ],
+                                    className="text-center",
+                                )
+                            ],
+                            width=12,
+                            md=4,
+                        ),
+                        # Most likely scenario
+                        dbc.Col(
+                            [
+                                html.Div(
+                                    [
+                                        html.I(
+                                            className="fas fa-calendar-check fa-2x text-primary mb-2"
+                                        ),
+                                        html.H4(most_likely_weeks, className="mb-0"),
+                                        html.P("weeks", className="text-muted small"),
+                                        html.P(
+                                            most_likely_date_formatted,
+                                            className="font-weight-bold",
+                                        ),
+                                        html.P(
+                                            "Most Likely",
+                                            className="text-primary small mb-0",
+                                        ),
+                                    ],
+                                    className="text-center",
+                                )
+                            ],
+                            width=12,
+                            md=4,
+                        ),
+                        # Pessimistic scenario
+                        dbc.Col(
+                            [
+                                html.Div(
+                                    [
+                                        html.I(
+                                            className="fas fa-exclamation-triangle fa-2x text-warning mb-2"
+                                        ),
+                                        html.H4(pessimistic_weeks, className="mb-0"),
+                                        html.P("weeks", className="text-muted small"),
+                                        html.P(
+                                            pessimistic_date_formatted,
+                                            className="font-weight-bold",
+                                        ),
+                                        html.P(
+                                            "Pessimistic",
+                                            className="text-warning small mb-0",
+                                        ),
+                                    ],
+                                    className="text-center",
+                                )
+                            ],
+                            width=12,
+                            md=4,
+                        ),
+                    ],
+                    className="mt-3",
+                ),
+            ]
+        ),
+        className="mb-3",
+    )
+
+
 def create_bug_analysis_tab() -> html.Div:
     """Create bug analysis tab layout placeholder.
 

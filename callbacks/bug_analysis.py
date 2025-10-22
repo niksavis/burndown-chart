@@ -17,9 +17,17 @@ from dash import html
 import dash_bootstrap_components as dbc
 
 # Application imports
-from data.bug_processing import filter_bug_issues, calculate_bug_metrics_summary
+from data.bug_processing import (
+    filter_bug_issues,
+    calculate_bug_metrics_summary,
+    forecast_bug_resolution,
+)
 from data.persistence import load_unified_project_data
-from ui.bug_analysis import create_bug_metrics_card, create_quality_insights_panel
+from ui.bug_analysis import (
+    create_bug_metrics_card,
+    create_quality_insights_panel,
+    create_bug_forecast_card,
+)
 from data.bug_insights import generate_quality_insights
 from configuration.settings import get_bug_analysis_config
 
@@ -205,6 +213,25 @@ def update_bug_metrics(active_tab: str, data_points_count: int):
                 ),
                 # Bug metrics card
                 dbc.Row([dbc.Col([metrics_card], width=12)], className="mb-4"),
+                # Bug forecast card (T098-T104)
+                dbc.Row(
+                    [
+                        dbc.Col(
+                            [
+                                create_bug_forecast_card(
+                                    forecast_bug_resolution(
+                                        bug_metrics.get("open_bugs", 0),
+                                        weekly_stats,
+                                        use_last_n_weeks=8,
+                                    ),
+                                    bug_metrics.get("open_bugs", 0),
+                                )
+                            ],
+                            width=12,
+                        )
+                    ],
+                    className="mb-4",
+                ),
                 # Bug trends chart
                 dbc.Row([dbc.Col([trends_chart], width=12)], className="mb-4"),
                 # Quality insights panel (T078-T082)
