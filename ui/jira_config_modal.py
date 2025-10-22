@@ -50,6 +50,7 @@ def create_jira_config_modal():
                                         id="jira-base-url-input",
                                         type="url",
                                         placeholder="https://your-company.atlassian.net",
+                                        required=True,
                                     ),
                                 ],
                                 width=8,
@@ -103,6 +104,7 @@ def create_jira_config_modal():
                                         id="jira-token-input",
                                         type="password",
                                         placeholder="Enter your JIRA personal access token",
+                                        required=True,
                                     ),
                                     dbc.FormText(
                                         "Create in JIRA: Profile → Security → Personal Access Tokens (read permissions)",
