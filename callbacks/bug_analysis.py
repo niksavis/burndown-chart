@@ -303,7 +303,10 @@ def update_bug_metrics(active_tab: str, data_points_count: int):
                             [
                                 # Generate quality insights from metrics and statistics
                                 create_quality_insights_panel(
-                                    generate_quality_insights(bug_metrics, weekly_stats)
+                                    generate_quality_insights(
+                                        bug_metrics, weekly_stats
+                                    ),
+                                    weekly_stats=weekly_stats,
                                 )
                             ],
                             width=12,

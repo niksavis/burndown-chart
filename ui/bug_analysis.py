@@ -5,7 +5,7 @@ Provides UI components for bug metrics display, charts, and analysis tab layout.
 
 from dash import html
 import dash_bootstrap_components as dbc
-from typing import Dict, List
+from typing import Dict, List, Optional
 from data.bug_insights import InsightSeverity
 
 
@@ -425,7 +425,9 @@ def create_bug_metrics_cards(bug_metrics: Dict, forecast: Dict) -> html.Div:
     )
 
 
-def create_quality_insights_panel(insights: List[Dict]) -> dbc.Card:
+def create_quality_insights_panel(
+    insights: List[Dict], weekly_stats: Optional[List[Dict]] = None
+) -> dbc.Card:
     """Create quality insights panel with severity icons and expandable details.
 
     Args:
@@ -434,24 +436,50 @@ def create_quality_insights_panel(insights: List[Dict]) -> dbc.Card:
             - severity: InsightSeverity enum
             - message: Short insight message
             - actionable_recommendation: Detailed recommendation
+        weekly_stats: Optional list of weekly statistics for data sufficiency check
 
     Returns:
         Dash Bootstrap Components Card with quality insights
     """
     if not insights:
+        # Check if we have weekly stats to provide better feedback
+        weeks_available = len(weekly_stats) if weekly_stats else 0
+
+        if weeks_available < 3:
+            message = html.Div(
+                [
+                    html.I(className="fas fa-info-circle me-2"),
+                    html.Div(
+                        [
+                            html.Strong("Insufficient data for insights"),
+                            html.Br(),
+                            html.Small(
+                                f"Quality insights require at least 3 weeks of bug activity data. "
+                                f"Currently: {weeks_available} week{'s' if weeks_available != 1 else ''} available. "
+                                f"Increase the timeline filter or add more bug history.",
+                                className="text-muted",
+                            ),
+                        ]
+                    ),
+                ],
+                className="alert alert-info mb-0",
+            )
+        else:
+            message = html.Div(
+                [
+                    html.I(className="fas fa-check-circle me-2 text-success"),
+                    html.Span(
+                        f"Quality is stable - no critical issues detected ({weeks_available} weeks analyzed)."
+                    ),
+                ],
+                className="alert alert-success mb-0",
+            )
+
         return dbc.Card(
             dbc.CardBody(
                 [
                     html.H4("Quality Insights", className="card-title"),
-                    html.Div(
-                        [
-                            html.I(className="fas fa-lightbulb me-2"),
-                            html.Span(
-                                "No insights available - continue monitoring bug trends."
-                            ),
-                        ],
-                        className="alert alert-info",
-                    ),
+                    message,
                 ]
             ),
             className="mb-3",
