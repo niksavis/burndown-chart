@@ -183,18 +183,21 @@ def calculate_bug_statistics(
 
 
 def calculate_bug_metrics_summary(
-    bug_issues: List[Dict], weekly_stats: List[Dict]
+    all_bug_issues: List[Dict],
+    timeline_filtered_bugs: List[Dict],
+    weekly_stats: List[Dict],
 ) -> Dict:
     """Calculate overall bug metrics summary.
 
     Args:
-        bug_issues: List of all bug issues
+        all_bug_issues: List of all bug issues (for current state metrics like open bugs count)
+        timeline_filtered_bugs: List of bugs filtered by timeline (for historical metrics like resolution rate)
         weekly_stats: List of weekly bug statistics
 
     Returns:
         Bug metrics summary dictionary with resolution rate, trends, etc.
     """
-    if not bug_issues:
+    if not all_bug_issues and not timeline_filtered_bugs:
         return {
             "total_bugs": 0,
             "open_bugs": 0,
@@ -209,20 +212,35 @@ def calculate_bug_metrics_summary(
             "capacity_consumed_by_bugs": 0.0,
         }
 
-    # Count total, open, and closed bugs
-    total_bugs = len(bug_issues)
+    # Count current state metrics from ALL bugs (not filtered by timeline)
+    # This gives the true current state of open/closed bugs
     open_bugs = 0
-    closed_bugs = 0
-    total_bug_points = 0
     open_bug_points = 0
-    resolution_times = []
 
-    for issue in bug_issues:
+    for issue in all_bug_issues:
         fields = issue.get("fields", {})
         resolution_date = fields.get("resolutiondate")
         points = fields.get("customfield_10016") or 0
 
-        # Count open vs closed
+        if not resolution_date:
+            open_bugs += 1
+            open_bug_points += points
+
+    # Count historical metrics from timeline-filtered bugs
+    # This gives resolution rate and trends for the selected period
+    total_bugs = len(timeline_filtered_bugs)
+    closed_bugs = 0
+    total_bug_points = 0
+    resolution_times = []
+
+    for issue in timeline_filtered_bugs:
+        fields = issue.get("fields", {})
+        resolution_date = fields.get("resolutiondate")
+        points = fields.get("customfield_10016") or 0
+
+        total_bug_points += points
+
+        # Count closed bugs and calculate resolution time
         if resolution_date:
             closed_bugs += 1
 
@@ -238,13 +256,8 @@ def calculate_bug_metrics_summary(
                     resolution_times.append(resolution_time)
                 except ValueError:
                     pass
-        else:
-            open_bugs += 1
-            open_bug_points += points
 
-        total_bug_points += points
-
-    # Calculate resolution rate
+    # Calculate resolution rate from timeline-filtered bugs
     resolution_rate = closed_bugs / total_bugs if total_bugs > 0 else 0.0
 
     # Calculate average resolution time

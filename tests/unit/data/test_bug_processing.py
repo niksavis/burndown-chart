@@ -288,7 +288,8 @@ class TestBugMetricsSummary:
 
         weekly_stats = []  # Not needed for basic summary
 
-        summary = calculate_bug_metrics_summary(bug_issues, weekly_stats)
+        # For tests, pass the same bugs for both parameters (all_bugs and timeline_bugs)
+        summary = calculate_bug_metrics_summary(bug_issues, bug_issues, weekly_stats)
 
         assert summary["total_bugs"] == 4
         assert summary["open_bugs"] == 2  # BUG-2 and BUG-4
@@ -315,7 +316,7 @@ class TestBugMetricsSummary:
 
         weekly_stats = []
 
-        summary = calculate_bug_metrics_summary(bug_issues, weekly_stats)
+        summary = calculate_bug_metrics_summary(bug_issues, bug_issues, weekly_stats)
 
         assert summary["total_bugs"] == 10
         assert summary["closed_bugs"] == 7
@@ -360,7 +361,7 @@ class TestBugMetricsSummary:
 
         weekly_stats = []
 
-        summary = calculate_bug_metrics_summary(bug_issues, weekly_stats)
+        summary = calculate_bug_metrics_summary(bug_issues, bug_issues, weekly_stats)
 
         assert summary["total_bug_points"] == 13  # 5 + 8 + 0
         assert summary["open_bug_points"] == 8  # Only BUG-2 has points and is open
@@ -370,7 +371,7 @@ class TestBugMetricsSummary:
         bug_issues = []
         weekly_stats = []
 
-        summary = calculate_bug_metrics_summary(bug_issues, weekly_stats)
+        summary = calculate_bug_metrics_summary(bug_issues, bug_issues, weekly_stats)
 
         assert summary["total_bugs"] == 0
         assert summary["open_bugs"] == 0
@@ -781,7 +782,7 @@ class TestBugStatisticsWithStoryPoints:
 
         weekly_stats = []  # Not used for this test
 
-        summary = calculate_bug_metrics_summary(bug_issues, weekly_stats)
+        summary = calculate_bug_metrics_summary(bug_issues, bug_issues, weekly_stats)
 
         # Verify total bug points
         assert summary["total_bug_points"] == 16  # 5 + 8 + 3

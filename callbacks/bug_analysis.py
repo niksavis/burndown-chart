@@ -121,8 +121,16 @@ def update_bug_metrics(active_tab: str, data_points_count: int):
         date_to = datetime.now()
         date_from = date_to - timedelta(weeks=data_points_count or 12)
 
-        # Filter to bug issues only AND apply timeline filtering
-        bug_issues = filter_bug_issues(
+        # Get ALL bugs (without date filter) for current state metrics (open bugs count)
+        all_bug_issues = filter_bug_issues(
+            all_issues,
+            bug_type_mappings=bug_config.get("issue_type_mappings", {}),
+            date_from=None,  # No date filter for current state
+            date_to=None,
+        )
+
+        # Get timeline-filtered bugs for historical trend analysis
+        timeline_filtered_bugs = filter_bug_issues(
             all_issues,
             bug_type_mappings=bug_config.get("issue_type_mappings", {}),
             date_from=date_from,
@@ -130,30 +138,35 @@ def update_bug_metrics(active_tab: str, data_points_count: int):
         )
 
         logger.info(
-            f"Filtered to {len(bug_issues)} bug issues from {len(all_issues)} total "
+            f"Total bug issues: {len(all_bug_issues)} (all time), "
+            f"{len(timeline_filtered_bugs)} in selected timeline "
             f"(date range: {date_from.date()} to {date_to.date()}, {data_points_count} weeks)"
         )
 
         # Initialize weekly_stats (needed for quality insights)
         weekly_stats = []
 
-        # Calculate weekly bug statistics
+        # Calculate weekly bug statistics using timeline-filtered bugs
         try:
             logger.info(
-                f"Attempting to calculate statistics with {len(bug_issues)} bugs from {date_from} to {date_to}"
+                f"Attempting to calculate statistics with {len(timeline_filtered_bugs)} bugs from {date_from} to {date_to}"
             )
             from data.bug_processing import calculate_bug_statistics
 
             weekly_stats = calculate_bug_statistics(
-                bug_issues, date_from, date_to, story_points_field=points_field
+                timeline_filtered_bugs, date_from, date_to, story_points_field=points_field
             )
 
             logger.info(
                 f"Successfully calculated {len(weekly_stats)} weeks of statistics"
             )
 
-            # Calculate bug metrics summary (respects timeline filter)
-            bug_metrics = calculate_bug_metrics_summary(bug_issues, weekly_stats)
+            # Calculate bug metrics summary
+            # Use all_bug_issues for current state (open bugs count)
+            # Use timeline_filtered_bugs for historical metrics (resolution rate, trends)
+            bug_metrics = calculate_bug_metrics_summary(
+                all_bug_issues, timeline_filtered_bugs, weekly_stats
+            )
 
             logger.debug(
                 f"Calculated metrics: {bug_metrics['total_bugs']} total, "
@@ -208,13 +221,15 @@ def update_bug_metrics(active_tab: str, data_points_count: int):
             # Handle edge case: not enough bugs for statistics
             logger.error(f"Could not calculate bug statistics: {ve}")
             logger.error(
-                f"Bug count: {len(bug_issues)}, date_from: {date_from}, date_to: {date_to}"
+                f"Bug count: {len(timeline_filtered_bugs)}, date_from: {date_from}, date_to: {date_to}"
             )
             # Set empty weekly_stats for insights
             weekly_stats = []
 
             # Calculate bug metrics even if statistics failed (for basic metrics card)
-            bug_metrics = calculate_bug_metrics_summary(bug_issues, weekly_stats=[])
+            bug_metrics = calculate_bug_metrics_summary(
+                all_bug_issues, timeline_filtered_bugs, weekly_stats=[]
+            )
             metrics_card = create_bug_metrics_card(bug_metrics)
 
             trends_chart = dbc.Card(
