@@ -391,7 +391,7 @@ def create_scope_growth_chart(weekly_growth_data, show_points=True):
 
 
 def create_enhanced_stability_gauge(
-    stability_value, title="Scope Stability Index", height=300
+    stability_value, title="Scope Stability Index", height=300, show_toolbar=True
 ):
     """
     Create an enhanced gauge visualization for the scope stability index with better visual indicators.
@@ -400,6 +400,7 @@ def create_enhanced_stability_gauge(
         stability_value (float): A value between 0 and 1 representing stability
         title (str): Title displayed above the gauge
         height (int): Height of the gauge in pixels
+        show_toolbar (bool): Whether to show Plotly toolbar (default: True)
 
     Returns:
         dcc.Graph: A Dash graph component with the gauge
@@ -523,9 +524,16 @@ def create_enhanced_stability_gauge(
         yaxis={"visible": False, "showgrid": False, "zeroline": False},
     )
 
+    # Configure chart options based on toolbar preference
+    if show_toolbar:
+        chart_config = get_scope_metrics_chart_config()  # type: ignore[arg-type]
+    else:
+        # Hide toolbar for cleaner UI on gauge charts
+        chart_config = {"displayModeBar": False, "responsive": True}  # type: ignore[arg-type]
+
     return dcc.Graph(
         figure=figure,
-        config=get_scope_metrics_chart_config(),  # type: ignore[arg-type]
+        config=chart_config,  # type: ignore[arg-type]
     )
 
 
@@ -1360,6 +1368,7 @@ def create_scope_metrics_dashboard(
                                                 stability_index["items_stability"],
                                                 "",  # Empty title since we have header above
                                                 height=280,
+                                                show_toolbar=False,  # Hide toolbar for cleaner UI
                                             ),
                                         ]
                                     )
@@ -1395,6 +1404,7 @@ def create_scope_metrics_dashboard(
                                                     stability_index["points_stability"],
                                                     "",  # Empty title since we have header above
                                                     height=280,
+                                                    show_toolbar=False,  # Hide toolbar for cleaner UI
                                                 ),
                                             ]
                                         )
