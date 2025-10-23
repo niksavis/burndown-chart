@@ -30,6 +30,10 @@ from dash.exceptions import PreventUpdate
 
 # Application imports
 from configuration import CHART_HELP_TEXTS
+from configuration.chart_config import (
+    get_burndown_chart_config,
+    get_weekly_chart_config,
+)
 from data import (
     calculate_performance_trend,
     calculate_weekly_averages,
@@ -640,14 +644,7 @@ def register(app):
                     dcc.Graph(
                         id="forecast-graph",
                         figure=current_figure,
-                        config={
-                            "displayModeBar": False,  # Hidden via CSS for cleaner mobile experience
-                            "responsive": True,
-                            "scrollZoom": True,
-                            "doubleClick": "autosize",
-                            "showTips": True,
-                            "displaylogo": False,
-                        },
+                        config=get_burndown_chart_config(),  # type: ignore[arg-type]
                         style={"height": f"{chart_height}px"},
                     ),
                     id="chart-container",
@@ -685,13 +682,7 @@ def register(app):
                 dcc.Graph(
                     id="items-chart",
                     figure=items_fig,
-                    config={
-                        "displayModeBar": True,
-                        "responsive": True,
-                        "toImageButtonOptions": {
-                            "filename": f"weekly_items_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-                        },
-                    },
+                    config=get_weekly_chart_config(),  # type: ignore[arg-type]
                     style={"height": "700px"},
                 ),
             ]
@@ -727,13 +718,7 @@ def register(app):
                 dcc.Graph(
                     id="points-chart",
                     figure=points_fig,
-                    config={
-                        "displayModeBar": True,
-                        "responsive": True,
-                        "toImageButtonOptions": {
-                            "filename": f"weekly_points_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-                        },
-                    },
+                    config=get_weekly_chart_config(),  # type: ignore[arg-type]
                     style={"height": "700px"},
                 ),
             ]
@@ -1202,7 +1187,7 @@ def register(app):
                         )
                     ],
                 ),
-                config={"displayModeBar": True, "responsive": True},
+                config=get_burndown_chart_config(),  # type: ignore[arg-type]
                 style={"height": "700px"},
             )
 
@@ -1231,9 +1216,6 @@ def register(app):
                 "hover_mode", "x unified"
             )  # Add hover mode setting
             chart_height = settings.get("chart_height", 700)
-
-            # Generate timestamp for the filename
-            current_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
             # Prepare data consistently for both charts
             if not df.empty:
@@ -1286,13 +1268,7 @@ def register(app):
             return dcc.Graph(
                 id="forecast-graph",
                 figure=figure,
-                config={
-                    "displayModeBar": True,
-                    "responsive": True,
-                    "toImageButtonOptions": {
-                        "filename": f"{'burndown' if chart_type == 'burndown' else 'burnup'}_chart_{current_timestamp}"
-                    },
-                },
+                config=get_burndown_chart_config(),  # type: ignore[arg-type]
                 style={"height": f"{chart_height}px"},
             )
 
@@ -1320,7 +1296,7 @@ def register(app):
                         figure=go.Figure().update_layout(
                             title=f"Error: {str(e)}",
                         ),
-                        config={"displayModeBar": True, "responsive": True},
+                        config=get_burndown_chart_config(),  # type: ignore[arg-type]
                         style={"height": "700px"},
                     ),
                 ]
