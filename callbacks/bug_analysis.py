@@ -115,39 +115,24 @@ def update_bug_metrics(active_tab: str, data_points_count: int):
             except Exception as e:
                 logger.warning(f"Could not load from JIRA cache: {e}")
 
-        # Filter to bug issues only
+        # Determine date range based on data_points_count (timeline filter)
+        from datetime import datetime, timedelta
+
+        date_to = datetime.now()
+        date_from = date_to - timedelta(weeks=data_points_count or 12)
+
+        # Filter to bug issues only AND apply timeline filtering
         bug_issues = filter_bug_issues(
             all_issues,
             bug_type_mappings=bug_config.get("issue_type_mappings", {}),
+            date_from=date_from,
+            date_to=date_to,
         )
 
         logger.info(
-            f"Filtered to {len(bug_issues)} bug issues from {len(all_issues)} total"
+            f"Filtered to {len(bug_issues)} bug issues from {len(all_issues)} total "
+            f"(date range: {date_from.date()} to {date_to.date()}, {data_points_count} weeks)"
         )
-
-        # Note: Timeline filtering will be added in Phase 4 - Bug Trends
-        # For now, use all filtered bug issues without date range filtering
-
-        # Calculate bug metrics (weekly_stats=[] for now - will enhance later)
-        bug_metrics = calculate_bug_metrics_summary(bug_issues, weekly_stats=[])
-
-        logger.debug(
-            f"Calculated metrics: {bug_metrics['total_bugs']} total, "
-            f"{bug_metrics['open_bugs']} open, "
-            f"{bug_metrics['resolution_rate']:.1%} resolution rate"
-        )
-
-        # Create metrics card
-        metrics_card = create_bug_metrics_card(bug_metrics)
-
-        # Calculate bug statistics for trend chart (T041)
-        # Import calculate_bug_statistics
-        from data.bug_processing import calculate_bug_statistics
-        from datetime import datetime, timedelta
-
-        # Determine date range based on data_points_count (timeline filter)
-        date_to = datetime.now()
-        date_from = date_to - timedelta(weeks=data_points_count or 12)
 
         # Initialize weekly_stats (needed for quality insights)
         weekly_stats = []
@@ -157,6 +142,8 @@ def update_bug_metrics(active_tab: str, data_points_count: int):
             logger.info(
                 f"Attempting to calculate statistics with {len(bug_issues)} bugs from {date_from} to {date_to}"
             )
+            from data.bug_processing import calculate_bug_statistics
+
             weekly_stats = calculate_bug_statistics(
                 bug_issues, date_from, date_to, story_points_field=points_field
             )
@@ -164,6 +151,18 @@ def update_bug_metrics(active_tab: str, data_points_count: int):
             logger.info(
                 f"Successfully calculated {len(weekly_stats)} weeks of statistics"
             )
+
+            # Calculate bug metrics summary (respects timeline filter)
+            bug_metrics = calculate_bug_metrics_summary(bug_issues, weekly_stats)
+
+            logger.debug(
+                f"Calculated metrics: {bug_metrics['total_bugs']} total, "
+                f"{bug_metrics['open_bugs']} open, "
+                f"{bug_metrics['resolution_rate']:.1%} resolution rate"
+            )
+
+            # Create metrics card
+            metrics_card = create_bug_metrics_card(bug_metrics)
 
             # Create bug trends chart
             from ui.bug_charts import BugTrendChart, BugInvestmentChart
@@ -213,6 +212,11 @@ def update_bug_metrics(active_tab: str, data_points_count: int):
             )
             # Set empty weekly_stats for insights
             weekly_stats = []
+
+            # Calculate bug metrics even if statistics failed (for basic metrics card)
+            bug_metrics = calculate_bug_metrics_summary(bug_issues, weekly_stats=[])
+            metrics_card = create_bug_metrics_card(bug_metrics)
+
             trends_chart = dbc.Card(
                 dbc.CardBody(
                     [
