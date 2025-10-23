@@ -251,27 +251,6 @@ def _render_bug_analysis_content(data_points_count: int):
         # Return complete tab content (matches Items per Week pattern)
         return html.Div(
             [
-                # Header
-                dbc.Row(
-                    [
-                        dbc.Col(
-                            [
-                                html.H2(
-                                    [
-                                        html.I(className="fas fa-bug me-2"),
-                                        "Bug Analysis Dashboard",
-                                    ],
-                                    className="mb-3",
-                                ),
-                                html.P(
-                                    "Track bug creation, resolution trends, and quality metrics to maintain project health.",
-                                    className="text-muted",
-                                ),
-                            ]
-                        )
-                    ],
-                    className="mb-4",
-                ),
                 # Combined bug metrics cards (Resolution Rate + Open Bugs + Expected Resolution)
                 dbc.Row([dbc.Col([metrics_cards], width=12)], className="mb-4"),
                 # Bug trends chart
@@ -303,22 +282,6 @@ def _render_bug_analysis_content(data_points_count: int):
         # Return complete error page (not just error cards)
         return html.Div(
             [
-                dbc.Row(
-                    [
-                        dbc.Col(
-                            [
-                                html.H2(
-                                    [
-                                        html.I(className="fas fa-bug me-2"),
-                                        "Bug Analysis Dashboard",
-                                    ],
-                                    className="mb-3",
-                                ),
-                            ]
-                        )
-                    ],
-                    className="mb-4",
-                ),
                 dbc.Row(
                     [
                         dbc.Col(

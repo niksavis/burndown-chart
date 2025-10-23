@@ -418,36 +418,102 @@ def create_tooltip(
     return dbc.Tooltip(**tooltip_props)
 
 
-def create_info_tooltip(id_suffix, help_text, placement="right", variant="info"):
+def create_info_tooltip(
+    param1=None,
+    param2=None,
+    placement="top",
+    variant="info",
+    id_suffix=None,
+    help_text=None,
+):
     """
     Create an information tooltip component with an info icon.
 
+    Uses the modern Bug Analysis design pattern with:
+    - Inline help icon using create_help_icon()
+    - Separate dbc.Tooltip with placement="top" by default
+    - Consistent styling across the application
+
+    Supports multiple calling patterns for maximum compatibility:
+    - create_info_tooltip(help_text, id_suffix) - NEW pattern (help text first)
+    - create_info_tooltip(id_suffix, help_text) - OLD pattern (id first)
+    - create_info_tooltip(help_text=..., id_suffix=...) - KEYWORD pattern
+    - create_info_tooltip(id_suffix=..., help_text=...) - KEYWORD pattern (any order)
+
     Args:
-        id_suffix: Suffix for the component ID
-        help_text: Text to display in the tooltip
-        placement: Tooltip placement position
-        variant: Tooltip style variant
+        param1: Either help_text (if longer) or id_suffix (if shorter/simpler)
+        param2: Either id_suffix (if param1 is help_text) or help_text (if param1 is id)
+        placement: Tooltip placement position (default: "top")
+        variant: Tooltip style variant (currently unused, kept for compatibility)
+        id_suffix: Explicit ID suffix (keyword argument)
+        help_text: Explicit help text (keyword argument)
 
     Returns:
-        Dash component with tooltip
+        Dash component with tooltip using Bug Analysis design pattern
     """
-    target_id = f"info-tooltip-{id_suffix}"
+    # Handle keyword arguments first
+    if id_suffix is not None and help_text is not None:
+        # Both keyword args provided - use them directly
+        pass
+    elif param1 is not None and param2 is not None:
+        # Positional arguments - auto-detect parameter order
+        # Longer/more complex string is likely help_text
+        if " " in str(param1) or len(str(param1)) > 50:
+            help_text = param1
+            id_suffix = param2
+        else:
+            # Assume old pattern: id_suffix, help_text
+            id_suffix = param1
+            help_text = param2
+    elif id_suffix is not None:
+        # Only id_suffix keyword provided, param1 must be help_text
+        help_text = param1
+    elif help_text is not None:
+        # Only help_text keyword provided, param1 must be id_suffix
+        id_suffix = param1
+    else:
+        raise ValueError(
+            "create_info_tooltip requires both help_text and id_suffix parameters"
+        )
 
-    return html.Div(
+    # Validate that we have both required parameters
+    if id_suffix is None or help_text is None:
+        raise ValueError(
+            f"create_info_tooltip requires both help_text and id_suffix. "
+            f"Got id_suffix={id_suffix!r}, help_text={help_text!r}"
+        )
+
+    # Validate placement to ensure it's a valid literal type
+    valid_placements = {
+        "auto",
+        "auto-start",
+        "auto-end",
+        "top",
+        "top-start",
+        "top-end",
+        "right",
+        "right-start",
+        "right-end",
+        "bottom",
+        "bottom-start",
+        "bottom-end",
+        "left",
+        "left-start",
+        "left-end",
+    }
+    validated_placement = placement if placement in valid_placements else "top"
+
+    # Use the modern help icon pattern from Bug Analysis
+    return html.Span(
         [
-            html.I(
-                className="fas fa-info-circle text-info ml-2",
-                id=target_id,
-                style={"cursor": "pointer", "marginLeft": "5px"},
-            ),
-            create_tooltip(
+            create_help_icon(id_suffix, position="inline"),
+            dbc.Tooltip(
                 help_text,
-                target=target_id,
-                position=placement,
-                variant=variant,
+                target=f"info-tooltip-{id_suffix}",
+                placement=validated_placement,  # type: ignore
             ),
         ],
-        style={"display": "inline-block"},
+        style={"display": "inline"},
     )
 
 
