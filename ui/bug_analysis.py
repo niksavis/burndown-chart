@@ -374,7 +374,7 @@ def create_bug_metrics_cards(bug_metrics: Dict, forecast: Dict) -> html.Div:
                                                 },
                                                 children=[
                                                     html.Span(
-                                                        f"{most_likely_date_formatted} • {avg_closure_rate:.1f} bugs/week"
+                                                        f"By {most_likely_date_formatted} • {avg_closure_rate:.1f} bugs/week"
                                                         if not insufficient_data
                                                         and open_bugs > 0
                                                         else (
