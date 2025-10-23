@@ -376,12 +376,24 @@ def create_bug_trend_chart(
             )
 
             # Add vertical line between historical and forecast
+            # Position annotation away from toolbar to avoid overlap
             fig.add_vline(
                 x=len(weeks) - 0.5,
                 line_dash="dash",
                 line_color="rgba(0, 0, 0, 0.3)",
-                annotation_text="Forecast",
-                annotation_position="top",
+            )
+
+            # Add annotation separately for better positioning control
+            fig.add_annotation(
+                x=len(weeks) - 0.5,
+                y=1.02,
+                xref="x",
+                yref="paper",
+                text="Forecast",
+                showarrow=False,
+                font=dict(size=11, color="rgba(0, 0, 0, 0.6)"),
+                xanchor="center",
+                yanchor="bottom",
             )
 
     # T037a: Add visual warnings for 3+ consecutive weeks where creation > closure
@@ -665,12 +677,24 @@ def create_bug_investment_chart(
                 )
 
             # Add vertical line between historical and forecast
+            # Position annotation away from toolbar to avoid overlap
             fig.add_vline(
                 x=len(weeks) - 0.5,
                 line_dash="dash",
                 line_color="rgba(0, 0, 0, 0.3)",
-                annotation_text="Forecast",
-                annotation_position="top",
+            )
+
+            # Add annotation separately for better positioning control
+            fig.add_annotation(
+                x=len(weeks) - 0.5,
+                y=1.02,
+                xref="x",
+                yref="paper",
+                text="Forecast",
+                showarrow=False,
+                font=dict(size=11, color="rgba(0, 0, 0, 0.6)"),
+                xanchor="center",
+                yanchor="bottom",
             )
 
     # Configure layout
@@ -705,13 +729,13 @@ def create_bug_investment_chart(
         **layout_config_clean,
     )
 
-    # Add legend configuration
+    # Add legend configuration - reduced bottom margin to minimize empty space
     fig.update_layout(
         showlegend=True,
         legend=dict(
             orientation="h" if viewport_size == "mobile" else "v",
             yanchor="bottom",
-            y=-0.4 if viewport_size == "mobile" else 1.0,
+            y=-0.25 if viewport_size == "mobile" else 1.0,  # Reduced from -0.4 to -0.25
             xanchor="left" if viewport_size == "mobile" else "left",
             x=0 if viewport_size == "mobile" else 1.02,
             bgcolor="rgba(255,255,255,0.8)",
