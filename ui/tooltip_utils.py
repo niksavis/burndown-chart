@@ -1024,3 +1024,55 @@ def create_statistical_context_tooltip(
         variant=variant,
         placement=placement,
     )
+
+
+#######################################################################
+# UNIFIED HELP ICON COMPONENT
+#######################################################################
+
+
+def create_help_icon(
+    tooltip_id: str,
+    position: str = "inline",
+    icon_class: str = "fas fa-info-circle",
+    color: str = "#17a2b8",
+) -> html.I:
+    """
+    Create a standardized help icon with consistent styling.
+
+    This provides a unified way to add help icons across all tabs,
+    ensuring consistent positioning, sizing, and color.
+
+    Args:
+        tooltip_id: Unique ID for the tooltip target
+        position: Icon position - "inline", "header", or "trailing" (default: "inline")
+        icon_class: FontAwesome icon class (default: "fas fa-info-circle")
+        color: Icon color in hex (default: "#17a2b8" - Bootstrap info color)
+
+    Returns:
+        html.I: Icon component with standardized styling
+
+    Examples:
+        >>> # Inline help icon next to text
+        >>> icon = create_help_icon("items-scope-help", position="inline")
+
+        >>> # Header help icon (aligned with titles)
+        >>> icon = create_help_icon("weekly-chart-help", position="header")
+
+        >>> # Trailing help icon (pushed to end of container)
+        >>> icon = create_help_icon("forecast-help", position="trailing")
+    """
+    from ui.style_constants import HELP_ICON_POSITIONS
+
+    # Get position-specific styling
+    position_config = HELP_ICON_POSITIONS.get(position, HELP_ICON_POSITIONS["inline"])
+
+    return html.I(
+        className=f"{icon_class} text-info {position_config['class']}",
+        id=f"info-tooltip-{tooltip_id}",
+        style={
+            "cursor": "pointer",
+            "fontSize": "0.875rem",
+            "verticalAlign": position_config["vertical_align"],
+        },
+    )
