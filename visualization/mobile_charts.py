@@ -27,7 +27,7 @@ def get_mobile_chart_config(viewport_size: str = "mobile") -> Dict[str, Any]:
     """
     # Base configuration for all devices
     base_config = {
-        "displayModeBar": viewport_size != "mobile",  # Hide toolbar on mobile
+        "displayModeBar": True,  # Always show toolbar for download PNG capability
         "responsive": True,
         "scrollZoom": True,  # Enable mobile-friendly zooming
         "doubleClick": "reset+autosize",
@@ -233,10 +233,12 @@ def create_mobile_optimized_chart(
 
 
 def create_bug_trend_chart(
-    weekly_stats: list[Dict], viewport_size: str = "mobile"
+    weekly_stats: list[Dict],
+    viewport_size: str = "mobile",
+    include_forecast: bool = True,
 ) -> go.Figure:
     """
-    Create bug trend chart showing bugs created vs resolved per week.
+    Create bug trend chart showing bugs created vs resolved per week with next week forecast.
 
     Implements T037 - Bug trend visualization with mobile optimization.
     Implements T037a - Visual warnings for 3+ consecutive weeks of negative trends.
@@ -244,6 +246,7 @@ def create_bug_trend_chart(
     Args:
         weekly_stats: List of weekly bug statistics from calculate_bug_statistics()
         viewport_size: "mobile", "tablet", or "desktop"
+        include_forecast: Whether to include next week forecast (default: True)
 
     Returns:
         Plotly Figure object with bug trend visualization
@@ -302,6 +305,84 @@ def create_bug_trend_chart(
             hovertemplate="<b>%{x}</b><br>Closed: %{y}<extra></extra>",
         )
     )
+
+    # Add next week forecast if requested and have enough data
+    if include_forecast and len(weekly_stats) >= 2:
+        from data.bug_processing import generate_bug_weekly_forecast
+
+        forecast = generate_bug_weekly_forecast(weekly_stats)
+
+        if not forecast.get("insufficient_data", False):
+            next_week = forecast["created"]["next_week"]
+
+            # Created forecast with error bars
+            created_ml = forecast["created"]["most_likely"]
+            created_upper = forecast["created"]["optimistic"] - created_ml
+            created_lower = created_ml - forecast["created"]["pessimistic"]
+
+            created_range_text = f"{forecast['created']['pessimistic']:.1f}-{forecast['created']['optimistic']:.1f}"
+            fig.add_trace(
+                go.Scatter(
+                    x=[next_week],
+                    y=[created_ml],
+                    name="Created Forecast",
+                    mode="markers",
+                    marker=dict(
+                        size=10,
+                        color="#dc3545",
+                        symbol="x",
+                        line=dict(width=2, color="white"),
+                    ),
+                    error_y=dict(
+                        type="data",
+                        symmetric=False,
+                        array=[created_upper],
+                        arrayminus=[created_lower],
+                        color="rgba(220, 53, 69, 0.4)",
+                        thickness=2,
+                    ),
+                    hovertemplate=f"<b>%{{x}}</b><br>Forecast Created: %{{y:.1f}}<br>Range: {created_range_text}<extra></extra>",
+                )
+            )
+
+            # Resolved forecast with error bars
+            resolved_ml = forecast["resolved"]["most_likely"]
+            resolved_upper = forecast["resolved"]["optimistic"] - resolved_ml
+            resolved_lower = resolved_ml - forecast["resolved"]["pessimistic"]
+
+            resolved_range_text = f"{forecast['resolved']['pessimistic']:.1f}-{forecast['resolved']['optimistic']:.1f}"
+            fig.add_trace(
+                go.Scatter(
+                    x=[next_week],
+                    y=[resolved_ml],
+                    name="Resolved Forecast",
+                    mode="markers",
+                    marker=dict(
+                        size=10,
+                        color="#28a745",
+                        symbol="x",
+                        line=dict(width=2, color="white"),
+                    ),
+                    error_y=dict(
+                        type="data",
+                        symmetric=False,
+                        array=[resolved_upper],
+                        arrayminus=[resolved_lower],
+                        color="rgba(40, 167, 69, 0.4)",
+                        thickness=2,
+                    ),
+                    hovertemplate=f"<b>%{{x}}</b><br>Forecast Resolved: %{{y:.1f}}<br>Range: {resolved_range_text}<extra></extra>",
+                )
+            )
+
+            # Add vertical line between historical and forecast
+            fig.add_vline(
+                x=len(weeks) - 0.5,
+                line_dash="dash",
+                line_color="rgba(0, 0, 0, 0.3)",
+                annotation_text="Forecast",
+                annotation_position="top",
+            )
 
     # T037a: Add visual warnings for 3+ consecutive weeks where creation > closure
     warning_shapes = []
@@ -394,16 +475,19 @@ def create_bug_trend_chart(
 
 
 def create_bug_investment_chart(
-    weekly_stats: list[Dict], viewport_size: str = "mobile"
+    weekly_stats: list[Dict],
+    viewport_size: str = "mobile",
+    include_forecast: bool = True,
 ) -> go.Figure:
     """
-    Create bug investment chart showing bug items and story points per week.
+    Create bug investment chart showing bug items and story points per week with next week forecast.
 
     Implements T052 - Bug investment visualization with dual-axis (items + story points).
 
     Args:
         weekly_stats: List of weekly bug statistics from calculate_bug_statistics()
         viewport_size: "mobile", "tablet", or "desktop"
+        include_forecast: Whether to include next week forecast (default: True)
 
     Returns:
         Plotly Figure object with dual-axis bug investment visualization
@@ -493,6 +577,101 @@ def create_bug_investment_chart(
         ),
         secondary_y=True,
     )
+
+    # Add next week forecast if requested and have enough data
+    if include_forecast and len(weekly_stats) >= 2:
+        from data.bug_processing import generate_bug_weekly_forecast
+
+        forecast = generate_bug_weekly_forecast(weekly_stats)
+
+        if not forecast.get("insufficient_data", False):
+            next_week = forecast["created"]["next_week"]
+
+            # Forecast for items created/resolved (bars with pattern)
+            created_ml = forecast["created"]["most_likely"]
+            resolved_ml = forecast["resolved"]["most_likely"]
+
+            fig.add_trace(
+                go.Bar(
+                    x=[next_week],
+                    y=[created_ml],
+                    name="Items Forecast (Created)",
+                    marker=dict(
+                        color="#dc3545",
+                        opacity=0.5,
+                        pattern_shape="x",  # Pattern to distinguish forecast
+                    ),
+                    hovertemplate="<b>%{x}</b><br>Forecast Created: %{y:.1f}<extra></extra>",
+                    yaxis="y",
+                ),
+                secondary_y=False,
+            )
+
+            fig.add_trace(
+                go.Bar(
+                    x=[next_week],
+                    y=[resolved_ml],
+                    name="Items Forecast (Resolved)",
+                    marker=dict(
+                        color="#28a745",
+                        opacity=0.5,
+                        pattern_shape="x",
+                    ),
+                    hovertemplate="<b>%{x}</b><br>Forecast Resolved: %{y:.1f}<extra></extra>",
+                    yaxis="y",
+                ),
+                secondary_y=False,
+            )
+
+            # Forecast for points if available
+            if "created_points" in forecast:
+                created_points_ml = forecast["created_points"]["most_likely"]
+                resolved_points_ml = forecast["resolved_points"]["most_likely"]
+
+                fig.add_trace(
+                    go.Scatter(
+                        x=[next_week],
+                        y=[created_points_ml],
+                        name="Points Forecast (Created)",
+                        mode="markers",
+                        marker=dict(
+                            size=10,
+                            color="#ff8c00",
+                            symbol="diamond-x",
+                            line=dict(width=2, color="white"),
+                        ),
+                        hovertemplate="<b>%{x}</b><br>Forecast Points Created: %{y:.1f}<extra></extra>",
+                        yaxis="y2",
+                    ),
+                    secondary_y=True,
+                )
+
+                fig.add_trace(
+                    go.Scatter(
+                        x=[next_week],
+                        y=[resolved_points_ml],
+                        name="Points Forecast (Resolved)",
+                        mode="markers",
+                        marker=dict(
+                            size=10,
+                            color="#20c997",
+                            symbol="diamond-x",
+                            line=dict(width=2, color="white"),
+                        ),
+                        hovertemplate="<b>%{x}</b><br>Forecast Points Resolved: %{y:.1f}<extra></extra>",
+                        yaxis="y2",
+                    ),
+                    secondary_y=True,
+                )
+
+            # Add vertical line between historical and forecast
+            fig.add_vline(
+                x=len(weeks) - 0.5,
+                line_dash="dash",
+                line_color="rgba(0, 0, 0, 0.3)",
+                annotation_text="Forecast",
+                annotation_position="top",
+            )
 
     # Configure layout
     layout_config = get_mobile_chart_layout(viewport_size)

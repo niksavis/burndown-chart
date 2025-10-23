@@ -9,8 +9,8 @@ from typing import Dict, List
 from data.bug_insights import InsightSeverity
 
 
-def create_bug_metrics_card(bug_metrics: Dict) -> dbc.Card:
-    """Create bug metrics summary card.
+def create_bug_metrics_card(bug_metrics: Dict) -> html.Div:
+    """Create compact bug metrics summary display (similar to scope change metrics).
 
     Args:
         bug_metrics: Bug metrics summary dictionary with:
@@ -20,24 +20,20 @@ def create_bug_metrics_card(bug_metrics: Dict) -> dbc.Card:
             - resolution_rate: Resolution rate (0.0-1.0)
 
     Returns:
-        Dash Bootstrap Components Card with bug metrics
+        Div containing compact bug metric indicators
     """
     # Handle zero bugs case (T027)
     if not bug_metrics or bug_metrics.get("total_bugs", 0) == 0:
-        return dbc.Card(
-            dbc.CardBody(
-                [
-                    html.H4("Bug Metrics", className="card-title"),
-                    html.Div(
-                        [
-                            html.I(className="fas fa-info-circle me-2"),
-                            html.Span("No bugs found in the current dataset."),
-                        ],
-                        className="alert alert-info",
-                    ),
-                ]
-            ),
-            className="mb-3",
+        return html.Div(
+            [
+                html.Div(
+                    [
+                        html.I(className="fas fa-info-circle me-2"),
+                        html.Span("No bugs found in the current dataset."),
+                    ],
+                    className="alert alert-info mb-3",
+                ),
+            ]
         )
 
     # Extract metrics
@@ -45,175 +41,195 @@ def create_bug_metrics_card(bug_metrics: Dict) -> dbc.Card:
     open_bugs = bug_metrics.get("open_bugs", 0)
     closed_bugs = bug_metrics.get("closed_bugs", 0)
     resolution_rate = bug_metrics.get("resolution_rate", 0.0)
-    capacity_consumed = bug_metrics.get("capacity_consumed_by_bugs", 0.0)
-    total_bug_points = bug_metrics.get("total_bug_points", 0)
-    open_bug_points = bug_metrics.get("open_bug_points", 0)
+    avg_resolution_days = bug_metrics.get("avg_resolution_time_days", 0)
 
-    # Determine resolution rate color
+    # Determine resolution rate color and status
     if resolution_rate >= 0.80:
-        rate_color = "success"
+        rate_color = "#28a745"  # Green
+        rate_bg = "rgba(40, 167, 69, 0.1)"
+        rate_border = "rgba(40, 167, 69, 0.2)"
+        rate_status = "Excellent"
+        rate_icon = "fa-check-circle"
     elif resolution_rate >= 0.70:
-        rate_color = "warning"
+        rate_color = "#ffc107"  # Yellow
+        rate_bg = "rgba(255, 193, 7, 0.1)"
+        rate_border = "rgba(255, 193, 7, 0.2)"
+        rate_status = "Good"
+        rate_icon = "fa-exclamation-triangle"
     else:
-        rate_color = "danger"
+        rate_color = "#dc3545"  # Red
+        rate_bg = "rgba(220, 53, 69, 0.1)"
+        rate_border = "rgba(220, 53, 69, 0.2)"
+        rate_status = "Needs Attention"
+        rate_icon = "fa-exclamation-circle"
 
-    # Determine capacity color (T054)
-    if capacity_consumed >= 0.30:
-        capacity_color = "danger"
-    elif capacity_consumed >= 0.20:
-        capacity_color = "warning"
+    # Determine open bugs status
+    if open_bugs == 0:
+        open_color = "#28a745"
+        open_bg = "rgba(40, 167, 69, 0.1)"
+        open_border = "rgba(40, 167, 69, 0.2)"
+        open_icon = "fa-check-circle"
+    elif open_bugs <= 5:
+        open_color = "#20c997"  # Teal
+        open_bg = "rgba(32, 201, 151, 0.1)"
+        open_border = "rgba(32, 201, 151, 0.2)"
+        open_icon = "fa-bug"
     else:
-        capacity_color = "success"
+        open_color = "#fd7e14"  # Orange
+        open_bg = "rgba(253, 126, 20, 0.1)"
+        open_border = "rgba(253, 126, 20, 0.2)"
+        open_icon = "fa-folder-open"
 
-    return dbc.Card(
-        dbc.CardBody(
-            [
-                html.H4("Bug Metrics Overview", className="card-title mb-3"),
-                # Metrics row
-                dbc.Row(
-                    [
-                        # Total bugs
-                        dbc.Col(
-                            [
-                                html.Div(
-                                    [
-                                        html.I(
-                                            className="fas fa-bug fa-2x text-primary mb-2"
+    return html.Div(
+        [
+            # Row 1: Resolution Rate and Open Bugs
+            dbc.Row(
+                [
+                    dbc.Col(
+                        [
+                            # Resolution Rate Indicator
+                            html.Div(
+                                className="compact-trend-indicator d-flex align-items-center p-2 rounded",
+                                style={
+                                    "backgroundColor": rate_bg,
+                                    "border": f"1px solid {rate_border}",
+                                },
+                                children=[
+                                    html.Div(
+                                        className="trend-icon me-2 d-flex align-items-center justify-content-center rounded-circle",
+                                        style={
+                                            "width": "32px",
+                                            "height": "32px",
+                                            "backgroundColor": "white",
+                                            "boxShadow": "0 2px 4px rgba(0,0,0,0.1)",
+                                            "flexShrink": 0,
+                                        },
+                                        children=html.I(
+                                            className=f"fas {rate_icon}",
+                                            style={
+                                                "color": rate_color,
+                                                "fontSize": "0.9rem",
+                                            },
                                         ),
-                                        html.H3(total_bugs, className="mb-0"),
-                                        html.P(
-                                            "Total Bugs", className="text-muted small"
+                                    ),
+                                    html.Div(
+                                        style={"flexGrow": 1},
+                                        children=[
+                                            html.Div(
+                                                className="d-flex justify-content-between align-items-baseline",
+                                                children=[
+                                                    html.Span(
+                                                        "Resolution Rate",
+                                                        className="fw-medium",
+                                                        style={"fontSize": "0.85rem"},
+                                                    ),
+                                                    html.Span(
+                                                        f"{resolution_rate * 100:.1f}%",
+                                                        style={
+                                                            "color": rate_color,
+                                                            "fontWeight": "600",
+                                                            "fontSize": "0.9rem",
+                                                        },
+                                                    ),
+                                                ],
+                                            ),
+                                            html.Div(
+                                                className="d-flex justify-content-between",
+                                                style={
+                                                    "fontSize": "0.75rem",
+                                                    "color": "#6c757d",
+                                                },
+                                                children=[
+                                                    html.Span(
+                                                        f"{closed_bugs} closed / {total_bugs} total"
+                                                    ),
+                                                    html.Span(
+                                                        rate_status,
+                                                        style={"color": rate_color},
+                                                    ),
+                                                ],
+                                            ),
+                                        ],
+                                    ),
+                                ],
+                            )
+                        ],
+                        width=12,
+                        md=6,
+                        className="mb-2",
+                    ),
+                    dbc.Col(
+                        [
+                            # Open Bugs Indicator
+                            html.Div(
+                                className="compact-trend-indicator d-flex align-items-center p-2 rounded",
+                                style={
+                                    "backgroundColor": open_bg,
+                                    "border": f"1px solid {open_border}",
+                                },
+                                children=[
+                                    html.Div(
+                                        className="trend-icon me-2 d-flex align-items-center justify-content-center rounded-circle",
+                                        style={
+                                            "width": "32px",
+                                            "height": "32px",
+                                            "backgroundColor": "white",
+                                            "boxShadow": "0 2px 4px rgba(0,0,0,0.1)",
+                                            "flexShrink": 0,
+                                        },
+                                        children=html.I(
+                                            className=f"fas {open_icon}",
+                                            style={
+                                                "color": open_color,
+                                                "fontSize": "0.9rem",
+                                            },
                                         ),
-                                    ],
-                                    className="text-center",
-                                )
-                            ],
-                            width=12,
-                            md=3,
-                        ),
-                        # Open bugs
-                        dbc.Col(
-                            [
-                                html.Div(
-                                    [
-                                        html.I(
-                                            className="fas fa-folder-open fa-2x text-warning mb-2"
-                                        ),
-                                        html.H3(open_bugs, className="mb-0"),
-                                        html.P("Open", className="text-muted small"),
-                                    ],
-                                    className="text-center",
-                                )
-                            ],
-                            width=12,
-                            md=3,
-                        ),
-                        # Closed bugs
-                        dbc.Col(
-                            [
-                                html.Div(
-                                    [
-                                        html.I(
-                                            className="fas fa-check-circle fa-2x text-success mb-2"
-                                        ),
-                                        html.H3(closed_bugs, className="mb-0"),
-                                        html.P("Closed", className="text-muted small"),
-                                    ],
-                                    className="text-center",
-                                )
-                            ],
-                            width=12,
-                            md=3,
-                        ),
-                        # Resolution rate
-                        dbc.Col(
-                            [
-                                html.Div(
-                                    [
-                                        html.I(
-                                            className=f"fas fa-chart-line fa-2x text-{rate_color} mb-2"
-                                        ),
-                                        html.H3(
-                                            f"{resolution_rate * 100:.1f}%",
-                                            className="mb-0",
-                                        ),
-                                        html.P(
-                                            "Resolution Rate",
-                                            className="text-muted small",
-                                        ),
-                                    ],
-                                    className="text-center",
-                                )
-                            ],
-                            width=12,
-                            md=3,
-                        ),
-                    ],
-                    className="g-3",
-                ),
-                # Additional details
-                html.Hr(className="my-3"),
-                dbc.Row(
-                    [
-                        dbc.Col(
-                            [
-                                html.Small(
-                                    [
-                                        html.I(className="fas fa-clock me-1"),
-                                        f"Average resolution time: {bug_metrics.get('avg_resolution_time_days', 0):.1f} days",
-                                    ],
-                                    className="text-muted",
-                                )
-                            ],
-                            width=12,
-                            md=6,
-                        ),
-                        # T054: Add story points display
-                        dbc.Col(
-                            [
-                                html.Small(
-                                    [
-                                        html.I(className="fas fa-chart-bar me-1"),
-                                        f"Total bug points: {total_bug_points} ({open_bug_points} open)",
-                                    ],
-                                    className="text-muted",
-                                )
-                            ],
-                            width=12,
-                            md=6,
-                        )
-                        if total_bug_points > 0
-                        else None,
-                    ],
-                    className="mb-2",
-                ),
-                # T054: Add capacity percentage display (conditionally shown)
-                dbc.Row(
-                    [
-                        dbc.Col(
-                            [
-                                html.Div(
-                                    [
-                                        html.I(
-                                            className=f"fas fa-percentage text-{capacity_color} me-2"
-                                        ),
-                                        html.Span(
-                                            f"Bug capacity: {capacity_consumed * 100:.1f}% of total capacity",
-                                            className=f"text-{capacity_color}",
-                                        ),
-                                    ],
-                                    className="d-flex align-items-center",
-                                )
-                            ],
-                            width=12,
-                        )
-                    ],
-                    className="mt-2",
-                )
-                if capacity_consumed > 0
-                else None,
-            ]
-        ),
+                                    ),
+                                    html.Div(
+                                        style={"flexGrow": 1},
+                                        children=[
+                                            html.Div(
+                                                className="d-flex justify-content-between align-items-baseline",
+                                                children=[
+                                                    html.Span(
+                                                        "Open Bugs",
+                                                        className="fw-medium",
+                                                        style={"fontSize": "0.85rem"},
+                                                    ),
+                                                    html.Span(
+                                                        f"{open_bugs}",
+                                                        style={
+                                                            "color": open_color,
+                                                            "fontWeight": "600",
+                                                            "fontSize": "0.9rem",
+                                                        },
+                                                    ),
+                                                ],
+                                            ),
+                                            html.Div(
+                                                style={
+                                                    "fontSize": "0.75rem",
+                                                    "color": "#6c757d",
+                                                },
+                                                children=[
+                                                    html.Span(
+                                                        f"Avg resolution: {avg_resolution_days:.1f} days"
+                                                    ),
+                                                ],
+                                            ),
+                                        ],
+                                    ),
+                                ],
+                            )
+                        ],
+                        width=12,
+                        md=6,
+                        className="mb-2",
+                    ),
+                ],
+                className="g-2",
+            ),
+        ],
         className="mb-3",
     )
 
@@ -358,72 +374,58 @@ def create_quality_insights_panel(insights: List[Dict]) -> dbc.Card:
     )
 
 
-def create_bug_forecast_card(forecast: Dict, open_bugs: int) -> dbc.Card:
-    """Create bug resolution forecast card.
+def create_bug_forecast_card(forecast: Dict, open_bugs: int) -> html.Div:
+    """Create compact bug resolution forecast display (indicator-style).
 
     Args:
         forecast: Forecast dictionary with:
-            - optimistic_weeks: Best case weeks to resolution
             - most_likely_weeks: Expected weeks to resolution
-            - pessimistic_weeks: Worst case weeks to resolution
-            - optimistic_date: Best case completion date (ISO format)
             - most_likely_date: Expected completion date (ISO format)
-            - pessimistic_date: Worst case completion date (ISO format)
             - avg_closure_rate: Average bugs resolved per week
             - insufficient_data: True if forecast cannot be calculated
         open_bugs: Number of currently open bugs
 
     Returns:
-        Dash Bootstrap Components Card with forecast information
+        Div with compact forecast indicator
     """
     # Handle insufficient data case
     if forecast.get("insufficient_data", False):
-        return dbc.Card(
-            dbc.CardBody(
-                [
-                    html.H4("Bug Resolution Forecast", className="card-title"),
-                    html.Div(
-                        [
-                            html.I(className="fas fa-info-circle me-2"),
-                            html.Span(
-                                "Insufficient data for forecasting. Need at least 4 weeks of bug resolution history."
-                            ),
-                        ],
-                        className="alert alert-warning",
-                    ),
-                ]
-            ),
-            className="mb-3",
+        return html.Div(
+            [
+                html.Div(
+                    [
+                        html.I(className="fas fa-info-circle me-2"),
+                        html.Span(
+                            "Insufficient data for forecasting. Need at least 4 weeks of bug resolution history."
+                        ),
+                    ],
+                    className="alert alert-warning mb-3",
+                    style={"fontSize": "0.85rem", "padding": "0.5rem 1rem"},
+                ),
+            ]
         )
 
     # Handle zero open bugs
     if open_bugs == 0:
-        return dbc.Card(
-            dbc.CardBody(
-                [
-                    html.H4("Bug Resolution Forecast", className="card-title"),
-                    html.Div(
-                        [
-                            html.I(className="fas fa-check-circle me-2 text-success"),
-                            html.Span("All bugs resolved! No open bugs remaining."),
-                        ],
-                        className="alert alert-success",
-                    ),
-                ]
-            ),
-            className="mb-3",
+        return html.Div(
+            [
+                html.Div(
+                    [
+                        html.I(className="fas fa-check-circle me-2 text-success"),
+                        html.Span("All bugs resolved! No open bugs remaining."),
+                    ],
+                    className="alert alert-success mb-3",
+                    style={"fontSize": "0.85rem", "padding": "0.5rem 1rem"},
+                ),
+            ]
         )
 
     # Extract forecast data
-    optimistic_weeks = forecast.get("optimistic_weeks", 0)
     most_likely_weeks = forecast.get("most_likely_weeks", 0)
-    pessimistic_weeks = forecast.get("pessimistic_weeks", 0)
-    optimistic_date = forecast.get("optimistic_date", "")
     most_likely_date = forecast.get("most_likely_date", "")
-    pessimistic_date = forecast.get("pessimistic_date", "")
     avg_closure_rate = forecast.get("avg_closure_rate", 0.0)
 
-    # Format dates for display (YYYY-MM-DD -> Mon DD, YYYY)
+    # Format date for display (YYYY-MM-DD -> Mon DD, YYYY)
     from datetime import datetime
 
     def format_date(iso_date: str) -> str:
@@ -436,107 +438,90 @@ def create_bug_forecast_card(forecast: Dict, open_bugs: int) -> dbc.Card:
         except (ValueError, AttributeError):
             return iso_date
 
-    optimistic_date_formatted = format_date(optimistic_date)
     most_likely_date_formatted = format_date(most_likely_date)
-    pessimistic_date_formatted = format_date(pessimistic_date)
 
-    return dbc.Card(
-        dbc.CardBody(
-            [
-                html.H4("Bug Resolution Forecast", className="card-title mb-3"),
-                html.P(
-                    [
-                        html.I(className="fas fa-chart-line me-2"),
-                        html.Span(
-                            f"Based on {open_bugs} open bugs and average closure rate of {avg_closure_rate} bugs/week"
+    # Determine color based on weeks
+    if most_likely_weeks <= 2:
+        forecast_color = "#28a745"  # Green
+        forecast_bg = "rgba(40, 167, 69, 0.1)"
+        forecast_border = "rgba(40, 167, 69, 0.2)"
+        forecast_icon = "fa-check-circle"
+        forecast_status = "Soon"
+    elif most_likely_weeks <= 4:
+        forecast_color = "#20c997"  # Teal
+        forecast_bg = "rgba(32, 201, 151, 0.1)"
+        forecast_border = "rgba(32, 201, 151, 0.2)"
+        forecast_icon = "fa-calendar-check"
+        forecast_status = "On Track"
+    else:
+        forecast_color = "#ffc107"  # Yellow
+        forecast_bg = "rgba(255, 193, 7, 0.1)"
+        forecast_border = "rgba(255, 193, 7, 0.2)"
+        forecast_icon = "fa-calendar-alt"
+        forecast_status = "Long Term"
+
+    return html.Div(
+        [
+            # Compact forecast indicator
+            html.Div(
+                className="compact-trend-indicator d-flex align-items-center p-2 rounded mb-3",
+                style={
+                    "backgroundColor": forecast_bg,
+                    "border": f"1px solid {forecast_border}",
+                },
+                children=[
+                    html.Div(
+                        className="trend-icon me-2 d-flex align-items-center justify-content-center rounded-circle",
+                        style={
+                            "width": "32px",
+                            "height": "32px",
+                            "backgroundColor": "white",
+                            "boxShadow": "0 2px 4px rgba(0,0,0,0.1)",
+                            "flexShrink": 0,
+                        },
+                        children=html.I(
+                            className=f"fas {forecast_icon}",
+                            style={"color": forecast_color, "fontSize": "0.9rem"},
                         ),
-                    ],
-                    className="text-muted small mb-3",
-                ),
-                # Forecast scenarios
-                dbc.Row(
-                    [
-                        # Optimistic scenario
-                        dbc.Col(
-                            [
-                                html.Div(
-                                    [
-                                        html.I(
-                                            className="fas fa-smile fa-2x text-success mb-2"
-                                        ),
-                                        html.H4(optimistic_weeks, className="mb-0"),
-                                        html.P("weeks", className="text-muted small"),
-                                        html.P(
-                                            optimistic_date_formatted,
-                                            className="font-weight-bold",
-                                        ),
-                                        html.P(
-                                            "Optimistic",
-                                            className="text-success small mb-0",
-                                        ),
-                                    ],
-                                    className="text-center",
-                                )
-                            ],
-                            width=12,
-                            md=4,
-                        ),
-                        # Most likely scenario
-                        dbc.Col(
-                            [
-                                html.Div(
-                                    [
-                                        html.I(
-                                            className="fas fa-calendar-check fa-2x text-primary mb-2"
-                                        ),
-                                        html.H4(most_likely_weeks, className="mb-0"),
-                                        html.P("weeks", className="text-muted small"),
-                                        html.P(
-                                            most_likely_date_formatted,
-                                            className="font-weight-bold",
-                                        ),
-                                        html.P(
-                                            "Most Likely",
-                                            className="text-primary small mb-0",
-                                        ),
-                                    ],
-                                    className="text-center",
-                                )
-                            ],
-                            width=12,
-                            md=4,
-                        ),
-                        # Pessimistic scenario
-                        dbc.Col(
-                            [
-                                html.Div(
-                                    [
-                                        html.I(
-                                            className="fas fa-exclamation-triangle fa-2x text-warning mb-2"
-                                        ),
-                                        html.H4(pessimistic_weeks, className="mb-0"),
-                                        html.P("weeks", className="text-muted small"),
-                                        html.P(
-                                            pessimistic_date_formatted,
-                                            className="font-weight-bold",
-                                        ),
-                                        html.P(
-                                            "Pessimistic",
-                                            className="text-warning small mb-0",
-                                        ),
-                                    ],
-                                    className="text-center",
-                                )
-                            ],
-                            width=12,
-                            md=4,
-                        ),
-                    ],
-                    className="mt-3",
-                ),
-            ]
-        ),
-        className="mb-3",
+                    ),
+                    html.Div(
+                        style={"flexGrow": 1},
+                        children=[
+                            html.Div(
+                                className="d-flex justify-content-between align-items-baseline",
+                                children=[
+                                    html.Span(
+                                        "Expected Resolution",
+                                        className="fw-medium",
+                                        style={"fontSize": "0.85rem"},
+                                    ),
+                                    html.Span(
+                                        f"~{most_likely_weeks} weeks",
+                                        style={
+                                            "color": forecast_color,
+                                            "fontWeight": "600",
+                                            "fontSize": "0.9rem",
+                                        },
+                                    ),
+                                ],
+                            ),
+                            html.Div(
+                                className="d-flex justify-content-between",
+                                style={"fontSize": "0.75rem", "color": "#6c757d"},
+                                children=[
+                                    html.Span(
+                                        f"{most_likely_date_formatted} • {avg_closure_rate:.1f} bugs/week"
+                                    ),
+                                    html.Span(
+                                        forecast_status, style={"color": forecast_color}
+                                    ),
+                                ],
+                            ),
+                        ],
+                    ),
+                ],
+            ),
+        ]
     )
 
 

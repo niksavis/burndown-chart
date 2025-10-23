@@ -471,3 +471,141 @@ def calculate_future_date(
 
     future_date = base_date + timedelta(weeks=weeks_ahead)
     return future_date.date().isoformat()
+
+
+def generate_bug_weekly_forecast(
+    weekly_stats: List[Dict], use_last_n_weeks: int = 8
+) -> Dict:
+    """Generate next week forecast for bugs created and resolved.
+
+    Uses PERT 3-point estimation (optimistic, most likely, pessimistic) based on
+    historical weekly statistics.
+
+    Args:
+        weekly_stats: List of weekly bug statistics from calculate_bug_statistics()
+        use_last_n_weeks: Number of recent weeks to use for forecast (default: 8)
+
+    Returns:
+        Dictionary with forecast for created and resolved bugs:
+        {
+            "created": {
+                "most_likely": float,
+                "optimistic": float,
+                "pessimistic": float,
+                "next_week": str  # ISO week format like "2025-W44"
+            },
+            "resolved": {
+                "most_likely": float,
+                "optimistic": float,
+                "pessimistic": float,
+                "next_week": str
+            },
+            "created_points": {...},  # If story points available
+            "resolved_points": {...}
+        }
+    """
+    if not weekly_stats or len(weekly_stats) < 2:
+        # Not enough data for forecast
+        return {
+            "created": {
+                "most_likely": 0,
+                "optimistic": 0,
+                "pessimistic": 0,
+                "next_week": "",
+            },
+            "resolved": {
+                "most_likely": 0,
+                "optimistic": 0,
+                "pessimistic": 0,
+                "next_week": "",
+            },
+            "insufficient_data": True,
+        }
+
+    # Use last N weeks for forecast
+    recent_stats = (
+        weekly_stats[-use_last_n_weeks:]
+        if len(weekly_stats) > use_last_n_weeks
+        else weekly_stats
+    )
+
+    # Extract bugs created and resolved per week
+    bugs_created = [s["bugs_created"] for s in recent_stats]
+    bugs_resolved = [s["bugs_resolved"] for s in recent_stats]
+
+    # Calculate PERT estimates for bugs created
+    avg_created = sum(bugs_created) / len(bugs_created)
+    max_created = max(bugs_created) if bugs_created else 0
+    min_created = min(bugs_created) if bugs_created else 0
+    optimistic_created = max_created  # Best week performance
+    pessimistic_created = min_created  # Worst week performance
+    most_likely_created = avg_created  # Average performance
+
+    # Calculate PERT estimates for bugs resolved
+    avg_resolved = sum(bugs_resolved) / len(bugs_resolved)
+    max_resolved = max(bugs_resolved) if bugs_resolved else 0
+    min_resolved = min(bugs_resolved) if bugs_resolved else 0
+    optimistic_resolved = max_resolved
+    pessimistic_resolved = min_resolved
+    most_likely_resolved = avg_resolved
+
+    # Calculate next week date
+    from datetime import timedelta
+
+    last_week = recent_stats[-1]["week"]
+    # Parse ISO week format (e.g., "2025-W43")
+    year, week_num = last_week.split("-W")
+    # Calculate next week
+    from datetime import datetime as dt
+
+    last_week_date = dt.strptime(f"{year}-W{week_num}-1", "%Y-W%W-%w")
+    next_week_date = last_week_date + timedelta(weeks=1)
+    next_week_str = next_week_date.strftime("%Y-W%W")
+
+    result = {
+        "created": {
+            "most_likely": round(most_likely_created, 1),
+            "optimistic": round(optimistic_created, 1),
+            "pessimistic": round(pessimistic_created, 1),
+            "next_week": next_week_str,
+        },
+        "resolved": {
+            "most_likely": round(most_likely_resolved, 1),
+            "optimistic": round(optimistic_resolved, 1),
+            "pessimistic": round(pessimistic_resolved, 1),
+            "next_week": next_week_str,
+        },
+        "insufficient_data": False,
+    }
+
+    # Add story points forecasts if available
+    has_points = any(
+        s.get("bugs_points_created", 0) > 0 or s.get("bugs_points_resolved", 0) > 0
+        for s in recent_stats
+    )
+    if has_points:
+        points_created = [s.get("bugs_points_created", 0) for s in recent_stats]
+        points_resolved = [s.get("bugs_points_resolved", 0) for s in recent_stats]
+
+        avg_points_created = sum(points_created) / len(points_created)
+        max_points_created = max(points_created) if points_created else 0
+        min_points_created = min(points_created) if points_created else 0
+
+        avg_points_resolved = sum(points_resolved) / len(points_resolved)
+        max_points_resolved = max(points_resolved) if points_resolved else 0
+        min_points_resolved = min(points_resolved) if points_resolved else 0
+
+        result["created_points"] = {
+            "most_likely": round(avg_points_created, 1),
+            "optimistic": round(max_points_created, 1),
+            "pessimistic": round(min_points_created, 1),
+            "next_week": next_week_str,
+        }
+        result["resolved_points"] = {
+            "most_likely": round(avg_points_resolved, 1),
+            "optimistic": round(max_points_resolved, 1),
+            "pessimistic": round(min_points_resolved, 1),
+            "next_week": next_week_str,
+        }
+
+    return result
