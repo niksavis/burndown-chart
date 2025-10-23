@@ -733,10 +733,16 @@ def load_unified_project_data():
     """
     Load unified project data (Phase 3).
 
+    Automatically adds default bug_analysis section if missing for backward compatibility.
+
     Returns:
-        Dict: Unified project data structure
+        Dict: Unified project data structure (includes bug_analysis if enabled)
     """
-    from data.schema import get_default_unified_data, validate_project_data_structure
+    from data.schema import (
+        get_default_unified_data,
+        get_default_bug_analysis_data,
+        validate_project_data_structure,
+    )
 
     try:
         if not os.path.exists(PROJECT_DATA_FILE):
@@ -754,6 +760,13 @@ def load_unified_project_data():
             logger.warning("⚠️ Invalid unified data structure, using defaults")
             return get_default_unified_data()
 
+        # Add default bug_analysis section if missing (backward compatibility)
+        if "bug_analysis" not in data:
+            data["bug_analysis"] = get_default_bug_analysis_data()
+            logger.debug(
+                "Added default bug_analysis section for backward compatibility"
+            )
+
         return data
 
     except Exception as e:
@@ -765,10 +778,14 @@ def save_unified_project_data(data):
     """
     Save unified project data (Phase 3).
 
+    Automatically handles optional bug_analysis section if present in data.
+
     Args:
-        data: Unified project data dictionary
+        data: Unified project data dictionary (optionally includes bug_analysis)
     """
     try:
+        # Ensure bug_analysis section is preserved if present
+        # No additional validation needed - save as-is
         with open(PROJECT_DATA_FILE, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
         logger.info("✅ Saved unified project data")
@@ -1344,13 +1361,12 @@ def validate_jira_config(config: Dict[str, Any]) -> tuple[bool, str]:
     if api_version not in ["v2", "v3"]:
         return (False, "API version must be 'v2' or 'v3'")
 
-    # Token validation
-    if not config.get("token"):
-        return (False, "Personal access token is required")
-
-    token = config["token"].strip()
-    if not token:
-        return (False, "Personal access token cannot be empty")
+    # Token validation (optional - not required for public JIRA servers)
+    # Token can be empty string for anonymous access to public instances
+    token = config.get("token", "")
+    if token and not token.strip():
+        # If token is provided but only whitespace, that's invalid
+        return (False, "Personal access token cannot be only whitespace")
 
     # Cache size validation
     cache_size = config.get("cache_size_mb", 100)

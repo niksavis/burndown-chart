@@ -134,8 +134,6 @@ def create_app_layout(settings, statistics, is_sample_data):
             ),
             # Store for date range selection
             dcc.Store(id="date-range-weeks", data=None),
-            # Store for selected chart type (burndown or burnup)
-            dcc.Store(id="selected-chart-type", data="burndown"),
             # Store for client-side chart caching (performance optimization)
             dcc.Store(id="chart-cache", data={}),
             # Store for UI state (loading states, active tabs, etc.)

@@ -96,18 +96,18 @@ def create_jira_config_modal():
                             dbc.Col(
                                 [
                                     dbc.Label(
-                                        "Personal Access Token",
+                                        "Personal Access Token (Optional)",
                                         html_for="jira-token-input",
                                         className="fw-bold",
                                     ),
                                     dbc.Input(
                                         id="jira-token-input",
                                         type="password",
-                                        placeholder="Enter your JIRA personal access token",
-                                        required=True,
+                                        placeholder="Leave empty for public JIRA servers",
+                                        required=False,
                                     ),
                                     dbc.FormText(
-                                        "Create in JIRA: Profile → Security → Personal Access Tokens (read permissions)",
+                                        "Required for private JIRA instances. Public servers (e.g., Apache, Jenkins) don't need authentication.",
                                         color="muted",
                                     ),
                                 ],

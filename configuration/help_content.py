@@ -112,10 +112,10 @@ FORECAST_HELP_DETAILED = {
         • Pessimistic: Worst-case completion timeline (red)
         • Expected: Weighted PERT calculation (primary forecast)
         
-        📊 **Burndown vs Burnup:**
-        • Burndown: Shows remaining work decreasing toward zero
-        • Burnup: Shows completed work increasing toward total scope
-        • Toggle between views based on your planning preference
+        📊 **Burndown Chart:**
+        • Shows remaining work decreasing toward zero over time
+        • Ideal for tracking progress against fixed deadlines
+        • Visual representation of project velocity and completion trends
         
         🎯 **Practical Usage:**
         • Use for stakeholder communication and deadline planning
@@ -580,38 +580,24 @@ STATISTICS_HELP_DETAILED = {
 
 # CHART HELP CONTENT - Comprehensive explanations for help pages
 CHART_HELP_DETAILED = {
-    "burndown_vs_burnup": """
-        Comprehensive guide to choosing and interpreting burndown vs burnup charts.
+    "burndown_chart": """
+        Comprehensive guide to interpreting burndown charts for project tracking.
         
         📉 **Burndown Charts:**
         • Show remaining work decreasing over time
         • Start high (total scope) and trend toward zero
-        • Ideal for fixed-scope projects with clear endpoints
+        • Ideal for tracking progress against fixed deadlines
         • Emphasize completion progress and deadline tracking
         
-        📈 **Burnup Charts:**
-        • Show completed work increasing over time
-        • Start at zero and trend toward total scope
-        • Better for agile projects with changing scope
-        • Emphasize delivery progress and scope changes
-        
-        🎯 **When to Use Each:**
-        
-        **Use Burndown When:**
-        • Fixed scope and deadline (traditional projects)
-        • Stakeholders focus on "how much is left"
-        • Clear definition of project completion
-        • Scope changes are minimal or well-controlled
-        
-        **Use Burnup When:**
-        • Agile/iterative development approach
-        • Scope changes are common and expected
-        • Focus on delivered value over remaining work
-        • Need to visualize scope growth alongside delivery
+        🎯 **Best Practices:**
+        • Monitor actual progress against forecasted timelines
+        • Track "how much work is left" to completion
+        • Identify trends and potential delays early
+        • Communicate project status to stakeholders
         
         📊 **Visual Elements:**
         • Solid lines: Historical actual data
-        • Dashed lines: PERT forecast projections
+        • Dashed lines: PERT forecast projections  
         • Dotted lines: Confidence intervals and uncertainty ranges
         • Vertical line: Current date marker
         • Scope change indicators: Show requirement additions/removals
@@ -687,6 +673,13 @@ CHART_HELP_DETAILED = {
     """,
 }
 
+# BUG ANALYSIS HELP CONTENT - Tooltips for bug metrics
+BUG_ANALYSIS_TOOLTIPS = {
+    "resolution_rate": "Percentage of closed bugs. ≥80% excellent, 70-79% good, <70% needs attention.",
+    "open_bugs": "Current unresolved bug count. Green: 0, Teal: 1-5, Orange: >5 bugs.",
+    "expected_resolution": "Forecast weeks to clear bug backlog using last 8 weeks of data. Green: ≤2 weeks, Teal: 3-4 weeks, Yellow: >4 weeks.",
+}
+
 # Combined comprehensive help content for easy access
 COMPREHENSIVE_HELP_CONTENT = {
     "forecast": FORECAST_HELP_DETAILED,
@@ -694,4 +687,5 @@ COMPREHENSIVE_HELP_CONTENT = {
     "scope": SCOPE_HELP_DETAILED,
     "statistics": STATISTICS_HELP_DETAILED,
     "charts": CHART_HELP_DETAILED,
+    "bug_analysis": BUG_ANALYSIS_TOOLTIPS,
 }

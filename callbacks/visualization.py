@@ -16,7 +16,6 @@ from datetime import datetime
 # Third-party library imports
 import dash_bootstrap_components as dbc
 import pandas as pd
-import plotly.graph_objects as go
 from dash import (
     Input,
     Output,
@@ -30,6 +29,10 @@ from dash.exceptions import PreventUpdate
 
 # Application imports
 from configuration import CHART_HELP_TEXTS
+from configuration.chart_config import (
+    get_burndown_chart_config,
+    get_weekly_chart_config,
+)
 from data import (
     calculate_performance_trend,
     calculate_weekly_averages,
@@ -531,79 +534,24 @@ def register(app):
         items_trend,
         points_trend,
         burndown_fig,
-        burnup_fig,
         settings,
-        chart_type="burndown",
         show_points=True,
     ):
         """
-        Create content for the burndown tab with toggle between burndown and burnup views.
+        Create content for the burndown tab with burndown chart.
 
         Args:
             df: DataFrame with statistics data
             items_trend: Dictionary with items trend and forecast data
             points_trend: Dictionary with points trend and forecast data
             burndown_fig: Burndown chart figure
-            burnup_fig: Burnup chart figure
             settings: Settings dictionary
-            chart_type: Current chart type to display ('burndown' or 'burnup')
+            show_points: Whether to show points tracking
 
         Returns:
             html.Div: Burndown tab content
         """
-        # Use the appropriate figure based on chart_type
-        current_figure = burnup_fig if chart_type == "burnup" else burndown_fig
         chart_height = settings.get("chart_height", 700)
-
-        # Create a toggle switch between burndown and burnup charts
-        chart_toggle = html.Div(
-            [
-                html.Div(
-                    [
-                        dbc.RadioItems(
-                            id="chart-type-toggle",
-                            className="chart-toggle-buttons",
-                            options=[
-                                {"label": "Burndown", "value": "burndown"},
-                                {"label": "Burnup", "value": "burnup"},
-                            ],
-                            value=chart_type,  # Set the initial value based on the parameter
-                            inline=True,
-                            labelStyle={
-                                "display": "inline-block",
-                                "padding": "8px 15px",
-                                "border": "1px solid #dee2e6",
-                                "borderRadius": "4px",
-                                "margin": "0 5px",
-                                "background": "rgba(255, 255, 255, 0.8)",
-                                "boxShadow": "0 1px 3px rgba(0,0,0,0.1)",
-                                "cursor": "pointer",
-                                "transition": "all 0.3s ease",
-                            },
-                            labelCheckedStyle={
-                                "background": "#20c997",
-                                "borderColor": "#20c997",
-                                "color": "white",
-                                "fontWeight": "bold",
-                                "boxShadow": "0 2px 5px rgba(0,0,0,0.2)",
-                            },
-                            inputStyle={"display": "none"},
-                        ),
-                    ],
-                    style={
-                        "display": "flex",
-                        "justifyContent": "center",
-                        "marginBottom": "0",
-                    },
-                ),
-                dbc.Tooltip(
-                    CHART_HELP_TEXTS["burndown_vs_burnup"],
-                    target="chart-type-toggle",
-                ),
-            ],
-            className="chart-toggle-container",
-            style={"marginBottom": "20px"},
-        )
 
         return html.Div(
             [
@@ -633,24 +581,12 @@ def register(app):
                     ),
                     className="row mb-3",
                 ),
-                # Chart type toggle
-                chart_toggle,
-                # Chart container - will be updated by the toggle callback
-                html.Div(
-                    dcc.Graph(
-                        id="forecast-graph",
-                        figure=current_figure,
-                        config={
-                            "displayModeBar": False,  # Hidden via CSS for cleaner mobile experience
-                            "responsive": True,
-                            "scrollZoom": True,
-                            "doubleClick": "autosize",
-                            "showTips": True,
-                            "displaylogo": False,
-                        },
-                        style={"height": f"{chart_height}px"},
-                    ),
-                    id="chart-container",
+                # Burndown chart
+                dcc.Graph(
+                    id="forecast-graph",
+                    figure=burndown_fig,
+                    config=get_burndown_chart_config(),  # type: ignore
+                    style={"height": f"{chart_height}px"},
                 ),
             ]
         )
@@ -685,13 +621,7 @@ def register(app):
                 dcc.Graph(
                     id="items-chart",
                     figure=items_fig,
-                    config={
-                        "displayModeBar": True,
-                        "responsive": True,
-                        "toImageButtonOptions": {
-                            "filename": f"weekly_items_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-                        },
-                    },
+                    config=get_weekly_chart_config(),  # type: ignore
                     style={"height": "700px"},
                 ),
             ]
@@ -727,13 +657,7 @@ def register(app):
                 dcc.Graph(
                     id="points-chart",
                     figure=points_fig,
-                    config={
-                        "displayModeBar": True,
-                        "responsive": True,
-                        "toImageButtonOptions": {
-                            "filename": f"weekly_points_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-                        },
-                    },
+                    config=get_weekly_chart_config(),  # type: ignore
                     style={"height": "700px"},
                 ),
             ]
@@ -886,6 +810,35 @@ def register(app):
         Only generates charts for the active tab to improve performance.
         Target: <500ms chart rendering, immediate skeleton loading, <100ms cached responses.
         """
+        # TECH LEAD FIX: The previous "CRITICAL FIX" code was CAUSING the bug, not fixing it!
+        #
+        # The bug: That code tried to work around stale active_tab by using ui_state["last_tab"]
+        # when the trigger wasn't from tab change. But this is backwards logic!
+        #
+        # What actually happens:
+        # 1. User clicks scope tab -> active_tab="tab-scope-tracking", last_tab="tab-scope-tracking"
+        # 2. User clicks burndown tab -> Dash correctly passes active_tab="tab-burndown"
+        # 3. BUT if any other input changes (settings, statistics, etc), the old code would
+        #    IGNORE the correct active_tab and use the stale last_tab instead!
+        # 4. This caused scope content to render on every tab after visiting it once
+        #
+        # THE FIX: Trust Dash! The active_tab parameter is ALWAYS correct.
+        # Dash automatically provides the current tab state, even when other inputs trigger the callback.
+        # We should NEVER override it with stored state.
+
+        ctx = callback_context
+        trigger_info = ctx.triggered[0]["prop_id"] if ctx.triggered else "initial"
+        logger.warning(
+            f"[CTO DEBUG] render_tab_content triggered by: {trigger_info}, active_tab='{active_tab}', cache_size={len(chart_cache) if chart_cache else 0}"
+        )
+
+        # Handle initial load: if active_tab is None or empty, default to burndown
+        if not active_tab:
+            logger.warning(
+                "[CTO DEBUG] active_tab was empty/None, defaulting to tab-burndown"
+            )
+            active_tab = "tab-burndown"
+
         if not settings or not statistics:
             ui_state = ui_state or {"loading": False, "last_tab": None}
             chart_cache = chart_cache or {}
@@ -902,8 +855,16 @@ def register(app):
         if ui_state is None:
             ui_state = {"loading": False, "last_tab": None}
 
-        # Clear old cache entries to prevent memory bloat (keep last 5)
-        if len(chart_cache) > 5:
+        # CTO FIX: Clear old cache entries to prevent memory bloat (keep last 5)
+        # BUT: If we're switching tabs (trigger is from chart-tabs), clear ALL cache
+        # to prevent any possibility of cross-tab contamination
+        trigger_info = ctx.triggered[0]["prop_id"] if ctx.triggered else ""
+        if "chart-tabs" in trigger_info:
+            logger.warning(
+                "[CTO DEBUG] Tab switch detected - CLEARING ALL CACHE to prevent contamination"
+            )
+            chart_cache = {}
+        elif len(chart_cache) > 5:
             oldest_keys = list(chart_cache.keys())[:-5]
             for old_key in oldest_keys:
                 if old_key in chart_cache:
@@ -912,10 +873,14 @@ def register(app):
         # Create simplified cache key - only essential data for chart generation
         data_hash = hash(str(statistics) + str(settings) + str(show_points))
         cache_key = f"{active_tab}_{data_hash}"
+        logger.warning(f"[CTO DEBUG] Cache key generated: {cache_key}")
 
         # Check if we have cached content for this exact state
         if cache_key in chart_cache:
             # Return cached content immediately for <100ms response time
+            logger.warning(
+                f"[CTO DEBUG] Returning CACHED content for active_tab='{active_tab}', cache_key={cache_key}"
+            )
             ui_state["loading"] = False
             ui_state["last_tab"] = active_tab
             return chart_cache[cache_key], chart_cache, ui_state
@@ -944,24 +909,10 @@ def register(app):
                 items_trend, points_trend = _prepare_trend_data(statistics, pert_factor)
 
                 # Generate burndown chart only when needed
+                # NOTE: Don't pre-compute cumulative values - let create_forecast_plot handle it
+                # to avoid redundant DataFrame operations that slow down rendering
                 burndown_fig, _ = create_forecast_plot(
-                    df=compute_cumulative_values(df, total_items, total_points)
-                    if not df.empty
-                    else df,
-                    total_items=total_items,
-                    total_points=total_points,
-                    pert_factor=pert_factor,
-                    deadline_str=deadline,
-                    milestone_str=milestone,
-                    data_points_count=data_points_count,
-                    show_points=show_points,
-                )
-
-                # Generate burnup chart for the toggle (only if on burndown tab)
-                from visualization import create_burnup_chart
-
-                burnup_fig, _ = create_burnup_chart(
-                    df=df.copy() if not df.empty else df,
+                    df=df,
                     total_items=total_items,
                     total_points=total_points,
                     pert_factor=pert_factor,
@@ -977,12 +928,13 @@ def register(app):
                     items_trend,
                     points_trend,
                     burndown_fig,
-                    burnup_fig,
                     settings,
-                    "burndown",
                     show_points,
                 )
                 # Cache the result for next time
+                logger.warning(
+                    f"[CTO DEBUG] Created NEW burndown content, caching with key={cache_key}"
+                )
                 chart_cache[cache_key] = burndown_tab_content
                 ui_state["loading"] = False
                 return burndown_tab_content, chart_cache, ui_state
@@ -1049,6 +1001,9 @@ def register(app):
 
             elif active_tab == "tab-scope-tracking":
                 # Generate scope tracking content only when needed
+                logger.warning(
+                    f"[CTO DEBUG] Creating NEW scope tracking content, cache_key={cache_key}"
+                )
                 scope_tab_content = _create_scope_tracking_tab_content(
                     df, settings, show_points
                 )
@@ -1056,6 +1011,22 @@ def register(app):
                 chart_cache[cache_key] = scope_tab_content
                 ui_state["loading"] = False
                 return scope_tab_content, chart_cache, ui_state
+
+            elif active_tab == "tab-bug-analysis":
+                # Generate bug analysis tab content directly (no placeholder loading)
+                # Import the actual rendering function from bug_analysis callback
+                from callbacks.bug_analysis import _render_bug_analysis_content
+
+                # Get data_points_count from settings
+                data_points_count = settings.get("data_points_count", 12)
+
+                # Render the actual content immediately
+                bug_analysis_content = _render_bug_analysis_content(data_points_count)
+
+                # Cache the result for next time
+                chart_cache[cache_key] = bug_analysis_content
+                ui_state["loading"] = False
+                return bug_analysis_content, chart_cache, ui_state
 
             # Default fallback (should not reach here)
             fallback_content = create_content_placeholder(
@@ -1153,191 +1124,7 @@ def register(app):
                 type="application/json",
             )
 
-    @app.callback(
-        Output("chart-container", "children"),
-        [Input("chart-type-toggle", "value")],
-        [State("current-settings", "data"), State("current-statistics", "data")],
-    )
-    def update_chart_type(chart_type, settings, statistics):
-        """
-        Update the chart based on selected chart type (burndown or burnup).
-
-        Args:
-            chart_type: Selected chart type ('burndown' or 'burnup')
-            settings: Current settings data
-            statistics: Current statistics data
-
-        Returns:
-            html.Div: Updated chart container with selected chart type
-        """
-        if not settings or not statistics:
-            raise PreventUpdate
-
-        # Convert statistics to DataFrame
-        df = pd.DataFrame(statistics)
-        if df.empty:
-            # Return empty placeholder chart if no data
-            return dcc.Graph(
-                id="forecast-graph",
-                figure=go.Figure().update_layout(
-                    title="No Data Available",
-                    annotations=[
-                        dict(
-                            text="No data available to display chart",
-                            showarrow=False,
-                            xref="paper",
-                            yref="paper",
-                            x=0.5,
-                            y=0.5,
-                        )
-                    ],
-                ),
-                config={"displayModeBar": True, "responsive": True},
-                style={"height": "700px"},
-            )
-
-        try:
-            # Get necessary values - ensure all parameters are normalized for both charts
-            total_items = settings.get("total_items", 100)
-            total_points = settings.get("total_points", 500)
-            pert_factor = settings.get("pert_factor", 3)
-            deadline = settings.get("deadline", None)
-            show_points = settings.get("show_points", False)  # Default to False
-
-            # Get milestone settings - THIS WAS MISSING
-            show_milestone = settings.get("show_milestone", False)
-            milestone = settings.get("milestone", None) if show_milestone else None
-
-            # Dynamically recalculate data_points_count based on actual statistics length
-            # This ensures when rows are deleted, both charts use the updated row count
-            stored_data_points = settings.get("data_points_count", len(df))
-            data_points_count = min(stored_data_points, len(df))
-
-            show_forecast = settings.get("show_forecast", True)
-            forecast_visibility = settings.get(
-                "forecast_visibility", True
-            )  # Changed from "legendonly" to True
-            hover_mode = settings.get(
-                "hover_mode", "x unified"
-            )  # Add hover mode setting
-            chart_height = settings.get("chart_height", 700)
-
-            # Generate timestamp for the filename
-            current_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-
-            # Prepare data consistently for both charts
-            if not df.empty:
-                df["date"] = pd.to_datetime(df["date"])
-
-            # Create processed dataframe - used for burndown chart
-            processed_df = (
-                compute_cumulative_values(df.copy(), total_items, total_points)
-                if not df.empty
-                else df.copy()
-            )
-
-            # Get appropriate chart based on selection
-            if chart_type == "burndown":
-                # For burndown chart
-                from visualization import create_forecast_plot
-
-                figure, _ = create_forecast_plot(
-                    df=processed_df,
-                    total_items=total_items,
-                    total_points=total_points,
-                    pert_factor=pert_factor,
-                    deadline_str=deadline,
-                    milestone_str=milestone,  # Pass milestone parameter here
-                    data_points_count=data_points_count,
-                    show_forecast=show_forecast,
-                    forecast_visibility=forecast_visibility,
-                    hover_mode=hover_mode,  # Pass hover mode for consistent behavior
-                    show_points=show_points,  # Pass show_points parameter
-                )
-
-            else:
-                # For burnup chart
-                from visualization import create_burnup_chart
-
-                figure, _ = create_burnup_chart(
-                    df=df.copy(),
-                    total_items=total_items,
-                    total_points=total_points,
-                    pert_factor=pert_factor,
-                    deadline_str=deadline,
-                    milestone_str=milestone,  # Pass milestone parameter here
-                    data_points_count=data_points_count,
-                    show_forecast=show_forecast,  # Pass this parameter
-                    forecast_visibility=forecast_visibility,  # Pass this parameter
-                    hover_mode=hover_mode,  # Pass this parameter
-                    show_points=show_points,  # Pass show_points parameter
-                )
-
-            return dcc.Graph(
-                id="forecast-graph",
-                figure=figure,
-                config={
-                    "displayModeBar": True,
-                    "responsive": True,
-                    "toImageButtonOptions": {
-                        "filename": f"{'burndown' if chart_type == 'burndown' else 'burnup'}_chart_{current_timestamp}"
-                    },
-                },
-                style={"height": f"{chart_height}px"},
-            )
-
-        except Exception as e:
-            # Log the error
-            logger.error(f"Error updating chart type: {str(e)}")
-
-            # Return error message
-            return html.Div(
-                [
-                    html.Div(
-                        className="alert alert-light border-danger mb-3",
-                        children=[
-                            html.I(
-                                className="fas fa-exclamation-triangle me-2 text-danger"
-                            ),
-                            html.Span(
-                                f"Error displaying chart: {str(e)}",
-                                className="text-dark",
-                            ),
-                        ],
-                    ),
-                    dcc.Graph(
-                        id="forecast-graph",
-                        figure=go.Figure().update_layout(
-                            title=f"Error: {str(e)}",
-                        ),
-                        config={"displayModeBar": True, "responsive": True},
-                        style={"height": "700px"},
-                    ),
-                ]
-            )
-
-    @app.callback(
-        Output("selected-chart-type", "data"),
-        Input("chart-type-toggle", "value"),
-    )
-    def store_chart_type(chart_type):
-        """
-        Store the selected chart type (burndown or burnup) when the toggle is clicked.
-        This allows for persistence of the chart type between parameter changes.
-
-        Args:
-            chart_type: Selected chart type ('burndown' or 'burnup')
-
-        Returns:
-            str: Chart type to be stored
-        """
-        # Validate the chart type
-        if chart_type not in ["burndown", "burnup"]:
-            # Default to burndown if an invalid value is provided
-            return "burndown"
-
-        # Store the selected chart type
-        return chart_type
+    # Chart toggle callbacks removed - burnup functionality deprecated
 
 
 def register_loading_callbacks(app):

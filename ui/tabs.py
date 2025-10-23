@@ -98,6 +98,7 @@ def create_tab_content(active_tab, charts, statistics_df=None, pert_data=None):
         "tab-items",
         "tab-points",
         "tab-scope-tracking",
+        "tab-bug-analysis",
     ]:
         active_tab = "tab-burndown"
 
@@ -107,6 +108,7 @@ def create_tab_content(active_tab, charts, statistics_df=None, pert_data=None):
         "tab-items": create_items_forecast_info_card(statistics_df, pert_data),
         "tab-points": create_points_forecast_info_card(statistics_df, pert_data),
         "tab-scope-tracking": html.Div(),  # Always provide a component, even if empty
+        "tab-bug-analysis": html.Div(),  # Bug analysis has its own info cards in the content
     }
 
     # Enhanced tab titles with more descriptive content and icons
@@ -140,6 +142,13 @@ def create_tab_content(active_tab, charts, statistics_df=None, pert_data=None):
             [
                 html.I(className="fas fa-chart-bar me-2", style={"color": "#fd7e14"}),
                 "Scope Change Analysis",
+            ],
+            className="mb-3 border-bottom pb-2 d-flex align-items-center fw-bold",
+        ),
+        "tab-bug-analysis": html.Div(
+            [
+                html.I(className="fas fa-bug me-2", style={"color": "#dc3545"}),
+                "Bug Analysis & Quality Insights",
             ],
             className="mb-3 border-bottom pb-2 d-flex align-items-center fw-bold",
         ),

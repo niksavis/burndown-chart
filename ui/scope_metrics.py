@@ -9,6 +9,7 @@ import pandas as pd
 from ui.components import TREND_ICONS, TREND_COLORS
 from ui.tooltip_utils import create_info_tooltip
 from configuration import SCOPE_HELP_TEXTS
+from configuration.chart_config import get_scope_metrics_chart_config
 from data.schema import DEFAULT_SETTINGS  # Import the DEFAULT_SETTINGS
 
 
@@ -237,7 +238,7 @@ def create_scope_growth_chart(weekly_growth_data, show_points=True):
                     height=300,
                 ),
             },
-            config={"displayModeBar": False, "responsive": True},
+            config=get_scope_metrics_chart_config(),  # type: ignore[arg-type]
         )
 
     # Calculate the data ranges to align zero lines
@@ -385,12 +386,12 @@ def create_scope_growth_chart(weekly_growth_data, show_points=True):
 
     return dcc.Graph(
         figure=figure,
-        config={"displayModeBar": False, "responsive": True},
+        config=get_scope_metrics_chart_config(),  # type: ignore[arg-type]
     )
 
 
 def create_enhanced_stability_gauge(
-    stability_value, title="Scope Stability Index", height=300
+    stability_value, title="Scope Stability Index", height=300, show_toolbar=True
 ):
     """
     Create an enhanced gauge visualization for the scope stability index with better visual indicators.
@@ -399,6 +400,7 @@ def create_enhanced_stability_gauge(
         stability_value (float): A value between 0 and 1 representing stability
         title (str): Title displayed above the gauge
         height (int): Height of the gauge in pixels
+        show_toolbar (bool): Whether to show Plotly toolbar (default: True)
 
     Returns:
         dcc.Graph: A Dash graph component with the gauge
@@ -522,31 +524,29 @@ def create_enhanced_stability_gauge(
         yaxis={"visible": False, "showgrid": False, "zeroline": False},
     )
 
+    # Configure chart options based on toolbar preference
+    if show_toolbar:
+        chart_config = get_scope_metrics_chart_config()  # type: ignore[arg-type]
+    else:
+        # Hide toolbar for cleaner UI on gauge charts
+        chart_config = {"displayModeBar": False, "responsive": True}  # type: ignore[arg-type]
+
     return dcc.Graph(
         figure=figure,
-        config={"displayModeBar": False, "responsive": True},
+        config=chart_config,  # type: ignore[arg-type]
     )
+
+
+# PRINCIPAL ENGINEER: Stubbed out create_scope_change_alert to fix import errors.
+# The alert banner was causing component lifecycle issues in Dash, appearing in wrong tabs.
+# All scope change information is already displayed in the metrics cards above,
+# making this banner redundant. The function now returns an empty div to maintain
+# backwards compatibility with imports.
 
 
 def create_scope_change_alert(alert_data):
-    """Create an alert component for significant scope changes."""
-    if alert_data["status"] == "ok":
-        return html.Div()  # Return empty div if no alert
-
-    # Use different colors based on status
-    if alert_data["status"] == "warning":
-        color = "warning"
-        icon = "fas fa-exclamation-triangle"
-    else:  # info status
-        color = "info"
-        icon = "fas fa-info-circle"
-
-    return dbc.Alert(
-        [html.I(className=f"{icon} me-2"), alert_data["message"]],
-        color=color,
-        className="mt-3",
-        is_open=True,
-    )
+    """DEPRECATED: Returns empty div. Alert banner removed to fix tab switching bug."""
+    return html.Div()  # Always return empty div
 
 
 # For backwards compatibility
@@ -579,7 +579,7 @@ def create_cumulative_scope_chart(
                     height=350,
                 ),
             },
-            config={"displayModeBar": False, "responsive": True},
+            config=get_scope_metrics_chart_config(),  # type: ignore[arg-type]
         )
 
     # Sort data by week to ensure proper accumulation
@@ -699,7 +699,7 @@ def create_cumulative_scope_chart(
 
     return dcc.Graph(
         figure=figure,
-        config={"displayModeBar": False, "responsive": True},
+        config=get_scope_metrics_chart_config(),  # type: ignore[arg-type]
     )
 
 
@@ -1176,8 +1176,9 @@ def create_scope_metrics_dashboard(
                 ),
                 className="row mb-3",
             ),
-            # Alert for threshold breach
-            create_scope_change_alert(alert_data),
+            # PRINCIPAL ENGINEER FIX: Removed problematic alert banner entirely.
+            # The scope change information is already displayed in the metrics cards above,
+            # so this redundant banner was causing component lifecycle issues in Dash.
             # Cumulative Scope Growth Chart with Tooltip
             html.Div(
                 [
@@ -1359,6 +1360,7 @@ def create_scope_metrics_dashboard(
                                                 stability_index["items_stability"],
                                                 "",  # Empty title since we have header above
                                                 height=280,
+                                                show_toolbar=False,  # Hide toolbar for cleaner UI
                                             ),
                                         ]
                                     )
@@ -1394,6 +1396,7 @@ def create_scope_metrics_dashboard(
                                                     stability_index["points_stability"],
                                                     "",  # Empty title since we have header above
                                                     height=280,
+                                                    show_toolbar=False,  # Hide toolbar for cleaner UI
                                                 ),
                                             ]
                                         )
