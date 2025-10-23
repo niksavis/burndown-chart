@@ -537,25 +537,16 @@ def create_enhanced_stability_gauge(
     )
 
 
+# PRINCIPAL ENGINEER: Stubbed out create_scope_change_alert to fix import errors.
+# The alert banner was causing component lifecycle issues in Dash, appearing in wrong tabs.
+# All scope change information is already displayed in the metrics cards above,
+# making this banner redundant. The function now returns an empty div to maintain
+# backwards compatibility with imports.
+
+
 def create_scope_change_alert(alert_data):
-    """Create an alert component for significant scope changes."""
-    if alert_data["status"] == "ok":
-        return html.Div()  # Return empty div if no alert
-
-    # Use different colors based on status
-    if alert_data["status"] == "warning":
-        color = "warning"
-        icon = "fas fa-exclamation-triangle"
-    else:  # info status
-        color = "info"
-        icon = "fas fa-info-circle"
-
-    return dbc.Alert(
-        [html.I(className=f"{icon} me-2"), alert_data["message"]],
-        color=color,
-        className="mt-3",
-        is_open=True,
-    )
+    """DEPRECATED: Returns empty div. Alert banner removed to fix tab switching bug."""
+    return html.Div()  # Always return empty div
 
 
 # For backwards compatibility
@@ -1185,8 +1176,9 @@ def create_scope_metrics_dashboard(
                 ),
                 className="row mb-3",
             ),
-            # Alert for threshold breach
-            create_scope_change_alert(alert_data),
+            # PRINCIPAL ENGINEER FIX: Removed problematic alert banner entirely.
+            # The scope change information is already displayed in the metrics cards above,
+            # so this redundant banner was causing component lifecycle issues in Dash.
             # Cumulative Scope Growth Chart with Tooltip
             html.Div(
                 [

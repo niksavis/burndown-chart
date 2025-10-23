@@ -871,6 +871,35 @@ def register(app):
         Only generates charts for the active tab to improve performance.
         Target: <500ms chart rendering, immediate skeleton loading, <100ms cached responses.
         """
+        # TECH LEAD FIX: The previous "CRITICAL FIX" code was CAUSING the bug, not fixing it!
+        #
+        # The bug: That code tried to work around stale active_tab by using ui_state["last_tab"]
+        # when the trigger wasn't from tab change. But this is backwards logic!
+        #
+        # What actually happens:
+        # 1. User clicks scope tab -> active_tab="tab-scope-tracking", last_tab="tab-scope-tracking"
+        # 2. User clicks burndown tab -> Dash correctly passes active_tab="tab-burndown"
+        # 3. BUT if any other input changes (settings, statistics, etc), the old code would
+        #    IGNORE the correct active_tab and use the stale last_tab instead!
+        # 4. This caused scope content to render on every tab after visiting it once
+        #
+        # THE FIX: Trust Dash! The active_tab parameter is ALWAYS correct.
+        # Dash automatically provides the current tab state, even when other inputs trigger the callback.
+        # We should NEVER override it with stored state.
+
+        ctx = callback_context
+        trigger_info = ctx.triggered[0]["prop_id"] if ctx.triggered else "initial"
+        logger.warning(
+            f"[CTO DEBUG] render_tab_content triggered by: {trigger_info}, active_tab='{active_tab}', cache_size={len(chart_cache) if chart_cache else 0}"
+        )
+
+        # Handle initial load: if active_tab is None or empty, default to burndown
+        if not active_tab:
+            logger.warning(
+                "[CTO DEBUG] active_tab was empty/None, defaulting to tab-burndown"
+            )
+            active_tab = "tab-burndown"
+
         if not settings or not statistics:
             ui_state = ui_state or {"loading": False, "last_tab": None}
             chart_cache = chart_cache or {}
@@ -887,8 +916,16 @@ def register(app):
         if ui_state is None:
             ui_state = {"loading": False, "last_tab": None}
 
-        # Clear old cache entries to prevent memory bloat (keep last 5)
-        if len(chart_cache) > 5:
+        # CTO FIX: Clear old cache entries to prevent memory bloat (keep last 5)
+        # BUT: If we're switching tabs (trigger is from chart-tabs), clear ALL cache
+        # to prevent any possibility of cross-tab contamination
+        trigger_info = ctx.triggered[0]["prop_id"] if ctx.triggered else ""
+        if "chart-tabs" in trigger_info:
+            logger.warning(
+                "[CTO DEBUG] Tab switch detected - CLEARING ALL CACHE to prevent contamination"
+            )
+            chart_cache = {}
+        elif len(chart_cache) > 5:
             oldest_keys = list(chart_cache.keys())[:-5]
             for old_key in oldest_keys:
                 if old_key in chart_cache:
@@ -897,10 +934,14 @@ def register(app):
         # Create simplified cache key - only essential data for chart generation
         data_hash = hash(str(statistics) + str(settings) + str(show_points))
         cache_key = f"{active_tab}_{data_hash}"
+        logger.warning(f"[CTO DEBUG] Cache key generated: {cache_key}")
 
         # Check if we have cached content for this exact state
         if cache_key in chart_cache:
             # Return cached content immediately for <100ms response time
+            logger.warning(
+                f"[CTO DEBUG] Returning CACHED content for active_tab='{active_tab}', cache_key={cache_key}"
+            )
             ui_state["loading"] = False
             ui_state["last_tab"] = active_tab
             return chart_cache[cache_key], chart_cache, ui_state
@@ -968,6 +1009,9 @@ def register(app):
                     show_points,
                 )
                 # Cache the result for next time
+                logger.warning(
+                    f"[CTO DEBUG] Created NEW burndown content, caching with key={cache_key}"
+                )
                 chart_cache[cache_key] = burndown_tab_content
                 ui_state["loading"] = False
                 return burndown_tab_content, chart_cache, ui_state
@@ -1034,6 +1078,9 @@ def register(app):
 
             elif active_tab == "tab-scope-tracking":
                 # Generate scope tracking content only when needed
+                logger.warning(
+                    f"[CTO DEBUG] Creating NEW scope tracking content, cache_key={cache_key}"
+                )
                 scope_tab_content = _create_scope_tracking_tab_content(
                     df, settings, show_points
                 )
@@ -1152,10 +1199,14 @@ def register(app):
         Output("chart-container", "children"),
         [Input("chart-type-toggle", "value")],
         [State("current-settings", "data"), State("current-statistics", "data")],
+        prevent_initial_call=True,  # CRITICAL FIX: Prevent callback on initial mount/tab switch
     )
     def update_chart_type(chart_type, settings, statistics):
         """
         Update the chart based on selected chart type (burndown or burnup).
+
+        CRITICAL FIX: Added prevent_initial_call=True to fix bug where switching tabs
+        would trigger this callback and cause the wrong tab content to be displayed.
 
         Args:
             chart_type: Selected chart type ('burndown' or 'burnup')

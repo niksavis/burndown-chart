@@ -1,7 +1,22 @@
 """
-Callbacks for scope metrics.
+DEPRECATED - Callbacks for scope metrics.
 
-This module registers callbacks related to scope metrics.
+⚠️ WARNING: This module is DEPRECATED and NO LONGER USED.
+
+This module contained an orphaned callback that caused a critical bug where
+scope change content would render in all tabs after the scope tab was first activated.
+
+The callback depended on a non-existent 'forecast-data-store', causing it to fire
+on every interaction once 'scope-dashboard-container' existed in the DOM.
+
+CURRENT IMPLEMENTATION:
+Scope metrics are now properly handled in callbacks/visualization.py via the
+_create_scope_tracking_tab_content() function, which is called when the
+tab-scope-tracking tab is active.
+
+This file is kept for reference only and should NOT be registered in callbacks/__init__.py
+
+See: docs/scope-change-tab-bug-fix.md for full details of the bug and fix.
 """
 
 import pandas as pd

@@ -116,8 +116,13 @@ def get_mobile_chart_layout(viewport_size: str = "mobile") -> Dict[str, Any]:
     elif viewport_size == "tablet":
         return {
             "font": {"size": 12, "family": "system-ui, -apple-system, sans-serif"},
-            "margin": {"t": 50, "r": 30, "b": 60, "l": 60},
-            "height": 500,
+            "margin": {
+                "t": 50,
+                "r": 30,
+                "b": 70,
+                "l": 60,
+            },  # Increased for rotated labels
+            "height": 480,  # Slightly reduced to minimize white space
             "legend": {
                 "orientation": "h",
                 "yanchor": "bottom",
@@ -130,8 +135,13 @@ def get_mobile_chart_layout(viewport_size: str = "mobile") -> Dict[str, Any]:
         # Desktop layout (existing default)
         return {
             "font": {"size": 14, "family": "system-ui, -apple-system, sans-serif"},
-            "margin": {"t": 80, "r": 60, "b": 50, "l": 60},
-            "height": 700,
+            "margin": {
+                "t": 80,
+                "r": 60,
+                "b": 80,
+                "l": 60,
+            },  # Increased bottom margin for rotated x-axis labels
+            "height": 550,  # Reduced from 700 to minimize white space
             "legend": {
                 "orientation": "h",
                 "yanchor": "bottom",
@@ -376,24 +386,30 @@ def create_bug_trend_chart(
             )
 
             # Add vertical line between historical and forecast
-            # Position annotation away from toolbar to avoid overlap
+            # Style: use a more subtle dashed line with better visibility
             fig.add_vline(
                 x=len(weeks) - 0.5,
                 line_dash="dash",
-                line_color="rgba(0, 0, 0, 0.3)",
+                line_color="rgba(0, 0, 0, 0.25)",
+                line_width=1.5,
             )
 
-            # Add annotation separately for better positioning control
+            # Add forecast annotation positioned within the plot area to avoid toolbar overlap
+            # Position at 85% height to ensure it doesn't interfere with plotly modebar
             fig.add_annotation(
                 x=len(weeks) - 0.5,
-                y=1.02,
+                y=0.85,
                 xref="x",
                 yref="paper",
-                text="Forecast",
+                text="<b>Forecast →</b>",
                 showarrow=False,
-                font=dict(size=11, color="rgba(0, 0, 0, 0.6)"),
+                font=dict(size=10, color="rgba(0, 0, 0, 0.65)"),
                 xanchor="center",
-                yanchor="bottom",
+                yanchor="middle",
+                bgcolor="rgba(255, 255, 255, 0.85)",
+                bordercolor="rgba(0, 0, 0, 0.15)",
+                borderwidth=1,
+                borderpad=4,
             )
 
     # T037a: Add visual warnings for 3+ consecutive weeks where creation > closure
@@ -452,6 +468,12 @@ def create_bug_trend_chart(
         k: v for k, v in layout_config.items() if k not in ["xaxis", "yaxis", "yaxis2"]
     }
 
+    # Ensure adequate top margin for plotly modebar (increased from defaults)
+    if "margin" in layout_config_clean:
+        layout_config_clean["margin"]["t"] = max(
+            layout_config_clean["margin"].get("t", 50), 50
+        )
+
     fig.update_layout(
         title="Bug Trends: Creation vs Resolution",
         xaxis=dict(
@@ -468,13 +490,15 @@ def create_bug_trend_chart(
         **layout_config_clean,
     )
 
-    # Add legend configuration
+    # Add legend configuration - optimized positioning
     fig.update_layout(
         showlegend=True,
         legend=dict(
             orientation="h" if viewport_size == "mobile" else "v",
             yanchor="bottom",
-            y=-0.3 if viewport_size == "mobile" else 1.0,
+            y=-0.3
+            if viewport_size == "mobile"
+            else 0.5,  # Center vertically for desktop/tablet
             xanchor="left" if viewport_size == "mobile" else "left",
             x=0 if viewport_size == "mobile" else 1.02,
             bgcolor="rgba(255,255,255,0.8)",
@@ -677,24 +701,30 @@ def create_bug_investment_chart(
                 )
 
             # Add vertical line between historical and forecast
-            # Position annotation away from toolbar to avoid overlap
+            # Style: use a more subtle dashed line with better visibility
             fig.add_vline(
                 x=len(weeks) - 0.5,
                 line_dash="dash",
-                line_color="rgba(0, 0, 0, 0.3)",
+                line_color="rgba(0, 0, 0, 0.25)",
+                line_width=1.5,
             )
 
-            # Add annotation separately for better positioning control
+            # Add forecast annotation positioned within the plot area to avoid toolbar overlap
+            # Position at 85% height to ensure it doesn't interfere with plotly modebar
             fig.add_annotation(
                 x=len(weeks) - 0.5,
-                y=1.02,
+                y=0.85,
                 xref="x",
                 yref="paper",
-                text="Forecast",
+                text="<b>Forecast →</b>",
                 showarrow=False,
-                font=dict(size=11, color="rgba(0, 0, 0, 0.6)"),
+                font=dict(size=10, color="rgba(0, 0, 0, 0.65)"),
                 xanchor="center",
-                yanchor="bottom",
+                yanchor="middle",
+                bgcolor="rgba(255, 255, 255, 0.85)",
+                bordercolor="rgba(0, 0, 0, 0.15)",
+                borderwidth=1,
+                borderpad=4,
             )
 
     # Configure layout
@@ -704,6 +734,12 @@ def create_bug_investment_chart(
     layout_config_clean = {
         k: v for k, v in layout_config.items() if k not in ["xaxis", "yaxis", "yaxis2"]
     }
+
+    # Ensure adequate top margin for plotly modebar (increased from defaults)
+    if "margin" in layout_config_clean:
+        layout_config_clean["margin"]["t"] = max(
+            layout_config_clean["margin"].get("t", 50), 50
+        )
 
     # Set titles for both y-axes
     fig.update_yaxes(
@@ -729,13 +765,15 @@ def create_bug_investment_chart(
         **layout_config_clean,
     )
 
-    # Add legend configuration - reduced bottom margin to minimize empty space
+    # Add legend configuration - optimized positioning to minimize empty space
     fig.update_layout(
         showlegend=True,
         legend=dict(
             orientation="h" if viewport_size == "mobile" else "v",
             yanchor="bottom",
-            y=-0.25 if viewport_size == "mobile" else 1.0,  # Reduced from -0.4 to -0.25
+            y=-0.25
+            if viewport_size == "mobile"
+            else 0.5,  # Center vertically for desktop/tablet
             xanchor="left" if viewport_size == "mobile" else "left",
             x=0 if viewport_size == "mobile" else 1.02,
             bgcolor="rgba(255,255,255,0.8)",
