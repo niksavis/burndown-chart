@@ -20,7 +20,6 @@ from visualization.charts import (
     create_weekly_items_forecast_chart,
     create_weekly_points_chart,
     create_weekly_points_forecast_chart,
-    create_burnup_chart,
 )
 from visualization.elements import (
     add_deadline_marker,
@@ -48,7 +47,6 @@ __all__ = [
     "create_weekly_points_chart",
     "create_weekly_items_forecast_chart",
     "create_weekly_points_forecast_chart",
-    "create_burnup_chart",
     # Element creation functions
     "create_historical_trace",
     "create_forecast_trace",

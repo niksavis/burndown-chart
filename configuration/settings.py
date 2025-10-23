@@ -231,7 +231,6 @@ CHART_HELP_TEXTS = {
     "forecast_confidence_intervals": "Error bars show uncertainty range around forecast predictions.",
     "exponential_weighting": "Recent performance emphasized over older data for better trend capture.",
     "weekly_chart_methodology": "Weekly aggregation with PERT forecasts and confidence intervals.",
-    "burndown_vs_burnup": "Burndown shows remaining work, burnup shows completed work.",
     "pert_forecast_methodology": "Three-point estimation using optimistic, likely, and pessimistic scenarios.",
     "historical_data_influence": "More data points improve forecast accuracy - 6+ weeks recommended.",
     "chart_legend_explained": "Visual cues distinguish historical data, forecasts, and confidence bands.",

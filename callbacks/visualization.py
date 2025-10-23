@@ -16,7 +16,6 @@ from datetime import datetime
 # Third-party library imports
 import dash_bootstrap_components as dbc
 import pandas as pd
-import plotly.graph_objects as go
 from dash import (
     Input,
     Output,
@@ -535,79 +534,24 @@ def register(app):
         items_trend,
         points_trend,
         burndown_fig,
-        burnup_fig,
         settings,
-        chart_type="burndown",
         show_points=True,
     ):
         """
-        Create content for the burndown tab with toggle between burndown and burnup views.
+        Create content for the burndown tab with burndown chart.
 
         Args:
             df: DataFrame with statistics data
             items_trend: Dictionary with items trend and forecast data
             points_trend: Dictionary with points trend and forecast data
             burndown_fig: Burndown chart figure
-            burnup_fig: Burnup chart figure
             settings: Settings dictionary
-            chart_type: Current chart type to display ('burndown' or 'burnup')
+            show_points: Whether to show points tracking
 
         Returns:
             html.Div: Burndown tab content
         """
-        # Use the appropriate figure based on chart_type
-        current_figure = burnup_fig if chart_type == "burnup" else burndown_fig
         chart_height = settings.get("chart_height", 700)
-
-        # Create a toggle switch between burndown and burnup charts
-        chart_toggle = html.Div(
-            [
-                html.Div(
-                    [
-                        dbc.RadioItems(
-                            id="chart-type-toggle",
-                            className="chart-toggle-buttons",
-                            options=[
-                                {"label": "Burndown", "value": "burndown"},
-                                {"label": "Burnup", "value": "burnup"},
-                            ],
-                            value=chart_type,  # Set the initial value based on the parameter
-                            inline=True,
-                            labelStyle={
-                                "display": "inline-block",
-                                "padding": "8px 15px",
-                                "border": "1px solid #dee2e6",
-                                "borderRadius": "4px",
-                                "margin": "0 5px",
-                                "background": "rgba(255, 255, 255, 0.8)",
-                                "boxShadow": "0 1px 3px rgba(0,0,0,0.1)",
-                                "cursor": "pointer",
-                                "transition": "all 0.3s ease",
-                            },
-                            labelCheckedStyle={
-                                "background": "#20c997",
-                                "borderColor": "#20c997",
-                                "color": "white",
-                                "fontWeight": "bold",
-                                "boxShadow": "0 2px 5px rgba(0,0,0,0.2)",
-                            },
-                            inputStyle={"display": "none"},
-                        ),
-                    ],
-                    style={
-                        "display": "flex",
-                        "justifyContent": "center",
-                        "marginBottom": "0",
-                    },
-                ),
-                dbc.Tooltip(
-                    CHART_HELP_TEXTS["burndown_vs_burnup"],
-                    target="chart-type-toggle",
-                ),
-            ],
-            className="chart-toggle-container",
-            style={"marginBottom": "20px"},
-        )
 
         return html.Div(
             [
@@ -637,17 +581,12 @@ def register(app):
                     ),
                     className="row mb-3",
                 ),
-                # Chart type toggle
-                chart_toggle,
-                # Chart container - will be updated by the toggle callback
-                html.Div(
-                    dcc.Graph(
-                        id="forecast-graph",
-                        figure=current_figure,
-                        config=get_burndown_chart_config(),  # type: ignore[arg-type]
-                        style={"height": f"{chart_height}px"},
-                    ),
-                    id="chart-container",
+                # Burndown chart
+                dcc.Graph(
+                    id="forecast-graph",
+                    figure=burndown_fig,
+                    config=get_burndown_chart_config(),  # type: ignore[arg-type]
+                    style={"height": f"{chart_height}px"},
                 ),
             ]
         )
@@ -983,29 +922,13 @@ def register(app):
                     show_points=show_points,
                 )
 
-                # Generate burnup chart for the toggle (only if on burndown tab)
-                from visualization import create_burnup_chart
-
-                burnup_fig, _ = create_burnup_chart(
-                    df=df.copy() if not df.empty else df,
-                    total_items=total_items,
-                    total_points=total_points,
-                    pert_factor=pert_factor,
-                    deadline_str=deadline,
-                    milestone_str=milestone,
-                    data_points_count=data_points_count,
-                    show_points=show_points,
-                )
-
                 # Create burndown tab content with all required data
                 burndown_tab_content = _create_burndown_tab_content(
                     df,
                     items_trend,
                     points_trend,
                     burndown_fig,
-                    burnup_fig,
                     settings,
-                    "burndown",
                     show_points,
                 )
                 # Cache the result for next time
@@ -1195,186 +1118,7 @@ def register(app):
                 type="application/json",
             )
 
-    @app.callback(
-        Output("chart-container", "children"),
-        [Input("chart-type-toggle", "value")],
-        [State("current-settings", "data"), State("current-statistics", "data")],
-        prevent_initial_call=True,  # CRITICAL FIX: Prevent callback on initial mount/tab switch
-    )
-    def update_chart_type(chart_type, settings, statistics):
-        """
-        Update the chart based on selected chart type (burndown or burnup).
-
-        CRITICAL FIX: Added prevent_initial_call=True to fix bug where switching tabs
-        would trigger this callback and cause the wrong tab content to be displayed.
-
-        Args:
-            chart_type: Selected chart type ('burndown' or 'burnup')
-            settings: Current settings data
-            statistics: Current statistics data
-
-        Returns:
-            html.Div: Updated chart container with selected chart type
-        """
-        if not settings or not statistics:
-            raise PreventUpdate
-
-        # Convert statistics to DataFrame
-        df = pd.DataFrame(statistics)
-        if df.empty:
-            # Return empty placeholder chart if no data
-            return dcc.Graph(
-                id="forecast-graph",
-                figure=go.Figure().update_layout(
-                    title="No Data Available",
-                    annotations=[
-                        dict(
-                            text="No data available to display chart",
-                            showarrow=False,
-                            xref="paper",
-                            yref="paper",
-                            x=0.5,
-                            y=0.5,
-                        )
-                    ],
-                ),
-                config=get_burndown_chart_config(),  # type: ignore[arg-type]
-                style={"height": "700px"},
-            )
-
-        try:
-            # Get necessary values - ensure all parameters are normalized for both charts
-            total_items = settings.get("total_items", 100)
-            total_points = settings.get("total_points", 500)
-            pert_factor = settings.get("pert_factor", 3)
-            deadline = settings.get("deadline", None)
-            show_points = settings.get("show_points", False)  # Default to False
-
-            # Get milestone settings - THIS WAS MISSING
-            show_milestone = settings.get("show_milestone", False)
-            milestone = settings.get("milestone", None) if show_milestone else None
-
-            # Dynamically recalculate data_points_count based on actual statistics length
-            # This ensures when rows are deleted, both charts use the updated row count
-            stored_data_points = settings.get("data_points_count", len(df))
-            data_points_count = min(stored_data_points, len(df))
-
-            show_forecast = settings.get("show_forecast", True)
-            forecast_visibility = settings.get(
-                "forecast_visibility", True
-            )  # Changed from "legendonly" to True
-            hover_mode = settings.get(
-                "hover_mode", "x unified"
-            )  # Add hover mode setting
-            chart_height = settings.get("chart_height", 700)
-
-            # Prepare data consistently for both charts
-            if not df.empty:
-                df["date"] = pd.to_datetime(df["date"])
-
-            # Create processed dataframe - used for burndown chart
-            processed_df = (
-                compute_cumulative_values(df.copy(), total_items, total_points)
-                if not df.empty
-                else df.copy()
-            )
-
-            # Get appropriate chart based on selection
-            if chart_type == "burndown":
-                # For burndown chart
-                from visualization import create_forecast_plot
-
-                figure, _ = create_forecast_plot(
-                    df=processed_df,
-                    total_items=total_items,
-                    total_points=total_points,
-                    pert_factor=pert_factor,
-                    deadline_str=deadline,
-                    milestone_str=milestone,  # Pass milestone parameter here
-                    data_points_count=data_points_count,
-                    show_forecast=show_forecast,
-                    forecast_visibility=forecast_visibility,
-                    hover_mode=hover_mode,  # Pass hover mode for consistent behavior
-                    show_points=show_points,  # Pass show_points parameter
-                )
-
-            else:
-                # For burnup chart
-                from visualization import create_burnup_chart
-
-                figure, _ = create_burnup_chart(
-                    df=df.copy(),
-                    total_items=total_items,
-                    total_points=total_points,
-                    pert_factor=pert_factor,
-                    deadline_str=deadline,
-                    milestone_str=milestone,  # Pass milestone parameter here
-                    data_points_count=data_points_count,
-                    show_forecast=show_forecast,  # Pass this parameter
-                    forecast_visibility=forecast_visibility,  # Pass this parameter
-                    hover_mode=hover_mode,  # Pass this parameter
-                    show_points=show_points,  # Pass show_points parameter
-                )
-
-            return dcc.Graph(
-                id="forecast-graph",
-                figure=figure,
-                config=get_burndown_chart_config(),  # type: ignore[arg-type]
-                style={"height": f"{chart_height}px"},
-            )
-
-        except Exception as e:
-            # Log the error
-            logger.error(f"Error updating chart type: {str(e)}")
-
-            # Return error message
-            return html.Div(
-                [
-                    html.Div(
-                        className="alert alert-light border-danger mb-3",
-                        children=[
-                            html.I(
-                                className="fas fa-exclamation-triangle me-2 text-danger"
-                            ),
-                            html.Span(
-                                f"Error displaying chart: {str(e)}",
-                                className="text-dark",
-                            ),
-                        ],
-                    ),
-                    dcc.Graph(
-                        id="forecast-graph",
-                        figure=go.Figure().update_layout(
-                            title=f"Error: {str(e)}",
-                        ),
-                        config=get_burndown_chart_config(),  # type: ignore[arg-type]
-                        style={"height": "700px"},
-                    ),
-                ]
-            )
-
-    @app.callback(
-        Output("selected-chart-type", "data"),
-        Input("chart-type-toggle", "value"),
-    )
-    def store_chart_type(chart_type):
-        """
-        Store the selected chart type (burndown or burnup) when the toggle is clicked.
-        This allows for persistence of the chart type between parameter changes.
-
-        Args:
-            chart_type: Selected chart type ('burndown' or 'burnup')
-
-        Returns:
-            str: Chart type to be stored
-        """
-        # Validate the chart type
-        if chart_type not in ["burndown", "burnup"]:
-            # Default to burndown if an invalid value is provided
-            return "burndown"
-
-        # Store the selected chart type
-        return chart_type
+    # Chart toggle callbacks removed - burnup functionality deprecated
 
 
 def register_loading_callbacks(app):
