@@ -9,8 +9,8 @@ from typing import Dict, List
 from data.bug_insights import InsightSeverity
 
 
-def create_bug_metrics_card(bug_metrics: Dict) -> html.Div:
-    """Create compact bug metrics summary display (similar to scope change metrics).
+def create_bug_metrics_cards(bug_metrics: Dict, forecast: Dict) -> html.Div:
+    """Create compact bug metrics summary display with three cards in responsive layout.
 
     Args:
         bug_metrics: Bug metrics summary dictionary with:
@@ -18,9 +18,11 @@ def create_bug_metrics_card(bug_metrics: Dict) -> html.Div:
             - open_bugs: Open bug count
             - closed_bugs: Closed bug count
             - resolution_rate: Resolution rate (0.0-1.0)
+        forecast: Bug resolution forecast dictionary
 
     Returns:
-        Div containing compact bug metric indicators
+        Div containing three metric cards (Resolution Rate, Open Bugs, Expected Resolution)
+        arranged in one row on desktop (md+) and stacked on mobile
     """
     # Handle zero bugs case (T027)
     if not bug_metrics or bug_metrics.get("total_bugs", 0) == 0:
@@ -82,16 +84,65 @@ def create_bug_metrics_card(bug_metrics: Dict) -> html.Div:
         open_border = "rgba(253, 126, 20, 0.2)"
         open_icon = "fa-folder-open"
 
+    # Extract forecast data if available
+    most_likely_weeks = forecast.get("most_likely_weeks", 0) if forecast else 0
+    most_likely_date = forecast.get("most_likely_date", "") if forecast else ""
+    avg_closure_rate = forecast.get("avg_closure_rate", 0.0) if forecast else 0.0
+    insufficient_data = forecast.get("insufficient_data", True) if forecast else True
+    weeks_analyzed = forecast.get("weeks_analyzed", 0) if forecast else 0
+
+    # Format date for display
+    from datetime import datetime
+
+    def format_date(iso_date: str) -> str:
+        if not iso_date:
+            return "N/A"
+        try:
+            date_obj = datetime.fromisoformat(iso_date)
+            return date_obj.strftime("%b %d, %Y")
+        except (ValueError, AttributeError):
+            return iso_date
+
+    most_likely_date_formatted = format_date(most_likely_date)
+
+    # Forecast colors based on weeks
+    if not insufficient_data and open_bugs > 0:
+        if most_likely_weeks <= 2:
+            forecast_color = "#28a745"
+            forecast_bg = "rgba(40, 167, 69, 0.1)"
+            forecast_border = "rgba(40, 167, 69, 0.2)"
+            forecast_icon = "fa-check-circle"
+            forecast_status = "Soon"
+        elif most_likely_weeks <= 4:
+            forecast_color = "#20c997"
+            forecast_bg = "rgba(32, 201, 151, 0.1)"
+            forecast_border = "rgba(32, 201, 151, 0.2)"
+            forecast_icon = "fa-calendar-check"
+            forecast_status = "On Track"
+        else:
+            forecast_color = "#ffc107"
+            forecast_bg = "rgba(255, 193, 7, 0.1)"
+            forecast_border = "rgba(255, 193, 7, 0.2)"
+            forecast_icon = "fa-calendar-alt"
+            forecast_status = "Long Term"
+    else:
+        # Default colors for insufficient data or zero bugs
+        forecast_color = "#6c757d"
+        forecast_bg = "rgba(108, 117, 125, 0.1)"
+        forecast_border = "rgba(108, 117, 125, 0.2)"
+        forecast_icon = "fa-info-circle"
+        forecast_status = "N/A"
+
+    # Build the three-card responsive layout
     return html.Div(
         [
-            # Row 1: Resolution Rate and Open Bugs
             dbc.Row(
                 [
+                    # Resolution Rate Card
                     dbc.Col(
                         [
-                            # Resolution Rate Indicator
                             html.Div(
-                                className="compact-trend-indicator d-flex align-items-center p-2 rounded",
+                                className="compact-trend-indicator d-flex align-items-center p-2 rounded h-100",
                                 style={
                                     "backgroundColor": rate_bg,
                                     "border": f"1px solid {rate_border}",
@@ -151,7 +202,6 @@ def create_bug_metrics_card(bug_metrics: Dict) -> html.Div:
                                                     ),
                                                 ],
                                             ),
-                                            # Date range for timeline-based metrics
                                             html.Div(
                                                 style={
                                                     "fontSize": "0.7rem",
@@ -177,14 +227,14 @@ def create_bug_metrics_card(bug_metrics: Dict) -> html.Div:
                             )
                         ],
                         width=12,
-                        md=6,
+                        md=4,
                         className="mb-2",
                     ),
+                    # Open Bugs Card
                     dbc.Col(
                         [
-                            # Open Bugs Indicator
                             html.Div(
-                                className="compact-trend-indicator d-flex align-items-center p-2 rounded",
+                                className="compact-trend-indicator d-flex align-items-center p-2 rounded h-100",
                                 style={
                                     "backgroundColor": open_bg,
                                     "border": f"1px solid {open_border}",
@@ -236,6 +286,23 @@ def create_bug_metrics_card(bug_metrics: Dict) -> html.Div:
                                                 children=[
                                                     html.Span(
                                                         f"Avg resolution: {avg_resolution_days:.1f} days"
+                                                    )
+                                                ],
+                                            ),
+                                            html.Div(
+                                                style={
+                                                    "fontSize": "0.7rem",
+                                                    "color": "#6c757d",
+                                                    "marginTop": "2px",
+                                                    "fontStyle": "italic",
+                                                },
+                                                children=[
+                                                    html.I(
+                                                        className="fas fa-clock me-1",
+                                                        style={"fontSize": "0.65rem"},
+                                                    ),
+                                                    html.Span(
+                                                        "Current state (all time)"
                                                     ),
                                                 ],
                                             ),
@@ -245,7 +312,109 @@ def create_bug_metrics_card(bug_metrics: Dict) -> html.Div:
                             )
                         ],
                         width=12,
-                        md=6,
+                        md=4,
+                        className="mb-2",
+                    ),
+                    # Expected Resolution Card
+                    dbc.Col(
+                        [
+                            html.Div(
+                                className="compact-trend-indicator d-flex align-items-center p-2 rounded h-100",
+                                style={
+                                    "backgroundColor": forecast_bg,
+                                    "border": f"1px solid {forecast_border}",
+                                },
+                                children=[
+                                    html.Div(
+                                        className="trend-icon me-2 d-flex align-items-center justify-content-center rounded-circle",
+                                        style={
+                                            "width": "32px",
+                                            "height": "32px",
+                                            "backgroundColor": "white",
+                                            "boxShadow": "0 2px 4px rgba(0,0,0,0.1)",
+                                            "flexShrink": 0,
+                                        },
+                                        children=html.I(
+                                            className=f"fas {forecast_icon}",
+                                            style={
+                                                "color": forecast_color,
+                                                "fontSize": "0.9rem",
+                                            },
+                                        ),
+                                    ),
+                                    html.Div(
+                                        style={"flexGrow": 1},
+                                        children=[
+                                            html.Div(
+                                                className="d-flex justify-content-between align-items-baseline",
+                                                children=[
+                                                    html.Span(
+                                                        "Expected Resolution",
+                                                        className="fw-medium",
+                                                        style={"fontSize": "0.85rem"},
+                                                    ),
+                                                    html.Span(
+                                                        f"~{most_likely_weeks} weeks"
+                                                        if not insufficient_data
+                                                        and open_bugs > 0
+                                                        else "N/A",
+                                                        style={
+                                                            "color": forecast_color,
+                                                            "fontWeight": "600",
+                                                            "fontSize": "0.9rem",
+                                                        },
+                                                    ),
+                                                ],
+                                            ),
+                                            html.Div(
+                                                className="d-flex justify-content-between",
+                                                style={
+                                                    "fontSize": "0.75rem",
+                                                    "color": "#6c757d",
+                                                },
+                                                children=[
+                                                    html.Span(
+                                                        f"{most_likely_date_formatted} • {avg_closure_rate:.1f} bugs/week"
+                                                        if not insufficient_data
+                                                        and open_bugs > 0
+                                                        else (
+                                                            "All bugs resolved!"
+                                                            if open_bugs == 0
+                                                            else "Insufficient data"
+                                                        )
+                                                    ),
+                                                    html.Span(
+                                                        forecast_status,
+                                                        style={"color": forecast_color},
+                                                    ),
+                                                ],
+                                            ),
+                                            html.Div(
+                                                style={
+                                                    "fontSize": "0.7rem",
+                                                    "color": "#6c757d",
+                                                    "marginTop": "2px",
+                                                    "fontStyle": "italic",
+                                                },
+                                                children=[
+                                                    html.I(
+                                                        className="fas fa-chart-line me-1",
+                                                        style={"fontSize": "0.65rem"},
+                                                    ),
+                                                    html.Span(
+                                                        f"Based on {weeks_analyzed} weeks of data"
+                                                    ),
+                                                ]
+                                                if weeks_analyzed > 0
+                                                else [],
+                                            ),
+                                        ],
+                                    ),
+                                ],
+                            )
+                        ],
+                        width=12,
+                        md=4,
                         className="mb-2",
                     ),
                 ],

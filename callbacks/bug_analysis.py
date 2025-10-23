@@ -24,9 +24,8 @@ from data.bug_processing import (
 )
 from data.persistence import load_unified_project_data
 from ui.bug_analysis import (
-    create_bug_metrics_card,
+    create_bug_metrics_cards,
     create_quality_insights_panel,
-    create_bug_forecast_card,
 )
 from data.bug_insights import generate_quality_insights
 from configuration.settings import get_bug_analysis_config
@@ -177,8 +176,15 @@ def update_bug_metrics(active_tab: str, data_points_count: int):
                 f"{bug_metrics['resolution_rate']:.1%} resolution rate"
             )
 
-            # Create metrics card
-            metrics_card = create_bug_metrics_card(bug_metrics)
+            # Calculate forecast for Expected Resolution card
+            forecast = forecast_bug_resolution(
+                bug_metrics.get("open_bugs", 0),
+                weekly_stats,
+                use_last_n_weeks=8,
+            )
+
+            # Create combined metrics cards (Resolution Rate + Open Bugs + Expected Resolution)
+            metrics_cards = create_bug_metrics_cards(bug_metrics, forecast)
 
             # Create bug trends chart
             from ui.bug_charts import BugTrendChart, BugInvestmentChart
@@ -237,7 +243,9 @@ def update_bug_metrics(active_tab: str, data_points_count: int):
                 date_from=date_from,
                 date_to=date_to,
             )
-            metrics_card = create_bug_metrics_card(bug_metrics)
+            # Create empty forecast for insufficient data
+            forecast = {"insufficient_data": True}
+            metrics_cards = create_bug_metrics_cards(bug_metrics, forecast)
 
             trends_chart = dbc.Card(
                 dbc.CardBody(
@@ -282,27 +290,8 @@ def update_bug_metrics(active_tab: str, data_points_count: int):
                     ],
                     className="mb-4",
                 ),
-                # Bug metrics card
-                dbc.Row([dbc.Col([metrics_card], width=12)], className="mb-4"),
-                # Bug forecast card (T098-T104)
-                dbc.Row(
-                    [
-                        dbc.Col(
-                            [
-                                create_bug_forecast_card(
-                                    forecast_bug_resolution(
-                                        bug_metrics.get("open_bugs", 0),
-                                        weekly_stats,
-                                        use_last_n_weeks=8,
-                                    ),
-                                    bug_metrics.get("open_bugs", 0),
-                                )
-                            ],
-                            width=12,
-                        )
-                    ],
-                    className="mb-4",
-                ),
+                # Combined bug metrics cards (Resolution Rate + Open Bugs + Expected Resolution)
+                dbc.Row([dbc.Col([metrics_cards], width=12)], className="mb-4"),
                 # Bug trends chart
                 dbc.Row([dbc.Col([trends_chart], width=12)], className="mb-4"),
                 # T056: Bug investment chart (items + story points)
