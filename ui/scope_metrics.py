@@ -9,6 +9,7 @@ import pandas as pd
 from ui.components import TREND_ICONS, TREND_COLORS
 from ui.tooltip_utils import create_info_tooltip
 from configuration import SCOPE_HELP_TEXTS
+from configuration.chart_config import get_scope_metrics_chart_config
 from data.schema import DEFAULT_SETTINGS  # Import the DEFAULT_SETTINGS
 
 
@@ -237,7 +238,7 @@ def create_scope_growth_chart(weekly_growth_data, show_points=True):
                     height=300,
                 ),
             },
-            config={"displayModeBar": False, "responsive": True},
+            config=get_scope_metrics_chart_config(),  # type: ignore[arg-type]
         )
 
     # Calculate the data ranges to align zero lines
@@ -385,7 +386,7 @@ def create_scope_growth_chart(weekly_growth_data, show_points=True):
 
     return dcc.Graph(
         figure=figure,
-        config={"displayModeBar": False, "responsive": True},
+        config=get_scope_metrics_chart_config(),  # type: ignore[arg-type]
     )
 
 
@@ -524,7 +525,7 @@ def create_enhanced_stability_gauge(
 
     return dcc.Graph(
         figure=figure,
-        config={"displayModeBar": False, "responsive": True},
+        config=get_scope_metrics_chart_config(),  # type: ignore[arg-type]
     )
 
 
@@ -579,7 +580,7 @@ def create_cumulative_scope_chart(
                     height=350,
                 ),
             },
-            config={"displayModeBar": False, "responsive": True},
+            config=get_scope_metrics_chart_config(),  # type: ignore[arg-type]
         )
 
     # Sort data by week to ensure proper accumulation
@@ -699,7 +700,7 @@ def create_cumulative_scope_chart(
 
     return dcc.Graph(
         figure=figure,
-        config={"displayModeBar": False, "responsive": True},
+        config=get_scope_metrics_chart_config(),  # type: ignore[arg-type]
     )
 
 

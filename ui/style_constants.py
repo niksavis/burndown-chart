@@ -270,3 +270,99 @@ HOVER_MODES = {
     "compare": "x",  # Compare data points
     "y_unified": "y unified",  # Unified y-axis hover
 }
+
+
+#######################################################################
+# METRIC CARD CONSTANTS (Unified Design System)
+#######################################################################
+
+# Metric card design tokens - based on Bug Analysis Dashboard style
+METRIC_CARD = {
+    "icon_size": "36px",
+    "icon_circle_size": "36px",
+    "icon_bg": "white",
+    "padding": "0.75rem",
+    "border_radius": "8px",
+    "border_width": "1px",
+    "margin_bottom": "0.5rem",
+    "min_height": "120px",  # Ensures equal height cards
+}
+
+# Status-based color schemes for metric indicators
+METRIC_STATUS_COLORS = {
+    "excellent": {
+        "primary": "#28a745",  # Green
+        "bg": "rgba(40, 167, 69, 0.1)",
+        "border": "rgba(40, 167, 69, 0.2)",
+        "icon": "fa-check-circle",
+    },
+    "good": {
+        "primary": "#ffc107",  # Yellow
+        "bg": "rgba(255, 193, 7, 0.1)",
+        "border": "rgba(255, 193, 7, 0.2)",
+        "icon": "fa-check-circle",
+    },
+    "warning": {
+        "primary": "#fd7e14",  # Orange
+        "bg": "rgba(253, 126, 20, 0.1)",
+        "border": "rgba(253, 126, 20, 0.2)",
+        "icon": "fa-exclamation-triangle",
+    },
+    "danger": {
+        "primary": "#dc3545",  # Red
+        "bg": "rgba(220, 53, 69, 0.1)",
+        "border": "rgba(220, 53, 69, 0.2)",
+        "icon": "fa-exclamation-circle",
+    },
+    "info": {
+        "primary": "#20c997",  # Teal
+        "bg": "rgba(32, 201, 151, 0.1)",
+        "border": "rgba(32, 201, 151, 0.2)",
+        "icon": "fa-info-circle",
+    },
+    "neutral": {
+        "primary": "#6c757d",  # Gray
+        "bg": "rgba(108, 117, 125, 0.1)",
+        "border": "rgba(108, 117, 125, 0.2)",
+        "icon": "fa-equals",
+    },
+}
+
+# Responsive breakpoints for metric cards
+METRIC_CARD_BREAKPOINTS = {
+    "mobile": 12,  # Full width on mobile (col-12)
+    "tablet": 6,  # 2 columns on tablet (col-md-6)
+    "desktop": 4,  # 3 columns on desktop (col-md-4)
+    "wide": 3,  # 4 columns on wide screens (col-lg-3)
+}
+
+
+#######################################################################
+# HELP ICON CONSTANTS (Unified Positioning)
+#######################################################################
+
+# Help/tooltip icon standardization
+HELP_ICON = {
+    "class": "fas fa-info-circle",
+    "color": "#17a2b8",  # Bootstrap info color
+    "size": "0.875rem",  # 14px
+    "margin_left": "0.5rem",
+    "cursor": "pointer",
+    "position": "inline",  # Can be 'inline', 'header', or 'trailing'
+}
+
+# Help icon positioning patterns
+HELP_ICON_POSITIONS = {
+    "inline": {
+        "class": "ms-2",  # Margin start 2
+        "vertical_align": "middle",
+    },
+    "header": {
+        "class": "ms-2",
+        "vertical_align": "text-top",
+    },
+    "trailing": {
+        "class": "ms-auto",  # Push to end
+        "vertical_align": "middle",
+    },
+}
