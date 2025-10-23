@@ -585,7 +585,7 @@ def register(app):
                 dcc.Graph(
                     id="forecast-graph",
                     figure=burndown_fig,
-                    config=get_burndown_chart_config(),  # type: ignore[arg-type]
+                    config=get_burndown_chart_config(),  # type: ignore
                     style={"height": f"{chart_height}px"},
                 ),
             ]
@@ -621,7 +621,7 @@ def register(app):
                 dcc.Graph(
                     id="items-chart",
                     figure=items_fig,
-                    config=get_weekly_chart_config(),  # type: ignore[arg-type]
+                    config=get_weekly_chart_config(),  # type: ignore
                     style={"height": "700px"},
                 ),
             ]
@@ -657,7 +657,7 @@ def register(app):
                 dcc.Graph(
                     id="points-chart",
                     figure=points_fig,
-                    config=get_weekly_chart_config(),  # type: ignore[arg-type]
+                    config=get_weekly_chart_config(),  # type: ignore
                     style={"height": "700px"},
                 ),
             ]
@@ -909,10 +909,10 @@ def register(app):
                 items_trend, points_trend = _prepare_trend_data(statistics, pert_factor)
 
                 # Generate burndown chart only when needed
+                # NOTE: Don't pre-compute cumulative values - let create_forecast_plot handle it
+                # to avoid redundant DataFrame operations that slow down rendering
                 burndown_fig, _ = create_forecast_plot(
-                    df=compute_cumulative_values(df, total_items, total_points)
-                    if not df.empty
-                    else df,
+                    df=df,
                     total_items=total_items,
                     total_points=total_points,
                     pert_factor=pert_factor,
@@ -1013,10 +1013,16 @@ def register(app):
                 return scope_tab_content, chart_cache, ui_state
 
             elif active_tab == "tab-bug-analysis":
-                # Generate bug analysis tab content
-                from ui.bug_analysis import create_bug_analysis_tab
+                # Generate bug analysis tab content directly (no placeholder loading)
+                # Import the actual rendering function from bug_analysis callback
+                from callbacks.bug_analysis import _render_bug_analysis_content
 
-                bug_analysis_content = create_bug_analysis_tab()
+                # Get data_points_count from settings
+                data_points_count = settings.get("data_points_count", 12)
+
+                # Render the actual content immediately
+                bug_analysis_content = _render_bug_analysis_content(data_points_count)
+
                 # Cache the result for next time
                 chart_cache[cache_key] = bug_analysis_content
                 ui_state["loading"] = False

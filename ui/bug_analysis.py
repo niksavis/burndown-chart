@@ -196,7 +196,9 @@ def create_bug_metrics_cards(bug_metrics: Dict, forecast: Dict) -> html.Div:
                                             ),
                                             # Add tooltip for Resolution Rate
                                             dbc.Tooltip(
-                                                BUG_ANALYSIS_TOOLTIPS["resolution_rate"],
+                                                BUG_ANALYSIS_TOOLTIPS[
+                                                    "resolution_rate"
+                                                ],
                                                 target="info-tooltip-resolution-rate-help",
                                                 placement="top",
                                             ),
@@ -400,7 +402,9 @@ def create_bug_metrics_cards(bug_metrics: Dict, forecast: Dict) -> html.Div:
                                             ),
                                             # Add tooltip for Expected Resolution
                                             dbc.Tooltip(
-                                                BUG_ANALYSIS_TOOLTIPS["expected_resolution"],
+                                                BUG_ANALYSIS_TOOLTIPS[
+                                                    "expected_resolution"
+                                                ],
                                                 target="info-tooltip-expected-resolution-help",
                                                 placement="top",
                                             ),
@@ -805,15 +809,14 @@ def create_bug_forecast_card(forecast: Dict, open_bugs: int) -> html.Div:
 def create_bug_analysis_tab() -> html.Div:
     """Create bug analysis tab layout placeholder.
 
-    Returns a simple placeholder div that will be populated by the callback.
-    This matches the pattern used by other tabs (Items per Week, etc.) where
-    the entire tab content is returned by a callback instead of using nested
-    placeholder divs.
+    NOTE: This function is now deprecated. Bug analysis content is rendered
+    directly in the visualization callback for instant loading without
+    the "Loading bug analysis..." flicker.
 
     Returns:
-        Dash HTML Div placeholder for bug analysis tab content
+        Empty placeholder div (content rendered by visualization callback)
     """
     return html.Div(
         id="bug-analysis-tab-content",
-        children=html.Div("Loading bug analysis...", className="text-center p-5"),
+        children=html.Div(),  # Empty - will be replaced by callback
     )

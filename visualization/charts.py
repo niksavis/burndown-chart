@@ -2594,30 +2594,30 @@ def prepare_visualization_data(
         total_scope_items = completed_items + total_items
         total_scope_points = completed_points + total_points
 
-        # Create remaining work columns for burndown charts
-        # These will start at total scope and decrease with each data point
-        remaining_items = [total_scope_items]
-        remaining_points = [total_scope_points]
+        # PERFORMANCE OPTIMIZATION: Use vectorized operations instead of slow loop
+        # Calculate remaining work by reverse cumsum (much faster than iterative approach)
+        if (
+            "completed_items" in df_calc.columns
+            and "completed_points" in df_calc.columns
+        ):
+            # Ensure numeric types
+            df_calc["completed_items"] = pd.to_numeric(
+                df_calc["completed_items"], errors="coerce"
+            ).fillna(0)
+            df_calc["completed_points"] = pd.to_numeric(
+                df_calc["completed_points"], errors="coerce"
+            ).fillna(0)
 
-        for i in range(1, len(df_calc)):
-            # Subtract completed work in this period
-            items_completed_in_period = (
-                df_calc["completed_items"].iloc[i]
-                if "completed_items" in df_calc.columns
-                else 0
-            )
-            points_completed_in_period = (
-                df_calc["completed_points"].iloc[i]
-                if "completed_points" in df_calc.columns
-                else 0
-            )
+            # Vectorized calculation: reverse cumsum to get remaining work at each point
+            reversed_items = df_calc["completed_items"][::-1].cumsum()[::-1]
+            reversed_points = df_calc["completed_points"][::-1].cumsum()[::-1]
 
-            remaining_items.append(remaining_items[-1] - items_completed_in_period)
-            remaining_points.append(remaining_points[-1] - points_completed_in_period)
-
-        # Update the dataframe with the correct remaining work columns
-        df_calc["cum_items"] = remaining_items
-        df_calc["cum_points"] = remaining_points
+            df_calc["cum_items"] = reversed_items + total_items
+            df_calc["cum_points"] = reversed_points + total_points
+        else:
+            # Fallback if columns don't exist
+            df_calc["cum_items"] = total_scope_items
+            df_calc["cum_points"] = total_scope_points
 
     # Filter to use only the specified number of most recent data points
     if (

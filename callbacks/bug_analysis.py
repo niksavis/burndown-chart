@@ -12,7 +12,6 @@ handling bug metrics updates and interactivity with timeline filters.
 import logging
 
 # Third-party library imports
-from dash import Input, Output, callback, no_update
 from dash import html
 import dash_bootstrap_components as dbc
 
@@ -40,38 +39,21 @@ logger = logging.getLogger(__name__)
 #######################################################################
 
 
-@callback(
-    Output("bug-analysis-tab-content", "children"),
-    [Input("chart-tabs", "active_tab"), Input("data-points-input", "value")],
-    prevent_initial_call=False,
-)
-def update_bug_metrics(active_tab: str, data_points_count: int):
+def _render_bug_analysis_content(data_points_count: int):
     """
-    Update bug analysis tab content when tab is activated or timeline changes.
+    Render bug analysis tab content.
 
-    This callback follows the same pattern as other tabs (Items per Week, etc.)
-    by returning the entire tab content instead of updating nested placeholder divs.
-    This prevents issues with click events and chart disappearance.
-
-    This callback listens to:
-    - Tab activation (tab-bug-analysis)
-    - Timeline filter changes (data-points-input) - T042
+    This is the core rendering logic extracted from the callback so it can be
+    called directly from the main visualization callback for instant rendering
+    without the "Loading bug analysis..." placeholder.
 
     Args:
-        active_tab: Currently active tab ID
         data_points_count: Number of weeks to include (from timeline filter)
 
     Returns:
         Complete bug analysis tab content (html.Div)
     """
-    # Only update when bug analysis tab is active
-    if active_tab != "tab-bug-analysis":
-        logger.debug(f"Skipping update for inactive tab: {active_tab}")
-        return no_update  # Don't update if not our tab
-
-    logger.info(
-        f"Bug metrics callback triggered for tab: {active_tab}, data_points: {data_points_count}"
-    )
+    logger.info(f"Rendering bug analysis content with data_points: {data_points_count}")
 
     try:
         # Load bug analysis configuration
@@ -362,7 +344,7 @@ def update_bug_metrics(active_tab: str, data_points_count: int):
 
 
 #######################################################################
-# CALLBACK REGISTRATION
+# MODULE REGISTRATION
 #######################################################################
 
 
@@ -370,9 +352,17 @@ def register(app):
     """
     Register bug analysis callbacks with the app.
 
-    Note: The @callback decorator auto-registers, but this function
-    ensures the module is loaded and provides a consistent registration pattern.
+    Note: Bug analysis no longer uses a separate callback - content is
+    rendered directly in the visualization callback for instant loading.
+    This function exists for compatibility with the callback registration pattern.
     """
-    # Callbacks are auto-registered via @callback decorator when module is imported
-    logger.info("Bug analysis callbacks registered")
+    logger.info("Bug analysis rendering function registered (no callbacks needed)")
     pass
+
+
+#######################################################################
+# MODULE EXPORTS
+#######################################################################
+
+# Export the rendering function for use by visualization callback
+__all__ = ["_render_bug_analysis_content", "register"]
