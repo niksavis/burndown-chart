@@ -45,6 +45,9 @@ def create_bug_metrics_card(bug_metrics: Dict) -> dbc.Card:
     open_bugs = bug_metrics.get("open_bugs", 0)
     closed_bugs = bug_metrics.get("closed_bugs", 0)
     resolution_rate = bug_metrics.get("resolution_rate", 0.0)
+    capacity_consumed = bug_metrics.get("capacity_consumed_by_bugs", 0.0)
+    total_bug_points = bug_metrics.get("total_bug_points", 0)
+    open_bug_points = bug_metrics.get("open_bug_points", 0)
 
     # Determine resolution rate color
     if resolution_rate >= 0.80:
@@ -53,6 +56,14 @@ def create_bug_metrics_card(bug_metrics: Dict) -> dbc.Card:
         rate_color = "warning"
     else:
         rate_color = "danger"
+
+    # Determine capacity color (T054)
+    if capacity_consumed >= 0.30:
+        capacity_color = "danger"
+    elif capacity_consumed >= 0.20:
+        capacity_color = "warning"
+    else:
+        capacity_color = "success"
 
     return dbc.Card(
         dbc.CardBody(
@@ -148,16 +159,59 @@ def create_bug_metrics_card(bug_metrics: Dict) -> dbc.Card:
                             [
                                 html.Small(
                                     [
-                                        html.I(className="fas fa-info-circle me-1"),
+                                        html.I(className="fas fa-clock me-1"),
                                         f"Average resolution time: {bug_metrics.get('avg_resolution_time_days', 0):.1f} days",
                                     ],
                                     className="text-muted",
                                 )
                             ],
                             width=12,
+                            md=6,
+                        ),
+                        # T054: Add story points display
+                        dbc.Col(
+                            [
+                                html.Small(
+                                    [
+                                        html.I(className="fas fa-chart-bar me-1"),
+                                        f"Total bug points: {total_bug_points} ({open_bug_points} open)",
+                                    ],
+                                    className="text-muted",
+                                )
+                            ],
+                            width=12,
+                            md=6,
                         )
-                    ]
+                        if total_bug_points > 0
+                        else None,
+                    ],
+                    className="mb-2",
                 ),
+                # T054: Add capacity percentage display (conditionally shown)
+                dbc.Row(
+                    [
+                        dbc.Col(
+                            [
+                                html.Div(
+                                    [
+                                        html.I(
+                                            className=f"fas fa-percentage text-{capacity_color} me-2"
+                                        ),
+                                        html.Span(
+                                            f"Bug capacity: {capacity_consumed * 100:.1f}% of total capacity",
+                                            className=f"text-{capacity_color}",
+                                        ),
+                                    ],
+                                    className="d-flex align-items-center",
+                                )
+                            ],
+                            width=12,
+                        )
+                    ],
+                    className="mt-2",
+                )
+                if capacity_consumed > 0
+                else None,
             ]
         ),
         className="mb-3",
@@ -204,18 +258,23 @@ def create_quality_insights_panel(insights: List[Dict]) -> dbc.Card:
                 "color": "danger",
                 "badge_text": "Critical",
             },
-            InsightSeverity.WARNING: {
+            InsightSeverity.HIGH: {
                 "icon": "fa-exclamation-circle",
                 "color": "warning",
-                "badge_text": "Warning",
+                "badge_text": "High",
             },
-            InsightSeverity.INFO: {
+            InsightSeverity.MEDIUM: {
                 "icon": "fa-info-circle",
+                "color": "info",
+                "badge_text": "Medium",
+            },
+            InsightSeverity.LOW: {
+                "icon": "fa-check-circle",
                 "color": "success",
-                "badge_text": "Info",
+                "badge_text": "Low",
             },
         }
-        return severity_configs.get(severity, severity_configs[InsightSeverity.INFO])
+        return severity_configs.get(severity, severity_configs[InsightSeverity.LOW])
 
     # Create insight items with expandable details
     insight_items = []

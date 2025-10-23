@@ -166,9 +166,45 @@ def update_bug_metrics(active_tab: str, data_points_count: int):
             )
 
             # Create bug trends chart
-            from ui.bug_charts import BugTrendChart
+            from ui.bug_charts import BugTrendChart, BugInvestmentChart
 
             trends_chart = BugTrendChart(weekly_stats, viewport_size="mobile")
+
+            # T056: Create bug investment chart (items + story points)
+            # T057: Check if story points data is available
+            has_story_points = any(
+                stat.get("bugs_points_created", 0) > 0
+                or stat.get("bugs_points_resolved", 0) > 0
+                for stat in weekly_stats
+            )
+
+            if has_story_points:
+                investment_chart = BugInvestmentChart(
+                    weekly_stats, viewport_size="mobile"
+                )
+            else:
+                # T057: Show message when no story points
+                investment_chart = dbc.Card(
+                    dbc.CardBody(
+                        [
+                            html.H5(
+                                "Bug Investment Chart",
+                                className="card-title",
+                            ),
+                            html.Div(
+                                [
+                                    html.I(className="fas fa-info-circle me-2"),
+                                    html.Span(
+                                        "Story points data not available for this project. "
+                                        "Only bug item counts are being tracked."
+                                    ),
+                                ],
+                                className="alert alert-info",
+                            ),
+                        ]
+                    ),
+                    className="mb-3",
+                )
         except ValueError as ve:
             # Handle edge case: not enough bugs for statistics
             logger.error(f"Could not calculate bug statistics: {ve}")
@@ -182,6 +218,15 @@ def update_bug_metrics(active_tab: str, data_points_count: int):
                     [
                         html.I(className="fas fa-info-circle me-2"),
                         f"Not enough bug data to display trends. ({ve})",
+                    ]
+                ),
+                className="border-info bg-light text-info mb-3",
+            )
+            investment_chart = dbc.Card(
+                dbc.CardBody(
+                    [
+                        html.I(className="fas fa-info-circle me-2"),
+                        "Not enough bug data to display investment metrics.",
                     ]
                 ),
                 className="border-info bg-light text-info mb-3",
@@ -234,6 +279,8 @@ def update_bug_metrics(active_tab: str, data_points_count: int):
                 ),
                 # Bug trends chart
                 dbc.Row([dbc.Col([trends_chart], width=12)], className="mb-4"),
+                # T056: Bug investment chart (items + story points)
+                dbc.Row([dbc.Col([investment_chart], width=12)], className="mb-4"),
                 # Quality insights panel (T078-T082)
                 dbc.Row(
                     [

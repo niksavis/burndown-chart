@@ -4,7 +4,7 @@ Tests bug filtering, statistics calculation, metrics aggregation, and forecastin
 """
 
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime
 from data.bug_processing import (
     filter_bug_issues,
     calculate_bug_metrics_summary,
@@ -584,6 +584,213 @@ class TestBugStatistics:
         assert week3["bugs_created"] == 0
         assert week3["bugs_resolved"] == 0
         assert week3["net_bugs"] == 0
+
+
+class TestBugStatisticsWithStoryPoints:
+    """Test suite for bug statistics with story points (User Story 3)."""
+
+    def test_bug_statistics_with_story_points(self):
+        """Test story points aggregation in weekly statistics (T043)."""
+        from datetime import datetime
+        from data.bug_processing import calculate_bug_statistics
+
+        bug_issues = [
+            {
+                "key": "BUG-1",
+                "fields": {
+                    "created": "2025-01-06T10:00:00.000+0000",  # Week 2
+                    "resolutiondate": "2025-01-13T10:00:00.000+0000",  # Week 3
+                    "customfield_10016": 5,
+                },
+            },
+            {
+                "key": "BUG-2",
+                "fields": {
+                    "created": "2025-01-08T10:00:00.000+0000",  # Week 2
+                    "resolutiondate": None,  # Open
+                    "customfield_10016": 8,
+                },
+            },
+            {
+                "key": "BUG-3",
+                "fields": {
+                    "created": "2025-01-15T10:00:00.000+0000",  # Week 3
+                    "resolutiondate": "2025-01-20T10:00:00.000+0000",  # Week 4
+                    "customfield_10016": 3,
+                },
+            },
+        ]
+
+        date_from = datetime(2025, 1, 1)
+        date_to = datetime(2025, 1, 31)
+
+        stats = calculate_bug_statistics(bug_issues, date_from, date_to)
+
+        # Verify Week 2 story points (2 bugs created with 5 + 8 = 13 points)
+        week2 = next((s for s in stats if s["week"] == "2025-W02"), None)
+        assert week2 is not None
+        assert week2["bugs_points_created"] == 13
+        assert week2["bugs_points_resolved"] == 0
+        assert week2["net_points"] == 13
+
+        # Verify Week 3 story points (1 bug created with 3 points, 1 resolved with 5 points)
+        week3 = next((s for s in stats if s["week"] == "2025-W03"), None)
+        assert week3 is not None
+        assert week3["bugs_points_created"] == 3
+        assert week3["bugs_points_resolved"] == 5
+        assert week3["net_points"] == -2
+
+        # Verify Week 4 story points (0 created, 1 resolved with 3 points)
+        week4 = next((s for s in stats if s["week"] == "2025-W04"), None)
+        assert week4 is not None
+        assert week4["bugs_points_created"] == 0
+        assert week4["bugs_points_resolved"] == 3
+        assert week4["net_points"] == -3
+
+    def test_bug_statistics_null_story_points(self):
+        """Test handling of null/missing story points (T044)."""
+        from datetime import datetime
+        from data.bug_processing import calculate_bug_statistics
+
+        bug_issues = [
+            {
+                "key": "BUG-1",
+                "fields": {
+                    "created": "2025-01-06T10:00:00.000+0000",  # Week 2
+                    "resolutiondate": "2025-01-13T10:00:00.000+0000",  # Week 3
+                    "customfield_10016": None,  # Null points
+                },
+            },
+            {
+                "key": "BUG-2",
+                "fields": {
+                    "created": "2025-01-08T10:00:00.000+0000",  # Week 2
+                    "resolutiondate": None,
+                    # Missing customfield_10016 entirely
+                },
+            },
+            {
+                "key": "BUG-3",
+                "fields": {
+                    "created": "2025-01-15T10:00:00.000+0000",  # Week 3
+                    "resolutiondate": "2025-01-20T10:00:00.000+0000",  # Week 4
+                    "customfield_10016": 5,  # Has points
+                },
+            },
+        ]
+
+        date_from = datetime(2025, 1, 1)
+        date_to = datetime(2025, 1, 31)
+
+        stats = calculate_bug_statistics(bug_issues, date_from, date_to)
+
+        # Verify Week 2: 2 bugs created but 0 points (both have null/missing)
+        week2 = next((s for s in stats if s["week"] == "2025-W02"), None)
+        assert week2 is not None
+        assert week2["bugs_created"] == 2  # Items always counted
+        assert week2["bugs_points_created"] == 0  # Null treated as 0
+
+        # Verify Week 3: 1 bug created with 5 points, 1 resolved with 0 points
+        week3 = next((s for s in stats if s["week"] == "2025-W03"), None)
+        assert week3 is not None
+        assert week3["bugs_created"] == 1
+        assert week3["bugs_points_created"] == 5
+        assert week3["bugs_resolved"] == 1  # BUG-1
+        assert week3["bugs_points_resolved"] == 0  # BUG-1 had null points
+
+    def test_bug_investment_calculation(self):
+        """Test bug investment points aggregation (T045)."""
+        from datetime import datetime
+        from data.bug_processing import calculate_bug_statistics
+
+        bug_issues = [
+            {
+                "key": "BUG-1",
+                "fields": {
+                    "created": "2025-01-06T10:00:00.000+0000",
+                    "resolutiondate": None,
+                    "customfield_10016": 5,
+                },
+            },
+            {
+                "key": "BUG-2",
+                "fields": {
+                    "created": "2025-01-08T10:00:00.000+0000",
+                    "resolutiondate": "2025-01-15T10:00:00.000+0000",
+                    "customfield_10016": 8,
+                },
+            },
+            {
+                "key": "BUG-3",
+                "fields": {
+                    "created": "2025-01-15T10:00:00.000+0000",
+                    "resolutiondate": "2025-01-22T10:00:00.000+0000",
+                    "customfield_10016": 13,
+                },
+            },
+        ]
+
+        date_from = datetime(2025, 1, 1)
+        date_to = datetime(2025, 1, 31)
+
+        stats = calculate_bug_statistics(bug_issues, date_from, date_to)
+
+        # Calculate total points invested (created)
+        total_points_created = sum(s["bugs_points_created"] for s in stats)
+        assert total_points_created == 26  # 5 + 8 + 13
+
+        # Calculate total points resolved
+        total_points_resolved = sum(s["bugs_points_resolved"] for s in stats)
+        assert total_points_resolved == 21  # 8 + 13
+
+        # Verify net points calculation across all weeks
+        total_net_points = sum(s["net_points"] for s in stats)
+        assert total_net_points == 5  # 26 - 21 (BUG-1 still open with 5 points)
+
+    def test_capacity_percentage_calculation(self):
+        """Test bug capacity consumption metric (T046)."""
+        from data.bug_processing import calculate_bug_metrics_summary
+
+        # Create bug issues with story points
+        bug_issues = [
+            {
+                "key": "BUG-1",
+                "fields": {
+                    "created": "2025-01-06T10:00:00.000+0000",
+                    "resolutiondate": None,  # Open
+                    "customfield_10016": 5,
+                },
+            },
+            {
+                "key": "BUG-2",
+                "fields": {
+                    "created": "2025-01-08T10:00:00.000+0000",
+                    "resolutiondate": "2025-01-15T10:00:00.000+0000",  # Closed
+                    "customfield_10016": 8,
+                },
+            },
+            {
+                "key": "BUG-3",
+                "fields": {
+                    "created": "2025-01-15T10:00:00.000+0000",
+                    "resolutiondate": None,  # Open
+                    "customfield_10016": 3,
+                },
+            },
+        ]
+
+        weekly_stats = []  # Not used for this test
+
+        summary = calculate_bug_metrics_summary(bug_issues, weekly_stats)
+
+        # Verify total bug points
+        assert summary["total_bug_points"] == 16  # 5 + 8 + 3
+
+        # Verify open bug points
+        assert summary["open_bug_points"] == 8  # 5 + 3 (only open bugs)
+
+        # Note: capacity_consumed_by_bugs requires total project points
+        # which would be calculated externally and divided into this metric
 
 
 if __name__ == "__main__":

@@ -21,20 +21,28 @@ class InsightType(Enum):
 
 
 class InsightSeverity(Enum):
-    """Severity level of quality insight."""
+    """Severity level of quality insight (T066)."""
 
     CRITICAL = "critical"  # Immediate action needed
-    WARNING = "warning"  # Address soon
-    INFO = "info"  # Informational/positive feedback
+    HIGH = "high"  # Address soon
+    MEDIUM = "medium"  # Monitor
+    LOW = "low"  # Informational/positive feedback
 
 
-# Default thresholds for quality insights
+# Default thresholds for quality insights (T067)
 DEFAULT_THRESHOLDS = {
-    "min_resolution_rate": 0.60,  # Below 60% triggers warning
-    "critical_resolution_rate": 0.40,  # Below 40% triggers critical
+    "resolution_rate_warning": 0.70,  # Below this triggers warning
+    "resolution_rate_critical": 0.50,  # Below this triggers critical
+    "capacity_warning": 0.30,  # Above this triggers warning
+    "capacity_critical": 0.40,  # Above this triggers critical
+    "avg_resolution_days_warning": 14,  # Above this triggers warning
+    "avg_resolution_days_critical": 30,  # Above this triggers critical
+    "trend_window_weeks": 4,  # Number of weeks for trend analysis
+    "trend_ratio_increasing": 1.2,  # bugs_created / bugs_resolved
+    "trend_ratio_stable": 0.9,  # Lower bound for stable
+    "positive_resolution_rate": 0.80,  # Above this is positive
     "consecutive_increasing_weeks": 3,  # 3+ weeks of creation > closure
     "stable_variance_threshold": 0.2,  # ±20% variation considered stable
-    "high_bug_capacity_threshold": 0.30,  # 30%+ bug points/total points
 }
 
 
@@ -77,6 +85,8 @@ def generate_quality_insights(
         check_positive_trend(statistics),
         check_stable_quality(statistics, thresholds),
         check_no_open_bugs(metrics),
+        check_high_bug_capacity(metrics, thresholds),
+        check_long_resolution_time(metrics, thresholds),
     ]
 
     # Collect non-None insights
@@ -84,11 +94,12 @@ def generate_quality_insights(
         if insight is not None:
             insights.append(insight)
 
-    # Sort by severity (critical → warning → info)
+    # Sort by severity (critical → high → medium → low) - T076
     severity_order = {
         InsightSeverity.CRITICAL: 0,
-        InsightSeverity.WARNING: 1,
-        InsightSeverity.INFO: 2,
+        InsightSeverity.HIGH: 1,
+        InsightSeverity.MEDIUM: 2,
+        InsightSeverity.LOW: 3,
     }
     insights.sort(key=lambda x: severity_order.get(x["severity"], 999))
 
@@ -99,6 +110,8 @@ def generate_quality_insights(
 def check_low_resolution_rate(metrics: Dict, thresholds: Dict) -> Optional[Dict]:
     """Check if bug resolution rate is below threshold.
 
+    Implements T068 - low resolution rate check.
+
     Args:
         metrics: Bug metrics summary with resolution_rate
         thresholds: Custom thresholds
@@ -107,25 +120,25 @@ def check_low_resolution_rate(metrics: Dict, thresholds: Dict) -> Optional[Dict]
         Insight dict if triggered, None otherwise
     """
     resolution_rate = metrics.get("resolution_rate", 0.0)
-    min_threshold = thresholds.get(
-        "min_resolution_rate", DEFAULT_THRESHOLDS["min_resolution_rate"]
-    )
-    critical_threshold = thresholds.get(
-        "critical_resolution_rate", DEFAULT_THRESHOLDS["critical_resolution_rate"]
-    )
+    min_threshold = thresholds.get("resolution_rate_warning", 0.70)
+    critical_threshold = thresholds.get("resolution_rate_critical", 0.50)
 
     if resolution_rate < critical_threshold:
         return {
+            "id": "LOW_RESOLUTION_RATE",
             "type": InsightType.RESOLUTION_RATE,
             "severity": InsightSeverity.CRITICAL,
-            "message": f"Critical: Bug resolution rate is only {resolution_rate:.0%}",
+            "title": "Critical Resolution Rate",
+            "message": f"Critical: resolution rate of {resolution_rate:.0%} requires immediate attention",
             "actionable_recommendation": "Prioritize bug resolution - consider dedicating sprint capacity to reduce backlog",
         }
     elif resolution_rate < min_threshold:
         return {
+            "id": "BELOW_TARGET_RESOLUTION",
             "type": InsightType.RESOLUTION_RATE,
-            "severity": InsightSeverity.WARNING,
-            "message": f"Low bug resolution rate: {resolution_rate:.0%}",
+            "severity": InsightSeverity.HIGH,
+            "title": "Low Resolution Rate",
+            "message": f"Resolution rate of {resolution_rate:.0%} below {min_threshold:.0%} target",
             "actionable_recommendation": "Increase focus on bug resolution to prevent backlog growth",
         }
 
@@ -165,7 +178,7 @@ def check_increasing_bug_trend(
         if consecutive_count >= consecutive_weeks:
             return {
                 "type": InsightType.BUG_TREND,
-                "severity": InsightSeverity.WARNING,
+                "severity": InsightSeverity.HIGH,
                 "message": f"Increasing bug trend: creation exceeds resolution for {consecutive_count} consecutive weeks",
                 "actionable_recommendation": "Review bug prevention practices - consider root cause analysis and quality gates",
             }
@@ -195,7 +208,7 @@ def check_positive_trend(statistics: List[Dict]) -> Optional[Dict]:
     if positive_weeks >= 3:  # 3+ out of 4 weeks positive
         return {
             "type": InsightType.POSITIVE_TREND,
-            "severity": InsightSeverity.INFO,
+            "severity": InsightSeverity.LOW,
             "message": "Excellent: Bug resolution exceeds creation consistently",
             "actionable_recommendation": "Continue current quality practices - backlog is decreasing",
         }
@@ -230,7 +243,7 @@ def check_stable_quality(statistics: List[Dict], thresholds: Dict) -> Optional[D
     if variance < 10 and abs(avg_net_change) < 2:
         return {
             "type": InsightType.STABLE_QUALITY,
-            "severity": InsightSeverity.INFO,
+            "severity": InsightSeverity.LOW,
             "message": "Stable quality: Bug creation and resolution are balanced",
             "actionable_recommendation": "Maintain current practices - quality is under control",
         }
@@ -252,9 +265,81 @@ def check_no_open_bugs(metrics: Dict) -> Optional[Dict]:
     if open_bugs == 0 and metrics.get("total_bugs", 0) > 0:
         return {
             "type": InsightType.NO_OPEN_BUGS,
-            "severity": InsightSeverity.INFO,
+            "severity": InsightSeverity.LOW,
             "message": "Perfect: No open bugs - all bugs resolved!",
             "actionable_recommendation": "Excellent work - maintain proactive bug prevention and resolution",
+        }
+
+    return None
+
+
+def check_high_bug_capacity(metrics: Dict, thresholds: Dict) -> Optional[Dict]:
+    """Check if bugs are consuming high percentage of capacity.
+
+    Implements T070 - high bug capacity warning.
+
+    Args:
+        metrics: Bug metrics summary with capacity_consumed_by_bugs
+        thresholds: Custom thresholds
+
+    Returns:
+        Insight dict if triggered, None otherwise
+    """
+    capacity = metrics.get("capacity_consumed_by_bugs", 0.0)
+
+    # Default thresholds from contract: 30% warning, 40% critical
+    warning_threshold = thresholds.get("capacity_warning", 0.30)
+    critical_threshold = thresholds.get("capacity_critical", 0.40)
+
+    if capacity >= critical_threshold:
+        return {
+            "type": InsightType.HIGH_BUG_CAPACITY,
+            "severity": InsightSeverity.CRITICAL,
+            "message": f"Critical: Bugs consuming {capacity:.0%} of team capacity",
+            "actionable_recommendation": "Immediate action required - reallocate resources to reduce bug backlog and improve quality processes",
+        }
+    elif capacity >= warning_threshold:
+        return {
+            "type": InsightType.HIGH_BUG_CAPACITY,
+            "severity": InsightSeverity.HIGH,
+            "message": f"High bug capacity: {capacity:.0%} of capacity spent on bugs",
+            "actionable_recommendation": "Monitor closely - consider investing in bug prevention and automated testing",
+        }
+
+    return None
+
+
+def check_long_resolution_time(metrics: Dict, thresholds: Dict) -> Optional[Dict]:
+    """Check if average bug resolution time is too long.
+
+    Implements T071 - long resolution time warning.
+
+    Args:
+        metrics: Bug metrics summary with avg_resolution_time_days
+        thresholds: Custom thresholds
+
+    Returns:
+        Insight dict if triggered, None otherwise
+    """
+    avg_days = metrics.get("avg_resolution_time_days", 0.0)
+
+    # Default thresholds from contract: 14 days warning, 30 days critical
+    warning_threshold = thresholds.get("avg_resolution_days_warning", 14)
+    critical_threshold = thresholds.get("avg_resolution_days_critical", 30)
+
+    if avg_days >= critical_threshold:
+        return {
+            "type": InsightType.LONG_RESOLUTION_TIME,
+            "severity": InsightSeverity.CRITICAL,
+            "message": f"Critical: Bugs taking {avg_days:.1f} days to resolve on average",
+            "actionable_recommendation": "Immediate action - review bug triage process and ensure bugs are prioritized appropriately",
+        }
+    elif avg_days >= warning_threshold:
+        return {
+            "type": InsightType.LONG_RESOLUTION_TIME,
+            "severity": InsightSeverity.HIGH,
+            "message": f"Slow resolution: Average {avg_days:.1f} days to close bugs",
+            "actionable_recommendation": "Consider dedicating more resources to bug resolution or improving development workflow",
         }
 
     return None

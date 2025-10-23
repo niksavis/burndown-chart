@@ -64,7 +64,7 @@ class TestGenerateQualityInsights:
             "total_bugs": 100,
             "open_bugs": 70,
             "closed_bugs": 30,
-            "resolution_rate": 0.30,  # Below 0.60 threshold
+            "resolution_rate": 0.30,  # Below 0.70 threshold
         }
 
         statistics = [
@@ -79,7 +79,7 @@ class TestGenerateQualityInsights:
         ]
         assert len(low_res_insights) > 0
         assert low_res_insights[0]["severity"] in [
-            InsightSeverity.WARNING,
+            InsightSeverity.HIGH,
             InsightSeverity.CRITICAL,
         ]
 
@@ -130,7 +130,7 @@ class TestGenerateQualityInsights:
 
         # Should contain positive insight
         positive_insights = [
-            i for i in insights if i["severity"] == InsightSeverity.INFO
+            i for i in insights if i["severity"] == InsightSeverity.LOW
         ]
         assert len(positive_insights) > 0
 
@@ -154,8 +154,8 @@ class TestGenerateQualityInsights:
         # Insights should be sorted by severity (critical first)
         severity_order = [
             InsightSeverity.CRITICAL,
-            InsightSeverity.WARNING,
-            InsightSeverity.INFO,
+            InsightSeverity.HIGH,
+            InsightSeverity.LOW,
         ]
         for i in range(len(insights) - 1):
             current_severity = insights[i]["severity"]
@@ -170,25 +170,25 @@ class TestGenerateQualityInsights:
             "total_bugs": 50,
             "open_bugs": 20,
             "closed_bugs": 30,
-            "resolution_rate": 0.65,  # Just above default 0.60 threshold
+            "resolution_rate": 0.75,  # Just above default 0.70 threshold
         }
 
         statistics = [
             {"week_start": "2025-01-01", "bugs_created": 5, "bugs_resolved": 7},
         ]
 
-        # With default thresholds (0.60), should not warn
+        # With default thresholds (0.70), should not warn
         insights_default = generate_quality_insights(metrics, statistics)
         low_res_warnings = [
             i
             for i in insights_default
             if "resolution rate" in i["message"].lower()
-            and i["severity"] in [InsightSeverity.WARNING, InsightSeverity.CRITICAL]
+            and i["severity"] in [InsightSeverity.HIGH, InsightSeverity.CRITICAL]
         ]
         assert len(low_res_warnings) == 0
 
-        # With custom higher threshold (0.70), should warn
-        custom_thresholds = {"min_resolution_rate": 0.70}
+        # With custom higher threshold (0.80), should warn
+        custom_thresholds = {"min_resolution_rate": 0.80}
         insights_custom = generate_quality_insights(
             metrics, statistics, thresholds=custom_thresholds
         )
@@ -269,7 +269,7 @@ class TestGenerateQualityInsights:
             or "all bugs resolved" in i["message"].lower()
         ]
         assert len(zero_bugs_insights) > 0
-        assert zero_bugs_insights[0]["severity"] == InsightSeverity.INFO
+        assert zero_bugs_insights[0]["severity"] == InsightSeverity.LOW
 
 
 class TestInsightTypes:
@@ -291,7 +291,8 @@ class TestInsightTypes:
     def test_insight_severity_exists(self):
         """Test InsightSeverity enum is defined."""
         assert hasattr(InsightSeverity, "__members__")
-        # Required severity levels
+        # Required severity levels (4-level scale)
         assert hasattr(InsightSeverity, "CRITICAL")
-        assert hasattr(InsightSeverity, "WARNING")
-        assert hasattr(InsightSeverity, "INFO")
+        assert hasattr(InsightSeverity, "HIGH")
+        assert hasattr(InsightSeverity, "MEDIUM")
+        assert hasattr(InsightSeverity, "LOW")
