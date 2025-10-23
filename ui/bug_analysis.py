@@ -7,6 +7,8 @@ from dash import html
 import dash_bootstrap_components as dbc
 from typing import Dict, List, Optional
 from data.bug_insights import InsightSeverity
+from ui.tooltip_utils import create_help_icon
+from configuration.help_content import BUG_ANALYSIS_TOOLTIPS
 
 
 def create_bug_metrics_cards(bug_metrics: Dict, forecast: Dict) -> html.Div:
@@ -172,7 +174,13 @@ def create_bug_metrics_cards(bug_metrics: Dict, forecast: Dict) -> html.Div:
                                                 className="d-flex justify-content-between align-items-baseline",
                                                 children=[
                                                     html.Span(
-                                                        "Resolution Rate",
+                                                        [
+                                                            "Resolution Rate",
+                                                            create_help_icon(
+                                                                "resolution-rate-help",
+                                                                position="inline",
+                                                            ),
+                                                        ],
                                                         className="fw-medium",
                                                         style={"fontSize": "0.85rem"},
                                                     ),
@@ -185,6 +193,12 @@ def create_bug_metrics_cards(bug_metrics: Dict, forecast: Dict) -> html.Div:
                                                         },
                                                     ),
                                                 ],
+                                            ),
+                                            # Add tooltip for Resolution Rate
+                                            dbc.Tooltip(
+                                                BUG_ANALYSIS_TOOLTIPS["resolution_rate"],
+                                                target="info-tooltip-resolution-rate-help",
+                                                placement="top",
                                             ),
                                             html.Div(
                                                 className="d-flex justify-content-between",
@@ -264,7 +278,13 @@ def create_bug_metrics_cards(bug_metrics: Dict, forecast: Dict) -> html.Div:
                                                 className="d-flex justify-content-between align-items-baseline",
                                                 children=[
                                                     html.Span(
-                                                        "Open Bugs",
+                                                        [
+                                                            "Open Bugs",
+                                                            create_help_icon(
+                                                                "open-bugs-help",
+                                                                position="inline",
+                                                            ),
+                                                        ],
                                                         className="fw-medium",
                                                         style={"fontSize": "0.85rem"},
                                                     ),
@@ -277,6 +297,12 @@ def create_bug_metrics_cards(bug_metrics: Dict, forecast: Dict) -> html.Div:
                                                         },
                                                     ),
                                                 ],
+                                            ),
+                                            # Add tooltip for Open Bugs
+                                            dbc.Tooltip(
+                                                BUG_ANALYSIS_TOOLTIPS["open_bugs"],
+                                                target="info-tooltip-open-bugs-help",
+                                                placement="top",
                                             ),
                                             html.Div(
                                                 style={
@@ -349,7 +375,13 @@ def create_bug_metrics_cards(bug_metrics: Dict, forecast: Dict) -> html.Div:
                                                 className="d-flex justify-content-between align-items-baseline",
                                                 children=[
                                                     html.Span(
-                                                        "Expected Resolution",
+                                                        [
+                                                            "Expected Resolution",
+                                                            create_help_icon(
+                                                                "expected-resolution-help",
+                                                                position="inline",
+                                                            ),
+                                                        ],
                                                         className="fw-medium",
                                                         style={"fontSize": "0.85rem"},
                                                     ),
@@ -365,6 +397,12 @@ def create_bug_metrics_cards(bug_metrics: Dict, forecast: Dict) -> html.Div:
                                                         },
                                                     ),
                                                 ],
+                                            ),
+                                            # Add tooltip for Expected Resolution
+                                            dbc.Tooltip(
+                                                BUG_ANALYSIS_TOOLTIPS["expected_resolution"],
+                                                target="info-tooltip-expected-resolution-help",
+                                                placement="top",
                                             ),
                                             html.Div(
                                                 className="d-flex justify-content-between",

@@ -32,14 +32,13 @@ def BugTrendChart(
     """
     try:
         from visualization.mobile_charts import create_bug_trend_chart
+        from configuration.chart_config import get_bug_analysis_chart_config
 
         # Create the chart figure
         fig = create_bug_trend_chart(weekly_stats, viewport_size)
 
-        # Get mobile-optimized config
-        from visualization.mobile_charts import get_mobile_chart_config
-
-        chart_config = get_mobile_chart_config(viewport_size)
+        # Get unified chart config for consistency across the app
+        chart_config = get_bug_analysis_chart_config()
 
         # Return chart directly without Card wrapper (like Items per Week tab)
         # This prevents Bootstrap dismissal issues
@@ -110,14 +109,13 @@ def BugInvestmentChart(
     """
     try:
         from visualization.mobile_charts import create_bug_investment_chart
+        from configuration.chart_config import get_bug_analysis_chart_config
 
         # Create the chart figure
         fig = create_bug_investment_chart(weekly_stats, viewport_size)
 
-        # Get mobile-optimized config
-        from visualization.mobile_charts import get_mobile_chart_config
-
-        chart_config = get_mobile_chart_config(viewport_size)
+        # Get unified chart config for consistency across the app
+        chart_config = get_bug_analysis_chart_config()
 
         # Return chart directly without Card wrapper (consistent with BugTrendChart)
         return html.Div(

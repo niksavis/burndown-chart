@@ -687,6 +687,52 @@ CHART_HELP_DETAILED = {
     """,
 }
 
+# BUG ANALYSIS HELP CONTENT - Tooltips for bug metrics
+BUG_ANALYSIS_TOOLTIPS = {
+    "resolution_rate": """
+        Resolution Rate measures the percentage of bugs that have been closed relative to the total bug count.
+        
+        📊 Formula: (Closed Bugs ÷ Total Bugs) × 100%
+        
+        🎯 Interpretation:
+        • Excellent (≥80%): Strong bug resolution process
+        • Good (70-79%): Acceptable resolution rate
+        • Needs Attention (<70%): Backlog growth, needs focus
+        
+        💡 Use this to monitor bug closure efficiency and backlog health.
+    """,
+    "open_bugs": """
+        Open Bugs shows the current count of unresolved bugs and average resolution time.
+        
+        📊 Metrics Included:
+        • Current open bug count
+        • Average resolution time (in days)
+        
+        🎯 Status Indicators:
+        • Green: No open bugs or excellent control
+        • Teal: 1-5 open bugs, manageable
+        • Orange: >5 open bugs, requires attention
+        
+        💡 Monitor this to maintain quality and prevent bug backlog growth.
+    """,
+    "expected_resolution": """
+        Expected Resolution forecasts when all open bugs will be resolved based on historical closure rates.
+        
+        📊 Forecast Calculation:
+        • Uses PERT methodology with recent bug resolution velocity
+        • Analyzes last 8 weeks of resolution patterns
+        • Provides estimated weeks until backlog clearance
+        
+        🎯 Timeline Status:
+        • Soon (≤2 weeks): Green - Quick resolution expected
+        • On Track (3-4 weeks): Teal - Reasonable timeline
+        • Long Term (>4 weeks): Yellow - Extended effort required
+        • N/A: Gray - Insufficient data or no bugs
+        
+        💡 Use this for sprint planning and resource allocation decisions.
+    """,
+}
+
 # Combined comprehensive help content for easy access
 COMPREHENSIVE_HELP_CONTENT = {
     "forecast": FORECAST_HELP_DETAILED,
@@ -694,4 +740,5 @@ COMPREHENSIVE_HELP_CONTENT = {
     "scope": SCOPE_HELP_DETAILED,
     "statistics": STATISTICS_HELP_DETAILED,
     "charts": CHART_HELP_DETAILED,
+    "bug_analysis": BUG_ANALYSIS_TOOLTIPS,
 }
