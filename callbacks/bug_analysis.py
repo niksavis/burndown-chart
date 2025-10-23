@@ -154,7 +154,10 @@ def update_bug_metrics(active_tab: str, data_points_count: int):
             from data.bug_processing import calculate_bug_statistics
 
             weekly_stats = calculate_bug_statistics(
-                timeline_filtered_bugs, date_from, date_to, story_points_field=points_field
+                timeline_filtered_bugs,
+                date_from,
+                date_to,
+                story_points_field=points_field,
             )
 
             logger.info(
@@ -165,7 +168,7 @@ def update_bug_metrics(active_tab: str, data_points_count: int):
             # Use all_bug_issues for current state (open bugs count)
             # Use timeline_filtered_bugs for historical metrics (resolution rate, trends)
             bug_metrics = calculate_bug_metrics_summary(
-                all_bug_issues, timeline_filtered_bugs, weekly_stats
+                all_bug_issues, timeline_filtered_bugs, weekly_stats, date_from, date_to
             )
 
             logger.debug(
@@ -228,7 +231,11 @@ def update_bug_metrics(active_tab: str, data_points_count: int):
 
             # Calculate bug metrics even if statistics failed (for basic metrics card)
             bug_metrics = calculate_bug_metrics_summary(
-                all_bug_issues, timeline_filtered_bugs, weekly_stats=[]
+                all_bug_issues,
+                timeline_filtered_bugs,
+                weekly_stats=[],
+                date_from=date_from,
+                date_to=date_to,
             )
             metrics_card = create_bug_metrics_card(bug_metrics)
 

@@ -42,6 +42,8 @@ def create_bug_metrics_card(bug_metrics: Dict) -> html.Div:
     closed_bugs = bug_metrics.get("closed_bugs", 0)
     resolution_rate = bug_metrics.get("resolution_rate", 0.0)
     avg_resolution_days = bug_metrics.get("avg_resolution_time_days", 0)
+    date_from = bug_metrics.get("date_from")
+    date_to = bug_metrics.get("date_to")
 
     # Determine resolution rate color and status
     if resolution_rate >= 0.80:
@@ -148,6 +150,26 @@ def create_bug_metrics_card(bug_metrics: Dict) -> html.Div:
                                                         style={"color": rate_color},
                                                     ),
                                                 ],
+                                            ),
+                                            # Date range for timeline-based metrics
+                                            html.Div(
+                                                style={
+                                                    "fontSize": "0.7rem",
+                                                    "color": "#6c757d",
+                                                    "marginTop": "2px",
+                                                    "fontStyle": "italic",
+                                                },
+                                                children=[
+                                                    html.I(
+                                                        className="fas fa-calendar-alt me-1",
+                                                        style={"fontSize": "0.65rem"},
+                                                    ),
+                                                    html.Span(
+                                                        f"{date_from.strftime('%b %d, %Y') if date_from else 'All time'} - {date_to.strftime('%b %d, %Y') if date_to else 'Now'}"
+                                                    ),
+                                                ]
+                                                if date_from or date_to
+                                                else [],
                                             ),
                                         ],
                                     ),
@@ -516,6 +538,26 @@ def create_bug_forecast_card(forecast: Dict, open_bugs: int) -> html.Div:
                                         forecast_status, style={"color": forecast_color}
                                     ),
                                 ],
+                            ),
+                            # Analysis period information
+                            html.Div(
+                                style={
+                                    "fontSize": "0.7rem",
+                                    "color": "#6c757d",
+                                    "marginTop": "2px",
+                                    "fontStyle": "italic",
+                                },
+                                children=[
+                                    html.I(
+                                        className="fas fa-chart-line me-1",
+                                        style={"fontSize": "0.65rem"},
+                                    ),
+                                    html.Span(
+                                        f"Based on {forecast.get('weeks_analyzed', 0)} weeks of resolution data"
+                                    ),
+                                ]
+                                if forecast.get("weeks_analyzed")
+                                else [],
                             ),
                         ],
                     ),

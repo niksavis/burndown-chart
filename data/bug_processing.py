@@ -186,6 +186,8 @@ def calculate_bug_metrics_summary(
     all_bug_issues: List[Dict],
     timeline_filtered_bugs: List[Dict],
     weekly_stats: List[Dict],
+    date_from=None,
+    date_to=None,
 ) -> Dict:
     """Calculate overall bug metrics summary.
 
@@ -193,6 +195,8 @@ def calculate_bug_metrics_summary(
         all_bug_issues: List of all bug issues (for current state metrics like open bugs count)
         timeline_filtered_bugs: List of bugs filtered by timeline (for historical metrics like resolution rate)
         weekly_stats: List of weekly bug statistics
+        date_from: Start date for timeline filter (for display purposes)
+        date_to: End date for timeline filter (for display purposes)
 
     Returns:
         Bug metrics summary dictionary with resolution rate, trends, etc.
@@ -298,6 +302,8 @@ def calculate_bug_metrics_summary(
         "total_bug_points": total_bug_points,
         "open_bug_points": open_bug_points,
         "capacity_consumed_by_bugs": 0.0,  # Will be calculated when total capacity is known
+        "date_from": date_from,  # Timeline filter start date
+        "date_to": date_to,  # Timeline filter end date
     }
 
 
@@ -366,6 +372,10 @@ def forecast_bug_resolution(
     recent_stats = weekly_stats[-use_last_n_weeks:]
     closure_rates = [week.get("bugs_resolved", 0) for week in recent_stats]
 
+    # Extract date range of analysis
+    analysis_start = recent_stats[0].get("week_start") if recent_stats else None
+    analysis_end = recent_stats[-1].get("week_start") if recent_stats else None
+
     # Calculate average closure rate
     avg_closure_rate = sum(closure_rates) / len(closure_rates)
 
@@ -417,6 +427,9 @@ def forecast_bug_resolution(
         "pessimistic_date": calculate_future_date(pessimistic_weeks),
         "avg_closure_rate": round(avg_closure_rate, 2),
         "insufficient_data": False,
+        "analysis_start": analysis_start,  # First week of analysis period
+        "analysis_end": analysis_end,  # Last week of analysis period
+        "weeks_analyzed": len(recent_stats),  # Number of weeks analyzed
     }
 
 
