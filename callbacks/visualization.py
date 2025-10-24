@@ -784,7 +784,7 @@ def register(app):
             Input("current-statistics", "modified_timestamp"),
             Input("calculation-results", "data"),
             Input("date-range-weeks", "data"),
-            Input("points-toggle", "value"),  # Added points toggle input
+            Input("points-toggle", "value"),  # Updated to new parameter panel component
         ],
         [
             State("current-settings", "data"),
@@ -904,7 +904,68 @@ def register(app):
             show_milestone = settings.get("show_milestone", False)
             milestone = settings.get("milestone", None) if show_milestone else None
 
-            if active_tab == "tab-burndown":
+            if active_tab == "tab-dashboard":
+                # Generate modern compact dashboard content
+                logger.warning(
+                    f"[CTO DEBUG] Creating NEW modern dashboard content, cache_key={cache_key}"
+                )
+
+                # Process data for calculations
+                if not df.empty:
+                    df = compute_cumulative_values(df, total_items, total_points)
+
+                # Create forecast plot and get PERT values
+                _, pert_data = create_forecast_plot(
+                    df=df,
+                    total_items=total_items,
+                    total_points=total_points,
+                    pert_factor=pert_factor,
+                    deadline_str=deadline,
+                    milestone_str=milestone,
+                    data_points_count=data_points_count,
+                    show_points=show_points,
+                )
+
+                # Calculate weekly averages for the dashboard
+                (
+                    avg_weekly_items,
+                    avg_weekly_points,
+                    med_weekly_items,
+                    med_weekly_points,
+                ) = calculate_weekly_averages(
+                    statistics, data_points_count=data_points_count
+                )
+
+                # Calculate days to deadline
+                deadline_date = pd.to_datetime(deadline)
+                current_date = datetime.now()
+                days_to_deadline = max(0, (deadline_date - current_date).days)
+
+                # Import and use comprehensive dashboard
+                from ui.dashboard_comprehensive import create_comprehensive_dashboard
+
+                # Create the comprehensive dashboard layout
+                dashboard_content = create_comprehensive_dashboard(
+                    statistics_df=df,
+                    pert_time_items=pert_data["pert_time_items"],
+                    pert_time_points=pert_data["pert_time_points"],
+                    avg_weekly_items=avg_weekly_items,
+                    avg_weekly_points=avg_weekly_points,
+                    med_weekly_items=med_weekly_items,
+                    med_weekly_points=med_weekly_points,
+                    days_to_deadline=days_to_deadline,
+                    total_items=total_items,
+                    total_points=total_points,
+                    deadline_str=deadline,
+                    show_points=show_points,
+                )
+
+                # Cache the result for next time
+                chart_cache[cache_key] = dashboard_content
+                ui_state["loading"] = False
+                return dashboard_content, chart_cache, ui_state
+
+            elif active_tab == "tab-burndown":
                 # Generate all required data for burndown tab
                 items_trend, points_trend = _prepare_trend_data(statistics, pert_factor)
 

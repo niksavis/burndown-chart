@@ -194,7 +194,7 @@ Enhanced mobile responsiveness, accessibility, and performance optimizations
 }
 
 /* High Contrast Mode Support */
-@media (prefers-contrast: high) {
+@media (prefers-contrast: more) {
   .help-button-enhanced {
     border: 2px solid currentColor !important;
   }

@@ -234,18 +234,34 @@ def create_jira_config_modal():
     )
 
 
-def create_jira_config_button():
+def create_jira_config_button(compact: bool = False):
     """
     Create button to open JIRA configuration modal.
+
+    Args:
+        compact: If True, creates icon-only button; if False, creates full button with text
 
     Returns:
         dbc.Button: Configuration button for Data Source interface
     """
-    return dbc.Button(
-        [html.I(className="fas fa-cog me-2"), "Configure JIRA"],
-        id="jira-config-button",
-        color="primary",
-        outline=False,
-        className="mt-3 mb-3 w-100",  # Top and bottom margin, full width
-        size="md",  # Standard size to match overall UI
-    )
+    if compact:
+        # Compact icon-only button for settings panel
+        return dbc.Button(
+            html.I(className="fas fa-cog"),
+            id="jira-config-button",
+            color="primary",
+            outline=True,
+            size="sm",
+            title="Configure JIRA Connection",
+            className="mb-3",
+        )
+    else:
+        # Full button with text for other interfaces
+        return dbc.Button(
+            [html.I(className="fas fa-cog me-2"), "Configure JIRA"],
+            id="jira-config-button",
+            color="primary",
+            outline=False,
+            className="mt-3 mb-3 w-100",  # Top and bottom margin, full width
+            size="md",  # Standard size to match overall UI
+        )

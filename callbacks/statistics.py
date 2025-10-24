@@ -498,7 +498,7 @@ def register(app):
     @app.callback(
         Output("sample-data-alert", "is_open"),
         [
-            Input("dismiss-sample-alert", "n_clicks"),
+            Input("btn-dismiss-sample-alert", "n_clicks"),
             Input("is-sample-data", "data"),
             Input("upload-data", "contents"),
         ],
@@ -517,7 +517,7 @@ def register(app):
 
         trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
-        if trigger_id == "dismiss-sample-alert" and n_clicks:
+        if trigger_id == "btn-dismiss-sample-alert" and n_clicks:
             # User dismissed the alert
             return False
         elif trigger_id == "upload-data" and upload_contents:

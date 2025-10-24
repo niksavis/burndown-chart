@@ -74,20 +74,14 @@ def calculate_scope_change_rate(
             },
         }
 
-    # Calculate the true baseline (remaining items + completed items)
-    actual_baseline_items = baseline_items + total_completed_items
-    actual_baseline_points = baseline_points + total_completed_points
-
-    # Calculate scope change rates as percentage of created items over baseline
+    # Calculate scope change rates as percentage of created items over original baseline
+    # Note: baseline_items/baseline_points represent the original total project scope
+    # Do NOT add completed_items as that would double-count the work
     items_rate = (
-        (total_created_items / actual_baseline_items) * 100
-        if actual_baseline_items > 0
-        else 0
+        (total_created_items / baseline_items) * 100 if baseline_items > 0 else 0
     )
     points_rate = (
-        (total_created_points / actual_baseline_points) * 100
-        if actual_baseline_points > 0
-        else 0
+        (total_created_points / baseline_points) * 100 if baseline_points > 0 else 0
     )
 
     return {

@@ -3038,3 +3038,161 @@ def _prepare_metrics_data(
         "items_completion_enhanced": items_completion_enhanced,
         "points_completion_enhanced": points_completion_enhanced,
     }
+
+
+#######################################################################
+# DASHBOARD VISUALIZATIONS (User Story 2)
+#######################################################################
+
+
+def create_pert_timeline_chart(pert_data: dict) -> go.Figure:
+    """
+    Create horizontal timeline visualization for PERT forecasts.
+
+    This function supports User Story 2: Dashboard as Primary Landing View.
+    It creates an interactive timeline showing optimistic, most likely, and
+    pessimistic completion dates with visual indicators for confidence range.
+
+    Args:
+        pert_data: PERTTimelineData dictionary from calculate_pert_timeline()
+
+    Returns:
+        go.Figure: Plotly figure with horizontal timeline
+
+    Example:
+        >>> pert_data = calculate_pert_timeline(stats, settings)
+        >>> fig = create_pert_timeline_chart(pert_data)
+
+    Chart Features:
+        - Horizontal bar showing date range
+        - Markers for optimistic, most likely, pessimistic dates
+        - PERT weighted average highlighted
+        - Confidence range shading
+    """
+    from datetime import datetime
+
+    # Parse dates
+    try:
+        optimistic = (
+            datetime.strptime(pert_data["optimistic_date"], "%Y-%m-%d")
+            if pert_data.get("optimistic_date")
+            else None
+        )
+        most_likely = (
+            datetime.strptime(pert_data["most_likely_date"], "%Y-%m-%d")
+            if pert_data.get("most_likely_date")
+            else None
+        )
+        pessimistic = (
+            datetime.strptime(pert_data["pessimistic_date"], "%Y-%m-%d")
+            if pert_data.get("pessimistic_date")
+            else None
+        )
+        pert_estimate = (
+            datetime.strptime(pert_data["pert_estimate_date"], "%Y-%m-%d")
+            if pert_data.get("pert_estimate_date")
+            else None
+        )
+    except (ValueError, TypeError):
+        # Return empty chart if dates are invalid
+        fig = go.Figure()
+        fig.add_annotation(
+            text="No forecast data available",
+            xref="paper",
+            yref="paper",
+            x=0.5,
+            y=0.5,
+            showarrow=False,
+            font=dict(size=16, color="gray"),
+        )
+        return fig
+
+    if not all([optimistic, most_likely, pessimistic, pert_estimate]):
+        # Return empty chart if dates are missing
+        fig = go.Figure()
+        fig.add_annotation(
+            text="Insufficient data for timeline forecast",
+            xref="paper",
+            yref="paper",
+            x=0.5,
+            y=0.5,
+            showarrow=False,
+            font=dict(size=16, color="gray"),
+        )
+        return fig
+
+    # Create figure
+    fig = go.Figure()
+
+    # Add confidence range bar (optimistic to pessimistic)
+    fig.add_trace(
+        go.Scatter(
+            x=[optimistic, pessimistic],
+            y=[0, 0],
+            mode="lines",
+            line=dict(color="rgba(13, 110, 253, 0.2)", width=20),
+            name="Confidence Range",
+            showlegend=True,
+            hovertemplate="Range: %{x}<extra></extra>",
+        )
+    )
+
+    # Add markers for key dates
+    scenarios = [
+        (optimistic, "Optimistic", "green", "circle"),
+        (most_likely, "Most Likely", "blue", "diamond"),
+        (pert_estimate, "PERT Estimate", "purple", "star"),
+        (pessimistic, "Pessimistic", "orange", "circle"),
+    ]
+
+    for date, label, color, symbol in scenarios:
+        fig.add_trace(
+            go.Scatter(
+                x=[date],
+                y=[0],
+                mode="markers+text",
+                marker=dict(
+                    size=15,
+                    color=color,
+                    symbol=symbol,
+                    line=dict(width=2, color="white"),
+                ),
+                text=[label],
+                textposition="top center",
+                name=label,
+                showlegend=True,
+                hovertemplate=f"<b>{label}</b><br>Date: %{{x|%Y-%m-%d}}<br>Days: {pert_data.get(label.lower().replace(' ', '_') + '_days', 'N/A')}<extra></extra>",
+            )
+        )
+
+    # Update layout
+    fig.update_layout(
+        title="PERT Timeline Forecast",
+        xaxis=dict(
+            title="Completion Date",
+            type="date",
+            showgrid=True,
+            gridcolor="rgba(0,0,0,0.1)",
+        ),
+        yaxis=dict(
+            showticklabels=False,
+            showgrid=False,
+            zeroline=False,
+            range=[-0.5, 0.5],
+        ),
+        height=300,
+        hovermode="closest",
+        plot_bgcolor="white",
+        paper_bgcolor="white",
+        margin=dict(l=40, r=40, t=60, b=60),
+        showlegend=True,
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=-0.3,
+            xanchor="center",
+            x=0.5,
+        ),
+    )
+
+    return fig

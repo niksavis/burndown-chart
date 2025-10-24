@@ -84,7 +84,7 @@ def create_mobile_drawer_navigation(tabs_config):
     )
 
 
-def create_mobile_bottom_navigation(tabs_config, active_tab="tab-burndown"):
+def create_mobile_bottom_navigation(tabs_config, active_tab="tab-dashboard"):
     """
     Create bottom navigation for mobile devices with primary actions.
 
@@ -211,6 +211,13 @@ def get_mobile_tabs_config():
     from configuration.settings import get_bug_analysis_config
 
     tabs = [
+        {
+            "id": "tab-dashboard",
+            "label": "Project Dashboard",
+            "short_label": "Dashboard",
+            "icon": "fas fa-tachometer-alt",
+            "color": "#0d6efd",
+        },
         {
             "id": "tab-burndown",
             "label": "Burndown Chart",

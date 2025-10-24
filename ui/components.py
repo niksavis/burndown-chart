@@ -9,14 +9,15 @@ that are used across the application.
 # IMPORTS
 #######################################################################
 # Standard library imports
+import re
 import time
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, Any
 
 import dash_bootstrap_components as dbc
 
 # Third-party library imports
-from dash import html
+from dash import dcc, html
 
 # Application imports
 from configuration import COLOR_PALETTE
@@ -27,6 +28,7 @@ from configuration.settings import (
 )
 from ui.button_utils import create_button
 from ui.icon_utils import create_icon_text
+from ui.style_constants import get_spacing, get_color
 from ui.styles import create_form_feedback_style
 from ui.tooltip_utils import (
     create_calculation_step_tooltip,
@@ -47,6 +49,196 @@ TREND_COLORS = {
     "up": "#28a745",  # Green
     "down": "#dc3545",  # Red
 }
+
+
+#######################################################################
+# ATOMIC COMPONENT BUILDERS (Following Component Contracts)
+#######################################################################
+
+
+def create_input_field(
+    label: str,
+    input_type: str = "text",
+    input_id: str = "",
+    placeholder: str = "",
+    value: Any = None,
+    required: bool = False,
+    size: str = "md",
+    **kwargs,
+) -> html.Div:
+    """
+    Create a labeled input field with validation support.
+
+    This function follows the component builder contract specification
+    in specs/006-ux-ui-redesign/contracts/component-builders.md
+
+    Args:
+        label: Display label for input field (required)
+        input_type: HTML input type - "text", "number", "date", "email", "password", "tel", "url"
+        input_id: Unique ID for input element (if empty, generated from label)
+        placeholder: Placeholder text
+        value: Initial/current value
+        required: Whether field is required
+        size: Input size - "sm", "md", "lg"
+        **kwargs: Additional props (min, max, step, disabled, invalid, valid, etc.)
+
+    Returns:
+        html.Div containing dbc.Label and dbc.Input
+
+    Raises:
+        ValueError: If label is empty or input_type is invalid
+
+    Examples:
+        >>> create_input_field("Deadline", input_type="date", value="2025-12-31")
+        >>> create_input_field("PERT Factor", input_type="number", min=1.0, max=3.0, step=0.1)
+        >>> create_input_field("Email", input_type="email", required=True)
+
+    ID Pattern: input-{label-slugified} or provided input_id
+
+    Accessibility:
+        - Label properly associated with input via htmlFor/id
+        - Required fields marked with aria-required
+        - Invalid state communicated via aria-invalid
+    """
+    # Validation
+    if not label or label.strip() == "":
+        raise ValueError("Label is required and cannot be empty")
+
+    valid_input_types = ["text", "number", "date", "email", "password", "tel", "url"]
+    if input_type not in valid_input_types:
+        raise ValueError(
+            f"Invalid input_type '{input_type}'. Must be one of: {', '.join(valid_input_types)}"
+        )
+
+    # Generate ID from label if not provided
+    if not input_id:
+        label_slug = re.sub(r"[^a-z0-9]+", "-", label.lower()).strip("-")
+        input_id = f"input-{label_slug}"
+
+    # dbc.Input handles accessibility internally via 'required' and 'invalid' props
+    # No need to add aria-* attributes manually
+
+    # Get spacing from design tokens
+    spacing = get_spacing("sm")
+
+    # Create the input field
+    # Note: dbc.Input automatically handles aria-required when required=True
+    # and aria-invalid when invalid=True
+    input_field = dbc.Input(
+        type=input_type,  # type: ignore[arg-type]
+        id=input_id,
+        placeholder=placeholder,
+        value=value,
+        required=required,
+        size=size,
+        **kwargs,
+    )
+
+    # Create label with required indicator
+    label_content = label
+    if required:
+        label_content = [
+            label,
+            html.Span(" *", style={"color": get_color("danger")}),
+        ]
+
+    label_element = dbc.Label(
+        label_content, html_for=input_id, style={"marginBottom": spacing}
+    )
+
+    # Return wrapped in div
+    return html.Div(
+        [label_element, input_field],
+        style={"marginBottom": get_spacing("md")},
+    )
+
+
+def create_labeled_input(
+    label: str,
+    input_id: str,
+    input_type: str = "text",
+    value: Any = None,
+    help_text: str = "",
+    error_message: str = "",
+    size: str = "md",
+    **kwargs,
+) -> html.Div:
+    """
+    Create input field with label, help text, and error message support.
+
+    This function follows the component builder contract specification
+    in specs/006-ux-ui-redesign/contracts/component-builders.md
+
+    Args:
+        label: Display label text (required)
+        input_id: Unique ID for input (required)
+        input_type: HTML input type
+        value: Initial value
+        help_text: Optional help text displayed below input
+        error_message: Error message (shown only if invalid=True in kwargs)
+        size: Component size
+        **kwargs: Additional props passed to dbc.Input (invalid, valid, disabled, etc.)
+
+    Returns:
+        html.Div containing label, input, help text, and error feedback
+
+    Raises:
+        ValueError: If label or input_id is empty
+
+    Examples:
+        >>> create_labeled_input("PERT Factor", "pert-input", input_type="number",
+        ...                      help_text="Typically 1.5-2.0", min=1.0, max=3.0)
+        >>> create_labeled_input("Deadline", "deadline-input", input_type="date",
+        ...                      error_message="Date must be in future", invalid=True)
+
+    Accessibility:
+        - Help text linked via aria-describedby
+        - Error messages linked via aria-describedby
+        - Invalid state properly communicated
+    """
+    # Validation
+    if not label or label.strip() == "":
+        raise ValueError("Label is required and cannot be empty")
+
+    if not input_id or input_id.strip() == "":
+        raise ValueError("input_id is required and cannot be empty")
+
+    valid_input_types = ["text", "number", "date", "email", "password", "tel", "url"]
+    if input_type not in valid_input_types:
+        raise ValueError(
+            f"Invalid input_type '{input_type}'. Must be one of: {', '.join(valid_input_types)}"
+        )
+
+    # Build aria-describedby references for accessibility
+    # Note: dbc.Input doesn't accept aria-describedby directly, but we can
+    # link help text and errors through proper HTML structure and IDs
+    help_text_id = f"{input_id}-help" if help_text else None
+    error_id = f"{input_id}-error" if error_message else None
+
+    # Create input element
+    # dbc.Input handles aria-invalid automatically when invalid=True
+    input_element = dbc.Input(
+        type=input_type,  # type: ignore[arg-type]
+        id=input_id,
+        value=value,
+        size=size,
+        **kwargs,
+    )
+
+    # Create components list
+    components = [dbc.Label(label, html_for=input_id), input_element]
+
+    # Add help text if provided
+    if help_text:
+        components.append(dbc.FormText(help_text, id=help_text_id, color="muted"))
+
+    # Add error feedback if provided and invalid
+    if error_message and kwargs.get("invalid", False):
+        components.append(dbc.FormFeedback(error_message, id=error_id, type="invalid"))
+
+    # Return as Div (FormGroup is deprecated in dbc 2.x)
+    return html.Div(components, style={"marginBottom": get_spacing("md")})
+
 
 #######################################################################
 # JQL CHARACTER COUNT (Feature 001-add-jql-query)
@@ -2048,3 +2240,825 @@ def _create_velocity_footer_content(data_points_count=None, total_data_points=No
             tooltip_text,
         ),
     ]
+
+
+#######################################################################
+# PARAMETER PANEL COMPONENTS (User Story 1)
+#######################################################################
+
+
+def create_parameter_bar_collapsed(
+    pert_factor: float,
+    deadline: str,
+    scope_items: int,
+    scope_points: int,
+    id_suffix: str = "",
+) -> html.Div:
+    """
+    Create collapsed parameter bar showing key values and expand button.
+
+    This component supports User Story 1: Quick Parameter Adjustments While Viewing Charts.
+    When collapsed, it displays a compact summary of current parameter values with an
+    expand button to show the full parameter panel.
+
+    Args:
+        pert_factor: Current PERT factor value
+        deadline: Current deadline date string
+        scope_items: Total number of items in scope
+        scope_points: Total story points in scope
+        id_suffix: Suffix for generating unique IDs
+
+    Returns:
+        html.Div: Collapsed parameter bar component
+
+    Example:
+        >>> create_parameter_bar_collapsed(1.5, "2025-12-31", 100, 500)
+    """
+    from ui.style_constants import DESIGN_TOKENS
+
+    bar_id = f"parameter-bar-collapsed{'-' + id_suffix if id_suffix else ''}"
+    expand_btn_id = f"btn-expand-parameters{'-' + id_suffix if id_suffix else ''}"
+
+    return html.Div(
+        [
+            dbc.Row(
+                [
+                    # Parameter Summary (left side)
+                    dbc.Col(
+                        [
+                            html.Div(
+                                [
+                                    html.Span(
+                                        [
+                                            html.I(className="fas fa-sliders-h me-1"),
+                                            f"PERT: {pert_factor}",
+                                        ],
+                                        className="param-summary-item me-3",
+                                    ),
+                                    html.Span(
+                                        [
+                                            html.I(className="fas fa-calendar me-1"),
+                                            f"{deadline}",
+                                        ],
+                                        className="param-summary-item me-3",
+                                    ),
+                                    html.Span(
+                                        [
+                                            html.I(className="fas fa-tasks me-1"),
+                                            f"{scope_items} items",
+                                        ],
+                                        className="param-summary-item me-3",
+                                    ),
+                                    html.Span(
+                                        [
+                                            html.I(className="fas fa-chart-bar me-1"),
+                                            f"{scope_points} pts",
+                                        ],
+                                        className="param-summary-item",
+                                    ),
+                                ],
+                                className="d-flex align-items-center flex-wrap",
+                            ),
+                        ],
+                        xs=12,
+                        md=9,
+                        className="d-flex align-items-center",
+                    ),
+                    # Expand Button and Settings Button (right side)
+                    dbc.Col(
+                        [
+                            html.Div(
+                                [
+                                    dbc.Button(
+                                        [
+                                            html.I(
+                                                className="fas fa-chevron-down me-2"
+                                            ),
+                                            html.Span(
+                                                "Parameters",
+                                                className="d-none d-lg-inline",
+                                            ),
+                                        ],
+                                        id=expand_btn_id,
+                                        color="primary",
+                                        outline=True,
+                                        size="sm",
+                                        className="me-2",
+                                    ),
+                                    dbc.Button(
+                                        [
+                                            html.I(className="fas fa-cog me-1"),
+                                            html.Span(
+                                                "Settings",
+                                                className="d-none d-lg-inline",
+                                            ),
+                                        ],
+                                        id="settings-button",
+                                        color="primary",
+                                        outline=True,
+                                        size="sm",
+                                        title="Configure data sources, import/export, and JQL queries",
+                                    ),
+                                ],
+                                className="d-flex justify-content-end",
+                            ),
+                        ],
+                        xs=12,
+                        md=3,
+                        className="d-flex align-items-center mt-2 mt-md-0",
+                    ),
+                ],
+                className="g-2",
+            ),
+        ],
+        id=bar_id,
+        className="parameter-bar-collapsed",
+        style={
+            "padding": DESIGN_TOKENS["spacing"]["md"],
+            "backgroundColor": DESIGN_TOKENS["colors"]["gray-100"],
+            "borderRadius": DESIGN_TOKENS["layout"]["borderRadius"]["md"],
+            "marginBottom": DESIGN_TOKENS["spacing"]["sm"],
+        },
+    )
+
+
+def create_settings_tab_content(
+    settings: dict,
+    id_suffix: str = "",
+) -> html.Div:
+    """
+    Create settings tab content for data source configuration and import/export.
+
+    This replaces the old Data Import Configuration card, now accessible from
+    the Parameter Panel Settings tab.
+
+    Args:
+        settings: Dictionary containing current settings
+        id_suffix: Suffix for generating unique IDs
+
+    Returns:
+        html.Div: Settings tab content with data source config and import/export
+    """
+    from ui.jql_editor import create_jql_editor
+    from ui.jira_config_modal import create_jira_config_button
+    from ui.button_utils import create_button
+
+    # Import helper functions from cards module
+    import sys
+    import os
+
+    sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+    from ui.cards import (
+        _get_default_data_source,
+        _get_default_jql_query,
+        _get_default_jql_profile_id,
+        _get_query_profile_options,
+    )
+
+    return html.Div(
+        [
+            # Data Source Selection
+            html.Div(
+                [
+                    html.H6(
+                        [
+                            html.I(
+                                className="fas fa-database me-2",
+                                style={"color": "#20c997"},
+                            ),
+                            "Data Source",
+                        ],
+                        className="mb-3",
+                        style={"fontSize": "0.9rem", "fontWeight": "600"},
+                    ),
+                    dbc.RadioItems(
+                        id="data-source-selection",
+                        options=[
+                            {"label": "JIRA API", "value": "JIRA"},
+                            {"label": "JSON/CSV Import", "value": "CSV"},
+                        ],
+                        value=_get_default_data_source(),
+                        inline=True,
+                        className="mb-3",
+                    ),
+                ],
+                className="mb-4 pb-3 border-bottom",
+            ),
+            # CSV Upload Container
+            html.Div(
+                id="csv-upload-container",
+                style={
+                    "display": "none"
+                    if _get_default_data_source() == "JIRA"
+                    else "block"
+                },
+                children=[
+                    html.H6(
+                        [
+                            html.I(
+                                className="fas fa-upload me-2",
+                                style={"color": "#0d6efd"},
+                            ),
+                            "File Upload",
+                        ],
+                        className="mb-3",
+                        style={"fontSize": "0.9rem", "fontWeight": "600"},
+                    ),
+                    dcc.Upload(
+                        id="upload-data",
+                        children=html.Div(
+                            [
+                                html.I(className="fas fa-cloud-upload-alt fa-2x mb-2"),
+                                html.Br(),
+                                "Drag and Drop or Click to Select",
+                            ],
+                            className="text-center",
+                        ),
+                        style={
+                            "width": "100%",
+                            "height": "100px",
+                            "borderWidth": "2px",
+                            "borderStyle": "dashed",
+                            "borderRadius": "8px",
+                            "borderColor": "#dee2e6",
+                            "backgroundColor": "#f8f9fa",
+                            "cursor": "pointer",
+                            "display": "flex",
+                            "alignItems": "center",
+                            "justifyContent": "center",
+                        },
+                        multiple=False,
+                    ),
+                ],
+                className="mb-4 pb-3 border-bottom",
+            ),
+            # JIRA Configuration Container
+            html.Div(
+                id="jira-config-container",
+                style={
+                    "display": "block"
+                    if _get_default_data_source() == "JIRA"
+                    else "none"
+                },
+                children=[
+                    # JIRA Connection Button
+                    html.H6(
+                        [
+                            html.I(
+                                className="fas fa-plug me-2", style={"color": "#0d6efd"}
+                            ),
+                            "JIRA Connection",
+                        ],
+                        className="mb-3",
+                        style={"fontSize": "0.9rem", "fontWeight": "600"},
+                    ),
+                    create_jira_config_button(),
+                    html.Div(
+                        id="jira-config-status-indicator",
+                        className="mt-2 mb-3",
+                        children=[],
+                    ),
+                    # JQL Query Management
+                    html.Div(
+                        [
+                            html.H6(
+                                [
+                                    html.I(
+                                        className="fas fa-code me-2",
+                                        style={"color": "#6610f2"},
+                                    ),
+                                    "JQL Query",
+                                ],
+                                className="mb-3",
+                                style={"fontSize": "0.9rem", "fontWeight": "600"},
+                            ),
+                            create_jql_editor(
+                                editor_id="jira-jql-query",
+                                initial_value=_get_default_jql_query(),
+                                placeholder="project = MYPROJECT AND created >= startOfYear()",
+                                rows=3,
+                            ),
+                            html.Div(
+                                id="jira-jql-character-count-container",
+                                children=[
+                                    create_character_count_display(
+                                        count=len(_get_default_jql_query() or ""),
+                                        warning=should_show_character_warning(
+                                            _get_default_jql_query()
+                                        ),
+                                    )
+                                ],
+                                className="mb-2",
+                            ),
+                            # Query Actions
+                            html.Div(
+                                [
+                                    create_button(
+                                        text="Save Query",
+                                        id="save-jql-query-button",
+                                        variant="primary",
+                                        icon_class="fas fa-save",
+                                        size="sm",
+                                        className="me-2 mb-2",
+                                    ),
+                                    dcc.Dropdown(
+                                        id="jql-profile-selector",
+                                        options=_get_query_profile_options(),
+                                        value=_get_default_jql_profile_id(),
+                                        placeholder="Select saved query",
+                                        clearable=True,
+                                        searchable=True,
+                                        style={
+                                            "minWidth": "200px",
+                                            "maxWidth": "300px",
+                                            "display": "inline-block",
+                                        },
+                                        className="me-2 mb-2",
+                                    ),
+                                    create_button(
+                                        text="Clear",
+                                        id="clear-jql-query-button",
+                                        variant="outline-secondary",
+                                        icon_class="fas fa-eraser",
+                                        size="sm",
+                                        className="mb-2",
+                                    ),
+                                ],
+                                className="d-flex flex-wrap align-items-center mb-2",
+                            ),
+                            html.Div(
+                                id="jira-jql-query-save-status",
+                                className="text-center mt-2 mb-3",
+                                children=[],
+                            ),
+                            # Update Data Button
+                            create_button(
+                                text="Update Data & Calculate Scope",
+                                id="update-data-unified",
+                                variant="primary",
+                                icon_class="fas fa-sync-alt",
+                                className="w-100 mb-2",
+                            ),
+                            html.Div(
+                                id="jira-cache-status",
+                                className="text-center text-muted small",
+                                children="Ready to fetch JIRA data",
+                            ),
+                        ],
+                        className="mb-3",
+                    ),
+                ],
+                className="mb-4 pb-3 border-bottom",
+            ),
+            # Export Options
+            html.Div(
+                [
+                    html.H6(
+                        [
+                            html.I(
+                                className="fas fa-file-export me-2",
+                                style={"color": "#6c757d"},
+                            ),
+                            "Export Data",
+                        ],
+                        className="mb-3",
+                        style={"fontSize": "0.9rem", "fontWeight": "600"},
+                    ),
+                    create_button(
+                        text="Export Project Data",
+                        id="export-project-data-button",
+                        variant="secondary",
+                        icon_class="fas fa-file-export",
+                        className="w-100 mb-2",
+                    ),
+                    html.Small(
+                        "Export complete project data as JSON",
+                        className="text-muted d-block text-center",
+                    ),
+                    html.Div(dcc.Download(id="export-project-data-download")),
+                ],
+            ),
+        ],
+        style={"padding": "1rem"},
+    )
+
+
+def create_parameter_panel_expanded(
+    settings: dict,
+    id_suffix: str = "",
+) -> html.Div:
+    """
+    Create expanded parameter panel section with all input fields.
+
+    This component supports User Story 1: Quick Parameter Adjustments While Viewing Charts.
+    When expanded, it displays ALL forecast-critical parameter input fields matching
+    the functionality of the old Input Parameters card with improved UX using sliders.
+
+    Args:
+        settings: Dictionary containing current parameter values (pert_factor, deadline, etc.)
+        id_suffix: Suffix for generating unique IDs
+
+    Returns:
+        html.Div: Expanded parameter panel with complete input fields
+
+    Example:
+        >>> settings = {"pert_factor": 3, "deadline": "2025-12-31", "show_milestone": True}
+        >>> create_parameter_panel_expanded(settings)
+    """
+    from datetime import datetime
+    from ui.style_constants import DESIGN_TOKENS
+
+    panel_id = f"parameter-panel-expanded{'-' + id_suffix if id_suffix else ''}"
+
+    # Extract settings with defaults
+    pert_factor = settings.get("pert_factor", 3)
+    deadline = settings.get("deadline", "2025-12-31")
+    milestone = settings.get("milestone", None)
+    total_items = settings.get("total_items", 0)
+    estimated_items = settings.get("estimated_items", 0)
+    total_points = settings.get("total_points", 0)
+    estimated_points = settings.get("estimated_points", 0)
+    show_points = settings.get("show_points", False)
+    data_points_count = settings.get("data_points_count", 10)
+
+    return html.Div(
+        [
+            # Section 1: Project Timeline
+            html.Div(
+                [
+                    html.H6(
+                        [
+                            html.I(
+                                className="fas fa-calendar-alt me-2",
+                                style={"color": "#0d6efd"},
+                            ),
+                            "Project Timeline",
+                        ],
+                        className="mb-3 text-primary",
+                        style={"fontSize": "0.9rem", "fontWeight": "600"},
+                    ),
+                    dbc.Row(
+                        [
+                            # Deadline Date Picker
+                            dbc.Col(
+                                [
+                                    html.Label(
+                                        [
+                                            "Deadline",
+                                            html.Span(" *", className="text-danger"),
+                                        ],
+                                        className="form-label fw-medium",
+                                        style={"fontSize": "0.875rem"},
+                                    ),
+                                    dcc.DatePickerSingle(
+                                        id="deadline-picker",
+                                        date=deadline,
+                                        display_format="YYYY-MM-DD",
+                                        first_day_of_week=1,
+                                        placeholder="Select deadline",
+                                        min_date_allowed=datetime.now().strftime(
+                                            "%Y-%m-%d"
+                                        ),
+                                        className="w-100",
+                                        style={"fontSize": "0.875rem"},
+                                    ),
+                                    html.Div(
+                                        id="deadline-feedback",
+                                        className="invalid-feedback",
+                                    ),
+                                ],
+                                xs=12,
+                                md=6,
+                                lg=3,
+                                className="mb-3",
+                            ),
+                            # Milestone Date Picker (optional - activated when date is entered)
+                            dbc.Col(
+                                [
+                                    html.Label(
+                                        "Milestone (optional)",
+                                        className="form-label fw-medium",
+                                        style={"fontSize": "0.875rem"},
+                                    ),
+                                    dcc.DatePickerSingle(
+                                        id="milestone-picker",
+                                        date=milestone,
+                                        display_format="YYYY-MM-DD",
+                                        first_day_of_week=1,
+                                        placeholder="Select milestone",
+                                        min_date_allowed=datetime.now().strftime(
+                                            "%Y-%m-%d"
+                                        ),
+                                        className="w-100",
+                                        style={"fontSize": "0.875rem"},
+                                    ),
+                                    html.Div(
+                                        id="milestone-feedback",
+                                        className="invalid-feedback",
+                                    ),
+                                ],
+                                xs=12,
+                                md=6,
+                                lg=3,
+                                className="mb-3",
+                            ),
+                            # PERT Factor Slider
+                            dbc.Col(
+                                [
+                                    html.Label(
+                                        "PERT Factor",
+                                        className="form-label fw-medium",
+                                        style={"fontSize": "0.875rem"},
+                                    ),
+                                    dcc.Slider(
+                                        id="pert-factor-slider",
+                                        min=1,
+                                        max=15,
+                                        value=pert_factor,
+                                        marks={
+                                            i: str(i) for i in [1, 3, 5, 8, 10, 12, 15]
+                                        },
+                                        step=1,
+                                        tooltip={
+                                            "placement": "bottom",
+                                            "always_visible": False,
+                                        },
+                                        className="mt-2",
+                                    ),
+                                    html.Small(
+                                        id="pert-factor-info",
+                                        children=f"Current: {pert_factor}",
+                                        className="text-muted d-block text-center mt-1",
+                                        style={"fontSize": "0.75rem"},
+                                    ),
+                                ],
+                                xs=12,
+                                md=6,
+                                lg=3,
+                                className="mb-3",
+                            ),
+                            # Data Points Slider
+                            dbc.Col(
+                                [
+                                    html.Label(
+                                        "Data Points",
+                                        className="form-label fw-medium",
+                                        style={"fontSize": "0.875rem"},
+                                    ),
+                                    dcc.Slider(
+                                        id="data-points-input",
+                                        min=pert_factor * 2,
+                                        max=52,
+                                        value=data_points_count,
+                                        marks=None,
+                                        step=1,
+                                        tooltip={
+                                            "placement": "bottom",
+                                            "always_visible": False,
+                                        },
+                                        className="mt-2",
+                                    ),
+                                    html.Small(
+                                        id="data-points-info",
+                                        children=f"Using: {data_points_count} weeks",
+                                        className="text-muted d-block text-center mt-1",
+                                        style={"fontSize": "0.75rem"},
+                                    ),
+                                ],
+                                xs=12,
+                                md=6,
+                                lg=3,
+                                className="mb-3",
+                            ),
+                        ],
+                        className="g-3",
+                    ),
+                ],
+                className="mb-4 pb-3 border-bottom",
+            ),
+            # Section 2: Work Scope
+            html.Div(
+                [
+                    html.H6(
+                        [
+                            html.I(
+                                className="fas fa-tasks me-2",
+                                style={"color": "#20c997"},
+                            ),
+                            "Remaining Work Scope",
+                        ],
+                        className="mb-3 text-success",
+                        style={"fontSize": "0.9rem", "fontWeight": "600"},
+                    ),
+                    dbc.Row(
+                        [
+                            # Items Section
+                            dbc.Col(
+                                [
+                                    html.Label(
+                                        [
+                                            "Estimated Items",
+                                            html.Span(" *", className="text-danger"),
+                                        ],
+                                        className="form-label fw-medium",
+                                        style={"fontSize": "0.875rem"},
+                                    ),
+                                    dbc.Input(
+                                        id="estimated-items-input",
+                                        type="number",
+                                        value=estimated_items,
+                                        min=0,
+                                        step=1,
+                                        className="form-control-sm",
+                                    ),
+                                    html.Div(
+                                        id="estimated-items-feedback",
+                                        className="invalid-feedback",
+                                    ),
+                                ],
+                                xs=12,
+                                md=6,
+                                lg=2,
+                                className="mb-3",
+                            ),
+                            dbc.Col(
+                                [
+                                    html.Label(
+                                        "Total Items",
+                                        className="form-label fw-medium",
+                                        style={"fontSize": "0.875rem"},
+                                    ),
+                                    dbc.Input(
+                                        id="total-items-input",
+                                        type="number",
+                                        value=total_items,
+                                        min=0,
+                                        step=1,
+                                        className="form-control-sm",
+                                    ),
+                                    html.Div(
+                                        id="total-items-feedback",
+                                        className="invalid-feedback",
+                                    ),
+                                ],
+                                xs=12,
+                                md=6,
+                                lg=2,
+                                className="mb-3",
+                            ),
+                            # Points Toggle
+                            dbc.Col(
+                                [
+                                    html.Div(
+                                        [
+                                            html.Label(
+                                                "Points Tracking",
+                                                className="form-label fw-medium me-2",
+                                                style={"fontSize": "0.875rem"},
+                                            ),
+                                            dbc.Switch(
+                                                id="points-toggle",
+                                                value=show_points,
+                                                label="",
+                                                className="d-inline-block",
+                                            ),
+                                        ],
+                                        className="d-flex align-items-center",
+                                        style={
+                                            "height": "100%",
+                                            "paddingTop": "1.85rem",
+                                        },
+                                    ),
+                                ],
+                                xs=12,
+                                md=12,
+                                lg=2,
+                                className="mb-3",
+                            ),
+                            # Points Fields (conditionally styled based on toggle)
+                            dbc.Col(
+                                [
+                                    html.Label(
+                                        "Estimated Points",
+                                        className="form-label fw-medium",
+                                        style={"fontSize": "0.875rem"},
+                                    ),
+                                    dbc.Input(
+                                        id="estimated-points-input",
+                                        type="number",
+                                        value=estimated_points,
+                                        min=0,
+                                        step=1,
+                                        disabled=not show_points,
+                                        className="form-control-sm",
+                                    ),
+                                    html.Div(
+                                        id="estimated-points-feedback",
+                                        className="invalid-feedback",
+                                    ),
+                                ],
+                                xs=12,
+                                md=6,
+                                lg=3,
+                                className="mb-3",
+                                id="estimated-points-col",
+                            ),
+                            dbc.Col(
+                                [
+                                    html.Label(
+                                        [
+                                            "Total Points ",
+                                            html.Span(
+                                                "(auto)",
+                                                className="badge bg-secondary",
+                                                style={"fontSize": "0.65rem"},
+                                            ),
+                                        ],
+                                        className="form-label fw-medium",
+                                        style={"fontSize": "0.875rem"},
+                                    ),
+                                    dbc.Input(
+                                        id="total-points-display",
+                                        type="text",
+                                        value=f"{total_points:.0f}",
+                                        disabled=True,
+                                        className="form-control-sm",
+                                        style={"backgroundColor": "#e9ecef"},
+                                    ),
+                                ],
+                                xs=12,
+                                md=6,
+                                lg=3,
+                                className="mb-3",
+                                id="total-points-col",
+                            ),
+                        ],
+                        className="g-3",
+                    ),
+                ],
+            ),
+        ],
+        id=panel_id,
+        className="parameter-panel-expanded",
+        style={
+            "padding": DESIGN_TOKENS["spacing"]["md"],
+            "backgroundColor": DESIGN_TOKENS["colors"]["white"],
+            "borderRadius": DESIGN_TOKENS["layout"]["borderRadius"]["md"],
+            "border": f"{DESIGN_TOKENS['layout']['borderWidth']['thin']} solid {DESIGN_TOKENS['colors']['gray-300']}",
+        },
+    )
+
+
+def create_parameter_panel(
+    settings: dict,
+    is_open: bool = False,
+    id_suffix: str = "",
+) -> html.Div:
+    """
+    Create complete collapsible parameter panel combining collapsed bar and expanded section.
+
+    This component supports User Story 1: Quick Parameter Adjustments While Viewing Charts.
+    It combines the collapsed bar (always visible) with the expanded panel (toggleable)
+    using Bootstrap's Collapse component for smooth transitions.
+
+    Args:
+        settings: Dictionary containing current parameter values
+        is_open: Whether panel should start in expanded state
+        id_suffix: Suffix for generating unique IDs
+
+    Returns:
+        html.Div: Complete parameter panel with collapse functionality
+
+    Example:
+        >>> settings = {"pert_factor": 1.5, "deadline": "2025-12-31"}
+        >>> create_parameter_panel(settings, is_open=False)
+    """
+    panel_id = f"parameter-panel{'-' + id_suffix if id_suffix else ''}"
+    collapse_id = f"parameter-collapse{'-' + id_suffix if id_suffix else ''}"
+
+    # Extract key values for collapsed bar
+    pert_factor = settings.get("pert_factor", 3)
+    deadline = settings.get("deadline", "2025-12-31")
+    total_items = settings.get("total_items", 0)
+    total_points = settings.get("total_points", 0)
+
+    return html.Div(
+        [
+            # Collapsed bar (always visible)
+            create_parameter_bar_collapsed(
+                pert_factor=pert_factor,
+                deadline=deadline,
+                scope_items=total_items,
+                scope_points=total_points,
+                id_suffix=id_suffix,
+            ),
+            # Expanded panel (toggleable)
+            dbc.Collapse(
+                create_parameter_panel_expanded(settings, id_suffix=id_suffix),
+                id=collapse_id,
+                is_open=is_open,
+            ),
+        ],
+        id=panel_id,
+        className="parameter-panel-container",
+    )

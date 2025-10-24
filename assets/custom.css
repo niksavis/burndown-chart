@@ -4,6 +4,306 @@
    including table layouts, grid alignment, and other UI components.
 */
 
+/* ===== CSS Variables from Design Tokens ===== */
+:root {
+  /* Colors */
+  --color-primary: #0d6efd;
+  --color-secondary: #6c757d;
+  --color-success: #198754;
+  --color-warning: #ffc107;
+  --color-danger: #dc3545;
+  --color-info: #0dcaf0;
+  --color-light: #f8f9fa;
+  --color-dark: #343a40;
+
+  /* Neutrals */
+  --color-white: #ffffff;
+  --color-black: #000000;
+  --color-gray-100: #f8f9fa;
+  --color-gray-200: #e9ecef;
+  --color-gray-300: #dee2e6;
+  --color-gray-400: #ced4da;
+  --color-gray-500: #adb5bd;
+  --color-gray-600: #6c757d;
+  --color-gray-700: #495057;
+  --color-gray-800: #343a40;
+  --color-gray-900: #212529;
+
+  /* Spacing */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  --spacing-xxl: 3rem;
+
+  /* Typography */
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+
+  /* Layout */
+  --border-radius-sm: 0.25rem;
+  --border-radius-md: 0.375rem;
+  --border-radius-lg: 0.5rem;
+  --shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  --shadow-md: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  --shadow-lg: 0 1rem 3rem rgba(0, 0, 0, 0.175);
+  --z-index-sticky: 1020;
+  --z-index-modal: 1050;
+  --z-index-tooltip: 1070;
+
+  /* Animation */
+  --transition-fast: 200ms;
+  --transition-base: 300ms;
+  --transition-slow: 500ms;
+  --easing-default: ease-in-out;
+
+  /* Mobile */
+  --touch-target-min: 44px;
+}
+
+/* ===== Parameter Panel Styles (User Story 1) ===== */
+
+/* Sticky positioning for parameter panel at the very top */
+.param-panel-sticky {
+  position: sticky;
+  top: 0; /* At the very top for app-like feel */
+  z-index: var(--z-index-sticky);
+  background-color: var(--color-white);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+/* Parameter panel container spacing */
+.parameter-panel-container {
+  margin-bottom: var(--spacing-lg);
+}
+
+/* Collapsed bar styling */
+.parameter-bar-collapsed {
+  cursor: default;
+  transition: box-shadow var(--transition-base) var(--easing-default);
+}
+
+.parameter-bar-collapsed:hover {
+  box-shadow: var(--shadow-md);
+}
+
+/* Parameter summary items */
+.param-summary-item {
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--font-size-sm);
+  color: var(--color-gray-700);
+  white-space: nowrap;
+}
+
+.param-summary-item i {
+  color: var(--color-primary);
+  opacity: 0.8;
+}
+
+/* Expanded panel styling */
+.parameter-panel-expanded {
+  animation: slideDown var(--transition-base) var(--easing-default);
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Mobile responsive adjustments for parameter panel */
+@media (max-width: 767px) {
+  .param-panel-sticky {
+    top: 0; /* At the very top on mobile too */
+    position: sticky; /* Keep sticky on mobile for consistent app experience */
+  }
+
+  .param-summary-item {
+    font-size: var(--font-size-xs);
+    margin-right: var(--spacing-xs) !important;
+  }
+
+  .parameter-bar-collapsed {
+    padding: var(--spacing-sm) !important;
+  }
+
+  /* Constrain expanded panel height on mobile to prevent overlap with bottom nav */
+  .parameter-panel-expanded {
+    max-height: calc(100vh - 200px); /* Account for sticky bar and bottom nav */
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+    padding-bottom: 2rem !important; /* Extra padding at bottom for better scrolling */
+  }
+
+  /* Ensure form inputs in parameter panel are touch-friendly on mobile */
+  .parameter-panel-expanded input,
+  .parameter-panel-expanded .form-control {
+    min-height: 44px; /* Touch-friendly size */
+  }
+}
+
+/* ========================================
+   Settings Panel Styles (Flyout Design)
+   ======================================== */
+
+/* Settings panel container spacing */
+.settings-panel-container {
+  margin-bottom: var(--spacing-lg);
+}
+
+/* Expanded settings panel styling */
+.settings-panel-expanded {
+  animation: slideDown var(--transition-base) var(--easing-default);
+  background-color: var(--color-white);
+  border: 1px solid var(--color-gray-300);
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-md);
+}
+
+/* Settings panel column spacing */
+.settings-panel-expanded .col-md-8,
+.settings-panel-expanded .col-md-4 {
+  padding: var(--spacing-md);
+}
+
+/* Icon buttons in settings panel (compact design) */
+.settings-panel-expanded .btn-sm {
+  padding: 0.25rem 0.5rem;
+  min-width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.settings-panel-expanded .btn-sm i {
+  margin: 0;
+}
+
+/* Compact headers with inline actions */
+.settings-panel-expanded .fw-bold {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+/* JIRA connection status indicator - inline and compact */
+.settings-panel-expanded #jira-config-status-indicator {
+  font-size: 0.75rem;
+  max-width: 300px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Form labels - consistent small size */
+.settings-panel-expanded .form-label {
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+/* JQL editor container in settings panel */
+.settings-panel-expanded .jql-editor-container {
+  margin-bottom: var(--spacing-md);
+}
+
+/* JQL editor textarea - compact height for space efficiency */
+.settings-panel-expanded .jql-editor-container textarea {
+  min-height: 80px; /* Reduced height for compact layout */
+  padding: 0.5rem; /* Moderate padding for readability */
+  font-family: "Courier New", Courier, monospace;
+  line-height: 1.4;
+  font-size: 0.9rem;
+}
+
+/* Compact configuration section with inline button */
+.settings-panel-expanded .d-flex.align-items-center {
+  gap: 0.5rem;
+}
+
+.settings-panel-expanded .d-flex.align-items-center .btn-sm {
+  flex-shrink: 0; /* Prevent button from shrinking */
+}
+
+/* Ensure columns in settings panel have minimal spacing */
+.settings-panel-expanded .mb-3 {
+  margin-bottom: 0.75rem !important;
+}
+
+.settings-panel-expanded .mb-2 {
+  margin-bottom: 0.5rem !important;
+}
+
+.settings-panel-expanded .mb-1 {
+  margin-bottom: 0.25rem !important;
+}
+
+.settings-panel-expanded .mt-1 {
+  margin-top: 0.25rem !important;
+}
+
+.settings-panel-expanded .mt-2 {
+  margin-top: 0.5rem !important;
+}
+
+/* Upload area - more compact */
+.settings-panel-expanded .py-2 {
+  padding-top: 0.5rem !important;
+  padding-bottom: 0.5rem !important;
+}
+
+/* Mobile responsive adjustments for settings panel */
+@media (max-width: 767px) {
+  /* Constrain expanded settings panel height on mobile */
+  .settings-panel-expanded {
+    max-height: calc(
+      100vh - 200px
+    ); /* Account for sticky bars and bottom nav */
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+    padding: var(--spacing-md) !important;
+    padding-bottom: 2rem !important; /* Extra padding at bottom */
+  }
+
+  /* Stack columns on mobile */
+  .settings-panel-expanded .col-md-8,
+  .settings-panel-expanded .col-md-4 {
+    padding: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+  }
+
+  /* Ensure form inputs are touch-friendly on mobile */
+  .settings-panel-expanded input,
+  .settings-panel-expanded .form-control,
+  .settings-panel-expanded select {
+    min-height: 44px; /* Touch-friendly size */
+  }
+
+  /* Larger touch targets for icon buttons on mobile */
+  .settings-panel-expanded .btn-sm {
+    min-width: 44px;
+    height: 44px;
+  }
+}
+
+/* Tablet adjustments */
+@media (min-width: 768px) and (max-width: 991px) {
+  .param-panel-sticky {
+    top: 0; /* At the very top on tablet too */
+  }
+}
+
 /* ===== Table Standardization ===== */
 
 /* General DataTable container */
@@ -20,17 +320,17 @@
   border-radius: 4px; /* May be hidden by container overflow */
   overflow: hidden; /* May be hidden by container overflow */
   width: 100%; /* Ensure table takes full width of container */
-  border: 1px solid #dee2e6; /* Add subtle border */
+  border: 1px solid var(--color-gray-300); /* Add subtle border */
 }
 
 /* Table header */
 .dash-spreadsheet-container .dash-spreadsheet-inner th {
-  background-color: #f8f9fa;
-  color: #212529;
+  background-color: var(--color-gray-100);
+  color: var(--color-gray-900);
   font-weight: 600;
   text-align: center; /* Default alignment, can be overridden */
   padding: 12px 10px;
-  border-bottom: 2px solid #dee2e6;
+  border-bottom: 2px solid var(--color-gray-300);
   position: sticky; /* Keep headers visible on scroll */
   top: 0;
   z-index: 10;
@@ -41,17 +341,17 @@
 .dash-spreadsheet-container .dash-spreadsheet-inner td {
   padding: 10px;
   vertical-align: middle;
-  border: 1px solid #f0f0f0;
+  border: 1px solid var(--color-gray-200);
   border-bottom: none;
   border-right: none;
 }
 /* Add right border back to last cell */
 .dash-spreadsheet-container .dash-spreadsheet-inner td:last-child {
-  border-right: 1px solid #f0f0f0;
+  border-right: 1px solid var(--color-gray-200);
 }
 /* Add bottom border back to cells in last row */
 .dash-spreadsheet-container .dash-spreadsheet-inner tr:last-child td {
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--color-gray-200);
 }
 
 /* Enhanced styling for editable cells */
@@ -88,11 +388,11 @@ td.cell--editable:not(.cell-selected) .dash-cell-value::after {
 
 /* Table row alternating colors */
 .dash-spreadsheet-container .dash-spreadsheet-inner tr:nth-child(odd) {
-  background-color: #ffffff;
+  background-color: var(--color-white);
 }
 
 .dash-spreadsheet-container .dash-spreadsheet-inner tr:nth-child(even) {
-  background-color: #f9f9f9;
+  background-color: var(--color-gray-100);
 }
 
 /* Hover effect for table rows */
@@ -102,7 +402,7 @@ td.cell--editable:not(.cell-selected) .dash-cell-value::after {
     110,
     253,
     0.08
-  ) !important; /* Use primary color tint */
+  ) !important; /* Use primary color tint - rgba needed for transparency */
   cursor: default;
 }
 
@@ -140,10 +440,10 @@ td.cell--editable:not(.cell-selected) .dash-cell-value::after {
   justify-content: center !important;
   width: 36px !important; /* Default width */
   height: 36px !important; /* Default height */
-  border: 1px solid #dee2e6 !important;
+  border: 1px solid var(--color-gray-300) !important;
   border-radius: 4px !important;
-  background-color: #f8f9fa !important;
-  color: #495057 !important;
+  background-color: var(--color-gray-100) !important;
+  color: var(--color-gray-700) !important;
   cursor: pointer !important;
   transition: background-color 0.15s ease-in-out, border-color 0.15s ease-in-out,
     color 0.15s ease-in-out; /* Smooth transition */
@@ -154,9 +454,9 @@ td.cell--editable:not(.cell-selected) .dash-cell-value::after {
 .dash-table-container .next-page:hover,
 .dash-table-container .first-page:hover,
 .dash-table-container .last-page:hover {
-  background-color: #e9ecef !important;
-  border-color: #ced4da !important;
-  color: #0d6efd !important;
+  background-color: var(--color-gray-200) !important;
+  border-color: var(--color-gray-400) !important;
+  color: var(--color-primary) !important;
   transform: translateY(-1px);
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
@@ -168,8 +468,10 @@ td.cell--editable:not(.cell-selected) .dash-cell-value::after {
 .last-page[disabled] {
   cursor: not-allowed !important;
   opacity: 0.65 !important;
-  background-color: #f8f9fa !important; /* Keep background consistent */
-  color: #6c757d !important; /* Muted color */
+  background-color: var(
+    --color-gray-100
+  ) !important; /* Keep background consistent */
+  color: var(--color-gray-600) !important; /* Muted color */
   transform: none !important;
   box-shadow: none !important;
 }
@@ -189,14 +491,14 @@ td.cell--editable:not(.cell-selected) .dash-cell-value::after {
 
 .page-number input[type="number"] {
   height: 36px !important; /* Match button height */
-  border: 1px solid #dee2e6 !important;
+  border: 1px solid var(--color-gray-300) !important;
   border-radius: 4px !important;
   padding: 0.375rem 0.75rem !important;
   text-align: center !important;
   max-width: 70px; /* Limit width */
   font-size: 1rem;
-  color: #495057;
-  background-color: #fff;
+  color: var(--color-gray-700);
+  background-color: var(--color-white);
   /* Remove spinner arrows */
   appearance: textfield;
   -moz-appearance: textfield;
@@ -210,7 +512,7 @@ td.cell--editable:not(.cell-selected) .dash-cell-value::after {
 /* Current page display (if used) */
 .current-page-container {
   margin: 0 10px !important;
-  color: #6c757d;
+  color: var(--color-gray-600);
   font-size: 0.9rem;
 }
 
@@ -230,9 +532,9 @@ td.cell--editable:not(.cell-selected) .dash-cell-value::after {
   z-index: 3 !important;
   width: 36px !important;
   height: 36px !important;
-  border: 1px solid #dee2e6 !important;
+  border: 1px solid var(--color-gray-300) !important;
   border-radius: 4px !important;
-  background-color: white !important;
+  background-color: var(--color-white) !important;
   text-align: center !important;
   font-size: 14px !important;
   padding: 0 !important;
@@ -276,7 +578,7 @@ td.cell--editable:not(.cell-selected) .dash-cell-value::after {
 }
 
 .nav-tabs-modern .nav-item .nav-link {
-  color: #495057;
+  color: var(--color-text-secondary);
   border: 1px solid transparent;
   border-top-left-radius: 0.375rem;
   border-top-right-radius: 0.375rem;
@@ -288,16 +590,17 @@ td.cell--editable:not(.cell-selected) .dash-cell-value::after {
 }
 
 .nav-tabs-modern .nav-item .nav-link:hover {
-  color: #0d6efd;
-  background-color: rgba(13, 110, 253, 0.04);
-  border-color: #e9ecef #e9ecef #dee2e6;
+  color: var(--color-primary);
+  background-color: var(--color-primary-light);
+  border-color: var(--color-border-light) var(--color-border-light)
+    var(--color-border);
 }
 
 /* Enhanced active state */
 .nav-tabs-modern .nav-item .nav-link.active {
-  color: #0d6efd;
-  background-color: #fff;
-  border-color: #dee2e6 #dee2e6 #fff;
+  color: var(--color-primary);
+  background-color: var(--color-white);
+  border-color: var(--color-border) var(--color-border) var(--color-white);
   font-weight: 500;
 }
 
@@ -309,7 +612,7 @@ td.cell--editable:not(.cell-selected) .dash-cell-value::after {
   left: 0;
   width: 100%;
   height: 3px;
-  background-color: #0d6efd;
+  background-color: var(--color-primary);
   transform: scaleX(0.95);
   transition: transform 0.2s ease;
 }
@@ -321,7 +624,7 @@ td.cell--editable:not(.cell-selected) .dash-cell-value::after {
 /* Focus state for accessibility */
 .nav-tabs-modern .nav-item .nav-link:focus {
   outline: none;
-  box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.25);
+  box-shadow: 0 0 0 2px var(--color-primary-light);
 }
 
 /* Tab content transition animation */
@@ -352,9 +655,12 @@ td.cell--editable:not(.cell-selected) .dash-cell-value::after {
   opacity: 1;
 }
 
+/* Tab icons with design token colors - Note: SVG data URIs cannot use CSS variables,
+   but we document the color mapping here for maintainability */
 .nav-tabs-modern .tab-with-icon[id*="tab-burndown"] {
   padding-left: 2.5rem;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%230d6efd' d='M64 64c0-17.7-14.3-32-32-32S0 46.3 0 64V400c0 44.2 35.8 80 80 80H480c17.7 0 32-14.3 32-32s-14.3-32-32-32H80c-8.8 0-16-7.2-16-16V64zm406.6 86.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L320 210.7l-57.4-57.4c-12.5-12.5-32.8-12.5-45.3 0l-112 112c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L240 221.3l57.4 57.4c12.5 12.5 32.8 12.5 45.3 0l128-128z'/%3E%3C/svg%3E");
+  /* Icon color: var(--color-info) = #0dcaf0 (cyan/info blue) */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%230dcaf0' d='M64 64c0-17.7-14.3-32-32-32S0 46.3 0 64V400c0 44.2 35.8 80 80 80H480c17.7 0 32-14.3 32-32s-14.3-32-32-32H80c-8.8 0-16-7.2-16-16V64zm406.6 86.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L320 210.7l-57.4-57.4c-12.5-12.5-32.8-12.5-45.3 0l-112 112c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L240 221.3l57.4 57.4c12.5 12.5 32.8 12.5 45.3 0l128-128z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: 0.875rem center;
   background-size: 1rem 1rem;
@@ -362,7 +668,8 @@ td.cell--editable:not(.cell-selected) .dash-cell-value::after {
 
 .nav-tabs-modern .tab-with-icon[id*="tab-items"] {
   padding-left: 2.5rem;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%2320c997' d='M152.1 38.2c9.9 8.9 10.7 24 1.8 33.9l-72 80c-4.4 4.9-10.6 7.8-17.2 7.9s-12.9-2.4-17.6-7L7 113C-2.3 103.6-2.3 88.4 7 79s24.6-9.4 33.9 0l22.1 22.1 55.1-61.2c8.9-9.9 24-10.7 33.9-1.8zm0 160c9.9 8.9 10.7 24 1.8 33.9l-72 80c-4.4 4.9-10.6 7.8-17.2 7.9s-12.9-2.4-17.6-7L7 273c-9.4-9.4-9.4-24.6 0-33.9s24.6-9.4 33.9 0l22.1 22.1 55.1-61.2c8.9-9.9 24-10.7 33.9-1.8zM224 96c0-17.7 14.3-32 32-32H480c17.7 0 32 14.3 32 32s-14.3 32-32 32H256c-17.7 0-32-14.3-32-32zm0 160c0-17.7 14.3-32 32-32H480c17.7 0 32 14.3 32 32s-14.3 32-32 32H256c-17.7 0-32-14.3-32-32zM160 416c0-17.7 14.3-32 32-32H480c17.7 0 32 14.3 32 32s-14.3 32-32 32H192c-17.7 0-32-14.3-32-32zM48 368a48 48 0 1 1 0 96 48 48 0 1 1 0-96z'/%3E%3C/svg%3E");
+  /* Icon color: var(--color-success) = #198754 (green) */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%23198754' d='M152.1 38.2c9.9 8.9 10.7 24 1.8 33.9l-72 80c-4.4 4.9-10.6 7.8-17.2 7.9s-12.9-2.4-17.6-7L7 113C-2.3 103.6-2.3 88.4 7 79s24.6-9.4 33.9 0l22.1 22.1 55.1-61.2c8.9-9.9 24-10.7 33.9-1.8zm0 160c9.9 8.9 10.7 24 1.8 33.9l-72 80c-4.4 4.9-10.6 7.8-17.2 7.9s-12.9-2.4-17.6-7L7 273c-9.4-9.4-9.4-24.6 0-33.9s24.6-9.4 33.9 0l22.1 22.1 55.1-61.2c8.9-9.9 24-10.7 33.9-1.8zM224 96c0-17.7 14.3-32 32-32H480c17.7 0 32 14.3 32 32s-14.3 32-32 32H256c-17.7 0-32-14.3-32-32zm0 160c0-17.7 14.3-32 32-32H480c17.7 0 32 14.3 32 32s-14.3 32-32 32H256c-17.7 0-32-14.3-32-32zM160 416c0-17.7 14.3-32 32-32H480c17.7 0 32 14.3 32 32s-14.3 32-32 32H192c-17.7 0-32-14.3-32-32zM48 368a48 48 0 1 1 0 96 48 48 0 1 1 0-96z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: 0.875rem center;
   background-size: 1rem 1rem;
@@ -370,6 +677,7 @@ td.cell--editable:not(.cell-selected) .dash-cell-value::after {
 
 .nav-tabs-modern .tab-with-icon[id*="tab-points"] {
   padding-left: 2.5rem;
+  /* Icon color: var(--color-warning) = #fd7e14 (orange) */
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%23fd7e14' d='M32 32c17.7 0 32 14.3 32 32V400c0 8.8 7.2 16 16 16H480c17.7 0 32 14.3 32 32s-14.3 32-32 32H80c-44.2 0-80-35.8-80-80V64c0-17.7 14.3-32 32-32zM160 224c0 17.7-14.3 32-32 32s-32-14.3-32-32s14.3-32 32-32s32 14.3 32 32zm128 0c0 17.7-14.3 32-32 32s-32-14.3-32-32s14.3-32 32-32s32 14.3 32 32zm96 32c-17.7 0-32-14.3-32-32s14.3-32 32-32s32 14.3 32 32s-14.3 32-32 32z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: 0.875rem center;
@@ -383,7 +691,7 @@ td.cell--editable:not(.cell-selected) .dash-cell-value::after {
 /* Character count display component */
 .character-count-display {
   font-size: 0.875rem;
-  color: #6c757d;
+  color: var(--color-gray-600);
   margin-top: 0.25rem;
   padding: 0.25rem 0.5rem;
   text-align: right;
@@ -393,7 +701,7 @@ td.cell--editable:not(.cell-selected) .dash-cell-value::after {
 
 /* Warning state - approaching JIRA's 2000 character limit */
 .character-count-warning {
-  color: #ff8800 !important;
+  color: var(--color-warning) !important;
   font-weight: 600;
 }
 
@@ -438,18 +746,18 @@ mark.jql-operator {
 
 /* JQL Keywords - blue color with emphasis */
 .jql-keyword {
-  color: #0066cc;
+  color: var(--color-info);
   font-weight: 600;
 }
 
 /* JQL String literals - green color */
 .jql-string {
-  color: #22863a;
+  color: var(--color-success);
 }
 
 /* JQL Operators - default color (optional enhancement) */
 .jql-operator {
-  color: #6c757d;
+  color: var(--color-gray-600);
   font-weight: 500;
 }
 
@@ -574,13 +882,45 @@ mark.jql-operator {
 }
 
 .card-header {
-  background-color: #f8f9fa;
+  background-color: var(--color-gray-100);
   padding: 1rem 1.25rem;
   border-bottom: 1px solid rgba(0, 0, 0, 0.125);
 }
 
 .card-body {
   padding: 1.25rem;
+}
+
+/* Consistent card styling mixin - apply to cards for unified appearance */
+.card-consistent {
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--color-gray-300);
+  background-color: var(--color-white);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease-in-out;
+}
+
+.card-consistent:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.card-consistent .card-header {
+  background-color: var(--color-gray-100);
+  border-bottom: 1px solid var(--color-gray-300);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--border-radius-md) var(--border-radius-md) 0 0;
+}
+
+.card-consistent .card-body {
+  padding: var(--spacing-lg);
+}
+
+.card-consistent .card-footer {
+  background-color: var(--color-gray-50);
+  border-top: 1px solid var(--color-gray-300);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: 0 0 var(--border-radius-md) var(--border-radius-md);
 }
 
 /* Ensure consistent form element spacing */
@@ -609,7 +949,7 @@ svg {
 .btn:focus-visible {
   box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.4) !important;
   outline: none !important;
-  border-color: #0d6efd !important;
+  border-color: var(--color-primary) !important;
 }
 
 /* Enhanced focus style for form inputs */
@@ -618,21 +958,24 @@ svg {
 .DateInput_input:focus-visible,
 input[type="date"]:focus-visible,
 input[type="number"]:focus-visible {
-  border-color: #0d6efd !important;
-  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25) !important;
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--color-primary) 25%, transparent) !important;
   outline: none !important;
 }
 
 /* Focus styles for interactive card components */
 .card.interactive:focus-visible {
-  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.3), 0 5px 15px rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 0 0 3px
+      color-mix(in srgb, var(--color-primary) 30%, transparent),
+    0 5px 15px rgba(0, 0, 0, 0.1) !important;
   transform: translateY(-2px);
 }
 
 /* Dashboard specific component focus states */
 .dash-graph:focus-visible,
 .dash-dropdown .Select-control:focus-visible {
-  outline: 2px solid rgba(13, 110, 253, 0.5) !important;
+  outline: 2px solid color-mix(in srgb, var(--color-primary) 50%, transparent) !important;
   outline-offset: 2px;
 }
 
@@ -648,22 +991,38 @@ input[type="number"]:focus-visible {
 
 /* Primary button hover enhancement */
 .btn-primary:hover {
-  background-color: #0b5ed7 !important;
-  border-color: #0a58ca !important;
+  background-color: color-mix(
+    in srgb,
+    var(--color-primary) 85%,
+    black
+  ) !important;
+  border-color: color-mix(in srgb, var(--color-primary) 80%, black) !important;
 }
 
 /* Secondary button hover enhancement */
 .btn-secondary:hover {
-  background-color: #5c636a !important;
-  border-color: #565e64 !important;
+  background-color: color-mix(
+    in srgb,
+    var(--color-secondary) 85%,
+    black
+  ) !important;
+  border-color: color-mix(
+    in srgb,
+    var(--color-secondary) 80%,
+    black
+  ) !important;
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 /* Success button hover enhancement */
 .btn-success:hover {
-  background-color: #157347 !important;
-  border-color: #146c43 !important;
+  background-color: color-mix(
+    in srgb,
+    var(--color-success) 85%,
+    black
+  ) !important;
+  border-color: color-mix(in srgb, var(--color-success) 80%, black) !important;
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
@@ -697,9 +1056,9 @@ input[type="number"]:focus-visible {
 .dash-table-container .next-page:hover,
 .dash-table-container .first-page:hover,
 .dash-table-container .last-page:hover {
-  background-color: #e9ecef !important;
-  border-color: #ced4da !important;
-  color: #0d6efd !important;
+  background-color: var(--color-gray-200) !important;
+  border-color: var(--color-gray-400) !important;
+  color: var(--color-primary) !important;
 }
 
 /* Icon hover effects */
@@ -795,8 +1154,8 @@ svg {
   justify-content: center;
   width: 16px;
   height: 16px;
-  background-color: #e9ecef;
-  color: #495057;
+  background-color: var(--color-gray-200);
+  color: var(--color-gray-700);
   font-size: 10px;
   font-weight: bold;
   border-radius: 50%;
@@ -806,8 +1165,8 @@ svg {
 }
 
 .tooltip-indicator:hover::after {
-  background-color: #0d6efd;
-  color: white;
+  background-color: var(--color-primary);
+  color: var(--color-white);
 }
 
 /* Contextual help indicator for form fields */
@@ -830,8 +1189,8 @@ svg {
   justify-content: center;
   width: 16px;
   height: 16px;
-  background-color: #e9ecef;
-  color: #495057;
+  background-color: var(--color-gray-200);
+  color: var(--color-gray-700);
   font-size: 10px;
   font-weight: bold;
   border-radius: 50%;
@@ -840,8 +1199,8 @@ svg {
 }
 
 .form-help-indicator:hover::after {
-  background-color: #0d6efd;
-  color: white;
+  background-color: var(--color-primary);
+  color: var(--color-white);
 }
 
 /* ===== Micro-interactions ===== */
@@ -867,7 +1226,11 @@ svg {
   top: 0;
   left: 0;
   pointer-events: none;
-  background-image: radial-gradient(circle, #fff 10%, transparent 10.01%);
+  background-image: radial-gradient(
+    circle,
+    var(--color-white) 10%,
+    transparent 10.01%
+  );
   background-repeat: no-repeat;
   background-position: 50%;
   transform: scale(10, 10);
@@ -951,18 +1314,18 @@ input[type="radio"]:checked {
 }
 
 .rc-slider-track {
-  background-color: #0d6efd;
+  background-color: var(--color-primary);
   height: 4px;
 }
 
 .rc-slider-rail {
   height: 4px;
-  background-color: #e9ecef;
+  background-color: var(--color-gray-200);
 }
 
 .rc-slider-handle {
-  border: solid 2px #0d6efd;
-  background-color: #fff;
+  border: solid 2px var(--color-primary);
+  background-color: var(--color-white);
   width: 16px;
   height: 16px;
   margin-top: -6px;
@@ -971,12 +1334,12 @@ input[type="radio"]:checked {
 }
 
 .rc-slider-handle:hover {
-  border-color: #0b5ed7;
+  border-color: color-mix(in srgb, var(--color-primary) 85%, black);
   box-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
 }
 
 .rc-slider-handle:active {
-  border-color: #0a58ca;
+  border-color: color-mix(in srgb, var(--color-primary) 80%, black);
   box-shadow: 0 1px 7px rgba(0, 0, 0, 0.5);
   cursor: grabbing;
 }
@@ -987,11 +1350,11 @@ input[type="radio"]:checked {
 }
 
 .rc-slider-mark-text {
-  color: #6c757d;
+  color: var(--color-gray-600);
 }
 
 .rc-slider-mark-text-active {
-  color: #212529;
+  color: var(--color-gray-900);
 }
 
 /* Compact trend indicator styling */
@@ -1025,7 +1388,7 @@ input[type="range"] {
   appearance: none;
   height: 4px;
   border-radius: 2px;
-  background: #e9ecef;
+  background: var(--color-gray-200);
   outline: none;
 }
 
@@ -1035,8 +1398,8 @@ input[type="range"]::-webkit-slider-thumb {
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #0d6efd;
-  border: 2px solid #fff;
+  background: var(--color-primary);
+  border: 2px solid var(--color-white);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
   cursor: pointer;
 }
@@ -1045,8 +1408,8 @@ input[type="range"]::-moz-range-thumb {
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #0d6efd;
-  border: 2px solid #fff;
+  background: var(--color-primary);
+  border: 2px solid var(--color-white);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
   cursor: pointer;
 }
@@ -1087,11 +1450,11 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .table-responsive::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: var(--color-gray-100);
 }
 
 .table-responsive::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
+  background: var(--color-gray-400);
   border-radius: 3px;
 }
 
@@ -1433,11 +1796,11 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .progress-label.light-text {
-  color: #212529;
+  color: var(--color-gray-900);
 }
 
 .progress-label.dark-text {
-  color: white;
+  color: var(--color-white);
 }
 
 /* Forecast row styling */
@@ -1502,7 +1865,7 @@ input[type="range"]::-moz-range-thumb {
 .forecast-card {
   margin-bottom: 1rem;
   padding: 1rem;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--color-gray-300);
   border-radius: 0.375rem;
   box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px 0px;
 }
@@ -1525,7 +1888,7 @@ input[type="range"]::-moz-range-thumb {
 
 .deadline-card {
   padding: 1rem;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--color-gray-300);
   border-radius: 0.375rem;
   background: linear-gradient(
     to bottom,
@@ -1540,8 +1903,8 @@ input[type="range"]::-moz-range-thumb {
   display: flex;
   margin-bottom: 0.5rem;
   padding: 0.5rem 0.75rem;
-  background-color: #f8f9fa;
-  border-bottom: 1px solid #dee2e6;
+  background-color: var(--color-gray-100);
+  border-bottom: 1px solid var(--color-gray-300);
   border-top-left-radius: 0.375rem;
   border-top-right-radius: 0.375rem;
   font-size: 0.8rem;
@@ -1591,7 +1954,7 @@ input[type="range"]::-moz-range-thumb {
   min-width: 150px;
   margin: 0 0.5rem;
   padding: 1rem;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--color-gray-300);
   border-radius: 0.375rem;
   margin-bottom: 1rem;
 }
@@ -1670,7 +2033,7 @@ input[type="range"]::-moz-range-thumb {
   padding: 0.375rem 0.75rem !important;
   height: calc(1.5em + 0.75rem + 2px) !important;
   line-height: 1.5 !important;
-  border: 1px solid #ced4da !important;
+  border: 1px solid var(--color-gray-400) !important;
   border-radius: 0.25rem !important;
   width: 100% !important;
   box-sizing: border-box !important;
@@ -1870,9 +2233,9 @@ label.fw-medium {
 /* Active tab mobile optimization */
 @media (max-width: 768px) {
   .nav-tabs-modern .nav-item .nav-link.active {
-    color: #0d6efd;
-    background-color: #fff;
-    border-color: #dee2e6 #dee2e6 #fff;
+    color: var(--color-primary);
+    background-color: var(--color-white);
+    border-color: var(--color-gray-300) var(--color-gray-300) var(--color-white);
     /* Enhanced visual feedback for mobile */
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
@@ -1883,6 +2246,120 @@ label.fw-medium {
   touch-action: pan-x; /* Allow horizontal panning for swipe gestures */
   position: relative;
   overflow-x: hidden;
+}
+
+/* Desktop: Ensure no height constraints - let browser handle scrolling naturally */
+@media (min-width: 768px) {
+  /* Remove all height/overflow constraints from tab content hierarchy */
+  .tab-content-container,
+  .tab-content-container > div,
+  #tab-content,
+  #tab-content > div,
+  #tab-content > div > div,
+  .border.border-top-0.rounded-bottom,
+  .g-3.py-3,
+  .py-3 {
+    max-height: none !important;
+    overflow-y: visible !important;
+    overflow-x: hidden !important; /* Clip horizontal overflow */
+    height: auto !important;
+    margin-bottom: 0 !important; /* Override mobile margin */
+  }
+
+  /* Specifically clip chart containers to prevent visual leaks while preserving card borders */
+  .plotly-graph-div,
+  .js-plotly-plot,
+  .dash-graph {
+    overflow: hidden !important;
+    position: relative !important;
+  }
+
+  /* Ensure cards show their borders properly */
+  .card {
+    overflow: visible !important; /* Cards need visible overflow to show borders */
+    border: 1px solid rgba(0, 0, 0, 0.125) !important; /* Ensure border is always visible */
+  }
+
+  /* Clip content inside card body to prevent leaking, but not the border */
+  .card-body > * {
+    overflow: hidden !important; /* Clip child content */
+  }
+
+  .card-body {
+    overflow: visible !important; /* Let card body show the card's border */
+    padding-bottom: 1.25rem !important; /* Ensure padding for bottom spacing */
+  }
+
+  /* Remove excessive bottom margin from last elements */
+  .card-body > div:last-child,
+  .card-body > table:last-child,
+  .card-body > p:last-child {
+    margin-bottom: 0 !important;
+  } /* Ensure container-fluid also has no height constraints on desktop */
+  .container-fluid,
+  .container-fluid > div {
+    max-height: none !important;
+    overflow-y: visible !important;
+    height: auto !important;
+  }
+
+  /* Ensure body allows natural scrolling */
+  body {
+    overflow-y: auto !important;
+    height: auto !important;
+    min-height: 100vh !important;
+  }
+
+  /* Ensure main app container doesn't constrain height */
+  #react-entry-point,
+  #react-entry-point > div {
+    height: auto !important;
+    min-height: 100vh !important;
+  }
+}
+
+/* ===== COMPACT DASHBOARD STYLES ===== */
+
+/* Compact metric cards */
+.dashboard-enhanced .card {
+  min-height: 280px !important; /* Reasonable card height for content */
+}
+
+.dashboard-enhanced .card-body {
+  padding: 1rem !important; /* Proper breathing room */
+}
+
+/* Responsive borders for overview section */
+@media (min-width: 992px) {
+  .border-end-lg {
+    border-right: 1px solid #dee2e6 !important;
+  }
+}
+
+/* Proper visual hierarchy for dashboard */
+.dashboard-enhanced .card .fw-bold {
+  font-size: 2.25rem !important; /* BIG primary values for scanability */
+}
+
+.dashboard-enhanced .card .fw-semibold {
+  font-size: 0.875rem !important; /* Medium headers */
+}
+
+.dashboard-enhanced .card .text-muted {
+  font-size: 0.75rem !important; /* Small labels */
+}
+
+.dashboard-enhanced .card h4,
+.dashboard-enhanced .card h5 {
+  margin-bottom: 0.5rem !important; /* Reasonable spacing */
+}
+
+/* NO negative margins - causes overflow! */
+.dashboard-enhanced .card-body > div[style*="backgroundColor"] {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding: 0.5rem !important;
+  border-radius: 4px !important;
 }
 
 /* ===== MOBILE DRAWER NAVIGATION ===== */
@@ -1906,7 +2383,7 @@ label.fw-medium {
   left: 0;
   width: 280px;
   height: 100%;
-  background-color: #fff;
+  background-color: var(--color-white);
   z-index: 1050;
   box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
   transition: transform 0.3s ease;
@@ -1919,8 +2396,8 @@ label.fw-medium {
 
 /* Mobile drawer header */
 .mobile-drawer-header {
-  background-color: #f8f9fa;
-  border-bottom: 1px solid #dee2e6;
+  background-color: var(--color-gray-100);
+  border-bottom: 1px solid var(--color-gray-300);
   min-height: 60px;
 }
 
@@ -1943,12 +2420,12 @@ label.fw-medium {
 
 .mobile-drawer-item:hover {
   background-color: rgba(13, 110, 253, 0.1) !important;
-  color: #0d6efd !important;
+  color: var(--color-primary) !important;
 }
 
 .mobile-drawer-item.active {
-  background-color: #0d6efd !important;
-  color: white !important;
+  background-color: var(--color-primary) !important;
+  color: var(--color-white) !important;
 }
 
 /* ===== MOBILE BOTTOM NAVIGATION ===== */
@@ -1959,8 +2436,8 @@ label.fw-medium {
   bottom: 0;
   left: 0;
   right: 0;
-  background-color: #fff;
-  border-top: 1px solid #dee2e6;
+  background-color: var(--color-white);
+  border-top: 1px solid var(--color-gray-300);
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
   z-index: 1030;
   display: flex;
@@ -1997,12 +2474,21 @@ label.fw-medium {
 }
 
 .mobile-bottom-nav-item:hover {
-  background-color: rgba(13, 110, 253, 0.1) !important;
+  background-color: color-mix(
+    in srgb,
+    var(--color-primary) 10%,
+    transparent
+  ) !important;
   transform: translateY(-2px) !important;
 }
 
 .mobile-bottom-nav-item.active {
-  background-color: rgba(13, 110, 253, 0.1) !important;
+  background-color: color-mix(
+    in srgb,
+    var(--color-primary) 10%,
+    transparent
+  ) !important;
+  color: var(--color-primary) !important;
   font-weight: 600 !important;
 }
 
@@ -2028,13 +2514,13 @@ label.fw-medium {
 /* Mobile menu toggle */
 .mobile-menu-toggle {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
-  border: 1px solid #dee2e6 !important;
+  border: 1px solid var(--color-gray-300) !important;
 }
 
 .mobile-menu-toggle:hover {
-  background-color: #f8f9fa !important;
-  border-color: #0d6efd !important;
-  color: #0d6efd !important;
+  background-color: var(--color-gray-100) !important;
+  border-color: var(--color-primary) !important;
+  color: var(--color-primary) !important;
 }
 
 /* Mobile swipe indicator */
@@ -2130,6 +2616,7 @@ label.fw-medium {
   /* Ensure charts are responsive by default */
   max-width: 100%;
   height: auto !important;
+  overflow: hidden !important; /* Prevent chart elements from leaking out */
 }
 
 /* Mobile chart optimizations */
@@ -2236,52 +2723,70 @@ label.fw-medium {
 /* Contrast ratios tested against #ffffff background */
 
 .cm-jql-keyword {
-  color: #0056b3; /* Blue for keywords (AND, OR, NOT, IN, IS, WAS, etc.) */
+  color: color-mix(
+    in srgb,
+    var(--color-primary) 80%,
+    black
+  ); /* Blue for keywords (AND, OR, NOT, IN, IS, WAS, etc.) */
   font-weight: 600;
 }
 
 .cm-jql-string {
-  color: #28a745; /* Green for string literals ("Done", 'TEST', etc.) */
+  color: var(
+    --color-success
+  ); /* Green for string literals ("Done", 'TEST', etc.) */
 }
 
 .cm-jql-operator {
-  color: #6c757d; /* Gray for operators (=, !=, ~, !~, <, >, <=, >=) */
+  color: var(
+    --color-gray-600
+  ); /* Gray for operators (=, !=, ~, !~, <, >, <=, >=) */
 }
 
 .cm-jql-function {
-  color: #6610f2; /* Purple for standard JQL functions (currentUser(), now(), etc.) */
+  color: color-mix(
+    in srgb,
+    var(--color-primary) 60%,
+    var(--color-danger) 40%
+  ); /* Purple for standard JQL functions (currentUser(), now(), etc.) */
   font-weight: 500;
 }
 
 .cm-jql-scriptrunner {
-  color: #6f42c1; /* Distinct purple for ScriptRunner functions (linkedIssuesOf, issueFunction, etc.) */
+  color: color-mix(
+    in srgb,
+    var(--color-primary) 50%,
+    var(--color-danger) 50%
+  ); /* Distinct purple for ScriptRunner functions (linkedIssuesOf, issueFunction, etc.) */
   font-weight: 600;
 }
 
 .cm-jql-field {
-  color: #212529; /* Dark gray for field names (project, status, assignee, etc.) */
+  color: var(
+    --color-gray-900
+  ); /* Dark gray for field names (project, status, assignee, etc.) */
 }
 
 .cm-jql-error {
-  color: #dc3545; /* Red for syntax errors */
+  color: var(--color-danger); /* Red for syntax errors */
   text-decoration: wavy underline;
-  text-decoration-color: #dc3545;
+  text-decoration-color: var(--color-danger);
 }
 
 /* CodeMirror editor container styling */
 .jql-editor-container {
-  border: 1px solid #ced4da;
+  border: 1px solid var(--color-gray-400);
   border-radius: 4px;
   padding: 8px;
   min-height: 40px;
   font-family: "Monaco", "Menlo", "Ubuntu Mono", "Consolas", monospace;
   font-size: 14px;
   line-height: 1.5;
-  background-color: #ffffff;
+  background-color: var(--color-white);
 }
 
 .jql-editor-container:focus-within {
-  border-color: #0d6efd;
+  border-color: var(--color-primary);
   outline: 0;
   box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
 }

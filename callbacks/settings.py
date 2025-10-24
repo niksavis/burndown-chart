@@ -12,6 +12,7 @@ from datetime import datetime
 
 # Third-party library imports
 import dash
+import dash_bootstrap_components as dbc
 from dash import Input, Output, State, callback_context, html, no_update
 from dash.exceptions import PreventUpdate
 
@@ -65,7 +66,6 @@ def register(app):
     @app.callback(
         [
             Output("total-points-display", "value"),
-            Output("points-calculation-info", "children"),
             Output("calculation-results", "data"),
         ],
         [
@@ -95,7 +95,6 @@ def register(app):
             # Use .get() method for dictionary lookups - this is the Python idiomatic way
             return (
                 f"{calc_results.get('total_points', DEFAULT_TOTAL_POINTS):.0f}",
-                f"Using {calc_results.get('avg_points_per_item', 0):.1f} points per item for calculation",
                 calc_results
                 or {"total_points": DEFAULT_TOTAL_POINTS, "avg_points_per_item": 0},
             )
@@ -109,7 +108,6 @@ def register(app):
             # Return previous values if conversion fails
             return (
                 f"{calc_results.get('total_points', DEFAULT_TOTAL_POINTS):.0f}",
-                f"Using {calc_results.get('avg_points_per_item', 0):.1f} points per item for calculation",
                 calc_results
                 or {"total_points": DEFAULT_TOTAL_POINTS, "avg_points_per_item": 0},
             )
@@ -123,49 +121,15 @@ def register(app):
             use_fallback=False,
         )
 
-        # Prepare info text with source of calculation and styling
-        style = {"color": "inherit"}  # Default styling
-        if estimated_items <= 0:
-            if estimated_items == 0 and estimated_points == 0:
-                info_text = "No estimates provided - total points set to 0"
-            else:
-                info_text = f"Using {avg_points_per_item:.1f} points per item (based on historical data)"
-        else:
-            # If estimated items exceeds total, show a warning
-            if estimated_items > total_items:
-                info_text = (
-                    f"Warning: Estimated items ({estimated_items}) exceeds total items ({total_items}). "
-                    f"Using {avg_points_per_item:.1f} points per item."
-                )
-                style = {"color": "#dc3545"}  # Bootstrap danger red
-            else:
-                percent_estimated = (
-                    (estimated_items / total_items) * 100 if total_items > 0 else 0
-                )
-                # Add confidence level based on percentage estimated
-                confidence = "low"
-                if percent_estimated >= 75:
-                    confidence = "high"
-                    style = {"color": "#28a745"}  # Bootstrap success green
-                elif percent_estimated >= 30:
-                    confidence = "medium"
-                    style = {"color": "#ffc107"}  # Bootstrap warning yellow
-
-                info_text = (
-                    f"Using {avg_points_per_item:.1f} points per item "
-                    f"({percent_estimated:.0f}% of items estimated, {confidence} confidence)"
-                )
-
         # Update the calculation results store
         updated_calc_results = {
             "total_points": estimated_total_points,
             "avg_points_per_item": avg_points_per_item,
         }
 
-        # Return with styled info text
+        # Return updated values
         return (
             f"{estimated_total_points:.0f}",
-            html.Span(info_text, style=style),
             updated_calc_results,
         )
 
@@ -178,16 +142,15 @@ def register(app):
             Output("current-settings", "modified_timestamp"),
         ],
         [
-            Input("pert-factor-slider", "value"),
-            Input("deadline-picker", "date"),
+            Input("pert-factor-slider", "value"),  # Parameter panel PERT factor slider
+            Input("deadline-picker", "date"),  # Parameter panel deadline
+            Input("milestone-picker", "date"),  # Parameter panel milestone (no toggle)
             Input("total-items-input", "value"),
             Input("calculation-results", "data"),
             Input("estimated-items-input", "value"),
             Input("estimated-points-input", "value"),
-            Input("data-points-input", "value"),  # Added data_points_count input
-            Input("milestone-toggle", "value"),  # Added milestone toggle input
-            Input("milestone-picker", "date"),  # Added milestone picker input
-            Input("points-toggle", "value"),  # Added points toggle input
+            Input("data-points-input", "value"),  # Parameter panel data points slider
+            Input("points-toggle", "value"),  # Parameter panel points toggle
         ],
         [
             State("app-init-complete", "data"),
@@ -198,26 +161,32 @@ def register(app):
         ],
     )
     def update_and_save_settings(
-        pert_factor,
-        deadline,
+        pert_factor,  # Parameter panel PERT factor slider
+        deadline,  # Parameter panel deadline
+        milestone,  # Parameter panel milestone (no toggle needed)
         total_items,
         calc_results,
         estimated_items,
         estimated_points,
-        data_points_count,  # Added parameter
-        show_milestone,  # Added parameter
-        milestone,  # Added parameter
-        show_points,  # Added parameter
+        data_points_count,  # Parameter panel data points slider
+        show_points,  # Parameter panel points toggle
         # State parameters (read but don't trigger callback)
         init_complete,
         jql_query,  # PERFORMANCE FIX: JQL query moved to State to prevent keystroke lag
     ):
         """
         Update current settings and save to disk when changed.
+        Handles both legacy inputs (from old Input Parameters card) and new parameter panel inputs.
         """
         ctx = dash.callback_context
 
-        # Skip if not initialized or values are None
+        # Use parameter panel values directly (no legacy inputs to merge)
+        # Milestone logic: activated if a valid date is entered (no toggle needed)
+        show_milestone = (
+            milestone is not None
+        )  # Simplified: True if milestone date exists
+
+        # Skip if not initialized or critical values are None
         if (
             not init_complete
             or not ctx.triggered
@@ -226,10 +195,7 @@ def register(app):
                 pert_factor,
                 deadline,
                 total_items,
-                # Remove these from None check since we'll provide defaults
-                # estimated_items,
-                # estimated_points,
-                data_points_count,  # Added check
+                data_points_count,
             ]
         ):
             raise PreventUpdate
@@ -255,10 +221,10 @@ def register(app):
             "total_points": total_points,
             "estimated_items": estimated_items,
             "estimated_points": estimated_points,
-            "data_points_count": data_points_count,  # Added to settings
-            "show_milestone": show_milestone,  # Added to settings
-            "milestone": milestone,  # Added to settings
-            "show_points": show_points,  # Added to settings
+            "data_points_count": data_points_count,
+            "show_milestone": show_milestone,  # Automatically set based on milestone date
+            "milestone": milestone,
+            "show_points": show_points,
         }
 
         # Save app-level settings - load JIRA values from jira_config (Feature 003-jira-config-separation)
@@ -267,9 +233,9 @@ def register(app):
         save_app_settings(
             pert_factor,
             deadline,
-            data_points_count,  # Added parameter
-            show_milestone,  # Added parameter
-            milestone,  # Added parameter
+            data_points_count,
+            show_milestone,  # Automatically calculated
+            milestone,
             show_points,  # Added parameter
             jql_query.strip()
             if jql_query and jql_query.strip()
@@ -307,317 +273,21 @@ def register(app):
         logger.info(f"Settings updated and saved: {settings}")
         return settings, int(datetime.now().timestamp() * 1000)
 
-    @app.callback(
-        [
-            Output("data-points-input", "min"),
-            Output("data-points-input", "max"),
-            Output("data-points-input", "marks"),
-        ],
-        [
-            Input("pert-factor-slider", "value"),
-            Input("statistics-table", "data"),
-        ],
-    )
-    def update_data_points_constraints(pert_factor, statistics_data):
-        """
-        Update the min, max constraints, and marks for the data points slider.
-        """
-        if pert_factor is None:
-            pert_factor = DEFAULT_PERT_FACTOR
+    # REMOVED: Legacy data points constraints callback - not needed with new parameter panel
 
-        min_value = pert_factor * 2
-        max_value = len(statistics_data) if statistics_data else min_value
+    # REMOVED: Legacy PERT factor constraints callback - not needed with new parameter panel
 
-        # Ensure min doesn't exceed max
-        min_value = min(min_value, max_value)
+    # REMOVED: Legacy data points value callback - not needed with new parameter panel
 
-        # Calculate percentage positions
-        range_size = max_value - min_value
-        p25 = min_value + int(range_size * 0.25)
-        p50 = min_value + int(range_size * 0.5)
-        p75 = min_value + int(range_size * 0.75)
+    # REMOVED: Legacy data points info clientside callback - not needed with new parameter panel
 
-        # Create marks for min, 25%, 50%, 75%, and max
-        marks = {}
+    # REMOVED: Legacy PERT factor info clientside callback - not needed with new parameter panel
 
-        # Only add percentage marks if there's enough range
-        if range_size > 3:
-            marks = {
-                min_value: {"label": str(min_value)},
-                p25: {"label": str(p25)},
-                p50: {"label": str(p50)},
-                p75: {"label": str(p75)},
-                max_value: {"label": str(max_value)},
-            }
-        else:
-            # If range is small, just show min and max
-            marks = {
-                min_value: {"label": str(min_value)},
-                max_value: {"label": str(max_value)},
-            }
+    # REMOVED: Legacy milestone picker callback - not needed with new parameter panel
 
-        return min_value, max_value, marks
+    # REMOVED: points-inputs-container callback - not needed with new parameter panel
 
-    @app.callback(
-        [
-            Output("pert-factor-slider", "min"),
-            Output("pert-factor-slider", "max"),
-            Output("pert-factor-slider", "marks"),
-            Output("pert-factor-slider", "value"),
-        ],
-        [
-            Input("statistics-table", "data"),
-        ],
-        [State("pert-factor-slider", "value")],
-    )
-    def update_pert_factor_constraints(statistics_data, current_pert_factor):
-        """
-        Update the max constraint and marks for the PERT factor slider based on available data points.
-        PERT Factor maximum should be floor(available_data_points / 2) to ensure minimum 2x constraint.
-
-        Args:
-            statistics_data: Current statistics data
-            current_pert_factor: Current PERT factor value
-
-        Returns:
-            Tuple of (max_value, marks, adjusted_value)
-        """
-        if current_pert_factor is None:
-            current_pert_factor = DEFAULT_PERT_FACTOR
-
-        # Calculate minimum and maximum PERT factor based on available data points
-        max_data_points = len(statistics_data) if statistics_data else 6
-
-        # Calculate minimum PERT factor
-        min_pert_factor = 1 if max_data_points < 6 else 3
-
-        # Calculate maximum PERT factor to ensure 2x constraint is always satisfied
-        # PERT_Factor × 2 ≤ available_data_points
-        # Therefore: PERT_Factor ≤ floor(available_data_points / 2)
-        max_pert_factor = max_data_points // 2
-
-        # Ensure minimum PERT factor of 1 (never 0)
-        max_pert_factor = max(min_pert_factor, max_pert_factor)
-
-        # For datasets with 6+ data points, ensure PERT factor is at least 3 for meaningful analysis
-        if max_data_points >= 6:
-            max_pert_factor = max(3, max_pert_factor)
-
-        # Cap at reasonable maximum (15) for performance
-        max_pert_factor = min(max_pert_factor, 15)
-
-        # Create marks for the slider
-        marks = {}
-        start_val = min_pert_factor
-
-        # Create a reasonable number of marks based on the range
-        range_size = max_pert_factor - start_val
-        if range_size <= 5:
-            # Small range - show all values
-            for i in range(start_val, max_pert_factor + 1):
-                marks[i] = {"label": str(i)}
-        else:
-            # Larger range - show key values
-            step = max(1, range_size // 4)
-            for i in range(start_val, max_pert_factor + 1, step):
-                marks[i] = {"label": str(i)}
-
-        # Always include start value and maximum value in marks
-        marks[start_val] = {"label": str(start_val)}
-        marks[max_pert_factor] = {"label": str(max_pert_factor)}
-
-        # Adjust current value if it exceeds the new maximum or is below new minimum
-        adjusted_value = max(min_pert_factor, min(current_pert_factor, max_pert_factor))
-
-        # Log the constraint adjustment for debugging
-        if adjusted_value != current_pert_factor:
-            logger.info(
-                f"Adjusting PERT factor from {current_pert_factor} to {adjusted_value} "
-                f"(max data points: {max_data_points}, PERT factor range: {min_pert_factor}-{max_pert_factor})"
-            )
-
-        return min_pert_factor, max_pert_factor, marks, adjusted_value
-
-    @app.callback(
-        Output("data-points-input", "value"),
-        [
-            Input("pert-factor-slider", "value"),
-            Input("data-points-input", "min"),
-        ],
-        [State("data-points-input", "value")],
-    )
-    def update_data_points_value(pert_factor, min_required, current_value):
-        """
-        Update the data points value when PERT factor changes, ensuring it's at least 2x the PERT Factor.
-
-        Args:
-            pert_factor: Current PERT factor value
-            min_required: Minimum required data points (already calculated as 2x PERT Factor)
-            current_value: Current value of the data points slider
-
-        Returns:
-            Updated value for the data points slider
-        """
-        if current_value is None or min_required is None:
-            # Use safe default values
-            return min_required or (pert_factor * 2 if pert_factor else 6)
-
-        # Check if current value is below the new minimum
-        if current_value < min_required:
-            logger.info(
-                f"Updating data points from {current_value} to minimum {min_required}"
-            )
-            return min_required
-
-        # Current value is already valid
-        return current_value
-
-    # Add a clientside callback to enhance slider interactions and synchronize slider value with the displayed text
-    app.clientside_callback(
-        """
-        function(value, min_value, max_value) {
-            // Format the info text
-            let infoText = "";
-            
-            if (min_value === max_value) {
-                infoText = "Using all available data points (" + value + " points)";
-            } else if (value === min_value) {
-                infoText = "Using minimum data points (" + value + " points, most recent data only)";
-            } else if (value === max_value) {
-                infoText = "Using all available data points (" + value + " points)";
-            } else {
-                // Calculate percentage
-                const percent = Math.round(((value - min_value) / (max_value - min_value)) * 100);
-                infoText = "Using " + value + " most recent data points (" + percent + "% of available data)";
-            }
-            
-            // Also trigger slider tooltip display when slider is updated automatically
-            const slider = document.getElementById('data-points-input');
-            if (slider) {
-                // Force the tooltip to update its position and value
-                const event = new Event('mousemove');
-                slider.dispatchEvent(event);
-            }
-            
-            return infoText;
-        }
-        """,
-        Output("data-points-info", "children"),
-        [
-            Input("data-points-input", "value"),
-            Input("data-points-input", "min"),
-            Input("data-points-input", "max"),
-        ],
-    )
-
-    # Add a clientside callback for the PERT Factor slider to enhance tooltip behavior and show constraints
-    app.clientside_callback(
-        """
-        function(value, max_value, statistics_data) {
-            // Format the info text based on the PERT Factor value and constraints
-            let infoText = "";
-            const dataPoints = statistics_data ? statistics_data.length : 0;
-            
-            if (dataPoints === 0) {
-                infoText = "No data available - PERT Factor: " + value;
-            } else if (value === max_value && max_value < 15) {
-                infoText = "Maximum PERT Factor for " + dataPoints + " data points (value: " + value + ")";
-            } else if (value <= 5) {
-                infoText = "Narrow confidence range - more responsive (value: " + value + ")";
-            } else if (value <= 10) {
-                infoText = "Medium confidence range - balanced (value: " + value + ")";
-            } else {
-                infoText = "Wide confidence range - more stable (value: " + value + ")";
-            }
-            
-            // Also trigger slider tooltip display when slider is updated automatically
-            const slider = document.getElementById('pert-factor-slider');
-            if (slider) {
-                // Force the tooltip to update its position and value
-                const event = new Event('mousemove');
-                slider.dispatchEvent(event);
-            }
-            
-            return infoText;
-        }
-        """,
-        Output("pert-factor-info", "children"),
-        [
-            Input("pert-factor-slider", "value"),
-            Input("pert-factor-slider", "max"),
-            Input("statistics-table", "data"),
-        ],
-    )
-
-    # Add a callback to enable/disable the milestone date picker based on toggle state
-    @app.callback(
-        Output("milestone-picker", "disabled"),
-        Input("milestone-toggle", "value"),
-    )
-    def toggle_milestone_picker(show_milestone):
-        """
-        Enable or disable the milestone date picker based on the toggle state.
-
-        Args:
-            show_milestone: Boolean value from the milestone toggle switch
-
-        Returns:
-            Boolean: True if the picker should be disabled, False if it should be enabled
-        """
-        # When show_milestone is True, we want disabled to be False and vice versa
-        return not show_milestone
-
-    @app.callback(
-        Output("points-inputs-container", "style"),
-        Input("points-toggle", "value"),
-    )
-    def toggle_points_inputs_container(show_points):
-        """
-        Show or hide the points inputs container based on the toggle state.
-
-        Args:
-            show_points: Boolean value from the points toggle switch
-
-        Returns:
-            Dict: Style dictionary to show/hide points inputs container
-        """
-        return {"display": "block" if show_points else "none"}
-
-    # JIRA Integration Callbacks
-    @app.callback(
-        Output("jira-config-container", "style"),
-        Input("data-source-selection", "value"),
-    )
-    def toggle_jira_config(data_source):
-        """
-        Toggle visibility of JIRA configuration inputs based on data source selection.
-
-        Args:
-            data_source: Selected data source ("CSV" or "JIRA")
-
-        Returns:
-            Dict: Style dictionary to show/hide JIRA configuration
-        """
-        if data_source == "JIRA":
-            return {"display": "block"}
-        return {"display": "none"}
-
-    @app.callback(
-        Output("csv-upload-container", "style"), Input("data-source-selection", "value")
-    )
-    def toggle_csv_upload(data_source):
-        """
-        Toggle visibility of CSV upload container based on data source selection.
-
-        Args:
-            data_source: Selected data source ("CSV" or "JIRA")
-
-        Returns:
-            Dict: Style dictionary to show/hide CSV upload container
-        """
-        if data_source == "CSV":
-            return {"display": "block"}
-        return {"display": "none"}
+    # REMOVED: JIRA Integration callbacks for old UI - not needed with new layout
 
     # PERFORMANCE FIX: Removed real-time JIRA validation callback that was causing keystroke lag
     # Validation now happens only when user attempts to use JIRA connection (Update Data/Calculate Scope)
@@ -1278,6 +948,8 @@ def register(app):
             Output(
                 "jira-query-profile-selector-mobile", "options", allow_duplicate=True
             ),
+            Output("jira-query-profile-selector", "value", allow_duplicate=True),
+            Output("jira-query-profile-selector-mobile", "value", allow_duplicate=True),
             Output("query-name-input", "value"),
             Output("query-description-input", "value"),
             Output("query-name-validation", "children"),
@@ -1297,7 +969,7 @@ def register(app):
     def save_query_profile(
         save_clicks, query_name, description, jql_value, set_as_default
     ):
-        """Save a new JQL query profile."""
+        """Save a new JQL query profile and select it in the dropdown."""
         if not save_clicks:
             raise PreventUpdate
 
@@ -1308,12 +980,16 @@ def register(app):
                 no_update,
                 no_update,
                 no_update,
+                no_update,
+                no_update,
                 "Query name is required",
                 {"display": "block"},
             )
 
         if not jql_value or not jql_value.strip():
             return (
+                no_update,
+                no_update,
                 no_update,
                 no_update,
                 no_update,
@@ -1351,21 +1027,26 @@ def register(app):
                     label += " ★"  # Add star indicator for default
                 updated_options.append({"label": label, "value": profile["id"]})
 
-            # Keep dropdown clean for saved queries only - no "New Query" option needed
+            # Get the saved profile ID to select it
+            saved_profile_id = saved_profile["id"] if saved_profile else None
 
-            # Clear form and hide validation
+            # Clear form, hide validation, and select the newly saved query
             return (
-                updated_options,  # Desktop dropdown
-                updated_options,  # Mobile dropdown
-                "",
-                "",
-                "",
-                {"display": "none"},
+                updated_options,  # Desktop dropdown options
+                updated_options,  # Mobile dropdown options
+                saved_profile_id,  # Desktop dropdown value (select the saved query)
+                saved_profile_id,  # Mobile dropdown value
+                "",  # Clear query name input
+                "",  # Clear description input
+                "",  # Clear validation message
+                {"display": "none"},  # Hide validation
             )
 
         except Exception as e:
             logger.error(f"Error saving query profile: {e}")
             return (
+                no_update,
+                no_update,
                 no_update,
                 no_update,
                 no_update,
@@ -1683,6 +1364,7 @@ def register(app):
             Output(
                 "jira-query-profile-selector-mobile", "options", allow_duplicate=True
             ),
+            Output("jira-jql-query", "value", allow_duplicate=True),
             Output("edit-query-name-validation", "children"),
             Output("edit-query-name-validation", "style"),
         ],
@@ -1704,16 +1386,28 @@ def register(app):
         current_profile_id,
         set_as_default,
     ):
-        """Update existing JQL query profile."""
+        """Update existing JQL query profile and refresh the editor."""
         if not edit_clicks or not current_profile_id or current_profile_id == "custom":
             raise PreventUpdate
 
         # Validate inputs
         if not query_name or not query_name.strip():
-            return no_update, no_update, "Query name is required", {"display": "block"}
+            return (
+                no_update,
+                no_update,
+                no_update,
+                "Query name is required",
+                {"display": "block"},
+            )
 
         if not jql_value or not jql_value.strip():
-            return no_update, no_update, "JQL query is required", {"display": "block"}
+            return (
+                no_update,
+                no_update,
+                no_update,
+                "JQL query is required",
+                {"display": "block"},
+            )
 
         try:
             from data.jira_query_manager import (
@@ -1755,11 +1449,17 @@ def register(app):
                         label += " ★"  # Add star indicator for default
                     updated_options.append({"label": label, "value": profile["id"]})
 
-                # Keep dropdown clean for saved queries only
-
-                return updated_options, updated_options, "", {"display": "none"}
+                # Return updated options, JQL value, and clear validation
+                return (
+                    updated_options,
+                    updated_options,
+                    jql_value.strip(),  # Update JQL editor with edited query
+                    "",
+                    {"display": "none"},
+                )
             else:
                 return (
+                    no_update,
                     no_update,
                     no_update,
                     "Failed to update query profile",
@@ -1769,6 +1469,7 @@ def register(app):
         except Exception as e:
             logger.error(f"Error updating query profile: {e}")
             return (
+                no_update,
                 no_update,
                 no_update,
                 "Error updating query profile",
@@ -2116,3 +1817,183 @@ def register(app):
         [Input("test-jql-query-button", "n_clicks")],
         prevent_initial_call=True,
     )
+
+    #######################################################################
+    # PARAMETER PANEL CALLBACKS (User Story 1)
+    #######################################################################
+
+    @app.callback(
+        [
+            Output("parameter-collapse", "is_open"),
+            Output("parameter-panel-state", "data"),
+            Output("settings-collapse", "is_open", allow_duplicate=True),
+        ],
+        Input("btn-expand-parameters", "n_clicks"),
+        [
+            State("parameter-collapse", "is_open"),
+            State("parameter-panel-state", "data"),
+            State("settings-collapse", "is_open"),
+        ],
+        prevent_initial_call=True,
+    )
+    def toggle_parameter_panel(n_clicks, is_open, panel_state, settings_is_open):
+        """
+        Toggle parameter panel expand/collapse and persist state to localStorage.
+
+        This callback supports User Story 1: Quick Parameter Adjustments While Viewing Charts.
+        It toggles the collapse state and persists the user preference to localStorage
+        so the panel state is maintained across sessions.
+
+        Also ensures only one flyout panel is open at a time by closing settings panel
+        when parameter panel opens.
+
+        Args:
+            n_clicks: Number of times expand button was clicked
+            is_open: Current state of the collapse component
+            panel_state: Current parameter panel state from dcc.Store
+            settings_is_open: Current settings panel state
+
+        Returns:
+            tuple: (new_is_open, updated_panel_state, new_settings_state)
+        """
+        from datetime import datetime
+
+        if n_clicks:
+            new_is_open = not is_open
+            # Update panel state with new preference
+            updated_state = {
+                "is_open": new_is_open,
+                "last_updated": datetime.now().isoformat(),
+                "user_preference": True,
+            }
+
+            # If opening parameter panel and settings panel is open, close settings
+            if new_is_open and settings_is_open:
+                return new_is_open, updated_state, False
+
+            return new_is_open, updated_state, no_update
+
+        return is_open, panel_state, no_update
+
+    @app.callback(
+        Output("parameter-bar-collapsed", "children"),
+        [
+            Input("pert-factor-slider", "value"),  # FIXED: use correct component ID
+            Input(
+                "deadline-picker", "date"
+            ),  # FIXED: use correct component and property
+            Input("estimated-items-input", "value"),
+            Input("estimated-points-input", "value"),
+        ],
+        prevent_initial_call=False,  # Update on initial load
+    )
+    def update_parameter_summary(pert_factor, deadline, scope_items, scope_points):
+        """
+        Update parameter summary in collapsed bar when values change.
+
+        This callback supports User Story 1: Quick Parameter Adjustments While Viewing Charts.
+        It updates the collapsed bar display to show current parameter values immediately
+        after user changes them in the expanded panel.
+
+        Args:
+            pert_factor: Current PERT factor value
+            deadline: Current deadline date string
+            scope_items: Total number of items in scope
+            scope_points: Total story points in scope
+
+        Returns:
+            Dash components: Updated collapsed bar children
+        """
+        # Provide defaults for None values
+        pert_factor = pert_factor or DEFAULT_PERT_FACTOR
+        deadline = deadline or "2025-12-31"
+        scope_items = scope_items or 0
+        scope_points = scope_points or 0
+
+        return dbc.Row(
+            [
+                # Parameter Summary (left side)
+                dbc.Col(
+                    [
+                        html.Div(
+                            [
+                                html.Span(
+                                    [
+                                        html.I(className="fas fa-sliders-h me-1"),
+                                        f"PERT: {pert_factor}",
+                                    ],
+                                    className="param-summary-item me-3",
+                                ),
+                                html.Span(
+                                    [
+                                        html.I(className="fas fa-calendar me-1"),
+                                        f"{deadline}",
+                                    ],
+                                    className="param-summary-item me-3",
+                                ),
+                                html.Span(
+                                    [
+                                        html.I(className="fas fa-tasks me-1"),
+                                        f"{scope_items} items",
+                                    ],
+                                    className="param-summary-item me-3",
+                                ),
+                                html.Span(
+                                    [
+                                        html.I(className="fas fa-chart-bar me-1"),
+                                        f"{scope_points} pts",
+                                    ],
+                                    className="param-summary-item",
+                                ),
+                            ],
+                            className="d-flex align-items-center flex-wrap",
+                        ),
+                    ],
+                    xs=12,
+                    md=9,
+                    className="d-flex align-items-center",
+                ),
+                # Expand Button and Settings Button (right side)
+                dbc.Col(
+                    [
+                        html.Div(
+                            [
+                                dbc.Button(
+                                    [
+                                        html.I(className="fas fa-chevron-down me-2"),
+                                        html.Span(
+                                            "Parameters",
+                                            className="d-none d-lg-inline",
+                                        ),
+                                    ],
+                                    id="btn-expand-parameters",
+                                    color="primary",
+                                    outline=True,
+                                    size="sm",
+                                    className="me-2",
+                                ),
+                                dbc.Button(
+                                    [
+                                        html.I(className="fas fa-cog me-1"),
+                                        html.Span(
+                                            "Settings",
+                                            className="d-none d-lg-inline",
+                                        ),
+                                    ],
+                                    id="settings-button",
+                                    color="primary",
+                                    outline=True,
+                                    size="sm",
+                                    title="Configure data sources, import/export, and JQL queries",
+                                ),
+                            ],
+                            className="d-flex justify-content-end",
+                        ),
+                    ],
+                    xs=12,
+                    md=3,
+                    className="d-flex align-items-center mt-2 mt-md-0",
+                ),
+            ],
+            className="g-2",
+        )

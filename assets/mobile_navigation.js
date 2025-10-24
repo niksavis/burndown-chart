@@ -14,7 +14,7 @@
 if (typeof window.mobileNavState === "undefined") {
   window.mobileNavState = {
     drawerOpen: false,
-    currentTab: "tab-burndown",
+    currentTab: "tab-dashboard",
     swipeEnabled: true,
     touchStartX: 0,
     touchStartY: 0,
@@ -27,6 +27,11 @@ if (typeof window.mobileNavState === "undefined") {
 // Tab configuration for mobile navigation (check if already exists to prevent redeclaration)
 if (typeof window.mobileTabsConfig === "undefined") {
   window.mobileTabsConfig = [
+    {
+      id: "tab-dashboard",
+      label: "Project Dashboard",
+      short_label: "Dashboard",
+    },
     { id: "tab-burndown", label: "Burndown Chart", short_label: "Chart" },
     { id: "tab-items", label: "Items per Week", short_label: "Items" },
     { id: "tab-points", label: "Points per Week", short_label: "Points" },
