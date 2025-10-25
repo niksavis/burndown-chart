@@ -11,11 +11,14 @@ Redesign the Burndown Chart Generator application to achieve UX/UI uniformity an
 
 1. **Parameter Accessibility**: Make input controls (PERT factors, deadline, scope) accessible without scrolling while viewing charts by implementing a collapsible sticky panel below the header
 2. **Dashboard as Primary View**: Convert Project Dashboard into the first tab and make it the default landing view, showing key project metrics immediately on app startup
-3. **Visual Consistency**: Standardize all UI components (buttons, cards, inputs, navigation) using consistent design tokens, spacing, and interaction patterns
-4. **Architectural Uniformity**: Establish clear separation of concerns with consistent patterns for component creation, event handling, and state management
-5. **Mobile Optimization**: Enhance responsive layouts with touch-friendly controls and optimized navigation for mobile devices
+3. **Settings Panel (NEW SCOPE)**: Consolidate JIRA configuration, JQL query management, and data import/export in unified collapsible panel following same UX pattern as parameters
+4. **Visual Consistency**: Standardize all UI components (buttons, cards, inputs, navigation) using consistent design tokens, spacing, and interaction patterns
+5. **Architectural Uniformity**: Establish clear separation of concerns with consistent patterns for component creation, event handling, and state management
+6. **Mobile Optimization**: Enhance responsive layouts with touch-friendly controls and optimized navigation for mobile devices
 
-**Technical Approach**: Refactor existing Dash application structure to introduce design system with standardized component builders, reorganize tab navigation to prioritize Dashboard, implement collapsible parameter control panel using Bootstrap utilities, and establish clear architectural patterns for future feature extensions.
+**Technical Approach**: Refactor existing Dash application structure to introduce design system with standardized component builders, reorganize tab navigation to prioritize Dashboard, implement collapsible parameter control panel and settings panel using Bootstrap utilities, integrate JIRA configuration UI from Feature 003, and establish clear architectural patterns for future feature extensions.
+
+**Scope Evolution**: During implementation, a Settings Panel (User Story 7) was added to consolidate JIRA integration, data management, and import/export capabilities. This enhances the original vision by making all configuration easily accessible in a collapsible panel following the same UX pattern as parameters.
 
 ## Technical Context
 
@@ -141,13 +144,17 @@ specs/[###-feature]/
 burndown-chart/
 ├── app.py                      # Main application entry point
 ├── ui/                         # Presentation layer
-│   ├── layout.py              # Main layout composition (WILL MODIFY: tab order, parameter panel)
-│   ├── tabs.py                # Tab navigation system (WILL MODIFY: Dashboard first)
-│   ├── cards.py               # Card components (WILL MODIFY: Dashboard cards)
-│   ├── components.py          # Input components (WILL MODIFY: parameter controls)
+│   ├── layout.py              # Main layout composition (MODIFIED: tab order, parameter panel, settings panel)
+│   ├── tabs.py                # Tab navigation system (MODIFIED: Dashboard first)
+│   ├── dashboard.py           # Dashboard tab module (NEW: User Story 2)
+│   ├── settings_panel.py      # Settings panel module (NEW: User Story 7)
+│   ├── cards.py               # Card components (MODIFIED: Dashboard cards, standardized builders)
+│   ├── components.py          # Input components (MODIFIED: parameter controls, collapsible panels)
+│   ├── jira_config_modal.py   # JIRA config modal (INTEGRATED: from Feature 003)
+│   ├── jql_editor.py          # JQL editor with syntax highlighting (INTEGRATED: from Feature 004)
 │   ├── mobile_navigation.py   # Mobile nav (WILL ENHANCE: bottom sheet)
-│   ├── style_constants.py     # Design tokens (WILL ENHANCE: standardize)
-│   ├── button_utils.py        # Button builders (WILL ENHANCE: consistency)
+│   ├── style_constants.py     # Design tokens (ENHANCED: complete DESIGN_TOKENS)
+│   ├── button_utils.py        # Button builders (ENHANCED: consistency)
 │   ├── grid_utils.py          # Layout utilities (WILL ENHANCE: responsive)
 │   ├── help_system.py         # Contextual help (WILL ENHANCE: tooltips)
 │   ├── aria_utils.py          # Accessibility utilities
@@ -155,11 +162,14 @@ burndown-chart/
 │   └── components/            # Reusable atomic components
 │
 ├── callbacks/                  # Event handling layer
-│   ├── __init__.py            # Callback registration (MAY MODIFY: new dashboard callbacks)
+│   ├── __init__.py            # Callback registration (MODIFIED: dashboard, settings_panel)
+│   ├── dashboard.py           # Dashboard callbacks (NEW: User Story 2)
+│   ├── settings_panel.py      # Settings panel callbacks (NEW: User Story 7)
 │   ├── visualization.py       # Chart callbacks (VERIFY: state management)
-│   ├── settings.py            # Settings callbacks (VERIFY: parameter updates)
+│   ├── settings.py            # Settings callbacks (MODIFIED: parameter panel coordination)
 │   ├── statistics.py          # Stats callbacks (VERIFY: dashboard data)
-│   ├── jira_config.py         # JIRA integration callbacks
+│   ├── jira_config.py         # JIRA config callbacks (INTEGRATED: from Feature 003)
+│   ├── jql_editor.py          # JQL editor callbacks (INTEGRATED: from Feature 004)
 │   ├── bug_analysis.py        # Bug analysis callbacks
 │   ├── scope_metrics.py       # Scope tracking callbacks
 │   └── mobile_navigation.py   # Mobile nav callbacks

@@ -349,7 +349,7 @@
         });
 
         // Method 2: Poll for value changes (handles React property updates)
-        // PERFORMANCE FIX: Reduced polling frequency to improve performance
+        // CRITICAL FIX: Use faster polling to catch Dash callback updates quickly
         let lastKnownValue = textarea.value || "";
         const pollInterval = setInterval(function () {
           const currentValue = textarea.value || "";
@@ -357,7 +357,7 @@
             lastKnownValue = currentValue;
             syncTextareaToCodeMirror();
           }
-        }, 750); // PERFORMANCE FIX: Increased from 200ms to 750ms for better performance
+        }, 100); // CRITICAL FIX: Reduced to 100ms to catch Dash updates quickly on initial load
 
         // Method 3: Listen for standard DOM events
         textarea.addEventListener("input", syncTextareaToCodeMirror);
@@ -372,8 +372,14 @@
           attrObserver.disconnect();
         };
 
-        // Set initial sync
+        // CRITICAL FIX: Set initial sync with delay to ensure textarea value is populated
+        // First sync immediately
         syncTextareaToCodeMirror();
+
+        // Then sync again after short delays to catch async Dash updates
+        setTimeout(syncTextareaToCodeMirror, 50);
+        setTimeout(syncTextareaToCodeMirror, 200);
+        setTimeout(syncTextareaToCodeMirror, 500);
 
         // Add click listeners to critical buttons to force sync before callbacks
         const criticalButtons = [
@@ -519,6 +525,48 @@
   setTimeout(function () {
     initializeJQLEditors();
   }, 500);
+
+  /**
+   * Watch for settings panel collapse events and sync CodeMirror.
+   * This ensures the JQL editor shows the correct value when panel opens.
+   */
+  function watchSettingsPanelCollapse() {
+    const settingsCollapse = document.getElementById("settings-collapse");
+    if (settingsCollapse) {
+      // Bootstrap 5 collapse events
+      settingsCollapse.addEventListener("shown.bs.collapse", function () {
+        // Panel just opened - force sync from textarea to CodeMirror
+        const textarea = document.getElementById("jira-jql-query");
+        if (textarea && textarea._cmEditor) {
+          const editor = textarea._cmEditor;
+          const textareaValue = textarea.value || "";
+
+          // Force update CodeMirror with current textarea value
+          if (editor.getValue() !== textareaValue) {
+            console.log(
+              "[JQL Editor] Settings panel opened - syncing textarea to CodeMirror"
+            );
+            editor.setValue(textareaValue);
+          }
+
+          // Refresh CodeMirror to ensure proper rendering
+          setTimeout(function () {
+            editor.refresh();
+          }, 100);
+        }
+      });
+
+      console.log(
+        "[JQL Editor] Watching settings panel collapse for sync events"
+      );
+    } else {
+      // Retry if collapse not found yet
+      setTimeout(watchSettingsPanelCollapse, 500);
+    }
+  }
+
+  // Start watching for settings panel collapse
+  watchSettingsPanelCollapse();
 
   // Expose debug function globally for troubleshooting
   window.debugJQLEditor = function (editorId = "jira-jql-query") {

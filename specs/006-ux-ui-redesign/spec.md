@@ -115,6 +115,37 @@ As a new user learning the application, I need contextual help that explains fea
 
 ---
 
+### User Story 7 - Settings Panel with JIRA Integration & Data Management (Priority: P1) 🆕 NEW SCOPE
+
+As a project manager configuring the burndown chart application, I need a unified settings panel that consolidates JIRA configuration, data source management, and import/export capabilities in an easily accessible collapsible panel, so I can configure and manage all data sources and settings without navigating away from my current view.
+
+**Why this priority**: During implementation of User Stories 1 and 2, it became clear that JIRA configuration (from Feature 003) and data management should be as easily accessible as forecast parameters. This follows the same collapsible panel UX pattern, creating a consistent and intuitive configuration experience. Essential for users adopting JIRA integration or managing data sources.
+
+**Independent Test**: Can be fully tested by expanding settings panel and verifying: (1) JIRA config button opens configuration modal, (2) JQL query editor has syntax highlighting and validation, (3) Saved queries can be created/loaded/edited/deleted, (4) "Update Data" button fetches from JIRA with status feedback, (5) Import accepts JSON/CSV files, (6) Export downloads current project data. Success measured by complete configuration workflow without leaving main view.
+
+**Acceptance Scenarios**:
+
+1. **Given** I am viewing any chart or dashboard, **When** I need to configure JIRA integration, **Then** I can expand the settings panel below the parameter panel and access the JIRA configuration button without scrolling or navigation
+2. **Given** I have JIRA credentials configured, **When** I enter a JQL query in the editor, **Then** the editor provides syntax highlighting, autocomplete suggestions, and character count feedback (with warning at >900 characters)
+3. **Given** I have created multiple JQL queries, **When** I access the saved queries dropdown, **Then** I can save current query with a name, load saved queries, edit existing queries, delete queries, and set a default query marked with ★
+4. **Given** I have configured JIRA and entered a JQL query, **When** I click "Update Data" button, **Then** system fetches issues from JIRA, displays loading status, updates cache, recalculates scope metrics, and refreshes dashboard/charts automatically
+5. **Given** I have project data loaded, **When** I click "Export Data" button, **Then** system downloads a JSON file containing project_data.json with all statistics, scope, and metadata
+6. **Given** I have exported project data or received a data file, **When** I drag and drop JSON/CSV file into import area or click to browse, **Then** system validates file format, imports data, updates statistics store, and refreshes all visualizations
+7. **Given** settings panel is open, **When** I expand parameter panel, **Then** settings panel automatically collapses to avoid cluttering the interface (only one panel open at a time)
+8. **Given** I am on mobile device (<768px), **When** I access settings panel, **Then** layout adapts to single-column with JIRA integration and import/export stacked vertically, touch targets meet 44px minimum
+9. **Given** JIRA configuration is incomplete or invalid, **When** settings panel loads, **Then** status indicator shows configuration state (unconfigured/configured/error) with visual feedback
+10. **Given** I save a JQL query profile, **When** I reload the application, **Then** my saved queries persist and last selected query is remembered
+
+**Implementation Notes**:
+- Integrates JIRA config modal from Feature 003 (003-jira-config-separation)
+- Integrates JQL editor from Feature 004 (004-bug-analysis-dashboard) with syntax highlighting
+- Follows same collapsible panel pattern as Parameter Panel for UX consistency
+- Positioned between Parameter Panel and chart tabs in layout
+- Two-column layout on desktop: JIRA integration (left 8 cols), Import/Export (right 4 cols)
+- Single-column stacked layout on mobile for touch optimization
+
+---
+
 ### Edge Cases
 
 - **What happens when parameter controls are open on mobile and user rotates device?** System should detect orientation change and reposition controls appropriately (bottom sheet for portrait, sidebar for landscape) without losing user's input state.
@@ -195,6 +226,25 @@ As a new user learning the application, I need contextual help that explains fea
 - **FR-039**: Data flow for user interactions MUST follow predictable pattern: user action → validation → state update → automatic UI refresh, with clear error handling at each step
 - **FR-040**: All similar UI elements (buttons, input fields, cards, navigation) MUST be created using reusable component builders to ensure consistency and reduce duplication
 
+#### Settings Panel and Data Management (User Story 7 - NEW)
+
+- **FR-045**: System MUST provide settings panel as collapsible section below parameter panel, using same expand/collapse UX pattern
+- **FR-046**: Settings panel MUST use two-column layout on desktop (≥992px): JIRA integration left (8 columns), Import/Export right (4 columns)
+- **FR-047**: Settings panel MUST adapt to single-column vertical stack on mobile (<768px) with all touch targets meeting 44px minimum
+- **FR-048**: Settings panel and parameter panel MUST coordinate collapse states: when one expands, the other automatically collapses
+- **FR-049**: Settings panel MUST include JIRA configuration button that opens modal from Feature 003 with connection settings, API credentials, and custom field mappings
+- **FR-050**: Settings panel MUST include JQL query editor with syntax highlighting, character count display, and warning when approaching 1000 character limit
+- **FR-051**: System MUST provide saved queries dropdown allowing users to save current query with custom name, load saved queries, edit existing queries, and delete queries
+- **FR-052**: System MUST support marking one saved query as default (indicated with ★ in dropdown)
+- **FR-053**: Settings panel MUST include "Update Data" button that fetches issues from JIRA using current query and displays fetch status (Ready/Loading/Success/Error)
+- **FR-054**: JIRA fetch operation MUST update jira_cache.json, recalculate project scope metrics, refresh statistics, and trigger dashboard/chart updates automatically
+- **FR-055**: Settings panel MUST include import area with drag-and-drop support for JSON and CSV files with visual feedback on hover/drop
+- **FR-056**: Import operation MUST validate file format, parse data correctly, update project statistics, and show success/error feedback to user
+- **FR-057**: Settings panel MUST include "Export Data" button that downloads project_data.json with all statistics, scope, and metadata
+- **FR-058**: Settings panel MUST show JIRA configuration status indicator (unconfigured/configured/error) with appropriate icon and color
+- **FR-059**: All settings panel state (open/closed, last selected query) MUST persist across page refreshes using localStorage
+- **FR-060**: Settings panel expand/collapse transition MUST complete within 300ms using ease-in-out easing
+
 #### Help System and Onboarding
 
 - **FR-041**: All key metrics and controls MUST include info icon that shows contextual help on click/hover
@@ -206,6 +256,10 @@ As a new user learning the application, I need contextual help that explains fea
 
 - **Dashboard Metrics**: Aggregated project health data including completion forecast, velocity, remaining work, days to deadline
 - **Parameter Control State**: User's current input values for PERT factors, deadline, total items/points, estimated items/points
+- **Settings Panel State (NEW)**: Panel open/closed state, last selected JQL query profile ID, JIRA configuration status
+- **JQL Query Profile (NEW)**: Saved query with name, JQL string, fields selection, default flag, creation/modification timestamps
+- **JIRA Configuration (NEW)**: Base URL, API version, authentication token, cache settings, custom field mappings (from Feature 003)
+- **Import/Export Data**: Project data JSON/CSV format for data interchange, validation schemas
 - **Layout Preferences**: User's preferred layout mode (sidebar open/closed, active tab, mobile drawer state)
 - **Navigation State**: Current active tab, navigation history, tab configuration (id, label, icon, color)
 - **UI Component Configuration**: Design tokens (colors, spacing, typography), component variants (button types, card styles), responsive breakpoints
@@ -227,6 +281,11 @@ As a new user learning the application, I need contextual help that explains fea
 - **SC-010**: User task completion rate on mobile matches desktop rate ±5% (current baseline to be established, target: parity)
 - **SC-011**: Layout adapts to viewport changes (resize, rotation) within 300ms (target: 100% of transitions)
 - **SC-012**: Help content is accessible within one click from relevant features (target: 100% of features with help documentation)
+- **SC-013**: Settings panel allows JIRA configuration, query management, and data import/export without navigation (target: 100% of configuration tasks accessible from settings panel)
+- **SC-014**: JIRA data fetch completes and updates dashboard within 10 seconds for queries returning up to 1000 issues (target: 95% of fetch operations)
+- **SC-015**: Saved query profiles persist across sessions and can be loaded within 200ms (target: 100% persistence, <200ms load time)
+- **SC-016**: Import operation validates and loads external data files within 5 seconds for files up to 5MB (target: 95% of imports)
+- **SC-017**: Settings panel and parameter panel coordinate states without conflicts (target: only one panel open at a time, 100% coordination)
 
 ## Assumptions *(optional - document reasonable defaults)*
 
@@ -235,6 +294,11 @@ As a new user learning the application, I need contextual help that explains fea
 - **Mobile Bottom Sheet**: On mobile, parameter controls accessed via floating action button (FAB) will open bottom sheet that can be swiped down to dismiss
 - **Tab Persistence**: Last active tab will persist in current session only (sessionStorage), not across browser sessions, unless user enables "Remember my preferences" option
 - **Dashboard Default**: Dashboard will always be default tab for new users; returning users see Dashboard unless they changed tabs in current session
+- **Settings Panel Default State (NEW)**: Settings panel defaults to collapsed on first visit, with state persisting across session after user manually expands
+- **JIRA Configuration (NEW)**: Settings panel integrates JIRA config modal from Feature 003-jira-config-separation; existing JIRA settings are preserved and enhanced with UI access
+- **JQL Query Profiles (NEW)**: Saved queries stored in jira_query_profiles.json with standard schema from Feature 004; profile management integrated into settings panel
+- **Import/Export Format (NEW)**: Import supports JSON (project_data.json format) and CSV (statistics data); export generates standard project_data.json
+- **Panel Coordination (NEW)**: Only one top panel (parameter or settings) can be open at a time to minimize screen space consumption
 - **Chart Interactivity**: Current Plotly chart configurations for zoom, pan, and hover will be preserved; only layout container changes
 - **Help System**: Existing help system infrastructure can be enhanced with additional tooltips without complete rebuild
 - **Backward Compatibility**: All existing data persistence (project_data.json, app_settings.json, statistics data) formats remain unchanged
@@ -256,9 +320,17 @@ None - all critical decisions can be made with reasonable defaults documented in
 ## Out of Scope *(optional - explicitly exclude to prevent scope creep)*
 
 - **Complete Design System Overhaul**: We will standardize existing components but not redesign all visual assets, icons, or color schemes
-- **New Feature Development**: This focuses on reorganizing and standardizing existing features; no new forecast algorithms, data sources, or chart types
+- **New Feature Development**: This focuses on reorganizing and standardizing existing features; no new forecast algorithms or chart types (JIRA integration UI from Feature 003 is IN SCOPE as Settings Panel)
 - **Data Migration**: Existing data formats remain unchanged; no migration scripts needed
 - **Accessibility Audit**: While we'll maintain existing accessibility features, comprehensive WCAG 2.1 AA compliance audit is separate effort
+- **Performance Optimization**: We'll maintain current performance levels but won't refactor calculation engines or implement caching beyond what exists
+- **Advanced Mobile Features**: Native app features (offline mode, push notifications, home screen widgets) are out of scope
+- **User Authentication**: Any user-specific preferences beyond session storage (user accounts, saved dashboards) are separate features
+- **Internationalization**: UI text remains in English; translation support is separate effort
+- **Dark Mode**: Theme switching functionality is separate feature
+- **Advanced Export/Print Features**: Enhanced export options beyond basic JSON/CSV download (PDF reports, custom formats, scheduled exports) are separate features
+
+**Note on Scope Changes**: Settings Panel (User Story 7) was added during implementation to consolidate JIRA configuration and data management. This enhances the original vision by making all configuration easily accessible, following the same UX pattern as the Parameter Panel.
 - **Performance Optimization**: We'll maintain current performance levels but won't refactor calculation engines or implement caching beyond what exists
 - **Advanced Mobile Features**: Native app features (offline mode, push notifications, home screen widgets) are out of scope
 - **User Authentication**: Any user-specific preferences beyond session storage (user accounts, saved dashboards) are separate features

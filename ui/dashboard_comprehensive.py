@@ -298,8 +298,9 @@ def _create_progress_ring(percentage, color, size=60):
 def _create_executive_summary(statistics_df, settings, forecast_data):
     """Create executive summary section with key project health indicators."""
     # Calculate key metrics
-    total_items = settings.get("total_items", 0)
-    total_points = settings.get("total_points", 0)
+    # NOTE: settings["total_items"] and settings["total_points"] represent REMAINING work, not total scope
+    remaining_items = settings.get("total_items", 0)
+    remaining_points = settings.get("total_points", 0)
     deadline = settings.get("deadline")
 
     completed_items = (
@@ -308,6 +309,10 @@ def _create_executive_summary(statistics_df, settings, forecast_data):
     completed_points = (
         statistics_df["completed_points"].sum() if not statistics_df.empty else 0
     )
+
+    # Calculate actual total project scope (completed + remaining)
+    total_items = completed_items + remaining_items
+    total_points = completed_points + remaining_points
 
     completion_percentage = _safe_divide(completed_items, total_items) * 100
     points_percentage = (

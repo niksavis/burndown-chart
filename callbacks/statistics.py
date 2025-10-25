@@ -206,7 +206,6 @@ def register(app):
         [
             Output("statistics-table", "data"),
             Output("is-sample-data", "data"),
-            Output("jira-data-reload-trigger", "data", allow_duplicate=True),
             Output("upload-data", "contents", allow_duplicate=True),
         ],
         [
@@ -235,12 +234,11 @@ def register(app):
         - Data is uploaded
         - Cell values are edited (and need empty values converted to zeros)
         Also update the sample data flag when real data is uploaded.
-        Also trigger page reload when full project data is imported.
         """
         ctx = dash.callback_context
         if not ctx.triggered:
             # No triggers, return unchanged
-            return rows, is_sample_data, no_update, no_update
+            return rows, is_sample_data, no_update
 
         trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
         trigger_prop = (
@@ -308,9 +306,9 @@ def register(app):
 
                 # If user adds a row, we're no longer using sample data
                 if is_sample_data:
-                    return rows, False, no_update, no_update
+                    return rows, False, no_update
                 else:
-                    return rows, is_sample_data, no_update, no_update
+                    return rows, is_sample_data, no_update
 
             elif trigger_id == "upload-data" and contents:
                 # Parse uploaded file
@@ -357,11 +355,11 @@ def register(app):
 
                         # When uploading data, we're no longer using sample data
                         # Clear the upload contents to allow consecutive uploads of the same file
-                        return df.to_dict("records"), False, no_update, None
+                        return df.to_dict("records"), False, None
                     except Exception as e:
                         logger.error(f"Error loading CSV file: {e}")
                         # Return unchanged data if there's an error
-                        return rows, is_sample_data, no_update, no_update
+                        return rows, is_sample_data, no_update
 
                 elif "json" in filename.lower():
                     try:
@@ -393,7 +391,7 @@ def register(app):
 
                         if df.empty:
                             logger.error("JSON file contains no statistics data")
-                            return rows, is_sample_data, no_update, no_update
+                            return rows, is_sample_data, no_update
 
                         missing_columns = [
                             col for col in required_columns if col not in df.columns
@@ -403,7 +401,7 @@ def register(app):
                             logger.error(
                                 f"JSON file missing required columns: {missing_columns}"
                             )
-                            return rows, is_sample_data, no_update, no_update
+                            return rows, is_sample_data, no_update
 
                         # Clean data and ensure date is in YYYY-MM-DD format
                         df = read_and_clean_data(df)
@@ -435,12 +433,8 @@ def register(app):
                         )
 
                         # When uploading JSON data, we're no longer using sample data
-                        # Trigger statistics reload if full project data was imported
-                        reload_trigger = (
-                            int(datetime.now().timestamp() * 1000)
-                            if full_project_imported
-                            else no_update
-                        )
+                        # Note: Full project data import now handled by saving directly to disk
+                        # No need for reload trigger - page refresh will pick up changes
 
                         # Log success message for full project import
                         if full_project_imported:
@@ -449,29 +443,29 @@ def register(app):
                             )
 
                         # Clear the upload contents to allow consecutive uploads of the same file
-                        return df.to_dict("records"), False, reload_trigger, None
+                        return df.to_dict("records"), False, None
                     except json.JSONDecodeError as e:
                         logger.error(f"Error parsing JSON file: {e}")
-                        return rows, is_sample_data, no_update, no_update
+                        return rows, is_sample_data, no_update
                     except Exception as e:
                         logger.error(f"Error loading JSON file: {e}")
-                        return rows, is_sample_data, no_update, no_update
+                        return rows, is_sample_data, no_update
 
                 else:
                     logger.error(
                         f"Unsupported file type: {filename}. Please upload a CSV or JSON file."
                     )
-                    return rows, is_sample_data, no_update, no_update
+                    return rows, is_sample_data, no_update
 
             elif trigger_id == "statistics-table" and trigger_prop == "data_timestamp":
                 # This is triggered when a cell is edited and loses focus
                 # We've already cleaned the data at the start of this callback
-                return rows, is_sample_data, no_update, no_update
+                return rows, is_sample_data, no_update
 
         except Exception as e:
             logger.error(f"Error in update_table callback: {e}")
 
-        return rows, is_sample_data, no_update, no_update
+        return rows, is_sample_data, no_update
 
     @app.callback(
         Output("statistics-table", "filter_query"),
@@ -530,102 +524,14 @@ def register(app):
         # Default: maintain current state
         return is_open
 
-    @app.callback(
-        [
-            Output("statistics-table", "data", allow_duplicate=True),
-            Output("is-sample-data", "data", allow_duplicate=True),
-        ],
-        [Input("jira-data-reload-trigger", "data")],
-        prevent_initial_call=True,
-    )
-    def reload_statistics_from_jira(reload_trigger):
-        """
-        Reload statistics table data when JIRA data is refreshed.
+    # REMOVED: Obsolete callback for jira-data-reload-trigger (store doesn't exist)
+    # This callback was part of old data source selection UI that has been removed
+    # JIRA data refresh now happens directly through the Update Data button
+    # and statistics are reloaded via the existing callbacks
 
-        Args:
-            reload_trigger: Timestamp trigger from JIRA data refresh
-
-        Returns:
-            Tuple: (statistics_data, is_sample_data)
-        """
-        if not reload_trigger:
-            raise PreventUpdate
-
-        try:
-            from data.persistence import load_statistics
-
-            # Load fresh statistics data
-            statistics, is_sample = load_statistics()
-
-            return statistics, is_sample
-
-        except Exception as e:
-            logger.error(f"Error reloading statistics from JIRA: {e}")
-            raise PreventUpdate
-
-    @app.callback(
-        [
-            Output("estimated-items-input", "value", allow_duplicate=True),
-            Output("total-items-input", "value", allow_duplicate=True),
-            Output("estimated-points-input", "value", allow_duplicate=True),
-            Output("total-points-display", "value", allow_duplicate=True),
-        ],
-        [Input("jira-data-reload-trigger", "data")],
-        prevent_initial_call=True,
-    )
-    def update_project_scope_from_import(reload_trigger):
-        """
-        Update project scope display when data is imported (JSON or JIRA).
-
-        Args:
-            reload_trigger: Timestamp trigger from data import/reload
-
-        Returns:
-            Tuple: (estimated_items, total_items, estimated_points, total_points_display)
-        """
-        logger.info(
-            f"Project scope update callback triggered with reload_trigger: {reload_trigger}"
-        )
-
-        if not reload_trigger:
-            logger.info("Project scope update: No reload trigger, preventing update")
-            raise PreventUpdate
-
-        try:
-            from data.persistence import get_project_scope
-
-            # Load fresh project scope data
-            project_scope = get_project_scope()
-            logger.info(f"Project scope loaded: {project_scope}")
-
-            if project_scope:
-                # Use the actual project scope values with correct field mappings
-                estimated_items = project_scope.get(
-                    "estimated_items", 0
-                )  # Items with non-null story points
-                total_items = project_scope.get(
-                    "remaining_items", 0
-                )  # All remaining items
-                estimated_points = project_scope.get(
-                    "estimated_points", 0
-                )  # Points from estimated items
-                total_points = project_scope.get(
-                    "remaining_total_points", 0
-                )  # Total points including extrapolation
-
-                logger.info(
-                    f"Updated project scope from import: Items={estimated_items}/{total_items}, Points={estimated_points}/{total_points}"
-                )
-
-                return estimated_items, total_items, estimated_points, f"{total_points}"
-            else:
-                # Fallback to default values if no project scope found
-                logger.warning("No project scope data found after import")
-                raise PreventUpdate
-
-        except Exception as e:
-            logger.error(f"Error updating project scope from import: {e}")
-            raise PreventUpdate
+    # REMOVED: Obsolete callback for updating project scope from jira-data-reload-trigger
+    # Project scope is now updated directly when JIRA data is fetched
+    # via the Calculate Scope button in the settings panel
 
     # Callback for column explanations toggle
     @app.callback(

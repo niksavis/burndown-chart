@@ -150,7 +150,7 @@ def create_jira_config_modal():
                                         min=10,
                                         max=1000,
                                         step=10,
-                                        value=100,
+                                        value=500,
                                     ),
                                 ],
                                 width=6,
@@ -162,7 +162,7 @@ def create_jira_config_modal():
                         [
                             dbc.Col(
                                 dbc.FormText(
-                                    "Cache: 10-1000 MB | Max Results: 10-1000 per API call (JIRA limit)",
+                                    "Cache: 10-1000 MB | Page Size: 10-1000 (JIRA API limit 1000/page). App uses pagination to fetch ALL issues automatically.",
                                     color="muted",
                                 ),
                                 width=12,
@@ -202,14 +202,15 @@ def create_jira_config_modal():
             ),
             dbc.ModalFooter(
                 [
-                    # Left-aligned: Cancel (tertiary action)
+                    # Standard web pattern: Close on left (safe exit), actions grouped on right
                     dbc.Button(
-                        "Cancel",
+                        "Close",
                         id="jira-config-cancel-button",
                         color="secondary",
-                        className="me-auto",  # Push to left, add space to right
+                        outline=True,  # Outline style for less prominence
+                        className="me-auto",  # Push to left, creates visual separation
                     ),
-                    # Right-aligned group: Test Connection + Save Configuration
+                    # Action buttons grouped on right: Test → Save
                     dbc.Button(
                         [html.I(className="fas fa-plug me-2"), "Test Connection"],
                         id="jira-test-connection-button",

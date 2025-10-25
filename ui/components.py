@@ -2253,6 +2253,9 @@ def create_parameter_bar_collapsed(
     scope_items: int,
     scope_points: int,
     id_suffix: str = "",
+    remaining_items: int | None = None,
+    remaining_points: int | None = None,
+    show_points: bool = True,
 ) -> html.Div:
     """
     Create collapsed parameter bar showing key values and expand button.
@@ -2264,20 +2267,53 @@ def create_parameter_bar_collapsed(
     Args:
         pert_factor: Current PERT factor value
         deadline: Current deadline date string
-        scope_items: Total number of items in scope
-        scope_points: Total story points in scope
+        scope_items: Total number of items in scope (fallback)
+        scope_points: Total story points in scope (fallback)
         id_suffix: Suffix for generating unique IDs
+        remaining_items: Number of items remaining to complete (preferred display)
+        remaining_points: Number of points remaining to complete (preferred display)
+        show_points: Whether to show points data
 
     Returns:
         html.Div: Collapsed parameter bar component
 
     Example:
-        >>> create_parameter_bar_collapsed(1.5, "2025-12-31", 100, 500)
+        >>> create_parameter_bar_collapsed(1.5, "2025-12-31", 100, 500, remaining_items=50)
     """
     from ui.style_constants import DESIGN_TOKENS
 
     bar_id = f"parameter-bar-collapsed{'-' + id_suffix if id_suffix else ''}"
     expand_btn_id = f"btn-expand-parameters{'-' + id_suffix if id_suffix else ''}"
+
+    # Use remaining values if available, otherwise fall back to scope values
+    display_items = remaining_items if remaining_items is not None else scope_items
+    display_points = remaining_points if remaining_points is not None else scope_points
+
+    # Determine label based on what we're showing
+    items_label = "Remaining" if remaining_items is not None else "Scope"
+
+    # Create points display only if enabled
+    points_display = []
+    if show_points:
+        points_display = [
+            html.Span(
+                [
+                    html.I(className="fas fa-chart-bar me-1"),
+                    html.Span(
+                        f"{items_label}: ",
+                        className="text-muted d-none d-md-inline",
+                        style={"fontSize": "0.85em"},
+                    ),
+                    f"{display_points:,}",
+                    html.Span(
+                        " pts",
+                        className="d-none d-sm-inline",
+                    ),
+                ],
+                className="param-summary-item",
+                title=f"{items_label}: {display_points:,} points",
+            ),
+        ]
 
     return html.Div(
         [
@@ -2294,29 +2330,40 @@ def create_parameter_bar_collapsed(
                                             f"PERT: {pert_factor}",
                                         ],
                                         className="param-summary-item me-3",
+                                        title=f"PERT Factor: {pert_factor}",
                                     ),
                                     html.Span(
                                         [
                                             html.I(className="fas fa-calendar me-1"),
+                                            html.Span(
+                                                "Deadline: ",
+                                                className="text-muted d-none d-lg-inline",
+                                                style={"fontSize": "0.85em"},
+                                            ),
                                             f"{deadline}",
                                         ],
                                         className="param-summary-item me-3",
+                                        title=f"Project deadline: {deadline}",
                                     ),
                                     html.Span(
                                         [
                                             html.I(className="fas fa-tasks me-1"),
-                                            f"{scope_items} items",
+                                            html.Span(
+                                                f"{items_label}: ",
+                                                className="text-muted d-none d-md-inline",
+                                                style={"fontSize": "0.85em"},
+                                            ),
+                                            f"{display_items:,}",
+                                            html.Span(
+                                                " items",
+                                                className="d-none d-sm-inline",
+                                            ),
                                         ],
                                         className="param-summary-item me-3",
+                                        title=f"{items_label}: {display_items:,} items",
                                     ),
-                                    html.Span(
-                                        [
-                                            html.I(className="fas fa-chart-bar me-1"),
-                                            f"{scope_points} pts",
-                                        ],
-                                        className="param-summary-item",
-                                    ),
-                                ],
+                                ]
+                                + points_display,
                                 className="d-flex align-items-center flex-wrap",
                             ),
                         ],
@@ -2332,11 +2379,15 @@ def create_parameter_bar_collapsed(
                                     dbc.Button(
                                         [
                                             html.I(
-                                                className="fas fa-chevron-down me-2"
+                                                className="fas fa-chevron-down",
+                                                style={
+                                                    "minWidth": "14px",
+                                                    "textAlign": "center",
+                                                },
                                             ),
                                             html.Span(
                                                 "Parameters",
-                                                className="d-none d-lg-inline",
+                                                className="d-none d-lg-inline ms-2",
                                             ),
                                         ],
                                         id=expand_btn_id,
@@ -2347,10 +2398,16 @@ def create_parameter_bar_collapsed(
                                     ),
                                     dbc.Button(
                                         [
-                                            html.I(className="fas fa-cog me-1"),
+                                            html.I(
+                                                className="fas fa-cog",
+                                                style={
+                                                    "minWidth": "14px",
+                                                    "textAlign": "center",
+                                                },
+                                            ),
                                             html.Span(
                                                 "Settings",
-                                                className="d-none d-lg-inline",
+                                                className="d-none d-lg-inline ms-2",
                                             ),
                                         ],
                                         id="settings-button",
@@ -2360,12 +2417,12 @@ def create_parameter_bar_collapsed(
                                         title="Configure data sources, import/export, and JQL queries",
                                     ),
                                 ],
-                                className="d-flex justify-content-end",
+                                className="d-flex justify-content-end align-items-center",
                             ),
                         ],
                         xs=12,
                         md=3,
-                        className="d-flex align-items-center mt-2 mt-md-0",
+                        className="d-flex align-items-center justify-content-end mt-2 mt-md-0",
                     ),
                 ],
                 className="g-2",
@@ -3061,4 +3118,372 @@ def create_parameter_panel(
         ],
         id=panel_id,
         className="parameter-panel-container",
+    )
+
+
+#######################################################################
+# MOBILE PARAMETER BOTTOM SHEET (Phase 7: User Story 5 - T068)
+#######################################################################
+
+
+def create_mobile_parameter_fab() -> html.Div:
+    """
+    Create a floating action button (FAB) to trigger mobile parameter bottom sheet.
+
+    This FAB appears only on mobile devices (<768px) and provides quick access
+    to parameter adjustments via a bottom sheet interface optimized for touch.
+
+    Returns:
+        html.Div: FAB component with mobile-only visibility
+
+    Example:
+        >>> fab = create_mobile_parameter_fab()
+    """
+    from ui.style_constants import DESIGN_TOKENS
+
+    return html.Div(
+        [
+            dbc.Button(
+                html.I(className="fas fa-sliders-h", style={"fontSize": "1.25rem"}),
+                id="mobile-param-fab",
+                color="primary",
+                className="mobile-param-fab",
+                style={
+                    "position": "fixed",
+                    "bottom": "80px",  # Above mobile bottom nav
+                    "right": DESIGN_TOKENS["mobile"]["fabPosition"],
+                    "width": DESIGN_TOKENS["mobile"]["fabSize"],
+                    "height": DESIGN_TOKENS["mobile"]["fabSize"],
+                    "borderRadius": "50%",
+                    "boxShadow": DESIGN_TOKENS["layout"]["shadow"]["lg"],
+                    "zIndex": DESIGN_TOKENS["layout"]["zIndex"]["fixed"],
+                    "display": "none",  # Hidden by default, shown via CSS media query
+                },
+                title="Adjust Parameters",
+            ),
+        ],
+        className="d-md-none",  # Only visible on mobile
+    )
+
+
+def create_mobile_parameter_bottom_sheet(settings: dict) -> dbc.Offcanvas:
+    """
+    Create mobile-optimized parameter bottom sheet using dbc.Offcanvas.
+
+    This component provides a touch-friendly alternative to the sticky parameter
+    panel for mobile devices. It slides up from the bottom and contains all
+    parameter inputs in a mobile-optimized layout.
+
+    Args:
+        settings: Dictionary containing current parameter values
+
+    Returns:
+        dbc.Offcanvas: Mobile parameter bottom sheet component
+
+    Example:
+        >>> settings = {"pert_factor": 3, "deadline": "2025-12-31"}
+        >>> sheet = create_mobile_parameter_bottom_sheet(settings)
+    """
+    from datetime import datetime
+    from ui.style_constants import DESIGN_TOKENS
+
+    # Extract settings with defaults
+    pert_factor = settings.get("pert_factor", 3)
+    deadline = settings.get("deadline", "2025-12-31")
+    milestone = settings.get("milestone", None)
+    total_items = settings.get("total_items", 0)
+    estimated_items = settings.get("estimated_items", 0)
+    total_points = settings.get("total_points", 0)
+    estimated_points = settings.get("estimated_points", 0)
+    show_points = settings.get("show_points", False)
+    data_points_count = settings.get("data_points_count", 10)
+
+    return dbc.Offcanvas(
+        [
+            # Header with close button
+            html.Div(
+                [
+                    html.H5(
+                        [
+                            html.I(className="fas fa-sliders-h me-2"),
+                            "Parameters",
+                        ],
+                        className="mb-0",
+                    ),
+                ],
+                className="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom",
+            ),
+            # Scrollable content area
+            html.Div(
+                [
+                    # Timeline Section
+                    html.Div(
+                        [
+                            html.H6(
+                                [
+                                    html.I(className="fas fa-calendar-alt me-2"),
+                                    "Timeline",
+                                ],
+                                className="mb-3",
+                            ),
+                            # Deadline
+                            html.Div(
+                                [
+                                    html.Label(
+                                        "Deadline",
+                                        className="form-label fw-medium",
+                                        style={"fontSize": "0.875rem"},
+                                    ),
+                                    dcc.DatePickerSingle(
+                                        id="mobile-deadline-picker",
+                                        date=deadline,
+                                        display_format="YYYY-MM-DD",
+                                        first_day_of_week=1,
+                                        placeholder="Select deadline",
+                                        min_date_allowed=datetime.now().strftime(
+                                            "%Y-%m-%d"
+                                        ),
+                                        className="w-100 mb-3",
+                                    ),
+                                ],
+                                className="mb-3",
+                            ),
+                            # Milestone (optional)
+                            html.Div(
+                                [
+                                    html.Label(
+                                        "Milestone (optional)",
+                                        className="form-label fw-medium",
+                                        style={"fontSize": "0.875rem"},
+                                    ),
+                                    dcc.DatePickerSingle(
+                                        id="mobile-milestone-picker",
+                                        date=milestone,
+                                        display_format="YYYY-MM-DD",
+                                        first_day_of_week=1,
+                                        placeholder="Select milestone",
+                                        min_date_allowed=datetime.now().strftime(
+                                            "%Y-%m-%d"
+                                        ),
+                                        className="w-100 mb-3",
+                                    ),
+                                ],
+                                className="mb-3",
+                            ),
+                        ],
+                        className="mb-4 pb-3 border-bottom",
+                    ),
+                    # PERT Factor Section
+                    html.Div(
+                        [
+                            html.H6(
+                                [
+                                    html.I(className="fas fa-chart-line me-2"),
+                                    "Forecast Settings",
+                                ],
+                                className="mb-3",
+                            ),
+                            # PERT Factor Slider
+                            html.Div(
+                                [
+                                    html.Label(
+                                        "PERT Factor",
+                                        className="form-label fw-medium",
+                                        style={"fontSize": "0.875rem"},
+                                    ),
+                                    dcc.Slider(
+                                        id="mobile-pert-factor-slider",
+                                        min=1,
+                                        max=15,
+                                        value=pert_factor,
+                                        marks={
+                                            i: str(i) for i in [1, 3, 5, 8, 10, 12, 15]
+                                        },
+                                        step=1,
+                                        tooltip={
+                                            "placement": "top",
+                                            "always_visible": False,
+                                        },
+                                        className="mb-2",
+                                    ),
+                                    html.Small(
+                                        f"Current: {pert_factor}",
+                                        id="mobile-pert-factor-info",
+                                        className="text-muted d-block text-center",
+                                    ),
+                                ],
+                                className="mb-3",
+                            ),
+                            # Data Points Slider
+                            html.Div(
+                                [
+                                    html.Label(
+                                        "Data Points (weeks)",
+                                        className="form-label fw-medium",
+                                        style={"fontSize": "0.875rem"},
+                                    ),
+                                    dcc.Slider(
+                                        id="mobile-data-points-input",
+                                        min=pert_factor * 2,
+                                        max=52,
+                                        value=data_points_count,
+                                        marks=None,
+                                        step=1,
+                                        tooltip={
+                                            "placement": "top",
+                                            "always_visible": False,
+                                        },
+                                        className="mb-2",
+                                    ),
+                                    html.Small(
+                                        f"Using: {data_points_count} weeks",
+                                        id="mobile-data-points-info",
+                                        className="text-muted d-block text-center",
+                                    ),
+                                ],
+                                className="mb-3",
+                            ),
+                        ],
+                        className="mb-4 pb-3 border-bottom",
+                    ),
+                    # Scope Section
+                    html.Div(
+                        [
+                            html.H6(
+                                [
+                                    html.I(className="fas fa-tasks me-2"),
+                                    "Work Scope",
+                                ],
+                                className="mb-3",
+                            ),
+                            # Total Items
+                            html.Div(
+                                [
+                                    html.Label(
+                                        "Total Items",
+                                        className="form-label fw-medium",
+                                        style={"fontSize": "0.875rem"},
+                                    ),
+                                    dbc.Input(
+                                        id="mobile-total-items-input",
+                                        type="number",
+                                        value=total_items,
+                                        min=0,
+                                        className="mb-3",
+                                        style={
+                                            "minHeight": DESIGN_TOKENS["mobile"][
+                                                "touchTargetMin"
+                                            ]
+                                        },
+                                    ),
+                                ],
+                                className="mb-3",
+                            ),
+                            # Estimated Items
+                            html.Div(
+                                [
+                                    html.Label(
+                                        "Estimated Items",
+                                        className="form-label fw-medium",
+                                        style={"fontSize": "0.875rem"},
+                                    ),
+                                    dbc.Input(
+                                        id="mobile-estimated-items-input",
+                                        type="number",
+                                        value=estimated_items,
+                                        min=0,
+                                        className="mb-3",
+                                        style={
+                                            "minHeight": DESIGN_TOKENS["mobile"][
+                                                "touchTargetMin"
+                                            ]
+                                        },
+                                    ),
+                                ],
+                                className="mb-3",
+                            ),
+                            # Points Toggle
+                            html.Div(
+                                [
+                                    dbc.Checkbox(
+                                        id="mobile-points-toggle",
+                                        label="Enable Points Tracking",
+                                        value=show_points,
+                                        className="mb-3",
+                                        style={"fontSize": "0.875rem"},
+                                    ),
+                                ],
+                                className="mb-3",
+                            ),
+                            # Total Points (if points enabled)
+                            html.Div(
+                                [
+                                    html.Label(
+                                        "Total Points",
+                                        className="form-label fw-medium",
+                                        style={"fontSize": "0.875rem"},
+                                    ),
+                                    dbc.Input(
+                                        id="mobile-total-points-input",
+                                        type="number",
+                                        value=total_points,
+                                        min=0,
+                                        disabled=not show_points,
+                                        className="mb-3",
+                                        style={
+                                            "minHeight": DESIGN_TOKENS["mobile"][
+                                                "touchTargetMin"
+                                            ]
+                                        },
+                                    ),
+                                ],
+                                className="mb-3",
+                                style={"display": "block" if show_points else "none"},
+                                id="mobile-total-points-container",
+                            ),
+                            # Estimated Points (if points enabled)
+                            html.Div(
+                                [
+                                    html.Label(
+                                        "Estimated Points",
+                                        className="form-label fw-medium",
+                                        style={"fontSize": "0.875rem"},
+                                    ),
+                                    dbc.Input(
+                                        id="mobile-estimated-points-input",
+                                        type="number",
+                                        value=estimated_points,
+                                        min=0,
+                                        disabled=not show_points,
+                                        className="mb-3",
+                                        style={
+                                            "minHeight": DESIGN_TOKENS["mobile"][
+                                                "touchTargetMin"
+                                            ]
+                                        },
+                                    ),
+                                ],
+                                className="mb-3",
+                                style={"display": "block" if show_points else "none"},
+                                id="mobile-estimated-points-container",
+                            ),
+                        ],
+                        className="mb-4",
+                    ),
+                ],
+                style={
+                    "maxHeight": DESIGN_TOKENS["mobile"]["bottomSheetMaxHeight"],
+                    "overflowY": "auto",
+                },
+            ),
+        ],
+        id="mobile-parameter-sheet",
+        is_open=False,
+        placement="bottom",
+        backdrop=True,
+        scrollable=True,
+        style={
+            "maxHeight": DESIGN_TOKENS["mobile"]["bottomSheetMaxHeight"],
+        },
+        className="mobile-parameter-sheet",
     )

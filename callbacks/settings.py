@@ -293,48 +293,19 @@ def register(app):
     # Validation now happens only when user attempts to use JIRA connection (Update Data/Calculate Scope)
     # This eliminates the callback that was triggering on every JQL query keystroke
 
-    # Add a callback to trigger JIRA data loading when data source is selected
-    @app.callback(
-        [
-            Output("jira-data-loader", "data"),
-            Output("jira-data-reload-trigger", "data"),
-        ],
-        [
-            Input("data-source-selection", "value"),
-        ],
-        prevent_initial_call=True,
-    )
-    def trigger_jira_data_loading(data_source):
-        """
-        Trigger JIRA data loading when data source is selected.
-        Also trigger a reload of statistics data.
-
-        Args:
-            data_source: Selected data source ("CSV" or "JIRA")
-
-        Returns:
-            Tuple: (timestamp, reload_trigger)
-        """
-        # Only proceed for data source selection if JIRA is selected
-        if data_source == "JIRA":
-            # Return timestamp to trigger other callbacks
-            timestamp = int(datetime.now().timestamp() * 1000)
-            return timestamp, timestamp
-        else:
-            # If data source is not JIRA, prevent update
-            raise PreventUpdate
+    # REMOVED: Obsolete callback for data-source-selection (component doesn't exist in current layout)
+    # Data source selection was part of old UI design and has been removed
+    # JIRA data loading is now triggered directly by the "Update Data" button
 
     @app.callback(
         [
             Output("upload-data", "contents", allow_duplicate=True),
             Output("upload-data", "filename", allow_duplicate=True),
             Output("jira-cache-status", "children", allow_duplicate=True),
-            Output("jira-validation-errors", "children", allow_duplicate=True),
             Output("statistics-table", "data", allow_duplicate=True),
         ],
         [Input("update-data-unified", "n_clicks")],
         [
-            State("data-source-selection", "value"),
             State(
                 "jira-jql-query", "value"
             ),  # JQL textarea uses standard "value" property
@@ -343,218 +314,246 @@ def register(app):
     )
     def handle_unified_data_update(
         n_clicks,
-        data_source,
         jql_query,
     ):
         """
-        Handle unified data update button click.
-        Routes to appropriate handler based on selected data source.
+        Handle unified data update button click (JIRA data source only).
 
         Args:
             n_clicks (int): Number of clicks on unified update button
-            data_source (str): Selected data source ("CSV" or "JIRA")
             jql_query (str): JQL query for JIRA data source
-            jira_api_endpoint (str): JIRA API endpoint URL
-            jira_token (str): Personal access token
-            story_points_field (str): Custom field ID for story points mapping (optional)
-            cache_max_size (int): Maximum cache size in MB
 
         Returns:
-            Tuple: Upload contents, filename, cache status, validation errors
+            Tuple: Upload contents, filename, cache status, statistics table data
         """
         if not n_clicks:
             raise PreventUpdate
 
         try:
-            if data_source == "JIRA":
-                # Handle JIRA data import
-                from data.jira_simple import (
-                    get_cache_status,
-                    sync_jira_data,
-                    validate_jira_config,
-                )
-                from data.persistence import load_app_settings
+            # Handle JIRA data import (settings panel only uses JIRA)
+            from data.jira_simple import validate_jira_config
+            from data.persistence import load_app_settings
 
-                # CRITICAL DEBUG: Log what we receive from the Store
-                logger.info(
-                    f"[UPDATE DATA] Received jql_query from Store: '{jql_query}' (type: {type(jql_query)})"
-                )
-                logger.info(f"[UPDATE DATA] Received data_source: '{data_source}'")
+            # CRITICAL DEBUG: Log what we receive from the Store
+            logger.info(
+                f"[UPDATE DATA] Received jql_query from Store: '{jql_query}' (type: {type(jql_query)})"
+            )
 
-                # Load JIRA configuration from jira_config
-                from data.persistence import load_jira_configuration
+            # Load JIRA configuration from jira_config
+            from data.persistence import load_jira_configuration
 
-                jira_config = load_jira_configuration()
+            jira_config = load_jira_configuration()
 
-                # Check if JIRA is configured (FR-018: Error handling for unconfigured state)
-                # Token is optional for public JIRA servers
-                is_configured = (
-                    jira_config.get("configured", False)
-                    and jira_config.get("base_url", "").strip() != ""
-                )
+            # Check if JIRA is configured (FR-018: Error handling for unconfigured state)
+            # Token is optional for public JIRA servers
+            is_configured = (
+                jira_config.get("configured", False)
+                and jira_config.get("base_url", "").strip() != ""
+            )
 
-                if not is_configured:
-                    cache_status = get_cache_status()
-                    validation_errors = html.Div(
-                        [
-                            html.I(className="fas fa-exclamation-triangle me-2"),
-                            html.Span("JIRA is not configured. "),
-                            html.Span(
-                                "Please click the 'Configure JIRA' button above to set up your JIRA connection.",
-                                className="fw-medium",
-                            ),
-                        ],
-                        className="text-warning small",
-                    )
-                    return None, None, cache_status, validation_errors, no_update
-
-                # Use JQL query from input or fall back to settings
-                app_settings = load_app_settings()
-                settings_jql = (
-                    jql_query.strip()
-                    if jql_query and jql_query.strip()
-                    else app_settings.get("jql_query", "project = JRASERVER")
-                )
-
-                logger.info(
-                    f"JQL Query - Input: '{jql_query}', Settings: '{app_settings.get('jql_query', 'N/A')}', Final: '{settings_jql}'"
-                )
-
-                # Load JIRA configuration values from jira_config and construct endpoint
-                from data.jira_simple import construct_jira_endpoint
-
-                base_url = jira_config.get("base_url", "https://jira.atlassian.com")
-                api_version = jira_config.get("api_version", "v2")
-                final_jira_api_endpoint = construct_jira_endpoint(base_url, api_version)
-                final_jira_token = jira_config.get("token", "")
-                final_story_points_field = jira_config.get("points_field", "")
-                final_cache_max_size = jira_config.get("cache_size_mb", 100)
-                final_max_results = jira_config.get("max_results_per_call", 1000)
-
-                # Check if JQL query has changed and needs saving
-                jql_changed = settings_jql != app_settings.get(
-                    "jql_query", "project = JRASERVER"
-                )
-
-                if jql_changed:
-                    from data.persistence import save_app_settings
-
-                    save_app_settings(
-                        app_settings["pert_factor"],
-                        app_settings["deadline"],
-                        app_settings["data_points_count"],
-                        app_settings["show_milestone"],
-                        app_settings["milestone"],
-                        app_settings["show_points"],
-                        settings_jql,
-                    )
-                    logger.info(f"JQL query updated and saved: JQL='{settings_jql}'")
-
-                # Create JIRA config for sync_jira_data (using loaded values)
-                jira_config_for_sync = {
-                    "api_endpoint": final_jira_api_endpoint,
-                    "jql_query": settings_jql,
-                    "token": final_jira_token,
-                    "story_points_field": final_story_points_field,
-                    "cache_max_size_mb": final_cache_max_size,
-                    "max_results": final_max_results,
-                }
-
-                # Validate configuration
-                is_valid, validation_message = validate_jira_config(
-                    jira_config_for_sync
-                )
-                if not is_valid:
-                    cache_status = get_cache_status()
-                    validation_errors = html.Div(
-                        [
-                            html.I(className="fas fa-exclamation-triangle me-2"),
-                            f"Configuration invalid: {validation_message}",
-                        ],
-                        className="text-danger small",
-                    )
-                    return None, None, cache_status, validation_errors, no_update
-
-                # Use sync_jira_data with the loaded configuration
-                success, message = sync_jira_data(settings_jql, jira_config_for_sync)
-                cache_status = get_cache_status()
-                if success:
-                    # Load the updated statistics data after JIRA import
-                    from data.persistence import load_statistics
-
-                    updated_statistics, _ = (
-                        load_statistics()
-                    )  # Unpack tuple, ignore is_sample flag
-
-                    validation_errors = html.Div(
-                        [
-                            html.I(className="fas fa-check-circle me-2"),
-                            f"JIRA data imported successfully: {message}",
-                        ],
-                        className="text-success small",
-                    )
-                    # Return updated statistics to refresh the table
-                    return (
-                        None,
-                        None,
-                        cache_status,
-                        validation_errors,
-                        updated_statistics,
-                    )
-                else:
-                    validation_errors = html.Div(
-                        [
-                            html.I(className="fas fa-exclamation-triangle me-2"),
-                            f"Failed to import JIRA data: {message}",
-                        ],
-                        className="text-danger small",
-                    )
-                    # Return no table update on failure
-                    return None, None, cache_status, validation_errors, no_update
-
-            elif data_source == "CSV":
-                # For CSV data source, we need to trigger the file upload dialog
-                # This is handled by the existing upload-data component
-                # We can't programmatically trigger a file dialog, so we show a message
-                validation_errors = html.Div(
+            if not is_configured:
+                cache_status_message = html.Div(
                     [
-                        html.I(className="fas fa-info-circle me-2"),
-                        "Please use the file upload area above to select your CSV file.",
+                        html.I(
+                            className="fas fa-exclamation-triangle me-2 text-warning"
+                        ),
+                        html.Div(
+                            [
+                                html.Span(
+                                    "⚠️ JIRA is not configured.",
+                                    className="fw-bold d-block mb-1",
+                                ),
+                                html.Span(
+                                    "Please click the 'Configure JIRA' button above to set up your JIRA connection before fetching data.",
+                                    className="small",
+                                ),
+                            ]
+                        ),
                     ],
-                    className="text-info small",
+                    className="text-warning small mt-2",
                 )
-                return None, None, None, validation_errors, no_update
+                logger.warning("Attempted to update data without JIRA configuration")
+                return None, None, cache_status_message, no_update
 
+            # Use JQL query from input or fall back to settings
+            app_settings = load_app_settings()
+            settings_jql = (
+                jql_query.strip()
+                if jql_query and jql_query.strip()
+                else app_settings.get("jql_query", "project = JRASERVER")
+            )
+
+            logger.info(
+                f"JQL Query - Input: '{jql_query}', Settings: '{app_settings.get('jql_query', 'N/A')}', Final: '{settings_jql}'"
+            )
+
+            # Load JIRA configuration values from jira_config and construct endpoint
+            from data.jira_simple import construct_jira_endpoint
+
+            base_url = jira_config.get("base_url", "https://jira.atlassian.com")
+            api_version = jira_config.get("api_version", "v2")
+            final_jira_api_endpoint = construct_jira_endpoint(base_url, api_version)
+            final_jira_token = jira_config.get("token", "")
+            final_story_points_field = jira_config.get("points_field", "")
+            final_cache_max_size = jira_config.get("cache_size_mb", 100)
+            final_max_results = jira_config.get("max_results_per_call", 1000)
+
+            # Check if JQL query has changed and needs saving
+            jql_changed = settings_jql != app_settings.get(
+                "jql_query", "project = JRASERVER"
+            )
+
+            if jql_changed:
+                from data.persistence import save_app_settings
+
+                save_app_settings(
+                    app_settings["pert_factor"],
+                    app_settings["deadline"],
+                    app_settings["data_points_count"],
+                    app_settings["show_milestone"],
+                    app_settings["milestone"],
+                    app_settings["show_points"],
+                    settings_jql,
+                )
+                logger.info(f"JQL query updated and saved: JQL='{settings_jql}'")
+
+            # Create JIRA config for sync_jira_data (using loaded values)
+            jira_config_for_sync = {
+                "api_endpoint": final_jira_api_endpoint,
+                "jql_query": settings_jql,
+                "token": final_jira_token,
+                "story_points_field": final_story_points_field,
+                "cache_max_size_mb": final_cache_max_size,
+                "max_results": final_max_results,
+            }
+
+            # Validate configuration
+            is_valid, validation_message = validate_jira_config(jira_config_for_sync)
+            if not is_valid:
+                cache_status_message = html.Div(
+                    [
+                        html.I(
+                            className="fas fa-exclamation-triangle me-2 text-danger"
+                        ),
+                        html.Div(
+                            [
+                                html.Span(
+                                    "Configuration Error",
+                                    className="fw-bold d-block mb-1",
+                                ),
+                                html.Span(validation_message, className="small"),
+                            ]
+                        ),
+                    ],
+                    className="text-danger small mt-2",
+                )
+                logger.error(
+                    f"JIRA configuration validation failed: {validation_message}"
+                )
+                return None, None, cache_status_message, no_update
+
+            # Use sync_jira_scope_and_data to get both scope data and message
+            from data.jira_simple import sync_jira_scope_and_data
+
+            success, message, scope_data = sync_jira_scope_and_data(
+                settings_jql, jira_config_for_sync
+            )
+
+            if success:
+                # Load the updated statistics data after JIRA import
+                from data.persistence import load_statistics
+
+                updated_statistics, _ = (
+                    load_statistics()
+                )  # Unpack tuple, ignore is_sample flag
+
+                # Get count of weekly data points
+                weekly_count = len(updated_statistics) if updated_statistics else 0
+
+                # Get actual JIRA issue count from scope data
+                issues_count = (
+                    scope_data.get("calculation_metadata", {}).get(
+                        "total_issues_processed", 0
+                    )
+                    if scope_data
+                    else 0
+                )
+
+                # Create detailed success message showing both counts
+                success_details = f"✓ Data loaded: {issues_count} issue{'s' if issues_count != 1 else ''} from JIRA (aggregated into {weekly_count} weekly data point{'s' if weekly_count != 1 else ''})"
+
+                cache_status_message = html.Div(
+                    [
+                        html.I(className="fas fa-check-circle me-2 text-success"),
+                        html.Span(success_details, className="fw-medium"),
+                    ],
+                    className="text-success small text-center mt-2",
+                )
+                logger.info(
+                    f"JIRA data import successful: {issues_count} issues loaded, {weekly_count} weekly data points created"
+                )
+
+                # Return updated statistics to refresh the table
+                return (
+                    None,
+                    None,
+                    cache_status_message,
+                    updated_statistics,
+                )
             else:
-                validation_errors = html.Div(
+                # Create detailed error message
+                error_details = f"✗ Failed to import JIRA data: {message}"
+
+                cache_status_message = html.Div(
                     [
-                        html.I(className="fas fa-exclamation-triangle me-2"),
-                        "Please select a data source first.",
+                        html.I(
+                            className="fas fa-exclamation-triangle me-2 text-danger"
+                        ),
+                        html.Span(error_details, className="fw-medium"),
                     ],
-                    className="text-warning small",
+                    className="text-danger small text-center mt-2",
                 )
-                return None, None, None, validation_errors, no_update
+                logger.error(f"JIRA data import failed: {message}")
+                # Return no table update on failure
+                return None, None, cache_status_message, no_update
 
         except ImportError:
             logger.error("JIRA integration not available")
-            validation_errors = html.Div(
+            cache_status_message = html.Div(
                 [
-                    html.I(className="fas fa-exclamation-triangle me-2"),
-                    "JIRA integration not available",
+                    html.I(className="fas fa-exclamation-triangle me-2 text-danger"),
+                    html.Div(
+                        [
+                            html.Span(
+                                "Integration Error", className="fw-bold d-block mb-1"
+                            ),
+                            html.Span(
+                                "JIRA integration module not available. Please check your installation.",
+                                className="small",
+                            ),
+                        ]
+                    ),
                 ],
-                className="text-danger small",
+                className="text-danger small mt-2",
             )
-            return None, None, None, validation_errors, no_update
+            return None, None, cache_status_message, no_update
         except Exception as e:
             logger.error(f"Error in unified data update: {e}")
-            validation_errors = html.Div(
+            cache_status_message = html.Div(
                 [
-                    html.I(className="fas fa-exclamation-triangle me-2"),
-                    f"Error updating data: {str(e)}",
+                    html.I(className="fas fa-exclamation-triangle me-2 text-danger"),
+                    html.Div(
+                        [
+                            html.Span(
+                                "Unexpected Error", className="fw-bold d-block mb-1"
+                            ),
+                            html.Span(f"{str(e)}", className="small"),
+                        ]
+                    ),
                 ],
-                className="text-danger small",
+                className="text-danger small mt-2",
             )
-            return None, None, None, validation_errors, no_update
+            return None, None, cache_status_message, no_update
 
     #######################################################################
     # JIRA SCOPE CALCULATION CALLBACK
@@ -1074,7 +1073,7 @@ def register(app):
         prevent_initial_call=True,
     )
     def sync_dropdowns_and_show_buttons(desktop_profile_id, mobile_profile_id):
-        """Sync both dropdowns and show/hide profile action buttons."""
+        """Sync both dropdowns, show/hide profile action buttons, and persist selection."""
         # Determine which dropdown triggered the change
         ctx = callback_context
         if not ctx.triggered:
@@ -1090,6 +1089,35 @@ def register(app):
         logger.info(
             f"DEBUG: sync_dropdowns_and_show_buttons called with profile_id: {selected_profile_id}"
         )
+
+        # CRITICAL FIX: Persist the selected profile ID to app_settings.json
+        # This ensures the selection is maintained on app restart/refresh
+        try:
+            from data.persistence import load_app_settings, save_app_settings
+
+            app_settings = load_app_settings()
+            current_profile_id = app_settings.get("active_jql_profile_id", "")
+
+            # Only save if the profile ID has changed (avoid unnecessary file writes)
+            if selected_profile_id != current_profile_id:
+                save_app_settings(
+                    pert_factor=app_settings["pert_factor"],
+                    deadline=app_settings["deadline"],
+                    data_points_count=app_settings.get("data_points_count"),
+                    show_milestone=app_settings.get("show_milestone"),
+                    milestone=app_settings.get("milestone"),
+                    show_points=app_settings.get("show_points"),
+                    jql_query=app_settings.get("jql_query"),
+                    last_used_data_source=app_settings.get("last_used_data_source"),
+                    active_jql_profile_id=selected_profile_id
+                    or "",  # Persist the selection
+                )
+                logger.info(
+                    f"Persisted selected query profile ID: {selected_profile_id}"
+                )
+        except Exception as e:
+            logger.error(f"Error persisting profile selection: {e}")
+            # Continue with button visibility logic even if persistence fails
 
         # Base button styles
         hidden_style = {"display": "none"}
@@ -1251,10 +1279,10 @@ def register(app):
             "jira-jql-query", "value"
         ),  # JQL textarea uses standard "value" property
         [Input("jira-query-profile-selector", "value")],
-        prevent_initial_call=True,
+        prevent_initial_call=False,  # CRITICAL FIX: Allow initial call to load query on app start
     )
     def update_jql_from_profile(selected_profile_id):
-        """Update JQL textarea when a profile is selected."""
+        """Update JQL textarea when a profile is selected or on initial load."""
         if not selected_profile_id:
             raise PreventUpdate
 
@@ -1263,6 +1291,7 @@ def register(app):
 
             profile = get_query_profile_by_id(selected_profile_id)
             if profile:
+                logger.info(f"Loading JQL query from profile: {profile['name']}")
                 return profile["jql"]
             else:
                 raise PreventUpdate
@@ -1884,10 +1913,14 @@ def register(app):
             ),  # FIXED: use correct component and property
             Input("estimated-items-input", "value"),
             Input("estimated-points-input", "value"),
+            Input("current-settings", "modified_timestamp"),  # Add to get show_points
         ],
+        [State("current-settings", "data")],
         prevent_initial_call=False,  # Update on initial load
     )
-    def update_parameter_summary(pert_factor, deadline, scope_items, scope_points):
+    def update_parameter_summary(
+        pert_factor, deadline, scope_items, scope_points, settings_ts, settings
+    ):
         """
         Update parameter summary in collapsed bar when values change.
 
@@ -1900,6 +1933,8 @@ def register(app):
             deadline: Current deadline date string
             scope_items: Total number of items in scope
             scope_points: Total story points in scope
+            settings_ts: Timestamp of settings changes
+            settings: Current app settings
 
         Returns:
             Dash components: Updated collapsed bar children
@@ -1909,6 +1944,22 @@ def register(app):
         deadline = deadline or "2025-12-31"
         scope_items = scope_items or 0
         scope_points = scope_points or 0
+
+        # Get show_points setting
+        show_points = settings.get("show_points", True) if settings else True
+
+        # Get remaining items/points from project scope if available
+        from data.persistence import get_project_scope
+
+        project_scope = get_project_scope()
+        remaining_items = None
+        remaining_points = None
+
+        if project_scope:
+            remaining_items = project_scope.get("remaining_items")
+            # Use remaining_total_points (estimated) instead of remaining_points (raw count)
+            # remaining_total_points accounts for items without estimates
+            remaining_points = project_scope.get("remaining_total_points")
 
         return dbc.Row(
             [
@@ -1923,29 +1974,62 @@ def register(app):
                                         f"PERT: {pert_factor}",
                                     ],
                                     className="param-summary-item me-3",
+                                    title=f"PERT Factor: {pert_factor}",
                                 ),
                                 html.Span(
                                     [
                                         html.I(className="fas fa-calendar me-1"),
+                                        html.Span(
+                                            "Deadline:",
+                                            className="text-muted d-none d-lg-inline me-1",
+                                            style={"fontSize": "0.85em"},
+                                        ),
                                         f"{deadline}",
                                     ],
                                     className="param-summary-item me-3",
+                                    title=f"Project deadline: {deadline}",
                                 ),
                                 html.Span(
                                     [
                                         html.I(className="fas fa-tasks me-1"),
-                                        f"{scope_items} items",
+                                        html.Span(
+                                            f"{'Remaining' if remaining_items is not None else 'Scope'}:",
+                                            className="text-muted d-none d-md-inline me-1",
+                                            style={"fontSize": "0.85em"},
+                                        ),
+                                        f"{(remaining_items if remaining_items is not None else scope_items):,}",
+                                        html.Span(
+                                            " items",
+                                            className="d-none d-sm-inline",
+                                        ),
                                     ],
                                     className="param-summary-item me-3",
+                                    title=f"{'Remaining' if remaining_items is not None else 'Scope'}: {(remaining_items if remaining_items is not None else scope_items):,} items",
                                 ),
-                                html.Span(
-                                    [
-                                        html.I(className="fas fa-chart-bar me-1"),
-                                        f"{scope_points} pts",
-                                    ],
-                                    className="param-summary-item",
-                                ),
-                            ],
+                            ]
+                            + (
+                                [
+                                    html.Span(
+                                        [
+                                            html.I(className="fas fa-chart-bar me-1"),
+                                            html.Span(
+                                                f"{'Remaining' if remaining_points is not None else 'Scope'}:",
+                                                className="text-muted d-none d-md-inline me-1",
+                                                style={"fontSize": "0.85em"},
+                                            ),
+                                            f"{(remaining_points if remaining_points is not None else scope_points):,}",
+                                            html.Span(
+                                                " pts",
+                                                className="d-none d-sm-inline",
+                                            ),
+                                        ],
+                                        className="param-summary-item",
+                                        title=f"{'Remaining' if remaining_points is not None else 'Scope'}: {(remaining_points if remaining_points is not None else scope_points):,} points",
+                                    ),
+                                ]
+                                if show_points
+                                else []
+                            ),
                             className="d-flex align-items-center flex-wrap",
                         ),
                     ],
@@ -1960,10 +2044,16 @@ def register(app):
                             [
                                 dbc.Button(
                                     [
-                                        html.I(className="fas fa-chevron-down me-2"),
+                                        html.I(
+                                            className="fas fa-chevron-down",
+                                            style={
+                                                "minWidth": "14px",
+                                                "textAlign": "center",
+                                            },
+                                        ),
                                         html.Span(
                                             "Parameters",
-                                            className="d-none d-lg-inline",
+                                            className="d-none d-lg-inline ms-2",
                                         ),
                                     ],
                                     id="btn-expand-parameters",
@@ -1974,10 +2064,16 @@ def register(app):
                                 ),
                                 dbc.Button(
                                     [
-                                        html.I(className="fas fa-cog me-1"),
+                                        html.I(
+                                            className="fas fa-cog",
+                                            style={
+                                                "minWidth": "14px",
+                                                "textAlign": "center",
+                                            },
+                                        ),
                                         html.Span(
                                             "Settings",
-                                            className="d-none d-lg-inline",
+                                            className="d-none d-lg-inline ms-2",
                                         ),
                                     ],
                                     id="settings-button",
@@ -1987,12 +2083,12 @@ def register(app):
                                     title="Configure data sources, import/export, and JQL queries",
                                 ),
                             ],
-                            className="d-flex justify-content-end",
+                            className="d-flex justify-content-end align-items-center",
                         ),
                     ],
                     xs=12,
                     md=3,
-                    className="d-flex align-items-center mt-2 mt-md-0",
+                    className="d-flex align-items-center justify-content-end mt-2 mt-md-0",
                 ),
             ],
             className="g-2",

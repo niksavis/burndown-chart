@@ -27,7 +27,9 @@ from ui.button_utils import create_action_button
 from ui.cards import (
     create_statistics_data_card,
 )
-from ui.components import create_parameter_panel
+from ui.components import (
+    create_parameter_panel,
+)
 from ui.grid_utils import create_full_width_layout
 from ui.tabs import create_tabs
 from ui.jira_config_modal import create_jira_config_modal

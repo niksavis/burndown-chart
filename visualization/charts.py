@@ -3196,3 +3196,198 @@ def create_pert_timeline_chart(pert_data: dict) -> go.Figure:
     )
 
     return fig
+
+
+#######################################################################
+# MOBILE OPTIMIZATION HELPERS (Phase 7: User Story 5)
+#######################################################################
+
+
+def get_mobile_chart_config(is_mobile=False, is_tablet=False):
+    """
+    Get mobile-optimized chart configuration for Plotly graphs.
+
+    This function provides responsive chart configurations that optimize
+    chart display for different viewport sizes by adjusting margins,
+    legends, and interactive features.
+
+    Args:
+        is_mobile: Whether the viewport is mobile (<768px)
+        is_tablet: Whether the viewport is tablet (768-992px)
+
+    Returns:
+        dict: Plotly graph config object optimized for viewport
+
+    Example:
+        >>> config = get_mobile_chart_config(is_mobile=True)
+        >>> dcc.Graph(figure=fig, config=config)
+    """
+    if is_mobile:
+        # Mobile configuration: minimal UI, touch-optimized
+        return {
+            "displayModeBar": False,  # Hide modebar on mobile to save space
+            "responsive": True,  # Enable responsive resizing
+            "scrollZoom": False,  # Disable scroll zoom to avoid interference
+            "doubleClick": "reset",  # Double tap to reset view
+            "showTips": False,  # Hide tips
+            "displaylogo": False,  # Hide Plotly logo
+        }
+    elif is_tablet:
+        # Tablet configuration: show minimal modebar
+        return {
+            "displayModeBar": "hover",  # Show modebar on hover
+            "modeBarButtonsToRemove": [
+                "pan2d",
+                "select2d",
+                "lasso2d",
+                "autoScale2d",
+                "toggleSpikelines",
+            ],
+            "responsive": True,
+            "scrollZoom": True,
+            "doubleClick": "reset+autosize",
+            "displaylogo": False,
+        }
+    else:
+        # Desktop configuration: full features
+        return {
+            "displayModeBar": "hover",
+            "modeBarButtonsToRemove": ["select2d", "lasso2d"],
+            "responsive": True,
+            "scrollZoom": True,
+            "doubleClick": "reset+autosize",
+            "displaylogo": False,
+        }
+
+
+def get_mobile_chart_layout(
+    is_mobile=False, is_tablet=False, show_legend=True, title=None
+):
+    """
+    Get mobile-optimized layout configuration for Plotly charts.
+
+    Adjusts margins, font sizes, legend placement, and other layout
+    properties based on viewport size for optimal mobile experience.
+
+    Args:
+        is_mobile: Whether the viewport is mobile (<768px)
+        is_tablet: Whether the viewport is tablet (768-992px)
+        show_legend: Whether to show legend (automatically hidden on mobile)
+        title: Chart title (optional, hidden on mobile to save space)
+
+    Returns:
+        dict: Plotly layout updates to merge with existing layout
+
+    Example:
+        >>> mobile_layout = get_mobile_chart_layout(is_mobile=True)
+        >>> fig.update_layout(**mobile_layout)
+    """
+    if is_mobile:
+        # Mobile layout: minimal margins, no legend, compact
+        return {
+            "margin": dict(l=40, r=10, t=30 if title else 10, b=40),
+            "showlegend": False,  # Hide legend on mobile to maximize chart space
+            "font": dict(size=10),  # Smaller font for mobile
+            "title": dict(
+                text=title if title else None,
+                font=dict(size=14),
+                x=0.5,
+                xanchor="center",
+            )
+            if title
+            else None,
+            "height": 300,  # Fixed height for mobile
+            "hovermode": "closest",  # Closest point for touch precision
+        }
+    elif is_tablet:
+        # Tablet layout: moderate margins, bottom legend
+        return {
+            "margin": dict(
+                l=50, r=20, t=50 if title else 20, b=80 if show_legend else 50
+            ),
+            "showlegend": show_legend,
+            "font": dict(size=12),
+            "title": dict(
+                text=title if title else None,
+                font=dict(size=16),
+                x=0.5,
+                xanchor="center",
+            )
+            if title
+            else None,
+            "legend": dict(
+                orientation="h",
+                yanchor="top",
+                y=-0.15,
+                xanchor="center",
+                x=0.5,
+                font=dict(size=11),
+            )
+            if show_legend
+            else None,
+            "height": 400,
+            "hovermode": "x unified",
+        }
+    else:
+        # Desktop layout: standard margins and configuration
+        return {
+            "margin": dict(
+                l=60, r=30, t=80 if title else 30, b=100 if show_legend else 60
+            ),
+            "showlegend": show_legend,
+            "font": dict(size=13),
+            "title": dict(
+                text=title if title else None,
+                font=dict(size=18),
+                x=0.5,
+                xanchor="center",
+            )
+            if title
+            else None,
+            "legend": dict(
+                orientation="v",
+                yanchor="top",
+                y=1,
+                xanchor="right",
+                x=1.15,
+            )
+            if show_legend
+            else None,
+            "height": 500,
+            "hovermode": "x unified",
+        }
+
+
+def apply_mobile_optimization(fig, is_mobile=False, is_tablet=False, title=None):
+    """
+    Apply mobile optimization to an existing Plotly figure.
+
+    This is a convenience function that applies both config and layout
+    optimizations to a figure in one call.
+
+    Args:
+        fig: Plotly figure object to optimize
+        is_mobile: Whether the viewport is mobile (<768px)
+        is_tablet: Whether the viewport is tablet (768-992px)
+        title: Optional chart title
+
+    Returns:
+        tuple: (optimized_figure, config_dict) ready for dcc.Graph
+
+    Example:
+        >>> fig = create_forecast_plot(...)
+        >>> optimized_fig, config = apply_mobile_optimization(fig, is_mobile=True)
+        >>> dcc.Graph(figure=optimized_fig, config=config)
+    """
+    # Get mobile-optimized layout
+    layout_updates = get_mobile_chart_layout(
+        is_mobile=is_mobile, is_tablet=is_tablet, show_legend=not is_mobile, title=title
+    )
+
+    # Apply layout updates
+    fig.update_layout(**layout_updates)
+
+    # Get config
+    config = get_mobile_chart_config(is_mobile=is_mobile, is_tablet=is_tablet)
+
+    return fig, config

@@ -8,7 +8,14 @@ drawer navigation, bottom navigation, and swipe gestures.
 #######################################################################
 # IMPORTS
 #######################################################################
-from dash import callback, Input, Output, State, html, no_update, clientside_callback
+from dash import (
+    callback,
+    Input,
+    Output,
+    State,
+    no_update,
+    clientside_callback,
+)
 
 
 #######################################################################

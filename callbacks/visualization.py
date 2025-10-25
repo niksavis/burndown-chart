@@ -55,7 +55,10 @@ from visualization import (
     create_weekly_items_chart,
     create_weekly_points_chart,
 )
-from visualization.charts import create_chart_with_loading
+from visualization.charts import (
+    create_chart_with_loading,
+    apply_mobile_optimization,
+)
 
 # Setup logging
 logger = logging.getLogger("burndown_chart")
@@ -151,10 +154,20 @@ def register(app):
             Input("calculation-results", "data"),
             Input("chart-tabs", "active_tab"),
         ],
-        [State("current-settings", "data"), State("current-statistics", "data")],
+        [
+            State("current-settings", "data"),
+            State("current-statistics", "data"),
+            State("viewport-size", "data"),
+        ],
     )
     def update_forecast_graph(
-        settings_ts, statistics_ts, calc_results, active_tab, settings, statistics
+        settings_ts,
+        statistics_ts,
+        calc_results,
+        active_tab,
+        settings,
+        statistics,
+        viewport_size,
     ):
         """Update the forecast graph when settings or statistics change."""
         # Get context to see which input triggered the callback
@@ -176,6 +189,11 @@ def register(app):
         # If triggered by calculation_results but data is None, prevent update
         if trigger_id == "calculation-results" and calc_results is None:
             raise PreventUpdate
+
+        # Detect viewport size for mobile optimization
+        viewport_size = viewport_size or "desktop"
+        is_mobile = viewport_size == "mobile"
+        is_tablet = viewport_size == "tablet"
 
         # Process the settings and statistics data
         df = pd.DataFrame(statistics)
@@ -212,6 +230,14 @@ def register(app):
             show_points=settings.get(
                 "show_points", False
             ),  # Pass show_points parameter
+        )
+
+        # Apply mobile optimization to chart
+        fig, _ = apply_mobile_optimization(
+            fig,
+            is_mobile=is_mobile,
+            is_tablet=is_tablet,
+            title="Burndown Forecast" if not is_mobile else None,
         )
 
         return fig
@@ -791,6 +817,7 @@ def register(app):
             State("current-statistics", "data"),
             State("chart-cache", "data"),
             State("ui-state", "data"),
+            State("viewport-size", "data"),
         ],
     )
     def render_tab_content(
@@ -804,6 +831,7 @@ def register(app):
         statistics,
         chart_cache,
         ui_state,
+        viewport_size,
     ):
         """
         Render the appropriate content based on the selected tab with lazy loading and caching.
@@ -854,6 +882,14 @@ def register(app):
             chart_cache = {}
         if ui_state is None:
             ui_state = {"loading": False, "last_tab": None}
+
+        # Detect viewport size for mobile optimization (Phase 7: User Story 5)
+        viewport_size = viewport_size or "desktop"
+        is_mobile = viewport_size == "mobile"
+        is_tablet = viewport_size == "tablet"
+        logger.info(
+            f"Rendering charts for viewport: {viewport_size} (mobile={is_mobile}, tablet={is_tablet})"
+        )
 
         # CTO FIX: Clear old cache entries to prevent memory bloat (keep last 5)
         # BUT: If we're switching tabs (trigger is from chart-tabs), clear ALL cache
@@ -1011,6 +1047,13 @@ def register(app):
                     pert_factor,
                     data_points_count=data_points_count,
                 )
+                # Apply mobile optimization to items chart
+                items_fig, _ = apply_mobile_optimization(
+                    items_fig,
+                    is_mobile=is_mobile,
+                    is_tablet=is_tablet,
+                    title="Weekly Items" if not is_mobile else None,
+                )
                 items_tab_content = _create_items_tab_content(items_trend, items_fig)
                 # Cache the result for next time
                 chart_cache[cache_key] = items_tab_content
@@ -1028,6 +1071,13 @@ def register(app):
                         date_range_weeks,
                         pert_factor,
                         data_points_count=data_points_count,
+                    )
+                    # Apply mobile optimization to points chart
+                    points_fig, _ = apply_mobile_optimization(
+                        points_fig,
+                        is_mobile=is_mobile,
+                        is_tablet=is_tablet,
+                        title="Weekly Points" if not is_mobile else None,
                     )
                     points_tab_content = _create_points_tab_content(
                         points_trend, points_fig

@@ -93,39 +93,41 @@ def create_settings_panel_expanded(id_suffix: str = "") -> html.Div:
                                     # Left Column: JIRA Integration
                                     dbc.Col(
                                         [
-                                            # Header with config button inline - aligned with right column
+                                            # Header with config button
+                                            html.Div(
+                                                [
+                                                    html.I(
+                                                        className="fas fa-plug me-2 text-primary"
+                                                    ),
+                                                    html.Span(
+                                                        "JIRA Integration",
+                                                        className="fw-bold",
+                                                    ),
+                                                ],
+                                                className="d-flex align-items-center mb-2",
+                                            ),
+                                            # Status indicator and config button row
                                             html.Div(
                                                 [
                                                     html.Div(
-                                                        [
-                                                            html.I(
-                                                                className="fas fa-plug me-2 text-primary"
-                                                            ),
-                                                            html.Span(
-                                                                "JIRA Integration",
-                                                                className="fw-bold",
-                                                            ),
-                                                        ],
-                                                        className="d-flex align-items-center",
+                                                        id="jira-config-status-indicator",
+                                                        className="flex-grow-1 me-2",
+                                                        style={
+                                                            "minHeight": "2rem",
+                                                            "overflowX": "auto",
+                                                            "overflowY": "hidden",
+                                                            "whiteSpace": "nowrap",
+                                                        },
+                                                        children=[],
                                                     ),
                                                     html.Div(
-                                                        [
-                                                            html.Div(
-                                                                id="jira-config-status-indicator",
-                                                                className="me-2",
-                                                                children=[],
-                                                            ),
-                                                            create_jira_config_button(
-                                                                compact=True
-                                                            ),
-                                                        ],
-                                                        className="d-flex align-items-center",
+                                                        create_jira_config_button(
+                                                            compact=True
+                                                        ),
+                                                        style={"flexShrink": "0"},
                                                     ),
                                                 ],
-                                                className="d-flex justify-content-between align-items-start mb-3",
-                                                style={
-                                                    "minHeight": "1.65rem"
-                                                },  # Match right column header height
+                                                className="d-flex align-items-center mb-3",
                                             ),
                                             # JQL Query Editor - starts immediately after header
                                             html.Div(
@@ -261,10 +263,7 @@ def create_settings_panel_expanded(id_suffix: str = "") -> html.Div:
                                                         className="fw-bold",
                                                     ),
                                                 ],
-                                                className="d-flex align-items-center mb-3",
-                                                style={
-                                                    "minHeight": "1.65rem"
-                                                },  # Match left column header height
+                                                className="d-flex align-items-center mb-2",
                                             ),
                                             # Import - more compact
                                             html.Div(
