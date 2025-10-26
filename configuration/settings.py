@@ -237,6 +237,7 @@ CHART_HELP_TEXTS = {
     "forecast_confidence_bands": "Band width indicates forecast uncertainty based on velocity variability.",
     "scope_change_indicators": "Vertical markers show scope changes with automatic forecast adjustments.",
     "data_points_precision": "8-15 recent data points provide optimal forecast accuracy.",
+    "burndown_vs_burnup": "Burndown shows remaining work decreasing; Burnup shows completed work increasing.",
 }
 
 

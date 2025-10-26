@@ -218,11 +218,18 @@ def create_contrast_color(background_color):
 #######################################################################
 
 # Tooltip styles configuration
+# Default variant uses dark/blackish background for better readability
 TOOLTIP_STYLES = {
     "default": {
-        "bgcolor": "rgba(255, 255, 255, 0.95)",
-        "bordercolor": "rgba(200, 200, 200, 0.8)",
-        "fontcolor": NEUTRAL_COLORS["gray-800"],
+        "bgcolor": "rgba(33, 37, 41, 0.95)",  # Dark/blackish background
+        "bordercolor": "rgba(255, 255, 255, 0.1)",
+        "fontcolor": NEUTRAL_COLORS["gray-100"],  # Light text for contrast
+        "fontsize": 14,
+    },
+    "dark": {
+        "bgcolor": "rgba(33, 37, 41, 0.95)",  # Dark/blackish background
+        "bordercolor": "rgba(255, 255, 255, 0.1)",
+        "fontcolor": NEUTRAL_COLORS["gray-100"],  # Light text for contrast
         "fontsize": 14,
     },
     "success": {
@@ -253,12 +260,6 @@ TOOLTIP_STYLES = {
         "bgcolor": "rgba(235, 245, 255, 0.95)",
         "bordercolor": PRIMARY_COLORS["primary"],
         "fontcolor": NEUTRAL_COLORS["gray-800"],
-        "fontsize": 14,
-    },
-    "dark": {
-        "bgcolor": "rgba(33, 37, 41, 0.95)",
-        "bordercolor": "rgba(100, 100, 100, 0.8)",
-        "fontcolor": NEUTRAL_COLORS["gray-100"],
         "fontsize": 14,
     },
 }

@@ -9,6 +9,7 @@ Features:
 - Performance optimizations with content caching
 - Enhanced visual formatting and cross-references
 - Better error handling and loading states
+- Integration with dark tooltip theme for consistent UX
 """
 
 import dash
@@ -701,3 +702,85 @@ def register_help_content(category, key, content):
         COMPREHENSIVE_HELP_CONTENT[category] = {}
 
     COMPREHENSIVE_HELP_CONTENT[category][key] = content
+
+
+# Convenience functions for creating tooltips with help content
+def create_dashboard_metric_tooltip(metric_key, id_suffix=None):
+    """
+    Create a tooltip for a Dashboard metric using pre-defined help content.
+
+    Args:
+        metric_key: Key in DASHBOARD_METRICS_TOOLTIPS
+        id_suffix: Optional custom ID suffix
+
+    Returns:
+        Tooltip component with dark theme
+    """
+    from ui.tooltip_utils import create_info_tooltip
+
+    if id_suffix is None:
+        id_suffix = f"dashboard-{metric_key}"
+
+    help_content = COMPREHENSIVE_HELP_CONTENT.get("dashboard", {})
+    tooltip_text = help_content.get(metric_key, f"Help for {metric_key}")
+
+    return create_info_tooltip(
+        help_text=tooltip_text, id_suffix=id_suffix, placement="top", variant="dark"
+    )
+
+
+def create_parameter_tooltip(param_key, id_suffix=None):
+    """
+    Create a tooltip for a parameter input using pre-defined help content.
+
+    Args:
+        param_key: Key in PARAMETER_INPUTS_TOOLTIPS
+        id_suffix: Optional custom ID suffix
+
+    Returns:
+        Tooltip component with dark theme
+    """
+    from ui.tooltip_utils import create_info_tooltip
+
+    if id_suffix is None:
+        id_suffix = f"param-{param_key}"
+
+    help_content = COMPREHENSIVE_HELP_CONTENT.get("parameters", {})
+    tooltip_text = help_content.get(param_key, f"Help for {param_key}")
+
+    return create_info_tooltip(
+        help_text=tooltip_text, id_suffix=id_suffix, placement="right", variant="dark"
+    )
+
+
+def create_metric_help_icon(metric_key, category="dashboard", show_modal_link=False):
+    """
+    Create a help icon for metric cards with optional modal link.
+
+    Args:
+        metric_key: Key in help content
+        category: Help category (dashboard, parameters, etc.)
+        show_modal_link: Whether to include link to detailed help modal
+
+    Returns:
+        Help icon component with tooltip (and optional modal trigger)
+    """
+    from ui.tooltip_utils import create_info_tooltip
+
+    help_content = COMPREHENSIVE_HELP_CONTENT.get(category, {})
+    tooltip_text = help_content.get(metric_key, f"Help for {metric_key}")
+
+    # Check if there's detailed help available
+    detail_key = f"{metric_key}_detail"
+    has_detail = detail_key in help_content
+
+    if has_detail and show_modal_link:
+        # Add "Learn more" indicator to tooltip
+        tooltip_text = f"{tooltip_text} Click for detailed explanation."
+
+    return create_info_tooltip(
+        help_text=tooltip_text,
+        id_suffix=f"{category}-{metric_key}",
+        placement="top",
+        variant="dark",
+    )

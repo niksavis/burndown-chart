@@ -680,6 +680,35 @@ BUG_ANALYSIS_TOOLTIPS = {
     "expected_resolution": "Forecast weeks to clear bug backlog using last 8 weeks of data. Green: ≤2 weeks, Teal: 3-4 weeks, Yellow: >4 weeks.",
 }
 
+# DASHBOARD METRICS HELP CONTENT - Tooltips for main dashboard cards
+DASHBOARD_METRICS_TOOLTIPS = {
+    "completion_forecast": "Estimated project completion date using PERT three-point estimation. Based on optimistic, most likely, and pessimistic velocity scenarios from your historical data.",
+    "completion_forecast_detail": "This forecast uses your team's actual velocity data to predict when all remaining work will be completed. The calculation accounts for best-case, average, and worst-case scenarios to provide a realistic estimate with confidence ranges.",
+    "remaining_work": "Current backlog of incomplete work items and story points. Tracks both the number of items and their estimated effort to give you a complete picture of what's left to deliver.",
+    "remaining_items": "Number of work items (tasks, stories, bugs) not yet completed. This count helps track progress independently of estimation complexity.",
+    "remaining_points": "Total story points for all incomplete work. Represents the estimated effort remaining, which may differ from item count due to varying complexity.",
+    "velocity_trend": "Team's delivery rate over time, measured in items and points completed per week. Shows whether your team is accelerating, maintaining pace, or slowing down.",
+    "current_velocity": "Average items and points completed per week based on recent historical data. This is your team's current sustainable delivery pace used for forecasting.",
+    "pert_expected": "Weighted average of optimistic, most likely, and pessimistic forecasts using the formula: (O + 4×ML + P) ÷ 6. Provides the most statistically reliable single-point estimate.",
+    "confidence_range": "Uncertainty band around the forecast showing the range of possible completion dates. Wider ranges indicate higher unpredictability; narrower ranges show consistent velocity.",
+    "scope_changes": "Additions or removals to project scope over time. Tracks how requirements evolve and impacts forecast accuracy and completion dates.",
+}
+
+# PARAMETER INPUTS HELP CONTENT - Tooltips for parameter panel controls
+PARAMETER_INPUTS_TOOLTIPS = {
+    "pert_factor": "Controls the forecast calculation method. Default value of 6 follows standard PERT formula. Higher values make forecasts more conservative; lower values more optimistic.",
+    "pert_factor_detail": "The PERT factor determines how to weight the three estimation scenarios. A factor of 6 (standard PERT) gives most weight to the most likely scenario: (O + 4×ML + P) ÷ 6. Changing this affects all forecast calculations.",
+    "deadline": "Target completion date for your project. Used to calculate timeline pressure and whether current velocity will meet the deadline. Shown as a vertical line on forecast charts.",
+    "deadline_detail": "Set your desired or committed project deadline. The forecast will compare this date against velocity-based predictions to show if you're on track, ahead, or behind schedule.",
+    "total_items": "Complete project scope: all work items planned for delivery. This is the denominator for calculating completion percentage and remaining work.",
+    "completed_items": "Number of work items finished and accepted. Used to calculate completion percentage and determine remaining work: Total Items - Completed Items.",
+    "total_points": "Complete project effort: all story points estimated for the project. Represents the full effort required independent of item count.",
+    "completed_points": "Story points for all finished work items. Used to calculate effort-based completion percentage: Completed Points ÷ Total Points × 100%.",
+    "scope_buffer": "Optional reserve capacity for scope changes and unknowns. Adding a buffer (e.g., 10-20% of total scope) provides contingency for new requirements.",
+    "data_points": "Number of historical weeks to include in velocity calculations. Minimum 4-6 weeks recommended; 8-12 weeks optimal for stable forecasts.",
+    "data_points_detail": "More data points provide stability but may miss recent trends. Fewer points are more responsive to changes but can be volatile. Balance based on your project's stability.",
+}
+
 # Combined comprehensive help content for easy access
 COMPREHENSIVE_HELP_CONTENT = {
     "forecast": FORECAST_HELP_DETAILED,
@@ -688,4 +717,6 @@ COMPREHENSIVE_HELP_CONTENT = {
     "statistics": STATISTICS_HELP_DETAILED,
     "charts": CHART_HELP_DETAILED,
     "bug_analysis": BUG_ANALYSIS_TOOLTIPS,
+    "dashboard": DASHBOARD_METRICS_TOOLTIPS,
+    "parameters": PARAMETER_INPUTS_TOOLTIPS,
 }

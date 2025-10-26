@@ -2896,26 +2896,52 @@ def create_parameter_panel_expanded(
             # Section 2: Work Scope
             html.Div(
                 [
-                    html.H6(
+                    # Section header with inline Points Tracking toggle
+                    html.Div(
                         [
-                            html.I(
-                                className="fas fa-tasks me-2",
-                                style={"color": "#20c997"},
+                            html.H6(
+                                [
+                                    html.I(
+                                        className="fas fa-tasks me-2",
+                                        style={"color": "#20c997"},
+                                    ),
+                                    "Remaining Work Scope",
+                                ],
+                                className="mb-0 text-success",
+                                style={"fontSize": "0.9rem", "fontWeight": "600"},
                             ),
-                            "Remaining Work Scope",
+                            html.Div(
+                                [
+                                    html.Span(
+                                        "Points Tracking",
+                                        className="text-muted me-2",
+                                        style={"fontSize": "0.8rem"},
+                                    ),
+                                    dbc.Switch(
+                                        id="points-toggle",
+                                        value=show_points,
+                                        label="",
+                                        className="d-inline-block",
+                                    ),
+                                ],
+                                className="d-flex align-items-center",
+                            ),
                         ],
-                        className="mb-3 text-success",
-                        style={"fontSize": "0.9rem", "fontWeight": "600"},
+                        className="d-flex justify-content-between align-items-center mb-3",
                     ),
+                    # Single Row: All 4 fields with equal width
                     dbc.Row(
                         [
-                            # Items Section
+                            # Estimated Items
                             dbc.Col(
                                 [
                                     html.Label(
                                         [
                                             "Estimated Items",
-                                            html.Span(" *", className="text-danger"),
+                                            html.Span(
+                                                " (optional)",
+                                                className="text-muted small",
+                                            ),
                                         ],
                                         className="form-label fw-medium",
                                         style={"fontSize": "0.875rem"},
@@ -2926,22 +2952,25 @@ def create_parameter_panel_expanded(
                                         value=estimated_items,
                                         min=0,
                                         step=1,
+                                        placeholder="0 if unknown",
                                         className="form-control-sm",
                                     ),
-                                    html.Div(
-                                        id="estimated-items-feedback",
-                                        className="invalid-feedback",
+                                    html.Small(
+                                        "Items with effort estimates. Leave 0 if unavailable.",
+                                        className="text-muted d-block mt-1",
+                                        style={"fontSize": "0.75rem"},
                                     ),
                                 ],
                                 xs=12,
                                 md=6,
-                                lg=2,
+                                lg=3,
                                 className="mb-3",
                             ),
+                            # Remaining Items
                             dbc.Col(
                                 [
                                     html.Label(
-                                        "Total Items",
+                                        "Remaining Items",
                                         className="form-label fw-medium",
                                         style={"fontSize": "0.875rem"},
                                     ),
@@ -2960,43 +2989,20 @@ def create_parameter_panel_expanded(
                                 ],
                                 xs=12,
                                 md=6,
-                                lg=2,
+                                lg=3,
                                 className="mb-3",
                             ),
-                            # Points Toggle
-                            dbc.Col(
-                                [
-                                    html.Div(
-                                        [
-                                            html.Label(
-                                                "Points Tracking",
-                                                className="form-label fw-medium me-2",
-                                                style={"fontSize": "0.875rem"},
-                                            ),
-                                            dbc.Switch(
-                                                id="points-toggle",
-                                                value=show_points,
-                                                label="",
-                                                className="d-inline-block",
-                                            ),
-                                        ],
-                                        className="d-flex align-items-center",
-                                        style={
-                                            "height": "100%",
-                                            "paddingTop": "1.85rem",
-                                        },
-                                    ),
-                                ],
-                                xs=12,
-                                md=12,
-                                lg=2,
-                                className="mb-3",
-                            ),
-                            # Points Fields (conditionally styled based on toggle)
+                            # Estimated Points
                             dbc.Col(
                                 [
                                     html.Label(
-                                        "Estimated Points",
+                                        [
+                                            "Estimated Points",
+                                            html.Span(
+                                                " (optional)",
+                                                className="text-muted small",
+                                            ),
+                                        ],
                                         className="form-label fw-medium",
                                         style={"fontSize": "0.875rem"},
                                     ),
@@ -3006,12 +3012,14 @@ def create_parameter_panel_expanded(
                                         value=estimated_points,
                                         min=0,
                                         step=1,
+                                        placeholder="0 if unknown",
                                         disabled=not show_points,
                                         className="form-control-sm",
                                     ),
-                                    html.Div(
-                                        id="estimated-points-feedback",
-                                        className="invalid-feedback",
+                                    html.Small(
+                                        "Items with story point estimates. Leave 0 if unavailable.",
+                                        className="text-muted d-block mt-1",
+                                        style={"fontSize": "0.75rem"},
                                     ),
                                 ],
                                 xs=12,
@@ -3020,11 +3028,12 @@ def create_parameter_panel_expanded(
                                 className="mb-3",
                                 id="estimated-points-col",
                             ),
+                            # Remaining Points (auto-calculated)
                             dbc.Col(
                                 [
                                     html.Label(
                                         [
-                                            "Total Points ",
+                                            "Remaining Points ",
                                             html.Span(
                                                 "(auto)",
                                                 className="badge bg-secondary",
@@ -3356,11 +3365,11 @@ def create_mobile_parameter_bottom_sheet(settings: dict) -> dbc.Offcanvas:
                                 ],
                                 className="mb-3",
                             ),
-                            # Total Items
+                            # Remaining Items
                             html.Div(
                                 [
                                     html.Label(
-                                        "Total Items",
+                                        "Remaining Items",
                                         className="form-label fw-medium",
                                         style={"fontSize": "0.875rem"},
                                     ),
@@ -3415,11 +3424,11 @@ def create_mobile_parameter_bottom_sheet(settings: dict) -> dbc.Offcanvas:
                                 ],
                                 className="mb-3",
                             ),
-                            # Total Points (if points enabled)
+                            # Remaining Points (if points enabled)
                             html.Div(
                                 [
                                     html.Label(
-                                        "Total Points",
+                                        "Remaining Points",
                                         className="form-label fw-medium",
                                         style={"fontSize": "0.875rem"},
                                     ),

@@ -303,6 +303,10 @@ def register(app):
             Output("upload-data", "filename", allow_duplicate=True),
             Output("jira-cache-status", "children", allow_duplicate=True),
             Output("statistics-table", "data", allow_duplicate=True),
+            Output("total-items-input", "value", allow_duplicate=True),
+            Output("estimated-items-input", "value", allow_duplicate=True),
+            Output("total-points-display", "value", allow_duplicate=True),
+            Output("estimated-points-input", "value", allow_duplicate=True),
         ],
         [Input("update-data-unified", "n_clicks")],
         [
@@ -373,7 +377,16 @@ def register(app):
                     className="text-warning small mt-2",
                 )
                 logger.warning("Attempted to update data without JIRA configuration")
-                return None, None, cache_status_message, no_update
+                return (
+                    None,
+                    None,
+                    cache_status_message,
+                    no_update,
+                    no_update,
+                    no_update,
+                    no_update,
+                    no_update,
+                )
 
             # Use JQL query from input or fall back to settings
             app_settings = load_app_settings()
@@ -493,12 +506,36 @@ def register(app):
                     f"JIRA data import successful: {issues_count} issues loaded, {weekly_count} weekly data points created"
                 )
 
-                # Return updated statistics to refresh the table
+                # Extract scope values from scope_data to update input fields
+                # These values represent the total project scope calculated from JIRA
+                total_items = scope_data.get("total_items", 0) if scope_data else 0
+                estimated_items = (
+                    scope_data.get("estimated_items", 0) if scope_data else 0
+                )
+                total_points = scope_data.get("total_points", 0) if scope_data else 0
+                estimated_points = (
+                    scope_data.get("estimated_points", 0) if scope_data else 0
+                )
+
+                # Format total_points as string since it's a text display field
+                total_points_display = f"{total_points:.0f}"
+
+                logger.info(
+                    f"Scope calculated from JIRA: total_items={total_items}, "
+                    f"estimated_items={estimated_items}, total_points={total_points}, "
+                    f"estimated_points={estimated_points}"
+                )
+
+                # Return updated statistics AND scope values to refresh inputs
                 return (
                     None,
                     None,
                     cache_status_message,
                     updated_statistics,
+                    total_items,
+                    estimated_items,
+                    total_points_display,  # Text field, not number
+                    estimated_points,
                 )
             else:
                 # Create detailed error message
@@ -514,8 +551,17 @@ def register(app):
                     className="text-danger small text-center mt-2",
                 )
                 logger.error(f"JIRA data import failed: {message}")
-                # Return no table update on failure
-                return None, None, cache_status_message, no_update
+                # Return no table update on failure, keep scope values unchanged
+                return (
+                    None,
+                    None,
+                    cache_status_message,
+                    no_update,
+                    no_update,
+                    no_update,
+                    no_update,
+                    no_update,
+                )
 
         except ImportError:
             logger.error("JIRA integration not available")
@@ -536,7 +582,16 @@ def register(app):
                 ],
                 className="text-danger small mt-2",
             )
-            return None, None, cache_status_message, no_update
+            return (
+                None,
+                None,
+                cache_status_message,
+                no_update,
+                no_update,
+                no_update,
+                no_update,
+                no_update,
+            )
         except Exception as e:
             logger.error(f"Error in unified data update: {e}")
             cache_status_message = html.Div(
@@ -553,7 +608,16 @@ def register(app):
                 ],
                 className="text-danger small mt-2",
             )
-            return None, None, cache_status_message, no_update
+            return (
+                None,
+                None,
+                cache_status_message,
+                no_update,
+                no_update,
+                no_update,
+                no_update,
+                no_update,
+            )
 
     #######################################################################
     # JIRA SCOPE CALCULATION CALLBACK

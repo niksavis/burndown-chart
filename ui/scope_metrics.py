@@ -1315,7 +1315,7 @@ def create_scope_metrics_dashboard(
             ),
             # Enhanced Footnote with Agile Context
             html.Div(
-                className="text-muted fst-italic small text-center",
+                className="text-muted fst-italic small text-center mb-5 pb-3",
                 children=[
                     html.I(
                         className="fas fa-seedling me-1",
@@ -1323,17 +1323,6 @@ def create_scope_metrics_dashboard(
                     ),
                     "Growth Patterns: Positive spikes show scope additions from new requirements or discoveries. Negative values indicate backlog refinement or completion focus.",
                 ],
-            ),
-            # Agile Context Notice
-            dbc.Alert(
-                [
-                    html.I(className="fas fa-lightbulb me-2"),
-                    html.Strong("Agile Project Context: "),
-                    "In agile projects, scope changes are normal and healthy. These metrics help you understand patterns, not problems. Lower adaptability values are typical for responsive agile teams.",
-                ],
-                color="info",
-                className="mb-4",
-                style={"fontSize": "0.9rem"},
             ),
             # Adaptability Gauges with Tooltips
             dbc.Row(
@@ -1416,10 +1405,12 @@ def create_scope_metrics_dashboard(
                 className="text-muted fst-italic small text-center mt-3",
                 children=[
                     html.I(
-                        className="fas fa-chart-line me-1",
+                        className="fas fa-lightbulb me-1",
                         style={"color": "rgb(108, 117, 125)"},
                     ),
-                    "Adaptability Index: Lower values (0.3-0.6) are normal for responsive agile teams. Higher values (0.7+) indicate more predictable scope.",
+                    html.Strong("Agile Context: ", style={"fontWeight": "600"}),
+                    "In agile projects, scope changes are normal and healthy—these metrics help you understand patterns, not problems. ",
+                    "Lower adaptability values (0.3-0.6) are typical for responsive agile teams. Higher values (0.7+) indicate more predictable scope.",
                 ],
             ),
         ]

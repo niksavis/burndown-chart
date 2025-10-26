@@ -81,12 +81,8 @@ class TestDataSourcePersistence:
             save_app_settings(
                 pert_factor=1.2,
                 deadline="2025-12-31",
-                jql_query="project = SAVE",
-                jira_api_endpoint="https://save.jira.com/rest/api/2/search",
-                jira_token="save-token",
-                jira_story_points_field="customfield_10002",
-                jira_cache_max_size=100,
-                jira_max_results=1000,
+                # Note: JIRA config moved to modal (Feature 003)
+                # jql_query, jira_api_endpoint, jira_token, etc. no longer in app_settings
                 last_used_data_source="CSV",
                 active_jql_profile_id="profile-123",
             )
@@ -112,10 +108,8 @@ class TestDataSourcePersistence:
             save_app_settings(
                 pert_factor=1.0,
                 deadline="2025-11-30",
-                jql_query="project = DEFAULT_TEST",
-                jira_api_endpoint="https://default.jira.com/rest/api/2/search",
-                jira_token="default-token",
-                # Note: Not providing new fields
+                # Note: JIRA config moved to modal (Feature 003)
+                # Not providing new fields - should get defaults
             )
 
             # Get the written content

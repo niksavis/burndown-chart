@@ -26,7 +26,7 @@ class TestMobileNavigation:
 
         # Test tab configuration
         tabs_config = get_mobile_tabs_config()
-        assert len(tabs_config) == 4
+        assert len(tabs_config) == 6  # Updated: Now includes Dashboard and Bug Analysis
         assert all("id" in tab for tab in tabs_config)
         assert all("label" in tab for tab in tabs_config)
         assert all("icon" in tab for tab in tabs_config)
@@ -59,7 +59,14 @@ class TestMobileNavigation:
 
         # Test specific tab IDs
         tab_ids = [tab["id"] for tab in tabs_config]
-        expected_ids = ["tab-burndown", "tab-items", "tab-points", "tab-scope-tracking"]
+        expected_ids = [
+            "tab-dashboard",  # Added in US2
+            "tab-burndown",
+            "tab-items",
+            "tab-points",
+            "tab-scope-tracking",
+            "tab-bug-analysis",  # Added in Feature 004
+        ]
         assert set(tab_ids) == set(expected_ids)
 
     def test_mobile_drawer_navigation_structure(self):

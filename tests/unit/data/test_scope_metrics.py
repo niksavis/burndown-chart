@@ -66,13 +66,13 @@ class TestCalculateScopeChangeRate(unittest.TestCase):
         total_completed_points = self.scope_change_data["completed_points"].sum()
 
         # Calculate expected scope change rates
-        actual_baseline_items = self.baseline_items + total_completed_items
-        actual_baseline_points = self.baseline_points + total_completed_points
+        # Updated: Function now uses baseline directly (original total scope)
+        # instead of baseline + completed (which double-counts work)
         expected_items_rate = round(
-            (total_created_items / actual_baseline_items) * 100, 1
+            (total_created_items / self.baseline_items) * 100, 1
         )
         expected_points_rate = round(
-            (total_created_points / actual_baseline_points) * 100, 1
+            (total_created_points / self.baseline_points) * 100, 1
         )
 
         # Calculate expected throughput ratios
@@ -186,8 +186,9 @@ class TestCalculateScopeChangeRate(unittest.TestCase):
         total_completed_items = negative_change_data["completed_items"].sum()
         total_completed_points = negative_change_data["completed_points"].sum()
 
-        actual_baseline_items = self.baseline_items + total_completed_items
-        actual_baseline_points = self.baseline_points + total_completed_points
+        # Updated: Function now uses baseline directly (original total scope)
+        actual_baseline_items = self.baseline_items
+        actual_baseline_points = self.baseline_points
         expected_items_rate = round(
             (total_created_items / actual_baseline_items) * 100, 1
         )

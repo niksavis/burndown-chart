@@ -804,16 +804,20 @@ def _create_recent_activity_section(statistics_df):
     if recent_data.empty:
         return html.Div()
 
-    total_completed = recent_data["completed_items"].sum()
-    avg_weekly = recent_data["completed_items"].mean()
-    total_points = (
-        recent_data["completed_points"].sum()
-        if recent_data["completed_points"].sum() > 0
-        else None
-    )
+    # Calculate metrics for items
+    total_items_completed = recent_data["completed_items"].sum()
+    avg_items_weekly = recent_data["completed_items"].mean()
+    items_sparkline_values = recent_data["completed_items"].tolist()
 
-    # Create mini sparkline for the 4 weeks
-    sparkline_values = recent_data["completed_items"].tolist()
+    # Calculate metrics for points
+    has_points_data = "completed_points" in recent_data.columns
+    total_points_completed = (
+        recent_data["completed_points"].sum() if has_points_data else 0
+    )
+    avg_points_weekly = recent_data["completed_points"].mean() if has_points_data else 0
+    points_sparkline_values = (
+        recent_data["completed_points"].tolist() if has_points_data else [0, 0, 0, 0]
+    )
 
     return html.Div(
         [
@@ -832,6 +836,7 @@ def _create_recent_activity_section(statistics_df):
                 [
                     dbc.CardBody(
                         [
+                            # Items Row
                             dbc.Row(
                                 [
                                     dbc.Col(
@@ -839,7 +844,7 @@ def _create_recent_activity_section(statistics_df):
                                             html.Div(
                                                 [
                                                     html.H3(
-                                                        str(int(total_completed)),
+                                                        str(int(total_items_completed)),
                                                         className="mb-0 text-center",
                                                         style={
                                                             "color": COLOR_PALETTE[
@@ -855,7 +860,7 @@ def _create_recent_activity_section(statistics_df):
                                             )
                                         ],
                                         width=12,
-                                        md=3,
+                                        md=4,
                                         className="text-center mb-3 mb-md-0",
                                     ),
                                     dbc.Col(
@@ -863,45 +868,23 @@ def _create_recent_activity_section(statistics_df):
                                             html.Div(
                                                 [
                                                     html.H4(
-                                                        f"{avg_weekly:.1f}",
-                                                        className="mb-0 text-center",
-                                                        style={"color": "#6c757d"},
-                                                    ),
-                                                    html.P(
-                                                        "Weekly Average",
-                                                        className="text-muted text-center mb-0",
-                                                    ),
-                                                ]
-                                            )
-                                        ],
-                                        width=12,
-                                        md=3,
-                                        className="text-center mb-3 mb-md-0",
-                                    ),
-                                    dbc.Col(
-                                        [
-                                            html.Div(
-                                                [
-                                                    html.H4(
-                                                        f"{total_points:.0f}"
-                                                        if total_points
-                                                        else "N/A",
+                                                        f"{avg_items_weekly:.1f}",
                                                         className="mb-0 text-center",
                                                         style={
                                                             "color": COLOR_PALETTE[
-                                                                "points"
+                                                                "items"
                                                             ]
                                                         },
                                                     ),
                                                     html.P(
-                                                        "Story Points",
+                                                        "Items/Week Avg",
                                                         className="text-muted text-center mb-0",
                                                     ),
                                                 ]
                                             )
                                         ],
                                         width=12,
-                                        md=3,
+                                        md=4,
                                         className="text-center mb-3 mb-md-0",
                                     ),
                                     dbc.Col(
@@ -910,25 +893,105 @@ def _create_recent_activity_section(statistics_df):
                                                 [
                                                     html.Div(
                                                         _create_mini_sparkline(
-                                                            sparkline_values,
+                                                            items_sparkline_values,
                                                             COLOR_PALETTE["items"],
                                                         ),
                                                         className="d-flex justify-content-center mb-1",
                                                     ),
                                                     html.P(
-                                                        "Completion Trend",
+                                                        "Items Trend",
                                                         className="text-muted text-center mb-0 small",
                                                     ),
                                                 ]
                                             )
                                         ],
                                         width=12,
-                                        md=3,
+                                        md=4,
+                                        className="text-center mb-3 mb-md-0",
+                                    ),
+                                ],
+                                className="align-items-center mb-3",
+                            ),
+                            # Divider
+                            html.Hr(className="my-2") if has_points_data else None,
+                            # Points Row (only show if points data exists)
+                            dbc.Row(
+                                [
+                                    dbc.Col(
+                                        [
+                                            html.Div(
+                                                [
+                                                    html.H3(
+                                                        f"{total_points_completed:.0f}",
+                                                        className="mb-0 text-center",
+                                                        style={
+                                                            "color": COLOR_PALETTE[
+                                                                "points"
+                                                            ]
+                                                        },
+                                                    ),
+                                                    html.P(
+                                                        "Points Completed",
+                                                        className="text-muted text-center mb-0",
+                                                    ),
+                                                ]
+                                            )
+                                        ],
+                                        width=12,
+                                        md=4,
+                                        className="text-center mb-3 mb-md-0",
+                                    ),
+                                    dbc.Col(
+                                        [
+                                            html.Div(
+                                                [
+                                                    html.H4(
+                                                        f"{avg_points_weekly:.1f}",
+                                                        className="mb-0 text-center",
+                                                        style={
+                                                            "color": COLOR_PALETTE[
+                                                                "points"
+                                                            ]
+                                                        },
+                                                    ),
+                                                    html.P(
+                                                        "Points/Week Avg",
+                                                        className="text-muted text-center mb-0",
+                                                    ),
+                                                ]
+                                            )
+                                        ],
+                                        width=12,
+                                        md=4,
+                                        className="text-center mb-3 mb-md-0",
+                                    ),
+                                    dbc.Col(
+                                        [
+                                            html.Div(
+                                                [
+                                                    html.Div(
+                                                        _create_mini_sparkline(
+                                                            points_sparkline_values,
+                                                            COLOR_PALETTE["points"],
+                                                        ),
+                                                        className="d-flex justify-content-center mb-1",
+                                                    ),
+                                                    html.P(
+                                                        "Points Trend",
+                                                        className="text-muted text-center mb-0 small",
+                                                    ),
+                                                ]
+                                            )
+                                        ],
+                                        width=12,
+                                        md=4,
                                         className="text-center",
                                     ),
                                 ],
                                 className="align-items-center",
                             )
+                            if has_points_data
+                            else None,
                         ]
                     )
                 ],
