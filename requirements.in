@@ -25,9 +25,9 @@ networkx>=3.0
 # Testing dependencies
 pytest==8.3.5
 pytest-cov==6.1.1
+playwright>=1.40.0
 
 # Optional: Additional development and testing tools
 # Uncomment these lines when you need additional tools:
-# playwright>=1.40.0
 # pytest-playwright>=0.4.0
 # pip-tools==7.4.1
