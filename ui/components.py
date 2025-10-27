@@ -1022,7 +1022,7 @@ def _create_forecast_card(
                             "Completion Date",
                             create_info_tooltip(
                                 f"completion-date-{metric_type}",
-                                "Projected completion date based on historical velocity and PERT analysis.",
+                                "Projected completion date based on historical velocity and confidence window analysis.",
                             ),
                         ],
                         className="text-muted text-center d-flex align-items-center justify-content-center",
@@ -1043,11 +1043,11 @@ def _create_forecast_card(
             ),
             _create_forecast_row(
                 [
-                    "PERT",
+                    "Confidence Window",
                     create_formula_tooltip(
                         f"pert-forecast-{metric_type}",
                         FORECAST_HELP_TEXTS["expected_forecast"],
-                        "PERT = (O + 4×M + P) / 6",
+                        "Confidence Window = (O + 4×M + P) / 6",
                         [
                             "O = Best case scenario (optimistic)",
                             "M = Most likely scenario (modal)",
@@ -1200,7 +1200,7 @@ def _create_completion_forecast_section(
                     [
                         create_icon_text(
                             "fas fa-chart-line",
-                            "PERT three-point estimation (optimistic + most likely + pessimistic)",
+                            "Confidence Window three-point estimation (optimistic + most likely + pessimistic)",
                             size="xs",
                         ),
                         create_info_tooltip(
@@ -2256,6 +2256,7 @@ def create_parameter_bar_collapsed(
     remaining_items: int | None = None,
     remaining_points: int | None = None,
     show_points: bool = True,
+    data_points: int | None = None,
 ) -> html.Div:
     """
     Create collapsed parameter bar showing key values and expand button.
@@ -2327,11 +2328,26 @@ def create_parameter_bar_collapsed(
                                     html.Span(
                                         [
                                             html.I(className="fas fa-sliders-h me-1"),
-                                            f"PERT: {pert_factor}",
+                                            f"Window: {pert_factor}w",
                                         ],
                                         className="param-summary-item me-3",
-                                        title=f"PERT Factor: {pert_factor}",
+                                        title=f"Confidence Window: {pert_factor} weeks (samples best/worst case from your velocity history)",
                                     ),
+                                    html.Span(
+                                        [
+                                            html.I(className="fas fa-chart-line me-1"),
+                                            f"Data: {data_points}w",
+                                        ],
+                                        className="param-summary-item me-3",
+                                        title=f"Data Points: {data_points} weeks of historical data used for forecasting",
+                                        style={
+                                            "display": "inline"
+                                            if data_points
+                                            else "none"
+                                        },
+                                    )
+                                    if data_points
+                                    else html.Span(),
                                     html.Span(
                                         [
                                             html.I(className="fas fa-calendar me-1"),
@@ -2703,6 +2719,7 @@ def create_settings_tab_content(
 def create_parameter_panel_expanded(
     settings: dict,
     id_suffix: str = "",
+    statistics: Optional[list] = None,
 ) -> html.Div:
     """
     Create expanded parameter panel section with all input fields.
@@ -2711,12 +2728,15 @@ def create_parameter_panel_expanded(
     When expanded, it displays ALL forecast-critical parameter input fields matching
     the functionality of the old Input Parameters card with improved UX using sliders.
 
+    User Story 6: Contextual Help System - Adds help icons to parameter inputs.
+
     Args:
         settings: Dictionary containing current parameter values (pert_factor, deadline, etc.)
         id_suffix: Suffix for generating unique IDs
+        statistics: Optional list of statistics data points for calculating max data points
 
     Returns:
-        html.Div: Expanded parameter panel with complete input fields
+        html.Div: Expanded parameter panel with complete input fields and help tooltips
 
     Example:
         >>> settings = {"pert_factor": 3, "deadline": "2025-12-31", "show_milestone": True}
@@ -2724,6 +2744,7 @@ def create_parameter_panel_expanded(
     """
     from datetime import datetime
     from ui.style_constants import DESIGN_TOKENS
+    from ui.help_system import create_parameter_tooltip
 
     panel_id = f"parameter-panel-expanded{'-' + id_suffix if id_suffix else ''}"
 
@@ -2737,6 +2758,29 @@ def create_parameter_panel_expanded(
     estimated_points = settings.get("estimated_points", 0)
     show_points = settings.get("show_points", False)
     data_points_count = settings.get("data_points_count", 10)
+
+    # Calculate max data points from statistics if available
+    max_data_points = 52  # Default max
+    if statistics and len(statistics) > 0:
+        max_data_points = len(statistics)
+
+    # Calculate dynamic marks for Data Points slider
+    # 5 points: min (4), 1/4, 1/2 (middle), 3/4, max
+    import math
+
+    min_data_points = 4
+    range_size = max_data_points - min_data_points
+    quarter_point = math.ceil(min_data_points + range_size / 4)
+    middle_point = math.ceil(min_data_points + range_size / 2)
+    three_quarter_point = math.ceil(min_data_points + 3 * range_size / 4)
+
+    data_points_marks: dict[int, dict[str, str]] = {
+        min_data_points: {"label": str(min_data_points)},
+        quarter_point: {"label": str(quarter_point)},
+        middle_point: {"label": str(middle_point)},
+        three_quarter_point: {"label": str(three_quarter_point)},
+        max_data_points: {"label": str(max_data_points)},
+    }
 
     return html.Div(
         [
@@ -2763,6 +2807,12 @@ def create_parameter_panel_expanded(
                                         [
                                             "Deadline",
                                             html.Span(" *", className="text-danger"),
+                                            html.Span(
+                                                create_parameter_tooltip(
+                                                    "deadline", "deadline-help"
+                                                ),
+                                                style={"marginLeft": "0.25rem"},
+                                            ),
                                         ],
                                         className="form-label fw-medium",
                                         style={"fontSize": "0.875rem"},
@@ -2819,21 +2869,41 @@ def create_parameter_panel_expanded(
                                 lg=3,
                                 className="mb-3",
                             ),
-                            # PERT Factor Slider
+                            # Confidence Window Slider (formerly PERT Factor)
                             dbc.Col(
                                 [
                                     html.Label(
-                                        "PERT Factor",
+                                        [
+                                            "Confidence Window",
+                                            html.Span(
+                                                create_parameter_tooltip(
+                                                    "pert_factor", "pert-factor-help"
+                                                ),
+                                                style={"marginLeft": "0.25rem"},
+                                            ),
+                                        ],
                                         className="form-label fw-medium",
                                         style={"fontSize": "0.875rem"},
                                     ),
                                     dcc.Slider(
                                         id="pert-factor-slider",
-                                        min=1,
-                                        max=15,
+                                        min=3,
+                                        max=12,
                                         value=pert_factor,
                                         marks={
-                                            i: str(i) for i in [1, 3, 5, 8, 10, 12, 15]
+                                            3: {
+                                                "label": "3",
+                                                "style": {"color": "#ff6b6b"},
+                                            },
+                                            6: {
+                                                "label": "6 (rec)",
+                                                "style": {"color": "#51cf66"},
+                                            },
+                                            9: {"label": "9"},
+                                            12: {
+                                                "label": "12",
+                                                "style": {"color": "#339af0"},
+                                            },
                                         },
                                         step=1,
                                         tooltip={
@@ -2841,12 +2911,6 @@ def create_parameter_panel_expanded(
                                             "always_visible": False,
                                         },
                                         className="mt-2",
-                                    ),
-                                    html.Small(
-                                        id="pert-factor-info",
-                                        children=f"Current: {pert_factor}",
-                                        className="text-muted d-block text-center mt-1",
-                                        style={"fontSize": "0.75rem"},
                                     ),
                                 ],
                                 xs=12,
@@ -2858,28 +2922,30 @@ def create_parameter_panel_expanded(
                             dbc.Col(
                                 [
                                     html.Label(
-                                        "Data Points",
+                                        [
+                                            "Data Points",
+                                            html.Span(
+                                                create_parameter_tooltip(
+                                                    "data_points", "data-points-help"
+                                                ),
+                                                style={"marginLeft": "0.25rem"},
+                                            ),
+                                        ],
                                         className="form-label fw-medium",
                                         style={"fontSize": "0.875rem"},
                                     ),
                                     dcc.Slider(
                                         id="data-points-input",
-                                        min=pert_factor * 2,
-                                        max=52,
+                                        min=4,  # Fixed minimum of 4 weeks for meaningful trend analysis
+                                        max=max_data_points,
                                         value=data_points_count,
-                                        marks=None,
+                                        marks=data_points_marks,  # type: ignore[arg-type]
                                         step=1,
                                         tooltip={
                                             "placement": "bottom",
                                             "always_visible": False,
                                         },
                                         className="mt-2",
-                                    ),
-                                    html.Small(
-                                        id="data-points-info",
-                                        children=f"Using: {data_points_count} weeks",
-                                        className="text-muted d-block text-center mt-1",
-                                        style={"fontSize": "0.75rem"},
                                     ),
                                 ],
                                 xs=12,
@@ -2942,6 +3008,13 @@ def create_parameter_panel_expanded(
                                                 " (optional)",
                                                 className="text-muted small",
                                             ),
+                                            html.Span(
+                                                create_parameter_tooltip(
+                                                    "completed_items",
+                                                    "estimated-items-help",
+                                                ),
+                                                style={"marginLeft": "0.25rem"},
+                                            ),
                                         ],
                                         className="form-label fw-medium",
                                         style={"fontSize": "0.875rem"},
@@ -2970,7 +3043,16 @@ def create_parameter_panel_expanded(
                             dbc.Col(
                                 [
                                     html.Label(
-                                        "Remaining Items",
+                                        [
+                                            "Remaining Items",
+                                            html.Span(
+                                                create_parameter_tooltip(
+                                                    "total_items",
+                                                    "remaining-items-help",
+                                                ),
+                                                style={"marginLeft": "0.25rem"},
+                                            ),
+                                        ],
                                         className="form-label fw-medium",
                                         style={"fontSize": "0.875rem"},
                                     ),
@@ -3001,6 +3083,13 @@ def create_parameter_panel_expanded(
                                             html.Span(
                                                 " (optional)",
                                                 className="text-muted small",
+                                            ),
+                                            html.Span(
+                                                create_parameter_tooltip(
+                                                    "completed_points",
+                                                    "estimated-points-help",
+                                                ),
+                                                style={"marginLeft": "0.25rem"},
                                             ),
                                         ],
                                         className="form-label fw-medium",
@@ -3079,6 +3168,7 @@ def create_parameter_panel(
     settings: dict,
     is_open: bool = False,
     id_suffix: str = "",
+    statistics: Optional[list] = None,
 ) -> html.Div:
     """
     Create complete collapsible parameter panel combining collapsed bar and expanded section.
@@ -3091,6 +3181,7 @@ def create_parameter_panel(
         settings: Dictionary containing current parameter values
         is_open: Whether panel should start in expanded state
         id_suffix: Suffix for generating unique IDs
+        statistics: Optional list of statistics data points for calculating max data points
 
     Returns:
         html.Div: Complete parameter panel with collapse functionality
@@ -3107,6 +3198,7 @@ def create_parameter_panel(
     deadline = settings.get("deadline", "2025-12-31")
     total_items = settings.get("total_items", 0)
     total_points = settings.get("total_points", 0)
+    data_points = settings.get("data_points_count")
 
     return html.Div(
         [
@@ -3117,10 +3209,13 @@ def create_parameter_panel(
                 scope_items=total_items,
                 scope_points=total_points,
                 id_suffix=id_suffix,
+                data_points=data_points,
             ),
             # Expanded panel (toggleable)
             dbc.Collapse(
-                create_parameter_panel_expanded(settings, id_suffix=id_suffix),
+                create_parameter_panel_expanded(
+                    settings, id_suffix=id_suffix, statistics=statistics
+                ),
                 id=collapse_id,
                 is_open=is_open,
             ),
@@ -3175,7 +3270,9 @@ def create_mobile_parameter_fab() -> html.Div:
     )
 
 
-def create_mobile_parameter_bottom_sheet(settings: dict) -> dbc.Offcanvas:
+def create_mobile_parameter_bottom_sheet(
+    settings: dict, statistics: Optional[list] = None
+) -> dbc.Offcanvas:
     """
     Create mobile-optimized parameter bottom sheet using dbc.Offcanvas.
 
@@ -3185,6 +3282,7 @@ def create_mobile_parameter_bottom_sheet(settings: dict) -> dbc.Offcanvas:
 
     Args:
         settings: Dictionary containing current parameter values
+        statistics: Optional list of statistics data points for calculating max data points
 
     Returns:
         dbc.Offcanvas: Mobile parameter bottom sheet component
@@ -3206,6 +3304,29 @@ def create_mobile_parameter_bottom_sheet(settings: dict) -> dbc.Offcanvas:
     estimated_points = settings.get("estimated_points", 0)
     show_points = settings.get("show_points", False)
     data_points_count = settings.get("data_points_count", 10)
+
+    # Calculate max data points from statistics if available
+    max_data_points = 52  # Default max
+    if statistics and len(statistics) > 0:
+        max_data_points = len(statistics)
+
+    # Calculate dynamic marks for Data Points slider
+    # 5 points: min (4), 1/4, 1/2 (middle), 3/4, max
+    import math
+
+    min_data_points = 4
+    range_size = max_data_points - min_data_points
+    quarter_point = math.ceil(min_data_points + range_size / 4)
+    middle_point = math.ceil(min_data_points + range_size / 2)
+    three_quarter_point = math.ceil(min_data_points + 3 * range_size / 4)
+
+    data_points_marks: dict[int, dict[str, str]] = {
+        min_data_points: {"label": str(min_data_points)},
+        quarter_point: {"label": str(quarter_point)},
+        middle_point: {"label": str(middle_point)},
+        three_quarter_point: {"label": str(three_quarter_point)},
+        max_data_points: {"label": str(max_data_points)},
+    }
 
     return dbc.Offcanvas(
         [
@@ -3282,7 +3403,7 @@ def create_mobile_parameter_bottom_sheet(settings: dict) -> dbc.Offcanvas:
                         ],
                         className="mb-4 pb-3 border-bottom",
                     ),
-                    # PERT Factor Section
+                    # Confidence Window Section (formerly PERT Factor)
                     html.Div(
                         [
                             html.H6(
@@ -3292,21 +3413,24 @@ def create_mobile_parameter_bottom_sheet(settings: dict) -> dbc.Offcanvas:
                                 ],
                                 className="mb-3",
                             ),
-                            # PERT Factor Slider
+                            # Confidence Window Slider
                             html.Div(
                                 [
                                     html.Label(
-                                        "PERT Factor",
+                                        "Confidence Window",
                                         className="form-label fw-medium",
                                         style={"fontSize": "0.875rem"},
                                     ),
                                     dcc.Slider(
                                         id="mobile-pert-factor-slider",
-                                        min=1,
-                                        max=15,
+                                        min=3,
+                                        max=12,
                                         value=pert_factor,
                                         marks={
-                                            i: str(i) for i in [1, 3, 5, 8, 10, 12, 15]
+                                            3: {"label": "3"},
+                                            6: {"label": "6 (rec)"},
+                                            9: {"label": "9"},
+                                            12: {"label": "12"},
                                         },
                                         step=1,
                                         tooltip={
@@ -3314,11 +3438,6 @@ def create_mobile_parameter_bottom_sheet(settings: dict) -> dbc.Offcanvas:
                                             "always_visible": False,
                                         },
                                         className="mb-2",
-                                    ),
-                                    html.Small(
-                                        f"Current: {pert_factor}",
-                                        id="mobile-pert-factor-info",
-                                        className="text-muted d-block text-center",
                                     ),
                                 ],
                                 className="mb-3",
@@ -3333,21 +3452,16 @@ def create_mobile_parameter_bottom_sheet(settings: dict) -> dbc.Offcanvas:
                                     ),
                                     dcc.Slider(
                                         id="mobile-data-points-input",
-                                        min=pert_factor * 2,
-                                        max=52,
+                                        min=4,  # Fixed minimum of 4 weeks for meaningful trend analysis
+                                        max=max_data_points,
                                         value=data_points_count,
-                                        marks=None,
+                                        marks=data_points_marks,  # type: ignore[arg-type]
                                         step=1,
                                         tooltip={
                                             "placement": "top",
                                             "always_visible": False,
                                         },
                                         className="mb-2",
-                                    ),
-                                    html.Small(
-                                        f"Using: {data_points_count} weeks",
-                                        id="mobile-data-points-info",
-                                        className="text-muted d-block text-center",
                                     ),
                                 ],
                                 className="mb-3",

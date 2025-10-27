@@ -168,6 +168,17 @@ def create_app_layout(settings, statistics, is_sample_data):
                 data={"is_open": False, "user_preference": False},
                 storage_type="local",  # Persist across sessions
             ),
+            # Parameter & Settings Panels - Sticky at top for app-like feel
+            # MUST be first visible element for sticky positioning to work
+            html.Div(
+                [
+                    create_parameter_panel(
+                        settings, is_open=False, statistics=statistics
+                    ),
+                    create_settings_panel(is_open=False),
+                ],
+                className="param-panel-sticky",
+            ),
             # Add an empty div to hold the forecast-graph (will be populated by callback)
             html.Div(
                 dcc.Graph(id="forecast-graph", style={"display": "none"}),
@@ -200,13 +211,6 @@ def create_app_layout(settings, statistics, is_sample_data):
                 ],
                 id="sample-data-banner",
             ),
-            # Parameter Panel (User Story 1) - Sticky at top for app-like feel
-            html.Div(
-                create_parameter_panel(settings, is_open=False),
-                className="param-panel-sticky",
-            ),
-            # Settings Panel - Collapsible panel for JIRA integration and import/export
-            create_settings_panel(is_open=False),
             # Tab Navigation and Charts Row - using full width template
             create_full_width_layout(
                 dbc.Card(
@@ -284,5 +288,5 @@ def create_app_layout(settings, statistics, is_sample_data):
             ),
         ],
         fluid=True,
-        className="px-3 py-3",  # Add consistent container padding
+        className="px-3 pb-3",  # Remove top padding to allow sticky positioning
     )

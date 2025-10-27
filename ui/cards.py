@@ -66,7 +66,7 @@ StyleCellConditional = Dict[str, Any]
 
 
 def create_info_card(
-    title: str,
+    title: str | html.Span,  # Accept both string and Dash component
     value: Any,
     icon: str = "",
     subtitle: str = "",
@@ -83,7 +83,7 @@ def create_info_card(
     in specs/006-ux-ui-redesign/contracts/component-builders.md
 
     Args:
-        title: Card title/label (required)
+        title: Card title/label (required) - can be string or Dash component for rich formatting
         value: Primary value to display (required)
         icon: Optional Font Awesome icon name (without "fa-" prefix)
         subtitle: Optional subtitle/description
@@ -113,7 +113,9 @@ def create_info_card(
         - Footer: optional action link (if clickable)
     """
     # Validation
-    if not title or str(title).strip() == "":
+    # For component titles, we can't easily validate - just check for None/empty
+    title_str = str(title) if isinstance(title, str) else "component-title"
+    if not title or (isinstance(title, str) and title.strip() == ""):
         raise ValueError("Title is required and cannot be empty")
 
     if value is None or str(value).strip() == "":
@@ -128,8 +130,8 @@ def create_info_card(
     if clickable and (not click_id or click_id.strip() == ""):
         raise ValueError("click_id is required when clickable=True")
 
-    # Generate card ID
-    title_slug = re.sub(r"[^a-z0-9]+", "-", str(title).lower()).strip("-")
+    # Generate card ID - use title_str for slugification
+    title_slug = re.sub(r"[^a-z0-9]+", "-", title_str.lower()).strip("-")
     card_id = f"card-{title_slug}"
     if click_id:
         card_id += f"-{click_id}"
@@ -157,7 +159,13 @@ def create_info_card(
     header_content = []
     if icon_element:
         header_content.append(icon_element)
-    header_content.append(html.Span(title, style={"fontWeight": "600"}))
+
+    # Handle both string and component titles
+    if isinstance(title, str):
+        header_content.append(html.Span(title, style={"fontWeight": "600"}))
+    else:
+        # Title is already a component (e.g., with help icon)
+        header_content.append(title)
 
     card_header = dbc.CardHeader(
         header_content,
@@ -264,6 +272,8 @@ def create_dashboard_metrics_card(
     It creates metric cards specifically designed for the Dashboard tab with
     appropriate icons, colors, and formatting for each metric type.
 
+    User Story 6: Contextual Help System - Adds help icons to metric cards.
+
     Args:
         metrics: DashboardMetrics dictionary from calculate_dashboard_metrics()
         card_type: Type of metric card - "forecast", "velocity", "remaining", "pert"
@@ -271,7 +281,7 @@ def create_dashboard_metrics_card(
         **kwargs: Additional props passed to dbc.Card
 
     Returns:
-        dbc.Card: Formatted dashboard metrics card
+        dbc.Card: Formatted dashboard metrics card with help icon
 
     Raises:
         ValueError: If card_type is invalid
@@ -286,6 +296,9 @@ def create_dashboard_metrics_card(
         - "remaining": Remaining work (items/points)
         - "pert": PERT timeline estimates
     """
+    # Import help system function for tooltips
+    from ui.help_system import create_dashboard_metric_tooltip
+
     # Validate card type
     valid_types = ["forecast", "velocity", "remaining", "pert"]
     if card_type not in valid_types:
@@ -294,6 +307,7 @@ def create_dashboard_metrics_card(
         )
 
     # Configure card based on type
+    # Map card_type to help content key
     card_configs = {
         "forecast": {
             "title": "Completion Forecast",
@@ -302,6 +316,7 @@ def create_dashboard_metrics_card(
             "value_field": "days_to_completion",
             "value_suffix": " days",
             "subtitle_template": "{completion_percentage}% complete • {completion_confidence}% confidence",
+            "help_key": "completion_forecast",
         },
         "velocity": {
             "title": "Current Velocity",
@@ -310,6 +325,7 @@ def create_dashboard_metrics_card(
             "value_field": "current_velocity_items",
             "value_suffix": " items/week",
             "subtitle_template": "{current_velocity_points} pts/week • {velocity_trend}",
+            "help_key": "velocity_trend",
         },
         "remaining": {
             "title": "Remaining Work",
@@ -318,6 +334,7 @@ def create_dashboard_metrics_card(
             "value_field": "remaining_items",
             "value_suffix": " items",
             "subtitle_template": "{remaining_points} story points remaining",
+            "help_key": "remaining_work",
         },
         "pert": {
             "title": "Timeline Range",
@@ -326,6 +343,7 @@ def create_dashboard_metrics_card(
             "value_field": "days_to_deadline",
             "value_suffix": " days to deadline",
             "subtitle_template": "Forecast: {days_to_completion} days",
+            "help_key": "pert_expected",
         },
     }
 
@@ -348,6 +366,18 @@ def create_dashboard_metrics_card(
     except (KeyError, ValueError):
         subtitle = ""
 
+    # Create title with help icon
+    title_with_help = html.Span(
+        [
+            html.Span(config["title"]),
+            html.Span(
+                create_dashboard_metric_tooltip(config["help_key"]),
+                style={"marginLeft": "0.5rem"},
+            ),
+        ],
+        style={"display": "flex", "alignItems": "center"},
+    )
+
     # Extract 'id' from kwargs to avoid conflict with create_info_card's auto-generated ID
     # We'll let create_info_card generate the ID based on the title
     # The dashboard callback uses container IDs, not the card IDs directly
@@ -355,7 +385,7 @@ def create_dashboard_metrics_card(
 
     # Create card using create_info_card
     return create_info_card(
-        title=config["title"],
+        title=title_with_help,
         value=value,
         icon=config["icon"],
         subtitle=subtitle,

@@ -507,12 +507,17 @@ def register(app):
                 )
 
                 # Extract scope values from scope_data to update input fields
-                # These values represent the total project scope calculated from JIRA
-                total_items = scope_data.get("total_items", 0) if scope_data else 0
+                # CRITICAL: Use "remaining_*" fields, NOT "total_*" fields
+                # - remaining_items = open/incomplete items (what we want to show)
+                # - total_items = ALL items including completed (wrong for parameter panel)
+                total_items = scope_data.get("remaining_items", 0) if scope_data else 0
                 estimated_items = (
                     scope_data.get("estimated_items", 0) if scope_data else 0
                 )
-                total_points = scope_data.get("total_points", 0) if scope_data else 0
+                # Use remaining_total_points (includes extrapolation) not total_points
+                total_points = (
+                    scope_data.get("remaining_total_points", 0) if scope_data else 0
+                )
                 estimated_points = (
                     scope_data.get("estimated_points", 0) if scope_data else 0
                 )
@@ -521,8 +526,8 @@ def register(app):
                 total_points_display = f"{total_points:.0f}"
 
                 logger.info(
-                    f"Scope calculated from JIRA: total_items={total_items}, "
-                    f"estimated_items={estimated_items}, total_points={total_points}, "
+                    f"Scope calculated from JIRA: total_items (remaining)={total_items}, "
+                    f"estimated_items={estimated_items}, total_points (remaining)={total_points}, "
                     f"estimated_points={estimated_points}"
                 )
 
@@ -1977,13 +1982,20 @@ def register(app):
             ),  # FIXED: use correct component and property
             Input("estimated-items-input", "value"),
             Input("estimated-points-input", "value"),
+            Input("data-points-input", "value"),  # Add data points input
             Input("current-settings", "modified_timestamp"),  # Add to get show_points
         ],
         [State("current-settings", "data")],
         prevent_initial_call=False,  # Update on initial load
     )
     def update_parameter_summary(
-        pert_factor, deadline, scope_items, scope_points, settings_ts, settings
+        pert_factor,
+        deadline,
+        scope_items,
+        scope_points,
+        data_points,
+        settings_ts,
+        settings,
     ):
         """
         Update parameter summary in collapsed bar when values change.
@@ -2035,11 +2047,27 @@ def register(app):
                                 html.Span(
                                     [
                                         html.I(className="fas fa-sliders-h me-1"),
-                                        f"PERT: {pert_factor}",
+                                        f"Window: {pert_factor}w",
                                     ],
                                     className="param-summary-item me-3",
-                                    title=f"PERT Factor: {pert_factor}",
+                                    title=f"Confidence Window: {pert_factor} weeks (samples best/worst case from your velocity history)",
                                 ),
+                            ]
+                            + (
+                                [
+                                    html.Span(
+                                        [
+                                            html.I(className="fas fa-chart-line me-1"),
+                                            f"Data: {data_points}w",
+                                        ],
+                                        className="param-summary-item me-3",
+                                        title=f"Data Points: {data_points} weeks of historical data used for forecasting",
+                                    ),
+                                ]
+                                if data_points
+                                else []
+                            )
+                            + [
                                 html.Span(
                                     [
                                         html.I(className="fas fa-calendar me-1"),
@@ -2061,11 +2089,7 @@ def register(app):
                                             className="text-muted d-none d-md-inline me-1",
                                             style={"fontSize": "0.85em"},
                                         ),
-                                        f"{(remaining_items if remaining_items is not None else scope_items):,}",
-                                        html.Span(
-                                            " items",
-                                            className="d-none d-sm-inline",
-                                        ),
+                                        f"{(remaining_items if remaining_items is not None else scope_items):,} items",
                                     ],
                                     className="param-summary-item me-3",
                                     title=f"{'Remaining' if remaining_items is not None else 'Scope'}: {(remaining_items if remaining_items is not None else scope_items):,} items",
@@ -2157,3 +2181,54 @@ def register(app):
             ],
             className="g-2",
         )
+
+    # Callback to update Data Points slider marks dynamically when statistics change
+    @app.callback(
+        [
+            Output("data-points-input", "max"),
+            Output("data-points-input", "marks"),
+        ],
+        [Input("current-statistics", "data")],
+        prevent_initial_call=False,
+    )
+    def update_data_points_slider_marks(statistics):
+        """
+        Update Data Points slider max and marks when statistics data changes.
+
+        This ensures the slider reflects the current data size after fetching
+        new data from JIRA or importing data.
+
+        Args:
+            statistics: List of statistics data points
+
+        Returns:
+            Tuple: (max_value, marks_dict) for the data points slider
+        """
+        import math
+
+        # Calculate max data points from statistics
+        max_data_points = 52  # Default max
+        if statistics and len(statistics) > 0:
+            max_data_points = len(statistics)
+
+        # Calculate dynamic marks for Data Points slider
+        # 5 points: min (4), 1/4, 1/2 (middle), 3/4, max
+        min_data_points = 4
+        range_size = max_data_points - min_data_points
+        quarter_point = math.ceil(min_data_points + range_size / 4)
+        middle_point = math.ceil(min_data_points + range_size / 2)
+        three_quarter_point = math.ceil(min_data_points + 3 * range_size / 4)
+
+        data_points_marks = {
+            min_data_points: {"label": str(min_data_points)},
+            quarter_point: {"label": str(quarter_point)},
+            middle_point: {"label": str(middle_point)},
+            three_quarter_point: {"label": str(three_quarter_point)},
+            max_data_points: {"label": str(max_data_points)},
+        }
+
+        logger.info(
+            f"Data Points slider updated: max={max_data_points}, marks={list(data_points_marks.keys())}"
+        )
+
+        return max_data_points, data_points_marks

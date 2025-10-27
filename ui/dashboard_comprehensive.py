@@ -24,6 +24,7 @@ from datetime import datetime, timedelta
 
 
 from ui.style_constants import COLOR_PALETTE
+from ui.tooltip_utils import create_info_tooltip
 
 
 #######################################################################
@@ -319,16 +320,52 @@ def _create_executive_summary(statistics_df, settings, forecast_data):
         _safe_divide(completed_points, total_points) * 100 if total_points > 0 else 0
     )
 
-    # Calculate project health score
+    # Calculate project health score with DYNAMIC metrics from filtered data
     velocity_cv = forecast_data.get("velocity_cv", 0)
     schedule_variance = forecast_data.get("schedule_variance_days", 0)
+
+    # Calculate trend direction from filtered data
+    trend_direction = "stable"
+    recent_velocity_change = 0
+
+    if not statistics_df.empty and len(statistics_df) >= 6:
+        # Split data into older and recent halves
+        mid_point = len(statistics_df) // 2
+        older_half = statistics_df.iloc[:mid_point]
+        recent_half = statistics_df.iloc[mid_point:]
+
+        # Calculate velocity for each half (items per week)
+        if len(older_half) > 0 and len(recent_half) > 0:
+            older_weeks = max(1, len(older_half))
+            recent_weeks = max(1, len(recent_half))
+
+            older_velocity = older_half["completed_items"].sum() / older_weeks
+            recent_velocity = recent_half["completed_items"].sum() / recent_weeks
+
+            if older_velocity > 0:
+                recent_velocity_change = (
+                    (recent_velocity - older_velocity) / older_velocity
+                ) * 100
+
+                # Determine trend direction (>10% change is significant)
+                if recent_velocity_change > 10:
+                    trend_direction = "improving"
+                elif recent_velocity_change < -10:
+                    trend_direction = "declining"
+
+    # Calculate scope change rate from filtered data
+    scope_change_rate = 0
+    if not statistics_df.empty and "created_items" in statistics_df.columns:
+        total_created = statistics_df["created_items"].sum()
+        if total_items > 0:
+            scope_change_rate = (total_created / total_items) * 100
 
     health_metrics = {
         "velocity_cv": velocity_cv,
         "schedule_variance_days": schedule_variance,
-        "scope_change_rate": 0,  # Will be calculated if scope data available
-        "trend_direction": "stable",
-        "recent_velocity_change": 0,
+        "scope_change_rate": scope_change_rate,
+        "trend_direction": trend_direction,
+        "recent_velocity_change": recent_velocity_change,
     }
 
     health_score = _calculate_project_health_score(health_metrics)
@@ -493,19 +530,31 @@ def _create_executive_summary(statistics_df, settings, forecast_data):
 
 
 def _create_throughput_section(statistics_df, forecast_data):
-    """Create throughput analytics section."""
+    """Create throughput analytics section.
+
+    Note: statistics_df is already filtered by data_points_count in the callback,
+    so we use the entire dataframe for calculations.
+    """
     if statistics_df.empty:
         return html.Div()
 
-    # Calculate throughput metrics
-    recent_data = statistics_df.tail(10)
-    avg_items = recent_data["completed_items"].mean()
-    avg_points = recent_data["completed_points"].mean()
+    # Use ALL the filtered data (already filtered by data_points_count in callback)
+    # Calculate throughput metrics from the entire filtered dataset
+    avg_items = statistics_df["completed_items"].mean()
+    avg_points = statistics_df["completed_points"].mean()
 
-    # Calculate trends
+    # Calculate trends by comparing older vs recent halves of filtered data
+    items_trend = None
+    points_trend = None
+
     if len(statistics_df) >= 8:
-        older_items = statistics_df.tail(8).head(4)["completed_items"].mean()
-        recent_items = statistics_df.tail(4)["completed_items"].mean()
+        # Split into older and recent halves
+        mid_point = len(statistics_df) // 2
+        older_half = statistics_df.iloc[:mid_point]
+        recent_half = statistics_df.iloc[mid_point:]
+
+        older_items = older_half["completed_items"].mean()
+        recent_items = recent_half["completed_items"].mean()
         items_trend = {
             "direction": "up"
             if recent_items > older_items
@@ -517,8 +566,8 @@ def _create_throughput_section(statistics_df, forecast_data):
             else 0,
         }
 
-        older_points = statistics_df.tail(8).head(4)["completed_points"].mean()
-        recent_points = statistics_df.tail(4)["completed_points"].mean()
+        older_points = older_half["completed_points"].mean()
+        recent_points = recent_half["completed_points"].mean()
         points_trend = {
             "direction": "up"
             if recent_points > older_points
@@ -556,7 +605,7 @@ def _create_throughput_section(statistics_df, forecast_data):
                                 "fa-tasks",
                                 COLOR_PALETTE["items"],
                                 trend=items_trend,
-                                sparkline_data=list(recent_data["completed_items"]),
+                                sparkline_data=list(statistics_df["completed_items"]),
                             )
                         ],
                         width=12,
@@ -573,7 +622,7 @@ def _create_throughput_section(statistics_df, forecast_data):
                                 "fa-chart-bar",
                                 COLOR_PALETTE["points"],
                                 trend=points_trend,
-                                sparkline_data=list(recent_data["completed_points"]),
+                                sparkline_data=list(statistics_df["completed_points"]),
                             )
                         ],
                         width=12,
@@ -630,10 +679,10 @@ def _create_forecast_section(pert_data, confidence_data):
     ).strftime("%b %d, %Y")
     optimistic_date = (
         current_date + timedelta(days=confidence_data.get("ci_50", 0))
-    ).strftime("%b %d")
+    ).strftime("%b %d, %Y")
     pessimistic_date = (
         current_date + timedelta(days=confidence_data.get("ci_95", 0))
-    ).strftime("%b %d")
+    ).strftime("%b %d, %Y")
 
     return html.Div(
         [
@@ -654,32 +703,44 @@ def _create_forecast_section(pert_data, confidence_data):
                                 [
                                     dbc.CardBody(
                                         [
+                                            html.I(
+                                                className="fas fa-calendar-check",
+                                                style={
+                                                    "color": "#6610f2",
+                                                    "fontSize": "1.2rem",
+                                                },
+                                            ),
                                             html.Div(
                                                 [
-                                                    html.I(
-                                                        className="fas fa-calendar-check",
+                                                    html.Span(
+                                                        "Expected Completion",
                                                         style={
-                                                            "color": "#6610f2",
-                                                            "fontSize": "2rem",
+                                                            "fontSize": "0.9rem",
+                                                            "fontWeight": "600",
                                                         },
                                                     ),
-                                                    html.H4(
-                                                        pert_date,
-                                                        className="mt-2 mb-1",
-                                                        style={"color": "#6610f2"},
-                                                    ),
-                                                    html.P(
-                                                        "PERT Forecast",
-                                                        className="mb-2 text-muted",
-                                                    ),
-                                                    html.Small(
-                                                        "Most likely completion date",
-                                                        className="text-muted",
+                                                    create_info_tooltip(
+                                                        "expected-completion-info",
+                                                        "Calculated using PERT three-point estimation: (Optimistic + 4×Most_Likely + Pessimistic) ÷ 6. "
+                                                        "This weighted average emphasizes the most likely scenario (4x weight) while accounting for best/worst cases from your historical velocity data.",
                                                     ),
                                                 ],
-                                                className="text-center",
-                                            )
-                                        ]
+                                                className="mb-1 mt-2 d-flex align-items-center gap-1",
+                                            ),
+                                            html.Div(
+                                                pert_date,
+                                                className="h4 mb-0",
+                                                style={
+                                                    "color": "#6610f2",
+                                                    "fontWeight": "bold",
+                                                },
+                                            ),
+                                            html.Small(
+                                                "Weighted estimate based on historical velocity",
+                                                className="text-muted",
+                                            ),
+                                        ],
+                                        className="p-3",
                                     )
                                 ],
                                 className="h-100 shadow-sm border-0",
@@ -695,42 +756,81 @@ def _create_forecast_section(pert_data, confidence_data):
                                 [
                                     dbc.CardBody(
                                         [
-                                            html.H6(
-                                                "Confidence Intervals", className="mb-3"
+                                            html.I(
+                                                className="fas fa-chart-line",
+                                                style={
+                                                    "color": "#17a2b8",
+                                                    "fontSize": "1.2rem",
+                                                },
+                                            ),
+                                            html.Div(
+                                                [
+                                                    html.Span(
+                                                        "Confidence Intervals",
+                                                        style={
+                                                            "fontSize": "0.9rem",
+                                                            "fontWeight": "600",
+                                                        },
+                                                    ),
+                                                    create_info_tooltip(
+                                                        "confidence-intervals-info",
+                                                        "Statistical probability ranges based on velocity variability. "
+                                                        "50% CI: Median estimate (±0.67σ). 95% CI: Conservative estimate with safety buffer (+1.65σ). "
+                                                        "Wider spread = higher velocity uncertainty. These differ from optimistic/pessimistic on burndown chart.",
+                                                    ),
+                                                ],
+                                                className="mb-1 mt-2 d-flex align-items-center gap-1",
                                             ),
                                             html.Div(
                                                 [
                                                     html.Div(
                                                         [
-                                                            html.Strong(
+                                                            html.Span(
                                                                 "50%: ",
+                                                                className="text-muted",
                                                                 style={
-                                                                    "color": "#28a745"
+                                                                    "fontSize": "0.85rem"
                                                                 },
                                                             ),
-                                                            html.Span(optimistic_date),
+                                                            html.Span(
+                                                                optimistic_date,
+                                                                style={
+                                                                    "color": "#28a745",
+                                                                    "fontSize": "1.25rem",
+                                                                    "fontWeight": "bold",
+                                                                },
+                                                            ),
                                                         ],
-                                                        className="mb-1",
+                                                        className="mb-2",
                                                     ),
                                                     html.Div(
                                                         [
-                                                            html.Strong(
+                                                            html.Span(
                                                                 "95%: ",
+                                                                className="text-muted",
                                                                 style={
-                                                                    "color": "#dc3545"
+                                                                    "fontSize": "0.85rem"
                                                                 },
                                                             ),
-                                                            html.Span(pessimistic_date),
+                                                            html.Span(
+                                                                pessimistic_date,
+                                                                style={
+                                                                    "color": "#dc3545",
+                                                                    "fontSize": "1.25rem",
+                                                                    "fontWeight": "bold",
+                                                                },
+                                                            ),
                                                         ]
                                                     ),
-                                                ]
+                                                ],
+                                                className="mb-0",
                                             ),
-                                            html.Hr(),
                                             html.Small(
                                                 "Range represents delivery confidence levels",
                                                 className="text-muted",
                                             ),
-                                        ]
+                                        ],
+                                        className="p-3",
                                     )
                                 ],
                                 className="h-100 shadow-sm border-0",
@@ -746,37 +846,85 @@ def _create_forecast_section(pert_data, confidence_data):
                                 [
                                     dbc.CardBody(
                                         [
+                                            html.I(
+                                                className="fas fa-bullseye",
+                                                style={
+                                                    "color": "#28a745"
+                                                    if confidence_data.get(
+                                                        "deadline_probability", 75
+                                                    )
+                                                    >= 70
+                                                    else "#ffc107"
+                                                    if confidence_data.get(
+                                                        "deadline_probability", 75
+                                                    )
+                                                    >= 40
+                                                    else "#dc3545",
+                                                    "fontSize": "1.2rem",
+                                                },
+                                            ),
                                             html.Div(
                                                 [
-                                                    _create_progress_ring(
-                                                        confidence_data.get(
-                                                            "deadline_probability", 75
-                                                        ),
-                                                        "#28a745"
-                                                        if confidence_data.get(
-                                                            "deadline_probability", 75
-                                                        )
-                                                        >= 70
-                                                        else "#ffc107"
-                                                        if confidence_data.get(
-                                                            "deadline_probability", 75
-                                                        )
-                                                        >= 40
-                                                        else "#dc3545",
-                                                        70,
+                                                    html.Span(
+                                                        "On-Track Probability",
+                                                        style={
+                                                            "fontSize": "0.9rem",
+                                                            "fontWeight": "600",
+                                                        },
                                                     ),
-                                                    html.H6(
-                                                        "Success Probability",
-                                                        className="mt-2 mb-1",
-                                                    ),
-                                                    html.Small(
-                                                        "Chance of meeting deadline",
-                                                        className="text-muted",
+                                                    create_info_tooltip(
+                                                        "on-track-probability-info",
+                                                        "Statistical probability of meeting deadline using normal distribution. "
+                                                        "Calculated via Z-score: (deadline_days - expected_days) / forecast_std_dev. "
+                                                        "Based on how many standard deviations your deadline is from expected completion, adjusted for velocity consistency.",
                                                     ),
                                                 ],
-                                                className="text-center",
-                                            )
-                                        ]
+                                                className="mb-1 mt-2 d-flex align-items-center gap-1",
+                                            ),
+                                            html.Div(
+                                                f"{confidence_data.get('deadline_probability', 75):.0f}%",
+                                                className="h4 mb-0",
+                                                style={
+                                                    "color": "#28a745"
+                                                    if confidence_data.get(
+                                                        "deadline_probability", 75
+                                                    )
+                                                    >= 70
+                                                    else "#ffc107"
+                                                    if confidence_data.get(
+                                                        "deadline_probability", 75
+                                                    )
+                                                    >= 40
+                                                    else "#dc3545",
+                                                    "fontWeight": "bold",
+                                                },
+                                            ),
+                                            html.Small(
+                                                "Chance of meeting deadline",
+                                                className="text-muted",
+                                            ),
+                                            html.Div(
+                                                _create_progress_ring(
+                                                    confidence_data.get(
+                                                        "deadline_probability", 75
+                                                    ),
+                                                    "#28a745"
+                                                    if confidence_data.get(
+                                                        "deadline_probability", 75
+                                                    )
+                                                    >= 70
+                                                    else "#ffc107"
+                                                    if confidence_data.get(
+                                                        "deadline_probability", 75
+                                                    )
+                                                    >= 40
+                                                    else "#dc3545",
+                                                    70,
+                                                ),
+                                                className="mt-3",
+                                            ),
+                                        ],
+                                        className="p-3",
                                     )
                                 ],
                                 className="h-100 shadow-sm border-0",
@@ -794,12 +942,18 @@ def _create_forecast_section(pert_data, confidence_data):
 
 
 def _create_recent_activity_section(statistics_df):
-    """Create compact recent performance section showing completed items clearly."""
+    """Create compact recent performance section showing completed items clearly.
+
+    Note: This section ALWAYS shows the last 4 weeks of data, regardless of
+    the data_points_count slider. This provides a consistent "current status" view.
+    Other dashboard sections respect the data_points_count filter.
+    """
     if statistics_df.empty:
         return html.Div()
 
-    # Get last 4 weeks of data
-    recent_data = statistics_df.tail(4)
+    # ALWAYS use last 4 weeks for "Recent Completions" - fixed window
+    recent_window = min(4, len(statistics_df))  # 4 weeks or less if data is limited
+    recent_data = statistics_df.tail(recent_window)
 
     if recent_data.empty:
         return html.Div()
@@ -828,7 +982,9 @@ def _create_recent_activity_section(statistics_df):
                         style={"color": COLOR_PALETTE["items"]},
                     ),
                     "Recent Completions",
-                    html.Small(" (Last 4 Weeks)", className="text-muted ms-2"),
+                    html.Small(
+                        f" (Last {recent_window} Weeks)", className="text-muted ms-2"
+                    ),
                 ],
                 className="mb-3",
             ),
@@ -1037,11 +1193,12 @@ def _create_quality_scope_section(statistics_df, settings):
         velocity_mean = statistics_df["completed_items"].mean()
         velocity_cv = _safe_divide(velocity_std, velocity_mean) * 100
 
-        # Trend analysis
-        recent_avg = statistics_df.tail(4)["completed_items"].mean()
+        # Trend analysis - compare first half vs second half of filtered data
+        mid_point = len(statistics_df) // 2
+        recent_avg = statistics_df.iloc[mid_point:]["completed_items"].mean()
         older_avg = (
-            statistics_df.head(-4)["completed_items"].mean()
-            if len(statistics_df) > 4
+            statistics_df.iloc[:mid_point]["completed_items"].mean()
+            if mid_point > 0
             else recent_avg
         )
         trend_stability = (
@@ -1192,13 +1349,27 @@ def _create_quality_scope_section(statistics_df, settings):
 
 
 def _create_insights_section(statistics_df, settings):
-    """Create actionable insights section."""
+    """Create actionable insights section.
+
+    Note: statistics_df is already filtered by data_points_count in the callback.
+    For velocity comparison, we split the filtered data into two halves:
+    - First half: "historical" baseline velocity
+    - Second half: "recent" velocity trend
+    """
     insights = []
 
     if not statistics_df.empty:
-        # Velocity insights
-        recent_velocity = statistics_df.tail(4)["completed_items"].mean()
-        historical_velocity = statistics_df["completed_items"].mean()
+        # Velocity insights - compare first half vs second half of filtered data
+        mid_point = len(statistics_df) // 2
+        if mid_point > 0:
+            recent_velocity = statistics_df.iloc[mid_point:]["completed_items"].mean()
+            historical_velocity = statistics_df.iloc[:mid_point][
+                "completed_items"
+            ].mean()
+        else:
+            # Fallback if dataset is too small to split
+            recent_velocity = statistics_df["completed_items"].mean()
+            historical_velocity = recent_velocity
 
         if recent_velocity > historical_velocity * 1.1:
             insights.append(
@@ -1273,10 +1444,11 @@ def _create_insights_section(statistics_df, settings):
                 }
             )
 
-        # Throughput efficiency insights
+        # Throughput efficiency insights - compare first half vs second half of filtered data
         if len(statistics_df) >= 8:
-            recent_items = statistics_df.tail(4)["completed_items"].sum()
-            prev_items = statistics_df.tail(8).head(4)["completed_items"].sum()
+            mid_point = len(statistics_df) // 2
+            recent_items = statistics_df.iloc[mid_point:]["completed_items"].sum()
+            prev_items = statistics_df.iloc[:mid_point]["completed_items"].sum()
 
             if recent_items > prev_items * 1.2:
                 insights.append(
@@ -1357,6 +1529,7 @@ def _create_insights_section(statistics_df, settings):
 
 def create_comprehensive_dashboard(
     statistics_df,
+    statistics_df_unfiltered,
     pert_time_items,
     pert_time_points,
     avg_weekly_items,
@@ -1380,7 +1553,8 @@ def create_comprehensive_dashboard(
     - Actionable insights and recommendations
 
     Args:
-        statistics_df: DataFrame with project statistics
+        statistics_df: DataFrame with filtered project statistics (respects data_points_count slider)
+        statistics_df_unfiltered: DataFrame with ALL project statistics (for Recent Completions)
         pert_time_items: PERT forecast time for items
         pert_time_points: PERT forecast time for points
         avg_weekly_items: Average weekly items completed
@@ -1452,8 +1626,8 @@ def create_comprehensive_dashboard(
             _create_throughput_section(statistics_df, forecast_data),
             # Forecast Section
             _create_forecast_section(forecast_data, confidence_data),
-            # Recent Activity Section
-            _create_recent_activity_section(statistics_df),
+            # Recent Activity Section - uses unfiltered data for consistent 4-week view
+            _create_recent_activity_section(statistics_df_unfiltered),
             # Quality & Scope Section
             _create_quality_scope_section(statistics_df, settings),
             # Insights Section

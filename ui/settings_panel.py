@@ -3,6 +3,8 @@ Settings Panel Component
 
 Collapsible panel for JIRA integration and import/export settings.
 Follows the same pattern as the Parameter Panel for consistent UX.
+
+User Story 6: Contextual Help System - Adds help icons to settings features.
 """
 
 #######################################################################
@@ -15,6 +17,7 @@ from ui.button_utils import create_button
 from ui.components import create_character_count_display, should_show_character_warning
 from ui.jql_editor import create_jql_editor
 from ui.jira_config_modal import create_jira_config_button
+from ui.help_system import create_settings_tooltip
 
 
 #######################################################################
@@ -103,6 +106,13 @@ def create_settings_panel_expanded(id_suffix: str = "") -> html.Div:
                                                         "JIRA Integration",
                                                         className="fw-bold",
                                                     ),
+                                                    html.Span(
+                                                        create_settings_tooltip(
+                                                            "jira_integration",
+                                                            "jira-integration-help",
+                                                        ),
+                                                        style={"marginLeft": "0.25rem"},
+                                                    ),
                                                 ],
                                                 className="d-flex align-items-center mb-2",
                                             ),
@@ -133,7 +143,18 @@ def create_settings_panel_expanded(id_suffix: str = "") -> html.Div:
                                             html.Div(
                                                 [
                                                     html.Label(
-                                                        "JQL Query",
+                                                        [
+                                                            "JQL Query",
+                                                            html.Span(
+                                                                create_settings_tooltip(
+                                                                    "jql_query",
+                                                                    "jql-query-help",
+                                                                ),
+                                                                style={
+                                                                    "marginLeft": "0.25rem"
+                                                                },
+                                                            ),
+                                                        ],
                                                         className="form-label small text-muted mb-1",
                                                     ),
                                                     create_jql_editor(
@@ -166,7 +187,18 @@ def create_settings_panel_expanded(id_suffix: str = "") -> html.Div:
                                                     dbc.Col(
                                                         [
                                                             html.Label(
-                                                                "Saved Queries",
+                                                                [
+                                                                    "Saved Queries",
+                                                                    html.Span(
+                                                                        create_settings_tooltip(
+                                                                            "saved_queries",
+                                                                            "saved-queries-help",
+                                                                        ),
+                                                                        style={
+                                                                            "marginLeft": "0.25rem"
+                                                                        },
+                                                                    ),
+                                                                ],
                                                                 className="form-label small text-muted mb-1",
                                                             ),
                                                             dcc.Dropdown(
@@ -223,7 +255,18 @@ def create_settings_panel_expanded(id_suffix: str = "") -> html.Div:
                                                     dbc.Col(
                                                         [
                                                             html.Label(
-                                                                "Fetch Data",
+                                                                [
+                                                                    "Fetch Data",
+                                                                    html.Span(
+                                                                        create_settings_tooltip(
+                                                                            "update_data",
+                                                                            "fetch-data-help",
+                                                                        ),
+                                                                        style={
+                                                                            "marginLeft": "0.25rem"
+                                                                        },
+                                                                    ),
+                                                                ],
                                                                 className="form-label small text-muted mb-1",
                                                             ),
                                                             create_button(
@@ -261,6 +304,13 @@ def create_settings_panel_expanded(id_suffix: str = "") -> html.Div:
                                                     html.Span(
                                                         "Import / Export",
                                                         className="fw-bold",
+                                                    ),
+                                                    html.Span(
+                                                        create_settings_tooltip(
+                                                            "import_data",
+                                                            "import-export-help",
+                                                        ),
+                                                        style={"marginLeft": "0.25rem"},
                                                     ),
                                                 ],
                                                 className="d-flex align-items-center mb-2",
@@ -353,18 +403,14 @@ def create_settings_panel_expanded(id_suffix: str = "") -> html.Div:
                                 ],
                                 style={"display": "none"},
                             ),
-                        ]
+                        ],
+                        style={"paddingTop": "0", "marginTop": "0"},
                     )
                 ],
                 className="shadow-sm",
             )
         ],
         className="settings-panel-expanded",
-        style={
-            "backgroundColor": "#ffffff",
-            "borderRadius": "8px",
-            "padding": "0",
-        },
     )
 
 
@@ -394,8 +440,10 @@ def create_settings_panel(is_open: bool = False, id_suffix: str = "") -> html.Di
                 create_settings_panel_expanded(id_suffix=id_suffix),
                 id=collapse_id,
                 is_open=is_open,
+                style={"marginTop": "-1rem"},
             ),
         ],
         id=panel_id,
-        className="settings-panel-container mb-3",
+        className="settings-panel-container",
+        style={"marginTop": "0rem"},
     )

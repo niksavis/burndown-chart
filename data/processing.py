@@ -184,11 +184,15 @@ def calculate_rates(
     """
     Calculate burn rates using PERT methodology with performance optimizations.
 
+    Note: 'pert_factor' is internally used but represents "Confidence Window" - the number
+    of weeks to sample for optimistic/pessimistic scenarios, not the PERT formula weighting
+    (which is always 4 in the standard formula: (O + 4M + P) / 6).
+
     Args:
         grouped: DataFrame with weekly aggregated data
         total_items: Total number of items to complete
         total_points: Total number of points to complete
-        pert_factor: Number of data points to use for optimistic/pessimistic estimates
+        pert_factor: Number of weeks to sample for best/worst case (confidence window)
         show_points: Whether points tracking is enabled (default: True)
         performance_settings: Dictionary with performance optimization settings
 
@@ -215,63 +219,46 @@ def calculate_rates(
         # Return zeros to avoid calculations with empty data
         return 0, 0, 0, 0, 0, 0
 
-    # If points tracking is disabled, return safe defaults for points calculations
-    if not show_points:
-        # Still calculate items rates for items-based forecasting
-        days_per_week = 7.0
-        valid_data_count = len(grouped)
-
-        # Simple calculation for items only
-        if valid_data_count == 0:
-            return 0, 0, 0, 0, 0, 0
-
-        # Calculate simple items rate
-        mean_items_rate = grouped["completed_items"].mean() / days_per_week
-        mean_items_rate = max(0.001, mean_items_rate)  # Prevent division by zero
-
-        # Calculate time for items
-        time_items = total_items / mean_items_rate if mean_items_rate > 0 else 0
-
-        # Cap at reasonable maximum (2 years = 730 days)
-        time_items = min(time_items, 730)
-
-        # Return items calculation with zero points values
-        return time_items, mean_items_rate, mean_items_rate, 0, 0, 0
-
-    # Validate and adjust pert_factor based on available data
+    # Always calculate rates properly for both items and points
+    # The show_points parameter should only affect UI display, not calculation logic
+    days_per_week = 7.0
     valid_data_count = len(grouped)
 
     # When data is limited, adjust strategy to ensure stable results
     if valid_data_count <= 3:
-        # With very few data points, just use the mean for all estimates
-        # This prevents crashes when pert_factor is 3 but we only have 1-3 data points
+        # With very few data points (≤3 weeks), use mean for all estimates
+        # This prevents unreliable forecasts when confidence window exceeds available data
         most_likely_items_rate = grouped["completed_items"].mean() / days_per_week
         most_likely_points_rate = grouped["completed_points"].mean() / days_per_week
 
         # Use the same value for optimistic and pessimistic to avoid erratic forecasts
-        # with tiny datasets
+        # with tiny datasets (no meaningful best/worst case distinction possible)
         optimistic_items_rate = most_likely_items_rate
         pessimistic_items_rate = most_likely_items_rate
         optimistic_points_rate = most_likely_points_rate
         pessimistic_points_rate = most_likely_points_rate
     else:
-        # Normal case with sufficient data
-        # Adjust PERT factor to be at most 1/3 of available data for stable results
+        # Normal case with sufficient data (4+ weeks)
+        # Adjust confidence window to be at most 1/3 of available data for stable results
+        # This ensures we're sampling meaningful best/worst cases without overfitting
         valid_pert_factor = min(pert_factor, max(1, valid_data_count // 3))
         valid_pert_factor = max(valid_pert_factor, 1)  # Ensure at least 1
 
-        # Calculate daily rates for items
+        # Calculate daily rates for items using sampled weeks
+        # Optimistic: Average of N best performing weeks
         optimistic_items_rate = (
             grouped["completed_items"].nlargest(valid_pert_factor).mean()
             / days_per_week
         )
+        # Pessimistic: Average of N worst performing weeks
         pessimistic_items_rate = (
             grouped["completed_items"].nsmallest(valid_pert_factor).mean()
             / days_per_week
         )
+        # Most Likely: Average of ALL weeks (not sampled)
         most_likely_items_rate = grouped["completed_items"].mean() / days_per_week
 
-        # Calculate daily rates for points
+        # Calculate daily rates for points (same approach)
         optimistic_points_rate = (
             grouped["completed_points"].nlargest(valid_pert_factor).mean()
             / days_per_week
@@ -319,7 +306,9 @@ def calculate_rates(
         else float("inf")
     )
 
-    # Apply PERT formula: (O + 4M + P) / 6
+    # Apply standard PERT formula: (Optimistic + 4×Most_Likely + Pessimistic) / 6
+    # The factor "4" is fixed in PERT methodology (NOT user-adjustable)
+    # This weights the most likely scenario at 66.7%, with optimistic and pessimistic at 16.7% each
     pert_time_items = (
         optimistic_time_items + 4 * most_likely_time_items + pessimistic_time_items
     ) / 6

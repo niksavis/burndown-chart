@@ -946,11 +946,32 @@ def register(app):
                     f"[CTO DEBUG] Creating NEW modern dashboard content, cache_key={cache_key}"
                 )
 
-                # Process data for calculations
-                if not df.empty:
-                    df = compute_cumulative_values(df, total_items, total_points)
+                # CRITICAL: Filter data ONCE before all calculations to ensure consistency
+                # This ensures all dashboard sections respect the data_points_count slider
+                # EXCEPT "Recent Completions" which always shows last 4 weeks
+                df_unfiltered = (
+                    df.copy()
+                )  # Keep unfiltered copy for Recent Completions section
 
-                # Create forecast plot and get PERT values
+                if not df.empty:
+                    # Apply data_points_count filter first (if specified and data is larger)
+                    if (
+                        data_points_count is not None
+                        and data_points_count > 0
+                        and len(df) > data_points_count
+                    ):
+                        logger.info(
+                            f"Filtering dashboard data from {len(df)} to {data_points_count} data points"
+                        )
+                        df = df.tail(data_points_count)
+
+                    df = compute_cumulative_values(df, total_items, total_points)
+                    df_unfiltered = compute_cumulative_values(
+                        df_unfiltered, total_items, total_points
+                    )
+
+                # Create forecast plot with already-filtered data
+                # Pass data_points_count=None since data is already filtered
                 _, pert_data = create_forecast_plot(
                     df=df,
                     total_items=total_items,
@@ -958,7 +979,7 @@ def register(app):
                     pert_factor=pert_factor,
                     deadline_str=deadline,
                     milestone_str=milestone,
-                    data_points_count=data_points_count,
+                    data_points_count=None,  # Already filtered above
                     show_points=show_points,
                 )
 
@@ -983,6 +1004,7 @@ def register(app):
                 # Create the comprehensive dashboard layout
                 dashboard_content = create_comprehensive_dashboard(
                     statistics_df=df,
+                    statistics_df_unfiltered=df_unfiltered,  # For Recent Completions (always last 4 weeks)
                     pert_time_items=pert_data["pert_time_items"],
                     pert_time_points=pert_data["pert_time_points"],
                     avg_weekly_items=avg_weekly_items,
@@ -1003,7 +1025,10 @@ def register(app):
 
             elif active_tab == "tab-burndown":
                 # Generate all required data for burndown tab
-                items_trend, points_trend = _prepare_trend_data(statistics, pert_factor)
+                # CRITICAL: Pass data_points_count to ensure trend indicators use filtered data
+                items_trend, points_trend = _prepare_trend_data(
+                    statistics, pert_factor, data_points_count
+                )
 
                 # Generate burndown chart only when needed
                 # NOTE: Don't pre-compute cumulative values - let create_forecast_plot handle it

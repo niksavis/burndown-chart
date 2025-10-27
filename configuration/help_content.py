@@ -696,8 +696,8 @@ DASHBOARD_METRICS_TOOLTIPS = {
 
 # PARAMETER INPUTS HELP CONTENT - Tooltips for parameter panel controls
 PARAMETER_INPUTS_TOOLTIPS = {
-    "pert_factor": "Controls the forecast calculation method. Default value of 6 follows standard PERT formula. Higher values make forecasts more conservative; lower values more optimistic.",
-    "pert_factor_detail": "The PERT factor determines how to weight the three estimation scenarios. A factor of 6 (standard PERT) gives most weight to the most likely scenario: (O + 4×ML + P) ÷ 6. Changing this affects all forecast calculations.",
+    "pert_factor": "Controls how many weeks to sample for best/worst case forecasts. Higher values (8-12) provide conservative estimates using sustained performance patterns. Lower values (3-6) reflect recent variability. Minimum 6 weeks of data recommended for reliability.",
+    "pert_factor_detail": "This parameter determines how many of your best and worst performing weeks are averaged to calculate optimistic and pessimistic scenarios. For example, with a value of 6, your forecast uses the average of your 6 best weeks as the optimistic case and your 6 worst weeks as the pessimistic case. The most likely scenario always uses the average of all available data. This approach provides data-driven forecasts based on your team's actual historical performance, which is more reliable than simple averages or gut feelings. Recommended: 20-30% of your total history (e.g., 6 weeks if you have 30 weeks of data).",
     "deadline": "Target completion date for your project. Used to calculate timeline pressure and whether current velocity will meet the deadline. Shown as a vertical line on forecast charts.",
     "deadline_detail": "Set your desired or committed project deadline. The forecast will compare this date against velocity-based predictions to show if you're on track, ahead, or behind schedule.",
     "total_items": "Complete project scope: all work items planned for delivery. This is the denominator for calculating completion percentage and remaining work.",
@@ -707,6 +707,21 @@ PARAMETER_INPUTS_TOOLTIPS = {
     "scope_buffer": "Optional reserve capacity for scope changes and unknowns. Adding a buffer (e.g., 10-20% of total scope) provides contingency for new requirements.",
     "data_points": "Number of historical weeks to include in velocity calculations. Minimum 4-6 weeks recommended; 8-12 weeks optimal for stable forecasts.",
     "data_points_detail": "More data points provide stability but may miss recent trends. Fewer points are more responsive to changes but can be volatile. Balance based on your project's stability.",
+}
+
+# SETTINGS PANEL HELP CONTENT - Tooltips for settings panel features
+SETTINGS_PANEL_TOOLTIPS = {
+    "jira_integration": "Connect to your JIRA instance to automatically import project data. Configure your JIRA server URL, authentication, and field mappings to sync work items, story points, and completion dates.",
+    "jira_config": "Configure JIRA connection settings including server URL, authentication credentials, and custom field mappings. Required before fetching data from JIRA. Click 'Configure JIRA' to open the setup modal.",
+    "jql_query": "JQL (JIRA Query Language) filters which issues to import. Use JIRA's powerful query syntax to target specific projects, issue types, sprints, or custom criteria. Example: 'project = MYPROJECT AND created >= startOfYear()'",
+    "jql_syntax": "JQL syntax allows complex queries: 'project = KEY' (project filter), 'status = Done' (status filter), 'created >= 2025-01-01' (date filter), 'AND/OR' (logical operators). Combine filters for precise data selection.",
+    "saved_queries": "Save frequently used JQL queries for quick access. Create multiple profiles for different projects, sprints, or reporting needs. Star a profile to make it the default query loaded on startup.",
+    "query_profiles": "Query profiles store JQL queries with descriptive names. Load saved profiles to quickly switch between different data views. Edit existing profiles to update queries or rename them. Delete profiles you no longer need.",
+    "fetch_data": "Import work items from JIRA using the configured connection and JQL query. Fetches issue keys, statuses, story points, creation dates, and completion dates. Updates scope metrics and velocity data automatically.",
+    "update_data": "Refresh project data from JIRA to get the latest work item statuses and metrics. Recommended frequency: daily for active projects, weekly for stable projects. Data is cached locally for offline viewing.",
+    "import_data": "Upload project data from JSON or CSV files saved previously. Useful for offline analysis, data migration, or working with historical snapshots. Supports both full project data and weekly statistics exports.",
+    "export_data": "Download complete project data as JSON for backup, sharing, or analysis in external tools. Includes all work items, statistics, settings, and JIRA cache. Preserves full project state for later restoration.",
+    "data_formats": "JSON format: Complete structured data with all metadata. CSV format: Simplified tabular data for spreadsheet analysis. Choose JSON for full backups, CSV for external reporting and data analysis.",
 }
 
 # Combined comprehensive help content for easy access
@@ -719,4 +734,5 @@ COMPREHENSIVE_HELP_CONTENT = {
     "bug_analysis": BUG_ANALYSIS_TOOLTIPS,
     "dashboard": DASHBOARD_METRICS_TOOLTIPS,
     "parameters": PARAMETER_INPUTS_TOOLTIPS,
+    "settings": SETTINGS_PANEL_TOOLTIPS,
 }

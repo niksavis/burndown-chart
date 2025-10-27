@@ -15,40 +15,17 @@ component mount/unmount during tab switches.
 """
 
 import pytest
-import time
-import threading
 from playwright.sync_api import sync_playwright
-import waitress
-import sys
-import os
-
-# Add the project root to the path to import the app directly
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-import app as dash_app
 
 
 @pytest.mark.skip(
     reason="Flaky Playwright test - chart-type-toggle selector timing out"
 )
+@pytest.mark.requires_app
+@pytest.mark.browser
+@pytest.mark.slow
 class TestBurnupButtonTabSwitchingBugFix:
     """Playwright-based integration tests to validate burnup button bug fix"""
-
-    @pytest.fixture(scope="class")
-    def live_server(self):
-        """Start the Dash app server for testing"""
-        app = dash_app.app
-
-        # Start server in a separate thread
-        def run_server():
-            waitress.serve(app.server, host="127.0.0.1", port=8052, threads=1)
-
-        server_thread = threading.Thread(target=run_server, daemon=True)
-        server_thread.start()
-
-        # Give the server time to start
-        time.sleep(3)
-
-        yield "http://127.0.0.1:8052"
 
     def test_burnup_button_after_tab_switch_stays_on_burndown_tab(self, live_server):
         """

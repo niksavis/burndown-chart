@@ -784,3 +784,27 @@ def create_metric_help_icon(metric_key, category="dashboard", show_modal_link=Fa
         placement="top",
         variant="dark",
     )
+
+
+def create_settings_tooltip(settings_key, id_suffix=None):
+    """
+    Create a tooltip for a settings panel feature using pre-defined help content.
+
+    Args:
+        settings_key: Key in SETTINGS_PANEL_TOOLTIPS
+        id_suffix: Optional custom ID suffix
+
+    Returns:
+        Tooltip component with dark theme
+    """
+    from ui.tooltip_utils import create_info_tooltip
+
+    if id_suffix is None:
+        id_suffix = f"settings-{settings_key}"
+
+    help_content = COMPREHENSIVE_HELP_CONTENT.get("settings", {})
+    tooltip_text = help_content.get(settings_key, f"Help for {settings_key}")
+
+    return create_info_tooltip(
+        help_text=tooltip_text, id_suffix=id_suffix, placement="right", variant="dark"
+    )

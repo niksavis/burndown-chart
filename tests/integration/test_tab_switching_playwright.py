@@ -13,37 +13,14 @@ navigation callback in callbacks/mobile_navigation.py
 """
 
 import pytest
-import time
-import threading
 from playwright.sync_api import sync_playwright
-import waitress
-import sys
-import os
-
-# Add the project root to the path to import the app directly
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-import app as dash_app
 
 
+@pytest.mark.requires_app
+@pytest.mark.browser
+@pytest.mark.slow
 class TestTabSwitchingBugFixPlaywright:
     """Playwright-based integration tests to validate tab switching bug fix"""
-
-    @pytest.fixture(scope="class")
-    def live_server(self):
-        """Start the Dash app server for testing"""
-        app = dash_app.app
-
-        # Start server in a separate thread
-        def run_server():
-            waitress.serve(app.server, host="127.0.0.1", port=8051, threads=1)
-
-        server_thread = threading.Thread(target=run_server, daemon=True)
-        server_thread.start()
-
-        # Give the server time to start
-        time.sleep(3)
-
-        yield "http://127.0.0.1:8051"
 
     def test_tab_switching_stability_playwright(self, live_server):
         """Test that tab switching works correctly without auto-reverting"""

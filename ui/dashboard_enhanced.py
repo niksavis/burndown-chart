@@ -92,7 +92,42 @@ def _calculate_velocity_statistics(statistics_df, metric_type="items"):
 def _calculate_confidence_intervals(
     pert_forecast_days, velocity_mean, velocity_std, remaining_work
 ):
-    """Calculate forecast confidence intervals using statistical distribution."""
+    """
+    Calculate forecast confidence intervals using statistical distribution.
+
+    IMPORTANT: These are TRUE STATISTICAL CONFIDENCE INTERVALS based on velocity variance,
+    NOT the optimistic/pessimistic dates from the burndown chart (which use best/worst N weeks).
+
+    Mathematical Basis:
+    - Uses normal distribution approximation
+    - Calculates coefficient of variation (CV = std_dev / mean) to measure velocity uncertainty
+    - Applies standard statistical confidence levels
+
+    Confidence Interval Calculations:
+    - 50% CI: PERT forecast - (0.67σ) → More optimistic, ~50% chance of completion by this date
+      Formula: pert_days - (0.67 × cv × pert_days)
+
+    - 80% CI: PERT forecast (unchanged) → The PERT weighted average itself
+      This is considered ~80% confidence level in PERT methodology
+
+    - 95% CI: PERT forecast + (1.65σ) → More conservative, ~95% chance of completion by this date
+      Formula: pert_days + (1.65 × cv × pert_days)
+
+    Interpretation:
+    - 50%: You have a 50% probability of completing by this date (median estimate)
+    - 95%: You have a 95% probability of completing by this date (safe estimate with buffer)
+    - Wider spread between 50% and 95% = higher velocity uncertainty
+    - These are DIFFERENT from optimistic/pessimistic on burndown chart!
+
+    Args:
+        pert_forecast_days: Expected completion days from PERT calculation
+        velocity_mean: Average historical velocity (items/week)
+        velocity_std: Standard deviation of historical velocity
+        remaining_work: Remaining items/points to complete
+
+    Returns:
+        dict with ci_50, ci_80, ci_95 (days to completion)
+    """
     if velocity_mean == 0 or velocity_std == 0:
         return {
             "ci_50": pert_forecast_days,
@@ -117,7 +152,46 @@ def _calculate_confidence_intervals(
 def _calculate_deadline_probability(
     days_to_deadline, pert_forecast_days, velocity_std, velocity_mean
 ):
-    """Calculate probability of meeting deadline using normal distribution."""
+    """
+    Calculate probability of meeting deadline using normal distribution.
+
+    This is the "On-Track Probability" shown on forecast cards.
+
+    Mathematical Basis:
+    - Assumes velocity follows a normal (bell curve) distribution
+    - Uses standard deviation of historical velocity to estimate forecast uncertainty
+    - Calculates Z-score: how many standard deviations the deadline is from expected completion
+    - Converts Z-score to probability using cumulative distribution function (CDF)
+
+    Calculation Steps:
+    1. Calculate coefficient of variation: CV = velocity_std / velocity_mean
+    2. Estimate forecast uncertainty: forecast_std = CV × pert_forecast_days
+    3. Calculate Z-score: z = (deadline_days - pert_forecast_days) / forecast_std
+    4. Convert to probability: P = CDF(z) × 100%
+
+    Interpretation:
+    - 100%: Deadline is well after expected completion → Very likely to meet deadline
+    - 80%: Deadline is after expected completion → Good chance of meeting deadline
+    - 50%: Deadline equals expected completion → Coin flip odds
+    - 20%: Deadline is before expected completion → Risky, likely to miss
+    - 0%: Deadline is well before expected completion → Very unlikely to meet
+
+    Example:
+    - Expected completion: 100 days
+    - Deadline: 110 days (10 days buffer)
+    - Forecast std dev: 15 days
+    - Z-score: (110-100)/15 = 0.67
+    - Probability: CDF(0.67) = ~75% chance of meeting deadline
+
+    Args:
+        days_to_deadline: Days remaining until deadline
+        pert_forecast_days: Expected completion days from PERT
+        velocity_std: Standard deviation of velocity
+        velocity_mean: Average velocity
+
+    Returns:
+        float: Probability (0-100%) of meeting the deadline
+    """
     if velocity_mean == 0 or velocity_std == 0:
         return 50.0
 
@@ -340,10 +414,10 @@ def _create_forecast_card(
 
     ci_50_date = (
         datetime.now() + timedelta(days=confidence_intervals["ci_50"])
-    ).strftime("%b %d")
+    ).strftime("%b %d, %Y")
     ci_95_date = (
         datetime.now() + timedelta(days=confidence_intervals["ci_95"])
-    ).strftime("%b %d")
+    ).strftime("%b %d, %Y")
 
     status_color = "#28a745" if status == "on_track" else "#dc3545"
     status_icon = (
@@ -390,7 +464,7 @@ def _create_forecast_card(
                             },
                         ),
                         html.Div(
-                            "PERT Forecast",
+                            "Expected Completion",
                             className="text-muted",
                             style={"fontSize": "0.875rem", "fontWeight": "500"},
                         ),
@@ -456,7 +530,7 @@ def _create_forecast_card(
                         html.Div(
                             [
                                 html.Span(
-                                    "Success: ",
+                                    "On-Track: ",
                                     className="text-muted me-1",
                                     style={"fontSize": "0.875rem"},
                                 ),

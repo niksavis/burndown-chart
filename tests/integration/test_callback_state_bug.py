@@ -18,34 +18,14 @@ Expected Fix:
 """
 
 import pytest
-import time
-import threading
-import waitress
 from playwright.sync_api import sync_playwright
-import sys
-import os
-
-# Import app directly (avoid dash.testing utilities which require selenium)
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-import app as dash_app
 
 
+@pytest.mark.requires_app
+@pytest.mark.browser
+@pytest.mark.slow
 class TestCallbackStateBug:
     """Test callback state management for render_tab_content"""
-
-    @pytest.fixture(scope="class")
-    def live_server(self):
-        """Start Dash app server for testing"""
-        app = dash_app.app
-
-        def run_server():
-            waitress.serve(app.server, host="127.0.0.1", port=8052, threads=1)
-
-        server_thread = threading.Thread(target=run_server, daemon=True)
-        server_thread.start()
-        time.sleep(3)  # Allow server startup
-
-        yield "http://127.0.0.1:8052"
 
     def test_tab_content_stable_after_settings_change(self, live_server):
         """
