@@ -2229,3 +2229,135 @@ def register(app):
         )
 
         return max_data_points, data_points_marks
+
+    # Callback to recalculate remaining work scope when data points slider changes
+    @app.callback(
+        [
+            Output("estimated-items-input", "value", allow_duplicate=True),
+            Output("total-items-input", "value", allow_duplicate=True),
+            Output("estimated-points-input", "value", allow_duplicate=True),
+            Output("total-points-display", "value", allow_duplicate=True),
+        ],
+        [Input("data-points-input", "value")],
+        [
+            State("current-statistics", "data"),
+            State("app-init-complete", "data"),
+        ],
+        prevent_initial_call=True,
+    )
+    def update_remaining_work_on_data_points_change(
+        data_points_count, statistics, init_complete
+    ):
+        """
+        Recalculate remaining work scope when the Data Points slider changes.
+
+        When the user adjusts the Data Points slider to use fewer historical weeks,
+        the remaining work should reflect the scope at the START of that time window.
+        For example, if using the last 10 weeks of data, show the remaining items/points
+        as they were 10 weeks ago, not the current values.
+
+        Args:
+            data_points_count: Number of data points selected on the slider
+            statistics: List of statistics data points
+            init_complete: Whether app initialization is complete
+
+        Returns:
+            Tuple: (estimated_items, remaining_items, estimated_points, remaining_points)
+        """
+        if not init_complete or not statistics or not data_points_count:
+            raise PreventUpdate
+
+        try:
+            from data.persistence import load_unified_project_data
+            import pandas as pd
+
+            # Load unified data to get current scope
+            unified_data = load_unified_project_data()
+            project_scope = unified_data.get("project_scope", {})
+
+            # If no statistics or insufficient data, use current scope values
+            if not statistics or len(statistics) < data_points_count:
+                estimated_items = project_scope.get("estimated_items", 0)
+                remaining_items = project_scope.get("remaining_items", 0)
+                estimated_points = project_scope.get("estimated_points", 0)
+                remaining_points = project_scope.get("remaining_total_points", 0)
+                return (
+                    estimated_items,
+                    remaining_items,
+                    estimated_points,
+                    f"{remaining_points:.0f}",
+                )
+
+            # Convert statistics to DataFrame for easier manipulation
+            df = pd.DataFrame(statistics)
+            df["date"] = pd.to_datetime(df["date"])
+            df = df.sort_values("date", ascending=False)  # Most recent first
+
+            # Get the most recent N data points (based on slider value)
+            selected_data = df.head(data_points_count)
+
+            # Calculate cumulative completed items/points in the selected time window
+            # This gives us how much work was completed during the selected time window
+            completed_in_window_items = selected_data["completed_items"].sum()
+            completed_in_window_points = selected_data["completed_points"].sum()
+
+            # Get current remaining work from project scope
+            current_remaining_items = project_scope.get("remaining_items", 0)
+            current_remaining_points = project_scope.get("remaining_total_points", 0)
+
+            # Calculate remaining work at the START of the selected time window
+            # remaining_at_start = current_remaining + completed_during_window
+            remaining_items_at_start = (
+                current_remaining_items + completed_in_window_items
+            )
+            remaining_points_at_start = (
+                current_remaining_points + completed_in_window_points
+            )
+
+            # For estimated items/points, we need to recalculate based on the data window
+            # Get the data for items with estimates (story points)
+            estimated_items_in_window = selected_data[
+                selected_data["completed_points"] > 0
+            ]["completed_items"].sum()
+            estimated_points_in_window = selected_data["completed_points"].sum()
+
+            # Calculate what estimated items/points would be at start of window
+            # Use the current ratio of estimated to total, applied to the start values
+            current_total_items = project_scope.get("total_items", 1)
+            current_estimated_items = project_scope.get("estimated_items", 0)
+
+            if current_total_items > 0:
+                estimate_ratio = current_estimated_items / current_total_items
+                estimated_items_at_start = int(
+                    remaining_items_at_start * estimate_ratio
+                )
+            else:
+                estimated_items_at_start = current_estimated_items
+
+            # For estimated points, use the estimated points from the window
+            # or calculate based on completed points if available
+            if estimated_items_at_start > 0 and estimated_points_in_window > 0:
+                # Calculate average points per estimated item in the window
+                avg_points = estimated_points_in_window / max(
+                    estimated_items_in_window, 1
+                )
+                estimated_points_at_start = int(estimated_items_at_start * avg_points)
+            else:
+                estimated_points_at_start = project_scope.get("estimated_points", 0)
+
+            logger.info(
+                f"Data Points slider changed to {data_points_count}: "
+                f"Remaining Items: {current_remaining_items} → {remaining_items_at_start}, "
+                f"Remaining Points: {current_remaining_points:.0f} → {remaining_points_at_start:.0f}"
+            )
+
+            return (
+                estimated_items_at_start,
+                int(remaining_items_at_start),
+                estimated_points_at_start,
+                f"{remaining_points_at_start:.0f}",
+            )
+
+        except Exception as e:
+            logger.error(f"Error updating remaining work on data points change: {e}")
+            raise PreventUpdate
