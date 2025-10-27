@@ -4,7 +4,7 @@ Data schema for the burndown chart application.
 Defines the structure of data used across the application.
 """
 
-from typing import Dict, Any
+from typing import Dict, Any, TypedDict, List, Literal
 
 #######################################################################
 # CSV SCHEMA
@@ -228,6 +228,232 @@ def validate_query_profile(profile: Dict[str, Any]) -> bool:
 
     if "is_default" in profile and not isinstance(profile["is_default"], bool):
         return False
+
+    return True
+
+
+#######################################################################
+# UI STATE SCHEMAS (Phase 006-ux-ui-redesign)
+#######################################################################
+
+
+class NavigationState(TypedDict):
+    """
+    Navigation state tracking active tab and history.
+
+    Follows data-model.md Section 1.2 NavigationState specification.
+    Persistence: Session-level dcc.Store (memory storage type).
+    """
+
+    active_tab: str  # Currently active tab ID (e.g., "tab-dashboard")
+    tab_history: List[str]  # Last N visited tabs for back navigation (max 10)
+    previous_tab: str  # Tab user was on before current
+    session_start_tab: str  # First tab loaded in current session
+
+
+class ParameterPanelState(TypedDict):
+    """
+    Parameter panel collapse state and user preferences.
+
+    Follows data-model.md Section 1.1 ParameterPanelState specification.
+    Persistence: Client-side localStorage via dcc.Store.
+    """
+
+    is_open: bool  # Whether parameter panel is expanded or collapsed
+    last_updated: str  # When state was last modified (ISO 8601 format)
+    user_preference: bool  # Whether user manually set state (vs. default)
+
+
+class MobileNavigationState(TypedDict):
+    """
+    Mobile-specific navigation drawer and bottom sheet state.
+
+    Follows data-model.md Section 1.3 MobileNavigationState specification.
+    Persistence: Client-side dcc.Store (memory storage, resets on page load).
+    """
+
+    drawer_open: bool  # Whether mobile navigation drawer is open
+    bottom_sheet_visible: bool  # Whether parameter bottom sheet is visible
+    swipe_enabled: bool  # Whether swipe gestures are enabled
+    viewport_width: int  # Current viewport width in pixels
+    is_mobile: bool  # Computed flag if viewport < 768px
+
+
+class LayoutPreferences(TypedDict):
+    """
+    User's preferred layout configuration and display options.
+
+    Follows data-model.md Section 1.4 LayoutPreferences specification.
+    Persistence: Client-side localStorage via dcc.Store.
+    """
+
+    theme: Literal["light", "dark"]  # UI theme (currently only "light")
+    compact_mode: bool  # Whether to use compact spacing
+    show_help_icons: bool  # Whether to show contextual help icons
+    animation_enabled: bool  # Whether to enable UI animations
+    preferred_chart_height: int  # User's preferred chart height in pixels (300-1200)
+
+
+def get_default_navigation_state() -> NavigationState:
+    """
+    Return default navigation state.
+
+    Returns:
+        NavigationState: Default state with dashboard as active tab
+    """
+    return {
+        "active_tab": "tab-dashboard",
+        "tab_history": [],
+        "previous_tab": "",
+        "session_start_tab": "tab-dashboard",
+    }
+
+
+def get_default_parameter_panel_state() -> ParameterPanelState:
+    """
+    Return default parameter panel state.
+
+    Returns:
+        ParameterPanelState: Default state with panel collapsed
+    """
+    from datetime import datetime
+
+    return {
+        "is_open": False,
+        "last_updated": datetime.now().isoformat(),
+        "user_preference": False,
+    }
+
+
+def get_default_mobile_navigation_state() -> MobileNavigationState:
+    """
+    Return default mobile navigation state.
+
+    Returns:
+        MobileNavigationState: Default state for mobile navigation
+    """
+    return {
+        "drawer_open": False,
+        "bottom_sheet_visible": False,
+        "swipe_enabled": True,
+        "viewport_width": 1024,
+        "is_mobile": False,
+    }
+
+
+def get_default_layout_preferences() -> LayoutPreferences:
+    """
+    Return default layout preferences.
+
+    Returns:
+        LayoutPreferences: Default user preferences
+    """
+    return {
+        "theme": "light",
+        "compact_mode": False,
+        "show_help_icons": True,
+        "animation_enabled": True,
+        "preferred_chart_height": 600,
+    }
+
+
+def validate_navigation_state(state: Dict[str, Any]) -> bool:
+    """
+    Validate navigation state structure.
+
+    Args:
+        state: Navigation state dictionary to validate
+
+    Returns:
+        bool: True if valid, False otherwise
+    """
+    if "active_tab" not in state:
+        return False
+
+    # Validate tab ID pattern
+    import re
+
+    pattern = re.compile(r"^tab-[a-z-]+$")
+    if not pattern.match(state["active_tab"]):
+        return False
+
+    # Validate tab history if present
+    if "tab_history" in state:
+        if not isinstance(state["tab_history"], list):
+            return False
+        if len(state["tab_history"]) > 10:
+            return False
+        for tab_id in state["tab_history"]:
+            if not pattern.match(tab_id):
+                return False
+
+    return True
+
+
+def validate_parameter_panel_state(state: Dict[str, Any]) -> bool:
+    """
+    Validate parameter panel state structure.
+
+    Args:
+        state: Parameter panel state dictionary to validate
+
+    Returns:
+        bool: True if valid, False otherwise
+    """
+    if "is_open" not in state or not isinstance(state["is_open"], bool):
+        return False
+
+    if "user_preference" in state and not isinstance(state["user_preference"], bool):
+        return False
+
+    return True
+
+
+def validate_mobile_navigation_state(state: Dict[str, Any]) -> bool:
+    """
+    Validate mobile navigation state structure.
+
+    Args:
+        state: Mobile navigation state dictionary to validate
+
+    Returns:
+        bool: True if valid, False otherwise
+    """
+    bool_fields = ["drawer_open", "bottom_sheet_visible", "swipe_enabled", "is_mobile"]
+
+    for field in bool_fields:
+        if field in state and not isinstance(state[field], bool):
+            return False
+
+    if "viewport_width" in state:
+        if not isinstance(state["viewport_width"], int) or state["viewport_width"] <= 0:
+            return False
+
+    return True
+
+
+def validate_layout_preferences(prefs: Dict[str, Any]) -> bool:
+    """
+    Validate layout preferences structure.
+
+    Args:
+        prefs: Layout preferences dictionary to validate
+
+    Returns:
+        bool: True if valid, False otherwise
+    """
+    if "theme" in prefs and prefs["theme"] not in ["light", "dark"]:
+        return False
+
+    bool_fields = ["compact_mode", "show_help_icons", "animation_enabled"]
+    for field in bool_fields:
+        if field in prefs and not isinstance(prefs[field], bool):
+            return False
+
+    if "preferred_chart_height" in prefs:
+        height = prefs["preferred_chart_height"]
+        if not isinstance(height, int) or height < 300 or height > 1200:
+            return False
 
     return True
 

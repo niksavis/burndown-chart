@@ -118,7 +118,7 @@ def format_hover_template(
 
 
 def create_chart_layout_config(
-    title=None, hover_mode="unified", tooltip_variant="default"
+    title=None, hover_mode="unified", tooltip_variant="dark"
 ):
     """
     Create a consistent chart layout configuration with tooltip settings.
@@ -126,7 +126,7 @@ def create_chart_layout_config(
     Args:
         title (str, optional): Chart title
         hover_mode (str): Hover mode setting (standard, unified, compare, y_unified)
-        tooltip_variant (str): Tooltip style variant for the chart
+        tooltip_variant (str): Tooltip style variant for the chart (default: "dark")
 
     Returns:
         dict: Layout configuration dictionary
@@ -422,7 +422,7 @@ def create_info_tooltip(
     param1=None,
     param2=None,
     placement="top",
-    variant="info",
+    variant="dark",
     id_suffix=None,
     help_text=None,
 ):
@@ -433,6 +433,7 @@ def create_info_tooltip(
     - Inline help icon using create_help_icon()
     - Separate dbc.Tooltip with placement="top" by default
     - Consistent styling across the application
+    - Dark/blackish background for better readability (default variant="dark")
 
     Supports multiple calling patterns for maximum compatibility:
     - create_info_tooltip(help_text, id_suffix) - NEW pattern (help text first)
@@ -444,7 +445,7 @@ def create_info_tooltip(
         param1: Either help_text (if longer) or id_suffix (if shorter/simpler)
         param2: Either id_suffix (if param1 is help_text) or help_text (if param1 is id)
         placement: Tooltip placement position (default: "top")
-        variant: Tooltip style variant (currently unused, kept for compatibility)
+        variant: Tooltip style variant (default: "dark" - blackish background)
         id_suffix: Explicit ID suffix (keyword argument)
         help_text: Explicit help text (keyword argument)
 
@@ -521,7 +522,7 @@ def create_enhanced_tooltip(
     id_suffix,
     help_text,
     target=None,
-    variant="primary",
+    variant="dark",
     placement="top",
     trigger_text=None,
     icon_class=None,
@@ -537,7 +538,7 @@ def create_enhanced_tooltip(
         id_suffix: Suffix for component ID
         help_text: Text to display in the tooltip (can be string or Dash component)
         target: Optional target ID (if not provided, will use info-icon)
-        variant: Style variant (primary, info, success, warning, error)
+        variant: Style variant (dark, primary, info, success, warning, error) - default: "dark"
         placement: Tooltip placement (top, bottom, left, right)
         trigger_text: Optional text to show as the tooltip trigger
         icon_class: FontAwesome icon class for custom icon (defaults to info circle)
@@ -606,7 +607,7 @@ def create_enhanced_tooltip(
 
 
 def create_dismissible_tooltip(
-    id_suffix, help_text, target=None, variant="primary", placement="top"
+    id_suffix, help_text, target=None, variant="dark", placement="top"
 ):
     """
     Create a dismissible tooltip with a close button.
@@ -615,7 +616,7 @@ def create_dismissible_tooltip(
         id_suffix: Suffix for component ID
         help_text: Text to display in the tooltip
         target: Target element ID
-        variant: Tooltip style variant
+        variant: Tooltip style variant (default: "dark")
         placement: Tooltip placement
 
     Returns:
@@ -637,7 +638,7 @@ def create_expandable_tooltip(
     summary_text,
     detailed_text,
     target=None,
-    variant="primary",
+    variant="dark",
     placement="top",
 ):
     """
@@ -648,7 +649,7 @@ def create_expandable_tooltip(
         summary_text: Brief summary text (always shown)
         detailed_text: Detailed explanation (shown when expanded)
         target: Target element ID
-        variant: Tooltip style variant
+        variant: Tooltip style variant (default: "dark")
         placement: Tooltip placement
 
     Returns:
@@ -770,7 +771,7 @@ def create_form_help_tooltip(id_suffix, field_label, help_text, variant="info"):
     )
 
 
-def create_contextual_help(id_suffix, help_text, trigger_text=None, variant="primary"):
+def create_contextual_help(id_suffix, help_text, trigger_text=None, variant="dark"):
     """
     Create a contextual help text with underline indicator for inline help.
 
@@ -778,7 +779,7 @@ def create_contextual_help(id_suffix, help_text, trigger_text=None, variant="pri
         id_suffix: Suffix for tooltip ID
         help_text: Help text to display in tooltip
         trigger_text: Text that triggers the tooltip (underlined with dotted line)
-        variant: Tooltip variant
+        variant: Tooltip variant (default: "dark")
 
     Returns:
         Dash component with inline help
@@ -820,7 +821,7 @@ def create_chart_tooltip_bundle(chart_type, chart_data=None, cache_enabled=True)
     chart_configs = {
         "burndown": {
             "layout": create_chart_layout_config(
-                title="Burndown Chart", hover_mode="unified", tooltip_variant="primary"
+                title="Burndown Chart", hover_mode="unified", tooltip_variant="dark"
             ),
             "hover_template": format_hover_template(
                 title="Burndown Progress",
@@ -833,7 +834,7 @@ def create_chart_tooltip_bundle(chart_type, chart_data=None, cache_enabled=True)
         },
         "velocity": {
             "layout": create_chart_layout_config(
-                title="Velocity Chart", hover_mode="compare", tooltip_variant="success"
+                title="Velocity Chart", hover_mode="compare", tooltip_variant="dark"
             ),
             "hover_template": format_hover_template(
                 title="Sprint Velocity",
@@ -846,7 +847,7 @@ def create_chart_tooltip_bundle(chart_type, chart_data=None, cache_enabled=True)
         },
         "scope": {
             "layout": create_chart_layout_config(
-                title="Scope Changes", hover_mode="unified", tooltip_variant="warning"
+                title="Scope Changes", hover_mode="unified", tooltip_variant="dark"
             ),
             "hover_template": format_hover_template(
                 title="Scope Change",
@@ -885,7 +886,7 @@ def create_responsive_tooltip_system(component_id, tooltips_config):
     for tooltip_id, config in tooltips_config.items():
         # Extract configuration
         content = config.get("content", "")
-        variant = config.get("variant", "primary")
+        variant = config.get("variant", "dark")  # Default to dark theme
         position = config.get("position", "top")
         trigger_class = config.get("trigger_class", "fas fa-info-circle")
         responsive = config.get("responsive", True)

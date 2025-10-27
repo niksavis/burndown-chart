@@ -9,7 +9,8 @@ for consistent button appearance and behavior across the application.
 # IMPORTS
 #######################################################################
 # Standard library imports
-# (none currently needed)
+import re
+from typing import Optional, Literal
 
 # Third-party library imports
 import dash_bootstrap_components as dbc
@@ -17,9 +18,110 @@ from dash import html
 
 # Application imports
 from ui.styles import TYPOGRAPHY
+from ui.style_constants import get_button_style
+
 
 #######################################################################
-# BUTTON STYLING FUNCTIONS
+# ATOMIC COMPONENT BUILDERS (Following Component Contracts)
+#######################################################################
+
+
+def create_action_button(
+    text: str,
+    icon: Optional[str] = None,
+    variant: str = "primary",
+    size: str = "md",
+    id_suffix: str = "",
+    **kwargs,
+) -> dbc.Button:
+    """
+    Create a standardized action button with optional icon.
+
+    This function follows the component builder contract specification
+    in specs/006-ux-ui-redesign/contracts/component-builders.md
+
+    Args:
+        text: Button label text (required)
+        icon: Font Awesome icon name (e.g., "save", "trash") without "fa-" prefix
+        variant: Button style - "primary", "secondary", "success", "danger", "warning", "info", "light", "dark", "link"
+        size: Button size - "sm", "md", "lg"
+        id_suffix: Unique identifier suffix for button ID
+        **kwargs: Additional props (onClick, disabled, className, etc.)
+
+    Returns:
+        dbc.Button configured with consistent styling and design tokens
+
+    Raises:
+        ValueError: If text is empty or variant is invalid
+
+    Examples:
+        >>> create_action_button("Save", "save", variant="primary")
+        >>> create_action_button("Delete", "trash", variant="danger", size="sm")
+        >>> create_action_button("Cancel", variant="secondary", disabled=True)
+
+    ID Pattern: btn-{text-slugified}[-{id_suffix}]
+
+    Accessibility:
+        - Includes aria-label matching text
+        - Supports disabled state
+        - Minimum 44px touch target on mobile
+    """
+    # Validation
+    if not text or text.strip() == "":
+        raise ValueError("Button text is required and cannot be empty")
+
+    valid_variants = [
+        "primary",
+        "secondary",
+        "success",
+        "danger",
+        "warning",
+        "info",
+        "light",
+        "dark",
+        "link",
+    ]
+    if variant not in valid_variants:
+        raise ValueError(
+            f"Invalid variant '{variant}'. Must be one of: {', '.join(valid_variants)}"
+        )
+
+    # Generate ID from text
+    text_slug = re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
+    button_id = f"btn-{text_slug}"
+    if id_suffix:
+        button_id += f"-{id_suffix}"
+
+    # Build button content with optional icon
+    children = []
+    if icon:
+        # Add "fa-" prefix if not present
+        icon_class = f"fas fa-{icon}" if not icon.startswith("fa-") else icon
+        children.append(html.I(className=icon_class, style={"marginRight": "0.5rem"}))
+    children.append(text)
+
+    # Get standardized styling from design tokens
+    button_style = get_button_style(variant, size)
+
+    # Extract custom style from kwargs if provided
+    custom_style = kwargs.pop("style", {})
+    if custom_style:
+        button_style.update(custom_style)
+
+    # Get aria-label from kwargs or use text
+    # Note: dbc.Button uses 'title' attribute for accessibility, not 'aria-label'
+    aria_label = kwargs.pop("aria_label", text)
+    if "title" not in kwargs:
+        kwargs["title"] = aria_label
+
+    # Create button with consistent styling
+    return dbc.Button(
+        children, id=button_id, color=variant, size=size, style=button_style, **kwargs
+    )
+
+
+#######################################################################
+# BUTTON STYLING FUNCTIONS (Legacy - to be migrated to design tokens)
 #######################################################################
 
 
@@ -119,7 +221,23 @@ def create_button(
     icon_class=None,
     icon_position="left",
     tooltip=None,
-    tooltip_placement="top",
+    tooltip_placement: Literal[
+        "auto",
+        "auto-start",
+        "auto-end",
+        "top",
+        "top-start",
+        "top-end",
+        "right",
+        "right-start",
+        "right-end",
+        "bottom",
+        "bottom-start",
+        "bottom-end",
+        "left",
+        "left-start",
+        "left-end",
+    ] = "top",
     className="",
     style=None,
     disabled=False,
@@ -137,7 +255,7 @@ def create_button(
         icon_class (str, optional): Font Awesome icon class (e.g., "fas fa-download")
         icon_position (str): Icon position relative to text ("left" or "right")
         tooltip (str, optional): Tooltip text
-        tooltip_placement (str): Tooltip placement (top, bottom, left, right)
+        tooltip_placement: Tooltip placement (auto, top, bottom, left, right, etc.)
         className (str): Additional CSS classes
         style (dict, optional): Additional inline styles
         disabled (bool): Whether the button is disabled

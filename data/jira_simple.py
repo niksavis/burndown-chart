@@ -24,6 +24,12 @@ from configuration import logger
 JIRA_CACHE_FILE = "jira_cache.json"
 DEFAULT_CACHE_MAX_SIZE_MB = 100
 
+# Cache version - increment when cache format changes or pagination logic changes
+CACHE_VERSION = "2.0"  # v2.0: Pagination support added
+
+# Cache expiration - invalidate cache after this duration
+CACHE_EXPIRATION_HOURS = 24  # Cache expires after 24 hours
+
 #######################################################################
 # CORE JIRA FUNCTIONS
 #######################################################################
@@ -143,11 +149,34 @@ def validate_jira_config(config: Dict) -> Tuple[bool, str]:
 def fetch_jira_issues(
     config: Dict, max_results: int | None = None
 ) -> Tuple[bool, List[Dict]]:
-    """Execute JQL query and return issues."""
+    """
+    Execute JQL query and return ALL issues using pagination.
+
+    JIRA API Limits:
+    - Maximum 1000 results per API call (JIRA hard limit)
+    - Use pagination with startAt parameter to fetch all issues
+    - Page size (maxResults) should be 100-1000 for optimal performance
+
+    Args:
+        config: Configuration dictionary with API endpoint, JQL query, token, etc.
+        max_results: Page size for each API call (default: from config or 1000)
+
+    Returns:
+        Tuple of (success: bool, issues: List[Dict])
+    """
     try:
-        # Use max_results from config if not explicitly provided
-        if max_results is None:
-            max_results = config.get("max_results", 1000)
+        # Use max_results as page size (per API call), not total limit
+        # JIRA API hard limit is 1000 per call
+        page_size = (
+            max_results if max_results is not None else config.get("max_results", 1000)
+        )
+
+        # Enforce JIRA API hard limit
+        if page_size > 1000:
+            logger.warning(
+                f"Page size {page_size} exceeds JIRA API limit of 1000, using 1000"
+            )
+            page_size = 1000
 
         # Use the JQL query directly from configuration
         jql = config["jql_query"]
@@ -175,55 +204,90 @@ def fetch_jira_issues(
         else:
             fields = base_fields
 
-        params = {
-            "jql": jql,
-            "maxResults": max_results,
-            "fields": fields,
-        }
+        # Pagination: Fetch ALL issues in batches
+        all_issues = []
+        start_at = 0
+        total_issues = None  # Will be set from first API response
 
         logger.info(f"Fetching JIRA issues from: {url}")
         logger.info(f"Using JQL: {jql}")
-        logger.info(f"Max results: {max_results}, Fields: {fields}")
-        response = requests.get(url, headers=headers, params=params, timeout=30)
+        logger.info(f"Page size: {page_size} per call, Fields: {fields}")
 
-        # Enhanced error handling for ScriptRunner and JQL issues
-        if not response.ok:
-            error_details = ""
-            try:
-                error_json = response.json()
-                if "errorMessages" in error_json:
-                    error_details = "; ".join(error_json["errorMessages"])
-                elif "errors" in error_json:
-                    error_details = "; ".join(
-                        [f"{k}: {v}" for k, v in error_json["errors"].items()]
+        while True:
+            params = {
+                "jql": jql,
+                "maxResults": page_size,
+                "startAt": start_at,
+                "fields": fields,
+            }
+
+            logger.info(
+                f"Fetching page starting at {start_at} (fetched {len(all_issues)} so far)"
+            )
+            response = requests.get(url, headers=headers, params=params, timeout=30)
+
+            # Enhanced error handling for ScriptRunner and JQL issues
+            if not response.ok:
+                error_details = ""
+                try:
+                    error_json = response.json()
+                    if "errorMessages" in error_json:
+                        error_details = "; ".join(error_json["errorMessages"])
+                    elif "errors" in error_json:
+                        error_details = "; ".join(
+                            [f"{k}: {v}" for k, v in error_json["errors"].items()]
+                        )
+                    else:
+                        error_details = str(error_json)
+                except Exception:
+                    error_details = response.text[:500]  # First 500 chars of response
+
+                # Check for common ScriptRunner/JQL function issues
+                if (
+                    "issueFunction" in jql.lower()
+                    or "scriptrunner" in error_details.lower()
+                ):
+                    logger.error(
+                        f"JIRA ScriptRunner function error - JQL: {jql[:100]}..."
                     )
+                    logger.error(
+                        "ScriptRunner functions (issueFunction, etc.) may not be available on this JIRA instance"
+                    )
+                    logger.error(f"JIRA API Error Details: {error_details}")
                 else:
-                    error_details = str(error_json)
-            except Exception:
-                error_details = response.text[:500]  # First 500 chars of response
+                    logger.error(
+                        f"JIRA API Error ({response.status_code}): {error_details}"
+                    )
 
-            # Check for common ScriptRunner/JQL function issues
+                return False, []
+
+            data = response.json()
+            issues_in_page = data.get("issues", [])
+
+            # Get total from first response
+            if total_issues is None:
+                total_issues = data.get("total", 0)
+                logger.info(
+                    f"Query matches {total_issues} total issues, fetching all with pagination..."
+                )
+
+            # Add this page's issues to our collection
+            all_issues.extend(issues_in_page)
+
+            # Check if we've fetched everything
             if (
-                "issueFunction" in jql.lower()
-                or "scriptrunner" in error_details.lower()
+                len(issues_in_page) < page_size
+                or start_at + len(issues_in_page) >= total_issues
             ):
-                logger.error(f"JIRA ScriptRunner function error - JQL: {jql[:100]}...")
-                logger.error(
-                    "ScriptRunner functions (issueFunction, etc.) may not be available on this JIRA instance"
+                logger.info(
+                    f"✓ Pagination complete: Fetched all {len(all_issues)} of {total_issues} JIRA issues"
                 )
-                logger.error(f"JIRA API Error Details: {error_details}")
-            else:
-                logger.error(
-                    f"JIRA API Error ({response.status_code}): {error_details}"
-                )
+                break
 
-            return False, []
+            # Move to next page
+            start_at += page_size
 
-        data = response.json()
-        issues = data.get("issues", [])
-
-        logger.info(f"Fetched {len(issues)} JIRA issues")
-        return True, issues
+        return True, all_issues
 
     except requests.exceptions.RequestException as e:
         logger.error(f"Network error fetching JIRA issues: {e}")
@@ -239,9 +303,10 @@ def cache_jira_response(
     fields_requested: str = "",
     cache_file: str = JIRA_CACHE_FILE,
 ) -> bool:
-    """Save raw JIRA JSON response to cache file with query and field tracking."""
+    """Save raw JIRA JSON response to cache file with version, timestamp, and query tracking."""
     try:
         cache_data = {
+            "cache_version": CACHE_VERSION,  # Track cache format version
             "timestamp": datetime.now().isoformat(),
             "jql_query": jql_query,  # Track which JQL query was used
             "fields_requested": fields_requested,  # Track which fields were requested
@@ -253,7 +318,7 @@ def cache_jira_response(
             json.dump(cache_data, f, indent=2)
 
         logger.info(
-            f"Cached {len(data)} JIRA issues to {cache_file} (JQL: {jql_query}, Fields: {fields_requested})"
+            f"Cached {len(data)} JIRA issues to {cache_file} (v{CACHE_VERSION}, JQL: {jql_query}, Fields: {fields_requested})"
         )
         return True
 
@@ -267,13 +332,46 @@ def load_jira_cache(
     current_fields: str = "",
     cache_file: str = JIRA_CACHE_FILE,
 ) -> Tuple[bool, List[Dict]]:
-    """Load cached JIRA JSON response from file, checking if JQL query and fields match."""
+    """
+    Load cached JIRA JSON response from file with version and expiration validation.
+
+    Cache is invalidated if:
+    - Cache version doesn't match current version
+    - Cache is older than CACHE_EXPIRATION_HOURS
+    - JQL query doesn't match
+    - Fields requested don't match
+    """
     try:
         if not os.path.exists(cache_file):
             return False, []
 
         with open(cache_file, "r") as f:
             cache_data = json.load(f)
+
+        # Check cache version (invalidate if version mismatch)
+        cached_version = cache_data.get("cache_version", "1.0")
+        if cached_version != CACHE_VERSION:
+            logger.info(
+                f"Cache version mismatch. Cached: v{cached_version}, Current: v{CACHE_VERSION}. "
+                f"Cache invalidated (pagination or format changed)."
+            )
+            return False, []
+
+        # Check cache age (invalidate if too old)
+        cache_timestamp_str = cache_data.get("timestamp", "")
+        if cache_timestamp_str:
+            try:
+                cache_timestamp = datetime.fromisoformat(cache_timestamp_str)
+                cache_age = datetime.now() - cache_timestamp
+                if cache_age > timedelta(hours=CACHE_EXPIRATION_HOURS):
+                    logger.info(
+                        f"Cache expired. Age: {cache_age.total_seconds() / 3600:.1f} hours "
+                        f"(max: {CACHE_EXPIRATION_HOURS} hours). Cache invalidated."
+                    )
+                    return False, []
+            except ValueError:
+                logger.warning(f"Invalid cache timestamp format: {cache_timestamp_str}")
+                return False, []
 
         # Check if the cached query matches the current query
         cached_jql = cache_data.get("jql_query", "")
@@ -283,7 +381,7 @@ def load_jira_cache(
             )
             return False, []
 
-        # Check if the cached fields match the current fields (NEW!)
+        # Check if the cached fields match the current fields
         cached_fields = cache_data.get("fields_requested", "")
         if cached_fields and current_fields and cached_fields != current_fields:
             logger.info(
@@ -302,8 +400,13 @@ def load_jira_cache(
                 return False, []
 
         issues = cache_data.get("issues", [])
+        cache_age_str = (
+            f"{(datetime.now() - datetime.fromisoformat(cache_timestamp_str)).total_seconds() / 3600:.1f}h old"
+            if cache_timestamp_str
+            else "unknown age"
+        )
         logger.info(
-            f"Loaded {len(issues)} JIRA issues from cache (JQL: {cached_jql}, Fields: {cached_fields or 'base'})"
+            f"✓ Loaded {len(issues)} JIRA issues from cache (v{cached_version}, {cache_age_str}, JQL: {cached_jql}, Fields: {cached_fields or 'base'})"
         )
         return True, issues
 

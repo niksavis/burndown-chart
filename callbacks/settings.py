@@ -12,6 +12,7 @@ from datetime import datetime
 
 # Third-party library imports
 import dash
+import dash_bootstrap_components as dbc
 from dash import Input, Output, State, callback_context, html, no_update
 from dash.exceptions import PreventUpdate
 
@@ -65,7 +66,6 @@ def register(app):
     @app.callback(
         [
             Output("total-points-display", "value"),
-            Output("points-calculation-info", "children"),
             Output("calculation-results", "data"),
         ],
         [
@@ -95,7 +95,6 @@ def register(app):
             # Use .get() method for dictionary lookups - this is the Python idiomatic way
             return (
                 f"{calc_results.get('total_points', DEFAULT_TOTAL_POINTS):.0f}",
-                f"Using {calc_results.get('avg_points_per_item', 0):.1f} points per item for calculation",
                 calc_results
                 or {"total_points": DEFAULT_TOTAL_POINTS, "avg_points_per_item": 0},
             )
@@ -109,7 +108,6 @@ def register(app):
             # Return previous values if conversion fails
             return (
                 f"{calc_results.get('total_points', DEFAULT_TOTAL_POINTS):.0f}",
-                f"Using {calc_results.get('avg_points_per_item', 0):.1f} points per item for calculation",
                 calc_results
                 or {"total_points": DEFAULT_TOTAL_POINTS, "avg_points_per_item": 0},
             )
@@ -123,49 +121,15 @@ def register(app):
             use_fallback=False,
         )
 
-        # Prepare info text with source of calculation and styling
-        style = {"color": "inherit"}  # Default styling
-        if estimated_items <= 0:
-            if estimated_items == 0 and estimated_points == 0:
-                info_text = "No estimates provided - total points set to 0"
-            else:
-                info_text = f"Using {avg_points_per_item:.1f} points per item (based on historical data)"
-        else:
-            # If estimated items exceeds total, show a warning
-            if estimated_items > total_items:
-                info_text = (
-                    f"Warning: Estimated items ({estimated_items}) exceeds total items ({total_items}). "
-                    f"Using {avg_points_per_item:.1f} points per item."
-                )
-                style = {"color": "#dc3545"}  # Bootstrap danger red
-            else:
-                percent_estimated = (
-                    (estimated_items / total_items) * 100 if total_items > 0 else 0
-                )
-                # Add confidence level based on percentage estimated
-                confidence = "low"
-                if percent_estimated >= 75:
-                    confidence = "high"
-                    style = {"color": "#28a745"}  # Bootstrap success green
-                elif percent_estimated >= 30:
-                    confidence = "medium"
-                    style = {"color": "#ffc107"}  # Bootstrap warning yellow
-
-                info_text = (
-                    f"Using {avg_points_per_item:.1f} points per item "
-                    f"({percent_estimated:.0f}% of items estimated, {confidence} confidence)"
-                )
-
         # Update the calculation results store
         updated_calc_results = {
             "total_points": estimated_total_points,
             "avg_points_per_item": avg_points_per_item,
         }
 
-        # Return with styled info text
+        # Return updated values
         return (
             f"{estimated_total_points:.0f}",
-            html.Span(info_text, style=style),
             updated_calc_results,
         )
 
@@ -178,16 +142,15 @@ def register(app):
             Output("current-settings", "modified_timestamp"),
         ],
         [
-            Input("pert-factor-slider", "value"),
-            Input("deadline-picker", "date"),
+            Input("pert-factor-slider", "value"),  # Parameter panel PERT factor slider
+            Input("deadline-picker", "date"),  # Parameter panel deadline
+            Input("milestone-picker", "date"),  # Parameter panel milestone (no toggle)
             Input("total-items-input", "value"),
             Input("calculation-results", "data"),
             Input("estimated-items-input", "value"),
             Input("estimated-points-input", "value"),
-            Input("data-points-input", "value"),  # Added data_points_count input
-            Input("milestone-toggle", "value"),  # Added milestone toggle input
-            Input("milestone-picker", "date"),  # Added milestone picker input
-            Input("points-toggle", "value"),  # Added points toggle input
+            Input("data-points-input", "value"),  # Parameter panel data points slider
+            Input("points-toggle", "value"),  # Parameter panel points toggle
         ],
         [
             State("app-init-complete", "data"),
@@ -198,26 +161,32 @@ def register(app):
         ],
     )
     def update_and_save_settings(
-        pert_factor,
-        deadline,
+        pert_factor,  # Parameter panel PERT factor slider
+        deadline,  # Parameter panel deadline
+        milestone,  # Parameter panel milestone (no toggle needed)
         total_items,
         calc_results,
         estimated_items,
         estimated_points,
-        data_points_count,  # Added parameter
-        show_milestone,  # Added parameter
-        milestone,  # Added parameter
-        show_points,  # Added parameter
+        data_points_count,  # Parameter panel data points slider
+        show_points,  # Parameter panel points toggle
         # State parameters (read but don't trigger callback)
         init_complete,
         jql_query,  # PERFORMANCE FIX: JQL query moved to State to prevent keystroke lag
     ):
         """
         Update current settings and save to disk when changed.
+        Handles both legacy inputs (from old Input Parameters card) and new parameter panel inputs.
         """
         ctx = dash.callback_context
 
-        # Skip if not initialized or values are None
+        # Use parameter panel values directly (no legacy inputs to merge)
+        # Milestone logic: activated if a valid date is entered (no toggle needed)
+        show_milestone = (
+            milestone is not None
+        )  # Simplified: True if milestone date exists
+
+        # Skip if not initialized or critical values are None
         if (
             not init_complete
             or not ctx.triggered
@@ -226,10 +195,7 @@ def register(app):
                 pert_factor,
                 deadline,
                 total_items,
-                # Remove these from None check since we'll provide defaults
-                # estimated_items,
-                # estimated_points,
-                data_points_count,  # Added check
+                data_points_count,
             ]
         ):
             raise PreventUpdate
@@ -255,10 +221,10 @@ def register(app):
             "total_points": total_points,
             "estimated_items": estimated_items,
             "estimated_points": estimated_points,
-            "data_points_count": data_points_count,  # Added to settings
-            "show_milestone": show_milestone,  # Added to settings
-            "milestone": milestone,  # Added to settings
-            "show_points": show_points,  # Added to settings
+            "data_points_count": data_points_count,
+            "show_milestone": show_milestone,  # Automatically set based on milestone date
+            "milestone": milestone,
+            "show_points": show_points,
         }
 
         # Save app-level settings - load JIRA values from jira_config (Feature 003-jira-config-separation)
@@ -267,9 +233,9 @@ def register(app):
         save_app_settings(
             pert_factor,
             deadline,
-            data_points_count,  # Added parameter
-            show_milestone,  # Added parameter
-            milestone,  # Added parameter
+            data_points_count,
+            show_milestone,  # Automatically calculated
+            milestone,
             show_points,  # Added parameter
             jql_query.strip()
             if jql_query and jql_query.strip()
@@ -307,364 +273,43 @@ def register(app):
         logger.info(f"Settings updated and saved: {settings}")
         return settings, int(datetime.now().timestamp() * 1000)
 
-    @app.callback(
-        [
-            Output("data-points-input", "min"),
-            Output("data-points-input", "max"),
-            Output("data-points-input", "marks"),
-        ],
-        [
-            Input("pert-factor-slider", "value"),
-            Input("statistics-table", "data"),
-        ],
-    )
-    def update_data_points_constraints(pert_factor, statistics_data):
-        """
-        Update the min, max constraints, and marks for the data points slider.
-        """
-        if pert_factor is None:
-            pert_factor = DEFAULT_PERT_FACTOR
+    # REMOVED: Legacy data points constraints callback - not needed with new parameter panel
 
-        min_value = pert_factor * 2
-        max_value = len(statistics_data) if statistics_data else min_value
+    # REMOVED: Legacy PERT factor constraints callback - not needed with new parameter panel
 
-        # Ensure min doesn't exceed max
-        min_value = min(min_value, max_value)
+    # REMOVED: Legacy data points value callback - not needed with new parameter panel
 
-        # Calculate percentage positions
-        range_size = max_value - min_value
-        p25 = min_value + int(range_size * 0.25)
-        p50 = min_value + int(range_size * 0.5)
-        p75 = min_value + int(range_size * 0.75)
+    # REMOVED: Legacy data points info clientside callback - not needed with new parameter panel
 
-        # Create marks for min, 25%, 50%, 75%, and max
-        marks = {}
+    # REMOVED: Legacy PERT factor info clientside callback - not needed with new parameter panel
 
-        # Only add percentage marks if there's enough range
-        if range_size > 3:
-            marks = {
-                min_value: {"label": str(min_value)},
-                p25: {"label": str(p25)},
-                p50: {"label": str(p50)},
-                p75: {"label": str(p75)},
-                max_value: {"label": str(max_value)},
-            }
-        else:
-            # If range is small, just show min and max
-            marks = {
-                min_value: {"label": str(min_value)},
-                max_value: {"label": str(max_value)},
-            }
+    # REMOVED: Legacy milestone picker callback - not needed with new parameter panel
 
-        return min_value, max_value, marks
+    # REMOVED: points-inputs-container callback - not needed with new parameter panel
 
-    @app.callback(
-        [
-            Output("pert-factor-slider", "min"),
-            Output("pert-factor-slider", "max"),
-            Output("pert-factor-slider", "marks"),
-            Output("pert-factor-slider", "value"),
-        ],
-        [
-            Input("statistics-table", "data"),
-        ],
-        [State("pert-factor-slider", "value")],
-    )
-    def update_pert_factor_constraints(statistics_data, current_pert_factor):
-        """
-        Update the max constraint and marks for the PERT factor slider based on available data points.
-        PERT Factor maximum should be floor(available_data_points / 2) to ensure minimum 2x constraint.
-
-        Args:
-            statistics_data: Current statistics data
-            current_pert_factor: Current PERT factor value
-
-        Returns:
-            Tuple of (max_value, marks, adjusted_value)
-        """
-        if current_pert_factor is None:
-            current_pert_factor = DEFAULT_PERT_FACTOR
-
-        # Calculate minimum and maximum PERT factor based on available data points
-        max_data_points = len(statistics_data) if statistics_data else 6
-
-        # Calculate minimum PERT factor
-        min_pert_factor = 1 if max_data_points < 6 else 3
-
-        # Calculate maximum PERT factor to ensure 2x constraint is always satisfied
-        # PERT_Factor × 2 ≤ available_data_points
-        # Therefore: PERT_Factor ≤ floor(available_data_points / 2)
-        max_pert_factor = max_data_points // 2
-
-        # Ensure minimum PERT factor of 1 (never 0)
-        max_pert_factor = max(min_pert_factor, max_pert_factor)
-
-        # For datasets with 6+ data points, ensure PERT factor is at least 3 for meaningful analysis
-        if max_data_points >= 6:
-            max_pert_factor = max(3, max_pert_factor)
-
-        # Cap at reasonable maximum (15) for performance
-        max_pert_factor = min(max_pert_factor, 15)
-
-        # Create marks for the slider
-        marks = {}
-        start_val = min_pert_factor
-
-        # Create a reasonable number of marks based on the range
-        range_size = max_pert_factor - start_val
-        if range_size <= 5:
-            # Small range - show all values
-            for i in range(start_val, max_pert_factor + 1):
-                marks[i] = {"label": str(i)}
-        else:
-            # Larger range - show key values
-            step = max(1, range_size // 4)
-            for i in range(start_val, max_pert_factor + 1, step):
-                marks[i] = {"label": str(i)}
-
-        # Always include start value and maximum value in marks
-        marks[start_val] = {"label": str(start_val)}
-        marks[max_pert_factor] = {"label": str(max_pert_factor)}
-
-        # Adjust current value if it exceeds the new maximum or is below new minimum
-        adjusted_value = max(min_pert_factor, min(current_pert_factor, max_pert_factor))
-
-        # Log the constraint adjustment for debugging
-        if adjusted_value != current_pert_factor:
-            logger.info(
-                f"Adjusting PERT factor from {current_pert_factor} to {adjusted_value} "
-                f"(max data points: {max_data_points}, PERT factor range: {min_pert_factor}-{max_pert_factor})"
-            )
-
-        return min_pert_factor, max_pert_factor, marks, adjusted_value
-
-    @app.callback(
-        Output("data-points-input", "value"),
-        [
-            Input("pert-factor-slider", "value"),
-            Input("data-points-input", "min"),
-        ],
-        [State("data-points-input", "value")],
-    )
-    def update_data_points_value(pert_factor, min_required, current_value):
-        """
-        Update the data points value when PERT factor changes, ensuring it's at least 2x the PERT Factor.
-
-        Args:
-            pert_factor: Current PERT factor value
-            min_required: Minimum required data points (already calculated as 2x PERT Factor)
-            current_value: Current value of the data points slider
-
-        Returns:
-            Updated value for the data points slider
-        """
-        if current_value is None or min_required is None:
-            # Use safe default values
-            return min_required or (pert_factor * 2 if pert_factor else 6)
-
-        # Check if current value is below the new minimum
-        if current_value < min_required:
-            logger.info(
-                f"Updating data points from {current_value} to minimum {min_required}"
-            )
-            return min_required
-
-        # Current value is already valid
-        return current_value
-
-    # Add a clientside callback to enhance slider interactions and synchronize slider value with the displayed text
-    app.clientside_callback(
-        """
-        function(value, min_value, max_value) {
-            // Format the info text
-            let infoText = "";
-            
-            if (min_value === max_value) {
-                infoText = "Using all available data points (" + value + " points)";
-            } else if (value === min_value) {
-                infoText = "Using minimum data points (" + value + " points, most recent data only)";
-            } else if (value === max_value) {
-                infoText = "Using all available data points (" + value + " points)";
-            } else {
-                // Calculate percentage
-                const percent = Math.round(((value - min_value) / (max_value - min_value)) * 100);
-                infoText = "Using " + value + " most recent data points (" + percent + "% of available data)";
-            }
-            
-            // Also trigger slider tooltip display when slider is updated automatically
-            const slider = document.getElementById('data-points-input');
-            if (slider) {
-                // Force the tooltip to update its position and value
-                const event = new Event('mousemove');
-                slider.dispatchEvent(event);
-            }
-            
-            return infoText;
-        }
-        """,
-        Output("data-points-info", "children"),
-        [
-            Input("data-points-input", "value"),
-            Input("data-points-input", "min"),
-            Input("data-points-input", "max"),
-        ],
-    )
-
-    # Add a clientside callback for the PERT Factor slider to enhance tooltip behavior and show constraints
-    app.clientside_callback(
-        """
-        function(value, max_value, statistics_data) {
-            // Format the info text based on the PERT Factor value and constraints
-            let infoText = "";
-            const dataPoints = statistics_data ? statistics_data.length : 0;
-            
-            if (dataPoints === 0) {
-                infoText = "No data available - PERT Factor: " + value;
-            } else if (value === max_value && max_value < 15) {
-                infoText = "Maximum PERT Factor for " + dataPoints + " data points (value: " + value + ")";
-            } else if (value <= 5) {
-                infoText = "Narrow confidence range - more responsive (value: " + value + ")";
-            } else if (value <= 10) {
-                infoText = "Medium confidence range - balanced (value: " + value + ")";
-            } else {
-                infoText = "Wide confidence range - more stable (value: " + value + ")";
-            }
-            
-            // Also trigger slider tooltip display when slider is updated automatically
-            const slider = document.getElementById('pert-factor-slider');
-            if (slider) {
-                // Force the tooltip to update its position and value
-                const event = new Event('mousemove');
-                slider.dispatchEvent(event);
-            }
-            
-            return infoText;
-        }
-        """,
-        Output("pert-factor-info", "children"),
-        [
-            Input("pert-factor-slider", "value"),
-            Input("pert-factor-slider", "max"),
-            Input("statistics-table", "data"),
-        ],
-    )
-
-    # Add a callback to enable/disable the milestone date picker based on toggle state
-    @app.callback(
-        Output("milestone-picker", "disabled"),
-        Input("milestone-toggle", "value"),
-    )
-    def toggle_milestone_picker(show_milestone):
-        """
-        Enable or disable the milestone date picker based on the toggle state.
-
-        Args:
-            show_milestone: Boolean value from the milestone toggle switch
-
-        Returns:
-            Boolean: True if the picker should be disabled, False if it should be enabled
-        """
-        # When show_milestone is True, we want disabled to be False and vice versa
-        return not show_milestone
-
-    @app.callback(
-        Output("points-inputs-container", "style"),
-        Input("points-toggle", "value"),
-    )
-    def toggle_points_inputs_container(show_points):
-        """
-        Show or hide the points inputs container based on the toggle state.
-
-        Args:
-            show_points: Boolean value from the points toggle switch
-
-        Returns:
-            Dict: Style dictionary to show/hide points inputs container
-        """
-        return {"display": "block" if show_points else "none"}
-
-    # JIRA Integration Callbacks
-    @app.callback(
-        Output("jira-config-container", "style"),
-        Input("data-source-selection", "value"),
-    )
-    def toggle_jira_config(data_source):
-        """
-        Toggle visibility of JIRA configuration inputs based on data source selection.
-
-        Args:
-            data_source: Selected data source ("CSV" or "JIRA")
-
-        Returns:
-            Dict: Style dictionary to show/hide JIRA configuration
-        """
-        if data_source == "JIRA":
-            return {"display": "block"}
-        return {"display": "none"}
-
-    @app.callback(
-        Output("csv-upload-container", "style"), Input("data-source-selection", "value")
-    )
-    def toggle_csv_upload(data_source):
-        """
-        Toggle visibility of CSV upload container based on data source selection.
-
-        Args:
-            data_source: Selected data source ("CSV" or "JIRA")
-
-        Returns:
-            Dict: Style dictionary to show/hide CSV upload container
-        """
-        if data_source == "CSV":
-            return {"display": "block"}
-        return {"display": "none"}
+    # REMOVED: JIRA Integration callbacks for old UI - not needed with new layout
 
     # PERFORMANCE FIX: Removed real-time JIRA validation callback that was causing keystroke lag
     # Validation now happens only when user attempts to use JIRA connection (Update Data/Calculate Scope)
     # This eliminates the callback that was triggering on every JQL query keystroke
 
-    # Add a callback to trigger JIRA data loading when data source is selected
-    @app.callback(
-        [
-            Output("jira-data-loader", "data"),
-            Output("jira-data-reload-trigger", "data"),
-        ],
-        [
-            Input("data-source-selection", "value"),
-        ],
-        prevent_initial_call=True,
-    )
-    def trigger_jira_data_loading(data_source):
-        """
-        Trigger JIRA data loading when data source is selected.
-        Also trigger a reload of statistics data.
-
-        Args:
-            data_source: Selected data source ("CSV" or "JIRA")
-
-        Returns:
-            Tuple: (timestamp, reload_trigger)
-        """
-        # Only proceed for data source selection if JIRA is selected
-        if data_source == "JIRA":
-            # Return timestamp to trigger other callbacks
-            timestamp = int(datetime.now().timestamp() * 1000)
-            return timestamp, timestamp
-        else:
-            # If data source is not JIRA, prevent update
-            raise PreventUpdate
+    # REMOVED: Obsolete callback for data-source-selection (component doesn't exist in current layout)
+    # Data source selection was part of old UI design and has been removed
+    # JIRA data loading is now triggered directly by the "Update Data" button
 
     @app.callback(
         [
             Output("upload-data", "contents", allow_duplicate=True),
             Output("upload-data", "filename", allow_duplicate=True),
             Output("jira-cache-status", "children", allow_duplicate=True),
-            Output("jira-validation-errors", "children", allow_duplicate=True),
             Output("statistics-table", "data", allow_duplicate=True),
+            Output("total-items-input", "value", allow_duplicate=True),
+            Output("estimated-items-input", "value", allow_duplicate=True),
+            Output("total-points-display", "value", allow_duplicate=True),
+            Output("estimated-points-input", "value", allow_duplicate=True),
         ],
         [Input("update-data-unified", "n_clicks")],
         [
-            State("data-source-selection", "value"),
             State(
                 "jira-jql-query", "value"
             ),  # JQL textarea uses standard "value" property
@@ -673,218 +318,311 @@ def register(app):
     )
     def handle_unified_data_update(
         n_clicks,
-        data_source,
         jql_query,
     ):
         """
-        Handle unified data update button click.
-        Routes to appropriate handler based on selected data source.
+        Handle unified data update button click (JIRA data source only).
 
         Args:
             n_clicks (int): Number of clicks on unified update button
-            data_source (str): Selected data source ("CSV" or "JIRA")
             jql_query (str): JQL query for JIRA data source
-            jira_api_endpoint (str): JIRA API endpoint URL
-            jira_token (str): Personal access token
-            story_points_field (str): Custom field ID for story points mapping (optional)
-            cache_max_size (int): Maximum cache size in MB
 
         Returns:
-            Tuple: Upload contents, filename, cache status, validation errors
+            Tuple: Upload contents, filename, cache status, statistics table data
         """
         if not n_clicks:
             raise PreventUpdate
 
         try:
-            if data_source == "JIRA":
-                # Handle JIRA data import
-                from data.jira_simple import (
-                    get_cache_status,
-                    sync_jira_data,
-                    validate_jira_config,
-                )
-                from data.persistence import load_app_settings
+            # Handle JIRA data import (settings panel only uses JIRA)
+            from data.jira_simple import validate_jira_config
+            from data.persistence import load_app_settings
 
-                # CRITICAL DEBUG: Log what we receive from the Store
-                logger.info(
-                    f"[UPDATE DATA] Received jql_query from Store: '{jql_query}' (type: {type(jql_query)})"
-                )
-                logger.info(f"[UPDATE DATA] Received data_source: '{data_source}'")
+            # CRITICAL DEBUG: Log what we receive from the Store
+            logger.info(
+                f"[UPDATE DATA] Received jql_query from Store: '{jql_query}' (type: {type(jql_query)})"
+            )
 
-                # Load JIRA configuration from jira_config
-                from data.persistence import load_jira_configuration
+            # Load JIRA configuration from jira_config
+            from data.persistence import load_jira_configuration
 
-                jira_config = load_jira_configuration()
+            jira_config = load_jira_configuration()
 
-                # Check if JIRA is configured (FR-018: Error handling for unconfigured state)
-                # Token is optional for public JIRA servers
-                is_configured = (
-                    jira_config.get("configured", False)
-                    and jira_config.get("base_url", "").strip() != ""
-                )
+            # Check if JIRA is configured (FR-018: Error handling for unconfigured state)
+            # Token is optional for public JIRA servers
+            is_configured = (
+                jira_config.get("configured", False)
+                and jira_config.get("base_url", "").strip() != ""
+            )
 
-                if not is_configured:
-                    cache_status = get_cache_status()
-                    validation_errors = html.Div(
-                        [
-                            html.I(className="fas fa-exclamation-triangle me-2"),
-                            html.Span("JIRA is not configured. "),
-                            html.Span(
-                                "Please click the 'Configure JIRA' button above to set up your JIRA connection.",
-                                className="fw-medium",
-                            ),
-                        ],
-                        className="text-warning small",
-                    )
-                    return None, None, cache_status, validation_errors, no_update
-
-                # Use JQL query from input or fall back to settings
-                app_settings = load_app_settings()
-                settings_jql = (
-                    jql_query.strip()
-                    if jql_query and jql_query.strip()
-                    else app_settings.get("jql_query", "project = JRASERVER")
-                )
-
-                logger.info(
-                    f"JQL Query - Input: '{jql_query}', Settings: '{app_settings.get('jql_query', 'N/A')}', Final: '{settings_jql}'"
-                )
-
-                # Load JIRA configuration values from jira_config and construct endpoint
-                from data.jira_simple import construct_jira_endpoint
-
-                base_url = jira_config.get("base_url", "https://jira.atlassian.com")
-                api_version = jira_config.get("api_version", "v2")
-                final_jira_api_endpoint = construct_jira_endpoint(base_url, api_version)
-                final_jira_token = jira_config.get("token", "")
-                final_story_points_field = jira_config.get("points_field", "")
-                final_cache_max_size = jira_config.get("cache_size_mb", 100)
-                final_max_results = jira_config.get("max_results_per_call", 1000)
-
-                # Check if JQL query has changed and needs saving
-                jql_changed = settings_jql != app_settings.get(
-                    "jql_query", "project = JRASERVER"
-                )
-
-                if jql_changed:
-                    from data.persistence import save_app_settings
-
-                    save_app_settings(
-                        app_settings["pert_factor"],
-                        app_settings["deadline"],
-                        app_settings["data_points_count"],
-                        app_settings["show_milestone"],
-                        app_settings["milestone"],
-                        app_settings["show_points"],
-                        settings_jql,
-                    )
-                    logger.info(f"JQL query updated and saved: JQL='{settings_jql}'")
-
-                # Create JIRA config for sync_jira_data (using loaded values)
-                jira_config_for_sync = {
-                    "api_endpoint": final_jira_api_endpoint,
-                    "jql_query": settings_jql,
-                    "token": final_jira_token,
-                    "story_points_field": final_story_points_field,
-                    "cache_max_size_mb": final_cache_max_size,
-                    "max_results": final_max_results,
-                }
-
-                # Validate configuration
-                is_valid, validation_message = validate_jira_config(
-                    jira_config_for_sync
-                )
-                if not is_valid:
-                    cache_status = get_cache_status()
-                    validation_errors = html.Div(
-                        [
-                            html.I(className="fas fa-exclamation-triangle me-2"),
-                            f"Configuration invalid: {validation_message}",
-                        ],
-                        className="text-danger small",
-                    )
-                    return None, None, cache_status, validation_errors, no_update
-
-                # Use sync_jira_data with the loaded configuration
-                success, message = sync_jira_data(settings_jql, jira_config_for_sync)
-                cache_status = get_cache_status()
-                if success:
-                    # Load the updated statistics data after JIRA import
-                    from data.persistence import load_statistics
-
-                    updated_statistics, _ = (
-                        load_statistics()
-                    )  # Unpack tuple, ignore is_sample flag
-
-                    validation_errors = html.Div(
-                        [
-                            html.I(className="fas fa-check-circle me-2"),
-                            f"JIRA data imported successfully: {message}",
-                        ],
-                        className="text-success small",
-                    )
-                    # Return updated statistics to refresh the table
-                    return (
-                        None,
-                        None,
-                        cache_status,
-                        validation_errors,
-                        updated_statistics,
-                    )
-                else:
-                    validation_errors = html.Div(
-                        [
-                            html.I(className="fas fa-exclamation-triangle me-2"),
-                            f"Failed to import JIRA data: {message}",
-                        ],
-                        className="text-danger small",
-                    )
-                    # Return no table update on failure
-                    return None, None, cache_status, validation_errors, no_update
-
-            elif data_source == "CSV":
-                # For CSV data source, we need to trigger the file upload dialog
-                # This is handled by the existing upload-data component
-                # We can't programmatically trigger a file dialog, so we show a message
-                validation_errors = html.Div(
+            if not is_configured:
+                cache_status_message = html.Div(
                     [
-                        html.I(className="fas fa-info-circle me-2"),
-                        "Please use the file upload area above to select your CSV file.",
+                        html.I(
+                            className="fas fa-exclamation-triangle me-2 text-warning"
+                        ),
+                        html.Div(
+                            [
+                                html.Span(
+                                    "⚠️ JIRA is not configured.",
+                                    className="fw-bold d-block mb-1",
+                                ),
+                                html.Span(
+                                    "Please click the 'Configure JIRA' button above to set up your JIRA connection before fetching data.",
+                                    className="small",
+                                ),
+                            ]
+                        ),
                     ],
-                    className="text-info small",
+                    className="text-warning small mt-2",
                 )
-                return None, None, None, validation_errors, no_update
+                logger.warning("Attempted to update data without JIRA configuration")
+                return (
+                    None,
+                    None,
+                    cache_status_message,
+                    no_update,
+                    no_update,
+                    no_update,
+                    no_update,
+                    no_update,
+                )
 
+            # Use JQL query from input or fall back to settings
+            app_settings = load_app_settings()
+            settings_jql = (
+                jql_query.strip()
+                if jql_query and jql_query.strip()
+                else app_settings.get("jql_query", "project = JRASERVER")
+            )
+
+            logger.info(
+                f"JQL Query - Input: '{jql_query}', Settings: '{app_settings.get('jql_query', 'N/A')}', Final: '{settings_jql}'"
+            )
+
+            # Load JIRA configuration values from jira_config and construct endpoint
+            from data.jira_simple import construct_jira_endpoint
+
+            base_url = jira_config.get("base_url", "https://jira.atlassian.com")
+            api_version = jira_config.get("api_version", "v2")
+            final_jira_api_endpoint = construct_jira_endpoint(base_url, api_version)
+            final_jira_token = jira_config.get("token", "")
+            final_story_points_field = jira_config.get("points_field", "")
+            final_cache_max_size = jira_config.get("cache_size_mb", 100)
+            final_max_results = jira_config.get("max_results_per_call", 1000)
+
+            # Check if JQL query has changed and needs saving
+            jql_changed = settings_jql != app_settings.get(
+                "jql_query", "project = JRASERVER"
+            )
+
+            if jql_changed:
+                from data.persistence import save_app_settings
+
+                save_app_settings(
+                    app_settings["pert_factor"],
+                    app_settings["deadline"],
+                    app_settings["data_points_count"],
+                    app_settings["show_milestone"],
+                    app_settings["milestone"],
+                    app_settings["show_points"],
+                    settings_jql,
+                )
+                logger.info(f"JQL query updated and saved: JQL='{settings_jql}'")
+
+            # Create JIRA config for sync_jira_data (using loaded values)
+            jira_config_for_sync = {
+                "api_endpoint": final_jira_api_endpoint,
+                "jql_query": settings_jql,
+                "token": final_jira_token,
+                "story_points_field": final_story_points_field,
+                "cache_max_size_mb": final_cache_max_size,
+                "max_results": final_max_results,
+            }
+
+            # Validate configuration
+            is_valid, validation_message = validate_jira_config(jira_config_for_sync)
+            if not is_valid:
+                cache_status_message = html.Div(
+                    [
+                        html.I(
+                            className="fas fa-exclamation-triangle me-2 text-danger"
+                        ),
+                        html.Div(
+                            [
+                                html.Span(
+                                    "Configuration Error",
+                                    className="fw-bold d-block mb-1",
+                                ),
+                                html.Span(validation_message, className="small"),
+                            ]
+                        ),
+                    ],
+                    className="text-danger small mt-2",
+                )
+                logger.error(
+                    f"JIRA configuration validation failed: {validation_message}"
+                )
+                return None, None, cache_status_message, no_update
+
+            # Use sync_jira_scope_and_data to get both scope data and message
+            from data.jira_simple import sync_jira_scope_and_data
+
+            success, message, scope_data = sync_jira_scope_and_data(
+                settings_jql, jira_config_for_sync
+            )
+
+            if success:
+                # Load the updated statistics data after JIRA import
+                from data.persistence import load_statistics
+
+                updated_statistics, _ = (
+                    load_statistics()
+                )  # Unpack tuple, ignore is_sample flag
+
+                # Get count of weekly data points
+                weekly_count = len(updated_statistics) if updated_statistics else 0
+
+                # Get actual JIRA issue count from scope data
+                issues_count = (
+                    scope_data.get("calculation_metadata", {}).get(
+                        "total_issues_processed", 0
+                    )
+                    if scope_data
+                    else 0
+                )
+
+                # Create detailed success message showing both counts
+                success_details = f"✓ Data loaded: {issues_count} issue{'s' if issues_count != 1 else ''} from JIRA (aggregated into {weekly_count} weekly data point{'s' if weekly_count != 1 else ''})"
+
+                cache_status_message = html.Div(
+                    [
+                        html.I(className="fas fa-check-circle me-2 text-success"),
+                        html.Span(success_details, className="fw-medium"),
+                    ],
+                    className="text-success small text-center mt-2",
+                )
+                logger.info(
+                    f"JIRA data import successful: {issues_count} issues loaded, {weekly_count} weekly data points created"
+                )
+
+                # Extract scope values from scope_data to update input fields
+                # CRITICAL: Use "remaining_*" fields, NOT "total_*" fields
+                # - remaining_items = open/incomplete items (what we want to show)
+                # - total_items = ALL items including completed (wrong for parameter panel)
+                total_items = scope_data.get("remaining_items", 0) if scope_data else 0
+                estimated_items = (
+                    scope_data.get("estimated_items", 0) if scope_data else 0
+                )
+                # Use remaining_total_points (includes extrapolation) not total_points
+                total_points = (
+                    scope_data.get("remaining_total_points", 0) if scope_data else 0
+                )
+                estimated_points = (
+                    scope_data.get("estimated_points", 0) if scope_data else 0
+                )
+
+                # Format total_points as string since it's a text display field
+                total_points_display = f"{total_points:.0f}"
+
+                logger.info(
+                    f"Scope calculated from JIRA: total_items (remaining)={total_items}, "
+                    f"estimated_items={estimated_items}, total_points (remaining)={total_points}, "
+                    f"estimated_points={estimated_points}"
+                )
+
+                # Return updated statistics AND scope values to refresh inputs
+                return (
+                    None,
+                    None,
+                    cache_status_message,
+                    updated_statistics,
+                    total_items,
+                    estimated_items,
+                    total_points_display,  # Text field, not number
+                    estimated_points,
+                )
             else:
-                validation_errors = html.Div(
+                # Create detailed error message
+                error_details = f"✗ Failed to import JIRA data: {message}"
+
+                cache_status_message = html.Div(
                     [
-                        html.I(className="fas fa-exclamation-triangle me-2"),
-                        "Please select a data source first.",
+                        html.I(
+                            className="fas fa-exclamation-triangle me-2 text-danger"
+                        ),
+                        html.Span(error_details, className="fw-medium"),
                     ],
-                    className="text-warning small",
+                    className="text-danger small text-center mt-2",
                 )
-                return None, None, None, validation_errors, no_update
+                logger.error(f"JIRA data import failed: {message}")
+                # Return no table update on failure, keep scope values unchanged
+                return (
+                    None,
+                    None,
+                    cache_status_message,
+                    no_update,
+                    no_update,
+                    no_update,
+                    no_update,
+                    no_update,
+                )
 
         except ImportError:
             logger.error("JIRA integration not available")
-            validation_errors = html.Div(
+            cache_status_message = html.Div(
                 [
-                    html.I(className="fas fa-exclamation-triangle me-2"),
-                    "JIRA integration not available",
+                    html.I(className="fas fa-exclamation-triangle me-2 text-danger"),
+                    html.Div(
+                        [
+                            html.Span(
+                                "Integration Error", className="fw-bold d-block mb-1"
+                            ),
+                            html.Span(
+                                "JIRA integration module not available. Please check your installation.",
+                                className="small",
+                            ),
+                        ]
+                    ),
                 ],
-                className="text-danger small",
+                className="text-danger small mt-2",
             )
-            return None, None, None, validation_errors, no_update
+            return (
+                None,
+                None,
+                cache_status_message,
+                no_update,
+                no_update,
+                no_update,
+                no_update,
+                no_update,
+            )
         except Exception as e:
             logger.error(f"Error in unified data update: {e}")
-            validation_errors = html.Div(
+            cache_status_message = html.Div(
                 [
-                    html.I(className="fas fa-exclamation-triangle me-2"),
-                    f"Error updating data: {str(e)}",
+                    html.I(className="fas fa-exclamation-triangle me-2 text-danger"),
+                    html.Div(
+                        [
+                            html.Span(
+                                "Unexpected Error", className="fw-bold d-block mb-1"
+                            ),
+                            html.Span(f"{str(e)}", className="small"),
+                        ]
+                    ),
                 ],
-                className="text-danger small",
+                className="text-danger small mt-2",
             )
-            return None, None, None, validation_errors, no_update
+            return (
+                None,
+                None,
+                cache_status_message,
+                no_update,
+                no_update,
+                no_update,
+                no_update,
+                no_update,
+            )
 
     #######################################################################
     # JIRA SCOPE CALCULATION CALLBACK
@@ -1274,10 +1012,12 @@ def register(app):
 
     @app.callback(
         [
-            Output("jira-query-profile-selector", "options"),
+            Output("jira-query-profile-selector", "options", allow_duplicate=True),
             Output(
                 "jira-query-profile-selector-mobile", "options", allow_duplicate=True
             ),
+            Output("jira-query-profile-selector", "value", allow_duplicate=True),
+            Output("jira-query-profile-selector-mobile", "value", allow_duplicate=True),
             Output("query-name-input", "value"),
             Output("query-description-input", "value"),
             Output("query-name-validation", "children"),
@@ -1297,7 +1037,7 @@ def register(app):
     def save_query_profile(
         save_clicks, query_name, description, jql_value, set_as_default
     ):
-        """Save a new JQL query profile."""
+        """Save a new JQL query profile and select it in the dropdown."""
         if not save_clicks:
             raise PreventUpdate
 
@@ -1308,12 +1048,16 @@ def register(app):
                 no_update,
                 no_update,
                 no_update,
+                no_update,
+                no_update,
                 "Query name is required",
                 {"display": "block"},
             )
 
         if not jql_value or not jql_value.strip():
             return (
+                no_update,
+                no_update,
                 no_update,
                 no_update,
                 no_update,
@@ -1351,21 +1095,33 @@ def register(app):
                     label += " ★"  # Add star indicator for default
                 updated_options.append({"label": label, "value": profile["id"]})
 
-            # Keep dropdown clean for saved queries only - no "New Query" option needed
+            # Get the saved profile ID to select it
+            saved_profile_id = saved_profile["id"] if saved_profile else None
 
-            # Clear form and hide validation
+            logger.info(
+                f"💾 SAVE CALLBACK: Returning {len(updated_options)} options, selecting profile ID: {saved_profile_id}"
+            )
+            logger.info(
+                f"💾 Options being returned: {[opt['label'] for opt in updated_options]}"
+            )
+
+            # Clear form, hide validation, and select the newly saved query
             return (
-                updated_options,  # Desktop dropdown
-                updated_options,  # Mobile dropdown
-                "",
-                "",
-                "",
-                {"display": "none"},
+                updated_options,  # Desktop dropdown options
+                updated_options,  # Mobile dropdown options
+                saved_profile_id,  # Desktop dropdown value (select the saved query)
+                saved_profile_id,  # Mobile dropdown value
+                "",  # Clear query name input
+                "",  # Clear description input
+                "",  # Clear validation message
+                {"display": "none"},  # Hide validation
             )
 
         except Exception as e:
             logger.error(f"Error saving query profile: {e}")
             return (
+                no_update,
+                no_update,
                 no_update,
                 no_update,
                 no_update,
@@ -1393,22 +1149,76 @@ def register(app):
         prevent_initial_call=True,
     )
     def sync_dropdowns_and_show_buttons(desktop_profile_id, mobile_profile_id):
-        """Sync both dropdowns and show/hide profile action buttons."""
+        """Sync both dropdowns, show/hide profile action buttons, and persist selection."""
         # Determine which dropdown triggered the change
         ctx = callback_context
-        if not ctx.triggered:
-            # Initial load - use desktop value
+
+        # CRITICAL FIX: Only sync when triggered by actual user interaction
+        # If no trigger or triggered by another callback, don't interfere
+        if not ctx.triggered or not ctx.triggered[0].get("value"):
+            logger.info(
+                "DEBUG: sync_dropdowns_and_show_buttons - no trigger or empty value, skipping sync"
+            )
+            return (
+                no_update,
+                no_update,
+                {"display": "none"},
+                {"display": "none"},
+                {"display": "none"},
+                "",
+            )
+
+        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+
+        # Determine which dropdown value to use
+        if trigger_id == "jira-query-profile-selector-mobile":
+            selected_profile_id = mobile_profile_id
+        elif trigger_id == "jira-query-profile-selector":
             selected_profile_id = desktop_profile_id
         else:
-            trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
-            if trigger_id == "jira-query-profile-selector-mobile":
-                selected_profile_id = mobile_profile_id
-            else:
-                selected_profile_id = desktop_profile_id
+            # Unknown trigger, don't sync
+            logger.info(f"DEBUG: Unknown trigger: {trigger_id}, skipping sync")
+            return (
+                no_update,
+                no_update,
+                {"display": "none"},
+                {"display": "none"},
+                {"display": "none"},
+                "",
+            )
 
         logger.info(
             f"DEBUG: sync_dropdowns_and_show_buttons called with profile_id: {selected_profile_id}"
         )
+
+        # CRITICAL FIX: Persist the selected profile ID to app_settings.json
+        # This ensures the selection is maintained on app restart/refresh
+        try:
+            from data.persistence import load_app_settings, save_app_settings
+
+            app_settings = load_app_settings()
+            current_profile_id = app_settings.get("active_jql_profile_id", "")
+
+            # Only save if the profile ID has changed (avoid unnecessary file writes)
+            if selected_profile_id != current_profile_id:
+                save_app_settings(
+                    pert_factor=app_settings["pert_factor"],
+                    deadline=app_settings["deadline"],
+                    data_points_count=app_settings.get("data_points_count"),
+                    show_milestone=app_settings.get("show_milestone"),
+                    milestone=app_settings.get("milestone"),
+                    show_points=app_settings.get("show_points"),
+                    jql_query=app_settings.get("jql_query"),
+                    last_used_data_source=app_settings.get("last_used_data_source"),
+                    active_jql_profile_id=selected_profile_id
+                    or "",  # Persist the selection
+                )
+                logger.info(
+                    f"Persisted selected query profile ID: {selected_profile_id}"
+                )
+        except Exception as e:
+            logger.error(f"Error persisting profile selection: {e}")
+            # Continue with button visibility logic even if persistence fails
 
         # Base button styles
         hidden_style = {"display": "none"}
@@ -1570,10 +1380,10 @@ def register(app):
             "jira-jql-query", "value"
         ),  # JQL textarea uses standard "value" property
         [Input("jira-query-profile-selector", "value")],
-        prevent_initial_call=True,
+        prevent_initial_call=False,  # CRITICAL FIX: Allow initial call to load query on app start
     )
     def update_jql_from_profile(selected_profile_id):
-        """Update JQL textarea when a profile is selected."""
+        """Update JQL textarea when a profile is selected or on initial load."""
         if not selected_profile_id:
             raise PreventUpdate
 
@@ -1582,6 +1392,7 @@ def register(app):
 
             profile = get_query_profile_by_id(selected_profile_id)
             if profile:
+                logger.info(f"Loading JQL query from profile: {profile['name']}")
                 return profile["jql"]
             else:
                 raise PreventUpdate
@@ -1683,6 +1494,7 @@ def register(app):
             Output(
                 "jira-query-profile-selector-mobile", "options", allow_duplicate=True
             ),
+            Output("jira-jql-query", "value", allow_duplicate=True),
             Output("edit-query-name-validation", "children"),
             Output("edit-query-name-validation", "style"),
         ],
@@ -1704,16 +1516,28 @@ def register(app):
         current_profile_id,
         set_as_default,
     ):
-        """Update existing JQL query profile."""
+        """Update existing JQL query profile and refresh the editor."""
         if not edit_clicks or not current_profile_id or current_profile_id == "custom":
             raise PreventUpdate
 
         # Validate inputs
         if not query_name or not query_name.strip():
-            return no_update, no_update, "Query name is required", {"display": "block"}
+            return (
+                no_update,
+                no_update,
+                no_update,
+                "Query name is required",
+                {"display": "block"},
+            )
 
         if not jql_value or not jql_value.strip():
-            return no_update, no_update, "JQL query is required", {"display": "block"}
+            return (
+                no_update,
+                no_update,
+                no_update,
+                "JQL query is required",
+                {"display": "block"},
+            )
 
         try:
             from data.jira_query_manager import (
@@ -1755,11 +1579,17 @@ def register(app):
                         label += " ★"  # Add star indicator for default
                     updated_options.append({"label": label, "value": profile["id"]})
 
-                # Keep dropdown clean for saved queries only
-
-                return updated_options, updated_options, "", {"display": "none"}
+                # Return updated options, JQL value, and clear validation
+                return (
+                    updated_options,
+                    updated_options,
+                    jql_value.strip(),  # Update JQL editor with edited query
+                    "",
+                    {"display": "none"},
+                )
             else:
                 return (
+                    no_update,
                     no_update,
                     no_update,
                     "Failed to update query profile",
@@ -1769,6 +1599,7 @@ def register(app):
         except Exception as e:
             logger.error(f"Error updating query profile: {e}")
             return (
+                no_update,
                 no_update,
                 no_update,
                 "Error updating query profile",
@@ -2116,3 +1947,449 @@ def register(app):
         [Input("test-jql-query-button", "n_clicks")],
         prevent_initial_call=True,
     )
+
+    #######################################################################
+    # PARAMETER PANEL CALLBACKS (User Story 1)
+    #######################################################################
+
+    @app.callback(
+        [
+            Output("parameter-collapse", "is_open"),
+            Output("parameter-panel-state", "data"),
+            Output("settings-collapse", "is_open", allow_duplicate=True),
+        ],
+        Input("btn-expand-parameters", "n_clicks"),
+        [
+            State("parameter-collapse", "is_open"),
+            State("parameter-panel-state", "data"),
+            State("settings-collapse", "is_open"),
+        ],
+        prevent_initial_call=True,
+    )
+    def toggle_parameter_panel(n_clicks, is_open, panel_state, settings_is_open):
+        """
+        Toggle parameter panel expand/collapse and persist state to localStorage.
+
+        This callback supports User Story 1: Quick Parameter Adjustments While Viewing Charts.
+        It toggles the collapse state and persists the user preference to localStorage
+        so the panel state is maintained across sessions.
+
+        Also ensures only one flyout panel is open at a time by closing settings panel
+        when parameter panel opens.
+
+        Args:
+            n_clicks: Number of times expand button was clicked
+            is_open: Current state of the collapse component
+            panel_state: Current parameter panel state from dcc.Store
+            settings_is_open: Current settings panel state
+
+        Returns:
+            tuple: (new_is_open, updated_panel_state, new_settings_state)
+        """
+        from datetime import datetime
+
+        if n_clicks:
+            new_is_open = not is_open
+            # Update panel state with new preference
+            updated_state = {
+                "is_open": new_is_open,
+                "last_updated": datetime.now().isoformat(),
+                "user_preference": True,
+            }
+
+            # If opening parameter panel and settings panel is open, close settings
+            if new_is_open and settings_is_open:
+                return new_is_open, updated_state, False
+
+            return new_is_open, updated_state, no_update
+
+        return is_open, panel_state, no_update
+
+    @app.callback(
+        Output("parameter-bar-collapsed", "children"),
+        [
+            Input("pert-factor-slider", "value"),  # FIXED: use correct component ID
+            Input(
+                "deadline-picker", "date"
+            ),  # FIXED: use correct component and property
+            Input("estimated-items-input", "value"),
+            Input("estimated-points-input", "value"),
+            Input("data-points-input", "value"),  # Add data points input
+            Input("current-settings", "modified_timestamp"),  # Add to get show_points
+        ],
+        [State("current-settings", "data")],
+        prevent_initial_call=False,  # Update on initial load
+    )
+    def update_parameter_summary(
+        pert_factor,
+        deadline,
+        scope_items,
+        scope_points,
+        data_points,
+        settings_ts,
+        settings,
+    ):
+        """
+        Update parameter summary in collapsed bar when values change.
+
+        This callback supports User Story 1: Quick Parameter Adjustments While Viewing Charts.
+        It updates the collapsed bar display to show current parameter values immediately
+        after user changes them in the expanded panel.
+
+        Args:
+            pert_factor: Current PERT factor value
+            deadline: Current deadline date string
+            scope_items: Total number of items in scope
+            scope_points: Total story points in scope
+            settings_ts: Timestamp of settings changes
+            settings: Current app settings
+
+        Returns:
+            Dash components: Updated collapsed bar children
+        """
+        # Provide defaults for None values
+        pert_factor = pert_factor or DEFAULT_PERT_FACTOR
+        deadline = deadline or "2025-12-31"
+        scope_items = scope_items or 0
+        scope_points = scope_points or 0
+
+        # Get show_points setting
+        show_points = settings.get("show_points", True) if settings else True
+
+        # Get remaining items/points from project scope if available
+        from data.persistence import get_project_scope
+
+        project_scope = get_project_scope()
+        remaining_items = None
+        remaining_points = None
+
+        if project_scope:
+            remaining_items = project_scope.get("remaining_items")
+            # Use remaining_total_points (estimated) instead of remaining_points (raw count)
+            # remaining_total_points accounts for items without estimates
+            remaining_points = project_scope.get("remaining_total_points")
+
+        return dbc.Row(
+            [
+                # Parameter Summary (left side)
+                dbc.Col(
+                    [
+                        html.Div(
+                            [
+                                html.Span(
+                                    [
+                                        html.I(className="fas fa-sliders-h me-1"),
+                                        f"Window: {pert_factor}w",
+                                    ],
+                                    className="param-summary-item me-3",
+                                    title=f"Confidence Window: {pert_factor} weeks (samples best/worst case from your velocity history)",
+                                ),
+                            ]
+                            + (
+                                [
+                                    html.Span(
+                                        [
+                                            html.I(className="fas fa-chart-line me-1"),
+                                            f"Data: {data_points}w",
+                                        ],
+                                        className="param-summary-item me-3",
+                                        title=f"Data Points: {data_points} weeks of historical data used for forecasting",
+                                    ),
+                                ]
+                                if data_points
+                                else []
+                            )
+                            + [
+                                html.Span(
+                                    [
+                                        html.I(className="fas fa-calendar me-1"),
+                                        html.Span(
+                                            "Deadline:",
+                                            className="text-muted d-none d-lg-inline me-1",
+                                            style={"fontSize": "0.85em"},
+                                        ),
+                                        f"{deadline}",
+                                    ],
+                                    className="param-summary-item me-3",
+                                    title=f"Project deadline: {deadline}",
+                                ),
+                                html.Span(
+                                    [
+                                        html.I(className="fas fa-tasks me-1"),
+                                        html.Span(
+                                            f"{'Remaining' if remaining_items is not None else 'Scope'}:",
+                                            className="text-muted d-none d-md-inline me-1",
+                                            style={"fontSize": "0.85em"},
+                                        ),
+                                        f"{(remaining_items if remaining_items is not None else scope_items):,} items",
+                                    ],
+                                    className="param-summary-item me-3",
+                                    title=f"{'Remaining' if remaining_items is not None else 'Scope'}: {(remaining_items if remaining_items is not None else scope_items):,} items",
+                                ),
+                            ]
+                            + (
+                                [
+                                    html.Span(
+                                        [
+                                            html.I(className="fas fa-chart-bar me-1"),
+                                            html.Span(
+                                                f"{'Remaining' if remaining_points is not None else 'Scope'}:",
+                                                className="text-muted d-none d-md-inline me-1",
+                                                style={"fontSize": "0.85em"},
+                                            ),
+                                            # Round points to natural number for display
+                                            f"{int(round(remaining_points if remaining_points is not None else scope_points)):,} points",
+                                        ],
+                                        className="param-summary-item",
+                                        title=f"{'Remaining' if remaining_points is not None else 'Scope'}: {int(round(remaining_points if remaining_points is not None else scope_points)):,} points",
+                                    ),
+                                ]
+                                if show_points
+                                else []
+                            ),
+                            className="d-flex align-items-center flex-wrap",
+                        ),
+                    ],
+                    xs=12,
+                    md=9,
+                    className="d-flex align-items-center",
+                ),
+                # Expand Button and Settings Button (right side)
+                dbc.Col(
+                    [
+                        html.Div(
+                            [
+                                dbc.Button(
+                                    [
+                                        html.I(
+                                            className="fas fa-chevron-down",
+                                            style={
+                                                "minWidth": "14px",
+                                                "textAlign": "center",
+                                            },
+                                        ),
+                                        html.Span(
+                                            "Parameters",
+                                            className="d-none d-lg-inline ms-2",
+                                        ),
+                                    ],
+                                    id="btn-expand-parameters",
+                                    color="primary",
+                                    outline=True,
+                                    size="sm",
+                                    className="me-2",
+                                ),
+                                dbc.Button(
+                                    [
+                                        html.I(
+                                            className="fas fa-cog",
+                                            style={
+                                                "minWidth": "14px",
+                                                "textAlign": "center",
+                                            },
+                                        ),
+                                        html.Span(
+                                            "Settings",
+                                            className="d-none d-lg-inline ms-2",
+                                        ),
+                                    ],
+                                    id="settings-button",
+                                    color="primary",
+                                    outline=True,
+                                    size="sm",
+                                    title="Configure data sources, import/export, and JQL queries",
+                                ),
+                            ],
+                            className="d-flex justify-content-end align-items-center",
+                        ),
+                    ],
+                    xs=12,
+                    md=3,
+                    className="d-flex align-items-center justify-content-end mt-2 mt-md-0",
+                ),
+            ],
+            className="g-2",
+        )
+
+    # Callback to update Data Points slider marks dynamically when statistics change
+    @app.callback(
+        [
+            Output("data-points-input", "max"),
+            Output("data-points-input", "marks"),
+        ],
+        [Input("current-statistics", "data")],
+        prevent_initial_call=False,
+    )
+    def update_data_points_slider_marks(statistics):
+        """
+        Update Data Points slider max and marks when statistics data changes.
+
+        This ensures the slider reflects the current data size after fetching
+        new data from JIRA or importing data.
+
+        Args:
+            statistics: List of statistics data points
+
+        Returns:
+            Tuple: (max_value, marks_dict) for the data points slider
+        """
+        import math
+
+        # Calculate max data points from statistics
+        max_data_points = 52  # Default max
+        if statistics and len(statistics) > 0:
+            max_data_points = len(statistics)
+
+        # Calculate dynamic marks for Data Points slider
+        # 5 points: min (4), 1/4, 1/2 (middle), 3/4, max
+        min_data_points = 4
+        range_size = max_data_points - min_data_points
+        quarter_point = math.ceil(min_data_points + range_size / 4)
+        middle_point = math.ceil(min_data_points + range_size / 2)
+        three_quarter_point = math.ceil(min_data_points + 3 * range_size / 4)
+
+        data_points_marks = {
+            min_data_points: {"label": str(min_data_points)},
+            quarter_point: {"label": str(quarter_point)},
+            middle_point: {"label": str(middle_point)},
+            three_quarter_point: {"label": str(three_quarter_point)},
+            max_data_points: {"label": str(max_data_points)},
+        }
+
+        logger.info(
+            f"Data Points slider updated: max={max_data_points}, marks={list(data_points_marks.keys())}"
+        )
+
+        return max_data_points, data_points_marks
+
+    # Callback to recalculate remaining work scope when data points slider changes
+    @app.callback(
+        [
+            Output("estimated-items-input", "value", allow_duplicate=True),
+            Output("total-items-input", "value", allow_duplicate=True),
+            Output("estimated-points-input", "value", allow_duplicate=True),
+            Output("total-points-display", "value", allow_duplicate=True),
+        ],
+        [Input("data-points-input", "value")],
+        [
+            State("current-statistics", "data"),
+            State("app-init-complete", "data"),
+        ],
+        prevent_initial_call=True,
+    )
+    def update_remaining_work_on_data_points_change(
+        data_points_count, statistics, init_complete
+    ):
+        """
+        Recalculate remaining work scope when the Data Points slider changes.
+
+        When the user adjusts the Data Points slider to use fewer historical weeks,
+        the remaining work should reflect the scope at the START of that time window.
+        For example, if using the last 10 weeks of data, show the remaining items/points
+        as they were 10 weeks ago, not the current values.
+
+        Args:
+            data_points_count: Number of data points selected on the slider
+            statistics: List of statistics data points
+            init_complete: Whether app initialization is complete
+
+        Returns:
+            Tuple: (estimated_items, remaining_items, estimated_points, remaining_points)
+        """
+        if not init_complete or not statistics or not data_points_count:
+            raise PreventUpdate
+
+        try:
+            from data.persistence import load_unified_project_data
+            import pandas as pd
+
+            # Load unified data to get current scope
+            unified_data = load_unified_project_data()
+            project_scope = unified_data.get("project_scope", {})
+
+            # If no statistics or insufficient data, use current scope values
+            if not statistics or len(statistics) < data_points_count:
+                estimated_items = project_scope.get("estimated_items", 0)
+                remaining_items = project_scope.get("remaining_items", 0)
+                estimated_points = project_scope.get("estimated_points", 0)
+                remaining_points = project_scope.get("remaining_total_points", 0)
+                return (
+                    estimated_items,
+                    remaining_items,
+                    estimated_points,
+                    f"{remaining_points:.0f}",
+                )
+
+            # Convert statistics to DataFrame for easier manipulation
+            df = pd.DataFrame(statistics)
+            df["date"] = pd.to_datetime(df["date"])
+            df = df.sort_values("date", ascending=False)  # Most recent first
+
+            # Get the most recent N data points (based on slider value)
+            selected_data = df.head(data_points_count)
+
+            # Calculate cumulative completed items/points in the selected time window
+            # This gives us how much work was completed during the selected time window
+            completed_in_window_items = selected_data["completed_items"].sum()
+            completed_in_window_points = selected_data["completed_points"].sum()
+
+            # Get current remaining work from project scope
+            current_remaining_items = project_scope.get("remaining_items", 0)
+            current_remaining_points = project_scope.get("remaining_total_points", 0)
+
+            # Calculate remaining work at the START of the selected time window
+            # remaining_at_start = current_remaining + completed_during_window
+            remaining_items_at_start = (
+                current_remaining_items + completed_in_window_items
+            )
+            remaining_points_at_start = (
+                current_remaining_points + completed_in_window_points
+            )
+
+            # For estimated items/points, we need to recalculate based on the data window
+            # Get the data for items with estimates (story points)
+            estimated_items_in_window = selected_data[
+                selected_data["completed_points"] > 0
+            ]["completed_items"].sum()
+            estimated_points_in_window = selected_data["completed_points"].sum()
+
+            # Calculate what estimated items/points would be at start of window
+            # Use the current ratio of estimated to total, applied to the start values
+            current_total_items = project_scope.get("total_items", 1)
+            current_estimated_items = project_scope.get("estimated_items", 0)
+
+            if current_total_items > 0:
+                estimate_ratio = current_estimated_items / current_total_items
+                estimated_items_at_start = int(
+                    remaining_items_at_start * estimate_ratio
+                )
+            else:
+                estimated_items_at_start = current_estimated_items
+
+            # For estimated points, use the estimated points from the window
+            # or calculate based on completed points if available
+            if estimated_items_at_start > 0 and estimated_points_in_window > 0:
+                # Calculate average points per estimated item in the window
+                avg_points = estimated_points_in_window / max(
+                    estimated_items_in_window, 1
+                )
+                estimated_points_at_start = int(estimated_items_at_start * avg_points)
+            else:
+                estimated_points_at_start = project_scope.get("estimated_points", 0)
+
+            logger.info(
+                f"Data Points slider changed to {data_points_count}: "
+                f"Remaining Items: {current_remaining_items} → {remaining_items_at_start}, "
+                f"Remaining Points: {current_remaining_points:.0f} → {remaining_points_at_start:.0f}"
+            )
+
+            return (
+                estimated_items_at_start,
+                int(remaining_items_at_start),
+                estimated_points_at_start,
+                f"{remaining_points_at_start:.0f}",
+            )
+
+        except Exception as e:
+            logger.error(f"Error updating remaining work on data points change: {e}")
+            raise PreventUpdate

@@ -465,16 +465,27 @@ def update_jira_config_status(modal_is_open, save_clicks):
                     className="d-flex align-items-center",
                 )
 
-            # Connection successful - show green status
+            # Connection successful - show green status with shortened URL
+            # Extract domain from URL for more compact display
+            try:
+                from urllib.parse import urlparse
+
+                parsed = urlparse(base_url)
+                domain = parsed.netloc if parsed.netloc else base_url
+            except Exception:
+                domain = base_url
+
             return html.Div(
                 [
                     html.I(className="fas fa-check-circle text-success me-2"),
                     html.Span(
-                        f"JIRA Connected: {base_url} (API {api_version})",
+                        f"Connected: {domain}",
                         className="text-success small",
+                        title=f"Full URL: {base_url} (API {api_version})",
                     ),
                 ],
                 className="d-flex align-items-center",
+                style={"overflow": "hidden", "textOverflow": "ellipsis"},
             )
         else:
             return html.Div(

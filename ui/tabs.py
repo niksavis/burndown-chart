@@ -9,6 +9,7 @@ with enhanced mobile-first responsive design and navigation patterns.
 # IMPORTS
 #######################################################################
 # Standard library imports
+from typing import TypedDict, List
 
 # Third-party library imports
 import dash_bootstrap_components as dbc
@@ -22,6 +23,123 @@ from ui.mobile_navigation import (
     create_mobile_navigation_system,
     get_mobile_tabs_config,
 )
+from ui.style_constants import get_color
+
+
+#######################################################################
+# TAB CONFIGURATION REGISTRY
+#######################################################################
+
+
+class TabConfig(TypedDict):
+    """Type definition for tab configuration."""
+
+    id: str
+    label: str
+    icon: str
+    color: str
+    order: int
+    requires_data: bool
+    help_content_id: str
+
+
+# Central tab registry defining all application tabs
+# Order determines display sequence (0 = first tab)
+TAB_CONFIG: List[TabConfig] = [
+    {
+        "id": "tab-dashboard",
+        "label": "Dashboard",
+        "icon": "fa-tachometer-alt",
+        "color": get_color("primary"),
+        "order": 0,
+        "requires_data": True,
+        "help_content_id": "help-dashboard",
+    },
+    {
+        "id": "tab-burndown",
+        "label": "Burndown",
+        "icon": "fa-chart-line",
+        "color": get_color("info"),
+        "order": 1,
+        "requires_data": True,
+        "help_content_id": "help-burndown",
+    },
+    {
+        "id": "tab-items",
+        "label": "Items per Week",
+        "icon": "fa-tasks",
+        "color": get_color("success"),
+        "order": 2,
+        "requires_data": True,
+        "help_content_id": "help-items",
+    },
+    {
+        "id": "tab-points",
+        "label": "Points per Week",
+        "icon": "fa-chart-bar",
+        "color": get_color("warning"),
+        "order": 3,
+        "requires_data": True,
+        "help_content_id": "help-points",
+    },
+    {
+        "id": "tab-scope-tracking",
+        "label": "Scope Tracking",
+        "icon": "fa-project-diagram",
+        "color": get_color("secondary"),
+        "order": 4,
+        "requires_data": True,
+        "help_content_id": "help-scope",
+    },
+    {
+        "id": "tab-bug-analysis",
+        "label": "Bug Analysis",
+        "icon": "fa-bug",
+        "color": get_color("danger"),
+        "order": 5,
+        "requires_data": True,
+        "help_content_id": "help-bugs",
+    },
+]
+
+
+def get_tab_by_id(tab_id: str) -> TabConfig | None:
+    """
+    Get tab configuration by ID.
+
+    Args:
+        tab_id: The tab ID to look up
+
+    Returns:
+        Tab configuration dictionary or None if not found
+    """
+    for tab in TAB_CONFIG:
+        if tab["id"] == tab_id:
+            return tab
+    return None
+
+
+def get_tabs_sorted() -> List[TabConfig]:
+    """
+    Get all tabs sorted by order.
+
+    Returns:
+        List of tab configurations sorted by order field
+    """
+    return sorted(TAB_CONFIG, key=lambda t: t["order"])
+
+
+def validate_tab_id(tab_id: str) -> bool:
+    """
+    Validate if a tab ID exists in the registry.
+
+    Args:
+        tab_id: The tab ID to validate
+
+    Returns:
+        True if tab ID is valid, False otherwise
+    """
+    return any(tab["id"] == tab_id for tab in TAB_CONFIG)
 
 
 def create_tabs():
@@ -60,7 +178,7 @@ def create_tabs():
                     dbc.Tabs(
                         tabs,
                         id="chart-tabs",
-                        active_tab="tab-burndown",
+                        active_tab="tab-dashboard",  # User Story 2: Dashboard as default view
                         className="mb-4 nav-tabs-modern d-none d-md-flex",  # Hidden on mobile
                     )
                 ],
@@ -115,7 +233,10 @@ def create_tab_content(active_tab, charts, statistics_df=None, pert_data=None):
     tab_titles = {
         "tab-burndown": html.Div(
             [
-                html.I(className="fas fa-chart-line me-2", style={"color": "#0d6efd"}),
+                html.I(
+                    className="fas fa-chart-line me-2",
+                    style={"color": get_color("info")},
+                ),
                 "Project Burndown Forecast",
                 create_info_tooltip(
                     CHART_HELP_TEXTS["burndown_vs_burnup"],
@@ -126,28 +247,38 @@ def create_tab_content(active_tab, charts, statistics_df=None, pert_data=None):
         ),
         "tab-items": html.Div(
             [
-                html.I(className="fas fa-tasks me-2", style={"color": "#20c997"}),
+                html.I(
+                    className="fas fa-tasks me-2", style={"color": get_color("success")}
+                ),
                 "Weekly Completed Items",
             ],
             className="mb-3 border-bottom pb-2 d-flex align-items-center fw-bold",
         ),
         "tab-points": html.Div(
             [
-                html.I(className="fas fa-chart-bar me-2", style={"color": "#fd7e14"}),
+                html.I(
+                    className="fas fa-chart-bar me-2",
+                    style={"color": get_color("warning")},
+                ),
                 "Weekly Completed Points",
             ],
             className="mb-3 border-bottom pb-2 d-flex align-items-center fw-bold",
         ),
         "tab-scope-tracking": html.Div(
             [
-                html.I(className="fas fa-chart-bar me-2", style={"color": "#fd7e14"}),
+                html.I(
+                    className="fas fa-chart-bar me-2",
+                    style={"color": get_color("secondary")},
+                ),
                 "Scope Change Analysis",
             ],
             className="mb-3 border-bottom pb-2 d-flex align-items-center fw-bold",
         ),
         "tab-bug-analysis": html.Div(
             [
-                html.I(className="fas fa-bug me-2", style={"color": "#dc3545"}),
+                html.I(
+                    className="fas fa-bug me-2", style={"color": get_color("danger")}
+                ),
                 "Bug Analysis & Quality Insights",
             ],
             className="mb-3 border-bottom pb-2 d-flex align-items-center fw-bold",

@@ -6,14 +6,22 @@ drawer navigation, bottom navigation, and swipe gestures.
 """
 
 #######################################################################
-# IMPORTS  
+# IMPORTS
 #######################################################################
-from dash import callback, Input, Output, State, html, no_update, clientside_callback
+from dash import (
+    callback,
+    Input,
+    Output,
+    State,
+    no_update,
+    clientside_callback,
+)
 
 
 #######################################################################
 # MOBILE NAVIGATION CALLBACKS
 #######################################################################
+
 
 @callback(
     [
@@ -34,7 +42,7 @@ def handle_mobile_drawer(menu_clicks, close_clicks, overlay_clicks, nav_state):
     if not nav_state:
         nav_state = {
             "drawer_open": False,
-            "active_tab": "tab-burndown",
+            "active_tab": "tab-dashboard",
             "swipe_enabled": True,
         }
 
@@ -61,7 +69,7 @@ def handle_mobile_drawer(menu_clicks, close_clicks, overlay_clicks, nav_state):
 # Clientside callback to handle mobile navigation tab switching
 clientside_callback(
     """
-    function(burndown_clicks, items_clicks, points_clicks, scope_clicks) {
+    function(dashboard_clicks, burndown_clicks, items_clicks, points_clicks, scope_clicks, bugs_clicks) {
         // Get the callback context to see which button was clicked
         if (!window.dash_clientside.callback_context.triggered.length) {
             return window.dash_clientside.no_update;
@@ -71,10 +79,12 @@ clientside_callback(
         
         // Map mobile nav buttons to tab IDs
         const tab_mapping = {
+            'bottom-nav-tab-dashboard': 'tab-dashboard',
             'bottom-nav-tab-burndown': 'tab-burndown',
             'bottom-nav-tab-items': 'tab-items', 
             'bottom-nav-tab-points': 'tab-points',
-            'bottom-nav-tab-scope-tracking': 'tab-scope-tracking'
+            'bottom-nav-tab-scope-tracking': 'tab-scope-tracking',
+            'bottom-nav-tab-bug-analysis': 'tab-bug-analysis'
         };
         
         const target_tab = tab_mapping[trigger_id];
@@ -93,10 +103,12 @@ clientside_callback(
     """,
     Output("chart-tabs", "active_tab", allow_duplicate=True),
     [
+        Input("bottom-nav-tab-dashboard", "n_clicks"),
         Input("bottom-nav-tab-burndown", "n_clicks"),
         Input("bottom-nav-tab-items", "n_clicks"),
         Input("bottom-nav-tab-points", "n_clicks"),
         Input("bottom-nav-tab-scope-tracking", "n_clicks"),
+        Input("bottom-nav-tab-bug-analysis", "n_clicks"),
     ],
     prevent_initial_call=True,
 )
@@ -113,10 +125,12 @@ clientside_callback(
         
         // Tab configuration (matching Python config)
         const tabs_config = [
+            { id: 'tab-dashboard', color: '#0d6efd' },
             { id: 'tab-burndown', color: '#0d6efd' },
             { id: 'tab-items', color: '#20c997' },
             { id: 'tab-points', color: '#fd7e14' },
-            { id: 'tab-scope-tracking', color: '#6f42c1' }
+            { id: 'tab-scope-tracking', color: '#6f42c1' },
+            { id: 'tab-bug-analysis', color: '#dc3545' }
         ];
         
         // Update each button's styling without recreating elements
@@ -205,6 +219,7 @@ clientside_callback(
 #######################################################################
 # REGISTRATION FUNCTION
 #######################################################################
+
 
 def register(app):
     """Register mobile navigation callbacks with the app."""

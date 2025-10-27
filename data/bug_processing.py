@@ -103,7 +103,12 @@ def calculate_bug_statistics(
 
     for year in range(year_start, year_end + 1):
         start = week_start if year == year_start else 1
-        end = week_end if year == year_end else 53
+        # FIX: Determine actual number of weeks in the year (52 or 53)
+        # ISO 8601: Week 53 only exists in years that start on Thursday or leap years starting on Wednesday
+        # Most years have 52 weeks, some have 53
+        max_week_in_year = get_max_iso_week_for_year(year)
+        end = min(week_end if year == year_end else max_week_in_year, max_week_in_year)
+
         for week in range(start, end + 1):
             week_key = f"{year}-W{week:02d}"
             if week_key not in weekly_stats:
@@ -444,6 +449,32 @@ def get_iso_week(date: datetime) -> str:
     """
     iso_calendar = date.isocalendar()
     return f"{iso_calendar[0]}-W{iso_calendar[1]:02d}"
+
+
+def get_max_iso_week_for_year(year: int) -> int:
+    """Get the maximum ISO week number for a given year.
+
+    Most years have 52 weeks, but some years have 53 weeks according to ISO 8601.
+    A year has 53 weeks if:
+    - It starts on a Thursday (e.g., 2015, 2020, 2026)
+    - It's a leap year that starts on a Wednesday (e.g., 2004, 2032)
+
+    Args:
+        year: Year to check
+
+    Returns:
+        Maximum week number (52 or 53)
+
+    Example:
+        >>> get_max_iso_week_for_year(2024)
+        52
+        >>> get_max_iso_week_for_year(2015)  # Started on Thursday
+        53
+    """
+    # December 28th is always in the last week of the year (ISO 8601 rule)
+    # because the last week must contain at least 4 days of the year
+    last_day_of_year_week = datetime(year, 12, 28)
+    return last_day_of_year_week.isocalendar()[1]
 
 
 def get_week_start_date(iso_week: str) -> str:

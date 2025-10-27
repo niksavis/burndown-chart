@@ -55,7 +55,10 @@ from visualization import (
     create_weekly_items_chart,
     create_weekly_points_chart,
 )
-from visualization.charts import create_chart_with_loading
+from visualization.charts import (
+    create_chart_with_loading,
+    apply_mobile_optimization,
+)
 
 # Setup logging
 logger = logging.getLogger("burndown_chart")
@@ -151,10 +154,20 @@ def register(app):
             Input("calculation-results", "data"),
             Input("chart-tabs", "active_tab"),
         ],
-        [State("current-settings", "data"), State("current-statistics", "data")],
+        [
+            State("current-settings", "data"),
+            State("current-statistics", "data"),
+            State("viewport-size", "data"),
+        ],
     )
     def update_forecast_graph(
-        settings_ts, statistics_ts, calc_results, active_tab, settings, statistics
+        settings_ts,
+        statistics_ts,
+        calc_results,
+        active_tab,
+        settings,
+        statistics,
+        viewport_size,
     ):
         """Update the forecast graph when settings or statistics change."""
         # Get context to see which input triggered the callback
@@ -176,6 +189,11 @@ def register(app):
         # If triggered by calculation_results but data is None, prevent update
         if trigger_id == "calculation-results" and calc_results is None:
             raise PreventUpdate
+
+        # Detect viewport size for mobile optimization
+        viewport_size = viewport_size or "desktop"
+        is_mobile = viewport_size == "mobile"
+        is_tablet = viewport_size == "tablet"
 
         # Process the settings and statistics data
         df = pd.DataFrame(statistics)
@@ -212,6 +230,14 @@ def register(app):
             show_points=settings.get(
                 "show_points", False
             ),  # Pass show_points parameter
+        )
+
+        # Apply mobile optimization to chart
+        fig, _ = apply_mobile_optimization(
+            fig,
+            is_mobile=is_mobile,
+            is_tablet=is_tablet,
+            title="Burndown Forecast" if not is_mobile else None,
         )
 
         return fig
@@ -784,13 +810,14 @@ def register(app):
             Input("current-statistics", "modified_timestamp"),
             Input("calculation-results", "data"),
             Input("date-range-weeks", "data"),
-            Input("points-toggle", "value"),  # Added points toggle input
+            Input("points-toggle", "value"),  # Updated to new parameter panel component
         ],
         [
             State("current-settings", "data"),
             State("current-statistics", "data"),
             State("chart-cache", "data"),
             State("ui-state", "data"),
+            State("viewport-size", "data"),
         ],
     )
     def render_tab_content(
@@ -804,6 +831,7 @@ def register(app):
         statistics,
         chart_cache,
         ui_state,
+        viewport_size,
     ):
         """
         Render the appropriate content based on the selected tab with lazy loading and caching.
@@ -855,6 +883,14 @@ def register(app):
         if ui_state is None:
             ui_state = {"loading": False, "last_tab": None}
 
+        # Detect viewport size for mobile optimization (Phase 7: User Story 5)
+        viewport_size = viewport_size or "desktop"
+        is_mobile = viewport_size == "mobile"
+        is_tablet = viewport_size == "tablet"
+        logger.info(
+            f"Rendering charts for viewport: {viewport_size} (mobile={is_mobile}, tablet={is_tablet})"
+        )
+
         # CTO FIX: Clear old cache entries to prevent memory bloat (keep last 5)
         # BUT: If we're switching tabs (trigger is from chart-tabs), clear ALL cache
         # to prevent any possibility of cross-tab contamination
@@ -904,9 +940,95 @@ def register(app):
             show_milestone = settings.get("show_milestone", False)
             milestone = settings.get("milestone", None) if show_milestone else None
 
-            if active_tab == "tab-burndown":
+            if active_tab == "tab-dashboard":
+                # Generate modern compact dashboard content
+                logger.warning(
+                    f"[CTO DEBUG] Creating NEW modern dashboard content, cache_key={cache_key}"
+                )
+
+                # CRITICAL: Filter data ONCE before all calculations to ensure consistency
+                # This ensures all dashboard sections respect the data_points_count slider
+                # EXCEPT "Recent Completions" which always shows last 4 weeks
+                df_unfiltered = (
+                    df.copy()
+                )  # Keep unfiltered copy for Recent Completions section
+
+                if not df.empty:
+                    # Apply data_points_count filter first (if specified and data is larger)
+                    if (
+                        data_points_count is not None
+                        and data_points_count > 0
+                        and len(df) > data_points_count
+                    ):
+                        logger.info(
+                            f"Filtering dashboard data from {len(df)} to {data_points_count} data points"
+                        )
+                        df = df.tail(data_points_count)
+
+                    df = compute_cumulative_values(df, total_items, total_points)
+                    df_unfiltered = compute_cumulative_values(
+                        df_unfiltered, total_items, total_points
+                    )
+
+                # Create forecast plot with already-filtered data
+                # Pass data_points_count=None since data is already filtered
+                _, pert_data = create_forecast_plot(
+                    df=df,
+                    total_items=total_items,
+                    total_points=total_points,
+                    pert_factor=pert_factor,
+                    deadline_str=deadline,
+                    milestone_str=milestone,
+                    data_points_count=None,  # Already filtered above
+                    show_points=show_points,
+                )
+
+                # Calculate weekly averages for the dashboard
+                (
+                    avg_weekly_items,
+                    avg_weekly_points,
+                    med_weekly_items,
+                    med_weekly_points,
+                ) = calculate_weekly_averages(
+                    statistics, data_points_count=data_points_count
+                )
+
+                # Calculate days to deadline
+                deadline_date = pd.to_datetime(deadline)
+                current_date = datetime.now()
+                days_to_deadline = max(0, (deadline_date - current_date).days)
+
+                # Import and use comprehensive dashboard
+                from ui.dashboard_comprehensive import create_comprehensive_dashboard
+
+                # Create the comprehensive dashboard layout
+                dashboard_content = create_comprehensive_dashboard(
+                    statistics_df=df,
+                    statistics_df_unfiltered=df_unfiltered,  # For Recent Completions (always last 4 weeks)
+                    pert_time_items=pert_data["pert_time_items"],
+                    pert_time_points=pert_data["pert_time_points"],
+                    avg_weekly_items=avg_weekly_items,
+                    avg_weekly_points=avg_weekly_points,
+                    med_weekly_items=med_weekly_items,
+                    med_weekly_points=med_weekly_points,
+                    days_to_deadline=days_to_deadline,
+                    total_items=total_items,
+                    total_points=total_points,
+                    deadline_str=deadline,
+                    show_points=show_points,
+                )
+
+                # Cache the result for next time
+                chart_cache[cache_key] = dashboard_content
+                ui_state["loading"] = False
+                return dashboard_content, chart_cache, ui_state
+
+            elif active_tab == "tab-burndown":
                 # Generate all required data for burndown tab
-                items_trend, points_trend = _prepare_trend_data(statistics, pert_factor)
+                # CRITICAL: Pass data_points_count to ensure trend indicators use filtered data
+                items_trend, points_trend = _prepare_trend_data(
+                    statistics, pert_factor, data_points_count
+                )
 
                 # Generate burndown chart only when needed
                 # NOTE: Don't pre-compute cumulative values - let create_forecast_plot handle it
@@ -950,6 +1072,13 @@ def register(app):
                     pert_factor,
                     data_points_count=data_points_count,
                 )
+                # Apply mobile optimization to items chart
+                items_fig, _ = apply_mobile_optimization(
+                    items_fig,
+                    is_mobile=is_mobile,
+                    is_tablet=is_tablet,
+                    title="Weekly Items" if not is_mobile else None,
+                )
                 items_tab_content = _create_items_tab_content(items_trend, items_fig)
                 # Cache the result for next time
                 chart_cache[cache_key] = items_tab_content
@@ -967,6 +1096,13 @@ def register(app):
                         date_range_weeks,
                         pert_factor,
                         data_points_count=data_points_count,
+                    )
+                    # Apply mobile optimization to points chart
+                    points_fig, _ = apply_mobile_optimization(
+                        points_fig,
+                        is_mobile=is_mobile,
+                        is_tablet=is_tablet,
+                        title="Weekly Points" if not is_mobile else None,
                     )
                     points_tab_content = _create_points_tab_content(
                         points_trend, points_fig

@@ -125,18 +125,17 @@ class TestConsecutiveUpload:
             content = f.read()
 
         # Verify the callback has the upload-data contents output for clearing
-        assert 'Output("upload-data", "contents", allow_duplicate=True)' in content, (
-            "Callback missing upload content clearing output"
-        )
+        # Note: Upload clearing was simplified - now returns None instead of explicit clearing
+        # The callback returns (data, is_sample, upload_status) where upload_status=None clears
 
-        # Verify successful returns clear upload contents
-        assert 'return df.to_dict("records"), False, no_update, None' in content, (
-            "Callback not clearing upload contents on success"
+        # Verify successful returns clear upload contents (updated signature)
+        assert 'return df.to_dict("records"), False, None' in content, (
+            "Callback not clearing upload contents on success (expected 3-value return)"
         )
 
         # Verify error returns preserve upload contents
-        assert "return rows, is_sample_data, no_update, no_update" in content, (
-            "Callback not preserving upload contents on error"
+        assert "return rows, is_sample_data, no_update" in content, (
+            "Callback not preserving upload contents on error (expected 3-value return)"
         )
 
     def test_json_processing_functionality(

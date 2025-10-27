@@ -13,7 +13,6 @@ from datetime import datetime
 
 # Third-party library imports
 import dash_bootstrap_components as dbc
-import pandas as pd
 from dash import dcc, html
 
 # Application imports
@@ -24,17 +23,22 @@ from data import (
     load_project_data,
     load_statistics,
 )
+from ui.button_utils import create_action_button
 from ui.cards import (
-    create_input_parameters_card,
-    create_project_summary_card,
     create_statistics_data_card,
 )
-from ui.grid_utils import (
-    create_full_width_layout,
-    create_two_column_layout,
+from ui.components import (
+    create_parameter_panel,
 )
+from ui.grid_utils import create_full_width_layout
 from ui.tabs import create_tabs
 from ui.jira_config_modal import create_jira_config_modal
+from ui.settings_modal import (
+    create_save_query_modal,
+    create_delete_query_modal,
+    create_edit_query_modal,
+)
+from ui.settings_panel import create_settings_panel
 
 #######################################################################
 # LAYOUT FUNCTION
@@ -105,9 +109,6 @@ def create_app_layout(settings, statistics, is_sample_data):
         statistics,
     )
 
-    # Create dataframe from statistics
-    statistics_df = pd.DataFrame(statistics)
-
     # Import help system components
     from ui.help_system import create_help_system_layout
 
@@ -115,6 +116,10 @@ def create_app_layout(settings, statistics, is_sample_data):
         [
             # JIRA Configuration Modal (Feature 003-jira-config-separation)
             create_jira_config_modal(),
+            # Query Management Modals
+            create_save_query_modal(),
+            create_delete_query_modal(),
+            create_edit_query_modal(),
             # Help System (Phase 9.2 Progressive Disclosure)
             create_help_system_layout(),
             # Page initialization complete flag (hidden)
@@ -157,12 +162,30 @@ def create_app_layout(settings, statistics, is_sample_data):
                 },
                 storage_type="memory",  # Explicitly set storage type
             ),
+            # Store for parameter panel state (User Story 1)
+            dcc.Store(
+                id="parameter-panel-state",
+                data={"is_open": False, "user_preference": False},
+                storage_type="local",  # Persist across sessions
+            ),
+            # Parameter & Settings Panels - Sticky at top for app-like feel
+            # MUST be first visible element for sticky positioning to work
+            html.Div(
+                [
+                    create_parameter_panel(
+                        settings, is_open=False, statistics=statistics
+                    ),
+                    create_settings_panel(is_open=False),
+                ],
+                className="param-panel-sticky",
+            ),
             # Add an empty div to hold the forecast-graph (will be populated by callback)
             html.Div(
                 dcc.Graph(id="forecast-graph", style={"display": "none"}),
                 id="forecast-graph-container",
             ),
             # Sample data notification banner (shown only when using sample data)
+            # Positioned below the parameter panel
             html.Div(
                 [
                     dbc.Alert(
@@ -171,11 +194,11 @@ def create_app_layout(settings, statistics, is_sample_data):
                             html.Strong("Using Sample Data: "),
                             "You're currently viewing demo data. ",
                             "Upload your own data using the form below or add entries manually to start tracking your project.",
-                            dbc.Button(
+                            create_action_button(
                                 "Dismiss",
-                                id="dismiss-sample-alert",
-                                color="link",
+                                variant="link",
                                 size="sm",
+                                id_suffix="sample-alert",
                                 className="ms-3",
                             ),
                         ],
@@ -183,58 +206,10 @@ def create_app_layout(settings, statistics, is_sample_data):
                         color="info",
                         dismissable=False,
                         is_open=is_sample_data,
-                        className="mb-0",
+                        className="mb-3",
                     ),
                 ],
-                style={
-                    "position": "fixed",
-                    "top": "0",
-                    "left": "0",
-                    "right": "0",
-                    "zIndex": "1050",
-                },
                 id="sample-data-banner",
-            ),
-            # App header with minimal design to maximize content space
-            create_full_width_layout(
-                html.Div(
-                    [
-                        dbc.Row(
-                            [
-                                # Logo and title on the left
-                                dbc.Col(
-                                    [
-                                        html.Div(
-                                            [
-                                                html.I(
-                                                    className="fas fa-tachometer-alt",
-                                                    style={
-                                                        "fontSize": "1.1rem",
-                                                        "color": "#0d6efd",
-                                                        "marginRight": "0.5rem",
-                                                    },
-                                                ),
-                                                html.H5(
-                                                    "Project Metrics",
-                                                    className="mb-0 d-inline",
-                                                    style={
-                                                        "fontWeight": "500",
-                                                        "fontSize": "1.6rem",
-                                                    },
-                                                ),
-                                            ],
-                                            className="d-flex align-items-center",
-                                        )
-                                    ],
-                                    width="auto",
-                                ),
-                            ],
-                            className="align-items-center",
-                        )
-                    ],
-                    className="py-1 border-bottom mb-3",
-                ),
-                row_class="",
             ),
             # Tab Navigation and Charts Row - using full width template
             create_full_width_layout(
@@ -250,29 +225,6 @@ def create_app_layout(settings, statistics, is_sample_data):
                     className="shadow-sm",
                 ),
                 row_class="mb-4",
-            ),
-            # Project Dashboard and Input Parameters Cards - using two cards layout
-            # Changed to use create_two_column_layout with xl breakpoint instead of the default md
-            # This will make the cards stack on screens smaller than xl (1200px) instead of md (768px)
-            create_two_column_layout(
-                left_content=create_input_parameters_card(
-                    settings,
-                    avg_points_per_item,
-                    estimated_total_points,
-                ),
-                right_content=create_project_summary_card(
-                    statistics_df,
-                    settings,
-                    pert_data={
-                        "pert_time_items": 30,  # Provide default value instead of None
-                        "pert_time_points": 35,  # Provide default value instead of None
-                    },
-                    show_points=settings.get("show_points", False),
-                ),
-                left_width=4,  # Left card width (4/12 or 33%)
-                right_width=8,  # Right card width (8/12 or 67%)
-                breakpoint="xl",  # Changed from default "md" to "xl" to stack earlier
-                className="mb-4",  # Added margin bottom for consistency
             ),
             # Statistics Data Table - using full width layout
             create_full_width_layout(
@@ -304,13 +256,12 @@ def create_app_layout(settings, statistics, is_sample_data):
                             # Center column - GitHub link only
                             dbc.Col(
                                 html.Small(
-                                    dbc.Button(
-                                        [
-                                            html.I(className="fas fa-code me-1"),
-                                            "GitHub",
-                                        ],
-                                        color="link",
+                                    create_action_button(
+                                        "GitHub",
+                                        icon="code",
+                                        variant="link",
                                         size="sm",
+                                        id_suffix="footer",
                                         className="text-decoration-none px-2",
                                         href="https://github.com/niksavis/burndown-chart",
                                         target="_blank",
@@ -337,5 +288,5 @@ def create_app_layout(settings, statistics, is_sample_data):
             ),
         ],
         fluid=True,
-        className="px-3 py-3",  # Add consistent container padding
+        className="px-3 pb-3",  # Remove top padding to allow sticky positioning
     )

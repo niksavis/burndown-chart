@@ -762,13 +762,17 @@ def create_scope_metrics_dashboard(
     """
     Create a dashboard component displaying all scope metrics.
 
+    IMPORTANT: total_items_scope and total_points_scope should represent the INITIAL
+    project scope (baseline) at project start, NOT the current total scope including
+    created items. See data/scope_metrics.py module documentation for details.
+
     Args:
         scope_change_rate (dict): Dictionary containing items_rate, points_rate and throughput_ratio
         weekly_growth_data (DataFrame): DataFrame containing weekly growth data
         stability_index (dict): Dictionary containing items_stability and points_stability values
         threshold (int): Threshold percentage for scope change notifications
-        total_items_scope (int, optional): Total items scope (completed + remaining)
-        total_points_scope (int, optional): Total points scope (completed + remaining)
+        total_items_scope (int, optional): Initial items scope (baseline) at project start
+        total_points_scope (int, optional): Initial points scope (baseline) at project start
         show_points (bool): Whether points tracking is enabled (default: True)
 
     Returns:
@@ -835,17 +839,19 @@ def create_scope_metrics_dashboard(
                     else 0
                 )
 
-    # Calculate baselines using the provided total scope if available
+    # Calculate baselines (initial scope at project start)
+    # If total_items_scope is provided, use it as the baseline
+    # Otherwise, calculate baseline as: remaining + completed (at current point)
     if total_items_scope is not None:
-        baseline_items = total_items_scope  # Use the provided total scope
+        baseline_items = total_items_scope  # Use provided initial scope
     else:
-        # Fall back to the old calculation (remaining + completed = baseline)
+        # Calculate initial scope from current state (remaining + completed so far)
         baseline_items = remaining_items + total_completed_items
 
     if total_points_scope is not None:
-        baseline_points = total_points_scope  # Use the provided total scope
+        baseline_points = total_points_scope  # Use provided initial scope
     else:
-        # Fall back to the old calculation (remaining + completed = baseline)
+        # Calculate initial scope from current state (remaining + completed so far)
         baseline_points = remaining_points + total_completed_points
 
     # Calculate threshold in absolute values - how many items/points can be added
@@ -1315,7 +1321,7 @@ def create_scope_metrics_dashboard(
             ),
             # Enhanced Footnote with Agile Context
             html.Div(
-                className="text-muted fst-italic small text-center",
+                className="text-muted fst-italic small text-center mb-5 pb-3",
                 children=[
                     html.I(
                         className="fas fa-seedling me-1",
@@ -1323,17 +1329,6 @@ def create_scope_metrics_dashboard(
                     ),
                     "Growth Patterns: Positive spikes show scope additions from new requirements or discoveries. Negative values indicate backlog refinement or completion focus.",
                 ],
-            ),
-            # Agile Context Notice
-            dbc.Alert(
-                [
-                    html.I(className="fas fa-lightbulb me-2"),
-                    html.Strong("Agile Project Context: "),
-                    "In agile projects, scope changes are normal and healthy. These metrics help you understand patterns, not problems. Lower adaptability values are typical for responsive agile teams.",
-                ],
-                color="info",
-                className="mb-4",
-                style={"fontSize": "0.9rem"},
             ),
             # Adaptability Gauges with Tooltips
             dbc.Row(
@@ -1416,10 +1411,12 @@ def create_scope_metrics_dashboard(
                 className="text-muted fst-italic small text-center mt-3",
                 children=[
                     html.I(
-                        className="fas fa-chart-line me-1",
+                        className="fas fa-lightbulb me-1",
                         style={"color": "rgb(108, 117, 125)"},
                     ),
-                    "Adaptability Index: Lower values (0.3-0.6) are normal for responsive agile teams. Higher values (0.7+) indicate more predictable scope.",
+                    html.Strong("Agile Context: ", style={"fontWeight": "600"}),
+                    "In agile projects, scope changes are normal and healthy—these metrics help you understand patterns, not problems. ",
+                    "Lower adaptability values (0.3-0.6) are typical for responsive agile teams. Higher values (0.7+) indicate more predictable scope.",
                 ],
             ),
         ]

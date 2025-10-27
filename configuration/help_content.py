@@ -22,9 +22,12 @@ FORECAST_HELP_DETAILED = {
         The formula weights the Most Likely estimate 4x more heavily than extreme scenarios,
         following beta distribution principles for realistic project estimation.
         
-        📈 **Confidence Intervals:**
-        Uncertainty range calculated as ±25% of variance between scenarios.
-        Wider ranges indicate higher uncertainty; narrower ranges show more predictable velocity.
+        📈 **Confidence Intervals (Statistical Percentiles):**
+        • 50% (Median): The PERT forecast itself - 50% chance of completion by this date
+        • 80% (Good Confidence): PERT + 0.84 standard deviations - 80% chance of completion
+        • 95% (High Confidence): PERT + 1.65 standard deviations - 95% chance of completion
+        
+        Wider ranges indicate higher velocity uncertainty; narrower ranges show more predictable delivery.
     """,
     "optimistic_forecast": """
         Best-case completion estimate based on your highest velocity periods.
@@ -157,7 +160,10 @@ FORECAST_HELP_DETAILED = {
         📊 **Statistical Foundation:**
         • **Beta Distribution**: Mathematically models project uncertainty patterns naturally
         • **4× Most Likely Weighting**: Statistically optimal balance (proven by decades of project data)
-        • **Confidence Intervals**: ±25% of (Optimistic - Pessimistic) variance provides 68% confidence range
+        • **Confidence Intervals**: Calculated using coefficient of variation (CV = std/mean) applied to forecast
+          - 50th percentile: The PERT forecast (median)
+          - 80th percentile: PERT + 0.84 × forecast_std
+          - 95th percentile: PERT + 1.65 × forecast_std
         
         🔗 **Related Topics:**
         See also: Weekly Velocity Calculation, Forecast Graph Overview, Input Parameters Guide
@@ -618,8 +624,11 @@ CHART_HELP_DETAILED = {
         • Accounts for both optimism bias and risk factors
         
         📈 **Confidence Intervals:**
-        • Calculated as ±25% of variance between optimistic and pessimistic
-        • Wider intervals indicate higher uncertainty
+        • Calculated using coefficient of variation applied to PERT forecast
+        • 50th percentile: The PERT forecast itself (median estimate)
+        • 80th percentile: PERT + 0.84 standard deviations
+        • 95th percentile: PERT + 1.65 standard deviations
+        • Wider intervals indicate higher velocity uncertainty
         • Narrower intervals suggest more predictable delivery patterns
         • Use for risk planning and stakeholder communication
         
@@ -662,7 +671,7 @@ CHART_HELP_DETAILED = {
         📈 **Visual Interpretation:**
         • Solid bars: Confirmed historical performance
         • Patterned bars: Forecasted performance with uncertainty
-        • Error bars: Confidence intervals (±25% variance method)
+        • Error bars: Confidence intervals using coefficient of variation method
         • Trend direction: Overall velocity acceleration or deceleration patterns
         
         🎯 **Usage Guidelines:**
@@ -680,6 +689,50 @@ BUG_ANALYSIS_TOOLTIPS = {
     "expected_resolution": "Forecast weeks to clear bug backlog using last 8 weeks of data. Green: ≤2 weeks, Teal: 3-4 weeks, Yellow: >4 weeks.",
 }
 
+# DASHBOARD METRICS HELP CONTENT - Tooltips for main dashboard cards
+DASHBOARD_METRICS_TOOLTIPS = {
+    "completion_forecast": "Estimated project completion date using PERT three-point estimation. Based on optimistic, most likely, and pessimistic velocity scenarios from your historical data.",
+    "completion_forecast_detail": "This forecast uses your team's actual velocity data to predict when all remaining work will be completed. The calculation accounts for best-case, average, and worst-case scenarios to provide a realistic estimate with confidence ranges.",
+    "remaining_work": "Current backlog of incomplete work items and story points. Tracks both the number of items and their estimated effort to give you a complete picture of what's left to deliver.",
+    "remaining_items": "Number of work items (tasks, stories, bugs) not yet completed. This count helps track progress independently of estimation complexity.",
+    "remaining_points": "Total story points for all incomplete work. Represents the estimated effort remaining, which may differ from item count due to varying complexity.",
+    "velocity_trend": "Team's delivery rate over time, measured in items and points completed per week. Shows whether your team is accelerating, maintaining pace, or slowing down.",
+    "current_velocity": "Average items and points completed per week based on recent historical data. This is your team's current sustainable delivery pace used for forecasting.",
+    "pert_expected": "Weighted average of optimistic, most likely, and pessimistic forecasts using the formula: (O + 4×ML + P) ÷ 6. Provides the most statistically reliable single-point estimate.",
+    "confidence_range": "Uncertainty band around the forecast showing the range of possible completion dates. Wider ranges indicate higher unpredictability; narrower ranges show consistent velocity.",
+    "scope_changes": "Additions or removals to project scope over time. Tracks how requirements evolve and impacts forecast accuracy and completion dates.",
+}
+
+# PARAMETER INPUTS HELP CONTENT - Tooltips for parameter panel controls
+PARAMETER_INPUTS_TOOLTIPS = {
+    "pert_factor": "Controls how many weeks to sample for best/worst case forecasts. Higher values (8-12) provide conservative estimates using sustained performance patterns. Lower values (3-6) reflect recent variability. Minimum 6 weeks of data recommended for reliability.",
+    "pert_factor_detail": "This parameter determines how many of your best and worst performing weeks are averaged to calculate optimistic and pessimistic scenarios. For example, with a value of 6, your forecast uses the average of your 6 best weeks as the optimistic case and your 6 worst weeks as the pessimistic case. The most likely scenario always uses the average of all available data. This approach provides data-driven forecasts based on your team's actual historical performance, which is more reliable than simple averages or gut feelings. Recommended: 20-30% of your total history (e.g., 6 weeks if you have 30 weeks of data).",
+    "deadline": "Target completion date for your project. Used to calculate timeline pressure and whether current velocity will meet the deadline. Shown as a vertical line on forecast charts.",
+    "deadline_detail": "Set your desired or committed project deadline. The forecast will compare this date against velocity-based predictions to show if you're on track, ahead, or behind schedule.",
+    "total_items": "Complete project scope: all work items planned for delivery. This is the denominator for calculating completion percentage and remaining work.",
+    "completed_items": "Number of work items finished and accepted. Used to calculate completion percentage and determine remaining work: Total Items - Completed Items.",
+    "total_points": "Complete project effort: all story points estimated for the project. Represents the full effort required independent of item count.",
+    "completed_points": "Story points for all finished work items. Used to calculate effort-based completion percentage: Completed Points ÷ Total Points × 100%.",
+    "scope_buffer": "Optional reserve capacity for scope changes and unknowns. Adding a buffer (e.g., 10-20% of total scope) provides contingency for new requirements.",
+    "data_points": "Number of historical weeks to include in velocity calculations. Minimum 4-6 weeks recommended; 8-12 weeks optimal for stable forecasts.",
+    "data_points_detail": "More data points provide stability but may miss recent trends. Fewer points are more responsive to changes but can be volatile. Balance based on your project's stability.",
+}
+
+# SETTINGS PANEL HELP CONTENT - Tooltips for settings panel features
+SETTINGS_PANEL_TOOLTIPS = {
+    "jira_integration": "Connect to your JIRA instance to automatically import project data. Configure your JIRA server URL, authentication, and field mappings to sync work items, story points, and completion dates.",
+    "jira_config": "Configure JIRA connection settings including server URL, authentication credentials, and custom field mappings. Required before fetching data from JIRA. Click 'Configure JIRA' to open the setup modal.",
+    "jql_query": "JQL (JIRA Query Language) filters which issues to import. Use JIRA's powerful query syntax to target specific projects, issue types, sprints, or custom criteria. Example: 'project = MYPROJECT AND created >= startOfYear()'",
+    "jql_syntax": "JQL syntax allows complex queries: 'project = KEY' (project filter), 'status = Done' (status filter), 'created >= 2025-01-01' (date filter), 'AND/OR' (logical operators). Combine filters for precise data selection.",
+    "saved_queries": "Save frequently used JQL queries for quick access. Create multiple profiles for different projects, sprints, or reporting needs. Star a profile to make it the default query loaded on startup.",
+    "query_profiles": "Query profiles store JQL queries with descriptive names. Load saved profiles to quickly switch between different data views. Edit existing profiles to update queries or rename them. Delete profiles you no longer need.",
+    "fetch_data": "Import work items from JIRA using the configured connection and JQL query. Fetches issue keys, statuses, story points, creation dates, and completion dates. Updates scope metrics and velocity data automatically.",
+    "update_data": "Refresh project data from JIRA to get the latest work item statuses and metrics. Recommended frequency: daily for active projects, weekly for stable projects. Data is cached locally for offline viewing.",
+    "import_data": "Upload project data from JSON or CSV files saved previously. Useful for offline analysis, data migration, or working with historical snapshots. Supports both full project data and weekly statistics exports.",
+    "export_data": "Download complete project data as JSON for backup, sharing, or analysis in external tools. Includes all work items, statistics, settings, and JIRA cache. Preserves full project state for later restoration.",
+    "data_formats": "JSON format: Complete structured data with all metadata. CSV format: Simplified tabular data for spreadsheet analysis. Choose JSON for full backups, CSV for external reporting and data analysis.",
+}
+
 # Combined comprehensive help content for easy access
 COMPREHENSIVE_HELP_CONTENT = {
     "forecast": FORECAST_HELP_DETAILED,
@@ -688,4 +741,7 @@ COMPREHENSIVE_HELP_CONTENT = {
     "statistics": STATISTICS_HELP_DETAILED,
     "charts": CHART_HELP_DETAILED,
     "bug_analysis": BUG_ANALYSIS_TOOLTIPS,
+    "dashboard": DASHBOARD_METRICS_TOOLTIPS,
+    "parameters": PARAMETER_INPUTS_TOOLTIPS,
+    "settings": SETTINGS_PANEL_TOOLTIPS,
 }

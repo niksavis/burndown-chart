@@ -218,11 +218,18 @@ def create_contrast_color(background_color):
 #######################################################################
 
 # Tooltip styles configuration
+# Default variant uses dark/blackish background for better readability
 TOOLTIP_STYLES = {
     "default": {
-        "bgcolor": "rgba(255, 255, 255, 0.95)",
-        "bordercolor": "rgba(200, 200, 200, 0.8)",
-        "fontcolor": NEUTRAL_COLORS["gray-800"],
+        "bgcolor": "rgba(33, 37, 41, 0.95)",  # Dark/blackish background
+        "bordercolor": "rgba(255, 255, 255, 0.1)",
+        "fontcolor": NEUTRAL_COLORS["gray-100"],  # Light text for contrast
+        "fontsize": 14,
+    },
+    "dark": {
+        "bgcolor": "rgba(33, 37, 41, 0.95)",  # Dark/blackish background
+        "bordercolor": "rgba(255, 255, 255, 0.1)",
+        "fontcolor": NEUTRAL_COLORS["gray-100"],  # Light text for contrast
         "fontsize": 14,
     },
     "success": {
@@ -253,12 +260,6 @@ TOOLTIP_STYLES = {
         "bgcolor": "rgba(235, 245, 255, 0.95)",
         "bordercolor": PRIMARY_COLORS["primary"],
         "fontcolor": NEUTRAL_COLORS["gray-800"],
-        "fontsize": 14,
-    },
-    "dark": {
-        "bgcolor": "rgba(33, 37, 41, 0.95)",
-        "bordercolor": "rgba(100, 100, 100, 0.8)",
-        "fontcolor": NEUTRAL_COLORS["gray-100"],
         "fontsize": 14,
     },
 }
@@ -366,3 +367,322 @@ HELP_ICON_POSITIONS = {
         "vertical_align": "middle",
     },
 }
+
+
+#######################################################################
+# COMPREHENSIVE DESIGN TOKENS (Phase 2 Enhancement)
+#######################################################################
+
+# Complete design system following Bootstrap 5 FLATLY theme
+DESIGN_TOKENS = {
+    # ========== COLORS ==========
+    "colors": {
+        # Primary palette
+        "primary": "#0d6efd",
+        "secondary": "#6c757d",
+        "success": "#198754",
+        "warning": "#ffc107",
+        "danger": "#dc3545",
+        "info": "#0dcaf0",
+        "light": "#f8f9fa",
+        "dark": "#343a40",
+        # Neutrals
+        "white": "#ffffff",
+        "black": "#000000",
+        "gray-100": "#f8f9fa",
+        "gray-200": "#e9ecef",
+        "gray-300": "#dee2e6",
+        "gray-400": "#ced4da",
+        "gray-500": "#adb5bd",
+        "gray-600": "#6c757d",
+        "gray-700": "#495057",
+        "gray-800": "#343a40",
+        "gray-900": "#212529",
+        # Interactive states
+        "primary-hover": "#0b5ed7",
+        "primary-active": "#0a58ca",
+        "focus-shadow": "rgba(13, 110, 253, 0.25)",
+        # Extended palette
+        "teal": "#20c997",
+        "orange": "#fd7e14",
+        "purple": "#6610f2",
+        "pink": "#d63384",
+        "indigo": "#6610f2",
+        "cyan": "#0dcaf0",
+    },
+    # ========== SPACING ==========
+    "spacing": {
+        "xs": "0.25rem",  # 4px
+        "sm": "0.5rem",  # 8px
+        "md": "1rem",  # 16px
+        "lg": "1.5rem",  # 24px
+        "xl": "2rem",  # 32px
+        "xxl": "3rem",  # 48px
+        "xxxl": "4rem",  # 64px
+    },
+    # ========== TYPOGRAPHY ==========
+    "typography": {
+        "fontFamily": "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
+        "size": {
+            "xs": "0.75rem",  # 12px
+            "sm": "0.875rem",  # 14px
+            "base": "1rem",  # 16px
+            "lg": "1.125rem",  # 18px
+            "xl": "1.25rem",  # 20px
+            "2xl": "1.5rem",  # 24px
+            "3xl": "1.875rem",  # 30px
+            "4xl": "2.25rem",  # 36px
+        },
+        "weight": {
+            "light": 300,
+            "normal": 400,
+            "medium": 500,
+            "semibold": 600,
+            "bold": 700,
+        },
+        "lineHeight": {
+            "tight": 1.2,
+            "base": 1.5,
+            "relaxed": 1.75,
+            "loose": 2.0,
+        },
+    },
+    # ========== LAYOUT ==========
+    "layout": {
+        "borderRadius": {
+            "sm": "0.25rem",  # 4px
+            "md": "0.375rem",  # 6px
+            "lg": "0.5rem",  # 8px
+            "xl": "0.75rem",  # 12px
+            "full": "9999px",  # Pill shape
+        },
+        "shadow": {
+            "sm": "0 .125rem .25rem rgba(0,0,0,.075)",
+            "md": "0 .5rem 1rem rgba(0,0,0,.15)",
+            "lg": "0 1rem 3rem rgba(0,0,0,.175)",
+            "none": "none",
+        },
+        "zIndex": {
+            "base": 1,
+            "dropdown": 1000,
+            "sticky": 1020,
+            "fixed": 1030,
+            "modal-backdrop": 1040,
+            "modal": 1050,
+            "popover": 1060,
+            "tooltip": 1070,
+        },
+        "borderWidth": {
+            "thin": "1px",
+            "medium": "2px",
+            "thick": "4px",
+        },
+    },
+    # ========== ANIMATION ==========
+    "animation": {
+        "duration": {
+            "instant": "100ms",
+            "fast": "200ms",
+            "base": "300ms",
+            "slow": "500ms",
+            "slower": "700ms",
+        },
+        "easing": {
+            "default": "ease-in-out",
+            "smooth": "cubic-bezier(0.4, 0.0, 0.2, 1)",
+            "ease-in": "ease-in",
+            "ease-out": "ease-out",
+            "linear": "linear",
+        },
+    },
+    # ========== RESPONSIVE BREAKPOINTS ==========
+    "breakpoints": {
+        "xs": "0px",  # Extra small devices
+        "sm": "576px",  # Small devices (landscape phones)
+        "md": "768px",  # Medium devices (tablets)
+        "lg": "992px",  # Large devices (desktops)
+        "xl": "1200px",  # Extra large devices (large desktops)
+        "xxl": "1400px",  # Extra extra large devices
+    },
+    # ========== COMPONENT-SPECIFIC ==========
+    "components": {
+        "button": {
+            "paddingY": "0.375rem",
+            "paddingX": "0.75rem",
+            "fontSize": "1rem",
+            "borderRadius": "0.375rem",
+            "minWidth": "44px",  # Touch target minimum
+            "minHeight": "44px",  # Touch target minimum
+        },
+        "card": {
+            "padding": "1rem",
+            "borderRadius": "0.375rem",
+            "shadow": "0 .125rem .25rem rgba(0,0,0,.075)",
+            "borderWidth": "1px",
+            "headerPadding": "0.75rem 1rem",
+            "footerPadding": "0.75rem 1rem",
+        },
+        "input": {
+            "padding": "0.375rem 0.75rem",
+            "fontSize": "1rem",
+            "borderRadius": "0.375rem",
+            "borderWidth": "1px",
+            "focusBorderColor": "#0d6efd",
+            "focusShadow": "0 0 0 0.25rem rgba(13, 110, 253, 0.25)",
+            "minHeight": "44px",  # Touch target minimum
+        },
+        "tab": {
+            "padding": "0.5rem 1rem",
+            "borderRadius": "0.375rem 0.375rem 0 0",
+            "activeBg": "#0d6efd",
+            "activeBorder": "#0d6efd",
+            "activeColor": "#ffffff",
+            "hoverBg": "rgba(13, 110, 253, 0.1)",
+        },
+    },
+    # ========== MOBILE-SPECIFIC ==========
+    "mobile": {
+        "touchTargetMin": "44px",  # Minimum touch target size
+        "bottomSheetMaxHeight": "80vh",
+        "navBarHeight": "56px",
+        "fabSize": "56px",
+        "fabPosition": "16px",  # Distance from edge
+        "swipeThreshold": "50px",  # Minimum swipe distance
+    },
+}
+
+
+#######################################################################
+# DESIGN TOKEN HELPER FUNCTIONS
+#######################################################################
+
+
+def get_color(color_key: str) -> str:
+    """
+    Get color value from design tokens.
+
+    Args:
+        color_key: Key from DESIGN_TOKENS['colors']
+
+    Returns:
+        Color value as string
+
+    Example:
+        >>> get_color('primary')
+        '#0d6efd'
+    """
+    return DESIGN_TOKENS["colors"].get(color_key, DESIGN_TOKENS["colors"]["primary"])
+
+
+def get_spacing(spacing_key: str) -> str:
+    """
+    Get spacing value from design tokens.
+
+    Args:
+        spacing_key: Key from DESIGN_TOKENS['spacing']
+
+    Returns:
+        Spacing value as string
+
+    Example:
+        >>> get_spacing('md')
+        '1rem'
+    """
+    return DESIGN_TOKENS["spacing"].get(spacing_key, DESIGN_TOKENS["spacing"]["md"])
+
+
+def get_card_style(variant: str = "default", elevated: bool = False) -> dict:
+    """
+    Get standardized card styling from design tokens.
+
+    Args:
+        variant: Color variant ('default', 'primary', 'success', etc.)
+        elevated: Whether to use elevated shadow
+
+    Returns:
+        Dictionary of CSS style properties
+
+    Example:
+        >>> get_card_style('default', elevated=True)
+        {'borderRadius': '0.375rem', 'boxShadow': '0 .5rem 1rem rgba(0,0,0,.15)', ...}
+    """
+    card_tokens = DESIGN_TOKENS["components"]["card"]
+    layout_tokens = DESIGN_TOKENS["layout"]
+
+    style = {
+        "borderRadius": card_tokens["borderRadius"],
+        "padding": card_tokens["padding"],
+        "borderWidth": card_tokens["borderWidth"],
+        "boxShadow": layout_tokens["shadow"]["md"]
+        if elevated
+        else layout_tokens["shadow"]["sm"],
+    }
+
+    # Add variant-specific styling
+    if variant != "default":
+        bg_color = (
+            get_color(variant)
+            if variant in DESIGN_TOKENS["colors"]
+            else get_color("light")
+        )
+        style["backgroundColor"] = bg_color
+
+    return style
+
+
+def get_button_style(variant: str = "primary", size: str = "md") -> dict:
+    """
+    Get standardized button styling from design tokens.
+
+    Args:
+        variant: Button variant ('primary', 'secondary', 'success', etc.)
+        size: Button size ('sm', 'md', 'lg')
+
+    Returns:
+        Dictionary of CSS style properties
+    """
+    button_tokens = DESIGN_TOKENS["components"]["button"]
+
+    # Size adjustments
+    size_map = {
+        "sm": {"paddingY": "0.25rem", "paddingX": "0.5rem", "fontSize": "0.875rem"},
+        "md": {
+            "paddingY": button_tokens["paddingY"],
+            "paddingX": button_tokens["paddingX"],
+            "fontSize": button_tokens["fontSize"],
+        },
+        "lg": {"paddingY": "0.5rem", "paddingX": "1rem", "fontSize": "1.125rem"},
+    }
+
+    size_props = size_map.get(size, size_map["md"])
+
+    return {
+        "padding": f"{size_props['paddingY']} {size_props['paddingX']}",
+        "fontSize": size_props["fontSize"],
+        "borderRadius": button_tokens["borderRadius"],
+        "minWidth": button_tokens["minWidth"],
+        "minHeight": button_tokens["minHeight"],
+    }
+
+
+def get_responsive_cols(mobile: int = 12, tablet: int = 6, desktop: int = 4) -> dict:
+    """
+    Get responsive column configuration for Bootstrap grid.
+
+    Args:
+        mobile: Columns on mobile (<768px)
+        tablet: Columns on tablet (768-992px)
+        desktop: Columns on desktop (≥992px)
+
+    Returns:
+        Dictionary with xs, md, lg keys for dbc.Col
+
+    Example:
+        >>> get_responsive_cols(12, 6, 4)
+        {'xs': 12, 'md': 6, 'lg': 4}
+    """
+    return {
+        "xs": mobile,
+        "md": tablet,
+        "lg": desktop,
+    }

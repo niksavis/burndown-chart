@@ -8,8 +8,46 @@ from datetime import datetime
 from data.bug_processing import (
     filter_bug_issues,
     calculate_bug_metrics_summary,
+    get_max_iso_week_for_year,
 )
 from tests.utils.mock_bug_data import generate_mock_bug_data
+
+
+class TestISOWeekHelpers:
+    """Test suite for ISO week helper functions."""
+
+    def test_get_max_iso_week_for_year_52_weeks(self):
+        """Test years with 52 weeks (most common case)."""
+        # 2024 and 2025 both have 52 weeks
+        assert get_max_iso_week_for_year(2024) == 52
+        assert get_max_iso_week_for_year(2025) == 52
+        assert get_max_iso_week_for_year(2023) == 52
+        assert get_max_iso_week_for_year(2022) == 52
+
+    def test_get_max_iso_week_for_year_53_weeks(self):
+        """Test years with 53 weeks (less common).
+
+        A year has 53 weeks if:
+        - It starts on a Thursday (e.g., 2015, 2026)
+        - It's a leap year that starts on a Wednesday (e.g., 2020)
+        """
+        # Years known to have 53 weeks
+        assert get_max_iso_week_for_year(2015) == 53  # Started on Thursday
+        assert get_max_iso_week_for_year(2020) == 53  # Leap year, started on Wednesday
+        assert get_max_iso_week_for_year(2026) == 53  # Will start on Thursday
+
+    def test_get_max_iso_week_consistency(self):
+        """Test that max week calculation is consistent across different years."""
+        # December 28th is always in the last week of the year (ISO 8601 rule)
+        for year in range(2015, 2026):
+            max_week = get_max_iso_week_for_year(year)
+            assert max_week in [52, 53], (
+                f"Year {year} should have 52 or 53 weeks, got {max_week}"
+            )
+
+            # Verify by checking December 28th
+            dec_28 = datetime(year, 12, 28)
+            assert dec_28.isocalendar()[1] == max_week
 
 
 class TestBugFiltering:
@@ -585,6 +623,84 @@ class TestBugStatistics:
         assert week3["bugs_created"] == 0
         assert week3["bugs_resolved"] == 0
         assert week3["net_bugs"] == 0
+
+    def test_bug_statistics_52_week_range_spanning_years(self):
+        """Test 52-week date range spanning year boundary (Bug fix: Invalid week 53).
+
+        Reproduces user scenario: 52 weeks of data from 2024-W43 to 2025-W43.
+        Previously failed with "ValueError: Invalid week: 53" because code assumed
+        all years have 53 weeks, but 2024 only has 52 weeks.
+        """
+        from datetime import datetime, timedelta
+        from data.bug_processing import calculate_bug_statistics
+
+        # Create date range that spans from 2024-W43 to 2025-W43 (52 weeks)
+        date_to = datetime(2025, 10, 25)  # 2025-W43
+        date_from = date_to - timedelta(weeks=52)  # 2024-W43
+
+        # Create sample bug data with bugs in both years
+        bug_issues = [
+            {
+                "key": "BUG-2024",
+                "fields": {
+                    "created": "2024-10-26T10:00:00.000+0000",  # 2024-W43
+                    "resolutiondate": None,
+                    "customfield_10016": 5,
+                },
+            },
+            {
+                "key": "BUG-DEC",
+                "fields": {
+                    "created": "2024-12-15T10:00:00.000+0000",  # 2024-W50
+                    "resolutiondate": "2025-01-15T10:00:00.000+0000",  # 2025-W03
+                    "customfield_10016": 3,
+                },
+            },
+            {
+                "key": "BUG-2025",
+                "fields": {
+                    "created": "2025-10-20T10:00:00.000+0000",  # 2025-W43
+                    "resolutiondate": None,
+                    "customfield_10016": 8,
+                },
+            },
+        ]
+
+        # This should NOT raise ValueError: Invalid week: 53
+        stats = calculate_bug_statistics(
+            bug_issues,
+            date_from,
+            date_to,
+            story_points_field="customfield_10016",
+        )
+
+        # Verify we got 53 weeks of statistics (2024-W43 to 2025-W43 inclusive)
+        assert len(stats) == 53
+
+        # Verify first and last weeks
+        assert stats[0]["week"] == "2024-W43"
+        assert stats[-1]["week"] == "2025-W43"
+
+        # Verify no week 53 for 2024 (2024 only has 52 weeks)
+        week_keys = [s["week"] for s in stats]
+        assert "2024-W53" not in week_keys
+
+        # Verify statistics for specific weeks
+        week_2024_43 = next((s for s in stats if s["week"] == "2024-W43"), None)
+        assert week_2024_43 is not None
+        assert week_2024_43["bugs_created"] == 1  # BUG-2024
+
+        week_2024_50 = next((s for s in stats if s["week"] == "2024-W50"), None)
+        assert week_2024_50 is not None
+        assert week_2024_50["bugs_created"] == 1  # BUG-DEC
+
+        week_2025_03 = next((s for s in stats if s["week"] == "2025-W03"), None)
+        assert week_2025_03 is not None
+        assert week_2025_03["bugs_resolved"] == 1  # BUG-DEC resolved
+
+        week_2025_43 = next((s for s in stats if s["week"] == "2025-W43"), None)
+        assert week_2025_43 is not None
+        assert week_2025_43["bugs_created"] == 1  # BUG-2025
 
 
 class TestBugStatisticsWithStoryPoints:

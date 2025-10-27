@@ -1,5 +1,66 @@
 """
 Scope change metrics calculation functions.
+
+SCOPE TERMINOLOGY AND DEFINITIONS
+==================================
+
+This module calculates scope change metrics for agile projects. Understanding the
+terminology is critical for correct calculations:
+
+**Initial Scope (Baseline)**
+- Definition: The original project scope at the earliest data point, BEFORE any scope changes
+- Calculation: completed_items + remaining_items (at project start)
+- Example: If project starts with 100 items (50 completed, 50 remaining), initial_scope = 100
+- Usage: This is the denominator for scope change rate calculations
+
+**Current Total Scope**
+- Definition: The current total project scope INCLUDING all scope changes
+- Calculation: initial_scope + created_items
+- Example: If initial_scope=100 and 20 items were added, current_total_scope = 120
+- Usage: This represents the full scope of work to complete the project
+
+**Created Items**
+- Definition: New items added to the project after the initial scope was established
+- Source: Sum of created_items column in statistics data
+- Example: Items added due to new requirements, discovered work, etc.
+
+**Scope Change Rate**
+- Definition: Percentage increase in project scope relative to the initial baseline
+- Formula: (created_items / initial_scope) × 100%
+- Example: 20 items created on 100-item project = 20% scope change rate
+- Interpretation: Measures how much the project has grown from its original size
+
+CORRECT BASELINE USAGE
+=======================
+
+When calling scope metric functions, the baseline parameters MUST represent the
+INITIAL scope (at project start), NOT the current total scope:
+
+✅ CORRECT:
+```python
+# Calculate initial scope from earliest data point
+initial_items = df.iloc[0]['remaining_items'] + df['completed_items'].sum()
+initial_points = df.iloc[0]['remaining_points'] + df['completed_points'].sum()
+
+# Use initial scope as baseline
+scope_change_rate = calculate_scope_change_rate(df, initial_items, initial_points)
+```
+
+❌ WRONG:
+```python
+# Do NOT include created items in baseline
+current_total = initial_items + df['created_items'].sum()  # This is current total, not baseline
+scope_change_rate = calculate_scope_change_rate(df, current_total, ...)  # WRONG!
+```
+
+IMPLICATIONS FOR DECISION-MAKING
+=================================
+
+- **Scope Change Rate > 0%**: Project scope has grown beyond initial estimate
+- **Scope Change Rate > 20%**: Significant scope growth, may impact timeline
+- **Throughput Ratio > 1.0**: New work added faster than work completed (scope growing)
+- **Throughput Ratio < 1.0**: Completing work faster than adding new work (scope stable)
+
 """
 
 import pandas as pd
@@ -15,15 +76,25 @@ def calculate_scope_change_rate(
     Formula:
     Scope Change Rate = (sum(created_items) / baseline) × 100%
 
-    Where baseline = remaining total items + sum(completed_items)
+    Where baseline = INITIAL project scope (completed + remaining at project start,
+                     BEFORE any new items were created)
+
+    IMPORTANT: baseline_items and baseline_points should represent the ORIGINAL scope
+    at project start, NOT the current total scope (which includes created items).
 
     In agile projects, this tracks the rate of scope change rather than implying negative "creep".
 
     Args:
-        df: DataFrame with project statistics
-        baseline_items: Baseline number of items
-        baseline_points: Baseline number of points
+        df: DataFrame with project statistics (must include created_items, created_points columns)
+        baseline_items: Initial scope in items (at project start, before scope changes)
+        baseline_points: Initial scope in points (at project start, before scope changes)
         data_points_count: Optional parameter to limit data to most recent N data points
+
+    Returns:
+        Dict with:
+        - items_rate: Scope change rate for items (%)
+        - points_rate: Scope change rate for points (%)
+        - throughput_ratio: Dict with items/points throughput ratios (created/completed)
     """
     # Apply data points filtering
     if (
@@ -74,20 +145,14 @@ def calculate_scope_change_rate(
             },
         }
 
-    # Calculate the true baseline (remaining items + completed items)
-    actual_baseline_items = baseline_items + total_completed_items
-    actual_baseline_points = baseline_points + total_completed_points
-
-    # Calculate scope change rates as percentage of created items over baseline
+    # Calculate scope change rates as percentage of created items over original baseline
+    # Note: baseline_items/baseline_points represent the original total project scope
+    # Do NOT add completed_items as that would double-count the work
     items_rate = (
-        (total_created_items / actual_baseline_items) * 100
-        if actual_baseline_items > 0
-        else 0
+        (total_created_items / baseline_items) * 100 if baseline_items > 0 else 0
     )
     points_rate = (
-        (total_created_points / actual_baseline_points) * 100
-        if actual_baseline_points > 0
-        else 0
+        (total_created_points / baseline_points) * 100 if baseline_points > 0 else 0
     )
 
     return {
@@ -111,22 +176,32 @@ def calculate_scope_creep_rate(
 
 def calculate_total_project_scope(df, remaining_items, remaining_points):
     """
-    Calculate the total project scope without double-counting.
+    Calculate the initial project scope (baseline) at a specific point in time.
 
-    The formula is:
-    Total Scope = Remaining Items + Completed Items
+    Formula:
+    Initial Scope (Baseline) = Remaining Items + Completed Items
 
-    This represents the true baseline scope (completed work plus remaining work)
-    without including created items/points, which may have already been counted in
-    completed or remaining items.
+    This represents the project scope at the measurement point, BEFORE accounting
+    for any scope changes (created items). This is the correct baseline value to
+    use when calculating scope change rates.
+
+    IMPORTANT: This does NOT include created_items/points, which represent scope
+    changes added after the initial baseline was established.
+
+    Example:
+    - Completed items: 40
+    - Remaining items: 60
+    - Initial Scope: 100 items (this is the baseline)
+    - If 20 items were later created, current total scope = 120, but baseline stays 100
 
     Args:
         df: DataFrame with project statistics including completed_items and completed_points
-        remaining_items: Number of remaining items from forecast_settings.json
-        remaining_points: Number of remaining points from forecast_settings.json
+        remaining_items: Number of remaining items at the measurement point
+        remaining_points: Number of remaining points at the measurement point
 
     Returns:
-        Dictionary with total_items and total_points representing the actual project scope
+        Dictionary with total_items and total_points representing the initial project
+        scope (baseline) to be used in scope change calculations
     """
     if df.empty:
         return {"total_items": remaining_items, "total_points": remaining_points}
@@ -222,20 +297,28 @@ def calculate_scope_stability_index(
     """
     Calculate scope stability index.
 
-    Scope Stability Index = 1 - (Number of Requirement Changes / Total Requirements)
+    Scope Stability Index = 1 - (created_items / current_total_scope)
 
     Higher value means more stability (less scope changes relative to total scope).
 
-    Note: The total scope is calculated as:
-    Total Scope = Remaining items + Created items
+    Formula:
+    - Current Total Scope = initial_scope (baseline) + created_items
+    - Stability Index = 1 - (created_items / current_total_scope)
 
-    This avoids double counting completed items that may overlap with created items.
+    Example:
+    - Initial scope: 100 items
+    - Created items: 20 items
+    - Current total: 120 items
+    - Stability: 1 - (20/120) = 0.83 (83% stable)
 
     Args:
         df: DataFrame with project statistics
-        baseline_items: Baseline number of items
-        baseline_points: Baseline number of points
+        baseline_items: Initial scope in items (at project start, before scope changes)
+        baseline_points: Initial scope in points (at project start, before scope changes)
         data_points_count: Optional parameter to limit data to most recent N data points
+
+    Returns:
+        Dict with items_stability and points_stability (0.0 to 1.0)
     """
     # Apply data points filtering
     if (
@@ -248,17 +331,18 @@ def calculate_scope_stability_index(
     if df.empty or baseline_items == 0 or baseline_points == 0:
         return {"items_stability": 1.0, "points_stability": 1.0}
 
-    # Total changes (all created items/points)
+    # Total changes (all created items/points added after project start)
     total_created_items = df["created_items"].sum()
     total_created_points = df["created_points"].sum()
 
-    # Calculate current total scope correctly:
-    # Total scope = Remaining items + Created items
-    # No need to subtract completed items from baseline
+    # Calculate current total scope:
+    # Current Total Scope = Initial Scope (baseline) + Created Items
+    # This represents the full scope including all scope changes
     total_items = baseline_items + total_created_items
     total_points = baseline_points + total_created_points
 
-    # Calculate stability index
+    # Calculate stability index: 1 - (scope changes / current total scope)
+    # Higher value = more stable (fewer changes relative to total scope)
     items_stability = 1 - (total_created_items / total_items) if total_items > 0 else 1
     points_stability = (
         1 - (total_created_points / total_points) if total_points > 0 else 1

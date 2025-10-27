@@ -9,6 +9,7 @@ of the application, such as the forecast graph card, info card, etc.
 # IMPORTS
 #######################################################################
 # Standard library imports
+import re
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, cast
 
@@ -39,13 +40,12 @@ from ui.jql_editor import create_jql_editor
 # Import JIRA config button (Feature 003-jira-config-separation)
 from ui.jira_config_modal import create_jira_config_button
 
+# Import design tokens
+from ui.style_constants import get_card_style, get_color, get_spacing
+
 # Import styling functions from utility modules
 from ui.styles import (
-    NEUTRAL_COLORS,
     create_card_header_with_tooltip,
-    create_datepicker_style,
-    create_form_feedback_style,
-    create_input_style,
     create_rhythm_text,
     create_standardized_card,
 )
@@ -58,6 +58,341 @@ from ui.tooltip_utils import (
 
 # Type definition for StyleCellConditional
 StyleCellConditional = Dict[str, Any]
+
+
+#######################################################################
+# ATOMIC COMPONENT BUILDERS (Following Component Contracts)
+#######################################################################
+
+
+def create_info_card(
+    title: str | html.Span,  # Accept both string and Dash component
+    value: Any,
+    icon: str = "",
+    subtitle: str = "",
+    variant: str = "default",
+    clickable: bool = False,
+    click_id: str = "",
+    size: str = "md",
+    **kwargs,
+) -> dbc.Card:
+    """
+    Create information display card for metrics/statistics.
+
+    This function follows the component builder contract specification
+    in specs/006-ux-ui-redesign/contracts/component-builders.md
+
+    Args:
+        title: Card title/label (required) - can be string or Dash component for rich formatting
+        value: Primary value to display (required)
+        icon: Optional Font Awesome icon name (without "fa-" prefix)
+        subtitle: Optional subtitle/description
+        variant: Color variant - "default", "primary", "success", "warning", "danger"
+        clickable: Whether card should be interactive
+        click_id: ID for click callback (required if clickable=True)
+        size: Card size - "sm", "md", "lg"
+        **kwargs: Additional props (className, style, etc.)
+
+    Returns:
+        dbc.Card with standardized info display layout
+
+    Raises:
+        ValueError: If title or value is empty, or clickable=True but click_id empty
+
+    Examples:
+        >>> create_info_card("Days to Completion", 53, icon="calendar-check",
+        ...                  subtitle="Based on current velocity", variant="primary")
+        >>> create_info_card("Remaining Items", 42, icon="tasks",
+        ...                  clickable=True, click_id="goto-burndown")
+
+    ID Pattern: card-{title-slugified}[-{click_id}]
+
+    Layout:
+        - Header: icon + title
+        - Body: large value + subtitle
+        - Footer: optional action link (if clickable)
+    """
+    # Validation
+    # For component titles, we can't easily validate - just check for None/empty
+    title_str = str(title) if isinstance(title, str) else "component-title"
+    if not title or (isinstance(title, str) and title.strip() == ""):
+        raise ValueError("Title is required and cannot be empty")
+
+    if value is None or str(value).strip() == "":
+        raise ValueError("Value is required and cannot be empty")
+
+    valid_variants = ["default", "primary", "success", "warning", "danger"]
+    if variant not in valid_variants:
+        raise ValueError(
+            f"Invalid variant '{variant}'. Must be one of: {', '.join(valid_variants)}"
+        )
+
+    if clickable and (not click_id or click_id.strip() == ""):
+        raise ValueError("click_id is required when clickable=True")
+
+    # Generate card ID - use title_str for slugification
+    title_slug = re.sub(r"[^a-z0-9]+", "-", title_str.lower()).strip("-")
+    card_id = f"card-{title_slug}"
+    if click_id:
+        card_id += f"-{click_id}"
+
+    # Get card styling from design tokens
+    card_style = get_card_style(variant=variant, elevated=clickable)
+
+    # Build icon if provided
+    icon_element = None
+    if icon:
+        icon_class = f"fas fa-{icon}" if not icon.startswith("fa-") else icon
+        icon_color = get_color(
+            f"{variant}-500" if variant != "default" else "neutral-600"
+        )
+        icon_element = html.I(
+            className=icon_class,
+            style={
+                "fontSize": "1.5rem" if size == "lg" else "1.25rem",
+                "color": icon_color,
+                "marginRight": get_spacing("sm"),
+            },
+        )
+
+    # Build header with icon and title
+    header_content = []
+    if icon_element:
+        header_content.append(icon_element)
+
+    # Handle both string and component titles
+    if isinstance(title, str):
+        header_content.append(html.Span(title, style={"fontWeight": "600"}))
+    else:
+        # Title is already a component (e.g., with help icon)
+        header_content.append(title)
+
+    card_header = dbc.CardHeader(
+        header_content,
+        style={
+            "display": "flex",
+            "alignItems": "center",
+            "backgroundColor": get_color("neutral-50"),
+            "borderBottom": f"1px solid {get_color('neutral-200')}",
+            "padding": get_spacing("sm" if size == "sm" else "md"),
+        },
+    )
+
+    # Build body with value and subtitle
+    value_style = {
+        "fontSize": "2.5rem" if size == "lg" else "2rem" if size == "md" else "1.5rem",
+        "fontWeight": "700",
+        "color": get_color(f"{variant}-600" if variant != "default" else "neutral-900"),
+        "lineHeight": "1.2",
+        "marginBottom": get_spacing("xs") if subtitle else "0",
+    }
+
+    body_content = [html.Div(str(value), style=value_style)]
+
+    if subtitle:
+        subtitle_style = {
+            "fontSize": "0.875rem",
+            "color": get_color("neutral-600"),
+            "marginTop": get_spacing("xs"),
+        }
+        body_content.append(html.Div(subtitle, style=subtitle_style))
+
+    card_body = dbc.CardBody(
+        body_content,
+        style={
+            "padding": get_spacing("md" if size == "lg" else "sm"),
+            "textAlign": "center",
+        },
+    )
+
+    # Build optional footer for clickable cards
+    card_footer = None
+    if clickable:
+        footer_link = html.A(
+            [
+                "View Details ",
+                html.I(className="fas fa-arrow-right", style={"marginLeft": "0.25rem"}),
+            ],
+            style={
+                "fontSize": "0.875rem",
+                "color": get_color("primary-500"),
+                "textDecoration": "none",
+                "fontWeight": "500",
+            },
+        )
+        card_footer = dbc.CardFooter(
+            footer_link,
+            style={
+                "backgroundColor": get_color("neutral-50"),
+                "borderTop": f"1px solid {get_color('neutral-200')}",
+                "padding": get_spacing("sm"),
+                "textAlign": "center",
+            },
+        )
+
+    # Merge custom styles with design token styles
+    custom_style = kwargs.pop("style", {})
+    final_style = {**card_style, **custom_style}
+
+    # Add hover effect for clickable cards
+    if clickable:
+        final_style.update(
+            {
+                "cursor": "pointer",
+                "transition": "transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out",
+            }
+        )
+        # Add className for hover effect via CSS
+        custom_class = kwargs.pop("className", "")
+        kwargs["className"] = f"{custom_class} card-clickable".strip()
+
+    # Build card
+    card_components = [card_header, card_body]
+    if card_footer:
+        card_components.append(card_footer)
+
+    return dbc.Card(
+        card_components,
+        id=card_id,
+        style=final_style,
+        **kwargs,
+    )
+
+
+def create_dashboard_metrics_card(
+    metrics: dict,
+    card_type: str,
+    variant: str = "default",
+    **kwargs,
+) -> dbc.Card:
+    """
+    Create specialized dashboard metrics card with enhanced visualization.
+
+    This function supports User Story 2: Dashboard as Primary Landing View.
+    It creates metric cards specifically designed for the Dashboard tab with
+    appropriate icons, colors, and formatting for each metric type.
+
+    User Story 6: Contextual Help System - Adds help icons to metric cards.
+
+    Args:
+        metrics: DashboardMetrics dictionary from calculate_dashboard_metrics()
+        card_type: Type of metric card - "forecast", "velocity", "remaining", "pert"
+        variant: Color variant override (auto-selected based on card_type if "default")
+        **kwargs: Additional props passed to dbc.Card
+
+    Returns:
+        dbc.Card: Formatted dashboard metrics card with help icon
+
+    Raises:
+        ValueError: If card_type is invalid
+
+    Example:
+        >>> metrics = calculate_dashboard_metrics(stats, settings)
+        >>> card = create_dashboard_metrics_card(metrics, "forecast")
+
+    Card Types:
+        - "forecast": Completion forecast with confidence
+        - "velocity": Current velocity trend
+        - "remaining": Remaining work (items/points)
+        - "pert": PERT timeline estimates
+    """
+    # Import help system function for tooltips
+    from ui.help_system import create_dashboard_metric_tooltip
+
+    # Validate card type
+    valid_types = ["forecast", "velocity", "remaining", "pert"]
+    if card_type not in valid_types:
+        raise ValueError(
+            f"Invalid card_type '{card_type}'. Must be one of: {', '.join(valid_types)}"
+        )
+
+    # Configure card based on type
+    # Map card_type to help content key
+    card_configs = {
+        "forecast": {
+            "title": "Completion Forecast",
+            "icon": "calendar-check",
+            "variant": "default",
+            "value_field": "days_to_completion",
+            "value_suffix": " days",
+            "subtitle_template": "{completion_percentage}% complete • {completion_confidence}% confidence",
+            "help_key": "completion_forecast",
+        },
+        "velocity": {
+            "title": "Current Velocity",
+            "icon": "tachometer-alt",
+            "variant": "default",
+            "value_field": "current_velocity_items",
+            "value_suffix": " items/week",
+            "subtitle_template": "{current_velocity_points} pts/week • {velocity_trend}",
+            "help_key": "velocity_trend",
+        },
+        "remaining": {
+            "title": "Remaining Work",
+            "icon": "tasks",
+            "variant": "default",
+            "value_field": "remaining_items",
+            "value_suffix": " items",
+            "subtitle_template": "{remaining_points} story points remaining",
+            "help_key": "remaining_work",
+        },
+        "pert": {
+            "title": "Timeline Range",
+            "icon": "clock",
+            "variant": "default",
+            "value_field": "days_to_deadline",
+            "value_suffix": " days to deadline",
+            "subtitle_template": "Forecast: {days_to_completion} days",
+            "help_key": "pert_expected",
+        },
+    }
+
+    config = card_configs[card_type]
+
+    # Override variant if specified
+    if variant != "default":
+        config["variant"] = variant
+
+    # Extract value
+    value = metrics.get(config["value_field"], "N/A")
+    if value is not None and value != "N/A":
+        value = f"{value}{config['value_suffix']}"
+    else:
+        value = "N/A"
+
+    # Format subtitle with metrics
+    try:
+        subtitle = config["subtitle_template"].format(**metrics)
+    except (KeyError, ValueError):
+        subtitle = ""
+
+    # Create title with help icon
+    title_with_help = html.Span(
+        [
+            html.Span(config["title"]),
+            html.Span(
+                create_dashboard_metric_tooltip(config["help_key"]),
+                style={"marginLeft": "0.5rem"},
+            ),
+        ],
+        style={"display": "flex", "alignItems": "center"},
+    )
+
+    # Extract 'id' from kwargs to avoid conflict with create_info_card's auto-generated ID
+    # We'll let create_info_card generate the ID based on the title
+    # The dashboard callback uses container IDs, not the card IDs directly
+    kwargs.pop("id", None)  # Remove any id from kwargs
+
+    # Create card using create_info_card
+    return create_info_card(
+        title=title_with_help,
+        value=value,
+        icon=config["icon"],
+        subtitle=subtitle,
+        variant=config["variant"],
+        **kwargs,
+    )
+
 
 #######################################################################
 # HELPER FUNCTIONS
@@ -167,7 +502,7 @@ def _get_default_jira_max_results():
         return 1000
 
 
-def _get_query_profile_options() -> List[Dict[str, Any]]:
+def _get_query_profile_options():
     """
     Get options for the query profile dropdown.
 
@@ -545,486 +880,31 @@ def create_input_parameters_card(
     current_settings, avg_points_per_item, estimated_total_points
 ):
     """
-    Create the input parameters card component with improved organization and visual hierarchy.
+    Create the data import configuration card.
+
+    Note: Project Timeline and Remaining Work Scope parameters have been moved to the
+    Parameter Panel (collapsible top section) for better UX.
 
     Args:
         current_settings: Dictionary with current application settings
-        avg_points_per_item: Current average points per item
-        estimated_total_points: Estimated total points
+        avg_points_per_item: Current average points per item (unused but kept for compatibility)
+        estimated_total_points: Estimated total points (unused but kept for compatibility)
 
     Returns:
-        Dash Card component for input parameters
+        Dash Card component for data import configuration
     """
-    # Create the card header with tooltip and Phase 9.2 Progressive Disclosure help button
+    # Create the card header
     header_content = create_card_header_with_tooltip(
-        "Input Parameters",
-        tooltip_id="parameters",
-        tooltip_text="Change these values to adjust your project forecast.",
-        help_key="input_parameters_guide",
-        help_category="forecast",
+        "Data Import Configuration",
+        tooltip_id="data-import-config",
+        tooltip_text="Configure data sources and import settings for your project.",
+        help_key="data_import_guide",
+        help_category="data",
     )
 
-    # Create the card body content
+    # Create the card body content - only Data Import Configuration
     body_content = [
-        # Project Timeline Section
-        html.Div(
-            [
-                html.H5(
-                    [
-                        html.I(
-                            className="fas fa-calendar-alt me-2",
-                            style={"color": COLOR_PALETTE["items"]},
-                        ),
-                        "Project Timeline",
-                    ],
-                    className="mb-3 border-bottom pb-2 d-flex align-items-center",
-                ),
-                # First row: Deadline and Milestone (side by side)
-                dbc.Row(
-                    [
-                        # Deadline
-                        dbc.Col(
-                            [
-                                # Label in a flex container to match milestone structure exactly
-                                html.Div(
-                                    [
-                                        html.Label(
-                                            [
-                                                "Deadline:",
-                                                create_info_tooltip(
-                                                    "deadline",
-                                                    HELP_TEXTS["deadline"],
-                                                ),
-                                            ],
-                                            className="fw-medium me-2",
-                                            style={
-                                                "display": "inline-flex",
-                                                "alignItems": "center",
-                                            },
-                                        ),
-                                    ],
-                                    className="d-flex align-items-center mb-2",
-                                ),
-                                dcc.DatePickerSingle(
-                                    id="deadline-picker",
-                                    date=current_settings["deadline"],
-                                    display_format="YYYY-MM-DD",
-                                    first_day_of_week=1,
-                                    show_outside_days=True,
-                                    with_portal=False,
-                                    with_full_screen_portal=False,
-                                    placeholder="Select deadline date",
-                                    persistence=True,
-                                    min_date_allowed=datetime.now().strftime(
-                                        "%Y-%m-%d"
-                                    ),
-                                    style=create_datepicker_style(size="md"),
-                                    className="w-100 deadline-datepicker",
-                                ),
-                                html.Div(
-                                    id="deadline-feedback",
-                                    className="d-none",
-                                    style=create_form_feedback_style("invalid"),
-                                ),
-                            ],
-                            width=12,
-                            md=6,
-                            # Removed the mb-3 mb-md-0 classes to fix the spacing issue
-                            className="",
-                        ),
-                        # Milestone toggle and date picker in one column
-                        dbc.Col(
-                            [
-                                # Label, info icon, and toggle all in one row (like Points Tracking)
-                                html.Div(
-                                    [
-                                        html.Label(
-                                            [
-                                                "Milestone:",
-                                                create_info_tooltip(
-                                                    "milestone-date",
-                                                    "Set a milestone marker on the charts (must be before deadline).",
-                                                ),
-                                            ],
-                                            className="fw-medium me-2",
-                                            style={
-                                                "display": "inline-flex",
-                                                "alignItems": "center",
-                                            },
-                                        ),
-                                        dbc.Switch(
-                                            id="milestone-toggle",
-                                            value=current_settings.get(
-                                                "show_milestone", False
-                                            ),
-                                            label="",
-                                            className="ms-2 responsive-toggle",
-                                            style={},
-                                        ),
-                                    ],
-                                    className="d-flex align-items-center mb-2",
-                                ),
-                                # Date picker in its own row
-                                dcc.DatePickerSingle(
-                                    id="milestone-picker",
-                                    date=current_settings.get("milestone", None),
-                                    display_format="YYYY-MM-DD",
-                                    first_day_of_week=1,
-                                    show_outside_days=True,
-                                    with_portal=False,
-                                    with_full_screen_portal=False,
-                                    placeholder="Select milestone date",
-                                    persistence=True,
-                                    min_date_allowed=datetime.now().strftime(
-                                        "%Y-%m-%d"
-                                    ),
-                                    style=create_datepicker_style(size="md"),
-                                    className="w-100 milestone-datepicker",
-                                    disabled=not current_settings.get(
-                                        "show_milestone", False
-                                    ),
-                                ),
-                                html.Div(
-                                    id="milestone-feedback",
-                                    className="d-none",
-                                    style=create_form_feedback_style("invalid"),
-                                ),
-                            ],
-                            width=12,
-                            md=6,
-                        ),
-                    ],
-                    className="mb-3",
-                ),
-                # Second row: PERT Factor (full width)
-                dbc.Row(
-                    [
-                        dbc.Col(
-                            [
-                                html.Label(
-                                    [
-                                        "PERT Factor:",
-                                        create_info_tooltip(
-                                            "pert-factor",
-                                            HELP_TEXTS["pert_factor"],
-                                        ),
-                                    ],
-                                    className="fw-medium",
-                                ),
-                                dcc.Slider(
-                                    id="pert-factor-slider",
-                                    min=1,  # Start with minimum possible value
-                                    max=15,  # This will be updated dynamically by callback
-                                    value=current_settings["pert_factor"],
-                                    marks={
-                                        i: str(i) for i in [1, 3, 5, 8, 10, 12, 15]
-                                    },  # This will be updated dynamically by callback
-                                    step=1,
-                                    tooltip={
-                                        "placement": "bottom",
-                                        "always_visible": False,
-                                    },
-                                    className="mb-1 mt-3",
-                                ),
-                                html.Small(
-                                    id="pert-factor-info",
-                                    children="PERT Factor determines forecast confidence range",
-                                    className="text-muted mt-1 d-block text-center",
-                                    style={"cursor": "pointer"},
-                                    title="Click to see PERT Factor details",
-                                ),
-                                html.Div(
-                                    id="pert-factor-feedback",
-                                    className="d-none",
-                                    style=create_form_feedback_style("invalid"),
-                                ),
-                            ],
-                            width=12,
-                        ),
-                    ],
-                    className="mb-3",
-                ),
-                # Third row: Data Points to Include (full width)
-                dbc.Row(
-                    [
-                        # Data Points - full width
-                        dbc.Col(
-                            [
-                                html.Label(
-                                    [
-                                        "Data Points to Include:",
-                                        create_info_tooltip(
-                                            "data-points-count",
-                                            HELP_TEXTS["data_points_count"],
-                                        ),
-                                    ],
-                                    className="fw-medium",
-                                ),
-                                dcc.Slider(
-                                    id="data-points-input",
-                                    min=current_settings["pert_factor"] * 2,
-                                    max=10,
-                                    value=current_settings.get(
-                                        "data_points_count",
-                                        current_settings["pert_factor"] * 2,
-                                    ),
-                                    marks=None,
-                                    step=1,
-                                    tooltip={
-                                        "placement": "bottom",
-                                        "always_visible": False,
-                                    },
-                                    className="mb-1 mt-3",
-                                ),
-                                html.Small(
-                                    id="data-points-info",
-                                    children="Using all available data points",
-                                    className="text-muted mt-1 d-block text-center",
-                                    style={"cursor": "pointer"},
-                                    title="Click to see data points selection details",
-                                ),
-                            ],
-                            width=12,
-                        ),
-                    ],
-                ),
-            ],
-            className="mb-4 p-3 bg-light rounded-3",
-        ),
-        # Project Scope Section - Updated breakpoints
-        html.Div(
-            [
-                html.H5(
-                    [
-                        html.I(
-                            className="fas fa-tasks me-2",
-                            style={"color": COLOR_PALETTE["points"]},
-                        ),
-                        "Remaining Work Scope",
-                    ],
-                    className="mb-3 border-bottom pb-2 d-flex align-items-center",
-                ),
-                # Items (Estimated and Total) in one row
-                dbc.Row(
-                    [
-                        # Estimated Items
-                        dbc.Col(
-                            [
-                                html.Label(
-                                    [
-                                        "Estimated Items",
-                                        create_info_tooltip(
-                                            "estimated-items",
-                                            HELP_TEXTS["estimated_items"],
-                                        ),
-                                    ],
-                                    className="fw-medium",
-                                ),
-                                dbc.Input(
-                                    id="estimated-items-input",
-                                    type="number",
-                                    value=current_settings["estimated_items"],
-                                    min=0,
-                                    step=1,
-                                    style=create_input_style(size="md"),
-                                    invalid=False,  # Will be controlled by callback
-                                    className="form-control",
-                                ),
-                                html.Div(
-                                    id="estimated-items-feedback",
-                                    className="d-none",
-                                    style=create_form_feedback_style("invalid"),
-                                ),
-                            ],
-                            width=12,
-                            # Changed from md=6 to lg=6 to stack on medium screens
-                            lg=6,
-                            # Add bottom margin when stacked
-                            className="mb-3 mb-lg-0",
-                        ),
-                        # Total Items
-                        dbc.Col(
-                            [
-                                html.Label(
-                                    [
-                                        "Total Items",
-                                        create_info_tooltip(
-                                            "total-items",
-                                            HELP_TEXTS["total_items"],
-                                        ),
-                                    ],
-                                    className="fw-medium",
-                                ),
-                                dbc.Input(
-                                    id="total-items-input",
-                                    type="number",
-                                    value=current_settings["total_items"],
-                                    min=0,
-                                    step=1,
-                                    style=create_input_style(size="md"),
-                                    invalid=False,  # Will be controlled by callback
-                                    className="form-control",
-                                ),
-                                html.Div(
-                                    id="total-items-feedback",
-                                    className="d-none",
-                                    style=create_form_feedback_style("invalid"),
-                                ),
-                            ],
-                            width=12,
-                            # Changed from md=6 to lg=6 to stack on medium screens
-                            lg=6,
-                        ),
-                    ],
-                    className="mb-3",
-                ),
-                # Points Toggle Section
-                dbc.Row(
-                    [
-                        dbc.Col(
-                            [
-                                # Label and toggle combined in a flex container
-                                html.Div(
-                                    [
-                                        # Label for the points section
-                                        html.Label(
-                                            [
-                                                "Points Tracking:",
-                                                create_info_tooltip(
-                                                    "points-toggle",
-                                                    "Enable points tracking and forecasting (disable if not using story points).",
-                                                ),
-                                            ],
-                                            className="fw-medium me-2",
-                                            style={
-                                                "display": "inline-flex",
-                                                "alignItems": "center",
-                                            },
-                                        ),
-                                        # Toggle switch directly next to the label (without text label)
-                                        dbc.Switch(
-                                            id="points-toggle",
-                                            value=current_settings.get(
-                                                "show_points", False
-                                            ),
-                                            label="",  # No text label
-                                            className="ms-2 responsive-toggle",
-                                            style={},  # Remove inline transform
-                                        ),
-                                    ],
-                                    className="d-flex align-items-center mb-2",
-                                ),
-                            ],
-                            width=12,
-                        ),
-                    ],
-                    className="mb-3",
-                ),
-                # Points Inputs Container (controlled by points toggle)
-                html.Div(
-                    id="points-inputs-container",
-                    children=[
-                        # Points (Estimated and Total) in one row
-                        dbc.Row(
-                            [
-                                # Estimated Points
-                                dbc.Col(
-                                    [
-                                        html.Label(
-                                            [
-                                                "Estimated Points",
-                                                create_info_tooltip(
-                                                    "estimated-points",
-                                                    HELP_TEXTS["estimated_points"],
-                                                ),
-                                            ],
-                                            className="fw-medium",
-                                        ),
-                                        dbc.Input(
-                                            id="estimated-points-input",
-                                            type="number",
-                                            value=current_settings["estimated_points"],
-                                            min=0,
-                                            step=1,
-                                            style=create_input_style(size="md"),
-                                            invalid=False,  # Will be controlled by callback
-                                            className="form-control",
-                                        ),
-                                        html.Div(
-                                            id="estimated-points-feedback",
-                                            className="d-none",
-                                            style=create_form_feedback_style("invalid"),
-                                        ),
-                                    ],
-                                    width=12,
-                                    # Changed from md=6 to lg=6 to stack on medium screens
-                                    lg=6,
-                                    # Add bottom margin when stacked
-                                    className="mb-3 mb-lg-0",
-                                ),
-                                # Total Points (Calculated)
-                                dbc.Col(
-                                    [
-                                        html.Label(
-                                            [
-                                                "Total Points",
-                                                html.Span(
-                                                    "auto",
-                                                    className="badge bg-secondary ms-1",
-                                                    style={
-                                                        "fontSize": "0.7rem",
-                                                        "verticalAlign": "text-top",
-                                                    },
-                                                ),
-                                                create_info_tooltip(
-                                                    "total-points",
-                                                    HELP_TEXTS["total_points"],
-                                                ),
-                                            ],
-                                            className="fw-medium",
-                                        ),
-                                        dbc.InputGroup(
-                                            [
-                                                dbc.Input(
-                                                    id="total-points-display",
-                                                    value=f"{estimated_total_points:.0f}",
-                                                    disabled=True,
-                                                    style=create_input_style(
-                                                        disabled=True, readonly=True
-                                                    ),
-                                                ),
-                                                dbc.InputGroupText(
-                                                    html.I(
-                                                        className="fas fa-calculator"
-                                                    ),
-                                                    style={
-                                                        "backgroundColor": NEUTRAL_COLORS[
-                                                            "gray-200"
-                                                        ]
-                                                    },
-                                                ),
-                                            ]
-                                        ),
-                                        html.Small(
-                                            id="points-calculation-info",
-                                            children=[
-                                                f"Using {avg_points_per_item:.1f} points per remaining item for calculation"
-                                            ],
-                                            className="text-muted mt-1 d-block",
-                                        ),
-                                    ],
-                                    width=12,
-                                    # Changed from md=6 to lg=6 to stack on medium screens
-                                    lg=6,
-                                ),
-                            ],
-                        ),
-                    ],  # Close points inputs container
-                ),
-            ],
-            className="mb-4 p-3 bg-light rounded-3",
-        ),
-        # Data Source Section
+        # Data Source Selection
         html.Div(
             [
                 html.H5(
@@ -1037,7 +917,6 @@ def create_input_parameters_card(
                     ],
                     className="mb-3 border-bottom pb-2 d-flex align-items-center",
                 ),
-                # Data Source Selection
                 dbc.Row(
                     [
                         dbc.Col(
@@ -1055,14 +934,8 @@ def create_input_parameters_card(
                                 dbc.RadioItems(
                                     id="data-source-selection",
                                     options=[
-                                        {
-                                            "label": "JIRA API",
-                                            "value": "JIRA",
-                                        },
-                                        {
-                                            "label": "JSON/CSV Import",
-                                            "value": "CSV",
-                                        },
+                                        {"label": "JIRA API", "value": "JIRA"},
+                                        {"label": "JSON/CSV Import", "value": "CSV"},
                                     ],
                                     value=_get_default_data_source(),
                                     inline=True,
@@ -1073,15 +946,14 @@ def create_input_parameters_card(
                         ),
                     ],
                 ),
-                # Data Export Action - Available for both data sources
+                # Data Export Action
                 html.Hr(className="my-3"),
                 dbc.Row(
                     [
                         dbc.Col(
                             [
                                 html.Label(
-                                    "Export Options:",
-                                    className="fw-medium mb-2",
+                                    "Export Options:", className="fw-medium mb-2"
                                 ),
                                 html.Div(
                                     [
@@ -1100,8 +972,7 @@ def create_input_parameters_card(
                                                 id="export-project-data-download"
                                             )
                                         ),
-                                    ],
-                                    className="d-flex flex-column",
+                                    ]
                                 ),
                             ],
                             width=12,
@@ -1111,7 +982,7 @@ def create_input_parameters_card(
             ],
             className="mb-4 p-3 bg-light rounded-3",
         ),
-        # Data Import Section
+        # Data Import Configuration
         html.Div(
             [
                 html.H5(
@@ -1124,7 +995,7 @@ def create_input_parameters_card(
                     ],
                     className="mb-3 border-bottom pb-2 d-flex align-items-center",
                 ),
-                # CSV Upload Container (hidden by default when data source is JIRA)
+                # CSV Upload Container
                 html.Div(
                     id="csv-upload-container",
                     style={
@@ -1175,13 +1046,7 @@ def create_input_parameters_card(
                         ),
                     ],
                 ),
-                # Import Status Message Container
-                html.Div(
-                    id="import-status-message",
-                    className="text-success small mb-3",
-                    style={"display": "none"},
-                ),
-                # JIRA Configuration Container (hidden by default when data source is CSV)
+                # JIRA Configuration Container
                 html.Div(
                     id="jira-config-container",
                     style={
@@ -1190,15 +1055,15 @@ def create_input_parameters_card(
                         else "none"
                     },
                     children=[
-                        # Configure JIRA Button (Feature 003-jira-config-separation)
+                        # Configure JIRA Button
                         create_jira_config_button(),
                         # JIRA Configuration Status Indicator
                         html.Div(
                             id="jira-config-status-indicator",
                             className="mt-2 mb-3",
-                            children=[],  # Will be populated by callback
+                            children=[],
                         ),
-                        # JQL Query Management Section - Better UX Flow
+                        # JQL Query Management Section
                         html.Div(
                             [
                                 html.H6(
@@ -1208,14 +1073,13 @@ def create_input_parameters_card(
                                     ],
                                     className="mb-3 text-primary border-bottom pb-2",
                                 ),
-                                # Step 1: JQL Query Input
+                                # JQL Query Input
                                 dbc.Row(
                                     [
                                         dbc.Col(
                                             [
                                                 html.Label(
-                                                    "JQL Query:",
-                                                    className="fw-medium",
+                                                    "JQL Query:", className="fw-medium"
                                                 ),
                                                 create_jql_editor(
                                                     editor_id="jira-jql-query",
@@ -1223,7 +1087,6 @@ def create_input_parameters_card(
                                                     placeholder="project = MYPROJECT AND created >= startOfYear()",
                                                     rows=1,
                                                 ),
-                                                # Character count display (Feature 001-add-jql-query)
                                                 html.Div(
                                                     id="jira-jql-character-count-container",
                                                     children=[
@@ -1249,127 +1112,48 @@ def create_input_parameters_card(
                                         ),
                                     ],
                                 ),
-                                # Step 2: Query Actions (directly below query input)
+                                # Query Actions
                                 dbc.Row(
                                     [
                                         dbc.Col(
                                             [
                                                 html.Div(
                                                     [
-                                                        # Primary Action: Save current query
+                                                        create_button(
+                                                            text="Save Query",
+                                                            id="save-jql-query-button",
+                                                            variant="primary",
+                                                            icon_class="fas fa-save",
+                                                            size="sm",
+                                                            className="me-2 mb-2",
+                                                        ),
                                                         html.Div(
                                                             [
-                                                                html.Button(
-                                                                    [
-                                                                        html.I(
-                                                                            className="fas fa-save me-1"
-                                                                        ),
-                                                                        html.Span(
-                                                                            "Save Query",
-                                                                            className="d-none d-sm-inline",
-                                                                        ),
-                                                                    ],
-                                                                    id="save-jql-query-button",
-                                                                    className="btn btn-primary btn-sm me-2 mb-1",
-                                                                    title="Save current JQL query as new profile",
-                                                                ),
-                                                                html.Small(
-                                                                    "Save current query",
-                                                                    className="text-muted d-block d-sm-none",
+                                                                dcc.Dropdown(
+                                                                    id="jql-profile-selector",
+                                                                    options=_get_query_profile_options(),
+                                                                    value=_get_default_jql_profile_id(),
+                                                                    placeholder="Select saved query",
+                                                                    clearable=True,
+                                                                    searchable=True,
+                                                                    style={
+                                                                        "minWidth": "200px",
+                                                                        "maxWidth": "300px",
+                                                                    },
                                                                 ),
                                                             ],
                                                             className="d-inline-block me-2 mb-2",
                                                         ),
-                                                        # Test Query button for ScriptRunner validation
-                                                        html.Div(
-                                                            [
-                                                                html.Button(
-                                                                    [
-                                                                        html.I(
-                                                                            className="fas fa-check-circle me-1"
-                                                                        ),
-                                                                        html.Span(
-                                                                            "Test Query",
-                                                                            className="d-none d-sm-inline",
-                                                                        ),
-                                                                    ],
-                                                                    id="test-jql-query-button",
-                                                                    className="btn btn-outline-success btn-sm me-2 mb-1",
-                                                                    title="Test JQL query validity (useful for ScriptRunner functions)",
-                                                                ),
-                                                                html.Small(
-                                                                    "Test validity",
-                                                                    className="text-muted d-block d-sm-none",
-                                                                ),
-                                                            ],
-                                                            className="d-inline-block me-3 mb-2",
-                                                        ),
-                                                        # Secondary Actions: Manage saved queries
-                                                        html.Div(
-                                                            [
-                                                                html.Button(
-                                                                    [
-                                                                        html.I(
-                                                                            className="fas fa-edit me-1"
-                                                                        ),
-                                                                        html.Span(
-                                                                            "Edit",
-                                                                            className="d-none d-sm-inline",
-                                                                        ),
-                                                                    ],
-                                                                    id="edit-jql-query-button",
-                                                                    className="btn btn-outline-info btn-sm me-1 mb-1",
-                                                                    title="Edit selected query profile",
-                                                                    style={
-                                                                        "display": "none"
-                                                                    },
-                                                                ),
-                                                                html.Button(
-                                                                    [
-                                                                        html.I(
-                                                                            className="fas fa-star me-1"
-                                                                        ),
-                                                                        html.Span(
-                                                                            "Default",
-                                                                            className="d-none d-sm-inline",
-                                                                        ),
-                                                                    ],
-                                                                    id="load-default-jql-query-button",
-                                                                    className="btn btn-outline-success btn-sm me-1 mb-1",
-                                                                    title="Load default query",
-                                                                    style={
-                                                                        "display": "none"
-                                                                    },
-                                                                ),
-                                                                html.Button(
-                                                                    [
-                                                                        html.I(
-                                                                            className="fas fa-trash me-1"
-                                                                        ),
-                                                                        html.Span(
-                                                                            "Delete",
-                                                                            className="d-none d-sm-inline",
-                                                                        ),
-                                                                    ],
-                                                                    id="delete-jql-query-button",
-                                                                    className="btn btn-outline-danger btn-sm mb-1",
-                                                                    title="Delete selected query profile",
-                                                                    style={
-                                                                        "display": "none"
-                                                                    },
-                                                                ),
-                                                            ],
-                                                            className="d-inline-block",
+                                                        create_button(
+                                                            text="Clear",
+                                                            id="clear-jql-query-button",
+                                                            variant="outline-secondary",
+                                                            icon_class="fas fa-eraser",
+                                                            size="sm",
+                                                            className="me-2 mb-2",
                                                         ),
                                                     ],
-                                                    className="d-flex flex-wrap align-items-start",
-                                                ),
-                                                # Test results display
-                                                html.Div(
-                                                    id="jql-test-results",
-                                                    children="",
-                                                    className="mt-2",
-                                                    style={"display": "none"},
+                                                    className="d-flex flex-wrap justify-content-start",
                                                 ),
                                             ],
                                             width=12,
@@ -1377,414 +1161,49 @@ def create_input_parameters_card(
                                         ),
                                     ],
                                 ),
-                                # Step 3: Load Saved Queries (Optional)
-                                dbc.Row(
-                                    [
-                                        dbc.Col(
-                                            [
-                                                html.Div(
-                                                    [
-                                                        html.Label(
-                                                            [
-                                                                html.I(
-                                                                    className="fas fa-folder-open me-2"
-                                                                ),
-                                                                "Load from Saved Queries:",
-                                                                create_info_tooltip(
-                                                                    "load-saved-queries-help",
-                                                                    "Select a previously saved query to load into the editor above. You can also create new queries by typing directly in the JQL editor.",
-                                                                ),
-                                                            ],
-                                                            className="fw-medium mb-2",
-                                                        ),
-                                                        # Desktop layout: Dropdown
-                                                        dbc.InputGroup(
-                                                            [
-                                                                dcc.Dropdown(
-                                                                    id="jira-query-profile-selector",
-                                                                    options=cast(
-                                                                        Any,
-                                                                        _get_query_profile_options(),
-                                                                    ),
-                                                                    value=_get_default_jql_profile_id(),
-                                                                    placeholder="Choose a saved query to load...",
-                                                                    clearable=True,
-                                                                    searchable=False,
-                                                                    style={
-                                                                        "border": "1px solid #dee2e6",
-                                                                        "borderRadius": "0.375rem",
-                                                                        "minHeight": "38px",
-                                                                        "width": "100%",
-                                                                    },
-                                                                ),
-                                                            ],
-                                                            className="d-none d-md-flex mb-2",
-                                                        ),
-                                                        # Mobile layout: Dropdown
-                                                        html.Div(
-                                                            dcc.Dropdown(
-                                                                id="jira-query-profile-selector-mobile",
-                                                                options=cast(
-                                                                    Any,
-                                                                    _get_query_profile_options(),
-                                                                ),
-                                                                value=_get_default_jql_profile_id(),
-                                                                placeholder="Choose a saved query to load...",
-                                                                clearable=True,
-                                                                searchable=False,
-                                                                style={
-                                                                    "border": "1px solid #dee2e6",
-                                                                    "borderRadius": "0.375rem",
-                                                                    "minHeight": "38px",
-                                                                    "width": "100%",
-                                                                },
-                                                            ),
-                                                            className="d-md-none mb-2",
-                                                        ),
-                                                        # Query Status Information
-                                                        html.Div(
-                                                            id="query-profile-status",
-                                                            className="text-success small mt-1",
-                                                            children="",  # Will be populated by callback
-                                                        ),
-                                                    ],
-                                                    className="p-2 bg-light border rounded",
-                                                    style={
-                                                        "borderStyle": "dashed",
-                                                        "borderColor": "#dee2e6",
-                                                    },
-                                                ),
-                                                # Hidden element for JQL query save status callback
-                                                html.Div(
-                                                    id="jira-jql-query-save-status",
-                                                    style={"display": "none"},
-                                                ),
-                                            ],
-                                            width=12,
-                                            className="mb-3",
-                                        ),
-                                    ],
+                                # Feedback section
+                                html.Div(
+                                    id="jira-jql-query-save-status",
+                                    className="text-center mt-2",
+                                    children=[],
                                 ),
                             ],
-                            className="mb-4 p-3 border rounded-3",
-                            style={"backgroundColor": "#f8f9fa"},
+                            className="p-3 bg-light rounded mb-3",
                         ),
-                        # Update Data Button Section - Full width on mobile with standardized button styling
+                        # Action Buttons
                         dbc.Row(
                             [
                                 dbc.Col(
                                     [
-                                        html.Label(
-                                            "Data Import Actions:",
-                                            className="fw-medium",
-                                        ),
                                         html.Div(
                                             [
                                                 create_button(
-                                                    text="Update Data",
+                                                    text="Update Data & Calculate Scope",
                                                     id="update-data-unified",
                                                     variant="primary",
                                                     icon_class="fas fa-sync-alt",
+                                                    className="mb-2",
                                                 ),
                                                 html.Small(
-                                                    "Import data from selected source and update charts",
-                                                    className="text-muted mt-1 d-block",
+                                                    "Fetches JIRA data and automatically calculates project scope",
+                                                    className="text-muted d-block",
                                                 ),
-                                            ],
-                                            className="d-flex flex-column",
+                                            ]
                                         ),
                                     ],
                                     width=12,
-                                    className="mb-3",
+                                    className="text-center mb-3",
                                 ),
                             ],
                         ),
-                        # Cache Status and Validation Errors
-                        dbc.Row(
-                            [
-                                dbc.Col(
-                                    [
-                                        html.Div(
-                                            id="jira-cache-status",
-                                            className="text-muted small",
-                                        ),
-                                        html.Div(
-                                            id="jira-validation-errors",
-                                            className="text-danger small",
-                                        ),
-                                    ],
-                                    width=12,
-                                ),
-                            ],
-                        ),
-                        # JIRA Scope Calculation Section
-                        html.Hr(className="my-3"),
-                        dbc.Row(
-                            [
-                                dbc.Col(
-                                    [
-                                        html.Label(
-                                            "Project Scope from JIRA:",
-                                            className="fw-medium",
-                                        ),
-                                        html.Div(
-                                            [
-                                                create_button(
-                                                    text="Calculate Scope",
-                                                    id="jira-scope-calculate-btn",
-                                                    variant="success",
-                                                    icon_class="fas fa-calculator",
-                                                ),
-                                                html.Small(
-                                                    "Calculate project scope based on JIRA issue statuses",
-                                                    className="text-muted mt-1 d-block",
-                                                ),
-                                            ],
-                                            className="d-flex flex-column",
-                                        ),
-                                        html.Div(
-                                            id="jira-scope-status",
-                                            className="mt-2",
-                                        ),
-                                        html.Div(
-                                            id="jira-scope-update-time",
-                                            className="mt-1",
-                                        ),
-                                    ],
-                                    width=12,
-                                    className="mb-3",
-                                ),
-                            ],
+                        # Status indicator
+                        html.Div(
+                            id="jira-cache-status",
+                            className="text-center text-muted small",
+                            children="Ready to fetch JIRA data",
                         ),
                     ],
                 ),
-                # Save JQL Query Modal
-                dbc.Modal(
-                    [
-                        dbc.ModalHeader(
-                            dbc.ModalTitle("Save JQL Query"),
-                            close_button=True,
-                        ),
-                        dbc.ModalBody(
-                            [
-                                # Query Name Input
-                                html.Label(
-                                    "Query Name: *",
-                                    className="fw-medium mb-2",
-                                ),
-                                dbc.Input(
-                                    id="query-name-input",
-                                    type="text",
-                                    placeholder="e.g., My Sprint Query",
-                                    style=create_input_style(size="md"),
-                                    className="mb-3",
-                                ),
-                                html.Div(
-                                    id="query-name-validation",
-                                    className="text-danger small mb-3",
-                                    style={"display": "none"},
-                                ),
-                                # Query Description Input
-                                html.Label(
-                                    "Description (optional):",
-                                    className="fw-medium mb-2",
-                                ),
-                                dbc.Textarea(
-                                    id="query-description-input",
-                                    placeholder="Brief description of what this query returns...",
-                                    rows=3,
-                                    style=create_input_style(size="md"),
-                                    className="mb-3",
-                                ),
-                                # Set as Default Toggle
-                                dbc.Checkbox(
-                                    id="save-query-set-default-checkbox",
-                                    label="Set as default query",
-                                    value=False,
-                                    className="mb-3",
-                                ),
-                                html.Small(
-                                    "Default queries can be quickly loaded with one click. Only one query can be default at a time.",
-                                    className="text-muted mb-3 d-block",
-                                ),
-                                # JQL Preview
-                                html.Label(
-                                    "JQL Preview:",
-                                    className="fw-medium mb-2",
-                                ),
-                                html.Div(
-                                    id="jql-preview-display",
-                                    className="p-2 bg-light border rounded small font-monospace text-muted",
-                                    style={
-                                        "min-height": "60px",
-                                        "max-height": "120px",
-                                        "overflow-y": "auto",
-                                    },
-                                    children="JQL query will appear here...",
-                                ),
-                            ],
-                        ),
-                        dbc.ModalFooter(
-                            [
-                                create_button(
-                                    text="Cancel",
-                                    id="cancel-save-query-button",
-                                    variant="outline-secondary",
-                                    size="sm",
-                                ),
-                                create_button(
-                                    text="Save Query",
-                                    id="confirm-save-query-button",
-                                    variant="primary",
-                                    size="sm",
-                                    icon_class="fas fa-check",
-                                ),
-                            ],
-                            className="d-flex justify-content-end gap-2",
-                        ),
-                    ],
-                    id="save-jql-query-modal",
-                    size="md",
-                    is_open=False,
-                    backdrop=True,
-                    scrollable=True,
-                ),
-                # Edit JQL Query Modal
-                dbc.Modal(
-                    [
-                        dbc.ModalHeader(
-                            dbc.ModalTitle("Edit JQL Query"),
-                            close_button=True,
-                        ),
-                        dbc.ModalBody(
-                            [
-                                # Query Name Input
-                                html.Label(
-                                    "Query Name: *",
-                                    className="fw-medium mb-2",
-                                ),
-                                dbc.Input(
-                                    id="edit-query-name-input",
-                                    type="text",
-                                    placeholder="e.g., My Sprint Query",
-                                    style=create_input_style(size="md"),
-                                    className="mb-3",
-                                ),
-                                html.Div(
-                                    id="edit-query-name-validation",
-                                    className="text-danger small mb-3",
-                                    style={"display": "none"},
-                                ),
-                                # Query Description Input
-                                html.Label(
-                                    "Description (optional):",
-                                    className="fw-medium mb-2",
-                                ),
-                                dbc.Textarea(
-                                    id="edit-query-description-input",
-                                    placeholder="Brief description of what this query returns...",
-                                    rows=3,
-                                    style=create_input_style(size="md"),
-                                    className="mb-3",
-                                ),
-                                # JQL Input
-                                html.Label(
-                                    "JQL Query: *",
-                                    className="fw-medium mb-2",
-                                ),
-                                dbc.Textarea(
-                                    id="edit-query-jql-input",
-                                    placeholder="Enter JQL query...",
-                                    rows=4,
-                                    style=create_input_style(size="md"),
-                                    className="mb-3",
-                                ),
-                                # Set as Default Toggle
-                                dbc.Checkbox(
-                                    id="edit-query-set-default-checkbox",
-                                    label="Set as default query",
-                                    value=False,
-                                    className="mb-3",
-                                ),
-                                html.Small(
-                                    "Default queries can be quickly loaded with one click. Only one query can be default at a time.",
-                                    className="text-muted mb-3 d-block",
-                                ),
-                            ],
-                        ),
-                        dbc.ModalFooter(
-                            [
-                                create_button(
-                                    text="Cancel",
-                                    id="cancel-edit-query-button",
-                                    variant="outline-secondary",
-                                    size="sm",
-                                ),
-                                create_button(
-                                    text="Save Changes",
-                                    id="confirm-edit-query-button",
-                                    variant="primary",
-                                    size="sm",
-                                    icon_class="fas fa-save",
-                                ),
-                            ],
-                        ),
-                    ],
-                    id="edit-query-modal",
-                    is_open=False,
-                    size="lg",
-                    scrollable=True,
-                ),
-                # Delete Query Confirmation Modal
-                dbc.Modal(
-                    [
-                        dbc.ModalHeader(
-                            dbc.ModalTitle("Delete Query?"),
-                            close_button=True,
-                        ),
-                        dbc.ModalBody(
-                            [
-                                html.P(
-                                    [
-                                        "Are you sure you want to delete ",
-                                        html.Strong(id="delete-query-name"),
-                                        "?",
-                                    ],
-                                    className="mb-3",
-                                ),
-                                html.P(
-                                    "This action cannot be undone.",
-                                    className="text-muted small mb-0",
-                                ),
-                            ],
-                        ),
-                        dbc.ModalFooter(
-                            [
-                                create_button(
-                                    text="Cancel",
-                                    id="cancel-delete-query-button",
-                                    variant="outline-secondary",
-                                    size="sm",
-                                ),
-                                create_button(
-                                    text="Delete",
-                                    id="confirm-delete-query-button",
-                                    variant="danger",
-                                    size="sm",
-                                    icon_class="fas fa-trash",
-                                ),
-                            ],
-                            className="d-flex justify-content-end gap-2",
-                        ),
-                    ],
-                    id="delete-jql-query-modal",
-                    size="sm",
-                    is_open=False,
-                    backdrop=True,
-                ),
-                # Hidden store components for JIRA data loading state
-                dcc.Store(id="jira-data-loader"),
-                dcc.Store(id="jira-data-reload-trigger"),
             ],
             className="mb-4 p-3 bg-light rounded-3",
         ),
@@ -2356,7 +1775,7 @@ def create_statistics_data_card(current_statistics):
         help_text,
         # Add column explanations section
         column_explanations,
-        # Add space between help text and table (removed export buttons from top)
+        # Add space before table
         html.Div(className="mb-3"),
         # Add the responsive table
         responsive_table,

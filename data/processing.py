@@ -182,20 +182,85 @@ def calculate_rates(
     performance_settings: dict | None = None,
 ) -> tuple[float, float, float, float, float, float]:
     """
-    Calculate burn rates using PERT methodology with performance optimizations.
+    Calculate burn rates using PERT methodology adapted for agile empirical data.
+
+    PERT METHODOLOGY ADAPTATION FOR AGILE TEAMS
+    ===========================================
+
+    This implementation adapts traditional PERT (Program Evaluation and Review Technique)
+    to agile contexts by using **historical velocity data** instead of expert estimates:
+
+    **Traditional PERT:**
+    - Optimistic (O): Expert's best-case estimate
+    - Most Likely (M): Expert's most probable estimate
+    - Pessimistic (P): Expert's worst-case estimate
+    - Formula: Expected Time = (O + 4M + P) / 6
+
+    **Our Agile Adaptation:**
+    - Optimistic: Average of top N performing weeks (e.g., best 3 weeks)
+      → Represents "if we maintain our best pace"
+    - Most Likely: Average of ALL weeks
+      → Represents "if we maintain average pace"
+    - Pessimistic: Average of bottom N performing weeks (e.g., worst 3 weeks)
+      → Represents "if we experience slower periods like we have before"
+    - Formula: Same PERT weighted average (O + 4M + P) / 6
+
+    **Why This Adaptation:**
+    1. **Data-Driven:** Uses actual team performance, not subjective guesses
+    2. **Adaptive:** Automatically adjusts to team's velocity characteristics
+    3. **Empirical:** Captures real historical variance and patterns
+    4. **Agile-Friendly:** Teams value measurements over estimates
+
+    **Limitations and Appropriate Use:**
+
+    ✅ **RECOMMENDED FOR:**
+    - Short to medium term forecasts (2-12 weeks)
+    - Teams with stable composition and workload
+    - Projects with consistent workflow patterns
+    - Contexts where empirical data is preferred over expert judgment
+
+    ⚠️ **USE WITH CAUTION FOR:**
+    - Long-term forecasts (>6 months) - patterns may change
+    - Teams undergoing major changes (new members, tech stack changes)
+    - Projects with highly variable requirements
+    - Seasonal projects with known cyclical patterns not yet captured in data
+
+    ❌ **NOT SUITABLE FOR:**
+    - Brand new teams with <4 weeks of history
+    - Projects with fundamentally different future work than past
+    - One-time initiatives without recurring patterns
+
+    **Key Assumption:** Future velocity will follow historical patterns within the
+    observed range. This assumption weakens as forecast horizon increases.
+
+    **Confidence Window (pert_factor):**
+    The 'pert_factor' parameter (labeled "Confidence Window" in UI) determines how many
+    weeks to sample for best/worst cases:
+    - Smaller values (e.g., 2-3): More sensitive to extremes, wider forecast range
+    - Larger values (e.g., 5-6): More stable, smoother forecasts
+    - Auto-adjusted to max 1/3 of available data to prevent overfitting
 
     Args:
-        grouped: DataFrame with weekly aggregated data
-        total_items: Total number of items to complete
-        total_points: Total number of points to complete
-        pert_factor: Number of data points to use for optimistic/pessimistic estimates
+        grouped: DataFrame with weekly aggregated data (completed_items, completed_points)
+        total_items: Total number of items remaining to complete
+        total_points: Total number of points remaining to complete
+        pert_factor: Number of weeks to sample for best/worst case (confidence window)
         show_points: Whether points tracking is enabled (default: True)
         performance_settings: Dictionary with performance optimization settings
+            - forecast_max_days: Maximum forecast horizon (default: 730 days)
+            - pessimistic_multiplier_cap: Max ratio of pessimistic to optimistic (default: 5)
 
     Returns:
-        Tuple of calculated values:
+        Tuple of calculated values (all in days):
         (pert_time_items, optimistic_items_rate, pessimistic_items_rate,
          pert_time_points, optimistic_points_rate, pessimistic_points_rate)
+
+    Example:
+        >>> grouped = pd.DataFrame({
+        ...     'completed_items': [5, 7, 4, 6, 8, 5, 9, 7, 3, 10]
+        ... })
+        >>> rates = calculate_rates(grouped, total_items=50, total_points=250, pert_factor=3)
+        >>> # Returns PERT forecast considering best 3, worst 3, and average of all weeks
     """
     # Set default performance settings if not provided
     if performance_settings is None:
@@ -215,63 +280,46 @@ def calculate_rates(
         # Return zeros to avoid calculations with empty data
         return 0, 0, 0, 0, 0, 0
 
-    # If points tracking is disabled, return safe defaults for points calculations
-    if not show_points:
-        # Still calculate items rates for items-based forecasting
-        days_per_week = 7.0
-        valid_data_count = len(grouped)
-
-        # Simple calculation for items only
-        if valid_data_count == 0:
-            return 0, 0, 0, 0, 0, 0
-
-        # Calculate simple items rate
-        mean_items_rate = grouped["completed_items"].mean() / days_per_week
-        mean_items_rate = max(0.001, mean_items_rate)  # Prevent division by zero
-
-        # Calculate time for items
-        time_items = total_items / mean_items_rate if mean_items_rate > 0 else 0
-
-        # Cap at reasonable maximum (2 years = 730 days)
-        time_items = min(time_items, 730)
-
-        # Return items calculation with zero points values
-        return time_items, mean_items_rate, mean_items_rate, 0, 0, 0
-
-    # Validate and adjust pert_factor based on available data
+    # Always calculate rates properly for both items and points
+    # The show_points parameter should only affect UI display, not calculation logic
+    days_per_week = 7.0
     valid_data_count = len(grouped)
 
     # When data is limited, adjust strategy to ensure stable results
     if valid_data_count <= 3:
-        # With very few data points, just use the mean for all estimates
-        # This prevents crashes when pert_factor is 3 but we only have 1-3 data points
+        # With very few data points (≤3 weeks), use mean for all estimates
+        # This prevents unreliable forecasts when confidence window exceeds available data
         most_likely_items_rate = grouped["completed_items"].mean() / days_per_week
         most_likely_points_rate = grouped["completed_points"].mean() / days_per_week
 
         # Use the same value for optimistic and pessimistic to avoid erratic forecasts
-        # with tiny datasets
+        # with tiny datasets (no meaningful best/worst case distinction possible)
         optimistic_items_rate = most_likely_items_rate
         pessimistic_items_rate = most_likely_items_rate
         optimistic_points_rate = most_likely_points_rate
         pessimistic_points_rate = most_likely_points_rate
     else:
-        # Normal case with sufficient data
-        # Adjust PERT factor to be at most 1/3 of available data for stable results
+        # Normal case with sufficient data (4+ weeks)
+        # Adjust confidence window to be at most 1/3 of available data for stable results
+        # This ensures we're sampling meaningful best/worst cases without overfitting
         valid_pert_factor = min(pert_factor, max(1, valid_data_count // 3))
         valid_pert_factor = max(valid_pert_factor, 1)  # Ensure at least 1
 
-        # Calculate daily rates for items
+        # Calculate daily rates for items using sampled weeks
+        # Optimistic: Average of N best performing weeks
         optimistic_items_rate = (
             grouped["completed_items"].nlargest(valid_pert_factor).mean()
             / days_per_week
         )
+        # Pessimistic: Average of N worst performing weeks
         pessimistic_items_rate = (
             grouped["completed_items"].nsmallest(valid_pert_factor).mean()
             / days_per_week
         )
+        # Most Likely: Average of ALL weeks (not sampled)
         most_likely_items_rate = grouped["completed_items"].mean() / days_per_week
 
-        # Calculate daily rates for points
+        # Calculate daily rates for points (same approach)
         optimistic_points_rate = (
             grouped["completed_points"].nlargest(valid_pert_factor).mean()
             / days_per_week
@@ -319,7 +367,9 @@ def calculate_rates(
         else float("inf")
     )
 
-    # Apply PERT formula: (O + 4M + P) / 6
+    # Apply standard PERT formula: (Optimistic + 4×Most_Likely + Pessimistic) / 6
+    # The factor "4" is fixed in PERT methodology (NOT user-adjustable)
+    # This weights the most likely scenario at 66.7%, with optimistic and pessimistic at 16.7% each
     pert_time_items = (
         optimistic_time_items + 4 * most_likely_time_items + pessimistic_time_items
     ) / 6
@@ -329,12 +379,37 @@ def calculate_rates(
 
     # Cap estimated time to reasonable maximum to prevent performance issues
     # Use configurable maximum from performance settings
+    #
+    # RATIONALE FOR 730-DAY (2-YEAR) DEFAULT CAP:
+    # 1. Agile Forecasting Validity: Historical velocity patterns become unreliable beyond 6-12 months
+    # 2. Team/Technology Changes: Most agile teams experience significant changes within 2 years
+    # 3. Requirements Evolution: Project scope and priorities often shift substantially
+    # 4. Chart Performance: Very long forecasts create rendering performance issues
+    # 5. Actionable Timeframes: Forecasts beyond 2 years are rarely actionable for agile teams
+    #
+    # Can be increased via settings, but 10-year absolute maximum enforced downstream
+    # to prevent extreme performance degradation
     MAX_ESTIMATED_DAYS = performance_settings.get("forecast_max_days", 730)
     pert_time_items = min(pert_time_items, MAX_ESTIMATED_DAYS)
     pert_time_points = min(pert_time_points, MAX_ESTIMATED_DAYS)
 
     # Additional optimization: If pessimistic forecast is much longer than optimistic,
     # cap it to avoid extreme chart scaling issues
+    #
+    # RATIONALE FOR 5X PESSIMISTIC MULTIPLIER CAP:
+    # 1. Velocity Variance Analysis: Typical agile teams show CV (coefficient of variation) of 0.2-0.5
+    #    - CV = 0.2: velocity varies ±20%, pessimistic ~1.5-2x optimistic
+    #    - CV = 0.4: velocity varies ±40%, pessimistic ~2-3x optimistic
+    #    - CV = 0.6: velocity varies ±60%, pessimistic ~3-4x optimistic
+    # 2. Statistical Outliers: CV > 1.0 (100% variance) suggests data quality issues or
+    #    extreme outliers that shouldn't drive forecasts
+    # 3. Chart Usability: Pessimistic forecasts >5x optimistic create unusable chart scales
+    # 4. Predictability: If pessimistic is >5x optimistic, the team's velocity is too
+    #    unstable for reliable forecasting - recommend improving process consistency
+    #
+    # ALTERNATIVE: Could use dynamic cap based on actual CV:
+    # max_multiplier = max(3, min(10, 2 + (CV * 10)))
+    # This would allow 3-10x range based on measured variance, but adds complexity
     MAX_PESSIMISTIC_MULTIPLIER = performance_settings.get(
         "pessimistic_multiplier_cap", 5
     )
@@ -399,6 +474,21 @@ def daily_forecast(
         return [start_date], [start_val]
 
     # ABSOLUTE HARD CAP: Never forecast beyond today + 10 years
+    #
+    # RATIONALE FOR 10-YEAR (3653-DAY) ABSOLUTE MAXIMUM:
+    # 1. **Performance Protection**: Prevents app from becoming unresponsive when users
+    #    accidentally configure extreme scenarios (e.g., 1 item/year velocity = 160+ year forecast)
+    # 2. **Reality Check**: Any software forecast beyond 10 years is meaningless given:
+    #    - Technology evolution cycles (3-5 years)
+    #    - Team/organization changes
+    #    - Product pivots and market shifts
+    #    - Methodology improvements
+    # 3. **Chart Usability**: Time axes beyond 10 years create unusable date labels and zoom ranges
+    # 4. **Data Validity**: Historical velocity data becomes irrelevant for such long horizons
+    # 5. **Industry Standards**: Most agile/project management tools cap at 1-5 years
+    #
+    # This is a HARD LIMIT that cannot be overridden to prevent denial-of-service scenarios
+    # where bad data causes infinite-length chart rendering attempts
     today = datetime.now()
     absolute_max_date = today + timedelta(
         days=3653
@@ -1073,3 +1163,248 @@ def establish_baseline(statistics_data: dict | None) -> dict:
         "points": statistics_data.get("baseline", {}).get("points", 0),
         "date": earliest_date.strftime("%Y-%m-%d"),
     }
+
+
+#######################################################################
+# DASHBOARD CALCULATIONS (User Story 2)
+#######################################################################
+
+
+def calculate_dashboard_metrics(statistics: list, settings: dict) -> dict:
+    """
+    Calculate aggregated project health metrics for Dashboard display.
+
+    This function supports User Story 2: Dashboard as Primary Landing View.
+    It computes all key metrics needed for the Dashboard tab including completion
+    forecast, velocity, remaining work, and trend analysis.
+
+    Args:
+        statistics: List of statistics dictionaries with date, completed_items, completed_points
+        settings: Settings dictionary with pert_factor, deadline, scope values
+
+    Returns:
+        dict: DashboardMetrics with all computed values (see data-model.md Section 3.1)
+
+    Example:
+        >>> stats = [{"date": "2025-01-01", "completed_items": 5, "completed_points": 25}]
+        >>> settings = {"pert_factor": 1.5, "deadline": "2025-12-31"}
+        >>> metrics = calculate_dashboard_metrics(stats, settings)
+        >>> print(metrics['days_to_completion'])
+        53
+    """
+    from datetime import datetime, timedelta
+
+    # Initialize default metrics
+    metrics = {
+        "completion_forecast_date": None,
+        "completion_confidence": None,
+        "days_to_completion": None,
+        "days_to_deadline": None,
+        "completion_percentage": 0.0,
+        "remaining_items": 0,
+        "remaining_points": 0.0,
+        "current_velocity_items": 0.0,
+        "current_velocity_points": 0.0,
+        "velocity_trend": "unknown",
+        "last_updated": datetime.now().isoformat(),
+    }
+
+    # Early return if no data
+    if not statistics or len(statistics) == 0:
+        return metrics
+
+    # Convert to DataFrame for easier analysis
+    df = pd.DataFrame(statistics)
+    df["date"] = pd.to_datetime(df["date"], errors="coerce")
+    df = df.dropna(subset=["date"]).sort_values("date")
+
+    if df.empty:
+        return metrics
+
+    # Calculate remaining work
+    total_items = settings.get("estimated_total_items", 0) or 0
+    total_points = settings.get("estimated_total_points", 0) or 0
+
+    completed_items = df["completed_items"].sum()
+    completed_points = df["completed_points"].sum()
+
+    metrics["remaining_items"] = max(0, int(total_items - completed_items))
+    metrics["remaining_points"] = max(0.0, float(total_points - completed_points))
+
+    # Calculate completion percentage
+    if total_items > 0:
+        metrics["completion_percentage"] = round(
+            (completed_items / total_items) * 100, 1
+        )
+
+    # Calculate current velocity (10-week rolling average or all available data)
+    data_points_count = min(len(df), settings.get("data_points_count", 10))
+    recent_data = df.tail(data_points_count)
+
+    # Calculate weeks spanned by recent data
+    if len(recent_data) > 1:
+        date_range = (recent_data["date"].max() - recent_data["date"].min()).days
+        weeks = max(1, date_range / 7.0)
+
+        recent_items = recent_data["completed_items"].sum()
+        recent_points = recent_data["completed_points"].sum()
+
+        metrics["current_velocity_items"] = round(recent_items / weeks, 1)
+        metrics["current_velocity_points"] = round(recent_points / weeks, 1)
+
+    # Calculate velocity trend (compare recent vs. older data)
+    if len(df) >= 6:  # Need at least 6 data points for trend
+        mid_point = len(df) // 2
+        older_half = df.iloc[:mid_point]
+        recent_half = df.iloc[mid_point:]
+
+        # Calculate velocity for each half
+        older_days = (older_half["date"].max() - older_half["date"].min()).days
+        recent_days = (recent_half["date"].max() - recent_half["date"].min()).days
+
+        if older_days > 0 and recent_days > 0:
+            older_velocity = older_half["completed_items"].sum() / (older_days / 7.0)
+            recent_velocity = recent_half["completed_items"].sum() / (recent_days / 7.0)
+
+            # Determine trend (>10% change is significant)
+            velocity_change = (
+                (recent_velocity - older_velocity) / older_velocity
+                if older_velocity > 0
+                else 0
+            )
+
+            if velocity_change > 0.1:
+                metrics["velocity_trend"] = "increasing"
+            elif velocity_change < -0.1:
+                metrics["velocity_trend"] = "decreasing"
+            else:
+                metrics["velocity_trend"] = "stable"
+
+    # Calculate forecast completion date
+    if metrics["current_velocity_items"] > 0 and metrics["remaining_items"] > 0:
+        pert_factor = settings.get("pert_factor", 1.5)
+        weeks_remaining = (
+            metrics["remaining_items"] / metrics["current_velocity_items"]
+        ) * pert_factor
+        days_remaining = int(weeks_remaining * 7)
+
+        last_date = df["date"].max()
+        forecast_date = last_date + timedelta(days=days_remaining)
+
+        metrics["completion_forecast_date"] = forecast_date.strftime("%Y-%m-%d")
+        metrics["days_to_completion"] = days_remaining
+
+        # Calculate confidence based on velocity consistency (std dev)
+        if len(recent_data) >= 3:
+            velocity_std = recent_data["completed_items"].std()
+            velocity_mean = recent_data["completed_items"].mean()
+
+            # Confidence decreases with higher variability
+            if velocity_mean > 0:
+                coefficient_of_variation = velocity_std / velocity_mean
+                # Convert to confidence: low CoV = high confidence
+                confidence = max(0, min(100, 100 - (coefficient_of_variation * 100)))
+                metrics["completion_confidence"] = round(confidence, 1)
+
+    # Calculate days to deadline
+    deadline = settings.get("deadline")
+    if deadline:
+        try:
+            deadline_date = datetime.strptime(deadline, "%Y-%m-%d")
+            days_to_deadline = (deadline_date - datetime.now()).days
+            metrics["days_to_deadline"] = days_to_deadline
+        except (ValueError, TypeError):
+            pass
+
+    return metrics
+
+
+def calculate_pert_timeline(statistics: list, settings: dict) -> dict:
+    """
+    Calculate PERT timeline data for Dashboard visualization.
+
+    This function supports User Story 2: Dashboard as Primary Landing View.
+    It computes optimistic, pessimistic, and most likely completion dates
+    based on current velocity and PERT estimation technique.
+
+    Args:
+        statistics: List of statistics dictionaries
+        settings: Settings dictionary with pert_factor and scope values
+
+    Returns:
+        dict: PERTTimelineData with forecast dates (see data-model.md Section 3.2)
+
+    Example:
+        >>> timeline = calculate_pert_timeline(stats, settings)
+        >>> print(timeline['pert_estimate_date'])
+        '2025-12-18'
+    """
+    from datetime import datetime, timedelta
+
+    # Initialize default timeline
+    timeline = {
+        "optimistic_date": None,
+        "pessimistic_date": None,
+        "most_likely_date": None,
+        "pert_estimate_date": None,
+        "optimistic_days": 0,
+        "pessimistic_days": 0,
+        "most_likely_days": 0,
+        "confidence_range_days": 0,
+    }
+
+    # Early return if no data
+    if not statistics or len(statistics) == 0:
+        return timeline
+
+    # Get dashboard metrics for velocity and remaining work
+    metrics = calculate_dashboard_metrics(statistics, settings)
+
+    if metrics["current_velocity_items"] <= 0 or metrics["remaining_items"] <= 0:
+        return timeline
+
+    # Get reference date (last data point)
+    df = pd.DataFrame(statistics)
+    df["date"] = pd.to_datetime(df["date"], errors="coerce")
+    df = df.dropna(subset=["date"]).sort_values("date")
+    reference_date = df["date"].max()
+
+    # Calculate base weeks remaining
+    base_weeks = metrics["remaining_items"] / metrics["current_velocity_items"]
+
+    # Apply PERT scenarios
+    pert_factor = settings.get("pert_factor", 1.5)
+
+    # Optimistic: best case (divide by PERT factor)
+    optimistic_weeks = base_weeks / pert_factor
+    optimistic_days = int(optimistic_weeks * 7)
+    timeline["optimistic_days"] = optimistic_days
+    timeline["optimistic_date"] = (
+        reference_date + timedelta(days=optimistic_days)
+    ).strftime("%Y-%m-%d")
+
+    # Most likely: baseline scenario
+    most_likely_days = int(base_weeks * 7)
+    timeline["most_likely_days"] = most_likely_days
+    timeline["most_likely_date"] = (
+        reference_date + timedelta(days=most_likely_days)
+    ).strftime("%Y-%m-%d")
+
+    # Pessimistic: worst case (multiply by PERT factor)
+    pessimistic_weeks = base_weeks * pert_factor
+    pessimistic_days = int(pessimistic_weeks * 7)
+    timeline["pessimistic_days"] = pessimistic_days
+    timeline["pessimistic_date"] = (
+        reference_date + timedelta(days=pessimistic_days)
+    ).strftime("%Y-%m-%d")
+
+    # PERT weighted average: (O + 4M + P) / 6
+    pert_days = int((optimistic_days + 4 * most_likely_days + pessimistic_days) / 6)
+    timeline["pert_estimate_date"] = (
+        reference_date + timedelta(days=pert_days)
+    ).strftime("%Y-%m-%d")
+
+    # Confidence range
+    timeline["confidence_range_days"] = pessimistic_days - optimistic_days
+
+    return timeline

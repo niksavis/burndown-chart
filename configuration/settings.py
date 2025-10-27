@@ -26,7 +26,10 @@ logger = logging.getLogger(__name__)
 # APPLICATION CONSTANTS
 #######################################################################
 # Default values
-DEFAULT_PERT_FACTOR = 3
+# Confidence Window (formerly called PERT Factor) - controls sample size for best/worst case
+# Higher values = more conservative, Lower values = reflects recent volatility
+# Recommended: 6 weeks (20-30% of typical history)
+DEFAULT_PERT_FACTOR = 6
 DEFAULT_TOTAL_ITEMS = 100
 DEFAULT_TOTAL_POINTS = 1000
 DEFAULT_DEADLINE = (datetime.now() + timedelta(days=60)).strftime("%Y-%m-%d")
@@ -34,7 +37,7 @@ DEFAULT_ESTIMATED_ITEMS = 20  # Default value for estimated items (20% of total 
 DEFAULT_ESTIMATED_POINTS = (
     200  # Default value for estimated points (based on default averages)
 )
-DEFAULT_DATA_POINTS_COUNT = 2 * DEFAULT_PERT_FACTOR  # Default to minimum valid value
+DEFAULT_DATA_POINTS_COUNT = 12  # Minimum 12 weeks for reliable forecasting
 
 # File paths for data persistence
 SETTINGS_FILE = (
@@ -237,6 +240,7 @@ CHART_HELP_TEXTS = {
     "forecast_confidence_bands": "Band width indicates forecast uncertainty based on velocity variability.",
     "scope_change_indicators": "Vertical markers show scope changes with automatic forecast adjustments.",
     "data_points_precision": "8-15 recent data points provide optimal forecast accuracy.",
+    "burndown_vs_burnup": "Burndown shows remaining work decreasing; Burnup shows completed work increasing.",
 }
 
 
