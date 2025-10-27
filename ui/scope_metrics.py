@@ -762,13 +762,17 @@ def create_scope_metrics_dashboard(
     """
     Create a dashboard component displaying all scope metrics.
 
+    IMPORTANT: total_items_scope and total_points_scope should represent the INITIAL
+    project scope (baseline) at project start, NOT the current total scope including
+    created items. See data/scope_metrics.py module documentation for details.
+
     Args:
         scope_change_rate (dict): Dictionary containing items_rate, points_rate and throughput_ratio
         weekly_growth_data (DataFrame): DataFrame containing weekly growth data
         stability_index (dict): Dictionary containing items_stability and points_stability values
         threshold (int): Threshold percentage for scope change notifications
-        total_items_scope (int, optional): Total items scope (completed + remaining)
-        total_points_scope (int, optional): Total points scope (completed + remaining)
+        total_items_scope (int, optional): Initial items scope (baseline) at project start
+        total_points_scope (int, optional): Initial points scope (baseline) at project start
         show_points (bool): Whether points tracking is enabled (default: True)
 
     Returns:
@@ -835,17 +839,19 @@ def create_scope_metrics_dashboard(
                     else 0
                 )
 
-    # Calculate baselines using the provided total scope if available
+    # Calculate baselines (initial scope at project start)
+    # If total_items_scope is provided, use it as the baseline
+    # Otherwise, calculate baseline as: remaining + completed (at current point)
     if total_items_scope is not None:
-        baseline_items = total_items_scope  # Use the provided total scope
+        baseline_items = total_items_scope  # Use provided initial scope
     else:
-        # Fall back to the old calculation (remaining + completed = baseline)
+        # Calculate initial scope from current state (remaining + completed so far)
         baseline_items = remaining_items + total_completed_items
 
     if total_points_scope is not None:
-        baseline_points = total_points_scope  # Use the provided total scope
+        baseline_points = total_points_scope  # Use provided initial scope
     else:
-        # Fall back to the old calculation (remaining + completed = baseline)
+        # Calculate initial scope from current state (remaining + completed so far)
         baseline_points = remaining_points + total_completed_points
 
     # Calculate threshold in absolute values - how many items/points can be added

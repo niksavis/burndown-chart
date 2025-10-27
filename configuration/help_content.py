@@ -22,9 +22,12 @@ FORECAST_HELP_DETAILED = {
         The formula weights the Most Likely estimate 4x more heavily than extreme scenarios,
         following beta distribution principles for realistic project estimation.
         
-        📈 **Confidence Intervals:**
-        Uncertainty range calculated as ±25% of variance between scenarios.
-        Wider ranges indicate higher uncertainty; narrower ranges show more predictable velocity.
+        📈 **Confidence Intervals (Statistical Percentiles):**
+        • 50% (Median): The PERT forecast itself - 50% chance of completion by this date
+        • 80% (Good Confidence): PERT + 0.84 standard deviations - 80% chance of completion
+        • 95% (High Confidence): PERT + 1.65 standard deviations - 95% chance of completion
+        
+        Wider ranges indicate higher velocity uncertainty; narrower ranges show more predictable delivery.
     """,
     "optimistic_forecast": """
         Best-case completion estimate based on your highest velocity periods.
@@ -157,7 +160,10 @@ FORECAST_HELP_DETAILED = {
         📊 **Statistical Foundation:**
         • **Beta Distribution**: Mathematically models project uncertainty patterns naturally
         • **4× Most Likely Weighting**: Statistically optimal balance (proven by decades of project data)
-        • **Confidence Intervals**: ±25% of (Optimistic - Pessimistic) variance provides 68% confidence range
+        • **Confidence Intervals**: Calculated using coefficient of variation (CV = std/mean) applied to forecast
+          - 50th percentile: The PERT forecast (median)
+          - 80th percentile: PERT + 0.84 × forecast_std
+          - 95th percentile: PERT + 1.65 × forecast_std
         
         🔗 **Related Topics:**
         See also: Weekly Velocity Calculation, Forecast Graph Overview, Input Parameters Guide
@@ -618,8 +624,11 @@ CHART_HELP_DETAILED = {
         • Accounts for both optimism bias and risk factors
         
         📈 **Confidence Intervals:**
-        • Calculated as ±25% of variance between optimistic and pessimistic
-        • Wider intervals indicate higher uncertainty
+        • Calculated using coefficient of variation applied to PERT forecast
+        • 50th percentile: The PERT forecast itself (median estimate)
+        • 80th percentile: PERT + 0.84 standard deviations
+        • 95th percentile: PERT + 1.65 standard deviations
+        • Wider intervals indicate higher velocity uncertainty
         • Narrower intervals suggest more predictable delivery patterns
         • Use for risk planning and stakeholder communication
         
@@ -662,7 +671,7 @@ CHART_HELP_DETAILED = {
         📈 **Visual Interpretation:**
         • Solid bars: Confirmed historical performance
         • Patterned bars: Forecasted performance with uncertainty
-        • Error bars: Confidence intervals (±25% variance method)
+        • Error bars: Confidence intervals using coefficient of variation method
         • Trend direction: Overall velocity acceleration or deceleration patterns
         
         🎯 **Usage Guidelines:**

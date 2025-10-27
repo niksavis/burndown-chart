@@ -182,24 +182,85 @@ def calculate_rates(
     performance_settings: dict | None = None,
 ) -> tuple[float, float, float, float, float, float]:
     """
-    Calculate burn rates using PERT methodology with performance optimizations.
+    Calculate burn rates using PERT methodology adapted for agile empirical data.
 
-    Note: 'pert_factor' is internally used but represents "Confidence Window" - the number
-    of weeks to sample for optimistic/pessimistic scenarios, not the PERT formula weighting
-    (which is always 4 in the standard formula: (O + 4M + P) / 6).
+    PERT METHODOLOGY ADAPTATION FOR AGILE TEAMS
+    ===========================================
+
+    This implementation adapts traditional PERT (Program Evaluation and Review Technique)
+    to agile contexts by using **historical velocity data** instead of expert estimates:
+
+    **Traditional PERT:**
+    - Optimistic (O): Expert's best-case estimate
+    - Most Likely (M): Expert's most probable estimate
+    - Pessimistic (P): Expert's worst-case estimate
+    - Formula: Expected Time = (O + 4M + P) / 6
+
+    **Our Agile Adaptation:**
+    - Optimistic: Average of top N performing weeks (e.g., best 3 weeks)
+      → Represents "if we maintain our best pace"
+    - Most Likely: Average of ALL weeks
+      → Represents "if we maintain average pace"
+    - Pessimistic: Average of bottom N performing weeks (e.g., worst 3 weeks)
+      → Represents "if we experience slower periods like we have before"
+    - Formula: Same PERT weighted average (O + 4M + P) / 6
+
+    **Why This Adaptation:**
+    1. **Data-Driven:** Uses actual team performance, not subjective guesses
+    2. **Adaptive:** Automatically adjusts to team's velocity characteristics
+    3. **Empirical:** Captures real historical variance and patterns
+    4. **Agile-Friendly:** Teams value measurements over estimates
+
+    **Limitations and Appropriate Use:**
+
+    ✅ **RECOMMENDED FOR:**
+    - Short to medium term forecasts (2-12 weeks)
+    - Teams with stable composition and workload
+    - Projects with consistent workflow patterns
+    - Contexts where empirical data is preferred over expert judgment
+
+    ⚠️ **USE WITH CAUTION FOR:**
+    - Long-term forecasts (>6 months) - patterns may change
+    - Teams undergoing major changes (new members, tech stack changes)
+    - Projects with highly variable requirements
+    - Seasonal projects with known cyclical patterns not yet captured in data
+
+    ❌ **NOT SUITABLE FOR:**
+    - Brand new teams with <4 weeks of history
+    - Projects with fundamentally different future work than past
+    - One-time initiatives without recurring patterns
+
+    **Key Assumption:** Future velocity will follow historical patterns within the
+    observed range. This assumption weakens as forecast horizon increases.
+
+    **Confidence Window (pert_factor):**
+    The 'pert_factor' parameter (labeled "Confidence Window" in UI) determines how many
+    weeks to sample for best/worst cases:
+    - Smaller values (e.g., 2-3): More sensitive to extremes, wider forecast range
+    - Larger values (e.g., 5-6): More stable, smoother forecasts
+    - Auto-adjusted to max 1/3 of available data to prevent overfitting
 
     Args:
-        grouped: DataFrame with weekly aggregated data
-        total_items: Total number of items to complete
-        total_points: Total number of points to complete
+        grouped: DataFrame with weekly aggregated data (completed_items, completed_points)
+        total_items: Total number of items remaining to complete
+        total_points: Total number of points remaining to complete
         pert_factor: Number of weeks to sample for best/worst case (confidence window)
         show_points: Whether points tracking is enabled (default: True)
         performance_settings: Dictionary with performance optimization settings
+            - forecast_max_days: Maximum forecast horizon (default: 730 days)
+            - pessimistic_multiplier_cap: Max ratio of pessimistic to optimistic (default: 5)
 
     Returns:
-        Tuple of calculated values:
+        Tuple of calculated values (all in days):
         (pert_time_items, optimistic_items_rate, pessimistic_items_rate,
          pert_time_points, optimistic_points_rate, pessimistic_points_rate)
+
+    Example:
+        >>> grouped = pd.DataFrame({
+        ...     'completed_items': [5, 7, 4, 6, 8, 5, 9, 7, 3, 10]
+        ... })
+        >>> rates = calculate_rates(grouped, total_items=50, total_points=250, pert_factor=3)
+        >>> # Returns PERT forecast considering best 3, worst 3, and average of all weeks
     """
     # Set default performance settings if not provided
     if performance_settings is None:
@@ -318,12 +379,37 @@ def calculate_rates(
 
     # Cap estimated time to reasonable maximum to prevent performance issues
     # Use configurable maximum from performance settings
+    #
+    # RATIONALE FOR 730-DAY (2-YEAR) DEFAULT CAP:
+    # 1. Agile Forecasting Validity: Historical velocity patterns become unreliable beyond 6-12 months
+    # 2. Team/Technology Changes: Most agile teams experience significant changes within 2 years
+    # 3. Requirements Evolution: Project scope and priorities often shift substantially
+    # 4. Chart Performance: Very long forecasts create rendering performance issues
+    # 5. Actionable Timeframes: Forecasts beyond 2 years are rarely actionable for agile teams
+    #
+    # Can be increased via settings, but 10-year absolute maximum enforced downstream
+    # to prevent extreme performance degradation
     MAX_ESTIMATED_DAYS = performance_settings.get("forecast_max_days", 730)
     pert_time_items = min(pert_time_items, MAX_ESTIMATED_DAYS)
     pert_time_points = min(pert_time_points, MAX_ESTIMATED_DAYS)
 
     # Additional optimization: If pessimistic forecast is much longer than optimistic,
     # cap it to avoid extreme chart scaling issues
+    #
+    # RATIONALE FOR 5X PESSIMISTIC MULTIPLIER CAP:
+    # 1. Velocity Variance Analysis: Typical agile teams show CV (coefficient of variation) of 0.2-0.5
+    #    - CV = 0.2: velocity varies ±20%, pessimistic ~1.5-2x optimistic
+    #    - CV = 0.4: velocity varies ±40%, pessimistic ~2-3x optimistic
+    #    - CV = 0.6: velocity varies ±60%, pessimistic ~3-4x optimistic
+    # 2. Statistical Outliers: CV > 1.0 (100% variance) suggests data quality issues or
+    #    extreme outliers that shouldn't drive forecasts
+    # 3. Chart Usability: Pessimistic forecasts >5x optimistic create unusable chart scales
+    # 4. Predictability: If pessimistic is >5x optimistic, the team's velocity is too
+    #    unstable for reliable forecasting - recommend improving process consistency
+    #
+    # ALTERNATIVE: Could use dynamic cap based on actual CV:
+    # max_multiplier = max(3, min(10, 2 + (CV * 10)))
+    # This would allow 3-10x range based on measured variance, but adds complexity
     MAX_PESSIMISTIC_MULTIPLIER = performance_settings.get(
         "pessimistic_multiplier_cap", 5
     )
@@ -388,6 +474,21 @@ def daily_forecast(
         return [start_date], [start_val]
 
     # ABSOLUTE HARD CAP: Never forecast beyond today + 10 years
+    #
+    # RATIONALE FOR 10-YEAR (3653-DAY) ABSOLUTE MAXIMUM:
+    # 1. **Performance Protection**: Prevents app from becoming unresponsive when users
+    #    accidentally configure extreme scenarios (e.g., 1 item/year velocity = 160+ year forecast)
+    # 2. **Reality Check**: Any software forecast beyond 10 years is meaningless given:
+    #    - Technology evolution cycles (3-5 years)
+    #    - Team/organization changes
+    #    - Product pivots and market shifts
+    #    - Methodology improvements
+    # 3. **Chart Usability**: Time axes beyond 10 years create unusable date labels and zoom ranges
+    # 4. **Data Validity**: Historical velocity data becomes irrelevant for such long horizons
+    # 5. **Industry Standards**: Most agile/project management tools cap at 1-5 years
+    #
+    # This is a HARD LIMIT that cannot be overridden to prevent denial-of-service scenarios
+    # where bad data causes infinite-length chart rendering attempts
     today = datetime.now()
     absolute_max_date = today + timedelta(
         days=3653

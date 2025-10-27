@@ -1012,7 +1012,7 @@ def register(app):
 
     @app.callback(
         [
-            Output("jira-query-profile-selector", "options"),
+            Output("jira-query-profile-selector", "options", allow_duplicate=True),
             Output(
                 "jira-query-profile-selector-mobile", "options", allow_duplicate=True
             ),
@@ -1098,6 +1098,13 @@ def register(app):
             # Get the saved profile ID to select it
             saved_profile_id = saved_profile["id"] if saved_profile else None
 
+            logger.info(
+                f"💾 SAVE CALLBACK: Returning {len(updated_options)} options, selecting profile ID: {saved_profile_id}"
+            )
+            logger.info(
+                f"💾 Options being returned: {[opt['label'] for opt in updated_options]}"
+            )
+
             # Clear form, hide validation, and select the newly saved query
             return (
                 updated_options,  # Desktop dropdown options
@@ -1145,15 +1152,40 @@ def register(app):
         """Sync both dropdowns, show/hide profile action buttons, and persist selection."""
         # Determine which dropdown triggered the change
         ctx = callback_context
-        if not ctx.triggered:
-            # Initial load - use desktop value
+
+        # CRITICAL FIX: Only sync when triggered by actual user interaction
+        # If no trigger or triggered by another callback, don't interfere
+        if not ctx.triggered or not ctx.triggered[0].get("value"):
+            logger.info(
+                "DEBUG: sync_dropdowns_and_show_buttons - no trigger or empty value, skipping sync"
+            )
+            return (
+                no_update,
+                no_update,
+                {"display": "none"},
+                {"display": "none"},
+                {"display": "none"},
+                "",
+            )
+
+        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+
+        # Determine which dropdown value to use
+        if trigger_id == "jira-query-profile-selector-mobile":
+            selected_profile_id = mobile_profile_id
+        elif trigger_id == "jira-query-profile-selector":
             selected_profile_id = desktop_profile_id
         else:
-            trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
-            if trigger_id == "jira-query-profile-selector-mobile":
-                selected_profile_id = mobile_profile_id
-            else:
-                selected_profile_id = desktop_profile_id
+            # Unknown trigger, don't sync
+            logger.info(f"DEBUG: Unknown trigger: {trigger_id}, skipping sync")
+            return (
+                no_update,
+                no_update,
+                {"display": "none"},
+                {"display": "none"},
+                {"display": "none"},
+                "",
+            )
 
         logger.info(
             f"DEBUG: sync_dropdowns_and_show_buttons called with profile_id: {selected_profile_id}"

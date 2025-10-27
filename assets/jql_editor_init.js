@@ -120,6 +120,20 @@
       }
 
       try {
+        // CRITICAL FIX: Capture initial value BEFORE CodeMirror hides textarea
+        // Get the REAL DOM value, not our custom property
+        const domValue = Object.getOwnPropertyDescriptor(
+          HTMLTextAreaElement.prototype,
+          "value"
+        ).get.call(textarea);
+        const initialValue = domValue || "";
+
+        console.log(
+          `[JQL Editor] Init ${textarea.id}: captured value length =`,
+          initialValue.length,
+          initialValue ? `(${initialValue.substring(0, 30)}...)` : "(empty)"
+        );
+
         // Create CodeMirror from textarea
         const editor = CodeMirror.fromTextArea(textarea, {
           mode: jqlModeAvailable ? "jql" : "text/plain",
@@ -136,6 +150,19 @@
           },
         });
 
+        console.log(
+          `[JQL Editor] After fromTextArea(): CodeMirror value length =`,
+          editor.getValue().length
+        );
+
+        // CRITICAL FIX: Explicitly set the initial value in CodeMirror
+        // fromTextArea() should do this automatically, but it fails when
+        // the textarea is inside a collapsed Bootstrap panel
+        if (initialValue && editor.getValue() !== initialValue) {
+          console.log(`[JQL Editor] Manually setting value in CodeMirror`);
+          editor.setValue(initialValue);
+        }
+
         // Mark as initialized
         initializedTextareas.add(textarea);
 
@@ -143,7 +170,7 @@
         textarea._cmEditor = editor;
 
         // AGGRESSIVE APPROACH: Override textarea's value property to always sync
-        let originalValue = textarea.value;
+        let originalValue = initialValue;
         Object.defineProperty(textarea, "_originalValue", {
           get: function () {
             return originalValue;
@@ -532,29 +559,59 @@
    */
   function watchSettingsPanelCollapse() {
     const settingsCollapse = document.getElementById("settings-collapse");
+
+    console.log("[JQL Editor] Looking for settings-collapse...");
+    console.log(
+      "[JQL Editor] Found settings-collapse:",
+      settingsCollapse ? "YES" : "NO"
+    );
+
     if (settingsCollapse) {
+      // Test if Bootstrap collapse is working
+      console.log("[JQL Editor] Settings collapse element:", settingsCollapse);
+      console.log(
+        "[JQL Editor] Is open?",
+        settingsCollapse.classList.contains("show")
+      );
+
       // Bootstrap 5 collapse events
       settingsCollapse.addEventListener("shown.bs.collapse", function () {
-        // Panel just opened - force sync from textarea to CodeMirror
-        const textarea = document.getElementById("jira-jql-query");
-        if (textarea && textarea._cmEditor) {
-          const editor = textarea._cmEditor;
-          const textareaValue = textarea.value || "";
-
-          // Force update CodeMirror with current textarea value
-          if (editor.getValue() !== textareaValue) {
-            console.log(
-              "[JQL Editor] Settings panel opened - syncing textarea to CodeMirror"
-            );
-            editor.setValue(textareaValue);
-          }
-
-          // Refresh CodeMirror to ensure proper rendering
-          setTimeout(function () {
-            editor.refresh();
-          }, 100);
-        }
+        console.log(
+          "[JQL Editor] ⭐ Settings panel shown.bs.collapse EVENT FIRED!"
+        );
+        refreshSettingsPanelEditor();
       });
+
+      // CRITICAL FIX: Dash controls collapse via is_open property, not Bootstrap events
+      // Use MutationObserver to detect when 'show' class is added (panel opens)
+      const observer = new MutationObserver(function (mutations) {
+        mutations.forEach(function (mutation) {
+          if (
+            mutation.type === "attributes" &&
+            mutation.attributeName === "class"
+          ) {
+            const isOpen = settingsCollapse.classList.contains("show");
+
+            // Only trigger when panel becomes visible (gets 'show' class)
+            if (isOpen) {
+              console.log(
+                "[JQL Editor] ⭐ Settings panel OPENED (detected via class change)!"
+              );
+              refreshSettingsPanelEditor();
+            }
+          }
+        });
+      });
+
+      // Start observing class changes on the collapse element
+      observer.observe(settingsCollapse, {
+        attributes: true,
+        attributeFilter: ["class"],
+      });
+
+      console.log(
+        "[JQL Editor] Watching settings-collapse for class changes (Dash-compatible)"
+      );
 
       console.log(
         "[JQL Editor] Watching settings panel collapse for sync events"
@@ -562,6 +619,57 @@
     } else {
       // Retry if collapse not found yet
       setTimeout(watchSettingsPanelCollapse, 500);
+    }
+  }
+
+  /**
+   * Refresh the JQL editor when settings panel opens
+   */
+  function refreshSettingsPanelEditor() {
+    const textarea = document.getElementById("jira-jql-query");
+    if (textarea) {
+      // CRITICAL FIX: Initialize CodeMirror if not already done
+      // This handles cases where textarea was rendered while panel collapsed
+      if (!textarea._cmEditor) {
+        console.log(
+          "[JQL Editor] Initializing CodeMirror on settings panel open"
+        );
+        initializeJQLEditors();
+        // Wait for initialization to complete
+        setTimeout(function () {
+          refreshSettingsPanelEditor(); // Retry sync after init
+        }, 100);
+        return;
+      }
+
+      const editor = textarea._cmEditor;
+      const textareaValue = textarea.value || "";
+
+      console.log(
+        "[JQL Editor] Panel opened - CodeMirror value:",
+        editor.getValue().length,
+        "Textarea value:",
+        textareaValue.length
+      );
+
+      // Force update CodeMirror with current textarea value
+      if (editor.getValue() !== textareaValue) {
+        console.log("[JQL Editor] Syncing textarea to CodeMirror");
+        editor.setValue(textareaValue);
+      }
+
+      // CRITICAL FIX: CodeMirror can't render properly when parent is display:none
+      // When panel becomes visible, we must refresh to recalculate dimensions
+      console.log("[JQL Editor] Forcing refresh after panel opens");
+
+      // Immediate refresh
+      editor.refresh();
+
+      // Additional refresh after animation completes (Bootstrap collapse takes ~350ms)
+      setTimeout(function () {
+        console.log("[JQL Editor] Second refresh after animation");
+        editor.refresh();
+      }, 400);
     }
   }
 
@@ -599,6 +707,35 @@
       codeMirrorValue: editor.getValue(),
       valuesMatch: textarea.value === editor.getValue(),
     };
+  };
+
+  // MANUAL REFRESH FUNCTION - Call this from console to force refresh
+  window.refreshJQLEditor = function (editorId = "jira-jql-query") {
+    const textarea = document.getElementById(editorId);
+    if (!textarea || !textarea._cmEditor) {
+      console.log("❌ Cannot refresh - editor not found");
+      return false;
+    }
+
+    const editor = textarea._cmEditor;
+    console.log("🔄 Forcing CodeMirror refresh...");
+    console.log("  Before: CodeMirror has", editor.getValue().length, "chars");
+
+    // Force set value from textarea
+    const textareaValue = Object.getOwnPropertyDescriptor(
+      HTMLTextAreaElement.prototype,
+      "value"
+    ).get.call(textarea);
+
+    if (textareaValue && editor.getValue() !== textareaValue) {
+      console.log("  Setting value:", textareaValue.substring(0, 50), "...");
+      editor.setValue(textareaValue);
+    }
+
+    editor.refresh();
+    console.log("  After: CodeMirror has", editor.getValue().length, "chars");
+    console.log("✅ Refresh complete!");
+    return true;
   };
 
   // Global click interceptor to force sync before any callback

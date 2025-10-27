@@ -101,22 +101,26 @@ def _calculate_confidence_intervals(
     Mathematical Basis:
     - Uses normal distribution approximation
     - Calculates coefficient of variation (CV = std_dev / mean) to measure velocity uncertainty
-    - Applies standard statistical confidence levels
+    - Applies standard statistical confidence levels (percentiles)
 
-    Confidence Interval Calculations:
-    - 50% CI: PERT forecast - (0.67σ) → More optimistic, ~50% chance of completion by this date
-      Formula: pert_days - (0.67 × cv × pert_days)
+    Confidence Interval Calculations (One-Sided Percentiles):
+    - 50th percentile: PERT forecast (median estimate)
+      This is the expected completion date with 50% probability
+      Formula: pert_days
 
-    - 80% CI: PERT forecast (unchanged) → The PERT weighted average itself
-      This is considered ~80% confidence level in PERT methodology
+    - 80th percentile: PERT forecast + (0.84σ) → 80% chance of completion by this date
+      Common project management buffer level
+      Formula: pert_days + (0.84 × forecast_std)
 
-    - 95% CI: PERT forecast + (1.65σ) → More conservative, ~95% chance of completion by this date
-      Formula: pert_days + (1.65 × cv × pert_days)
+    - 95th percentile: PERT forecast + (1.65σ) → 95% chance of completion by this date
+      Conservative estimate with substantial buffer
+      Formula: pert_days + (1.65 × forecast_std)
 
     Interpretation:
-    - 50%: You have a 50% probability of completing by this date (median estimate)
-    - 95%: You have a 95% probability of completing by this date (safe estimate with buffer)
-    - Wider spread between 50% and 95% = higher velocity uncertainty
+    - 50%: Median forecast - 50% probability of completing by this date
+    - 80%: Good confidence - 80% probability of completing by this date
+    - 95%: High confidence - 95% probability of completing by this date (safe estimate)
+    - Wider spread between percentiles = higher velocity uncertainty
     - These are DIFFERENT from optimistic/pessimistic on burndown chart!
 
     Args:
@@ -135,18 +139,20 @@ def _calculate_confidence_intervals(
             "ci_95": pert_forecast_days,
         }
 
-    # Coefficient of variation
+    # Coefficient of variation (CV = std_dev / mean)
     cv = velocity_std / velocity_mean
 
-    # Calculate confidence intervals based on velocity uncertainty
-    # Using normal distribution approximation
-    uncertainty_days = (cv * pert_forecast_days) / 7  # Weekly uncertainty
+    # Calculate forecast standard deviation
+    # This represents the uncertainty in the forecast due to velocity variability
+    forecast_std = cv * pert_forecast_days
 
-    ci_50 = pert_forecast_days - (0.67 * uncertainty_days * 7)  # 50% (±0.67σ)
-    ci_80 = pert_forecast_days  # 80% (PERT is already ~80% confidence)
-    ci_95 = pert_forecast_days + (1.65 * uncertainty_days * 7)  # 95% (+1.65σ)
+    # Calculate confidence intervals using standard normal distribution percentiles
+    # These are one-sided "completion by" dates, not two-sided ranges
+    ci_50 = pert_forecast_days  # 50th percentile (median)
+    ci_80 = pert_forecast_days + (0.84 * forecast_std)  # 80th percentile (z=0.84)
+    ci_95 = pert_forecast_days + (1.65 * forecast_std)  # 95th percentile (z=1.65)
 
-    return {"ci_50": max(0, ci_50), "ci_80": ci_80, "ci_95": max(ci_80, ci_95)}
+    return {"ci_50": max(0, ci_50), "ci_80": max(0, ci_80), "ci_95": max(0, ci_95)}
 
 
 def _calculate_deadline_probability(
@@ -192,20 +198,21 @@ def _calculate_deadline_probability(
     Returns:
         float: Probability (0-100%) of meeting the deadline
     """
-    if velocity_mean == 0 or velocity_std == 0:
+    if velocity_mean == 0:
         return 50.0
 
-    # Standard deviation of forecast in days
+    # Calculate coefficient of variation and forecast standard deviation
     cv = velocity_std / velocity_mean
-    forecast_std_days = (cv * pert_forecast_days) / 7 * 7
+    forecast_std_days = cv * pert_forecast_days
 
+    # Edge case: deterministic (no variance)
     if forecast_std_days == 0:
         return 100.0 if days_to_deadline >= pert_forecast_days else 0.0
 
-    # Z-score
+    # Calculate Z-score: how many standard deviations the deadline is from expected
     z = (days_to_deadline - pert_forecast_days) / forecast_std_days
 
-    # Cumulative probability
+    # Convert to probability using normal CDF
     probability = stats.norm.cdf(z) * 100
 
     return max(0, min(100, probability))
@@ -474,12 +481,58 @@ def _create_forecast_card(
                 # Confidence intervals
                 html.Div(
                     [
+                        # Section header with tooltip
                         html.Div(
                             [
                                 html.Span(
-                                    "50%: ",
+                                    "Confidence Intervals",
+                                    className="text-muted",
+                                    style={
+                                        "fontSize": "0.75rem",
+                                        "fontWeight": "600",
+                                        "textTransform": "uppercase",
+                                        "letterSpacing": "0.5px",
+                                    },
+                                ),
+                                html.I(
+                                    className="fas fa-info-circle ms-1",
+                                    id=f"ci-section-info-{card_id or 'default'}",
+                                    style={
+                                        "fontSize": "0.7rem",
+                                        "color": "#6c757d",
+                                        "cursor": "help",
+                                    },
+                                ),
+                                dbc.Tooltip(
+                                    "Statistical probability ranges for completion dates. Based on velocity variance using normal distribution (50th and 95th percentiles).",
+                                    target=f"ci-section-info-{card_id or 'default'}",
+                                    placement="top",
+                                ),
+                            ],
+                            className="mb-1",
+                        ),
+                        html.Div(
+                            [
+                                html.Span(
+                                    [
+                                        "50%: ",
+                                        html.I(
+                                            className="fas fa-info-circle ms-1",
+                                            id=f"ci-50-info-{card_id or 'default'}",
+                                            style={
+                                                "fontSize": "0.75rem",
+                                                "color": "#6c757d",
+                                                "cursor": "help",
+                                            },
+                                        ),
+                                    ],
                                     className="text-muted",
                                     style={"fontSize": "0.875rem"},
+                                ),
+                                dbc.Tooltip(
+                                    "50th percentile (median): 50% probability of completion by this date. This is the PERT forecast.",
+                                    target=f"ci-50-info-{card_id or 'default'}",
+                                    placement="top",
                                 ),
                                 html.Span(
                                     ci_50_date,
@@ -492,9 +545,25 @@ def _create_forecast_card(
                         html.Div(
                             [
                                 html.Span(
-                                    "95%: ",
+                                    [
+                                        "95%: ",
+                                        html.I(
+                                            className="fas fa-info-circle ms-1",
+                                            id=f"ci-95-info-{card_id or 'default'}",
+                                            style={
+                                                "fontSize": "0.75rem",
+                                                "color": "#6c757d",
+                                                "cursor": "help",
+                                            },
+                                        ),
+                                    ],
                                     className="text-muted",
                                     style={"fontSize": "0.875rem"},
+                                ),
+                                dbc.Tooltip(
+                                    "95th percentile (high confidence): 95% probability of completion by this date. Safe estimate with 1.65σ buffer.",
+                                    target=f"ci-95-info-{card_id or 'default'}",
+                                    placement="top",
                                 ),
                                 html.Span(
                                     ci_95_date,

@@ -775,8 +775,9 @@ def _create_forecast_section(pert_data, confidence_data):
                                                     create_info_tooltip(
                                                         "confidence-intervals-info",
                                                         "Statistical probability ranges based on velocity variability. "
-                                                        "50% CI: Median estimate (±0.67σ). 95% CI: Conservative estimate with safety buffer (+1.65σ). "
-                                                        "Wider spread = higher velocity uncertainty. These differ from optimistic/pessimistic on burndown chart.",
+                                                        "50%: 50th percentile (median) - the PERT forecast itself. "
+                                                        "95%: 95th percentile - conservative estimate with 1.65σ buffer. "
+                                                        "Wider spread indicates higher velocity uncertainty.",
                                                     ),
                                                 ],
                                                 className="mb-1 mt-2 d-flex align-items-center gap-1",

@@ -193,6 +193,23 @@
   ) !important; /* 0.5rem to match parameter bar margin */
 }
 
+/* Allow dropdown menus to overflow the collapse container */
+#settings-collapse,
+#settings-collapse-mobile {
+  overflow: visible !important;
+}
+
+/* Prevent Bootstrap collapse from hiding overflow during animation */
+.collapse,
+.collapsing {
+  overflow: visible !important;
+}
+
+/* Ensure settings panel card body also allows overflow */
+.settings-panel-expanded .card-body {
+  overflow: visible !important;
+}
+
 /* Expanded settings panel styling */
 .settings-panel-expanded {
   animation: slideDown var(--transition-base) var(--easing-default);
@@ -202,28 +219,42 @@
   padding: 0;
   margin-top: 0;
   box-shadow: none;
+  overflow: visible !important;
 }
 
 /* Remove spacing from Card inside settings panel */
 .settings-panel-expanded .card {
   margin-top: 0 !important;
   margin-bottom: 0 !important;
+  overflow: visible !important;
 }
 
 /* Remove top padding from CardBody inside settings panel */
 .settings-panel-expanded .card-body {
   padding-top: 0 !important;
+  overflow: visible !important;
 }
 
 /* Settings panel column spacing */
 .settings-panel-expanded .col-md-8 {
   padding: var(--spacing-md);
   padding-right: var(--spacing-lg);
+  overflow: visible !important;
 }
 
 .settings-panel-expanded .col-md-4 {
   padding: var(--spacing-md);
   padding-left: var(--spacing-lg);
+  overflow: visible !important;
+}
+
+/* Allow all rows and columns in settings panel to overflow for dropdowns */
+.settings-panel-expanded .row {
+  overflow: visible !important;
+}
+
+.settings-panel-expanded [class*="col-"] {
+  overflow: visible !important;
 }
 
 /* Border between columns with some breathing room */
@@ -2200,6 +2231,24 @@ input[type="range"]::-moz-range-thumb {
 /* Ensure calendar overlay appears above all content */
 .SingleDatePicker_picker {
   z-index: 1060 !important;
+}
+
+/* Fix Dash Select dropdown menu z-index to appear above settings panel */
+.Select-menu-outer,
+.VirtualizedSelectOption,
+div[class*="__menu"] {
+  z-index: 1065 !important; /* Higher than modals and date pickers */
+}
+
+/* Ensure dropdown appears above collapsed panels */
+#jira-query-profile-selector .Select-menu-outer,
+#jira-query-profile-selector-mobile .Select-menu-outer {
+  z-index: 1065 !important;
+}
+
+/* Force dropdown menu to use absolute positioning relative to viewport */
+.Select-menu-outer {
+  position: absolute !important;
 }
 
 /* Responsive Toggle Switch ===== */
