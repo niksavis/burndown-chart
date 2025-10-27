@@ -19,9 +19,9 @@
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Create configuration files: configuration/dora_config.py with DORA benchmarks and metric definitions
-- [ ] T002 [P] Create configuration files: configuration/flow_config.py with Flow metric definitions and recommended distribution ranges
-- [ ] T003 [P] Update configuration/__init__.py to export new config modules
+- [X] T001 Create configuration files: configuration/dora_config.py with DORA benchmarks and metric definitions
+- [X] T002 [P] Create configuration files: configuration/flow_config.py with Flow metric definitions and recommended distribution ranges
+- [X] T003 [P] Update configuration/__init__.py to export new config modules
 
 ---
 
@@ -31,12 +31,12 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 Implement field mapper: data/field_mapper.py with fetch_available_jira_fields(), validate_field_mapping(), save_field_mappings(), get_field_mappings_hash()
-- [ ] T005 [P] Implement metrics cache: data/metrics_cache.py with generate_cache_key(), load_cached_metrics(), save_cached_metrics(), invalidate_cache()
-- [ ] T006 [P] Create metric cards component: ui/metric_cards.py with create_metric_card() supporting success and error states
-- [ ] T007 Create unit test for field mapper: tests/unit/data/test_field_mapper.py with tempfile isolation
-- [ ] T008 [P] Create unit test for metrics cache: tests/unit/data/test_metrics_cache.py with tempfile isolation
-- [ ] T009 [P] Create unit test for metric cards: tests/unit/ui/test_metric_cards.py verifying rendering for all states
+- [X] T004 Implement field mapper: data/field_mapper.py with fetch_available_jira_fields(), validate_field_mapping(), save_field_mappings(), get_field_mappings_hash()
+- [X] T005 [P] Implement metrics cache: data/metrics_cache.py with generate_cache_key(), load_cached_metrics(), save_cached_metrics(), invalidate_cache()
+- [X] T006 [P] Create metric cards component: ui/metric_cards.py with create_metric_card() supporting success and error states
+- [X] T007 Create unit test for field mapper: tests/unit/data/test_field_mapper.py with tempfile isolation
+- [X] T008 [P] Create unit test for metrics cache: tests/unit/data/test_metrics_cache.py with tempfile isolation
+- [X] T009 [P] Create unit test for metric cards: tests/unit/ui/test_metric_cards.py verifying rendering for all states
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 

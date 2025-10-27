@@ -41,6 +41,7 @@ from configuration.settings import (
     # Logging
     logger,
 )
+from configuration import dora_config, flow_config
 
 # Application version - used in the UI and for tracking
 # Follow semantic versioning (MAJOR.MINOR.PATCH)
@@ -70,4 +71,7 @@ __all__ = [
     "DEFAULT_HOST",
     "DEFAULT_PORT",
     "DEFAULT_SERVER_MODE",
+    # DORA and Flow configuration modules
+    "dora_config",
+    "flow_config",
 ]
