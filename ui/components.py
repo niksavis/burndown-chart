@@ -2296,23 +2296,21 @@ def create_parameter_bar_collapsed(
     # Create points display only if enabled
     points_display = []
     if show_points:
+        # Round points to natural number for display
+        display_points_rounded = int(round(display_points))
         points_display = [
             html.Span(
                 [
                     html.I(className="fas fa-chart-bar me-1"),
                     html.Span(
-                        f"{items_label}: ",
-                        className="text-muted d-none d-md-inline",
+                        f"{items_label}:",
+                        className="text-muted d-none d-md-inline me-1",
                         style={"fontSize": "0.85em"},
                     ),
-                    f"{display_points:,}",
-                    html.Span(
-                        " pts",
-                        className="d-none d-sm-inline",
-                    ),
+                    f"{display_points_rounded:,} points",
                 ],
                 className="param-summary-item",
-                title=f"{items_label}: {display_points:,} points",
+                title=f"{items_label}: {display_points_rounded:,} points",
             ),
         ]
 

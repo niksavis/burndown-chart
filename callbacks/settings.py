@@ -2105,14 +2105,11 @@ def register(app):
                                                 className="text-muted d-none d-md-inline me-1",
                                                 style={"fontSize": "0.85em"},
                                             ),
-                                            f"{(remaining_points if remaining_points is not None else scope_points):,}",
-                                            html.Span(
-                                                " pts",
-                                                className="d-none d-sm-inline",
-                                            ),
+                                            # Round points to natural number for display
+                                            f"{int(round(remaining_points if remaining_points is not None else scope_points)):,} points",
                                         ],
                                         className="param-summary-item",
-                                        title=f"{'Remaining' if remaining_points is not None else 'Scope'}: {(remaining_points if remaining_points is not None else scope_points):,} points",
+                                        title=f"{'Remaining' if remaining_points is not None else 'Scope'}: {int(round(remaining_points if remaining_points is not None else scope_points)):,} points",
                                     ),
                                 ]
                                 if show_points
