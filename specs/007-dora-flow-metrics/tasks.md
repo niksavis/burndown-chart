@@ -52,12 +52,12 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T010 [P] [US1] Unit test for deployment frequency calculation: tests/unit/data/test_dora_calculator.py::test_deployment_frequency_calculation with known input/output
-- [ ] T011 [P] [US1] Unit test for lead time calculation: tests/unit/data/test_dora_calculator.py::test_lead_time_for_changes_calculation
-- [ ] T012 [P] [US1] Unit test for change failure rate: tests/unit/data/test_dora_calculator.py::test_change_failure_rate_calculation
-- [ ] T013 [P] [US1] Unit test for MTTR calculation: tests/unit/data/test_dora_calculator.py::test_mean_time_to_recovery_calculation
-- [ ] T014 [P] [US1] Parametrized edge case tests: tests/unit/data/test_dora_calculator.py with pytest.mark.parametrize for empty issues, missing fields, invalid dates
-- [ ] T015 [P] [US1] Integration test for complete DORA workflow: tests/integration/test_dora_flow_workflow.py::test_complete_dora_workflow with field mapping → calculation → caching
+- [X] T010 [P] [US1] Unit test for deployment frequency calculation: tests/unit/data/test_dora_calculator.py::test_deployment_frequency_calculation with known input/output
+- [X] T011 [P] [US1] Unit test for lead time calculation: tests/unit/data/test_dora_calculator.py::test_lead_time_for_changes_calculation
+- [X] T012 [P] [US1] Unit test for change failure rate: tests/unit/data/test_dora_calculator.py::test_change_failure_rate_calculation
+- [X] T013 [P] [US1] Unit test for MTTR calculation: tests/unit/data/test_dora_calculator.py::test_mean_time_to_recovery_calculation
+- [X] T014 [P] [US1] Parametrized edge case tests: tests/unit/data/test_dora_calculator.py with pytest.mark.parametrize for empty issues, missing fields, invalid dates
+- [X] T015 [P] [US1] Integration test for complete DORA workflow: tests/integration/test_dora_flow_workflow.py::test_complete_dora_workflow with field mapping → calculation → caching
 
 ### Implementation for User Story 1
 
