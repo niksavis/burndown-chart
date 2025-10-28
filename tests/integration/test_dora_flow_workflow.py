@@ -49,7 +49,9 @@ class TestCompleteDORAWorkflow:
                     "fields": {
                         "created": base_date.isoformat(),
                         "customfield_10100": base_date.isoformat(),  # deployment_date
-                        "customfield_10102": (base_date - timedelta(days=2)).isoformat(),  # code_commit_date
+                        "customfield_10102": (
+                            base_date - timedelta(days=2)
+                        ).isoformat(),  # code_commit_date
                         "customfield_10103": base_date.isoformat(),  # deployed_to_production_date
                         "customfield_10106": True,  # deployment_successful
                     },
@@ -58,9 +60,15 @@ class TestCompleteDORAWorkflow:
                     "key": "DEPLOY-2",
                     "fields": {
                         "created": (base_date + timedelta(days=7)).isoformat(),
-                        "customfield_10100": (base_date + timedelta(days=7)).isoformat(),
-                        "customfield_10102": (base_date + timedelta(days=5)).isoformat(),
-                        "customfield_10103": (base_date + timedelta(days=7)).isoformat(),
+                        "customfield_10100": (
+                            base_date + timedelta(days=7)
+                        ).isoformat(),
+                        "customfield_10102": (
+                            base_date + timedelta(days=5)
+                        ).isoformat(),
+                        "customfield_10103": (
+                            base_date + timedelta(days=7)
+                        ).isoformat(),
                         "customfield_10106": True,
                     },
                 },
@@ -70,8 +78,12 @@ class TestCompleteDORAWorkflow:
                     "key": "INC-1",
                     "fields": {
                         "created": (base_date + timedelta(days=1)).isoformat(),
-                        "customfield_10104": (base_date + timedelta(days=1)).isoformat(),  # incident_detected_at
-                        "customfield_10105": (base_date + timedelta(days=1, hours=2)).isoformat(),  # incident_resolved_at
+                        "customfield_10104": (
+                            base_date + timedelta(days=1)
+                        ).isoformat(),  # incident_detected_at
+                        "customfield_10105": (
+                            base_date + timedelta(days=1, hours=2)
+                        ).isoformat(),  # incident_resolved_at
                         "customfield_10107": True,  # production_impact
                     },
                 },
