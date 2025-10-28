@@ -308,7 +308,9 @@ class TestFlowDistributionCalculation:
         start_date = datetime(2025, 1, 1, tzinfo=timezone.utc)
         end_date = datetime(2025, 1, 31, tzinfo=timezone.utc)
 
-        result = calculate_flow_distribution(issues, field_mappings, start_date, end_date)
+        result = calculate_flow_distribution(
+            issues, field_mappings, start_date, end_date
+        )
 
         assert result["metric_name"] == "flow_distribution"
         assert result["value"] == 100  # Total percentage
@@ -362,7 +364,9 @@ class TestFlowDistributionCalculation:
         start_date = datetime(2025, 1, 1, tzinfo=timezone.utc)
         end_date = datetime(2025, 1, 31, tzinfo=timezone.utc)
 
-        result = calculate_flow_distribution(issues, field_mappings, start_date, end_date)
+        result = calculate_flow_distribution(
+            issues, field_mappings, start_date, end_date
+        )
 
         breakdown = result["distribution_breakdown"]
         # Feature should be marked as outside recommended range
@@ -375,7 +379,12 @@ class TestFlowDistributionCalculation:
     [
         # Missing work type field
         (
-            [{"key": "TEST-1", "fields": {"resolutiondate": "2025-01-15T10:00:00.000Z"}}],
+            [
+                {
+                    "key": "TEST-1",
+                    "fields": {"resolutiondate": "2025-01-15T10:00:00.000Z"},
+                }
+            ],
             {"completed_date": "resolutiondate"},
             "missing_mapping",
         ),
@@ -392,7 +401,10 @@ class TestFlowDistributionCalculation:
                     },
                 }
             ],
-            {"work_started_date": "customfield_10201", "work_completed_date": "customfield_10202"},
+            {
+                "work_started_date": "customfield_10201",
+                "work_completed_date": "customfield_10202",
+            },
             "calculation_error",
         ),
     ],
@@ -410,7 +422,9 @@ class TestFlowCalculatorEdgeCases:
             # Test flow_time which uses date parsing
             result = calculate_flow_time(issues, field_mappings)
         else:
-            result = calculate_flow_velocity(issues, field_mappings, start_date, end_date)
+            result = calculate_flow_velocity(
+                issues, field_mappings, start_date, end_date
+            )
 
         assert result["error_state"] in [expected_error, "no_data"]
 
@@ -460,7 +474,9 @@ class TestCalculateAllFlowMetrics:
         start_date = datetime(2025, 1, 1, tzinfo=timezone.utc)
         end_date = datetime(2025, 1, 31, tzinfo=timezone.utc)
 
-        result = calculate_all_flow_metrics(issues, field_mappings, start_date, end_date)
+        result = calculate_all_flow_metrics(
+            issues, field_mappings, start_date, end_date
+        )
 
         # Verify all five metrics are present
         assert "flow_velocity" in result
@@ -484,7 +500,9 @@ class TestCalculateAllFlowMetrics:
         start_date = datetime(2025, 1, 1, tzinfo=timezone.utc)
         end_date = datetime(2025, 1, 31, tzinfo=timezone.utc)
 
-        result = calculate_all_flow_metrics(issues, field_mappings, start_date, end_date)
+        result = calculate_all_flow_metrics(
+            issues, field_mappings, start_date, end_date
+        )
 
         # All metrics should have error_state
         for metric_data in result.values():

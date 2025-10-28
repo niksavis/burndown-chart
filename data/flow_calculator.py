@@ -38,7 +38,10 @@ def calculate_flow_velocity(
     """
     try:
         # Check required mappings
-        if "flow_item_type" not in field_mappings or "completed_date" not in field_mappings:
+        if (
+            "flow_item_type" not in field_mappings
+            or "completed_date" not in field_mappings
+        ):
             return _create_error_response(
                 "flow_velocity",
                 "missing_mapping",
@@ -62,7 +65,9 @@ def calculate_flow_velocity(
 
             # Parse completion date
             try:
-                completed_date = datetime.fromisoformat(completed_date_str.replace("Z", "+00:00"))
+                completed_date = datetime.fromisoformat(
+                    completed_date_str.replace("Z", "+00:00")
+                )
             except (ValueError, AttributeError):
                 continue
 
@@ -110,9 +115,7 @@ def calculate_flow_velocity(
 
     except Exception as e:
         logger.error(f"Error calculating flow velocity: {e}", exc_info=True)
-        return _create_error_response(
-            "flow_velocity", "calculation_error", str(e)
-        )
+        return _create_error_response("flow_velocity", "calculation_error", str(e))
 
 
 def calculate_flow_time(
@@ -130,7 +133,10 @@ def calculate_flow_time(
     """
     try:
         # Check required mappings
-        if "work_started_date" not in field_mappings or "work_completed_date" not in field_mappings:
+        if (
+            "work_started_date" not in field_mappings
+            or "work_completed_date" not in field_mappings
+        ):
             return _create_error_response(
                 "flow_time",
                 "missing_mapping",
@@ -154,8 +160,12 @@ def calculate_flow_time(
                 continue
 
             try:
-                start_date = datetime.fromisoformat(start_date_str.replace("Z", "+00:00"))
-                complete_date = datetime.fromisoformat(complete_date_str.replace("Z", "+00:00"))
+                start_date = datetime.fromisoformat(
+                    start_date_str.replace("Z", "+00:00")
+                )
+                complete_date = datetime.fromisoformat(
+                    complete_date_str.replace("Z", "+00:00")
+                )
 
                 flow_time_days = (complete_date - start_date).total_seconds() / 86400
                 if flow_time_days >= 0:
@@ -211,7 +221,10 @@ def calculate_flow_efficiency(
     """
     try:
         # Check required mappings
-        if "active_work_hours" not in field_mappings or "flow_time_days" not in field_mappings:
+        if (
+            "active_work_hours" not in field_mappings
+            or "flow_time_days" not in field_mappings
+        ):
             return _create_error_response(
                 "flow_efficiency",
                 "missing_mapping",
@@ -318,7 +331,13 @@ def calculate_flow_load(
                 status_name = status_value or ""
 
             # Consider "In Progress" statuses (not Done, not To Do)
-            if status_name.lower() not in ["done", "closed", "resolved", "to do", "open"]:
+            if status_name.lower() not in [
+                "done",
+                "closed",
+                "resolved",
+                "to do",
+                "open",
+            ]:
                 wip_count += 1
 
                 # Get work type if available
@@ -371,7 +390,10 @@ def calculate_flow_distribution(
     """
     try:
         # Check required mappings
-        if "flow_item_type" not in field_mappings or "completed_date" not in field_mappings:
+        if (
+            "flow_item_type" not in field_mappings
+            or "completed_date" not in field_mappings
+        ):
             return _create_error_response(
                 "flow_distribution",
                 "missing_mapping",
@@ -394,7 +416,9 @@ def calculate_flow_distribution(
 
             # Parse completion date
             try:
-                completed_date = datetime.fromisoformat(completed_date_str.replace("Z", "+00:00"))
+                completed_date = datetime.fromisoformat(
+                    completed_date_str.replace("Z", "+00:00")
+                )
             except (ValueError, AttributeError):
                 continue
 
@@ -429,7 +453,9 @@ def calculate_flow_distribution(
             recommended = RECOMMENDED_FLOW_DISTRIBUTION[work_type]
 
             within_range = (
-                recommended["min_percentage"] <= percentage <= recommended["max_percentage"]
+                recommended["min_percentage"]
+                <= percentage
+                <= recommended["max_percentage"]
             )
 
             distribution_breakdown[work_type] = {
@@ -481,11 +507,15 @@ def calculate_all_flow_metrics(
         }
     """
     return {
-        "flow_velocity": calculate_flow_velocity(issues, field_mappings, start_date, end_date),
+        "flow_velocity": calculate_flow_velocity(
+            issues, field_mappings, start_date, end_date
+        ),
         "flow_time": calculate_flow_time(issues, field_mappings),
         "flow_efficiency": calculate_flow_efficiency(issues, field_mappings),
         "flow_load": calculate_flow_load(issues, field_mappings),
-        "flow_distribution": calculate_flow_distribution(issues, field_mappings, start_date, end_date),
+        "flow_distribution": calculate_flow_distribution(
+            issues, field_mappings, start_date, end_date
+        ),
     }
 
 
