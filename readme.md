@@ -127,6 +127,151 @@ JIRA_STORY_POINTS_FIELD=customfield_10002  # Optional custom field ID
 
 **Quick Test**: Use `https://jira.atlassian.com/rest/api/2/search` with JQL `project = JRASERVER` (no token needed).
 
+## DORA & Flow Metrics Dashboard
+
+The app includes comprehensive **DevOps Research and Assessment (DORA)** and **Flow Framework** metrics for measuring software delivery performance and value stream efficiency.
+
+### DORA Metrics
+
+Track the four key metrics that define high-performing software teams:
+
+#### 1. Deployment Frequency
+- **What**: How often you deploy to production
+- **Measures**: Team's deployment cadence and release velocity
+- **Performance Tiers**:
+  - **Elite**: Multiple deploys per day
+  - **High**: Between once per day and once per week
+  - **Medium**: Between once per week and once per month
+  - **Low**: Fewer than once per month
+
+#### 2. Lead Time for Changes
+- **What**: Time from code commit to production deployment
+- **Measures**: Development cycle efficiency
+- **Performance Tiers**:
+  - **Elite**: Less than one day
+  - **High**: Between one day and one week
+  - **Medium**: Between one week and one month
+  - **Low**: More than one month
+
+#### 3. Change Failure Rate
+- **What**: Percentage of deployments causing production failures
+- **Measures**: Release quality and stability
+- **Performance Tiers**:
+  - **Elite**: 0-15%
+  - **High**: 16-30%
+  - **Medium**: 31-45%
+  - **Low**: More than 45%
+
+#### 4. Mean Time to Recovery (MTTR)
+- **What**: Average time to restore service after incident
+- **Measures**: Incident response effectiveness
+- **Performance Tiers**:
+  - **Elite**: Less than one hour
+  - **High**: Less than one day
+  - **Medium**: Between one day and one week
+  - **Low**: More than one week
+
+### Flow Framework Metrics
+
+Measure value delivery across your development pipeline:
+
+#### 1. Flow Velocity
+- **What**: Number of work items completed per time period
+- **Measures**: Team throughput and productivity
+
+#### 2. Flow Time
+- **What**: Average time from work start to completion
+- **Measures**: Cycle time efficiency
+
+#### 3. Flow Efficiency
+- **What**: Percentage of time work is actively progressing
+- **Measures**: Process waste and wait times
+
+#### 4. Flow Load
+- **What**: Total work in progress across all stages
+- **Measures**: System capacity utilization
+
+#### 5. Flow Distribution
+- **What**: Breakdown of work across four types
+- **Measures**: Value stream balance
+- **Types**:
+  - **Features**: New capabilities (Recommended: 40-70%)
+  - **Defects**: Bug fixes (Recommended: <10%)
+  - **Technical Debt**: Infrastructure improvements (Recommended: 10-20%)
+  - **Risk**: Security, compliance work (Recommended: 10-20%)
+
+### Configuration
+
+#### Field Mapping
+
+DORA and Flow metrics require specific JIRA field mappings:
+
+1. **Open Field Configuration**: Click "Configure Field Mappings" button on the DORA/Flow dashboard
+2. **DORA Fields**:
+   - **Deployment Date**: Field containing deployment/release date
+   - **Deployment Successful**: Boolean field indicating deployment success
+   - **Incident Start**: Field with incident creation timestamp
+   - **Incident Resolved**: Field with incident resolution timestamp
+3. **Flow Fields**:
+   - **Work Started Date**: When work began (e.g., "In Progress" timestamp)
+   - **Work Completed Date**: When work finished (e.g., "Done" timestamp)
+   - **Work Type**: Field classifying work (Feature, Bug, Technical Debt, Risk)
+   - **Work Item Size**: Story points or effort estimate field
+4. **Save Mappings**: Configuration stored in `app_settings.json` and cached for performance
+
+#### Time Period Selection
+
+- **Last 7 Days**: Recent sprint or weekly metrics
+- **Last 30 Days**: Monthly performance overview
+- **Last 90 Days**: Quarterly trends and patterns
+- **Custom Range**: Select specific date ranges for analysis
+
+### Export Options
+
+Export metrics data for external reporting and analysis:
+
+- **CSV Format**: Spreadsheet-ready with headers and formatted values
+  - Includes: Metric names, values, performance tiers, trends, time period
+  - Opens directly in Excel, Google Sheets, or any CSV viewer
+  - Example filename: `dora_metrics_20251028_143000.csv`
+
+- **JSON Format**: Structured data for programmatic access
+  - Includes: ISO 8601 timestamps, metric type, nested structures
+  - Ideal for BI tools, data warehouses, or custom analytics
+  - Example filename: `flow_metrics_20251028_143000.json`
+
+**How to Export**:
+1. Navigate to DORA or Flow Metrics dashboard
+2. Configure time period and refresh metrics
+3. Click "Export CSV" or "Export JSON" button
+4. File downloads automatically with timestamp
+
+### Trend Analysis
+
+View historical trends for each metric:
+
+- **Show Trend Button**: Click on any metric card to expand trend chart
+- **Trend Direction**: Up/down/stable indicators with percentage change
+- **Historical Data**: Line charts showing metric evolution over time
+- **Benchmark Lines**: Performance tier thresholds overlaid on charts
+
+### Troubleshooting DORA/Flow Metrics
+
+**No Data Displayed**:
+- Verify field mappings are configured correctly
+- Check that JIRA issues exist in selected time period
+- Ensure mapped fields contain valid data
+
+**Incorrect Calculations**:
+- Review field mapping configuration
+- Verify custom field IDs match your JIRA instance
+- Check that issue types are correctly classified
+
+**Performance Issues**:
+- Reduce time period range for faster calculations
+- Clear metrics cache: delete relevant cache files
+- Use more specific JQL queries to limit dataset
+
 ## Troubleshooting
 
 ### Common Issues
