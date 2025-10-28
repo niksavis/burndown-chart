@@ -22,8 +22,8 @@ class TestTabConfigRegistry:
         assert len(TAB_CONFIG) > 0
 
     def test_tab_config_has_seven_tabs(self):
-        """Test that TAB_CONFIG contains exactly 7 tabs (added DORA/Flow Metrics in Phase 3)."""
-        assert len(TAB_CONFIG) == 7
+        """Test that TAB_CONFIG contains exactly 8 tabs (added DORA and Flow Metrics separately in Phase 7)."""
+        assert len(TAB_CONFIG) == 8
 
     def test_tab_config_structure(self):
         """Test that each tab has required fields."""
@@ -279,7 +279,8 @@ class TestTabConfigIntegration:
             "tab-points",
             "tab-scope-tracking",
             "tab-bug-analysis",
-            "tab-dora-flow-metrics",  # Added in Feature 007 Phase 3
+            "tab-dora-metrics",  # Added in Feature 007 Phase 7
+            "tab-flow-metrics",  # Added in Feature 007 Phase 7
         ]
 
         actual_order = [tab["id"] for tab in sorted_tabs]

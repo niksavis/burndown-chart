@@ -61,6 +61,7 @@ def calculate_flow_velocity(
     field_mappings: Dict[str, str],
     start_date: datetime,
     end_date: datetime,
+    previous_period_value: Optional[float] = None,
 ) -> Dict[str, Any]:
     """Calculate Flow Velocity - number of completed items per period.
 
@@ -69,9 +70,10 @@ def calculate_flow_velocity(
         field_mappings: Field mappings for flow_item_type and completed_date
         start_date: Start of measurement period
         end_date: End of measurement period
+        previous_period_value: Previous period's metric value for trend calculation
 
     Returns:
-        Metric dictionary with velocity value and breakdown by type
+        Metric dictionary with velocity value, trend data, and breakdown by type
     """
     try:
         # Check required mappings
@@ -135,6 +137,9 @@ def calculate_flow_velocity(
         period_days = (end_date - start_date).days
         unit = "items/week" if period_days <= 14 else "items/month"
 
+        # Calculate trend if previous period value is provided
+        trend_data = _calculate_trend(float(total_count), previous_period_value)
+
         return {
             "metric_name": "flow_velocity",
             "value": total_count,
@@ -143,10 +148,10 @@ def calculate_flow_velocity(
             "error_message": None,
             "excluded_issue_count": 0,
             "total_issue_count": len(issues),
+            "trend_direction": trend_data["trend_direction"],
+            "trend_percentage": trend_data["trend_percentage"],
             "details": {
                 "by_type": type_counts,
-                "trend_direction": "unknown",
-                "trend_percentage": 0,
             },
         }
 
@@ -158,15 +163,17 @@ def calculate_flow_velocity(
 def calculate_flow_time(
     issues: List[Dict],
     field_mappings: Dict[str, str],
+    previous_period_value: Optional[float] = None,
 ) -> Dict[str, Any]:
     """Calculate Flow Time - average time from start to completion.
 
     Args:
         issues: List of Jira issues
         field_mappings: Field mappings for work_started_date and work_completed_date
+        previous_period_value: Previous period's metric value for trend calculation
 
     Returns:
-        Metric dictionary with average flow time in days
+        Metric dictionary with average flow time in days and trend data
     """
     try:
         # Check required mappings
@@ -224,6 +231,9 @@ def calculate_flow_time(
 
         average_flow_time = sum(flow_times) / len(flow_times)
 
+        # Calculate trend if previous period value is provided
+        trend_data = _calculate_trend(average_flow_time, previous_period_value)
+
         return {
             "metric_name": "flow_time",
             "value": round(average_flow_time, 1),
@@ -232,10 +242,8 @@ def calculate_flow_time(
             "error_message": None,
             "excluded_issue_count": excluded_count,
             "total_issue_count": len(issues),
-            "details": {
-                "trend_direction": "unknown",
-                "trend_percentage": 0,
-            },
+            "trend_direction": trend_data["trend_direction"],
+            "trend_percentage": trend_data["trend_percentage"],
         }
 
     except Exception as e:
@@ -246,15 +254,17 @@ def calculate_flow_time(
 def calculate_flow_efficiency(
     issues: List[Dict],
     field_mappings: Dict[str, str],
+    previous_period_value: Optional[float] = None,
 ) -> Dict[str, Any]:
     """Calculate Flow Efficiency - ratio of active work time to total time.
 
     Args:
         issues: List of Jira issues
         field_mappings: Field mappings for active_work_hours and flow_time_days
+        previous_period_value: Previous period's metric value for trend calculation
 
     Returns:
-        Metric dictionary with efficiency percentage
+        Metric dictionary with efficiency percentage and trend data
     """
     try:
         # Check required mappings
@@ -309,6 +319,9 @@ def calculate_flow_efficiency(
 
         efficiency_percentage = (total_active_hours / total_flow_hours) * 100
 
+        # Calculate trend if previous period value is provided
+        trend_data = _calculate_trend(efficiency_percentage, previous_period_value)
+
         return {
             "metric_name": "flow_efficiency",
             "value": round(efficiency_percentage, 1),
@@ -317,10 +330,8 @@ def calculate_flow_efficiency(
             "error_message": None,
             "excluded_issue_count": excluded_count,
             "total_issue_count": len(issues),
-            "details": {
-                "trend_direction": "unknown",
-                "trend_percentage": 0,
-            },
+            "trend_direction": trend_data["trend_direction"],
+            "trend_percentage": trend_data["trend_percentage"],
         }
 
     except Exception as e:
@@ -331,15 +342,17 @@ def calculate_flow_efficiency(
 def calculate_flow_load(
     issues: List[Dict],
     field_mappings: Dict[str, str],
+    previous_period_value: Optional[float] = None,
 ) -> Dict[str, Any]:
     """Calculate Flow Load - current work-in-progress count.
 
     Args:
         issues: List of Jira issues
         field_mappings: Field mappings for status and flow_item_type
+        previous_period_value: Previous period's metric value for trend calculation
 
     Returns:
-        Metric dictionary with WIP count and breakdown by type
+        Metric dictionary with WIP count, trend data, and breakdown by type
     """
     try:
         # Check required mappings
@@ -388,6 +401,9 @@ def calculate_flow_load(
                     if work_type in type_counts:
                         type_counts[work_type] += 1
 
+        # Calculate trend if previous period value is provided
+        trend_data = _calculate_trend(float(wip_count), previous_period_value)
+
         return {
             "metric_name": "flow_load",
             "value": wip_count,
@@ -396,10 +412,10 @@ def calculate_flow_load(
             "error_message": None,
             "excluded_issue_count": 0,
             "total_issue_count": len(issues),
+            "trend_direction": trend_data["trend_direction"],
+            "trend_percentage": trend_data["trend_percentage"],
             "details": {
                 "by_type": type_counts if type_field else {},
-                "trend_direction": "unknown",
-                "trend_percentage": 0,
             },
         }
 
@@ -413,6 +429,7 @@ def calculate_flow_distribution(
     field_mappings: Dict[str, str],
     start_date: datetime,
     end_date: datetime,
+    previous_period_value: Optional[float] = None,
 ) -> Dict[str, Any]:
     """Calculate Flow Distribution - percentage breakdown by work type.
 
@@ -421,9 +438,10 @@ def calculate_flow_distribution(
         field_mappings: Field mappings for flow_item_type and completed_date
         start_date: Start of measurement period
         end_date: End of measurement period
+        previous_period_value: Previous period's metric value for trend calculation
 
     Returns:
-        Metric dictionary with distribution breakdown and recommended range validation
+        Metric dictionary with distribution breakdown, trend data, and recommended range validation
     """
     try:
         # Check required mappings
@@ -485,8 +503,12 @@ def calculate_flow_distribution(
 
         # Calculate percentages and check against recommended ranges
         distribution_breakdown = {}
+        feature_percentage = 0  # Track feature % for trend calculation
         for work_type, count in type_counts.items():
             percentage = (count / total_count) * 100
+            if work_type == "Feature":
+                feature_percentage = percentage
+
             recommended = RECOMMENDED_FLOW_DISTRIBUTION[work_type]
 
             within_range = (
@@ -503,6 +525,9 @@ def calculate_flow_distribution(
                 "within_range": within_range,
             }
 
+        # Calculate trend based on Feature percentage
+        trend_data = _calculate_trend(feature_percentage, previous_period_value)
+
         return {
             "metric_name": "flow_distribution",
             "value": 100,  # Total percentage
@@ -512,6 +537,8 @@ def calculate_flow_distribution(
             "excluded_issue_count": 0,
             "total_issue_count": len(issues),
             "distribution_breakdown": distribution_breakdown,
+            "trend_direction": trend_data["trend_direction"],
+            "trend_percentage": trend_data["trend_percentage"],
         }
 
     except Exception as e:
@@ -583,6 +610,8 @@ def _create_error_response(
         "error_message": error_message,
         "excluded_issue_count": excluded_issue_count,
         "total_issue_count": total_issue_count,
+        "trend_direction": "stable",
+        "trend_percentage": 0.0,
     }
 
 

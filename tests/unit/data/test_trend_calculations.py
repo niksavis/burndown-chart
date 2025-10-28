@@ -56,14 +56,14 @@ class TestDORAMetricTrends:
             {
                 "key": "TEST-1",
                 "fields": {
-                    "customfield_10001": "2025-10-15T10:00:00.000Z",
+                    "customfield_10001": "2025-10-15T10:00:00.000",
                     "customfield_10002": True,
                 },
             },
             {
                 "key": "TEST-2",
                 "fields": {
-                    "customfield_10001": "2025-10-20T10:00:00.000Z",
+                    "customfield_10001": "2025-10-20T10:00:00.000",
                     "customfield_10002": True,
                 },
             },
