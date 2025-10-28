@@ -33,6 +33,7 @@ from ui.components import (
 from ui.grid_utils import create_full_width_layout
 from ui.tabs import create_tabs
 from ui.jira_config_modal import create_jira_config_modal
+from ui.field_mapping_modal import create_field_mapping_modal
 from ui.settings_modal import (
     create_save_query_modal,
     create_delete_query_modal,
@@ -116,6 +117,8 @@ def create_app_layout(settings, statistics, is_sample_data):
         [
             # JIRA Configuration Modal (Feature 003-jira-config-separation)
             create_jira_config_modal(),
+            # Field Mapping Modal (Feature 007-dora-flow-metrics Phase 4)
+            create_field_mapping_modal(),
             # Query Management Modals
             create_save_query_modal(),
             create_delete_query_modal(),

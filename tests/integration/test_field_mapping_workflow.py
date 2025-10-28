@@ -25,9 +25,7 @@ class TestFieldMappingWorkflow:
     @pytest.fixture
     def temp_settings_file(self):
         """Create temporary settings file for test isolation."""
-        with tempfile.NamedTemporaryFile(
-            mode="w", delete=False, suffix=".json"
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".json") as f:
             temp_file = f.name
             # Initialize with empty structure
             json.dump({"field_mappings": {}}, f)
@@ -66,7 +64,7 @@ class TestFieldMappingWorkflow:
 
     def test_configure_and_save_mappings(self, temp_settings_file, mock_jira_fields):
         """Test complete workflow: fetch fields, validate, save mappings.
-        
+
         Workflow:
         1. Fetch available Jira fields
         2. Validate field type compatibility
@@ -110,12 +108,18 @@ class TestFieldMappingWorkflow:
             with patch("data.persistence.APP_SETTINGS_FILE", temp_settings_file):
                 loaded_mappings = load_field_mappings()
                 assert "field_mappings" in loaded_mappings
-                assert loaded_mappings["field_mappings"]["dora"]["deployment_date"] == "customfield_10100"
-                assert loaded_mappings["field_mappings"]["dora"]["target_environment"] == "customfield_10101"
+                assert (
+                    loaded_mappings["field_mappings"]["dora"]["deployment_date"]
+                    == "customfield_10100"
+                )
+                assert (
+                    loaded_mappings["field_mappings"]["dora"]["target_environment"]
+                    == "customfield_10101"
+                )
 
     def test_mapping_change_invalidates_cache(self, temp_settings_file):
         """Test that changing field mappings invalidates the cache.
-        
+
         Workflow:
         1. Save initial mappings
         2. Get hash of mappings
@@ -155,7 +159,10 @@ class TestFieldMappingWorkflow:
 
                 # Verify new mapping was saved
                 loaded = load_field_mappings()
-                assert loaded["field_mappings"]["dora"]["deployment_date"] == "customfield_10200"
+                assert (
+                    loaded["field_mappings"]["dora"]["deployment_date"]
+                    == "customfield_10200"
+                )
 
     def test_invalid_field_type_mapping(self, mock_jira_fields):
         """Test that invalid field type mappings are rejected."""
@@ -207,7 +214,7 @@ class TestFieldMappingIntegrationWithCalculator:
 
     def test_calculator_uses_field_mappings(self):
         """Test that DORA calculator retrieves and uses field mappings.
-        
+
         NOTE: This is a stub test for Phase 4.
         Full implementation will be in Phase 5 when we integrate
         field mappings with actual metric calculations.
