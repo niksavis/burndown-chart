@@ -55,7 +55,7 @@ class TestDeploymentFrequency:
 
     def test_deployment_frequency_calculation(self, sample_deployment_issues):
         """Test deployment frequency calculation with known input/output."""
-        
+
         # Expected: 3 deployments over ~14 days = ~6.4 deployments per 30 days
         result = calculate_deployment_frequency(
             issues=sample_deployment_issues,
@@ -65,7 +65,7 @@ class TestDeploymentFrequency:
             },
             time_period_days=30,
         )
-        
+
         assert result["value"] is not None
         assert result["value"] > 0
         assert result["unit"] == "deployments/month"
@@ -78,7 +78,7 @@ class TestDeploymentFrequency:
             field_mappings={"deployment_date": "deployment_date"},
             time_period_days=30,
         )
-        
+
         assert result["error_state"] == "no_data"
         assert result["value"] is None
         assert result["error_message"] is not None
@@ -96,21 +96,27 @@ class TestLeadTimeForChanges:
                 "key": "CHANGE-1",
                 "fields": {
                     "code_commit_date": base_date.isoformat(),
-                    "deployed_to_production_date": (base_date + timedelta(days=2)).isoformat(),
+                    "deployed_to_production_date": (
+                        base_date + timedelta(days=2)
+                    ).isoformat(),
                 },
             },
             {
                 "key": "CHANGE-2",
                 "fields": {
                     "code_commit_date": base_date.isoformat(),
-                    "deployed_to_production_date": (base_date + timedelta(days=3)).isoformat(),
+                    "deployed_to_production_date": (
+                        base_date + timedelta(days=3)
+                    ).isoformat(),
                 },
             },
             {
                 "key": "CHANGE-3",
                 "fields": {
                     "code_commit_date": base_date.isoformat(),
-                    "deployed_to_production_date": (base_date + timedelta(days=1)).isoformat(),
+                    "deployed_to_production_date": (
+                        base_date + timedelta(days=1)
+                    ).isoformat(),
                 },
             },
         ]
@@ -125,7 +131,7 @@ class TestLeadTimeForChanges:
                 "deployed_to_production_date": "deployed_to_production_date",
             },
         )
-        
+
         assert result["value"] == pytest.approx(2.0, rel=0.1)
         assert result["unit"] == "days"
         assert result["performance_tier"] in ["Elite", "High", "Medium", "Low"]
@@ -141,7 +147,7 @@ class TestLeadTimeForChanges:
                 },
             }
         ]
-        
+
         result = calculate_lead_time_for_changes(
             issues=issues,
             field_mappings={
@@ -149,7 +155,7 @@ class TestLeadTimeForChanges:
                 "deployed_to_production_date": "deployed_to_production_date",
             },
         )
-        
+
         # Should exclude issues with missing fields and calculate from remaining
         assert result["excluded_issue_count"] == 1
         assert result["total_issue_count"] == 1
@@ -170,29 +176,39 @@ class TestChangeFailureRate:
                 },
                 {
                     "key": "DEPLOY-2",
-                    "fields": {"deployment_date": (base_date + timedelta(days=7)).isoformat()},
+                    "fields": {
+                        "deployment_date": (base_date + timedelta(days=7)).isoformat()
+                    },
                 },
                 {
                     "key": "DEPLOY-3",
-                    "fields": {"deployment_date": (base_date + timedelta(days=14)).isoformat()},
+                    "fields": {
+                        "deployment_date": (base_date + timedelta(days=14)).isoformat()
+                    },
                 },
                 {
                     "key": "DEPLOY-4",
-                    "fields": {"deployment_date": (base_date + timedelta(days=21)).isoformat()},
+                    "fields": {
+                        "deployment_date": (base_date + timedelta(days=21)).isoformat()
+                    },
                 },
             ],
             "incidents": [
                 {
                     "key": "INC-1",
                     "fields": {
-                        "incident_detected_at": (base_date + timedelta(days=1)).isoformat(),
+                        "incident_detected_at": (
+                            base_date + timedelta(days=1)
+                        ).isoformat(),
                         "production_impact": True,
                     },
                 },
             ],
         }
 
-    def test_change_failure_rate_calculation(self, sample_deployment_and_incident_issues):
+    def test_change_failure_rate_calculation(
+        self, sample_deployment_and_incident_issues
+    ):
         """Test change failure rate with known deployments and incidents."""
         # Expected: 1 incident / 4 deployments = 25% failure rate
         result = calculate_change_failure_rate(
@@ -204,7 +220,7 @@ class TestChangeFailureRate:
                 "production_impact": "production_impact",
             },
         )
-        
+
         assert result["value"] == pytest.approx(25.0, rel=0.1)
         assert result["unit"] == "percentage"
         assert result["performance_tier"] in ["Elite", "High", "Medium", "Low"]
@@ -212,18 +228,26 @@ class TestChangeFailureRate:
     def test_change_failure_rate_zero_incidents(self):
         """Test change failure rate with no incidents (perfect score)."""
         deployments = [
-            {"key": "DEPLOY-1", "fields": {"deployment_date": datetime.now().isoformat()}},
-            {"key": "DEPLOY-2", "fields": {"deployment_date": datetime.now().isoformat()}},
+            {
+                "key": "DEPLOY-1",
+                "fields": {"deployment_date": datetime.now().isoformat()},
+            },
+            {
+                "key": "DEPLOY-2",
+                "fields": {"deployment_date": datetime.now().isoformat()},
+            },
         ]
-        
+
         result = calculate_change_failure_rate(
             deployment_issues=deployments,
             incident_issues=[],
             field_mappings={"deployment_date": "deployment_date"},
         )
-        
+
         assert result["value"] == 0.0
         assert result["performance_tier"] == "Elite"
+
+
 class TestMeanTimeToRecovery:
     """Test mean time to recovery (MTTR) calculation."""
 
@@ -236,21 +260,27 @@ class TestMeanTimeToRecovery:
                 "key": "INC-1",
                 "fields": {
                     "incident_detected_at": base_date.isoformat(),
-                    "incident_resolved_at": (base_date + timedelta(hours=2)).isoformat(),
+                    "incident_resolved_at": (
+                        base_date + timedelta(hours=2)
+                    ).isoformat(),
                 },
             },
             {
                 "key": "INC-2",
                 "fields": {
                     "incident_detected_at": base_date.isoformat(),
-                    "incident_resolved_at": (base_date + timedelta(hours=4)).isoformat(),
+                    "incident_resolved_at": (
+                        base_date + timedelta(hours=4)
+                    ).isoformat(),
                 },
             },
             {
                 "key": "INC-3",
                 "fields": {
                     "incident_detected_at": base_date.isoformat(),
-                    "incident_resolved_at": (base_date + timedelta(hours=6)).isoformat(),
+                    "incident_resolved_at": (
+                        base_date + timedelta(hours=6)
+                    ).isoformat(),
                 },
             },
         ]
@@ -265,7 +295,7 @@ class TestMeanTimeToRecovery:
                 "incident_resolved_at": "incident_resolved_at",
             },
         )
-        
+
         assert result["value"] == pytest.approx(4.0, rel=0.1)
         assert result["unit"] == "hours"
         assert result["performance_tier"] in ["Elite", "High", "Medium", "Low"]
@@ -277,7 +307,9 @@ class TestMeanTimeToRecovery:
                 "key": "INC-1",
                 "fields": {
                     "incident_detected_at": datetime.now().isoformat(),
-                    "incident_resolved_at": (datetime.now() + timedelta(hours=2)).isoformat(),
+                    "incident_resolved_at": (
+                        datetime.now() + timedelta(hours=2)
+                    ).isoformat(),
                 },
             },
             {
@@ -288,7 +320,7 @@ class TestMeanTimeToRecovery:
                 },
             },
         ]
-        
+
         result = calculate_mean_time_to_recovery(
             issues=issues,
             field_mappings={
@@ -296,7 +328,7 @@ class TestMeanTimeToRecovery:
                 "incident_resolved_at": "incident_resolved_at",
             },
         )
-        
+
         # Should only calculate from resolved incidents
         assert result["excluded_issue_count"] == 1
         assert result["value"] == pytest.approx(2.0, rel=0.1)
@@ -308,30 +340,46 @@ class TestEdgeCases:
     @pytest.mark.parametrize(
         "issues,field_mappings,expected_error",
         [
-            ([], {"deployment_date": "deployment_date"}, "no_data"),  # Empty issues - has mapping but no data
-            ([{"key": "TEST-1", "fields": {}}], {"deployment_date": "deployment_date"}, "no_data"),  # Missing fields
-            ([{"key": "TEST-1", "fields": {"deployment_date": "invalid"}}], {"deployment_date": "deployment_date"}, "no_data"),  # Invalid date excluded = no data
+            (
+                [],
+                {"deployment_date": "deployment_date"},
+                "no_data",
+            ),  # Empty issues - has mapping but no data
+            (
+                [{"key": "TEST-1", "fields": {}}],
+                {"deployment_date": "deployment_date"},
+                "no_data",
+            ),  # Missing fields
+            (
+                [{"key": "TEST-1", "fields": {"deployment_date": "invalid"}}],
+                {"deployment_date": "deployment_date"},
+                "no_data",
+            ),  # Invalid date excluded = no data
         ],
     )
-    def test_deployment_frequency_edge_cases(self, issues, field_mappings, expected_error):
+    def test_deployment_frequency_edge_cases(
+        self, issues, field_mappings, expected_error
+    ):
         """Test edge cases for deployment frequency calculation."""
         result = calculate_deployment_frequency(
             issues=issues,
             field_mappings=field_mappings,
             time_period_days=30,
         )
-        
+
         assert result["error_state"] == expected_error
         assert result["value"] is None
 
     def test_missing_field_mapping_configuration(self):
         """Test behavior when field mappings are not configured."""
         result = calculate_deployment_frequency(
-            issues=[{"key": "TEST-1", "fields": {"created": datetime.now().isoformat()}}],
+            issues=[
+                {"key": "TEST-1", "fields": {"created": datetime.now().isoformat()}}
+            ],
             field_mappings={},  # No mappings configured
             time_period_days=30,
         )
-        
+
         assert result["error_state"] == "missing_mapping"
         assert "Configure" in result["error_message"]
 
@@ -340,15 +388,18 @@ class TestEdgeCases:
         base_date = datetime.now() - timedelta(days=5)
         issues = [
             {"key": "TEST-1", "fields": {"deployment_date": "not-a-date"}},
-            {"key": "TEST-2", "fields": {"deployment_date": base_date.isoformat()}},  # Valid recent date
+            {
+                "key": "TEST-2",
+                "fields": {"deployment_date": base_date.isoformat()},
+            },  # Valid recent date
         ]
-        
+
         result = calculate_deployment_frequency(
             issues=issues,
             field_mappings={"deployment_date": "deployment_date"},
             time_period_days=30,
         )
-        
+
         # Should exclude invalid dates and continue with valid ones
         assert result["excluded_issue_count"] == 1
         assert result["value"] is not None
@@ -375,13 +426,17 @@ class TestCalculateAllDoraMetrics:
                 {
                     "key": "INC-1",
                     "fields": {
-                        "incident_detected_at": (base_date + timedelta(hours=1)).isoformat(),
-                        "incident_resolved_at": (base_date + timedelta(hours=3)).isoformat(),
+                        "incident_detected_at": (
+                            base_date + timedelta(hours=1)
+                        ).isoformat(),
+                        "incident_resolved_at": (
+                            base_date + timedelta(hours=3)
+                        ).isoformat(),
                     },
                 }
             ],
         }
-        
+
         field_mappings = {
             "deployment_date": "deployment_date",
             "code_commit_date": "code_commit_date",
@@ -389,21 +444,24 @@ class TestCalculateAllDoraMetrics:
             "incident_detected_at": "incident_detected_at",
             "incident_resolved_at": "incident_resolved_at",
         }
-        
+
         results = calculate_all_dora_metrics(
             issues=issues,
             field_mappings=field_mappings,
             time_period_days=30,
         )
-        
+
         assert "deployment_frequency" in results
         assert "lead_time_for_changes" in results
         assert "change_failure_rate" in results
         assert "mean_time_to_recovery" in results
-        
+
         # Each metric should have standard structure
         for metric_name, metric_data in results.items():
             assert "value" in metric_data
             assert "unit" in metric_data
-            assert "performance_tier" in metric_data or metric_data["error_state"] != "success"
+            assert (
+                "performance_tier" in metric_data
+                or metric_data["error_state"] != "success"
+            )
             assert "error_state" in metric_data

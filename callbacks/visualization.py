@@ -1164,6 +1164,18 @@ def register(app):
                 ui_state["loading"] = False
                 return bug_analysis_content, chart_cache, ui_state
 
+            elif active_tab == "tab-dora-flow-metrics":
+                # Generate DORA/Flow metrics tab content directly
+                from ui.dora_metrics_dashboard import create_dora_dashboard
+
+                # Render the DORA dashboard content
+                dora_content = create_dora_dashboard()
+
+                # Cache the result for next time
+                chart_cache[cache_key] = dora_content
+                ui_state["loading"] = False
+                return dora_content, chart_cache, ui_state
+
             # Default fallback (should not reach here)
             fallback_content = create_content_placeholder(
                 type="chart", text="Select a tab to view data", height="400px"

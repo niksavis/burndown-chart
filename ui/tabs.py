@@ -98,7 +98,16 @@ TAB_CONFIG: List[TabConfig] = [
         "color": get_color("danger"),
         "order": 5,
         "requires_data": True,
-        "help_content_id": "help-bugs",
+        "help_content_id": "help-bug-analysis",
+    },
+    {
+        "id": "tab-dora-flow-metrics",
+        "label": "DORA & Flow Metrics",
+        "icon": "fa-chart-pie",
+        "color": get_color("info"),
+        "order": 6,
+        "requires_data": False,  # Has its own data loading
+        "help_content_id": "help-dora-flow",
     },
 ]
 
@@ -217,6 +226,7 @@ def create_tab_content(active_tab, charts, statistics_df=None, pert_data=None):
         "tab-points",
         "tab-scope-tracking",
         "tab-bug-analysis",
+        "tab-dora-flow-metrics",
     ]:
         active_tab = "tab-burndown"
 
@@ -227,6 +237,7 @@ def create_tab_content(active_tab, charts, statistics_df=None, pert_data=None):
         "tab-points": create_points_forecast_info_card(statistics_df, pert_data),
         "tab-scope-tracking": html.Div(),  # Always provide a component, even if empty
         "tab-bug-analysis": html.Div(),  # Bug analysis has its own info cards in the content
+        "tab-dora-flow-metrics": html.Div(),  # DORA dashboard has its own info cards in the content
     }
 
     # Enhanced tab titles with more descriptive content and icons
@@ -280,6 +291,16 @@ def create_tab_content(active_tab, charts, statistics_df=None, pert_data=None):
                     className="fas fa-bug me-2", style={"color": get_color("danger")}
                 ),
                 "Bug Analysis & Quality Insights",
+            ],
+            className="mb-3 border-bottom pb-2 d-flex align-items-center fw-bold",
+        ),
+        "tab-dora-flow-metrics": html.Div(
+            [
+                html.I(
+                    className="fas fa-chart-pie me-2",
+                    style={"color": get_color("primary")},
+                ),
+                "DORA & Flow Metrics",
             ],
             className="mb-3 border-bottom pb-2 d-flex align-items-center fw-bold",
         ),

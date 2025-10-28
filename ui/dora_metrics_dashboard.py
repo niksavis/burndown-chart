@@ -13,7 +13,7 @@ from ui.metric_cards import create_metric_cards_grid, create_loading_card
 
 def create_dora_dashboard() -> dbc.Container:
     """Create the complete DORA metrics dashboard layout.
-    
+
     Returns:
         dbc.Container with DORA metrics dashboard components
     """
@@ -56,7 +56,6 @@ def create_dora_dashboard() -> dbc.Container:
                 ],
                 className="mb-4",
             ),
-            
             # Time period selector
             dbc.Row(
                 [
@@ -83,7 +82,9 @@ def create_dora_dashboard() -> dbc.Container:
                         [
                             html.Div(
                                 [
-                                    html.Label("Custom Date Range:", className="fw-bold mb-2"),
+                                    html.Label(
+                                        "Custom Date Range:", className="fw-bold mb-2"
+                                    ),
                                     dcc.DatePickerRange(
                                         id="dora-date-range-picker",
                                         display_format="YYYY-MM-DD",
@@ -118,7 +119,6 @@ def create_dora_dashboard() -> dbc.Container:
                 ],
                 className="mb-4",
             ),
-            
             # Loading/Error state placeholder
             dbc.Row(
                 [
@@ -126,7 +126,7 @@ def create_dora_dashboard() -> dbc.Container:
                         [
                             html.Div(
                                 id="dora-loading-state",
-                                children=[]  # Will be populated by callback
+                                children=[],  # Will be populated by callback
                             ),
                         ],
                         width=12,
@@ -134,7 +134,6 @@ def create_dora_dashboard() -> dbc.Container:
                 ],
                 className="mb-3",
             ),
-            
             # Metrics cards grid
             dbc.Row(
                 [
@@ -144,28 +143,30 @@ def create_dora_dashboard() -> dbc.Container:
                                 id="dora-metrics-cards-container",
                                 children=[
                                     # Initial loading state
-                                    create_metric_cards_grid({
-                                        "deployment_frequency": {
-                                            "metric_name": "deployment_frequency",
-                                            "value": None,
-                                            "error_state": "loading",
-                                        },
-                                        "lead_time_for_changes": {
-                                            "metric_name": "lead_time_for_changes",
-                                            "value": None,
-                                            "error_state": "loading",
-                                        },
-                                        "change_failure_rate": {
-                                            "metric_name": "change_failure_rate",
-                                            "value": None,
-                                            "error_state": "loading",
-                                        },
-                                        "mean_time_to_recovery": {
-                                            "metric_name": "mean_time_to_recovery",
-                                            "value": None,
-                                            "error_state": "loading",
-                                        },
-                                    }),
+                                    create_metric_cards_grid(
+                                        {
+                                            "deployment_frequency": {
+                                                "metric_name": "deployment_frequency",
+                                                "value": None,
+                                                "error_state": "loading",
+                                            },
+                                            "lead_time_for_changes": {
+                                                "metric_name": "lead_time_for_changes",
+                                                "value": None,
+                                                "error_state": "loading",
+                                            },
+                                            "change_failure_rate": {
+                                                "metric_name": "change_failure_rate",
+                                                "value": None,
+                                                "error_state": "loading",
+                                            },
+                                            "mean_time_to_recovery": {
+                                                "metric_name": "mean_time_to_recovery",
+                                                "value": None,
+                                                "error_state": "loading",
+                                            },
+                                        }
+                                    ),
                                 ],
                             ),
                         ],
@@ -174,7 +175,6 @@ def create_dora_dashboard() -> dbc.Container:
                 ],
                 className="mb-4",
             ),
-            
             # Information and help section
             dbc.Row(
                 [
@@ -200,25 +200,33 @@ def create_dora_dashboard() -> dbc.Container:
                                                 [
                                                     html.Li(
                                                         [
-                                                            html.Strong("Deployment Frequency: "),
+                                                            html.Strong(
+                                                                "Deployment Frequency: "
+                                                            ),
                                                             "How often code is deployed to production",
                                                         ]
                                                     ),
                                                     html.Li(
                                                         [
-                                                            html.Strong("Lead Time for Changes: "),
+                                                            html.Strong(
+                                                                "Lead Time for Changes: "
+                                                            ),
                                                             "Time from code commit to production deployment",
                                                         ]
                                                     ),
                                                     html.Li(
                                                         [
-                                                            html.Strong("Change Failure Rate: "),
+                                                            html.Strong(
+                                                                "Change Failure Rate: "
+                                                            ),
                                                             "Percentage of deployments causing incidents",
                                                         ]
                                                     ),
                                                     html.Li(
                                                         [
-                                                            html.Strong("Mean Time to Recovery: "),
+                                                            html.Strong(
+                                                                "Mean Time to Recovery: "
+                                                            ),
                                                             "Average time to restore service after an incident",
                                                         ]
                                                     ),
@@ -257,7 +265,7 @@ def create_dora_dashboard() -> dbc.Container:
 
 def create_dora_loading_cards_grid() -> dbc.Row:
     """Create a grid of loading cards for DORA metrics.
-    
+
     Returns:
         dbc.Row containing loading state cards
     """
@@ -267,7 +275,7 @@ def create_dora_loading_cards_grid() -> dbc.Row:
         "change_failure_rate",
         "mean_time_to_recovery",
     ]
-    
+
     cards = dbc.Row(
         [
             dbc.Col(
@@ -281,23 +289,23 @@ def create_dora_loading_cards_grid() -> dbc.Row:
         ],
         className="metric-cards-grid",
     )
-    
+
     return cards
 
 
 def format_dora_metrics_for_display(
-    raw_metrics: Dict[str, Dict[str, Any]]
+    raw_metrics: Dict[str, Dict[str, Any]],
 ) -> Dict[str, Dict[str, Any]]:
     """Format raw DORA metrics data for display in metric cards.
-    
+
     Args:
         raw_metrics: Raw metrics data from calculator
-        
+
     Returns:
         Formatted metrics ready for metric card rendering
     """
     formatted = {}
-    
+
     for metric_name, metric_data in raw_metrics.items():
         # Pass through most fields as-is
         formatted[metric_name] = {
@@ -312,5 +320,5 @@ def format_dora_metrics_for_display(
             "excluded_issue_count": metric_data.get("excluded_issue_count", 0),
             "details": metric_data.get("details", {}),
         }
-    
+
     return formatted

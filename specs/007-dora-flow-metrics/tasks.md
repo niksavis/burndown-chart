@@ -62,7 +62,7 @@
 ### Implementation for User Story 1
 
 - [X] T016 [US1] Implement DORA calculator: data/dora_calculator.py with calculate_deployment_frequency(), calculate_lead_time_for_changes(), calculate_change_failure_rate(), calculate_mean_time_to_recovery(), calculate_all_dora_metrics() (depends on T004)
-- [ ] T017 [P] [US1] Create DORA dashboard UI: ui/dora_metrics_dashboard.py with create_dora_dashboard() including time period selector and metric cards grid
+- [X] T017 [P] [US1] Create DORA dashboard UI: ui/dora_metrics_dashboard.py with create_dora_dashboard() including time period selector and metric cards grid
 - [ ] T018 [P] [US1] Create DORA charts module: visualization/dora_charts.py with chart generation functions for DORA metrics
 - [ ] T019 [US1] Create DORA metrics callback: callbacks/dora_flow_metrics.py with update_dora_metrics() callback delegating to data layer (depends on T016)
 - [ ] T020 [US1] Update main layout: ui/layout.py to add "DORA & Flow Metrics" navigation tab
