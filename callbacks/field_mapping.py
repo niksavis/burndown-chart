@@ -4,7 +4,7 @@ Handles field mapping modal interactions, Jira field discovery,
 validation, and persistence.
 """
 
-from dash import callback, Output, Input, State, no_update, ALL, html
+from dash import callback, callback_context, Output, Input, State, no_update, ALL, html
 import dash_bootstrap_components as dbc
 from typing import Dict, List, Any
 import logging
@@ -30,14 +30,14 @@ logger = logging.getLogger(__name__)
     Output("field-mapping-modal", "is_open"),
     Input("open-field-mapping-modal", "n_clicks"),
     Input("field-mapping-cancel-button", "n_clicks"),
-    Input("field-mapping-save-button", "n_clicks"),
+    Input("field-mapping-save-success", "data"),  # Close only on successful save
     State("field-mapping-modal", "is_open"),
     prevent_initial_call=True,
 )
 def toggle_field_mapping_modal(
     open_clicks: int | None,
     cancel_clicks: int | None,
-    save_clicks: int | None,
+    save_success: bool | None,
     is_open: bool,
 ) -> bool:
     """Toggle field mapping modal open/closed.
@@ -45,14 +45,31 @@ def toggle_field_mapping_modal(
     Args:
         open_clicks: Open button clicks
         cancel_clicks: Cancel button clicks
-        save_clicks: Save button clicks (closes after save)
+        save_success: True when save is successful (triggers close)
         is_open: Current modal state
 
     Returns:
         New modal state (True = open, False = closed)
     """
-    # Toggle modal state
-    return not is_open
+    ctx = callback_context
+    if not ctx.triggered:
+        return is_open
+
+    trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+
+    # Close on cancel
+    if trigger_id == "field-mapping-cancel-button":
+        return False
+
+    # Close ONLY on successful save (when save_success is True)
+    if trigger_id == "field-mapping-save-success" and save_success is True:
+        return False
+
+    # Open when open button clicked
+    if trigger_id == "open-field-mapping-modal":
+        return True
+
+    return is_open
 
 
 @callback(
@@ -76,11 +93,44 @@ def populate_field_mapping_form(is_open: bool):
         return no_update
 
     try:
-        # Load current field mappings
+        # Load current field mappings (flat structure from app_settings.json)
         current_mappings_data = load_field_mappings()
-        current_mappings = current_mappings_data.get(
-            "field_mappings", {"dora": {}, "flow": {}}
-        )
+        flat_mappings = current_mappings_data.get("field_mappings", {})
+
+        # Convert flat structure to nested structure expected by UI
+        # DORA fields
+        dora_fields = [
+            "deployment_date",
+            "deployment_successful",
+            "incident_start",
+            "incident_resolved",
+            "target_environment",
+            "code_commit_date",
+            "deployed_to_production_date",
+            "incident_detected_at",
+            "incident_resolved_at",
+            "production_impact",
+            "incident_related",
+        ]
+        # Flow fields
+        flow_fields = [
+            "work_started_date",
+            "work_completed_date",
+            "work_type",
+            "work_item_size",
+            "flow_item_type",
+            "status_entry_timestamp",
+            "active_work_hours",
+            "flow_time_days",
+            "flow_efficiency_percent",
+            "completed_date",
+            "status",
+        ]
+
+        current_mappings = {
+            "dora": {k: v for k, v in flat_mappings.items() if k in dora_fields},
+            "flow": {k: v for k, v in flat_mappings.items() if k in flow_fields},
+        }
 
         # Fetch available fields from Jira
         try:
@@ -104,7 +154,10 @@ def populate_field_mapping_form(is_open: bool):
 
 
 @callback(
-    Output("field-mapping-status", "children"),
+    [
+        Output("field-mapping-status", "children"),
+        Output("field-mapping-save-success", "data"),
+    ],
     Input("field-mapping-save-button", "n_clicks"),
     State({"type": "field-mapping-dropdown", "metric": ALL, "field": ALL}, "value"),
     State({"type": "field-mapping-dropdown", "metric": ALL, "field": ALL}, "id"),
@@ -114,7 +167,7 @@ def save_field_mappings_callback(
     n_clicks: int | None,
     field_values: List[str],
     field_ids: List[Dict],
-) -> Any:
+) -> tuple[Any, bool | None]:
     """Save field mappings when Save button is clicked.
 
     Validates all mappings, saves to persistence layer,
@@ -126,14 +179,14 @@ def save_field_mappings_callback(
         field_ids: List of dropdown ID dictionaries with metric and field keys
 
     Returns:
-        Success or error alert
+        Tuple of (status alert, save_success flag for closing modal)
     """
     if n_clicks is None:
-        return no_update
+        return no_update, None
 
     try:
-        # Extract mappings from dropdown values
-        new_mappings = {"field_mappings": {"dora": {}, "flow": {}}}
+        # Extract mappings from dropdown values into nested structure
+        nested_mappings = {"dora": {}, "flow": {}}
 
         for field_id_dict, field_value in zip(field_ids, field_values):
             if field_value:  # Only include non-empty mappings
@@ -141,9 +194,16 @@ def save_field_mappings_callback(
                 internal_field = field_id_dict.get("field")
 
                 if metric_type in ["dora", "flow"]:
-                    new_mappings["field_mappings"][metric_type][internal_field] = (
-                        field_value
-                    )
+                    nested_mappings[metric_type][internal_field] = field_value
+
+        # Flatten nested structure to flat structure for app_settings.json
+        flat_mappings = {}
+        for metric_type in ["dora", "flow"]:
+            for field_name, field_id in nested_mappings[metric_type].items():
+                flat_mappings[field_name] = field_id
+
+        # Create save structure with flat mappings
+        new_mappings = {"field_mappings": flat_mappings}
 
         # Fetch available fields for validation
         try:
@@ -157,19 +217,16 @@ def save_field_mappings_callback(
         # Validate mappings if metadata available
         validation_errors = []
         if field_metadata:
-            for metric_type in ["dora", "flow"]:
-                for internal_field, jira_field_id in new_mappings["field_mappings"][
-                    metric_type
-                ].items():
-                    is_valid, error_msg = validate_field_mapping(
-                        internal_field, jira_field_id, field_metadata
-                    )
-                    if not is_valid:
-                        validation_errors.append(f"{internal_field}: {error_msg}")
+            for internal_field, jira_field_id in flat_mappings.items():
+                is_valid, error_msg = validate_field_mapping(
+                    internal_field, jira_field_id, field_metadata
+                )
+                if not is_valid:
+                    validation_errors.append(f"{internal_field}: {error_msg}")
 
         if validation_errors:
             error_list = html.Ul([html.Li(err) for err in validation_errors])
-            return dbc.Alert(
+            error_alert = dbc.Alert(
                 [
                     html.H5("Validation Errors", className="alert-heading"),
                     html.P("The following field mappings have type mismatches:"),
@@ -178,6 +235,8 @@ def save_field_mappings_callback(
                 color="danger",
                 dismissable=True,
             )
+            # Return error alert and None for save_success (modal stays open)
+            return error_alert, None
 
         # Add field metadata to save structure
         if field_metadata:
@@ -188,12 +247,7 @@ def save_field_mappings_callback(
                     "required": True,  # All mapped fields considered required
                 }
                 for field_id, meta in field_metadata.items()
-                if field_id
-                in [
-                    jira_id
-                    for metric in new_mappings["field_mappings"].values()
-                    for jira_id in metric.values()
-                ]
+                if field_id in flat_mappings.values()
             }
 
         # Save mappings
@@ -203,24 +257,51 @@ def save_field_mappings_callback(
             invalidate_cache()
             logger.info(f"Field mappings saved successfully, new hash: {new_hash}")
 
-            return create_field_mapping_success_alert()
+            # Return success alert and True to trigger modal close
+            return create_field_mapping_success_alert(), True
         else:
-            return create_field_mapping_error_alert("Failed to save mappings to file")
+            # Return error alert and None (modal stays open)
+            return create_field_mapping_error_alert(
+                "Failed to save mappings to file"
+            ), None
 
     except Exception as e:
         logger.error(f"Error saving field mappings: {e}", exc_info=True)
-        return create_field_mapping_error_alert(str(e))
+        # Return error alert and None (modal stays open)
+        return create_field_mapping_error_alert(str(e)), None
 
 
 def _get_mock_jira_fields() -> List[Dict[str, Any]]:
-    """Get mock Jira fields for Phase 4 stub.
+    """Get mock Jira fields for testing or when API fails.
 
-    Phase 5+ will replace with actual Jira API call.
+    Includes standard Jira fields that work with Apache Kafka JIRA.
 
     Returns:
         List of mock field metadata
     """
     return [
+        # Standard Jira fields (always available)
+        {
+            "field_id": "created",
+            "field_name": "Created",
+            "field_type": "datetime",
+        },
+        {
+            "field_id": "resolutiondate",
+            "field_name": "Resolution Date",
+            "field_type": "datetime",
+        },
+        {
+            "field_id": "issuetype",
+            "field_name": "Issue Type",
+            "field_type": "select",
+        },
+        {
+            "field_id": "status",
+            "field_name": "Status",
+            "field_type": "select",
+        },
+        # Mock custom fields (for full Jira instances)
         {
             "field_id": "customfield_10001",
             "field_name": "Deployment Date",
@@ -260,21 +341,6 @@ def _get_mock_jira_fields() -> List[Dict[str, Any]]:
             "field_id": "customfield_10008",
             "field_name": "Active Hours",
             "field_type": "number",
-        },
-        {
-            "field_id": "status",
-            "field_name": "Status",
-            "field_type": "status",
-        },
-        {
-            "field_id": "created",
-            "field_name": "Created",
-            "field_type": "datetime",
-        },
-        {
-            "field_id": "resolutiondate",
-            "field_name": "Resolution Date",
-            "field_type": "datetime",
         },
     ]
 

@@ -54,37 +54,44 @@ def create_flow_dashboard() -> dbc.Container:
                                     {"label": "Custom Range", "value": "custom"},
                                 ],
                                 value="30",
-                                className="mb-3",
                             ),
                         ],
                         width=12,
-                        md=6,
-                        lg=4,
+                        md=3,
+                        lg=3,
                     ),
                     dbc.Col(
                         [
-                            html.Div(
-                                [
-                                    html.Label(
-                                        "Custom Date Range:", className="fw-bold mb-2"
-                                    ),
-                                    dcc.DatePickerRange(
-                                        id="flow-date-range-picker",
-                                        display_format="YYYY-MM-DD",
-                                        className="d-block",
-                                        style={"display": "none"},  # Hidden by default
-                                    ),
-                                ],
-                                id="flow-custom-date-range-container",
+                            html.Label(
+                                "Custom Date Range:",
+                                className="fw-bold mb-2",
+                                id="flow-custom-date-label",
                                 style={"display": "none"},
                             ),
+                            dcc.DatePickerRange(
+                                id="flow-date-range-picker",
+                                display_format="YYYY-MM-DD",
+                                start_date_placeholder_text="Start Date",
+                                end_date_placeholder_text="End Date",
+                                style={
+                                    "display": "none",
+                                },
+                                with_portal=True,
+                                persistence=True,
+                                persistence_type="session",
+                            ),
                         ],
                         width=12,
-                        md=6,
-                        lg=4,
+                        md=5,
+                        lg=5,
+                        id="flow-custom-date-range-container",
                     ),
                     dbc.Col(
                         [
+                            html.Label(
+                                "\u00a0",  # Non-breaking space to align with other labels
+                                className="fw-bold mb-2 d-block",
+                            ),
                             dbc.Button(
                                 [
                                     html.I(className="fas fa-sync-alt me-2"),
@@ -92,49 +99,48 @@ def create_flow_dashboard() -> dbc.Container:
                                 ],
                                 id="flow-refresh-button",
                                 color="primary",
-                                className="float-end",
+                                className="w-100",
                             ),
                         ],
                         width=12,
-                        md=6,
+                        md=2,
                         lg=2,
-                        className="d-flex align-items-end justify-content-end",
                     ),
                     dbc.Col(
                         [
+                            html.Label(
+                                "\u00a0",  # Non-breaking space to align with other labels
+                                className="fw-bold mb-2 d-block",
+                            ),
                             dbc.ButtonGroup(
                                 [
                                     dbc.Button(
-                                        [
-                                            html.I(className="fas fa-file-csv me-2"),
-                                            "Export CSV",
-                                        ],
+                                        html.I(className="fas fa-file-csv"),
                                         id="export-flow-csv-button",
                                         color="secondary",
                                         outline=True,
                                         size="md",
+                                        title="Export CSV",
+                                        className="px-3",
                                     ),
                                     dbc.Button(
-                                        [
-                                            html.I(className="fas fa-file-code me-2"),
-                                            "Export JSON",
-                                        ],
+                                        html.I(className="fas fa-file-code"),
                                         id="export-flow-json-button",
                                         color="secondary",
                                         outline=True,
                                         size="md",
+                                        title="Export JSON",
+                                        className="px-3",
                                     ),
                                 ],
-                                className="float-end",
                             ),
                             # Download components (hidden, triggered by callbacks)
                             dcc.Download(id="download-flow-csv"),
                             dcc.Download(id="download-flow-json"),
                         ],
                         width=12,
-                        md=6,
-                        lg=4,
-                        className="d-flex align-items-end justify-content-start",
+                        md=2,
+                        lg=2,
                     ),
                 ],
                 className="mb-4",
@@ -184,6 +190,8 @@ def create_flow_dashboard() -> dbc.Container:
                     ),
                 ],
             ),
+            # Store for metrics data
+            dcc.Store(id="flow-metrics-store", data={}),
         ],
         fluid=True,
         className="py-4",

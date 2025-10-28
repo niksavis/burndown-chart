@@ -9,14 +9,12 @@ Reference: DORA_Flow_Jira_Mapping.md
 import hashlib
 import json
 import logging
-from datetime import datetime, timezone
 from typing import Dict, List, Optional, Tuple
 
 import requests
 
 from configuration.settings import APP_SETTINGS_FILE
-from data.jira_simple import get_jira_config
-from data.persistence import load_app_settings
+from data.persistence import load_app_settings, load_jira_configuration
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +57,9 @@ INTERNAL_FIELD_TYPES = {
 def fetch_available_jira_fields() -> List[Dict]:
     """Fetch all fields from Jira instance.
 
+    Tries authenticated request first, then falls back to unauthenticated
+    for public Jira instances like Apache Kafka.
+
     Returns:
         List of field dictionaries with structure:
         [
@@ -75,19 +76,28 @@ def fetch_available_jira_fields() -> List[Dict]:
     Raises:
         requests.RequestException: If Jira API call fails
     """
-    try:
-        config = get_jira_config()
-        base_url = config.get("base_url", "")
-        endpoint = f"{base_url}/rest/api/3/field"
+    config = load_jira_configuration()
+    base_url = config.get("base_url", "")
 
-        response = requests.get(
-            endpoint,
-            headers={
-                "Authorization": f"Bearer {config['token']}",
-                "Content-Type": "application/json",
-            },
-            timeout=30,
-        )
+    if not base_url:
+        raise requests.RequestException("No JIRA base URL configured")
+
+    # Use configured API version (v2 or v3)
+    api_version = config.get("api_version", "v2")
+    if api_version == "v3":
+        endpoint = f"{base_url}/rest/api/3/field"
+    else:
+        endpoint = f"{base_url}/rest/api/2/field"
+
+    token = config.get("token", "")
+
+    # Try authenticated request first
+    try:
+        headers = {"Content-Type": "application/json"}
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+
+        response = requests.get(endpoint, headers=headers, timeout=30)
         response.raise_for_status()
 
         jira_fields = response.json()
@@ -171,24 +181,21 @@ def validate_field_mapping(
 
 
 def save_field_mappings(mappings: Dict) -> bool:
-    """Save field mappings to app_settings.json.
+    """Save field mappings to app_settings.json (flat structure).
 
     Args:
         mappings: Dictionary with structure:
             {
                 "field_mappings": {
-                    "dora": {
-                        "deployment_date": "customfield_10100",
-                        ...
-                    },
-                    "flow": {
-                        "flow_item_type": "customfield_10200",
-                        ...
-                    }
+                    "deployment_date": "resolutiondate",
+                    "incident_start": "created",
+                    "work_started_date": "created",
+                    "work_type": "issuetype",
+                    ...
                 },
                 "field_metadata": {
-                    "customfield_10100": {
-                        "name": "Deployment Date",
+                    "resolutiondate": {
+                        "name": "Resolution Date",
                         "type": "datetime",
                         "required": True
                     },
@@ -202,21 +209,17 @@ def save_field_mappings(mappings: Dict) -> bool:
     try:
         settings = load_app_settings()
 
-        # Update or create dora_flow_config section
-        if "dora_flow_config" not in settings:
-            settings["dora_flow_config"] = {}
+        # Save to flat field_mappings structure (not nested dora_flow_config)
+        if "field_mappings" in mappings:
+            settings["field_mappings"] = mappings["field_mappings"]
 
-        # Merge new mappings
-        settings["dora_flow_config"].update(mappings)
-
-        # Add last updated timestamp
-        settings["dora_flow_config"]["last_updated"] = datetime.now(
-            timezone.utc
-        ).isoformat()
+        # Optionally save field_metadata if provided
+        if "field_metadata" in mappings:
+            settings["field_metadata"] = mappings["field_metadata"]
 
         # Write directly to JSON file
         with open(APP_SETTINGS_FILE, "w") as f:
-            json.dump(settings, f, indent=4)
+            json.dump(settings, f, indent=2)
 
         logger.info("Successfully saved field mappings to app_settings.json")
         return True
@@ -230,14 +233,20 @@ def load_field_mappings() -> Dict:
     """Load field mappings from app_settings.json.
 
     Returns:
-        Dictionary with field_mappings and field_metadata, or empty dict if not found
+        Dictionary with field_mappings (flat structure) and field_metadata
     """
     try:
         settings = load_app_settings()
-        return settings.get("dora_flow_config", {})
+        # Support both legacy nested structure and new flat structure
+        if "dora_flow_config" in settings:
+            # Legacy nested structure
+            return settings.get("dora_flow_config", {})
+        else:
+            # New flat structure - return in expected format for UI
+            return {"field_mappings": settings.get("field_mappings", {})}
     except Exception as e:
         logger.error(f"Failed to load field mappings: {e}")
-        return {}
+        return {"field_mappings": {}}
 
 
 def get_field_mappings_hash() -> str:

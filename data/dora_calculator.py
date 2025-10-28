@@ -9,7 +9,7 @@ Calculates the four DORA metrics from Jira issue data:
 This module contains pure business logic with no UI dependencies.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Any, Optional
 import logging
 
@@ -191,7 +191,7 @@ def calculate_deployment_frequency(
     deployment_successful_field = field_mappings.get("deployment_successful")
 
     # Calculate time period boundaries
-    end_date = datetime.now()
+    end_date = datetime.now(timezone.utc)
     start_date = end_date - timedelta(days=time_period_days)
 
     # Filter and parse deployments

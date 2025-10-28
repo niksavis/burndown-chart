@@ -195,12 +195,27 @@ def fetch_jira_issues(
         if config["token"]:
             headers["Authorization"] = f"Bearer {config['token']}"
 
-        # Parameters - only fetch required fields
-        # Include story points field only if specified
-        # Include issuetype for bug analysis
+        # Parameters - fetch required fields including field mappings for DORA/Flow
+        # Base fields: always fetch these standard fields
         base_fields = "key,created,resolutiondate,status,issuetype"
+
+        # Add story points field if specified
+        additional_fields = []
         if config.get("story_points_field") and config["story_points_field"].strip():
-            fields = f"{base_fields},{config['story_points_field']}"
+            additional_fields.append(config["story_points_field"])
+
+        # Add field mappings for DORA and Flow metrics
+        field_mappings = config.get("field_mappings", {})
+        for field_name, field_id in field_mappings.items():
+            if field_id and field_id.strip() and field_id not in base_fields:
+                # Only add if it's a custom field (starts with customfield_)
+                # Standard fields like 'created', 'resolutiondate', 'issuetype' are already in base_fields
+                if field_id.startswith("customfield_"):
+                    additional_fields.append(field_id)
+
+        # Combine base fields with additional fields
+        if additional_fields:
+            fields = f"{base_fields},{','.join(set(additional_fields))}"
         else:
             fields = base_fields
 

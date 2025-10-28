@@ -101,14 +101,19 @@ def save_app_settings(
         else "",
     }
 
-    # Preserve jira_config if it exists (Feature 003-jira-config-separation)
+    # Preserve jira_config and field_mappings if they exist
     try:
         existing_settings = load_app_settings()
         if "jira_config" in existing_settings:
             settings["jira_config"] = existing_settings["jira_config"]
             logger.debug("Preserved existing jira_config during save")
+        if "field_mappings" in existing_settings:
+            settings["field_mappings"] = existing_settings["field_mappings"]
+            logger.debug("Preserved existing field_mappings during save")
     except Exception as e:
-        logger.debug(f"Could not load existing settings to preserve jira_config: {e}")
+        logger.debug(
+            f"Could not load existing settings to preserve jira_config/field_mappings: {e}"
+        )
 
     try:
         # Write to a temporary file first
@@ -141,11 +146,7 @@ def load_app_settings():
         "milestone": None,
         "show_points": False,
         "jql_query": "project = JRASERVER",
-        "jira_api_endpoint": "https://jira.atlassian.com/rest/api/2/search",
-        "jira_token": "",
-        "jira_story_points_field": "",
-        "jira_cache_max_size": 100,
-        "last_used_data_source": "JIRA",  # Default to JIRA (swapped order)
+        "last_used_data_source": "JIRA",  # Default to JIRA
         "active_jql_profile_id": "",  # Empty means use custom query
     }
 
@@ -1300,7 +1301,14 @@ def load_jira_configuration() -> Dict[str, Any]:
 
     # Check if migration is needed
     if "jira_config" not in app_settings:
+        # Preserve field_mappings before migration
+        field_mappings = app_settings.get("field_mappings", {})
+
         app_settings = migrate_jira_config(app_settings)
+
+        # Restore field_mappings after migration
+        if field_mappings:
+            app_settings["field_mappings"] = field_mappings
 
         # Save migrated settings back to file
         try:
@@ -1321,7 +1329,15 @@ def load_jira_configuration() -> Dict[str, Any]:
             "jira_max_results",
         ]
     ):
+        # Preserve field_mappings before cleanup
+        field_mappings = app_settings.get("field_mappings", {})
+
         app_settings = cleanup_legacy_jira_fields(app_settings)
+
+        # Restore field_mappings after cleanup
+        if field_mappings:
+            app_settings["field_mappings"] = field_mappings
+
         # Save cleaned settings
         try:
             with open(APP_SETTINGS_FILE, "w") as f:

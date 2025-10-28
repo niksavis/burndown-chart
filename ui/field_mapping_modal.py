@@ -40,6 +40,8 @@ def create_field_mapping_modal() -> dbc.Modal:
                     ),
                     # Status messages
                     html.Div(id="field-mapping-status"),
+                    # Hidden store for tracking successful save (triggers modal close)
+                    dcc.Store(id="field-mapping-save-success", data=None),
                 ],
             ),
             dbc.ModalFooter(
@@ -80,15 +82,38 @@ def create_field_mapping_form(
     Returns:
         html.Div containing the complete field mapping form
     """
-    # Prepare field options for dropdowns
-    field_options = [
-        {
+    # Separate standard fields from custom fields for better UX
+    standard_fields = []
+    custom_fields = []
+
+    for field in available_fields:
+        field_option = {
             "label": f"{field['field_name']} ({field['field_id']})",
             "value": field["field_id"],
         }
-        for field in available_fields
-    ]
-    field_options.insert(0, {"label": "-- Not Mapped --", "value": ""})
+        if field["field_id"].startswith("customfield_"):
+            custom_fields.append(field_option)
+        else:
+            standard_fields.append(field_option)
+
+    # Sort each group alphabetically
+    standard_fields.sort(key=lambda x: x["label"])
+    custom_fields.sort(key=lambda x: x["label"])
+
+    # Prepare field options with standard fields first (easier to find)
+    field_options = [{"label": "-- Not Mapped --", "value": ""}]
+
+    if standard_fields:
+        field_options.append(
+            {"label": "─── Standard Jira Fields ───", "value": "_separator_std_"}
+        )
+        field_options.extend(standard_fields)
+
+    if custom_fields:
+        field_options.append(
+            {"label": "─── Custom Fields ───", "value": "_separator_custom_"}
+        )
+        field_options.extend(custom_fields)
 
     # DORA metrics field mappings
     dora_section = create_metric_section(
@@ -289,9 +314,15 @@ def create_metric_section(
                             },
                             options=dash_options,
                             value=current_value,
-                            placeholder="Select Jira field...",
+                            placeholder="Type or select Jira field...",
                             className="mb-2",
                             clearable=True,
+                            searchable=True,  # Allow typing to search/filter
+                            optionHeight=50,  # Taller options for better readability
+                            maxHeight=300,  # Limit dropdown height for better UX
+                            style={
+                                "position": "relative"
+                            },  # Ensure proper positioning context
                         ),
                         # Validation message placeholder
                         html.Div(
@@ -301,6 +332,7 @@ def create_metric_section(
                     ],
                     width=12,
                     md=8,
+                    style={"overflow": "visible"},  # Allow dropdown to overflow column
                 ),
             ],
             className="mb-3",

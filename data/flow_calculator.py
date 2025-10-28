@@ -19,6 +19,47 @@ from configuration.flow_config import RECOMMENDED_FLOW_DISTRIBUTION
 logger = logging.getLogger(__name__)
 
 
+def _map_issue_type_to_flow_type(issue_type_value: Any) -> str:
+    """Map Jira issue type to Flow item type.
+
+    This function handles both custom Flow item type fields and standard Jira
+    issue types used as proxies.
+
+    Args:
+        issue_type_value: Jira field value (can be dict with 'name' or 'value', or string)
+
+    Returns:
+        Flow item type: "Feature", "Defect", "Risk", or "Technical_Debt"
+    """
+    # Extract string value from various formats
+    if isinstance(issue_type_value, dict):
+        # Could be {"name": "Bug"} or {"value": "Feature"}
+        type_str = issue_type_value.get("value") or issue_type_value.get(
+            "name", "Unknown"
+        )
+    else:
+        type_str = str(issue_type_value) if issue_type_value else "Unknown"
+
+    # Direct match for custom Flow item types
+    if type_str in ["Feature", "Defect", "Risk", "Technical_Debt"]:
+        return type_str
+
+    # Proxy mapping from standard Jira issue types
+    proxy_mapping = {
+        "Bug": "Defect",
+        "Story": "Feature",
+        "Improvement": "Feature",
+        "New Feature": "Feature",
+        "Task": "Technical_Debt",
+        "Sub-task": "Technical_Debt",
+        "Epic": "Feature",
+        "Spike": "Risk",
+        "Security": "Risk",
+    }
+
+    return proxy_mapping.get(type_str, "Feature")  # Default to Feature
+
+
 def _calculate_trend(
     current_value: Optional[float], previous_period_value: Optional[float]
 ) -> Dict[str, Any]:
@@ -116,10 +157,7 @@ def calculate_flow_velocity(
 
             # Get work type
             work_type_value = fields.get(flow_type_field)
-            if isinstance(work_type_value, dict):
-                work_type = work_type_value.get("value", "Unknown")
-            else:
-                work_type = work_type_value
+            work_type = _map_issue_type_to_flow_type(work_type_value)
 
             if work_type in type_counts:
                 type_counts[work_type] += 1
@@ -393,10 +431,7 @@ def calculate_flow_load(
                 # Get work type if available
                 if type_field:
                     work_type_value = fields.get(type_field)
-                    if isinstance(work_type_value, dict):
-                        work_type = work_type_value.get("value", "Unknown")
-                    else:
-                        work_type = work_type_value
+                    work_type = _map_issue_type_to_flow_type(work_type_value)
 
                     if work_type in type_counts:
                         type_counts[work_type] += 1
@@ -483,10 +518,7 @@ def calculate_flow_distribution(
 
             # Get work type
             work_type_value = fields.get(flow_type_field)
-            if isinstance(work_type_value, dict):
-                work_type = work_type_value.get("value", "Unknown")
-            else:
-                work_type = work_type_value
+            work_type = _map_issue_type_to_flow_type(work_type_value)
 
             if work_type in type_counts:
                 type_counts[work_type] += 1
