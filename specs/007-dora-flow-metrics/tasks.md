@@ -169,9 +169,9 @@
 - [X] T055 [P] [US5] Add trend chart generation to Flow charts: visualization/flow_charts.py with create_flow_velocity_trend(), create_flow_efficiency_trend() (already implemented)
 - [X] T056 [US5] Add "Show Trend" button to metric cards: ui/metric_cards.py::create_metric_card update with collapsible trend section ✅
 - [X] T057 [US5] Add trend callback: callbacks/dora_flow_metrics.py with toggle_trend_display() callback ✅
-- [ ] T058 [US5] Update metric calculation to include trend data: data/dora_calculator.py and data/flow_calculator.py to calculate trend_direction and trend_percentage
+- [X] T058 [US5] Update metric calculation to include trend data: data/dora_calculator.py and data/flow_calculator.py to calculate trend_direction and trend_percentage ✅
 
-**Checkpoint**: All metrics now have trend visualization capability for historical analysis
+**Checkpoint**: ✅ COMPLETE - All metrics now have trend visualization capability for historical analysis (Commit: afd3eb0)
 
 ---
 
@@ -183,18 +183,18 @@
 
 ### Tests for User Story 6
 
-- [ ] T059 [P] [US6] Unit test for CSV export: tests/unit/data/test_export.py::test_export_metrics_to_csv
-- [ ] T060 [P] [US6] Unit test for JSON export: tests/unit/data/test_export.py::test_export_metrics_to_json
-- [ ] T061 [P] [US6] Integration test for export workflow: tests/integration/test_dora_flow_workflow.py::test_export_metrics_downloads_file
+- [X] T059 [P] [US6] Unit test for CSV export: tests/unit/data/test_metrics_export.py::test_export_metrics_to_csv ✅
+- [X] T060 [P] [US6] Unit test for JSON export: tests/unit/data/test_metrics_export.py::test_export_metrics_to_json ✅
+- [ ] T061 [P] [US6] Integration test for export workflow: tests/integration/test_dora_flow_workflow.py::test_export_metrics_downloads_file (optional - deferred)
 
 ### Implementation for User Story 6
 
-- [ ] T062 [P] [US6] Create export module: data/metrics_export.py with export_to_csv() and export_to_json() functions
-- [ ] T063 [US6] Add export buttons to dashboards: ui/dora_metrics_dashboard.py and ui/flow_metrics_dashboard.py with export buttons
-- [ ] T064 [US6] Create export callback: callbacks/dora_flow_metrics.py with export_metrics() callback using dcc.Download
-- [ ] T065 [US6] Register export callback: callbacks/__init__.py update
+- [X] T062 [P] [US6] Create export module: data/metrics_export.py with export_to_csv() and export_to_json() functions ✅
+- [X] T063 [US6] Add export buttons to dashboards: ui/dora_metrics_dashboard.py and ui/flow_metrics_dashboard.py with export buttons ✅
+- [X] T064 [US6] Create export callback: callbacks/dora_flow_metrics.py with export_metrics() callback using dcc.Download ✅
+- [X] T065 [US6] Register export callback: callbacks/__init__.py update (auto-imported) ✅
 
-**Checkpoint**: All user stories complete - full feature set implemented and independently testable
+**Checkpoint**: ✅ COMPLETE - All user stories complete - full feature set implemented (export CSV/JSON for DORA and Flow metrics). 706/706 tests passing.
 
 ---
 

@@ -95,9 +95,45 @@ def create_dora_dashboard() -> dbc.Container:
                             ),
                         ],
                         width=12,
-                        md=12,
-                        lg=4,
+                        md=6,
+                        lg=2,
                         className="d-flex align-items-end justify-content-lg-end",
+                    ),
+                    dbc.Col(
+                        [
+                            dbc.ButtonGroup(
+                                [
+                                    dbc.Button(
+                                        [
+                                            html.I(className="fas fa-file-csv me-2"),
+                                            "Export CSV",
+                                        ],
+                                        id="export-dora-csv-button",
+                                        color="secondary",
+                                        outline=True,
+                                        size="md",
+                                    ),
+                                    dbc.Button(
+                                        [
+                                            html.I(className="fas fa-file-code me-2"),
+                                            "Export JSON",
+                                        ],
+                                        id="export-dora-json-button",
+                                        color="secondary",
+                                        outline=True,
+                                        size="md",
+                                    ),
+                                ],
+                                className="mt-4",
+                            ),
+                            # Download components (hidden, triggered by callbacks)
+                            dcc.Download(id="download-dora-csv"),
+                            dcc.Download(id="download-dora-json"),
+                        ],
+                        width=12,
+                        md=6,
+                        lg=4,
+                        className="d-flex align-items-end justify-content-lg-start",
                     ),
                 ],
                 className="mb-4",

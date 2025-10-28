@@ -383,3 +383,138 @@ def toggle_trend_display(n_clicks_list, is_open_list):
                 result.append(new_state)
 
     return result
+
+
+# Export callbacks
+
+
+@callback(
+    Output("download-dora-csv", "data"),
+    Input("export-dora-csv-button", "n_clicks"),
+    State("dora-metrics-store", "data"),
+    State("dora-time-period-select", "value"),
+    prevent_initial_call=True,
+)
+def export_dora_csv(n_clicks, metrics_data, time_period):
+    """Export DORA metrics to CSV format.
+
+    Args:
+        n_clicks: Button click counter (triggers callback)
+        metrics_data: Current DORA metrics data from store
+        time_period: Selected time period for context
+
+    Returns:
+        dict with filename and content for download
+    """
+    from data.metrics_export import export_dora_to_csv
+
+    if not metrics_data:
+        return no_update
+
+    # Generate CSV content
+    csv_content = export_dora_to_csv(metrics_data, f"{time_period} days")
+
+    # Generate filename with timestamp
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"dora_metrics_{timestamp}.csv"
+
+    return {"content": csv_content, "filename": filename}
+
+
+@callback(
+    Output("download-dora-json", "data"),
+    Input("export-dora-json-button", "n_clicks"),
+    State("dora-metrics-store", "data"),
+    State("dora-time-period-select", "value"),
+    prevent_initial_call=True,
+)
+def export_dora_json(n_clicks, metrics_data, time_period):
+    """Export DORA metrics to JSON format.
+
+    Args:
+        n_clicks: Button click counter (triggers callback)
+        metrics_data: Current DORA metrics data from store
+        time_period: Selected time period for context
+
+    Returns:
+        dict with filename and content for download
+    """
+    from data.metrics_export import export_dora_to_json
+
+    if not metrics_data:
+        return no_update
+
+    # Generate JSON content
+    json_content = export_dora_to_json(metrics_data, f"{time_period} days")
+
+    # Generate filename with timestamp
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"dora_metrics_{timestamp}.json"
+
+    return {"content": json_content, "filename": filename}
+
+
+@callback(
+    Output("download-flow-csv", "data"),
+    Input("export-flow-csv-button", "n_clicks"),
+    State("flow-metrics-store", "data"),
+    State("flow-time-period-select", "value"),
+    prevent_initial_call=True,
+)
+def export_flow_csv(n_clicks, metrics_data, time_period):
+    """Export Flow metrics to CSV format.
+
+    Args:
+        n_clicks: Button click counter (triggers callback)
+        metrics_data: Current Flow metrics data from store
+        time_period: Selected time period for context
+
+    Returns:
+        dict with filename and content for download
+    """
+    from data.metrics_export import export_flow_to_csv
+
+    if not metrics_data:
+        return no_update
+
+    # Generate CSV content
+    csv_content = export_flow_to_csv(metrics_data, f"{time_period} days")
+
+    # Generate filename with timestamp
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"flow_metrics_{timestamp}.csv"
+
+    return {"content": csv_content, "filename": filename}
+
+
+@callback(
+    Output("download-flow-json", "data"),
+    Input("export-flow-json-button", "n_clicks"),
+    State("flow-metrics-store", "data"),
+    State("flow-time-period-select", "value"),
+    prevent_initial_call=True,
+)
+def export_flow_json(n_clicks, metrics_data, time_period):
+    """Export Flow metrics to JSON format.
+
+    Args:
+        n_clicks: Button click counter (triggers callback)
+        metrics_data: Current Flow metrics data from store
+        time_period: Selected time period for context
+
+    Returns:
+        dict with filename and content for download
+    """
+    from data.metrics_export import export_flow_to_json
+
+    if not metrics_data:
+        return no_update
+
+    # Generate JSON content
+    json_content = export_flow_to_json(metrics_data, f"{time_period} days")
+
+    # Generate filename with timestamp
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"flow_metrics_{timestamp}.json"
+
+    return {"content": json_content, "filename": filename}

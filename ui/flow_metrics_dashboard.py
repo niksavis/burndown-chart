@@ -96,8 +96,45 @@ def create_flow_dashboard() -> dbc.Container:
                             ),
                         ],
                         width=12,
-                        lg=4,
+                        md=6,
+                        lg=2,
                         className="d-flex align-items-end justify-content-end",
+                    ),
+                    dbc.Col(
+                        [
+                            dbc.ButtonGroup(
+                                [
+                                    dbc.Button(
+                                        [
+                                            html.I(className="fas fa-file-csv me-2"),
+                                            "Export CSV",
+                                        ],
+                                        id="export-flow-csv-button",
+                                        color="secondary",
+                                        outline=True,
+                                        size="md",
+                                    ),
+                                    dbc.Button(
+                                        [
+                                            html.I(className="fas fa-file-code me-2"),
+                                            "Export JSON",
+                                        ],
+                                        id="export-flow-json-button",
+                                        color="secondary",
+                                        outline=True,
+                                        size="md",
+                                    ),
+                                ],
+                                className="float-end",
+                            ),
+                            # Download components (hidden, triggered by callbacks)
+                            dcc.Download(id="download-flow-csv"),
+                            dcc.Download(id="download-flow-json"),
+                        ],
+                        width=12,
+                        md=6,
+                        lg=4,
+                        className="d-flex align-items-end justify-content-start",
                     ),
                 ],
                 className="mb-4",
