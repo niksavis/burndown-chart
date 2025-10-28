@@ -137,7 +137,7 @@ class TestFormatDoraMetricsForDisplay:
         }
 
         result = format_dora_metrics_for_display(calculator_output)
-        
+
         # Should have entries for all 4 metrics
         assert "deployment_frequency" in result
         assert "lead_time_for_changes" in result
@@ -161,7 +161,7 @@ class TestDashboardIntegration:
         loading_grid = create_dora_loading_cards_grid()
         children = loading_grid.children
         assert children is not None  # Type guard
-        
+
         # DORA has exactly 4 metrics
         expected_metrics_count = 4
         assert len(children) == expected_metrics_count
