@@ -1165,16 +1165,18 @@ def register(app):
                 return bug_analysis_content, chart_cache, ui_state
 
             elif active_tab == "tab-dora-flow-metrics":
-                # Generate DORA/Flow metrics tab content directly
-                from ui.dora_metrics_dashboard import create_dora_dashboard
+                # Generate DORA/Flow metrics tab content with sub-tabs
+                from ui.dora_flow_combined_dashboard import (
+                    create_dora_flow_combined_dashboard,
+                )
 
-                # Render the DORA dashboard content
-                dora_content = create_dora_dashboard()
+                # Render the combined DORA/Flow dashboard content
+                dora_flow_content = create_dora_flow_combined_dashboard()
 
                 # Cache the result for next time
-                chart_cache[cache_key] = dora_content
+                chart_cache[cache_key] = dora_flow_content
                 ui_state["loading"] = False
-                return dora_content, chart_cache, ui_state
+                return dora_flow_content, chart_cache, ui_state
 
             # Default fallback (should not reach here)
             fallback_content = create_content_placeholder(

@@ -107,21 +107,21 @@
 
 ### Tests for User Story 2
 
-- [ ] T031 [P] [US2] Unit test for flow velocity calculation: tests/unit/data/test_flow_calculator.py::test_flow_velocity_calculation with type breakdown
-- [ ] T032 [P] [US2] Unit test for flow time calculation: tests/unit/data/test_flow_calculator.py::test_flow_time_calculation
-- [ ] T033 [P] [US2] Unit test for flow efficiency calculation: tests/unit/data/test_flow_calculator.py::test_flow_efficiency_calculation
-- [ ] T034 [P] [US2] Unit test for flow load calculation: tests/unit/data/test_flow_calculator.py::test_flow_load_calculation
-- [ ] T035 [P] [US2] Unit test for flow distribution calculation: tests/unit/data/test_flow_calculator.py::test_flow_distribution_with_recommended_ranges
-- [ ] T036 [P] [US2] Parametrized edge case tests: tests/unit/data/test_flow_calculator.py for missing work types, incomplete data
+- [X] T031 [P] [US2] Unit test for flow velocity calculation: tests/unit/data/test_flow_calculator.py::test_flow_velocity_calculation with type breakdown
+- [X] T032 [P] [US2] Unit test for flow time calculation: tests/unit/data/test_flow_calculator.py::test_flow_time_calculation
+- [X] T033 [P] [US2] Unit test for flow efficiency calculation: tests/unit/data/test_flow_calculator.py::test_flow_efficiency_calculation
+- [X] T034 [P] [US2] Unit test for flow load calculation: tests/unit/data/test_flow_calculator.py::test_flow_load_calculation
+- [X] T035 [P] [US2] Unit test for flow distribution calculation: tests/unit/data/test_flow_calculator.py::test_flow_distribution_with_recommended_ranges
+- [X] T036 [P] [US2] Parametrized edge case tests: tests/unit/data/test_flow_calculator.py for missing work types, incomplete data
 - [ ] T037 [P] [US2] Integration test for Flow workflow: tests/integration/test_dora_flow_workflow.py::test_complete_flow_workflow
 
 ### Implementation for User Story 2
 
-- [ ] T038 [US2] Implement Flow calculator: data/flow_calculator.py with calculate_flow_velocity(), calculate_flow_time(), calculate_flow_efficiency(), calculate_flow_load(), calculate_flow_distribution(), calculate_all_flow_metrics() (depends on T004)
-- [ ] T039 [P] [US2] Create Flow dashboard UI: ui/flow_metrics_dashboard.py with create_flow_dashboard() including distribution pie chart
-- [ ] T040 [P] [US2] Create Flow charts module: visualization/flow_charts.py with chart generation for distribution and efficiency trends
-- [ ] T041 [US2] Add Flow metrics callback: callbacks/dora_flow_metrics.py with update_flow_metrics() callback delegating to data layer (depends on T038)
-- [ ] T042 [US2] Update field mapping modal: ui/field_mapping_modal.py to include Flow field mappings section
+- [X] T038 [US2] Implement Flow calculator: data/flow_calculator.py with calculate_flow_velocity(), calculate_flow_time(), calculate_flow_efficiency(), calculate_flow_load(), calculate_flow_distribution(), calculate_all_flow_metrics() (depends on T004)
+- [X] T039 [P] [US2] Create Flow dashboard UI: ui/flow_metrics_dashboard.py with create_flow_dashboard() including distribution pie chart
+- [X] T040 [P] [US2] Create Flow charts module: visualization/flow_charts.py with chart generation for distribution and efficiency trends
+- [X] T041 [US2] Add Flow metrics callback: callbacks/dora_flow_metrics.py with update_flow_metrics() callback delegating to data layer (depends on T038)
+- [X] T042 [US2] Update field mapping modal: ui/field_mapping_modal.py to include Flow field mappings section (completed in Phase 4)
 - [ ] T043 [US2] Unit test for Flow dashboard UI: tests/unit/ui/test_flow_dashboard.py verifying distribution chart and metric cards
 
 **Checkpoint**: All three user stories (1, 2, 3) should now work independently - DORA metrics, Flow metrics, and field configuration all functional
