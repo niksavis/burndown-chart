@@ -12,12 +12,14 @@ logger = logging.getLogger(__name__)
 
 @callback(
     [
-        Output("settings-collapse", "is_open"),
+        Output("settings-collapse", "is_open", allow_duplicate=True),
         Output("parameter-collapse", "is_open", allow_duplicate=True),
         Output("jira-jql-query", "value", allow_duplicate=True),
         Output("jira-query-profile-selector", "value", allow_duplicate=True),
     ],
-    [Input("settings-button", "n_clicks")],
+    [
+        Input("settings-button", "n_clicks"),
+    ],
     [
         State("settings-collapse", "is_open"),
         State("parameter-collapse", "is_open"),
@@ -47,11 +49,15 @@ def toggle_settings_panel(settings_clicks, settings_is_open, parameter_is_open):
 
     # CRITICAL FIX: Prevent firing on initial button render
     if settings_clicks is None:
-        logger.warning("Clicks is None - this is initial render, keeping panel closed")
+        logger.warning(
+            "Settings button clicks is None - this is initial render, keeping panel closed"
+        )
         return False, no_update, no_update, no_update
 
     if settings_clicks == 0:
-        logger.warning("Clicks is 0 - this is initial state, keeping panel closed")
+        logger.warning(
+            "Settings button clicks is 0 - this is initial state, keeping panel closed"
+        )
         return False, no_update, no_update, no_update
 
     new_settings_state = not settings_is_open

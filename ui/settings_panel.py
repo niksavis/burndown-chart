@@ -131,9 +131,26 @@ def create_settings_panel_expanded(id_suffix: str = "") -> html.Div:
                                                         children=[],
                                                     ),
                                                     html.Div(
-                                                        create_jira_config_button(
-                                                            compact=True
-                                                        ),
+                                                        [
+                                                            dbc.Button(
+                                                                [
+                                                                    html.I(
+                                                                        className="fas fa-columns me-1"
+                                                                    ),
+                                                                    "Fields",
+                                                                ],
+                                                                id="open-field-mapping-modal",
+                                                                color="info",
+                                                                size="sm",
+                                                                outline=True,
+                                                                className="me-2",
+                                                                title="Configure DORA & Flow metrics field mappings",
+                                                            ),
+                                                            create_jira_config_button(
+                                                                compact=True
+                                                            ),
+                                                        ],
+                                                        className="d-flex",
                                                         style={"flexShrink": "0"},
                                                     ),
                                                 ],

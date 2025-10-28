@@ -174,8 +174,9 @@ def _create_error_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
             "icon": "fas fa-cog",
             "title": "⚙️ Field Mapping Required",
             "color": "warning",
-            "action_text": "Configure Mappings",
-            "action_id": "open-field-mapping-modal",
+            "action_text": "Open Settings",
+            "action_id": "open-settings-panel-button",
+            "message_override": "Configure JIRA field mappings in Settings to enable this metric.",
         },
         "no_data": {
             "icon": "fas fa-chart-line",
@@ -220,7 +221,10 @@ def _create_error_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
         [
             html.I(className=f"{config['icon']} fa-3x text-{config['color']} mb-3"),
             html.H5(config["title"], className="mb-3"),
-            html.P(error_message, className="text-muted mb-3"),
+            html.P(
+                config.get("message_override", error_message),
+                className="text-muted mb-3",
+            ),
             dbc.Button(
                 config["action_text"],
                 id=config["action_id"],

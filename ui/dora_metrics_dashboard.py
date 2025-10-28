@@ -35,23 +35,6 @@ def create_dora_dashboard() -> dbc.Container:
                             ),
                         ],
                         width=12,
-                        md=8,
-                    ),
-                    dbc.Col(
-                        [
-                            dbc.Button(
-                                [
-                                    html.I(className="fas fa-cog me-2"),
-                                    "Configure Field Mappings",
-                                ],
-                                id="open-field-mapping-modal",
-                                color="secondary",
-                                className="float-end",
-                            ),
-                        ],
-                        width=12,
-                        md=4,
-                        className="d-flex align-items-center justify-content-end",
                     ),
                 ],
                 className="mb-4",

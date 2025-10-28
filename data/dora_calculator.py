@@ -16,6 +16,37 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def _calculate_trend(
+    current_value: Optional[float], previous_value: Optional[float]
+) -> Dict[str, Any]:
+    """Calculate trend direction and percentage change.
+
+    Args:
+        current_value: Current period metric value
+        previous_value: Previous period metric value
+
+    Returns:
+        Dictionary with trend_direction ('up'/'down'/'stable') and trend_percentage
+    """
+    if current_value is None or previous_value is None or previous_value == 0:
+        return {"trend_direction": "stable", "trend_percentage": 0.0}
+
+    percentage_change = ((current_value - previous_value) / previous_value) * 100
+
+    # Consider changes less than 5% as stable
+    if abs(percentage_change) < 5:
+        return {
+            "trend_direction": "stable",
+            "trend_percentage": round(percentage_change, 1),
+        }
+
+    direction = "up" if percentage_change > 0 else "down"
+    return {
+        "trend_direction": direction,
+        "trend_percentage": round(percentage_change, 1),
+    }
+
+
 # DORA Performance Tier Benchmarks (from dora_config.py)
 DEPLOYMENT_FREQUENCY_TIERS = {
     "Elite": {
@@ -127,6 +158,7 @@ def calculate_deployment_frequency(
     issues: List[Dict[str, Any]],
     field_mappings: Dict[str, str],
     time_period_days: int = 30,
+    previous_period_value: Optional[float] = None,
 ) -> Dict[str, Any]:
     """Calculate deployment frequency metric.
 
@@ -134,9 +166,10 @@ def calculate_deployment_frequency(
         issues: List of deployment issue dictionaries from Jira
         field_mappings: Mapping of internal fields to Jira field IDs
         time_period_days: Time period for calculation (default 30 days)
+        previous_period_value: Previous period's metric value for trend calculation
 
     Returns:
-        Metric data dictionary with value, unit, performance tier, and metadata
+        Metric data dictionary with value, unit, performance tier, trend data, and metadata
     """
     # Check for required field mapping
     if "deployment_date" not in field_mappings:
@@ -150,6 +183,8 @@ def calculate_deployment_frequency(
             "performance_tier_color": None,
             "total_issue_count": len(issues),
             "excluded_issue_count": 0,
+            "trend_direction": "stable",
+            "trend_percentage": 0.0,
         }
 
     deployment_date_field = field_mappings["deployment_date"]
@@ -200,6 +235,8 @@ def calculate_deployment_frequency(
             "performance_tier_color": None,
             "total_issue_count": len(issues),
             "excluded_issue_count": excluded_count,
+            "trend_direction": "stable",
+            "trend_percentage": 0.0,
         }
 
     # Calculate deployment frequency (normalize to per-month)
@@ -210,6 +247,9 @@ def calculate_deployment_frequency(
     tier_info = _determine_performance_tier(
         deployments_per_month, DEPLOYMENT_FREQUENCY_TIERS
     )
+
+    # Calculate trend if previous period value is provided
+    trend_data = _calculate_trend(deployments_per_month, previous_period_value)
 
     return {
         "metric_name": "deployment_frequency",
@@ -224,21 +264,25 @@ def calculate_deployment_frequency(
         "calculation_timestamp": datetime.now().isoformat(),
         "time_period_start": start_date.isoformat(),
         "time_period_end": end_date.isoformat(),
+        "trend_direction": trend_data["trend_direction"],
+        "trend_percentage": trend_data["trend_percentage"],
     }
 
 
 def calculate_lead_time_for_changes(
     issues: List[Dict[str, Any]],
     field_mappings: Dict[str, str],
+    previous_period_value: Optional[float] = None,
 ) -> Dict[str, Any]:
     """Calculate lead time for changes metric.
 
     Args:
         issues: List of change issue dictionaries from Jira
         field_mappings: Mapping of internal fields to Jira field IDs
+        previous_period_value: Previous period's metric value for trend calculation
 
     Returns:
-        Metric data dictionary with value, unit, performance tier, and metadata
+        Metric data dictionary with value, unit, performance tier, trend data, and metadata
     """
     # Check for required field mappings
     required_fields = ["code_commit_date", "deployed_to_production_date"]
@@ -255,6 +299,8 @@ def calculate_lead_time_for_changes(
             "performance_tier_color": None,
             "total_issue_count": len(issues),
             "excluded_issue_count": 0,
+            "trend_direction": "stable",
+            "trend_percentage": 0.0,
         }
 
     commit_date_field = field_mappings["code_commit_date"]
@@ -301,6 +347,8 @@ def calculate_lead_time_for_changes(
             "performance_tier_color": None,
             "total_issue_count": len(issues),
             "excluded_issue_count": excluded_count,
+            "trend_direction": "stable",
+            "trend_percentage": 0.0,
         }
 
     # Calculate average lead time
@@ -308,6 +356,9 @@ def calculate_lead_time_for_changes(
 
     # Determine performance tier
     tier_info = _determine_performance_tier(avg_lead_time, LEAD_TIME_TIERS)
+
+    # Calculate trend if previous period value is provided
+    trend_data = _calculate_trend(avg_lead_time, previous_period_value)
 
     return {
         "metric_name": "lead_time_for_changes",
@@ -320,6 +371,8 @@ def calculate_lead_time_for_changes(
         "total_issue_count": len(issues),
         "excluded_issue_count": excluded_count,
         "calculation_timestamp": datetime.now().isoformat(),
+        "trend_direction": trend_data["trend_direction"],
+        "trend_percentage": trend_data["trend_percentage"],
     }
 
 
@@ -327,6 +380,7 @@ def calculate_change_failure_rate(
     deployment_issues: List[Dict[str, Any]],
     incident_issues: List[Dict[str, Any]],
     field_mappings: Dict[str, str],
+    previous_period_value: Optional[float] = None,
 ) -> Dict[str, Any]:
     """Calculate change failure rate metric.
 
@@ -334,9 +388,10 @@ def calculate_change_failure_rate(
         deployment_issues: List of deployment issue dictionaries from Jira
         incident_issues: List of incident issue dictionaries from Jira
         field_mappings: Mapping of internal fields to Jira field IDs
+        previous_period_value: Previous period's metric value for trend calculation
 
     Returns:
-        Metric data dictionary with value, unit, performance tier, and metadata
+        Metric data dictionary with value, unit, performance tier, trend data, and metadata
     """
     # Check for required field mappings
     if "deployment_date" not in field_mappings:
@@ -350,6 +405,8 @@ def calculate_change_failure_rate(
             "performance_tier_color": None,
             "total_issue_count": len(deployment_issues) + len(incident_issues),
             "excluded_issue_count": 0,
+            "trend_direction": "stable",
+            "trend_percentage": 0.0,
         }
 
     # Count total deployments
@@ -366,6 +423,8 @@ def calculate_change_failure_rate(
             "performance_tier_color": None,
             "total_issue_count": 0,
             "excluded_issue_count": 0,
+            "trend_direction": "stable",
+            "trend_percentage": 0.0,
         }
 
     # Count production incidents
@@ -393,6 +452,9 @@ def calculate_change_failure_rate(
     # Determine performance tier
     tier_info = _determine_performance_tier(failure_rate, CHANGE_FAILURE_RATE_TIERS)
 
+    # Calculate trend if previous period value is provided
+    trend_data = _calculate_trend(failure_rate, previous_period_value)
+
     return {
         "metric_name": "change_failure_rate",
         "value": round(failure_rate, 1),
@@ -408,21 +470,25 @@ def calculate_change_failure_rate(
             "deployment_count": deployment_count,
             "incident_count": incident_count,
         },
+        "trend_direction": trend_data["trend_direction"],
+        "trend_percentage": trend_data["trend_percentage"],
     }
 
 
 def calculate_mean_time_to_recovery(
     issues: List[Dict[str, Any]],
     field_mappings: Dict[str, str],
+    previous_period_value: Optional[float] = None,
 ) -> Dict[str, Any]:
     """Calculate mean time to recovery (MTTR) metric.
 
     Args:
         issues: List of incident issue dictionaries from Jira
         field_mappings: Mapping of internal fields to Jira field IDs
+        previous_period_value: Previous period's metric value for trend calculation
 
     Returns:
-        Metric data dictionary with value, unit, performance tier, and metadata
+        Metric data dictionary with value, unit, performance tier, trend data, and metadata
     """
     # Check for required field mappings
     required_fields = ["incident_detected_at", "incident_resolved_at"]
@@ -439,6 +505,8 @@ def calculate_mean_time_to_recovery(
             "performance_tier_color": None,
             "total_issue_count": len(issues),
             "excluded_issue_count": 0,
+            "trend_direction": "stable",
+            "trend_percentage": 0.0,
         }
 
     detected_field = field_mappings["incident_detected_at"]
@@ -486,6 +554,8 @@ def calculate_mean_time_to_recovery(
             "performance_tier_color": None,
             "total_issue_count": len(issues),
             "excluded_issue_count": excluded_count,
+            "trend_direction": "stable",
+            "trend_percentage": 0.0,
         }
 
     # Calculate average recovery time
@@ -493,6 +563,9 @@ def calculate_mean_time_to_recovery(
 
     # Determine performance tier
     tier_info = _determine_performance_tier(avg_recovery_time, MTTR_TIERS)
+
+    # Calculate trend if previous period value is provided
+    trend_data = _calculate_trend(avg_recovery_time, previous_period_value)
 
     return {
         "metric_name": "mean_time_to_recovery",
@@ -505,6 +578,8 @@ def calculate_mean_time_to_recovery(
         "total_issue_count": len(issues),
         "excluded_issue_count": excluded_count,
         "calculation_timestamp": datetime.now().isoformat(),
+        "trend_direction": trend_data["trend_direction"],
+        "trend_percentage": trend_data["trend_percentage"],
     }
 
 

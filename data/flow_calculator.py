@@ -12,11 +12,48 @@ Reference: DORA_Flow_Jira_Mapping.md, Flow Framework (Mik Kersten)
 
 import logging
 from datetime import datetime
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 
 from configuration.flow_config import RECOMMENDED_FLOW_DISTRIBUTION
 
 logger = logging.getLogger(__name__)
+
+
+def _calculate_trend(
+    current_value: Optional[float], previous_period_value: Optional[float]
+) -> Dict[str, Any]:
+    """Calculate trend direction and percentage change.
+
+    Args:
+        current_value: Current period metric value
+        previous_period_value: Previous period metric value
+
+    Returns:
+        Dictionary with trend_direction ('up'/'down'/'stable') and trend_percentage
+    """
+    if (
+        current_value is None
+        or previous_period_value is None
+        or previous_period_value == 0
+    ):
+        return {"trend_direction": "stable", "trend_percentage": 0.0}
+
+    percentage_change = (
+        (current_value - previous_period_value) / previous_period_value
+    ) * 100
+
+    # Consider changes less than 5% as stable
+    if abs(percentage_change) < 5:
+        return {
+            "trend_direction": "stable",
+            "trend_percentage": round(percentage_change, 1),
+        }
+
+    direction = "up" if percentage_change > 0 else "down"
+    return {
+        "trend_direction": direction,
+        "trend_percentage": round(percentage_change, 1),
+    }
 
 
 def calculate_flow_velocity(

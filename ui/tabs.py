@@ -101,13 +101,22 @@ TAB_CONFIG: List[TabConfig] = [
         "help_content_id": "help-bug-analysis",
     },
     {
-        "id": "tab-dora-flow-metrics",
-        "label": "DORA & Flow Metrics",
-        "icon": "fa-chart-pie",
-        "color": get_color("info"),
+        "id": "tab-dora-metrics",
+        "label": "DORA Metrics",
+        "icon": "fa-rocket",
+        "color": get_color("primary"),
         "order": 6,
         "requires_data": False,  # Has its own data loading
-        "help_content_id": "help-dora-flow",
+        "help_content_id": "help-dora",
+    },
+    {
+        "id": "tab-flow-metrics",
+        "label": "Flow Metrics",
+        "icon": "fa-stream",
+        "color": get_color("success"),
+        "order": 7,
+        "requires_data": False,  # Has its own data loading
+        "help_content_id": "help-flow",
     },
 ]
 
@@ -226,7 +235,8 @@ def create_tab_content(active_tab, charts, statistics_df=None, pert_data=None):
         "tab-points",
         "tab-scope-tracking",
         "tab-bug-analysis",
-        "tab-dora-flow-metrics",
+        "tab-dora-metrics",
+        "tab-flow-metrics",
     ]:
         active_tab = "tab-burndown"
 
@@ -237,7 +247,8 @@ def create_tab_content(active_tab, charts, statistics_df=None, pert_data=None):
         "tab-points": create_points_forecast_info_card(statistics_df, pert_data),
         "tab-scope-tracking": html.Div(),  # Always provide a component, even if empty
         "tab-bug-analysis": html.Div(),  # Bug analysis has its own info cards in the content
-        "tab-dora-flow-metrics": html.Div(),  # DORA dashboard has its own info cards in the content
+        "tab-dora-metrics": html.Div(),  # DORA dashboard has its own info cards in the content
+        "tab-flow-metrics": html.Div(),  # Flow dashboard has its own info cards in the content
     }
 
     # Enhanced tab titles with more descriptive content and icons
@@ -294,13 +305,23 @@ def create_tab_content(active_tab, charts, statistics_df=None, pert_data=None):
             ],
             className="mb-3 border-bottom pb-2 d-flex align-items-center fw-bold",
         ),
-        "tab-dora-flow-metrics": html.Div(
+        "tab-dora-metrics": html.Div(
             [
                 html.I(
-                    className="fas fa-chart-pie me-2",
+                    className="fas fa-rocket me-2",
                     style={"color": get_color("primary")},
                 ),
-                "DORA & Flow Metrics",
+                "DORA Metrics",
+            ],
+            className="mb-3 border-bottom pb-2 d-flex align-items-center fw-bold",
+        ),
+        "tab-flow-metrics": html.Div(
+            [
+                html.I(
+                    className="fas fa-stream me-2",
+                    style={"color": get_color("success")},
+                ),
+                "Flow Metrics",
             ],
             className="mb-3 border-bottom pb-2 d-flex align-items-center fw-bold",
         ),
