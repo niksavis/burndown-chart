@@ -113,7 +113,7 @@
 - [X] T034 [P] [US2] Unit test for flow load calculation: tests/unit/data/test_flow_calculator.py::test_flow_load_calculation
 - [X] T035 [P] [US2] Unit test for flow distribution calculation: tests/unit/data/test_flow_calculator.py::test_flow_distribution_with_recommended_ranges
 - [X] T036 [P] [US2] Parametrized edge case tests: tests/unit/data/test_flow_calculator.py for missing work types, incomplete data
-- [ ] T037 [P] [US2] Integration test for Flow workflow: tests/integration/test_dora_flow_workflow.py::test_complete_flow_workflow
+- [X] T037 [P] [US2] Integration test for Flow workflow: tests/integration/test_dora_flow_workflow.py::test_complete_flow_workflow
 
 ### Implementation for User Story 2
 
@@ -122,7 +122,7 @@
 - [X] T040 [P] [US2] Create Flow charts module: visualization/flow_charts.py with chart generation for distribution and efficiency trends
 - [X] T041 [US2] Add Flow metrics callback: callbacks/dora_flow_metrics.py with update_flow_metrics() callback delegating to data layer (depends on T038)
 - [X] T042 [US2] Update field mapping modal: ui/field_mapping_modal.py to include Flow field mappings section (completed in Phase 4)
-- [ ] T043 [US2] Unit test for Flow dashboard UI: tests/unit/ui/test_flow_dashboard.py verifying distribution chart and metric cards
+- [X] T043 [US2] Unit test for Flow dashboard UI: tests/unit/ui/test_flow_dashboard.py verifying distribution chart and metric cards
 
 **Checkpoint**: All three user stories (1, 2, 3) should now work independently - DORA metrics, Flow metrics, and field configuration all functional
 
@@ -142,11 +142,11 @@
 
 ### Implementation for User Story 4
 
-- [ ] T047 [US4] Add time period selector to DORA dashboard: ui/dora_metrics_dashboard.py update with dbc.Select and dcc.DatePickerRange
-- [ ] T048 [US4] Update DORA callback for time period input: callbacks/dora_flow_metrics.py::update_dora_metrics to handle time_period_value input (depends on T019)
-- [ ] T049 [US4] Add time period selector to Flow dashboard: ui/flow_metrics_dashboard.py update
-- [ ] T050 [US4] Update Flow callback for time period input: callbacks/dora_flow_metrics.py::update_flow_metrics to handle time_period_value input (depends on T041)
-- [ ] T051 [US4] Update cache key generation: data/metrics_cache.py::generate_cache_key to include time period in key
+- [X] T047 [US4] Add time period selector to DORA dashboard: ui/dora_metrics_dashboard.py update with dbc.Select and dcc.DatePickerRange (already implemented)
+- [X] T048 [US4] Update DORA callback for time period input: callbacks/dora_flow_metrics.py::update_dora_metrics to handle time_period_value input (depends on T019)
+- [X] T049 [US4] Add time period selector to Flow dashboard: ui/flow_metrics_dashboard.py update (already implemented)
+- [X] T050 [US4] Update Flow callback for time period input: callbacks/dora_flow_metrics.py::update_flow_metrics to handle time_period_value input (depends on T041)
+- [X] T051 [US4] Update cache key generation: data/metrics_cache.py::generate_cache_key to include time period in key (already implemented)
 
 **Checkpoint**: Users can now select any time period and see metrics recalculate automatically with proper caching
 

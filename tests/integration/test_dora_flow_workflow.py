@@ -241,10 +241,149 @@ class TestCompleteDORAWorkflow:
 class TestCompleteFlowWorkflow:
     """Test complete Flow metrics workflow (will be implemented in Phase 5)."""
 
-    def test_complete_flow_workflow(self):
-        """Test complete Flow workflow: field mapping → calculation → caching."""
-        pytest.skip("T037: Flow workflow test - Phase 5 (US2)")
-        # Will be implemented when Flow metrics are added
+    @pytest.fixture
+    def temp_settings_file(self):
+        """Create temporary settings file for field mappings."""
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".json") as f:
+            temp_file = f.name
+        yield temp_file
+        if os.path.exists(temp_file):
+            os.unlink(temp_file)
+
+    @pytest.fixture
+    def temp_cache_file(self):
+        """Create temporary cache file for metrics."""
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".json") as f:
+            temp_file = f.name
+        yield temp_file
+        if os.path.exists(temp_file):
+            os.unlink(temp_file)
+
+    @pytest.fixture
+    def sample_jira_issues(self):
+        """Provide realistic Jira issue data for testing."""
+        base_date = datetime(2025, 1, 1, tzinfo=datetime.now().astimezone().tzinfo)
+        return [
+            {
+                "key": "FEATURE-1",
+                "fields": {
+                    "created": base_date.isoformat(),
+                    "resolutiondate": (base_date + timedelta(days=5)).isoformat(),
+                    "status": {"name": "Done"},
+                    "customfield_10007": "Feature",  # flow_item_type
+                    "customfield_10008": 40,  # active_work_time (hours)
+                },
+            },
+            {
+                "key": "DEFECT-1",
+                "fields": {
+                    "created": (base_date + timedelta(days=2)).isoformat(),
+                    "resolutiondate": (base_date + timedelta(days=4)).isoformat(),
+                    "status": {"name": "Done"},
+                    "customfield_10007": "Defect",
+                    "customfield_10008": 16,
+                },
+            },
+            {
+                "key": "RISK-1",
+                "fields": {
+                    "created": (base_date + timedelta(days=3)).isoformat(),
+                    "resolutiondate": None,  # In progress
+                    "status": {"name": "In Progress"},
+                    "customfield_10007": "Risk",
+                    "customfield_10008": 24,
+                },
+            },
+        ]
+
+    def test_complete_flow_workflow(
+        self, temp_settings_file, temp_cache_file, sample_jira_issues
+    ):
+        """Test complete Flow workflow: field mapping → calculation → caching.
+
+        T037: Integration test for Flow metrics workflow.
+        """
+        from data.field_mapper import save_field_mappings, load_field_mappings
+        from data.flow_calculator import calculate_all_flow_metrics
+        from data.metrics_cache import (
+            generate_cache_key,
+            save_cached_metrics,
+            load_cached_metrics,
+        )
+        from unittest.mock import patch
+        import os
+        from datetime import datetime, timedelta, timezone
+
+        # Step 1: Configure Flow field mappings
+        field_mappings = {
+            "field_mappings": {
+                "flow": {
+                    "flow_item_type": "customfield_10007",
+                    "status": "status",
+                    "created_date": "created",
+                    "completed_date": "resolutiondate",
+                    "active_work_time": "customfield_10008",
+                }
+            }
+        }
+
+        # Patch both locations where APP_SETTINGS_FILE is accessed
+        with (
+            patch("data.field_mapper.APP_SETTINGS_FILE", temp_settings_file),
+            patch("data.persistence.APP_SETTINGS_FILE", temp_settings_file),
+        ):
+            save_field_mappings(field_mappings)
+
+            # Verify mappings saved
+            loaded_mappings = load_field_mappings()
+            assert "field_mappings" in loaded_mappings
+            assert "flow" in loaded_mappings["field_mappings"]
+
+        # Step 2: Calculate Flow metrics using mapped fields
+        start_date = datetime.now(timezone.utc) - timedelta(days=30)
+        end_date = datetime.now(timezone.utc)
+
+        results = calculate_all_flow_metrics(
+            issues=sample_jira_issues,
+            field_mappings=field_mappings["field_mappings"]["flow"],
+            start_date=start_date,
+            end_date=end_date,
+        )
+
+        # Verify all five Flow metrics calculated
+        assert "flow_velocity" in results
+        assert "flow_time" in results
+        assert "flow_efficiency" in results
+        assert "flow_load" in results
+        assert "flow_distribution" in results
+
+        # Verify metrics have values or error states
+        for metric_name, metric_data in results.items():
+            assert "value" in metric_data or "error_state" in metric_data
+
+        # Step 3: Cache the calculated metrics
+        from data.field_mapper import get_field_mappings_hash
+
+        field_hash = get_field_mappings_hash()
+        cache_key = generate_cache_key(
+            "flow",
+            start_date.isoformat(),
+            end_date.isoformat(),
+            field_hash,
+        )
+
+        with patch("data.metrics_cache.CACHE_FILE", temp_cache_file):
+            save_cached_metrics(cache_key, results)
+
+            # Verify cache saved
+            assert os.path.exists(temp_cache_file)
+
+            # Step 4: Retrieve metrics from cache (fast path)
+            cached_results = load_cached_metrics(cache_key)
+
+            # Verify cache hit
+            assert cached_results is not None
+            assert "flow_velocity" in cached_results
 
 
 class TestTimePeriodSelection:

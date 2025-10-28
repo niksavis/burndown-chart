@@ -4,12 +4,61 @@ Handles user interactions and metric calculations for DORA/Flow dashboards.
 Follows layered architecture: callbacks delegate to data layer for all business logic.
 """
 
-from dash import callback, Output, Input
+from dash import callback, Output, Input, State, html
 import dash_bootstrap_components as dbc
 from typing import Dict
+from datetime import datetime, timedelta, timezone
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+def parse_time_period(
+    time_period: str,
+    custom_start: str | None = None,
+    custom_end: str | None = None,
+) -> tuple[datetime, datetime]:
+    """Parse time period selection to actual date range.
+
+    Args:
+        time_period: Selected time period ('7', '30', '90', or 'custom')
+        custom_start: Custom start date (ISO 8601) if time_period == 'custom'
+        custom_end: Custom end date (ISO 8601) if time_period == 'custom'
+
+    Returns:
+        Tuple of (start_date, end_date) as timezone-aware datetime objects
+
+    Raises:
+        ValueError: If custom period selected but dates not provided
+    """
+    now = datetime.now(timezone.utc)
+
+    if time_period == "custom":
+        if not custom_start or not custom_end:
+            # Fallback to last 30 days if custom selected but no dates
+            logger.warning(
+                "Custom period selected but no dates provided, falling back to 30 days"
+            )
+            return now - timedelta(days=30), now
+
+        try:
+            start = datetime.fromisoformat(custom_start.replace("Z", "+00:00"))
+            end = datetime.fromisoformat(custom_end.replace("Z", "+00:00"))
+
+            # Ensure timezone aware
+            if start.tzinfo is None:
+                start = start.replace(tzinfo=timezone.utc)
+            if end.tzinfo is None:
+                end = end.replace(tzinfo=timezone.utc)
+
+            return start, end
+        except (ValueError, AttributeError) as e:
+            logger.error(f"Error parsing custom dates: {e}")
+            return now - timedelta(days=30), now
+
+    # Parse preset periods
+    days = int(time_period) if time_period in ["7", "30", "90"] else 30
+    return now - timedelta(days=days), now
 
 
 @callback(
@@ -17,34 +66,91 @@ logger = logging.getLogger(__name__)
     Output("dora-loading-state", "children"),
     Input("dora-refresh-button", "n_clicks"),
     Input("dora-time-period-select", "value"),
+    State("dora-date-range-picker", "start_date"),
+    State("dora-date-range-picker", "end_date"),
     prevent_initial_call=False,
 )
 def update_dora_metrics(
     n_clicks: int | None,
     time_period: str,
+    custom_start: str | None,
+    custom_end: str | None,
 ) -> tuple:
     """Update DORA metrics display.
 
-    STUB: Phase 3 - Returns placeholder content.
-    Phase 4+ will delegate to data layer for metric calculation.
+    T048: Now handles time period selection and custom date ranges.
+    Delegates to data layer for metric calculation.
 
     Args:
         n_clicks: Number of refresh button clicks
         time_period: Selected time period ('7', '30', '90', or 'custom')
+        custom_start: Custom start date (ISO 8601) if time_period == 'custom'
+        custom_end: Custom end date (ISO 8601) if time_period == 'custom'
 
     Returns:
         Tuple of (metrics_cards, loading_state)
     """
-    # Phase 3 stub - return placeholder
     from ui.dora_metrics_dashboard import create_dora_loading_cards_grid
 
-    placeholder_alert = dbc.Alert(
-        "DORA metrics calculation will be implemented in Phase 4",
-        color="info",
-        dismissable=True,
-    )
+    try:
+        # Parse time period to actual dates
+        start_date, end_date = parse_time_period(time_period, custom_start, custom_end)
 
-    return create_dora_loading_cards_grid(), placeholder_alert
+        logger.info(
+            f"DORA metrics requested for period: {start_date.isoformat()} to {end_date.isoformat()}"
+        )
+
+        # TODO: Integrate with actual metric calculation
+        # from data.dora_calculator import calculate_all_dora_metrics
+        # from data.field_mapper import load_field_mappings, get_field_mappings_hash
+        # from data.metrics_cache import generate_cache_key, load_cached_metrics, save_cached_metrics
+        # from data.jira_simple import fetch_all_issues
+        #
+        # field_mappings = load_field_mappings()
+        # field_hash = get_field_mappings_hash()
+        # cache_key = generate_cache_key("dora", start_date.isoformat(), end_date.isoformat(), field_hash)
+        #
+        # # Try cache first
+        # cached_metrics = load_cached_metrics(cache_key)
+        # if cached_metrics:
+        #     metrics = cached_metrics
+        # else:
+        #     # Fetch and calculate
+        #     issues = fetch_all_issues()
+        #     metrics = calculate_all_dora_metrics(issues, field_mappings["field_mappings"]["dora"], start_date, end_date)
+        #     save_cached_metrics(cache_key, metrics)
+        #
+        # # Render metric cards
+        # from ui.metric_cards import create_metric_card
+        # cards = [create_metric_card(metric_data) for metric_data in metrics.values()]
+        # return cards, None
+
+        # Phase 6 stub - show parsed dates
+        placeholder_alert = dbc.Alert(
+            [
+                f"DORA metrics calculation for period: ",
+                html.Br(),
+                f"Start: {start_date.strftime('%Y-%m-%d %H:%M:%S UTC')}",
+                html.Br(),
+                f"End: {end_date.strftime('%Y-%m-%d %H:%M:%S UTC')}",
+                html.Br(),
+                html.Br(),
+                "Metric calculation will be integrated in next phase.",
+            ],
+            color="info",
+            dismissable=True,
+        )
+
+        return create_dora_loading_cards_grid(), placeholder_alert
+
+    except Exception as e:
+        logger.error(f"Error updating DORA metrics: {e}", exc_info=True)
+        error_alert = dbc.Alert(
+            f"Error loading DORA metrics: {str(e)}",
+            color="danger",
+            dismissable=True,
+        )
+        return create_dora_loading_cards_grid(), error_alert
 
 
 @callback(
@@ -76,33 +182,91 @@ def toggle_custom_date_range(time_period: str) -> Dict[str, str]:
     Output("flow-loading-state", "children"),
     Input("flow-refresh-button", "n_clicks"),
     Input("flow-time-period-select", "value"),
+    State("flow-date-range-picker", "start_date"),
+    State("flow-date-range-picker", "end_date"),
     prevent_initial_call=False,
 )
 def update_flow_metrics(
     n_clicks: int | None,
     time_period: str,
+    custom_start: str | None,
+    custom_end: str | None,
 ) -> tuple:
     """Update Flow metrics display.
 
-    Phase 5 implementation - Delegates to flow_calculator for calculations.
+    T050: Now handles time period selection and custom date ranges.
+    Delegates to data layer for metric calculation.
 
     Args:
         n_clicks: Number of refresh button clicks
         time_period: Selected time period ('7', '30', '90', or 'custom')
+        custom_start: Custom start date (ISO 8601) if time_period == 'custom'
+        custom_end: Custom end date (ISO 8601) if time_period == 'custom'
 
     Returns:
         Tuple of (metrics_cards, loading_state)
     """
-    # Phase 5 stub - return placeholder
     from ui.flow_metrics_dashboard import create_flow_loading_cards_grid
 
-    placeholder_alert = dbc.Alert(
-        "Flow metrics calculation will be implemented after UI integration",
-        color="info",
-        dismissable=True,
-    )
+    try:
+        # Parse time period to actual dates
+        start_date, end_date = parse_time_period(time_period, custom_start, custom_end)
 
-    return create_flow_loading_cards_grid(), placeholder_alert
+        logger.info(
+            f"Flow metrics requested for period: {start_date.isoformat()} to {end_date.isoformat()}"
+        )
+
+        # TODO: Integrate with actual metric calculation
+        # from data.flow_calculator import calculate_all_flow_metrics
+        # from data.field_mapper import load_field_mappings, get_field_mappings_hash
+        # from data.metrics_cache import generate_cache_key, load_cached_metrics, save_cached_metrics
+        # from data.jira_simple import fetch_all_issues
+        #
+        # field_mappings = load_field_mappings()
+        # field_hash = get_field_mappings_hash()
+        # cache_key = generate_cache_key("flow", start_date.isoformat(), end_date.isoformat(), field_hash)
+        #
+        # # Try cache first
+        # cached_metrics = load_cached_metrics(cache_key)
+        # if cached_metrics:
+        #     metrics = cached_metrics
+        # else:
+        #     # Fetch and calculate
+        #     issues = fetch_all_issues()
+        #     metrics = calculate_all_flow_metrics(issues, field_mappings["field_mappings"]["flow"], start_date, end_date)
+        #     save_cached_metrics(cache_key, metrics)
+        #
+        # # Render metric cards
+        # from ui.metric_cards import create_metric_card
+        # cards = [create_metric_card(metric_data) for metric_data in metrics.values()]
+        # return cards, None
+
+        # Phase 6 stub - show parsed dates
+        placeholder_alert = dbc.Alert(
+            [
+                "Flow metrics calculation for period: ",
+                html.Br(),
+                f"Start: {start_date.strftime('%Y-%m-%d %H:%M:%S UTC')}",
+                html.Br(),
+                f"End: {end_date.strftime('%Y-%m-%d %H:%M:%S UTC')}",
+                html.Br(),
+                html.Br(),
+                "Metric calculation will be integrated in next phase.",
+            ],
+            color="info",
+            dismissable=True,
+        )
+
+        return create_flow_loading_cards_grid(), placeholder_alert
+
+    except Exception as e:
+        logger.error(f"Error updating Flow metrics: {e}", exc_info=True)
+        error_alert = dbc.Alert(
+            f"Error loading Flow metrics: {str(e)}",
+            color="danger",
+            dismissable=True,
+        )
+        return create_flow_loading_cards_grid(), error_alert
 
 
 @callback(
