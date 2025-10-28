@@ -282,7 +282,11 @@ def create_metric_section(
                 dbc.Col(
                     [
                         dcc.Dropdown(
-                            id=f"field-mapping-{metric_type}-{field_id}",
+                            id={
+                                "type": "field-mapping-dropdown",
+                                "metric": metric_type,
+                                "field": field_id,
+                            },
                             options=dash_options,
                             value=current_value,
                             placeholder="Select Jira field...",

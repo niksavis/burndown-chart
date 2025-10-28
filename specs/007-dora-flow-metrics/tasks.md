@@ -90,10 +90,10 @@
 ### Implementation for User Story 3
 
 - [X] T026 [P] [US3] Create field mapping modal UI: ui/field_mapping_modal.py with create_field_mapping_modal() including dropdowns for all DORA and Flow fields
-- [ ] T027 [US3] Create field mapping callback: callbacks/field_mapping.py with populate_field_options() and save_mappings() callbacks (depends on T004)
-- [ ] T028 [US3] Add "Configure Mappings" button to DORA dashboard: ui/dora_metrics_dashboard.py update
-- [ ] T029 [US3] Register field mapping callback: callbacks/__init__.py to import field_mapping module
-- [ ] T030 [US3] Unit test for field mapping modal: tests/unit/ui/test_field_mapping_modal.py verifying modal structure and validation messages
+- [X] T027 [US3] Create field mapping callback: callbacks/field_mapping.py with populate_field_options() and save_mappings() callbacks (depends on T004)
+- [X] T028 [US3] Add "Configure Mappings" button to DORA dashboard: ui/dora_metrics_dashboard.py update
+- [X] T029 [US3] Register field mapping callback: callbacks/__init__.py to import field_mapping module
+- [X] T030 [US3] Unit test for field mapping modal: tests/unit/ui/test_field_mapping_modal.py verifying modal structure and validation messages
 
 **Checkpoint**: At this point, User Stories 1 AND 3 should work together - can configure field mappings and see DORA metrics recalculate
 
