@@ -286,3 +286,175 @@ def create_dora_summary_chart(metrics_data: Dict[str, Dict[str, Any]]) -> go.Fig
     )
 
     return fig
+
+
+# ============================================================================
+# Trend Chart Functions (Phase 7 - User Story 5)
+# ============================================================================
+
+
+def create_deployment_frequency_trend(
+    trend_data: List[Dict[str, Any]], metric_data: Dict[str, Any]
+) -> go.Figure:
+    """Create deployment frequency trend chart over time.
+
+    T054: Trend visualization for Deployment Frequency metric.
+
+    Args:
+        trend_data: List of historical data points with date and value
+            [{"date": "2025-01-01", "value": 30.5}, ...]
+        metric_data: Current metric metadata (tier, benchmarks)
+
+    Returns:
+        Plotly figure with trend line and benchmark zones
+    """
+    if not trend_data or len(trend_data) == 0:
+        # Return empty figure with message
+        fig = go.Figure()
+        fig.add_annotation(
+            text="No historical data available for trend analysis",
+            xref="paper",
+            yref="paper",
+            x=0.5,
+            y=0.5,
+            showarrow=False,
+            font=dict(size=14),
+        )
+        fig.update_layout(
+            title="Deployment Frequency Trend",
+            height=300,
+            template="plotly_white",
+        )
+        return fig
+
+    # Parse dates and values
+    dates = [datetime.fromisoformat(d["date"]) for d in trend_data]
+    values = [d["value"] for d in trend_data]
+
+    fig = go.Figure()
+
+    # Add trend line
+    fig.add_trace(
+        go.Scatter(
+            x=dates,
+            y=values,
+            mode="lines+markers",
+            name="Deployment Frequency",
+            line=dict(color="#0d6efd", width=3),
+            marker=dict(size=8, color="#0d6efd"),
+            hovertemplate="<b>%{x|%Y-%m-%d}</b><br>"
+            + "Deployments: %{y:.1f}/month<br>"
+            + "<extra></extra>",
+        )
+    )
+
+    # Add benchmark zones as horizontal lines
+    # Elite: > 30/month, High: 4-30/month, Medium: 1-4/month, Low: < 1/month
+    benchmark_lines = [
+        {"value": 30, "name": "Elite", "color": "rgba(40, 167, 69, 0.2)"},
+        {"value": 4, "name": "High", "color": "rgba(255, 193, 7, 0.2)"},
+        {"value": 1, "name": "Medium", "color": "rgba(255, 152, 0, 0.2)"},
+    ]
+
+    for benchmark in benchmark_lines:
+        fig.add_hline(
+            y=benchmark["value"],
+            line_dash="dash",
+            line_color=benchmark["color"].replace("0.2", "0.8"),
+            annotation_text=benchmark["name"],
+            annotation_position="right",
+        )
+
+    fig.update_layout(
+        title="Deployment Frequency Trend",
+        xaxis_title="Date",
+        yaxis_title="Deployments per Month",
+        hovermode="x unified",
+        template="plotly_white",
+        height=350,
+        margin=dict(l=50, r=50, t=50, b=50),
+    )
+
+    return fig
+
+
+def create_lead_time_trend(
+    trend_data: List[Dict[str, Any]], metric_data: Dict[str, Any]
+) -> go.Figure:
+    """Create lead time for changes trend chart over time.
+
+    T054: Trend visualization for Lead Time metric.
+
+    Args:
+        trend_data: List of historical data points with date and value
+        metric_data: Current metric metadata (tier, benchmarks)
+
+    Returns:
+        Plotly figure with trend line and benchmark zones
+    """
+    if not trend_data or len(trend_data) == 0:
+        fig = go.Figure()
+        fig.add_annotation(
+            text="No historical data available for trend analysis",
+            xref="paper",
+            yref="paper",
+            x=0.5,
+            y=0.5,
+            showarrow=False,
+            font=dict(size=14),
+        )
+        fig.update_layout(
+            title="Lead Time for Changes Trend",
+            height=300,
+            template="plotly_white",
+        )
+        return fig
+
+    dates = [datetime.fromisoformat(d["date"]) for d in trend_data]
+    values = [d["value"] for d in trend_data]
+
+    fig = go.Figure()
+
+    # Add trend line
+    fig.add_trace(
+        go.Scatter(
+            x=dates,
+            y=values,
+            mode="lines+markers",
+            name="Lead Time",
+            line=dict(color="#6610f2", width=3),
+            marker=dict(size=8, color="#6610f2"),
+            hovertemplate="<b>%{x|%Y-%m-%d}</b><br>"
+            + "Lead Time: %{y:.1f} days<br>"
+            + "<extra></extra>",
+        )
+    )
+
+    # Add benchmark zones
+    # Elite: < 1 day, High: 1-7 days, Medium: 7-30 days, Low: > 30 days
+    benchmark_lines = [
+        {"value": 1, "name": "Elite", "color": "rgba(40, 167, 69, 0.2)"},
+        {"value": 7, "name": "High", "color": "rgba(255, 193, 7, 0.2)"},
+        {"value": 30, "name": "Medium", "color": "rgba(255, 152, 0, 0.2)"},
+    ]
+
+    for benchmark in benchmark_lines:
+        fig.add_hline(
+            y=benchmark["value"],
+            line_dash="dash",
+            line_color=benchmark["color"].replace("0.2", "0.8"),
+            annotation_text=benchmark["name"],
+            annotation_position="right",
+        )
+
+    fig.update_layout(
+        title="Lead Time for Changes Trend",
+        xaxis_title="Date",
+        yaxis_title="Days",
+        hovermode="x unified",
+        template="plotly_white",
+        height=350,
+        margin=dict(l=50, r=50, t=50, b=50),
+    )
+
+    return fig

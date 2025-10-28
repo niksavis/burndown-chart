@@ -57,7 +57,10 @@ def create_metric_card(metric_data: dict, card_id: Optional[str] = None) -> dbc.
 
 
 def _create_success_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
-    """Create card for successful metric calculation."""
+    """Create card for successful metric calculation.
+
+    T056: Now includes collapsible trend section with "Show Trend" button.
+    """
     # Map performance tier colors to Bootstrap colors
     tier_color_map = {
         "green": "success",
@@ -102,19 +105,56 @@ def _create_success_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
 
     card_header = dbc.CardHeader(header_children)
 
-    card_body = dbc.CardBody(
-        [
-            # Metric value (large, centered)
-            html.H2(formatted_value, className="text-center metric-value mb-2"),
-            # Unit (smaller, centered)
-            html.P(
-                metric_data.get("unit", ""),
-                className="text-muted text-center metric-unit mb-3",
+    # Trend button and collapsible section (T056)
+    trend_collapse_id = f"{metric_name}-trend-collapse"
+    trend_button_id = f"{metric_name}-trend-button"
+
+    card_body_children = [
+        # Metric value (large, centered)
+        html.H2(formatted_value, className="text-center metric-value mb-2"),
+        # Unit (smaller, centered)
+        html.P(
+            metric_data.get("unit", ""),
+            className="text-muted text-center metric-unit mb-3",
+        ),
+        # Additional info
+        html.Small(_format_additional_info(metric_data), className="text-muted"),
+        # Show Trend button
+        html.Hr(className="my-3"),
+        dbc.Button(
+            [
+                html.I(className="fas fa-chart-line me-2"),
+                "Show Trend",
+            ],
+            id=trend_button_id,
+            color="link",
+            size="sm",
+            className="w-100",
+        ),
+        # Collapsible trend chart container
+        dbc.Collapse(
+            dbc.Card(
+                dbc.CardBody(
+                    [
+                        html.Div(
+                            id=f"{metric_name}-trend-chart",
+                            children=[
+                                html.P(
+                                    "Trend chart will be displayed here",
+                                    className="text-muted text-center my-3",
+                                )
+                            ],
+                        )
+                    ]
+                ),
+                className="mt-2",
             ),
-            # Additional info
-            html.Small(_format_additional_info(metric_data), className="text-muted"),
-        ]
-    )
+            id=trend_collapse_id,
+            is_open=False,
+        ),
+    ]
+
+    card_body = dbc.CardBody(card_body_children)
 
     return dbc.Card([card_header, card_body], **card_props)  # type: ignore[call-arg]
 

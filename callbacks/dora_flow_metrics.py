@@ -4,7 +4,7 @@ Handles user interactions and metric calculations for DORA/Flow dashboards.
 Follows layered architecture: callbacks delegate to data layer for all business logic.
 """
 
-from dash import callback, Output, Input, State, html
+from dash import callback, Output, Input, State, html, ALL, callback_context, no_update
 import dash_bootstrap_components as dbc
 from typing import Dict
 from datetime import datetime, timedelta, timezone
@@ -330,3 +330,56 @@ def switch_dora_flow_subtab(active_subtab: str):
         from ui.dora_metrics_dashboard import create_dora_dashboard
 
         return create_dora_dashboard()
+
+
+@callback(
+    Output({"type": "metric-trend-collapse", "metric": ALL}, "is_open"),
+    Input({"type": "metric-trend-button", "metric": ALL}, "n_clicks"),
+    State({"type": "metric-trend-collapse", "metric": ALL}, "is_open"),
+    prevent_initial_call=True,
+)
+def toggle_trend_display(n_clicks_list, is_open_list):
+    """Toggle trend chart visibility for metric cards using pattern matching.
+
+    Args:
+        n_clicks_list: List of n_clicks for each trend button
+        is_open_list: Current is_open state for each trend collapse
+
+    Returns:
+        List of updated is_open states for each trend collapse
+    """
+    # Find which button was clicked using ctx.triggered_id
+    if not callback_context.triggered:
+        return no_update
+
+    triggered_id = callback_context.triggered_id
+    if not triggered_id or not isinstance(triggered_id, dict):
+        return no_update
+
+    # Get the metric name that was clicked
+    clicked_metric = triggered_id.get("metric")
+    if not clicked_metric:
+        return no_update
+
+    # Toggle the state for the clicked metric, keep others unchanged
+    # We need to match against all callback contexts to find the right index
+    result = []
+    for output_id in callback_context.outputs_list:
+        if (
+            isinstance(output_id, dict)
+            and output_id.get("type") == "metric-trend-collapse"
+        ):
+            metric_name = output_id.get("metric")
+            # Find the current state for this metric
+            idx = len(result)
+            if idx < len(is_open_list):
+                current_state = is_open_list[idx]
+                # Toggle if this is the clicked metric, otherwise keep unchanged
+                new_state = (
+                    not current_state
+                    if metric_name == clicked_metric
+                    else current_state
+                )
+                result.append(new_state)
+
+    return result

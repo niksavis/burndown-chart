@@ -261,6 +261,17 @@ def get_mobile_tabs_config():
             }
         )
 
+    # Add DORA & Flow Metrics tab
+    tabs.append(
+        {
+            "id": "tab-dora-flow-metrics",
+            "label": "DORA & Flow Metrics",
+            "short_label": "DORA/Flow",
+            "icon": "fas fa-chart-pie",
+            "color": "#0dcaf0",  # info color
+        }
+    )
+
     return tabs
 
 

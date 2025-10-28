@@ -160,15 +160,15 @@
 
 ### Tests for User Story 5
 
-- [ ] T052 [P] [US5] Unit test for trend chart generation: tests/unit/visualization/test_dora_charts.py::test_create_trend_chart
+- [X] T052 [P] [US5] Unit test for trend chart generation: tests/unit/visualization/test_dora_charts.py::test_create_trend_chart
 - [ ] T053 [P] [US5] Integration test for trend display: tests/integration/test_dora_flow_workflow.py::test_show_trend_expands_chart
 
 ### Implementation for User Story 5
 
-- [ ] T054 [P] [US5] Add trend chart generation to DORA charts: visualization/dora_charts.py with create_deployment_frequency_trend(), create_lead_time_trend()
-- [ ] T055 [P] [US5] Add trend chart generation to Flow charts: visualization/flow_charts.py with create_flow_velocity_trend(), create_flow_efficiency_trend()
-- [ ] T056 [US5] Add "Show Trend" button to metric cards: ui/metric_cards.py::create_metric_card update with collapsible trend section
-- [ ] T057 [US5] Add trend callback: callbacks/dora_flow_metrics.py with toggle_trend_display() callback
+- [X] T054 [P] [US5] Add trend chart generation to DORA charts: visualization/dora_charts.py with create_deployment_frequency_trend(), create_lead_time_trend()
+- [X] T055 [P] [US5] Add trend chart generation to Flow charts: visualization/flow_charts.py with create_flow_velocity_trend(), create_flow_efficiency_trend() (already implemented)
+- [X] T056 [US5] Add "Show Trend" button to metric cards: ui/metric_cards.py::create_metric_card update with collapsible trend section ✅
+- [X] T057 [US5] Add trend callback: callbacks/dora_flow_metrics.py with toggle_trend_display() callback ✅
 - [ ] T058 [US5] Update metric calculation to include trend data: data/dora_calculator.py and data/flow_calculator.py to calculate trend_direction and trend_percentage
 
 **Checkpoint**: All metrics now have trend visualization capability for historical analysis
