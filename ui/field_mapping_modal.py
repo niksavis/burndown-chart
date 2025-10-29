@@ -172,10 +172,16 @@ def create_field_mapping_form(
                 "Was the deployment successful?",
             ),
             (
-                "production_impact",
-                "Production Impact",
+                "affected_environment",
+                "Affected Environment",
                 "select",
-                "What was the production impact level?",
+                "Which environment was affected? (e.g., PROD, DEV, STAGING) - Used to filter production incidents",
+            ),
+            (
+                "severity_level",
+                "Severity Level",
+                "select",
+                "What is the severity/priority? (e.g., High, Medium, Low) - Used to classify incident impact",
             ),
             (
                 "incident_related",
