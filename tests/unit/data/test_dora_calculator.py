@@ -28,24 +28,30 @@ class TestDeploymentFrequency:
         base_date = datetime.now() - timedelta(days=14)
         return [
             {
-                "key": "DEPLOY-1",
+                "key": "DEVOPS-1",
                 "fields": {
+                    "project": {"key": "DEVOPS", "name": "DevOps Project"},
+                    "issuetype": {"name": "Operational Task"},
                     "created": base_date.isoformat(),
                     "deployment_date": base_date.isoformat(),
                     "deployment_successful": True,
                 },
             },
             {
-                "key": "DEPLOY-2",
+                "key": "DEVOPS-2",
                 "fields": {
+                    "project": {"key": "DEVOPS", "name": "DevOps Project"},
+                    "issuetype": {"name": "Operational Task"},
                     "created": (base_date + timedelta(days=7)).isoformat(),
                     "deployment_date": (base_date + timedelta(days=7)).isoformat(),
                     "deployment_successful": True,
                 },
             },
             {
-                "key": "DEPLOY-3",
+                "key": "DEVOPS-3",
                 "fields": {
+                    "project": {"key": "DEVOPS", "name": "DevOps Project"},
+                    "issuetype": {"name": "Operational Task"},
                     "created": (base_date + timedelta(days=14)).isoformat(),
                     "deployment_date": (base_date + timedelta(days=14)).isoformat(),
                     "deployment_successful": True,
@@ -64,6 +70,7 @@ class TestDeploymentFrequency:
                 "deployment_successful": "deployment_successful",
             },
             time_period_days=30,
+            devops_projects=["DEVOPS"],  # Add project filtering
         )
 
         assert result["value"] is not None
@@ -387,10 +394,21 @@ class TestEdgeCases:
         """Test graceful handling of invalid date formats."""
         base_date = datetime.now() - timedelta(days=5)
         issues = [
-            {"key": "TEST-1", "fields": {"deployment_date": "not-a-date"}},
             {
-                "key": "TEST-2",
-                "fields": {"deployment_date": base_date.isoformat()},
+                "key": "DEVOPS-1",
+                "fields": {
+                    "project": {"key": "DEVOPS"},
+                    "issuetype": {"name": "Operational Task"},
+                    "deployment_date": "not-a-date",
+                },
+            },
+            {
+                "key": "DEVOPS-2",
+                "fields": {
+                    "project": {"key": "DEVOPS"},
+                    "issuetype": {"name": "Operational Task"},
+                    "deployment_date": base_date.isoformat(),
+                },
             },  # Valid recent date
         ]
 
@@ -398,6 +416,7 @@ class TestEdgeCases:
             issues=issues,
             field_mappings={"deployment_date": "deployment_date"},
             time_period_days=30,
+            devops_projects=["DEVOPS"],
         )
 
         # Should exclude invalid dates and continue with valid ones
@@ -465,3 +484,4 @@ class TestCalculateAllDoraMetrics:
                 or metric_data["error_state"] != "success"
             )
             assert "error_state" in metric_data
+

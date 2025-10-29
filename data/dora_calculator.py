@@ -12,8 +12,80 @@ This module contains pure business logic with no UI dependencies.
 from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Any, Optional
 import logging
+import re
+
+from data.project_filter import filter_deployment_issues, filter_incident_issues
 
 logger = logging.getLogger(__name__)
+
+
+def _extract_date_from_fixversions(fix_versions) -> Optional[str]:
+    """Extract deployment date from Jira fixVersions field.
+
+    The fixVersions field in Jira contains version objects with deployment information.
+    This function extracts dates using the following priority:
+    1. Use explicit 'releaseDate' if present and not empty
+    2. Parse YYYYMMDD pattern from version name (e.g., "R_20251027_prod" → "20251027")
+    3. Return None if no date found
+
+    Args:
+        fix_versions: fixVersions field value - can be:
+                     - List of version dicts: [{"name": "R_20251027_prod", "releaseDate": "2025-10-27", ...}]
+                     - Single version dict: {"name": "Release_20251112", "releaseDate": "", ...}
+                     - None or empty
+
+    Returns:
+        ISO format date string (YYYY-MM-DD) or None if no valid date found
+
+    Examples:
+        >>> _extract_date_from_fixversions([{"name": "R_20251027_prod", "releaseDate": "2025-10-27"}])
+        "2025-10-27"
+        >>> _extract_date_from_fixversions([{"name": "Release_20251112", "releaseDate": ""}])
+        "2025-11-12"
+        >>> _extract_date_from_fixversions([{"name": "Release_v2.0"}])
+        None
+    """
+    if not fix_versions:
+        return None
+
+    # Normalize to list if single dict
+    if isinstance(fix_versions, dict):
+        fix_versions = [fix_versions]
+
+    if not isinstance(fix_versions, list):
+        logger.warning(f"fixVersions field has unexpected type: {type(fix_versions)}")
+        return None
+
+    # Iterate through versions (most recent usually first)
+    for version in fix_versions:
+        if not isinstance(version, dict):
+            continue
+
+        # Priority 1: Use explicit releaseDate if present
+        release_date = version.get("releaseDate", "")
+        if release_date and release_date.strip():
+            return release_date.strip()
+
+        # Priority 2: Parse YYYYMMDD from version name
+        version_name = version.get("name", "")
+        if version_name:
+            # Match 8-digit date pattern (YYYYMMDD)
+            date_match = re.search(r"(\d{8})", version_name)
+            if date_match:
+                date_str = date_match.group(1)
+                # Convert YYYYMMDD to YYYY-MM-DD
+                try:
+                    year = date_str[0:4]
+                    month = date_str[4:6]
+                    day = date_str[6:8]
+                    return f"{year}-{month}-{day}"
+                except (IndexError, ValueError) as e:
+                    logger.warning(
+                        f"Failed to parse date from version name '{version_name}': {e}"
+                    )
+                    continue
+
+    return None
 
 
 def _calculate_trend(
@@ -111,6 +183,84 @@ MTTR_TIERS = {
 }
 
 
+def _get_date_field_value(fields: Dict[str, Any], field_id: str) -> Optional[str]:
+    """Extract date value from Jira field, handling special field types.
+
+    This function intelligently extracts date values from different Jira field types:
+    - Regular datetime fields: Returns value directly
+    - fixVersions: Extracts date from version array using _extract_date_from_fixversions
+    - Other fields: Returns value as-is
+
+    Args:
+        fields: Issue fields dictionary from Jira API
+        field_id: Jira field ID to extract (e.g., "fixVersions", "created", "customfield_12345")
+
+    Returns:
+        ISO format date string or None if extraction fails
+    """
+    if field_id == "fixVersions":
+        # Special handling for fixVersions array field
+        fix_versions = fields.get("fixVersions")
+        return _extract_date_from_fixversions(fix_versions)
+    else:
+        # Regular field - return value directly
+        return fields.get(field_id)
+
+
+def _check_deployment_successful(
+    fields: Dict[str, Any], deployment_successful_field: str
+) -> bool:
+    """Check if deployment was successful based on field value.
+
+    This function handles different field types for deployment success indicators:
+    - Multi-checkbox fields (like Deployment Approval): Checks if array contains 'Approved' option
+    - Boolean fields: Returns value directly
+    - String fields: Checks if value indicates success
+    - None/missing: Returns False (deployment status unknown)
+
+    Args:
+        fields: Issue fields dictionary from Jira API
+        deployment_successful_field: Jira field ID to check (e.g., "customfield_10004")
+
+    Returns:
+        True if deployment was successful, False otherwise
+    """
+    field_value = fields.get(deployment_successful_field)
+
+    if not field_value:
+        return False
+
+    # Handle multi-checkbox field (array of option objects)
+    if isinstance(field_value, list):
+        for option in field_value:
+            if isinstance(option, dict):
+                # Check if option value is 'Approved' or similar
+                option_value = option.get("value", "")
+                if option_value and "approve" in option_value.lower():
+                    return True
+            elif isinstance(option, str):
+                # Handle simple string array
+                if "approve" in option.lower():
+                    return True
+        return False
+
+    # Handle boolean field
+    if isinstance(field_value, bool):
+        return field_value
+
+    # Handle string field
+    if isinstance(field_value, str):
+        return field_value.lower() in [
+            "approved",
+            "success",
+            "successful",
+            "true",
+            "yes",
+        ]
+
+    return False
+
+
 def _parse_datetime(date_string: Optional[str]) -> Optional[datetime]:
     """Parse ISO datetime string to timezone-aware datetime object.
 
@@ -167,20 +317,28 @@ def calculate_deployment_frequency(
     previous_period_value: Optional[float] = None,
     start_date: Optional[datetime] = None,
     end_date: Optional[datetime] = None,
+    devops_projects: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """Calculate deployment frequency metric.
 
     Args:
-        issues: List of deployment issue dictionaries from Jira
+        issues: List of all issue dictionaries from Jira (mixed dev + devops)
         field_mappings: Mapping of internal fields to Jira field IDs
         time_period_days: Time period for calculation (default 30 days)
         previous_period_value: Previous period's metric value for trend calculation
         start_date: Optional explicit start date (overrides time_period_days calculation)
         end_date: Optional explicit end date (overrides time_period_days calculation)
+        devops_projects: List of DevOps project keys (e.g., ["DEVOPS"]) for filtering deployment issues
 
     Returns:
         Metric data dictionary with value, unit, performance tier, trend data, and metadata
     """
+    # Filter to deployment issues only (Operational Tasks in DevOps projects)
+    if devops_projects is None:
+        devops_projects = []
+
+    deployment_issues = filter_deployment_issues(issues, devops_projects)
+
     # Check for required field mapping
     if "deployment_date" not in field_mappings:
         return {
@@ -192,6 +350,7 @@ def calculate_deployment_frequency(
             "performance_tier": None,
             "performance_tier_color": None,
             "total_issue_count": len(issues),
+            "filtered_issue_count": len(deployment_issues),
             "excluded_issue_count": 0,
             "trend_direction": "stable",
             "trend_percentage": 0.0,
@@ -212,11 +371,11 @@ def calculate_deployment_frequency(
     valid_deployments = []
     excluded_count = 0
 
-    for issue in issues:
+    for issue in deployment_issues:
         fields = issue.get("fields", {})
 
-        # Parse deployment date
-        deployment_date_str = fields.get(deployment_date_field)
+        # Parse deployment date (handles special fields like fixVersions)
+        deployment_date_str = _get_date_field_value(fields, deployment_date_field)
         deployment_date = _parse_datetime(deployment_date_str)
 
         if not deployment_date:
@@ -230,7 +389,9 @@ def calculate_deployment_frequency(
 
         # Check if deployment was successful (if field is mapped)
         if deployment_successful_field:
-            was_successful = fields.get(deployment_successful_field)
+            was_successful = _check_deployment_successful(
+                fields, deployment_successful_field
+            )
             if not was_successful:
                 excluded_count += 1
                 continue
@@ -248,6 +409,7 @@ def calculate_deployment_frequency(
             "performance_tier": None,
             "performance_tier_color": None,
             "total_issue_count": len(issues),
+            "filtered_issue_count": len(deployment_issues),
             "excluded_issue_count": excluded_count,
             "trend_direction": "stable",
             "trend_percentage": 0.0,
@@ -274,6 +436,7 @@ def calculate_deployment_frequency(
         "performance_tier": tier_info["tier"],
         "performance_tier_color": tier_info["color"],
         "total_issue_count": len(issues),
+        "filtered_issue_count": len(deployment_issues),
         "excluded_issue_count": excluded_count,
         "calculation_timestamp": datetime.now().isoformat(),
         "time_period_start": start_date.isoformat(),
@@ -287,16 +450,26 @@ def calculate_lead_time_for_changes(
     issues: List[Dict[str, Any]],
     field_mappings: Dict[str, str],
     previous_period_value: Optional[float] = None,
+    devops_projects: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """Calculate lead time for changes metric.
 
+    Lead time measures the time from code commit to production deployment.
+    This metric links work items (Stories/Tasks in dev projects) to deployments
+    (Operational Tasks in DevOps projects) via the fixVersion field.
+
     Args:
-        issues: List of change issue dictionaries from Jira
+        issues: List of change issue dictionaries from Jira (work items, not deployment issues)
         field_mappings: Mapping of internal fields to Jira field IDs
         previous_period_value: Previous period's metric value for trend calculation
+        devops_projects: List of DevOps project keys (used if filtering is needed)
 
     Returns:
         Metric data dictionary with value, unit, performance tier, trend data, and metadata
+
+    Note:
+        For lead time, we calculate from work items (dev projects) that have deployment dates
+        in their fixVersions field. The fixVersions link work items to deployments.
     """
     # Check for required field mappings
     required_fields = ["code_commit_date", "deployed_to_production_date"]
@@ -327,9 +500,9 @@ def calculate_lead_time_for_changes(
     for issue in issues:
         fields = issue.get("fields", {})
 
-        # Parse dates
-        commit_date = _parse_datetime(fields.get(commit_date_field))
-        deploy_date = _parse_datetime(fields.get(deploy_date_field))
+        # Parse dates (handles special fields like fixVersions)
+        commit_date = _parse_datetime(_get_date_field_value(fields, commit_date_field))
+        deploy_date = _parse_datetime(_get_date_field_value(fields, deploy_date_field))
 
         if not commit_date or not deploy_date:
             excluded_count += 1
@@ -395,18 +568,33 @@ def calculate_change_failure_rate(
     incident_issues: List[Dict[str, Any]],
     field_mappings: Dict[str, str],
     previous_period_value: Optional[float] = None,
+    devops_projects: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """Calculate change failure rate metric.
 
     Args:
-        deployment_issues: List of deployment issue dictionaries from Jira
-        incident_issues: List of incident issue dictionaries from Jira
+        deployment_issues: List of deployment issue dictionaries from Jira (pre-filtered or mixed)
+        incident_issues: List of incident issue dictionaries from Jira (pre-filtered or mixed)
         field_mappings: Mapping of internal fields to Jira field IDs
         previous_period_value: Previous period's metric value for trend calculation
+        devops_projects: List of DevOps project keys for filtering (e.g., ["DEVOPS"])
 
     Returns:
         Metric data dictionary with value, unit, performance tier, trend data, and metadata
+
+    Note:
+        This function expects either pre-filtered issues OR will filter them if devops_projects is provided:
+        - deployment_issues: Should be Operational Tasks from DevOps projects
+        - incident_issues: Should be production Bugs from development projects
     """
+    # Filter issues if devops_projects is provided (support both pre-filtered and mixed inputs)
+    if devops_projects:
+        deployment_issues = filter_deployment_issues(deployment_issues, devops_projects)
+        incident_issues = filter_incident_issues(
+            incident_issues,
+            devops_projects,
+            production_environment_field=field_mappings.get("affected_environment"),
+        )
     # Check for required field mappings
     if "deployment_date" not in field_mappings:
         return {
@@ -503,17 +691,26 @@ def calculate_mean_time_to_recovery(
     issues: List[Dict[str, Any]],
     field_mappings: Dict[str, str],
     previous_period_value: Optional[float] = None,
+    devops_projects: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """Calculate mean time to recovery (MTTR) metric.
 
     Args:
-        issues: List of incident issue dictionaries from Jira
+        issues: List of incident issue dictionaries from Jira (mixed or pre-filtered)
         field_mappings: Mapping of internal fields to Jira field IDs
         previous_period_value: Previous period's metric value for trend calculation
+        devops_projects: List of DevOps project keys for filtering incidents
 
     Returns:
         Metric data dictionary with value, unit, performance tier, trend data, and metadata
     """
+    # Filter to production incidents (Bugs in development projects)
+    if devops_projects:
+        issues = filter_incident_issues(
+            issues,
+            devops_projects,
+            production_environment_field=field_mappings.get("affected_environment"),
+        )
     # Check for required field mappings
     required_fields = ["incident_detected_at", "incident_resolved_at"]
     missing_fields = [f for f in required_fields if f not in field_mappings]
@@ -543,9 +740,9 @@ def calculate_mean_time_to_recovery(
     for issue in issues:
         fields = issue.get("fields", {})
 
-        # Parse dates
-        detected_at = _parse_datetime(fields.get(detected_field))
-        resolved_at = _parse_datetime(fields.get(resolved_field))
+        # Parse dates (handles special fields like fixVersions)
+        detected_at = _parse_datetime(_get_date_field_value(fields, detected_field))
+        resolved_at = _parse_datetime(_get_date_field_value(fields, resolved_field))
 
         if not detected_at or not resolved_at:
             # Skip unresolved incidents or missing data
