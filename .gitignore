@@ -179,6 +179,17 @@ project_data.json
 jira_cache.json
 jira_query_profiles.json
 
+# Backup files
+*_backup.json
+
+# Test artifacts and temporary files (root directory only)
+/test_configs/
+/test_data/
+/test_*.md
+/test_*.txt
+/test_*.png
+/debug_*.md
+
 # Spec Kit temporary/build files (following official spec-kit .gitignore pattern)
 sdd-*/
 .genreleases/

@@ -101,17 +101,26 @@ def create_field_mapping_form(
     custom_fields.sort(key=lambda x: x["label"])
 
     # Prepare field options with standard fields first (easier to find)
-    field_options = [{"label": "-- Not Mapped --", "value": ""}]
+    # Note: No "Not Mapped" option needed - clearable dropdown handles empty state
+    field_options = []
 
     if standard_fields:
         field_options.append(
-            {"label": "─── Standard Jira Fields ───", "value": "_separator_std_"}
+            {
+                "label": "─── Standard Jira Fields ───",
+                "value": "_separator_std_",
+                "disabled": True,
+            }
         )
         field_options.extend(standard_fields)
 
     if custom_fields:
         field_options.append(
-            {"label": "─── Custom Fields ───", "value": "_separator_custom_"}
+            {
+                "label": "─── Custom Fields ───",
+                "value": "_separator_custom_",
+                "disabled": True,
+            }
         )
         field_options.extend(custom_fields)
 

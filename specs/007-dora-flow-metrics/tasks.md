@@ -173,6 +173,8 @@
 
 **Checkpoint**: ✅ COMPLETE - All metrics now have trend visualization capability for historical analysis (Commit: afd3eb0)
 
+**Additional**: ✅ T017 COMPLETE - Historical metrics storage implemented in data/persistence.py with save_metrics_snapshot(), load_metrics_history(), and get_metric_trend_data() functions. Integrated into callbacks/dora_flow_metrics.py for automatic snapshot saving. Timezone regression fixed in dora_calculator.py _parse_datetime() function. All 29 DORA/Flow tests passing.
+
 ---
 
 ## Phase 8: User Story 6 - Export Metrics Data (Priority: P3)

@@ -75,22 +75,26 @@ class TestSyntheticDoraValidation:
                     except Exception as e:
                         print(f"Could not read alert text: {e}")
                         alert_texts.append("")
-                
+
                 print(f"Alert messages found: {len(alert_texts)}")
                 for i, text in enumerate(alert_texts, 1):
                     try:
                         # Remove emoji and special characters for printing
-                        clean_text = text.encode('ascii', 'ignore').decode('ascii')
+                        clean_text = text.encode("ascii", "ignore").decode("ascii")
                         print(f"  Alert {i}: {clean_text[:100]}...")
                     except Exception:
                         print(f"  Alert {i}: [encoding error]")
 
                 # Skip test if field mappings not configured
                 field_mapping_alerts = [
-                    alert for alert in alert_texts if "Field Mappings Not Configured" in alert
+                    alert
+                    for alert in alert_texts
+                    if "Field Mappings Not Configured" in alert
                 ]
                 if len(field_mapping_alerts) > 0:
-                    pytest.skip("Field mappings not configured - test requires field mapping setup")
+                    pytest.skip(
+                        "Field mappings not configured - test requires field mapping setup"
+                    )
 
                 # Accept either DevOps mode or Issue Tracker mode
                 # Issue Tracker mode is expected when using Apache Kafka JIRA data
@@ -99,7 +103,9 @@ class TestSyntheticDoraValidation:
                     alert for alert in alert_texts if "Issue Tracker Mode" in alert
                 ]
                 if len(issue_tracker_alerts) > 0:
-                    print(f"Issue Tracker Mode active (using proxy fields): {issue_tracker_alerts[0][:80]}...")
+                    print(
+                        f"Issue Tracker Mode active (using proxy fields): {issue_tracker_alerts[0][:80]}..."
+                    )
                 else:
                     print("DevOps mode active (using custom fields)")
 

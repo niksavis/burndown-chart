@@ -60,6 +60,7 @@ def _create_success_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
     """Create card for successful metric calculation.
 
     T056: Now includes collapsible trend section with "Show Trend" button.
+    Supports alternative_name for issue_tracker mode reinterpretation.
     """
     # Map performance tier colors to Bootstrap colors
     tier_color_map = {
@@ -72,9 +73,16 @@ def _create_success_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
     tier_color = metric_data.get("performance_tier_color", "secondary")
     bootstrap_color = tier_color_map.get(tier_color, "secondary")
 
-    # Format metric name for display
+    # Format metric name for display - use alternative_name if provided
     metric_name = metric_data.get("metric_name", "Unknown Metric")
-    display_name = metric_name.replace("_", " ").title()
+    alternative_name = metric_data.get("alternative_name")
+
+    if alternative_name:
+        display_name = alternative_name
+        tooltip_text = f"Interpreted as: {alternative_name} (Standard field: {metric_name.replace('_', ' ').title()})"
+    else:
+        display_name = metric_name.replace("_", " ").title()
+        tooltip_text = None
 
     # Format value
     value = metric_data.get("value")
@@ -88,10 +96,24 @@ def _create_success_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
     if card_id:
         card_props["id"] = card_id
 
-    # Build card header children
-    header_children: List[Any] = [
-        html.Span(display_name, className="metric-card-title")
-    ]
+    # Build card header children with optional tooltip for alternative names
+    if alternative_name:
+        header_children: List[Any] = [
+            html.Span(
+                [
+                    html.I(
+                        className="fas fa-info-circle me-2 text-info",
+                        title=tooltip_text,
+                    ),
+                    display_name,
+                ],
+                className="metric-card-title",
+            )
+        ]
+    else:
+        header_children: List[Any] = [
+            html.Span(display_name, className="metric-card-title")
+        ]
 
     # Add performance tier badge if present
     if metric_data.get("performance_tier"):
@@ -105,9 +127,9 @@ def _create_success_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
 
     card_header = dbc.CardHeader(header_children)
 
-    # Trend button and collapsible section (T056)
-    trend_collapse_id = f"{metric_name}-trend-collapse"
-    trend_button_id = f"{metric_name}-trend-button"
+    # Trend button and collapsible section (T056) - using pattern-matching IDs
+    trend_collapse_id = {"type": "metric-trend-collapse", "metric": metric_name}
+    trend_button_id = {"type": "metric-trend-button", "metric": metric_name}
 
     card_body_children = [
         # Metric value (large, centered)
@@ -132,12 +154,13 @@ def _create_success_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
             className="w-100",
         ),
         # Collapsible trend chart container
+        # Collapsible trend chart container
         dbc.Collapse(
             dbc.Card(
                 dbc.CardBody(
                     [
                         html.Div(
-                            id=f"{metric_name}-trend-chart",
+                            id={"type": "metric-trend-chart", "metric": metric_name},
                             children=[
                                 html.P(
                                     "Trend chart will be displayed here",
@@ -175,7 +198,10 @@ def _create_error_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
             "title": "⚙️ Field Mapping Required",
             "color": "warning",
             "action_text": "Open Settings",
-            "action_id": "open-settings-panel-button",
+            "action_id": {
+                "type": "open-field-mapping",
+                "index": metric_name,
+            },  # Pattern-matching ID
             "message_override": "Configure JIRA field mappings in Settings to enable this metric.",
         },
         "no_data": {
@@ -231,6 +257,32 @@ def _create_error_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
                 color=config["color"],
                 outline=True,
                 className="metric-card-action-button",
+            ),
+            # Hidden trend collapse placeholder to satisfy pattern-matching callbacks
+            # Error cards don't show trends, but callbacks expect these IDs to exist
+            dbc.Collapse(
+                dbc.Card(
+                    dbc.CardBody(
+                        [
+                            html.Div(
+                                id={
+                                    "type": "metric-trend-chart",
+                                    "metric": metric_name,
+                                },
+                                children=[
+                                    html.P(
+                                        "Trend not available for error state",
+                                        className="text-muted text-center my-3",
+                                    )
+                                ],
+                            )
+                        ]
+                    ),
+                    className="mt-2",
+                ),
+                id={"type": "metric-trend-collapse", "metric": metric_name},
+                is_open=False,
+                style={"display": "none"},
             ),
         ],
         className="text-center",
