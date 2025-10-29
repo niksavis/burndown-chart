@@ -101,7 +101,7 @@ def save_app_settings(
         else "",
     }
 
-    # Preserve jira_config and field_mappings if they exist
+    # Preserve jira_config, field_mappings, devops_projects, and field_mapping_notes if they exist
     try:
         existing_settings = load_app_settings()
         if "jira_config" in existing_settings:
@@ -110,9 +110,15 @@ def save_app_settings(
         if "field_mappings" in existing_settings:
             settings["field_mappings"] = existing_settings["field_mappings"]
             logger.debug("Preserved existing field_mappings during save")
+        if "devops_projects" in existing_settings:
+            settings["devops_projects"] = existing_settings["devops_projects"]
+            logger.debug("Preserved existing devops_projects during save")
+        if "field_mapping_notes" in existing_settings:
+            settings["field_mapping_notes"] = existing_settings["field_mapping_notes"]
+            logger.debug("Preserved existing field_mapping_notes during save")
     except Exception as e:
         logger.debug(
-            f"Could not load existing settings to preserve jira_config/field_mappings: {e}"
+            f"Could not load existing settings to preserve jira_config/field_mappings/devops_projects: {e}"
         )
 
     try:

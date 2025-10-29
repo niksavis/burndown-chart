@@ -702,18 +702,39 @@ def sync_jira_scope_and_data(
             if not cache_jira_response(issues, config["jql_query"], current_fields):
                 logger.warning("Failed to cache JIRA response")
 
-        # Calculate JIRA-based project scope
+        # CRITICAL: Filter out DevOps project issues for burndown/velocity/statistics
+        # DevOps issues are ONLY used for DORA metrics metadata extraction
+        devops_projects = config.get("devops_projects", [])
+        if devops_projects:
+            from data.project_filter import filter_development_issues
+
+            total_issues_count = len(issues)
+            issues_for_metrics = filter_development_issues(issues, devops_projects)
+            filtered_count = total_issues_count - len(issues_for_metrics)
+
+            if filtered_count > 0:
+                logger.info(
+                    f"Filtered out {filtered_count} DevOps project issues from {total_issues_count} total issues. "
+                    f"Using {len(issues_for_metrics)} development project issues for burndown/velocity/statistics."
+                )
+        else:
+            # No DevOps projects configured, use all issues
+            issues_for_metrics = issues
+
+        # Calculate JIRA-based project scope (using ONLY development project issues)
         # Only use story_points_field if it's configured and not empty
         points_field = config.get("story_points_field", "").strip()
         if not points_field:
             # When no points field is configured, pass empty string instead of defaulting to "votes"
             points_field = ""
-        scope_data = calculate_jira_project_scope(issues, points_field, config)
+        scope_data = calculate_jira_project_scope(
+            issues_for_metrics, points_field, config
+        )
         if not scope_data:
             return False, "Failed to calculate JIRA project scope", {}
 
-        # Transform to CSV format for statistics
-        csv_data = jira_to_csv_format(issues, config)
+        # Transform to CSV format for statistics (using ONLY development project issues)
+        csv_data = jira_to_csv_format(issues_for_metrics, config)
         # Note: Empty list is valid when there are no issues, only None indicates error
 
         # Save both statistics and project scope to unified data structure
