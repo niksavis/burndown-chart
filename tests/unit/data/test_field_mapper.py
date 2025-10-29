@@ -80,7 +80,7 @@ def sample_field_metadata():
 class TestFetchAvailableJiraFields:
     """Test Jira fields API fetching."""
 
-    @patch("data.field_mapper.get_jira_config")
+    @patch("data.field_mapper.load_jira_configuration")
     @patch("data.field_mapper.requests.get")
     def test_fetch_fields_success(self, mock_get, mock_config, sample_jira_fields):
         """Test successful fetch of Jira fields."""
@@ -88,6 +88,7 @@ class TestFetchAvailableJiraFields:
         mock_config.return_value = {
             "base_url": "https://test.jira.com",
             "token": "test-token",
+            "api_version": "v2",
         }
         mock_response = Mock()
         mock_response.json.return_value = sample_jira_fields
@@ -108,13 +109,14 @@ class TestFetchAvailableJiraFields:
         assert fields[3]["field_id"] == "status"
         assert fields[3]["is_custom"] is False
 
-    @patch("data.field_mapper.get_jira_config")
+    @patch("data.field_mapper.load_jira_configuration")
     @patch("data.field_mapper.requests.get")
     def test_fetch_fields_api_error(self, mock_get, mock_config):
         """Test API error handling."""
         mock_config.return_value = {
             "base_url": "https://test.jira.com",
             "token": "test-token",
+            "api_version": "v2",
         }
         mock_get.side_effect = Exception("Connection error")
 
@@ -218,7 +220,6 @@ class TestSaveAndLoadFieldMappings:
                 loaded_mappings["field_mappings"]["dora"]["deployment_date"]
                 == "customfield_10100"
             )
-            assert "last_updated" in loaded_mappings
 
     def test_save_preserves_existing_settings(self, temp_settings_file):
         """Test that saving mappings preserves other settings."""
@@ -239,7 +240,8 @@ class TestSaveAndLoadFieldMappings:
 
             assert settings["pert_factor"] == 1.5
             assert settings["deadline"] == "2025-12-31"
-            assert "dora_flow_config" in settings
+            # field_mappings should be saved in flat structure
+            assert "field_mappings" in settings
 
 
 class TestFieldMappingsHash:

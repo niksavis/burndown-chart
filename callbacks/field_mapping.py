@@ -29,6 +29,9 @@ logger = logging.getLogger(__name__)
 @callback(
     Output("field-mapping-modal", "is_open"),
     Input("open-field-mapping-modal", "n_clicks"),
+    Input(
+        {"type": "open-field-mapping", "index": ALL}, "n_clicks"
+    ),  # Pattern-matching for metric cards
     Input("field-mapping-cancel-button", "n_clicks"),
     Input("field-mapping-save-success", "data"),  # Close only on successful save
     State("field-mapping-modal", "is_open"),
@@ -36,6 +39,7 @@ logger = logging.getLogger(__name__)
 )
 def toggle_field_mapping_modal(
     open_clicks: int | None,
+    open_clicks_pattern: list,  # List of clicks from pattern-matched buttons
     cancel_clicks: int | None,
     save_success: bool | None,
     is_open: bool,
@@ -43,7 +47,8 @@ def toggle_field_mapping_modal(
     """Toggle field mapping modal open/closed.
 
     Args:
-        open_clicks: Open button clicks
+        open_clicks: Open button clicks (from settings panel)
+        open_clicks_pattern: List of clicks from pattern-matched metric card buttons
         cancel_clicks: Cancel button clicks
         save_success: True when save is successful (triggers close)
         is_open: Current modal state
@@ -56,6 +61,12 @@ def toggle_field_mapping_modal(
         return is_open
 
     trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+    trigger_value = ctx.triggered[0]["value"]
+
+    # Debug logging
+    logger.info(
+        f"Field mapping modal toggle - trigger_id: {trigger_id}, value: {trigger_value}"
+    )
 
     # Close on cancel
     if trigger_id == "field-mapping-cancel-button":
@@ -65,10 +76,22 @@ def toggle_field_mapping_modal(
     if trigger_id == "field-mapping-save-success" and save_success is True:
         return False
 
-    # Open when open button clicked
-    if trigger_id == "open-field-mapping-modal":
-        return True
+    # Open when open button clicked (from settings panel or metric cards)
+    # Must verify it's an actual click (value > 0), not just a button being added to DOM (value = None or 0)
+    if trigger_id == "open-field-mapping-modal" or (
+        trigger_id.startswith("{") and "open-field-mapping" in trigger_id
+    ):
+        # Only open if there was an actual click (not None, not 0, not empty list)
+        if trigger_value and trigger_value != 0:
+            logger.info(f"Opening field mapping modal from trigger: {trigger_id}")
+            return True
+        else:
+            logger.info(
+                f"Ignoring button render/initial state - trigger: {trigger_id}, value: {trigger_value}"
+            )
+            return is_open
 
+    logger.warning(f"Field mapping modal toggle - unhandled trigger: {trigger_id}")
     return is_open
 
 

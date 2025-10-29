@@ -112,20 +112,26 @@ MTTR_TIERS = {
 
 
 def _parse_datetime(date_string: Optional[str]) -> Optional[datetime]:
-    """Parse ISO datetime string to datetime object.
+    """Parse ISO datetime string to timezone-aware datetime object.
 
     Args:
         date_string: ISO format datetime string
 
     Returns:
-        Parsed datetime object or None if parsing fails
+        Parsed timezone-aware datetime object or None if parsing fails
     """
     if not date_string:
         return None
 
     try:
-        # Handle Jira datetime format (ISO 8601)
-        return datetime.fromisoformat(date_string.replace("Z", "+00:00"))
+        # Handle Jira datetime format (ISO 8601) - replace 'Z' with explicit +00:00
+        dt = datetime.fromisoformat(date_string.replace("Z", "+00:00"))
+
+        # Ensure datetime is timezone-aware (assume UTC if naive)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+
+        return dt
     except (ValueError, AttributeError) as e:
         logger.warning(f"Failed to parse datetime '{date_string}': {e}")
         return None
@@ -159,6 +165,8 @@ def calculate_deployment_frequency(
     field_mappings: Dict[str, str],
     time_period_days: int = 30,
     previous_period_value: Optional[float] = None,
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None,
 ) -> Dict[str, Any]:
     """Calculate deployment frequency metric.
 
@@ -167,6 +175,8 @@ def calculate_deployment_frequency(
         field_mappings: Mapping of internal fields to Jira field IDs
         time_period_days: Time period for calculation (default 30 days)
         previous_period_value: Previous period's metric value for trend calculation
+        start_date: Optional explicit start date (overrides time_period_days calculation)
+        end_date: Optional explicit end date (overrides time_period_days calculation)
 
     Returns:
         Metric data dictionary with value, unit, performance tier, trend data, and metadata
@@ -190,9 +200,13 @@ def calculate_deployment_frequency(
     deployment_date_field = field_mappings["deployment_date"]
     deployment_successful_field = field_mappings.get("deployment_successful")
 
-    # Calculate time period boundaries
-    end_date = datetime.now(timezone.utc)
-    start_date = end_date - timedelta(days=time_period_days)
+    # Calculate time period boundaries (use provided dates if available)
+    if start_date is None or end_date is None:
+        end_date = datetime.now(timezone.utc)
+        start_date = end_date - timedelta(days=time_period_days)
+    else:
+        # Use provided explicit boundaries (for retrospective trend calculation)
+        time_period_days = (end_date - start_date).days
 
     # Filter and parse deployments
     valid_deployments = []
@@ -412,6 +426,10 @@ def calculate_change_failure_rate(
     # Count total deployments
     deployment_count = len(deployment_issues)
 
+    # DEBUG: Log deployment and incident counts
+    logger.info(f"CFR Debug: deployment_issues count = {deployment_count}")
+    logger.info(f"CFR Debug: incident_issues count = {len(incident_issues)}")
+
     if deployment_count == 0:
         return {
             "metric_name": "change_failure_rate",
@@ -445,6 +463,12 @@ def calculate_change_failure_rate(
         else:
             # If not mapped, count all incidents
             incident_count += 1
+
+    # DEBUG: Log final counts
+    logger.info(
+        f"CFR Debug: incident_count = {incident_count}, deployment_count = {deployment_count}"
+    )
+    logger.info(f"CFR Debug: production_impact_field = {production_impact_field}")
 
     # Calculate failure rate percentage
     failure_rate = (incident_count / deployment_count) * 100

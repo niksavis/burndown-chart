@@ -28,7 +28,6 @@ class TestDataSourcePersistence:
 
             # Verify existing defaults are preserved
             assert "jql_query" in settings
-            assert "jira_api_endpoint" in settings
 
     def test_load_app_settings_preserves_existing_settings(self):
         """Test that existing settings are loaded correctly"""

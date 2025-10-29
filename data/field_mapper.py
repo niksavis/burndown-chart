@@ -9,7 +9,7 @@ Reference: DORA_Flow_Jira_Mapping.md
 import hashlib
 import json
 import logging
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import requests
 
@@ -261,7 +261,11 @@ def get_field_mappings_hash() -> str:
     """
     try:
         settings = load_app_settings()
-        mappings = settings.get("dora_flow_config", {}).get("field_mappings", {})
+        # Support both legacy nested structure and new flat structure
+        if "dora_flow_config" in settings:
+            mappings = settings.get("dora_flow_config", {}).get("field_mappings", {})
+        else:
+            mappings = settings.get("field_mappings", {})
 
         # Create deterministic string representation
         mappings_str = json.dumps(mappings, sort_keys=True)
@@ -328,3 +332,213 @@ def check_required_mappings(metric_name: str) -> Tuple[bool, List[str]]:
     missing_fields = [field for field in required_fields if field not in field_mappings]
 
     return len(missing_fields) == 0, missing_fields
+
+
+# ============================================================================
+# Data Source Validation (Feature 007 - Data Quality)
+# ============================================================================
+
+
+def validate_dora_jira_compatibility(field_mappings: Dict[str, str]) -> Dict[str, Any]:
+    """Validate if JIRA configuration is suitable for DORA/Flow metrics.
+
+    Detects inappropriate proxy field mappings that produce misleading metrics.
+    Provides validation mode recommendations: 'devops' vs 'issue_tracker'.
+
+    Args:
+        field_mappings: Dictionary of internal field -> JIRA field mappings
+            Example: {"deployment_date": "resolutiondate", ...}
+
+    Returns:
+        Dictionary with structure:
+        {
+            "validation_mode": "devops" | "issue_tracker" | "unknown",
+            "compatibility_level": "full" | "partial" | "unsuitable",
+            "warnings": [
+                {
+                    "severity": "error" | "warning" | "info",
+                    "field": "deployment_date",
+                    "mapped_to": "resolutiondate",
+                    "issue": "Treats all resolved issues as deployments",
+                    "recommendation": "Add custom field for actual deployment tracking"
+                },
+                ...
+            ],
+            "recommended_interpretation": {
+                "deployment_frequency": "Issue Resolution Frequency",
+                "lead_time_for_changes": "Issue Resolution Time",
+                ...
+            },
+            "alternative_metrics_available": True | False
+        }
+
+    Example:
+        >>> mappings = {
+        ...     "deployment_date": "resolutiondate",
+        ...     "incident_detected_at": "created"
+        ... }
+        >>> result = validate_dora_jira_compatibility(mappings)
+        >>> result["validation_mode"]
+        'issue_tracker'
+        >>> result["compatibility_level"]
+        'unsuitable'
+    """
+    warnings = []
+    devops_field_count = 0
+    proxy_field_count = 0
+
+    # Standard JIRA fields that are proxies (not real DORA fields)
+    STANDARD_JIRA_FIELDS = {
+        "created",
+        "resolutiondate",
+        "updated",
+        "status",
+        "issuetype",
+        "priority",
+        "resolution",
+    }
+
+    # DORA-specific field patterns
+    DEVOPS_FIELD_PATTERNS = {
+        "deployment",
+        "deploy",
+        "release",
+        "incident",
+        "production",
+        "build",
+        "pipeline",
+    }
+
+    # Check each DORA/Flow mapping
+    CRITICAL_DORA_FIELDS = {
+        "deployment_date": {
+            "purpose": "Track actual production deployments",
+            "proxy_issue": "Treats all resolved issues as deployments",
+            "recommendation": "Add custom field for deployment date/time",
+        },
+        "deployment_successful": {
+            "purpose": "Track deployment success/failure",
+            "proxy_issue": "Cannot distinguish successful vs failed deployments",
+            "recommendation": "Add boolean/checkbox field for deployment status",
+        },
+        "incident_detected_at": {
+            "purpose": "Track production incident detection",
+            "proxy_issue": "Treats all issues as production incidents",
+            "recommendation": "Add custom field for incident detection timestamp",
+        },
+        "incident_resolved_at": {
+            "purpose": "Track incident resolution",
+            "proxy_issue": "Cannot accurately measure incident recovery time",
+            "recommendation": "Add custom field for incident resolution timestamp",
+        },
+    }
+
+    # Validate each critical field
+    for internal_field, field_info in CRITICAL_DORA_FIELDS.items():
+        if internal_field not in field_mappings:
+            warnings.append(
+                {
+                    "severity": "warning",
+                    "field": internal_field,
+                    "mapped_to": None,
+                    "issue": f"Field not mapped - {field_info['purpose']} will not be tracked",
+                    "recommendation": field_info["recommendation"],
+                }
+            )
+            continue
+
+        jira_field = field_mappings[internal_field]
+
+        # Check if using standard JIRA field as proxy
+        if jira_field in STANDARD_JIRA_FIELDS:
+            proxy_field_count += 1
+            warnings.append(
+                {
+                    "severity": "error",
+                    "field": internal_field,
+                    "mapped_to": jira_field,
+                    "issue": field_info["proxy_issue"],
+                    "recommendation": field_info["recommendation"],
+                }
+            )
+        # Check if using proper DevOps-specific field
+        elif any(pattern in jira_field.lower() for pattern in DEVOPS_FIELD_PATTERNS):
+            devops_field_count += 1
+            warnings.append(
+                {
+                    "severity": "info",
+                    "field": internal_field,
+                    "mapped_to": jira_field,
+                    "issue": None,
+                    "recommendation": "✓ Appears to be a proper DevOps tracking field",
+                }
+            )
+        else:
+            # Custom field but unclear purpose
+            warnings.append(
+                {
+                    "severity": "warning",
+                    "field": internal_field,
+                    "mapped_to": jira_field,
+                    "issue": "Verify this field tracks the intended data",
+                    "recommendation": "Check JIRA field configuration and usage",
+                }
+            )
+
+    # Check work_started_date mapping
+    if "work_started_date" in field_mappings:
+        jira_field = field_mappings["work_started_date"]
+        if jira_field == "created":
+            warnings.append(
+                {
+                    "severity": "warning",
+                    "field": "work_started_date",
+                    "mapped_to": "created",
+                    "issue": "Using issue creation date instead of actual work start (e.g., 'In Progress' status change)",
+                    "recommendation": "Consider using status change timestamp or custom field for accurate Flow Time calculation",
+                }
+            )
+
+    # Determine validation mode and compatibility
+    error_count = sum(1 for w in warnings if w["severity"] == "error")
+
+    if devops_field_count >= 3 and error_count == 0:
+        validation_mode = "devops"
+        compatibility_level = "full"
+    elif devops_field_count >= 1 and error_count <= 2:
+        validation_mode = "devops"
+        compatibility_level = "partial"
+    elif proxy_field_count >= 2:  # Changed from >= 3 to >= 2 for better detection
+        validation_mode = "issue_tracker"
+        compatibility_level = "unsuitable"
+    else:
+        validation_mode = "unknown"
+        compatibility_level = "partial"
+
+    # Provide alternative interpretations for issue tracker mode
+    recommended_interpretation = {}
+    if validation_mode == "issue_tracker":
+        recommended_interpretation = {
+            "deployment_frequency": "Issue Resolution Frequency",
+            "lead_time_for_changes": "Issue Cycle Time (Created → Resolved)",
+            "change_failure_rate": "Not Applicable (No deployment tracking)",
+            "mean_time_to_recovery": "Issue Resolution Time",
+            "flow_velocity": "Issue Completion Rate",
+            "flow_time": "Issue Cycle Time",
+            "flow_efficiency": "Not Applicable (Requires time tracking fields)",
+            "flow_load": "Work In Progress",
+            "flow_distribution": "Issue Type Distribution",
+        }
+
+    return {
+        "validation_mode": validation_mode,
+        "compatibility_level": compatibility_level,
+        "devops_field_count": devops_field_count,
+        "proxy_field_count": proxy_field_count,
+        "error_count": error_count,
+        "warning_count": sum(1 for w in warnings if w["severity"] == "warning"),
+        "warnings": warnings,
+        "recommended_interpretation": recommended_interpretation,
+        "alternative_metrics_available": validation_mode == "issue_tracker"
+        and compatibility_level == "unsuitable",
+    }
