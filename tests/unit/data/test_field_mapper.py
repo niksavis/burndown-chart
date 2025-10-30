@@ -191,9 +191,7 @@ class TestSaveAndLoadFieldMappings:
                     "deployment_date": "customfield_10100",
                     "target_environment": "customfield_10101",
                 },
-                "flow": {
-                    "flow_item_type": "customfield_10200",
-                },
+                "flow": {"flow_item_type": "customfield_10200"},
             },
             "field_metadata": {
                 "customfield_10100": {

@@ -268,7 +268,10 @@ def update_dora_metrics(
         from data.persistence import load_app_settings
 
         mappings_data = load_field_mappings()
-        field_mappings = mappings_data.get("field_mappings", {})
+        all_field_mappings = mappings_data.get("field_mappings", {})
+
+        # Extract DORA-specific mappings from nested structure
+        field_mappings = all_field_mappings.get("dora", {})
 
         if not field_mappings:
             warning_alert = dbc.Alert(
@@ -319,6 +322,23 @@ def update_dora_metrics(
                 dismissable=True,
             )
             return create_dora_loading_cards_grid(), info_alert, {}
+
+        # CRITICAL: Filter out DevOps project issues for DORA metrics
+        # DORA metrics should ONLY calculate from development project issues
+        # DevOps project data is used ONLY for metadata extraction, not metric calculation
+        devops_projects = settings.get("devops_projects", [])
+        if devops_projects:
+            from data.project_filter import filter_development_issues
+
+            total_issues_count = len(issues)
+            issues = filter_development_issues(issues, devops_projects)
+            filtered_count = total_issues_count - len(issues)
+
+            if filtered_count > 0:
+                logger.info(
+                    f"DORA: Filtered out {filtered_count} DevOps project issues from {total_issues_count} total. "
+                    f"Using {len(issues)} development project issues for DORA metrics."
+                )
 
         logger.info(f"Calculating DORA metrics for {len(issues)} issues")
 
@@ -496,7 +516,10 @@ def update_flow_metrics(
 
         # Load field mappings
         mappings_data = load_field_mappings()
-        field_mappings = mappings_data.get("field_mappings", {})
+        all_field_mappings = mappings_data.get("field_mappings", {})
+
+        # Extract Flow-specific mappings from nested structure
+        field_mappings = all_field_mappings.get("flow", {})
 
         if not field_mappings:
             warning_alert = dbc.Alert(
@@ -546,6 +569,23 @@ def update_flow_metrics(
                 dismissable=True,
             )
             return create_flow_loading_cards_grid(), info_alert, {}
+
+        # CRITICAL: Filter out DevOps project issues for Flow metrics
+        # Flow metrics should ONLY calculate from development project issues
+        # DevOps project data is used ONLY for metadata extraction, not metric calculation
+        devops_projects = settings.get("devops_projects", [])
+        if devops_projects:
+            from data.project_filter import filter_development_issues
+
+            total_issues_count = len(issues)
+            issues = filter_development_issues(issues, devops_projects)
+            filtered_count = total_issues_count - len(issues)
+
+            if filtered_count > 0:
+                logger.info(
+                    f"Flow: Filtered out {filtered_count} DevOps project issues from {total_issues_count} total. "
+                    f"Using {len(issues)} development project issues for Flow metrics."
+                )
 
         logger.info(f"Calculating Flow metrics for {len(issues)} issues")
 
@@ -703,7 +743,10 @@ def update_flow_distribution_chart(time_period: str):
 
         # Load field mappings
         mappings_data = load_field_mappings()
-        field_mappings = mappings_data.get("field_mappings", {})
+        all_field_mappings = mappings_data.get("field_mappings", {})
+
+        # Extract Flow-specific mappings from nested structure
+        field_mappings = all_field_mappings.get("flow", {})
 
         # Calculate time period boundaries
         time_period_days = int(time_period) if time_period.isdigit() else 30
@@ -718,6 +761,25 @@ def update_flow_distribution_chart(time_period: str):
                 "No JIRA data available. Please configure JIRA and fetch data first.",
                 color="warning",
             )
+
+        # CRITICAL: Filter out DevOps project issues for Flow Distribution
+        # Flow distribution should ONLY calculate from development project issues
+        from data.persistence import load_app_settings
+
+        settings = load_app_settings()
+        devops_projects = settings.get("devops_projects", [])
+        if devops_projects:
+            from data.project_filter import filter_development_issues
+
+            total_issues_count = len(issues)
+            issues = filter_development_issues(issues, devops_projects)
+            filtered_count = total_issues_count - len(issues)
+
+            if filtered_count > 0:
+                logger.info(
+                    f"Flow Distribution: Filtered out {filtered_count} DevOps project issues from {total_issues_count} total. "
+                    f"Using {len(issues)} development project issues."
+                )
 
         # Calculate flow distribution
         distribution_data = calculate_flow_distribution(
@@ -955,9 +1017,30 @@ def render_dora_trend_charts(
                             current_jql, current_fields
                         )
                         mappings_data = load_field_mappings()
-                        field_mappings = mappings_data.get("field_mappings", {})
+                        # Extract DORA-specific field mappings from nested structure
+                        field_mappings = mappings_data.get("field_mappings", {}).get(
+                            "dora", {}
+                        )
 
                         if cache_loaded and cached_issues:
+                            # CRITICAL: Filter out DevOps project issues for DORA trend calculation
+                            devops_projects = settings.get("devops_projects", [])
+                            if devops_projects:
+                                from data.project_filter import (
+                                    filter_development_issues,
+                                )
+
+                                total_issues_count = len(cached_issues)
+                                cached_issues = filter_development_issues(
+                                    cached_issues, devops_projects
+                                )
+                                filtered_count = total_issues_count - len(cached_issues)
+
+                                if filtered_count > 0:
+                                    logger.info(
+                                        f"DORA Trend: Filtered out {filtered_count} DevOps project issues from {total_issues_count} total. "
+                                        f"Using {len(cached_issues)} development project issues."
+                                    )
                             historical_data = calculate_retrospective_trends(
                                 issues=cached_issues,
                                 metric_name=metric_name,
@@ -1120,9 +1203,32 @@ def render_flow_trend_charts(
                                 current_jql, current_fields
                             )
                             mappings_data = load_field_mappings()
-                            field_mappings = mappings_data.get("field_mappings", {})
+                            # Extract Flow-specific field mappings from nested structure
+                            field_mappings = mappings_data.get(
+                                "field_mappings", {}
+                            ).get("flow", {})
 
                             if cache_loaded and cached_issues:
+                                # CRITICAL: Filter out DevOps project issues for Flow trend calculation
+                                devops_projects = settings.get("devops_projects", [])
+                                if devops_projects:
+                                    from data.project_filter import (
+                                        filter_development_issues,
+                                    )
+
+                                    total_issues_count = len(cached_issues)
+                                    cached_issues = filter_development_issues(
+                                        cached_issues, devops_projects
+                                    )
+                                    filtered_count = total_issues_count - len(
+                                        cached_issues
+                                    )
+
+                                    if filtered_count > 0:
+                                        logger.info(
+                                            f"Flow Trend: Filtered out {filtered_count} DevOps project issues from {total_issues_count} total. "
+                                            f"Using {len(cached_issues)} development project issues."
+                                        )
                                 historical_data = calculate_retrospective_trends(
                                     issues=cached_issues,
                                     metric_name=metric_name,

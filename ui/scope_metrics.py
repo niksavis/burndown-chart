@@ -790,54 +790,37 @@ def create_scope_metrics_dashboard(
         remaining_items = 34
         remaining_points = 154
 
-    # Get total created and completed items/points from the statistics
-    from data.persistence import load_statistics
-
-    try:
-        statistics_data, _ = load_statistics()
-        if statistics_data:
-            df = pd.DataFrame(statistics_data)
-            total_completed_items = (
-                df["completed_items"].sum() if "completed_items" in df.columns else 0
-            )
-            total_completed_points = (
-                df["completed_points"].sum() if "completed_points" in df.columns else 0
-            )
-            total_created_items = (
-                df["created_items"].sum() if "created_items" in df.columns else 0
-            )
-            total_created_points = (
-                df["created_points"].sum() if "created_points" in df.columns else 0
-            )
-        else:
-            total_completed_items = 0
-            total_completed_points = 0
-            total_created_items = 0
-            total_created_points = 0
-    except Exception:
-        # If we can't read the data, use defaults
+    # Get total created and completed items/points from the weekly_growth_data
+    # This data is already filtered by data_points_count, ensuring consistency
+    # with all other scope metrics calculations
+    if not weekly_growth_data.empty:
+        # Sum from weekly_growth_data which respects data_points_count filtering
+        total_completed_items = (
+            weekly_growth_data["completed_items"].sum()
+            if "completed_items" in weekly_growth_data.columns
+            else 0
+        )
+        total_completed_points = (
+            weekly_growth_data["completed_points"].sum()
+            if "completed_points" in weekly_growth_data.columns
+            else 0
+        )
+        total_created_items = (
+            weekly_growth_data["created_items"].sum()
+            if "created_items" in weekly_growth_data.columns
+            else 0
+        )
+        total_created_points = (
+            weekly_growth_data["created_points"].sum()
+            if "created_points" in weekly_growth_data.columns
+            else 0
+        )
+    else:
+        # No weekly data available - use zeros
         total_completed_items = 0
         total_completed_points = 0
         total_created_items = 0
         total_created_points = 0
-
-        if not weekly_growth_data.empty:
-            # Try to get sums from weekly_growth_data
-            if "completed_items" in weekly_growth_data.columns:
-                total_completed_items = weekly_growth_data["completed_items"].sum()
-                total_completed_points = (
-                    weekly_growth_data["completed_points"].sum()
-                    if "completed_points" in weekly_growth_data.columns
-                    else 0
-                )
-
-            if "created_items" in weekly_growth_data.columns:
-                total_created_items = weekly_growth_data["created_items"].sum()
-                total_created_points = (
-                    weekly_growth_data["created_points"].sum()
-                    if "created_points" in weekly_growth_data.columns
-                    else 0
-                )
 
     # Calculate baselines (initial scope at project start)
     # If total_items_scope is provided, use it as the baseline

@@ -198,6 +198,10 @@ sdd-*/
 # GitHub Copilot and spec-kit agent files (may contain credentials/tokens)
 .github/
 
+# Confidential field mapping documentation (contains customer-specific data)
+DORA_FLOW_FIELD_MAPPING.md
+JIRA_CUSTOM_FIELDS.md
+
 # Debug and test artifacts (root directory only - not tests/ folder)
 /test_*.py
 /debug_*.py

@@ -228,7 +228,10 @@ def register(app):
         }
 
         # Save app-level settings - load JIRA values from jira_config (Feature 003-jira-config-separation)
-        from data.persistence import save_app_settings
+        from data.persistence import save_app_settings, load_app_settings
+
+        # Load existing settings to preserve last_used_data_source and active_jql_profile_id
+        existing_settings = load_app_settings()
 
         save_app_settings(
             pert_factor,
@@ -240,6 +243,8 @@ def register(app):
             jql_query.strip()
             if jql_query and jql_query.strip()
             else "project = JRASERVER",  # Use current JQL input
+            existing_settings.get("last_used_data_source"),  # Preserve data source
+            existing_settings.get("active_jql_profile_id"),  # Preserve profile ID
             # Note: JIRA configuration is now managed separately via save_jira_configuration()
         )
 
@@ -427,6 +432,8 @@ def register(app):
                     app_settings["milestone"],
                     app_settings["show_points"],
                     settings_jql,
+                    app_settings.get("last_used_data_source"),  # Preserve data source
+                    app_settings.get("active_jql_profile_id"),  # Preserve profile ID
                 )
                 logger.info(f"JQL query updated and saved: JQL='{settings_jql}'")
 
@@ -438,6 +445,9 @@ def register(app):
                 "story_points_field": final_story_points_field,
                 "cache_max_size_mb": final_cache_max_size,
                 "max_results": final_max_results,
+                "devops_projects": app_settings.get(
+                    "devops_projects", []
+                ),  # Add DevOps filtering config
             }
 
             # Validate configuration
