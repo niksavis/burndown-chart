@@ -114,6 +114,9 @@ def get_jira_config(settings_jql_query: str | None = None) -> Dict:
             jira_config.get("max_results_per_call", 1000)  # jira_config (new structure)
             or os.getenv("JIRA_MAX_RESULTS", 1000)  # Environment variable
         ),
+        "devops_projects": app_settings.get(
+            "devops_projects", []
+        ),  # Load from app_settings
     }
 
     return config
@@ -705,6 +708,8 @@ def sync_jira_scope_and_data(
         # CRITICAL: Filter out DevOps project issues for burndown/velocity/statistics
         # DevOps issues are ONLY used for DORA metrics metadata extraction
         devops_projects = config.get("devops_projects", [])
+        logger.info(f"DEBUG: Config keys available: {list(config.keys())}")
+        logger.info(f"DEBUG: devops_projects from config: {devops_projects}")
         if devops_projects:
             from data.project_filter import filter_development_issues
 

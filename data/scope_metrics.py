@@ -277,8 +277,19 @@ def calculate_weekly_scope_growth(df, data_points_count=None):
     # Sort by date
     weekly = weekly.sort_values("start_date")
 
-    # Return only the relevant columns
-    result = weekly[["week_label", "items_growth", "points_growth", "start_date"]]
+    # Return columns including raw created/completed values for UI calculations
+    result = weekly[
+        [
+            "week_label",
+            "items_growth",
+            "points_growth",
+            "start_date",
+            "created_items",
+            "completed_items",
+            "created_points",
+            "completed_points",
+        ]
+    ]
 
     return result
 

@@ -104,6 +104,9 @@ def save_app_settings(
     # Preserve jira_config, field_mappings, devops_projects, and field_mapping_notes if they exist
     try:
         existing_settings = load_app_settings()
+        logger.info(
+            f"save_app_settings: Loading existing settings. Keys present: {list(existing_settings.keys())}"
+        )
         if "jira_config" in existing_settings:
             settings["jira_config"] = existing_settings["jira_config"]
             logger.debug("Preserved existing jira_config during save")
@@ -112,12 +115,21 @@ def save_app_settings(
             logger.debug("Preserved existing field_mappings during save")
         if "devops_projects" in existing_settings:
             settings["devops_projects"] = existing_settings["devops_projects"]
-            logger.debug("Preserved existing devops_projects during save")
+            logger.info(
+                f"Preserved existing devops_projects during save: {existing_settings['devops_projects']}"
+            )
+        else:
+            logger.warning(
+                "devops_projects NOT found in existing settings - will not be preserved!"
+            )
         if "field_mapping_notes" in existing_settings:
             settings["field_mapping_notes"] = existing_settings["field_mapping_notes"]
             logger.debug("Preserved existing field_mapping_notes during save")
+        logger.info(
+            f"save_app_settings: Final settings keys before write: {list(settings.keys())}"
+        )
     except Exception as e:
-        logger.debug(
+        logger.error(
             f"Could not load existing settings to preserve jira_config/field_mappings/devops_projects: {e}"
         )
 
@@ -132,7 +144,9 @@ def save_app_settings(
             os.remove(APP_SETTINGS_FILE)
         os.rename(temp_file, APP_SETTINGS_FILE)
 
-        logger.info(f"App settings saved to {APP_SETTINGS_FILE}")
+        logger.info(
+            f"App settings saved to {APP_SETTINGS_FILE}. Keys written: {list(settings.keys())}"
+        )
     except Exception as e:
         logger.error(f"Error saving app settings: {e}")
 

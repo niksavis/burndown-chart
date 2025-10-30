@@ -26,6 +26,101 @@ from ui.field_mapping_modal import (
 logger = logging.getLogger(__name__)
 
 
+def _create_dora_flow_mappings_display(field_mappings: Dict) -> html.Div:
+    """Create a read-only display of DORA/Flow field mappings.
+
+    Args:
+        field_mappings: Nested dict with 'dora' and 'flow' keys
+
+    Returns:
+        html.Div with formatted display of current mappings
+    """
+    content = []
+
+    # DORA Metrics Section
+    if "dora" in field_mappings:
+        content.append(html.H5("DORA Metrics Configuration", className="mt-3 mb-3"))
+        dora = field_mappings["dora"]
+
+        for metric_name, metric_fields in dora.items():
+            # Format metric name nicely
+            display_name = metric_name.replace("_", " ").title()
+            content.append(html.H6(display_name, className="text-primary mt-3"))
+
+            # Create table of field mappings
+            rows = []
+            for field_name, field_value in metric_fields.items():
+                rows.append(
+                    html.Tr(
+                        [
+                            html.Td(
+                                field_name.replace("_", " ").title(),
+                                className="font-weight-bold",
+                            ),
+                            html.Td(html.Code(str(field_value))),
+                        ]
+                    )
+                )
+
+            content.append(
+                html.Table(
+                    [html.Tbody(rows)], className="table table-sm table-borderless mb-3"
+                )
+            )
+
+    # Flow Metrics Section
+    if "flow" in field_mappings:
+        content.append(html.H5("Flow Metrics Configuration", className="mt-4 mb-3"))
+        flow = field_mappings["flow"]
+
+        for metric_name, metric_fields in flow.items():
+            # Format metric name nicely
+            display_name = metric_name.replace("_", " ").title()
+            content.append(html.H6(display_name, className="text-primary mt-3"))
+
+            # Create table of field mappings
+            rows = []
+            for field_name, field_value in metric_fields.items():
+                if isinstance(field_value, list):
+                    field_value = ", ".join(field_value)
+                rows.append(
+                    html.Tr(
+                        [
+                            html.Td(
+                                field_name.replace("_", " ").title(),
+                                className="font-weight-bold",
+                            ),
+                            html.Td(html.Code(str(field_value))),
+                        ]
+                    )
+                )
+
+            content.append(
+                html.Table(
+                    [html.Tbody(rows)], className="table table-sm table-borderless mb-3"
+                )
+            )
+
+    # Add informational alert
+    return html.Div(
+        [
+            dbc.Alert(
+                [
+                    html.I(className="fas fa-info-circle me-2"),
+                    "DORA and Flow metrics use structured field mappings configured in ",
+                    html.Code("app_settings.json"),
+                    ". See ",
+                    html.Code("DORA_FLOW_FIELD_MAPPING.md"),
+                    " for detailed documentation on these mappings.",
+                ],
+                color="info",
+                className="mb-4",
+            ),
+            *content,
+        ]
+    )
+
+
 @callback(
     Output("field-mapping-modal", "is_open"),
     Input("open-field-mapping-modal", "n_clicks"),
@@ -116,44 +211,15 @@ def populate_field_mapping_form(is_open: bool):
         return no_update
 
     try:
-        # Load current field mappings (flat structure from app_settings.json)
+        # Load current field mappings (nested structure: dora/flow keys)
         current_mappings_data = load_field_mappings()
-        flat_mappings = current_mappings_data.get("field_mappings", {})
+        current_mappings = current_mappings_data.get("field_mappings", {})
 
-        # Convert flat structure to nested structure expected by UI
-        # DORA fields
-        dora_fields = [
-            "deployment_date",
-            "deployment_successful",
-            "incident_start",
-            "incident_resolved",
-            "target_environment",
-            "code_commit_date",
-            "deployed_to_production_date",
-            "incident_detected_at",
-            "incident_resolved_at",
-            "production_impact",
-            "incident_related",
-        ]
-        # Flow fields
-        flow_fields = [
-            "work_started_date",
-            "work_completed_date",
-            "work_type",
-            "work_item_size",
-            "flow_item_type",
-            "status_entry_timestamp",
-            "active_work_hours",
-            "flow_time_days",
-            "flow_efficiency_percent",
-            "completed_date",
-            "status",
-        ]
-
-        current_mappings = {
-            "dora": {k: v for k, v in flat_mappings.items() if k in dora_fields},
-            "flow": {k: v for k, v in flat_mappings.items() if k in flow_fields},
-        }
+        # Ensure nested structure exists even if empty
+        if "dora" not in current_mappings:
+            current_mappings["dora"] = {}
+        if "flow" not in current_mappings:
+            current_mappings["flow"] = {}
 
         # Fetch available fields from Jira
         try:

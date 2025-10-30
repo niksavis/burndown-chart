@@ -96,6 +96,22 @@ def _render_bug_analysis_content(data_points_count: int):
             except Exception as e:
                 logger.warning(f"Could not load from JIRA cache: {e}")
 
+        # Filter out DevOps project issues (development metrics only)
+        if all_issues:
+            from data.project_filter import filter_development_issues
+            from data.persistence import load_app_settings
+
+            settings = load_app_settings()
+            devops_projects = settings.get("devops_projects", [])
+
+            if devops_projects:
+                original_count = len(all_issues)
+                all_issues = filter_development_issues(all_issues, devops_projects)
+                filtered_count = original_count - len(all_issues)
+                logger.info(
+                    f"Bug Analysis: Filtered out {filtered_count} DevOps issues from {original_count} total issues"
+                )
+
         # Determine date range based on data_points_count (timeline filter)
         from datetime import datetime, timedelta
 
