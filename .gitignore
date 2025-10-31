@@ -179,8 +179,16 @@ project_data.json
 jira_cache.json
 jira_query_profiles.json
 
-# Backup files
+# Customer-specific documentation (contains real project keys, field IDs)
+docs/metrics/IMPLEMENTATION_GUIDE.md
+
+# Customer-specific configuration backups (NOT committed, but backed up separately)
+config-backups/
+
+# Backup files and restore points
 *_backup.json
+*.backup
+*.before-restore.*
 
 # Test artifacts and temporary files (root directory only)
 /test_configs/
