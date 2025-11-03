@@ -27,6 +27,7 @@ from data.dora_calculator import (
 # project_filter functions will be used when implementing operational task filtering for DORA
 from data.persistence import load_app_settings
 from ui.metric_cards import create_metric_cards_grid
+from configuration.help_content import FLOW_METRICS_TOOLTIPS
 
 logger = logging.getLogger(__name__)
 
@@ -1060,7 +1061,10 @@ def calculate_and_display_flow_metrics(
             },
         }
 
-        metrics_html = create_metric_cards_grid(metrics_data)
+        # Pass Flow metrics tooltips to grid function
+        metrics_html = create_metric_cards_grid(
+            metrics_data, tooltips=FLOW_METRICS_TOOLTIPS
+        )
 
         return metrics_html, dist_html
 

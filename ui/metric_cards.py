@@ -12,6 +12,8 @@ from typing import Any, Dict, List, Optional
 import dash_bootstrap_components as dbc
 from dash import html
 
+from ui.tooltip_utils import create_info_tooltip
+
 
 def _create_mini_bar_sparkline(
     data: List[float], color: str, height: int = 40
@@ -124,6 +126,7 @@ def _create_success_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
     # Format metric name for display - use alternative_name if provided
     metric_name = metric_data.get("metric_name", "Unknown Metric")
     alternative_name = metric_data.get("alternative_name")
+    metric_tooltip = metric_data.get("tooltip")  # Optional tooltip text
 
     if alternative_name:
         display_name = alternative_name
@@ -159,8 +162,25 @@ def _create_success_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
             )
         ]
     else:
+        # Start with just the display name
+        title_content = [display_name]
+
+        # Add info tooltip if provided
+        if metric_tooltip:
+            title_content.extend(
+                [
+                    " ",
+                    create_info_tooltip(
+                        help_text=metric_tooltip,
+                        id_suffix=f"metric-{metric_name}",
+                        placement="top",
+                        variant="dark",
+                    ),
+                ]
+            )
+
         header_children: List[Any] = [
-            html.Span(display_name, className="metric-card-title")
+            html.Span(title_content, className="metric-card-title")
         ]
 
     # Add performance tier badge if present
@@ -434,7 +454,9 @@ def create_loading_card(metric_name: str) -> dbc.Card:
     )
 
 
-def create_metric_cards_grid(metrics_data: Dict[str, dict]) -> dbc.Row:
+def create_metric_cards_grid(
+    metrics_data: Dict[str, dict], tooltips: Optional[Dict[str, str]] = None
+) -> dbc.Row:
     """Create a responsive grid of metric cards.
 
     Args:
@@ -444,12 +466,22 @@ def create_metric_cards_grid(metrics_data: Dict[str, dict]) -> dbc.Row:
                 "deployment_frequency": {...},
                 "lead_time_for_changes": {...}
             }
+        tooltips: Optional dictionary mapping metric names to tooltip text
+            Example:
+            {
+                "flow_velocity": "Number of work items completed per week...",
+                "flow_time": "Median time from work start to completion..."
+            }
 
     Returns:
         Dash Bootstrap Row with responsive columns
     """
     cards = []
     for metric_name, metric_info in metrics_data.items():
+        # Add tooltip to metric_info if provided
+        if tooltips and metric_name in tooltips:
+            metric_info = {**metric_info, "tooltip": tooltips[metric_name]}
+
         card = create_metric_card(metric_info, card_id=f"{metric_name}-card")
         # Responsive column: full width on mobile, half on tablet, quarter on desktop
         col = dbc.Col(card, width=12, md=6, lg=3)

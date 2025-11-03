@@ -718,6 +718,15 @@ PARAMETER_INPUTS_TOOLTIPS = {
     "data_points_detail": "More data points provide stability but may miss recent trends. Fewer points are more responsive to changes but can be volatile. Balance based on your project's stability.",
 }
 
+# FLOW METRICS HELP CONTENT - Tooltips for Flow Framework metrics
+FLOW_METRICS_TOOLTIPS = {
+    "flow_velocity": "Number of work items completed per week. Measures delivery throughput across all Flow types (Feature, Defect, Risk, Tech Debt). Higher velocity indicates faster value delivery.",
+    "flow_time": "Median time from work start to completion in days. Includes both active work time and wait time. Lower flow time indicates faster delivery cycles and better predictability.",
+    "flow_efficiency": "Percentage of time spent actively working vs waiting. Calculated as active time divided by total flow time. Higher efficiency (>40%) indicates less waste and smoother workflows.",
+    "flow_load": "Current work in progress (WIP) across all active statuses. Measures how much work is started but not yet completed. Lower WIP reduces context switching and improves focus.",
+    "flow_distribution": "Breakdown of completed work by type: Features (new value), Defects (quality issues), Risk (security/compliance), and Tech Debt (maintenance). Balanced distribution indicates healthy development practices.",
+}
+
 # SETTINGS PANEL HELP CONTENT - Tooltips for settings panel features
 SETTINGS_PANEL_TOOLTIPS = {
     "jira_integration": "Connect to your JIRA instance to automatically import project data. Configure your JIRA server URL, authentication, and field mappings to sync work items, story points, and completion dates.",
@@ -744,5 +753,6 @@ COMPREHENSIVE_HELP_CONTENT = {
     "bug_analysis": BUG_ANALYSIS_TOOLTIPS,
     "dashboard": DASHBOARD_METRICS_TOOLTIPS,
     "parameters": PARAMETER_INPUTS_TOOLTIPS,
+    "flow_metrics": FLOW_METRICS_TOOLTIPS,
     "settings": SETTINGS_PANEL_TOOLTIPS,
 }

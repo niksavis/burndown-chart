@@ -11,6 +11,9 @@ from typing import Dict, Any
 import dash_bootstrap_components as dbc
 from dash import html, dcc
 
+from configuration.help_content import FLOW_METRICS_TOOLTIPS
+from ui.tooltip_utils import create_info_tooltip
+
 
 def create_flow_dashboard() -> dbc.Container:
     """Create the complete Flow metrics dashboard layout.
@@ -103,11 +106,33 @@ def create_flow_metric_card(
     # Get status color based on metric type (default to primary if value is None)
     status_color = _get_flow_metric_color(metric_data["metric_name"], value or 0.0)
 
+    # Get tooltip for this metric
+    metric_key = metric_data["metric_name"]
+    tooltip_text = FLOW_METRICS_TOOLTIPS.get(metric_key, "")
+
+    # Create metric title with info icon
+    if tooltip_text:
+        title_element = html.H6(
+            [
+                metric_name,
+                " ",
+                create_info_tooltip(
+                    help_text=tooltip_text,
+                    id_suffix=f"flow-{metric_key}",
+                    placement="top",
+                    variant="dark",
+                ),
+            ],
+            className="text-muted mb-2",
+        )
+    else:
+        title_element = html.H6(metric_name, className="text-muted mb-2")
+
     card = dbc.Card(
         [
             dbc.CardBody(
                 [
-                    html.H6(metric_name, className="text-muted mb-2"),
+                    title_element,
                     html.H2(
                         [
                             html.Span(value_display, className=f"text-{status_color}"),
@@ -279,3 +304,42 @@ def _get_flow_metric_color(metric_name: str, value: float) -> str:
 
     # Default colors
     return "primary"
+
+
+def create_flow_metrics_cards_grid(metrics_data: dict):
+    """Create a grid of Flow metric cards with info tooltips.
+
+    This is the Flow-specific version that uses create_flow_metric_card()
+    which includes info icon tooltips for each metric.
+
+    Args:
+        metrics_data: Dictionary mapping metric names to metric data
+            Example:
+            {
+                "flow_velocity": {
+                    "metric_name": "flow_velocity",
+                    "value": 5.2,
+                    "unit": "items/week",
+                    ...
+                },
+                "flow_time": {...}
+            }
+
+    Returns:
+        dbc.Row containing the grid of Flow metric cards
+    """
+    if not metrics_data:
+        return html.Div(
+            "No Flow metrics available. Please ensure data is loaded.",
+            className="text-muted p-3",
+        )
+
+    # Create cards using Flow-specific function with tooltips
+    cards = []
+    for metric_name, metric_info in metrics_data.items():
+        card_id = f"flow-metric-{metric_name}"
+        card = create_flow_metric_card(metric_info, card_id)
+        # Responsive column: full width on mobile, half on tablet, quarter on desktop
+        cards.append(dbc.Col(card, width=12, md=6, lg=3))
+
+    return dbc.Row(cards, className="metric-cards-grid")
