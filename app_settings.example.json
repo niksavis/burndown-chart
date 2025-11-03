@@ -1,0 +1,81 @@
+{
+  "_comment": "DORA & Flow Metrics Configuration Template",
+  "_note": "Copy this file to app_settings.json and fill in your customer-specific values",
+
+  "jql_query": "project IN (YOUR_DEV_PROJECT1, YOUR_DEV_PROJECT2) AND created >= -52w",
+  "pert_factor": 1.5,
+  "deadline": "2025-12-31",
+
+  "project_config": {
+    "_comment": "Project classification for DORA/Flow metrics",
+    "development_projects": ["YOUR_DEV_PROJECT1", "YOUR_DEV_PROJECT2"],
+    "operational_projects": ["YOUR_OPS_PROJECT"]
+  },
+
+  "workflow_config": {
+    "_comment": "Workflow status mappings (POSITIVE INCLUSION - list statuses to INCLUDE)",
+    "wip_included_statuses": [
+      "In Progress",
+      "In Review",
+      "Ready for Testing",
+      "Testing",
+      "In Deployment"
+    ],
+    "active_statuses": ["In Progress", "In Review", "Testing"],
+    "completion_statuses": ["Done", "Resolved", "Closed"]
+  },
+
+  "dora_flow_config": {
+    "_comment": "DORA & Flow Metrics field mappings",
+    "field_mappings": {
+      "_comment_dora": "DORA Metrics Fields",
+      "change_failure": "customfield_XXXXX",
+      "affected_environment": "customfield_XXXXX",
+      "deployment_date": "fixVersion.releaseDate",
+      "_comment_flow": "Flow Metrics Fields",
+      "effort_category": "customfield_XXXXX",
+      "estimate": "customfield_XXXXX",
+      "flow_item_type": "issuetype",
+      "work_started_date": "changelog.first(In Progress)",
+      "work_completed_date": "resolutiondate"
+    },
+    "field_metadata": {
+      "_comment": "Optional metadata about field mappings for validation"
+    }
+  },
+
+  "effort_category_mappings": {
+    "_comment": "Map Effort Category custom field values to Flow Types",
+    "_note": "Two-tier classification: Primary from issue type, Secondary from effort category",
+    "Technical debt": "Technical Debt",
+    "Security": "Risk",
+    "GDPR Compliance": "Risk",
+    "Regulatory": "Risk",
+    "Maintenance": "Risk",
+    "New feature": "Feature",
+    "Improvement": "Feature",
+    "Upgrades": "Feature",
+    "Spikes (Analysis)": "Feature",
+    "None": "Feature"
+  },
+
+  "devops_projects": [],
+
+  "_instructions": {
+    "step1": "Replace YOUR_DEV_PROJECT1, YOUR_DEV_PROJECT2, YOUR_OPS_PROJECT with actual JIRA project keys",
+    "step2": "Replace customfield_XXXXX with actual custom field IDs from your JIRA instance",
+    "step3": "Find custom field IDs: JIRA → Admin → System → Custom Fields",
+    "step4": "Update workflow_config statuses to match your JIRA workflow",
+    "step5": "Update effort_category_mappings to match your Effort Category field values",
+    "step6": "Remove this _instructions section after configuration"
+  },
+
+  "_field_reference": {
+    "_comment": "Example Customer Customer Field IDs (EXAMPLE - update with your own)",
+    "customfield_10002": "Estimate (Story Points)",
+    "customfield_10002": "Affected Environment (PROD/TEST/DEV)",
+    "customfield_10001": "Change failure (Yes/No/None)",
+    "customfield_10003": "Effort Category (10 values)",
+    "customfield_10004": "Deployment Approval (optional)"
+  }
+}
