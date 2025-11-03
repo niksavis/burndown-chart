@@ -2,6 +2,9 @@
 
 Provides the user interface for viewing DORA (DevOps Research and Assessment) metrics.
 Displays all four DORA metrics with performance tier indicators and error states.
+
+Uses Data Points slider from settings panel to control historical data display.
+Metrics calculated per ISO week (Monday-Sunday), showing current week + N-1 historical weeks.
 """
 
 from typing import Dict, Any
@@ -31,116 +34,20 @@ def create_dora_dashboard() -> dbc.Container:
                             html.P(
                                 "DevOps Research and Assessment metrics for measuring "
                                 "software delivery and operational performance.",
-                                className="text-muted mb-4",
+                                className="text-muted",
                             ),
-                        ],
-                        width=12,
-                    ),
-                ],
-                className="mb-4",
-            ),
-            # Time period selector
-            dbc.Row(
-                [
-                    dbc.Col(
-                        [
-                            html.Label("Time Period:", className="fw-bold mb-2"),
-                            dbc.Select(
-                                id="dora-time-period-select",
-                                options=[
-                                    {"label": "Last 7 Days", "value": "7"},
-                                    {"label": "Last 30 Days", "value": "30"},
-                                    {"label": "Last 90 Days", "value": "90"},
-                                    {"label": "Custom Range", "value": "custom"},
-                                ],
-                                value="30",
-                            ),
-                        ],
-                        width=12,
-                        md=3,
-                        lg=3,
-                    ),
-                    dbc.Col(
-                        [
-                            html.Label(
-                                "Custom Date Range:",
-                                className="fw-bold mb-2",
-                                id="dora-custom-date-label",
-                                style={"display": "none"},
-                            ),
-                            dcc.DatePickerRange(
-                                id="dora-date-range-picker",
-                                display_format="YYYY-MM-DD",
-                                start_date_placeholder_text="Start Date",
-                                end_date_placeholder_text="End Date",
-                                style={
-                                    "display": "none",
-                                },
-                                with_portal=True,
-                                persistence=True,
-                                persistence_type="session",
-                            ),
-                        ],
-                        width=12,
-                        md=5,
-                        lg=5,
-                        id="dora-custom-date-range-container",
-                    ),
-                    dbc.Col(
-                        [
-                            html.Label(
-                                "\u00a0",  # Non-breaking space to align with other labels
-                                className="fw-bold mb-2 d-block",
-                            ),
-                            dbc.Button(
+                            html.P(
                                 [
-                                    html.I(className="fas fa-sync-alt me-2"),
-                                    "Refresh Metrics",
+                                    html.I(className="fas fa-calendar-week me-2"),
+                                    "Metrics calculated per ISO week (Monday-Sunday). ",
+                                    "Use ",
+                                    html.Strong("Data Points slider"),
+                                    " in Settings to control number of weeks displayed.",
                                 ],
-                                id="dora-refresh-button",
-                                color="primary",
-                                className="w-100",
+                                className="text-muted small mb-4",
                             ),
                         ],
                         width=12,
-                        md=2,
-                        lg=2,
-                    ),
-                    dbc.Col(
-                        [
-                            html.Label(
-                                "\u00a0",  # Non-breaking space to align with other labels
-                                className="fw-bold mb-2 d-block",
-                            ),
-                            dbc.ButtonGroup(
-                                [
-                                    dbc.Button(
-                                        html.I(className="fas fa-file-csv"),
-                                        id="export-dora-csv-button",
-                                        color="secondary",
-                                        outline=True,
-                                        size="md",
-                                        title="Export CSV",
-                                        className="px-3",
-                                    ),
-                                    dbc.Button(
-                                        html.I(className="fas fa-file-code"),
-                                        id="export-dora-json-button",
-                                        color="secondary",
-                                        outline=True,
-                                        size="md",
-                                        title="Export JSON",
-                                        className="px-3",
-                                    ),
-                                ],
-                            ),
-                            # Download components (hidden, triggered by callbacks)
-                            dcc.Download(id="download-dora-csv"),
-                            dcc.Download(id="download-dora-json"),
-                        ],
-                        width=12,
-                        md=2,
-                        lg=2,
                     ),
                 ],
                 className="mb-4",

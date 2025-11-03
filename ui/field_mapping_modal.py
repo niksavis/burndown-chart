@@ -206,6 +206,12 @@ def create_field_mapping_form(
                 "What type of work item is this? (feature/bug/task)",
             ),
             (
+                "effort_category",
+                "Effort Category",
+                "select",
+                "What type of effort is this? (New feature, Technical debt, Security, etc.) - Used for Work Distribution classification",
+            ),
+            (
                 "work_started_date",
                 "Work Started Date",
                 "datetime",

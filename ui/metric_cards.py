@@ -13,6 +13,50 @@ import dash_bootstrap_components as dbc
 from dash import html
 
 
+def _create_mini_bar_sparkline(
+    data: List[float], color: str, height: int = 40
+) -> html.Div:
+    """Create a mini CSS-based bar sparkline for inline trend display.
+
+    Args:
+        data: List of numeric values to display
+        color: CSS color for bars
+        height: Maximum height of bars in pixels
+
+    Returns:
+        Div containing mini bar chart
+    """
+    if not data or len(data) < 2:
+        return html.Div()
+
+    max_val = max(data) if max(data) > 0 else 1
+    normalized = [v / max_val for v in data]
+
+    bars = []
+    for i, val in enumerate(normalized):
+        bar_height = max(val * height, 2)
+        opacity = 0.5 + (i / len(normalized)) * 0.5  # Fade from 0.5 to 1.0
+
+        bars.append(
+            html.Div(
+                style={
+                    "width": "4px",
+                    "height": f"{bar_height}px",
+                    "backgroundColor": color,
+                    "opacity": opacity,
+                    "borderRadius": "2px",
+                    "margin": "0 1px",
+                }
+            )
+        )
+
+    return html.Div(
+        bars,
+        className="d-flex align-items-end justify-content-center",
+        style={"height": f"{height}px", "gap": "1px"},
+    )
+
+
 def create_metric_card(metric_data: dict, card_id: Optional[str] = None) -> dbc.Card:
     """Create a metric display card.
 
@@ -59,9 +103,13 @@ def create_metric_card(metric_data: dict, card_id: Optional[str] = None) -> dbc.
 def _create_success_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
     """Create card for successful metric calculation.
 
-    T056: Now includes collapsible trend section with "Show Trend" button.
-    Supports alternative_name for issue_tracker mode reinterpretation.
+    Now includes inline trend sparkline (always visible) below the metric value.
+    Trend data should be provided in metric_data as:
+    - weekly_labels: List of week labels (e.g., ["2025-W40", "2025-W41", ...])
+    - weekly_values: List of metric values for each week
     """
+    from visualization.metric_trends import create_metric_trend_sparkline
+
     # Map performance tier colors to Bootstrap colors
     tier_color_map = {
         "green": "success",
@@ -127,55 +175,110 @@ def _create_success_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
 
     card_header = dbc.CardHeader(header_children)
 
-    # Trend button and collapsible section (T056) - using pattern-matching IDs
-    trend_collapse_id = {"type": "metric-trend-collapse", "metric": metric_name}
-    trend_button_id = {"type": "metric-trend-button", "metric": metric_name}
-
+    # Build card body with inline trend sparkline
     card_body_children = [
         # Metric value (large, centered)
         html.H2(formatted_value, className="text-center metric-value mb-2"),
         # Unit (smaller, centered)
         html.P(
             metric_data.get("unit", ""),
-            className="text-muted text-center metric-unit mb-3",
-        ),
-        # Additional info
-        html.Small(_format_additional_info(metric_data), className="text-muted"),
-        # Show Trend button
-        html.Hr(className="my-3"),
-        dbc.Button(
-            [
-                html.I(className="fas fa-chart-line me-2"),
-                "Show Trend",
-            ],
-            id=trend_button_id,
-            color="link",
-            size="sm",
-            className="w-100",
-        ),
-        # Collapsible trend chart container
-        # Collapsible trend chart container
-        dbc.Collapse(
-            dbc.Card(
-                dbc.CardBody(
-                    [
-                        html.Div(
-                            id={"type": "metric-trend-chart", "metric": metric_name},
-                            children=[
-                                html.P(
-                                    "Trend chart will be displayed here",
-                                    className="text-muted text-center my-3",
-                                )
-                            ],
-                        )
-                    ]
-                ),
-                className="mt-2",
-            ),
-            id=trend_collapse_id,
-            is_open=False,
+            className="text-muted text-center metric-unit mb-1",
         ),
     ]
+
+    # Add inline trend sparkline if weekly data is provided
+    weekly_labels = metric_data.get("weekly_labels", [])
+    weekly_values = metric_data.get("weekly_values", [])
+
+    if weekly_labels and weekly_values and len(weekly_labels) > 1:
+        # Determine color based on performance tier
+        sparkline_color = {
+            "green": "#28a745",
+            "yellow": "#ffc107",
+            "orange": "#fd7e14",
+            "red": "#dc3545",
+        }.get(tier_color, "#1f77b4")
+
+        # Create inline mini sparkline (CSS-based, compact)
+        mini_sparkline = _create_mini_bar_sparkline(
+            weekly_values, sparkline_color, height=40
+        )
+
+        # Generate unique collapse ID for this card
+        collapse_id = f"{metric_name}-details-collapse"
+
+        card_body_children.append(
+            html.Div(
+                [
+                    html.Hr(className="my-2"),
+                    html.Div(
+                        [
+                            html.Small(
+                                f"Trend (last {len(weekly_values)} weeks):",
+                                className="text-muted d-block mb-1",
+                            ),
+                            mini_sparkline,
+                            dbc.Button(
+                                [
+                                    html.I(className="fas fa-chart-line me-2"),
+                                    "Show Details",
+                                ],
+                                id=f"{metric_name}-details-btn",
+                                color="link",
+                                size="sm",
+                                className="mt-2 p-0",
+                                style={"fontSize": "0.85rem"},
+                            ),
+                        ],
+                        className="text-center",
+                    ),
+                    # Expandable detailed chart section
+                    dbc.Collapse(
+                        dbc.CardBody(
+                            [
+                                html.H6(
+                                    f"Weekly {display_name} Trend",
+                                    className="mb-3 text-center",
+                                ),
+                                create_metric_trend_sparkline(
+                                    week_labels=weekly_labels,
+                                    values=weekly_values,
+                                    metric_name=display_name,
+                                    unit=metric_data.get("unit", ""),
+                                    height=200,
+                                    show_axes=True,
+                                    color=sparkline_color,
+                                ),
+                                html.Div(
+                                    [
+                                        html.Small(
+                                            "Click chart to interact • Hover for values • Double-click to reset zoom",
+                                            className="text-muted",
+                                        )
+                                    ],
+                                    className="text-center mt-2",
+                                ),
+                            ],
+                            className="bg-light",
+                        ),
+                        id=collapse_id,
+                        is_open=False,
+                    ),
+                ],
+                className="metric-trend-section",
+            )
+        )
+
+    # Additional info at bottom
+    card_body_children.extend(
+        [
+            html.Hr(className="my-2"),
+            html.Small(
+                _format_additional_info(metric_data),
+                className="text-muted d-block text-center",
+            ),
+        ]
+    )
 
     card_body = dbc.CardBody(card_body_children)
 

@@ -299,21 +299,21 @@ def _create_progress_ring(percentage, color, size=60):
 def _create_executive_summary(statistics_df, settings, forecast_data):
     """Create executive summary section with key project health indicators."""
     # Calculate key metrics
-    # NOTE: settings["total_items"] and settings["total_points"] represent REMAINING work, not total scope
-    remaining_items = settings.get("total_items", 0)
-    remaining_points = settings.get("total_points", 0)
+    # NOTE: settings["total_items"] and settings["total_points"] NOW represent the total scope
+    # at the START of the selected data window (e.g., 317 items 16 weeks ago)
+    # This matches the calculation in ui/layout.py serve_layout() and callbacks/settings.py slider callback
+    total_items = settings.get("total_items", 0)
+    total_points = settings.get("total_points", 0)
     deadline = settings.get("deadline")
 
+    # Calculate completed items from the FILTERED statistics DataFrame
+    # This represents work completed WITHIN the selected time window
     completed_items = (
         statistics_df["completed_items"].sum() if not statistics_df.empty else 0
     )
     completed_points = (
         statistics_df["completed_points"].sum() if not statistics_df.empty else 0
     )
-
-    # Calculate actual total project scope (completed + remaining)
-    total_items = completed_items + remaining_items
-    total_points = completed_points + remaining_points
 
     completion_percentage = _safe_divide(completed_items, total_items) * 100
     points_percentage = (

@@ -198,77 +198,77 @@ def create_settings_panel_expanded(id_suffix: str = "") -> html.Div:
                                                 ],
                                                 className="mb-3",
                                             ),
-                                            # Saved Queries & Fetch - side by side
-                                            dbc.Row(
+                                            # Saved Queries - full width
+                                            html.Div(
                                                 [
-                                                    dbc.Col(
+                                                    html.Label(
                                                         [
-                                                            html.Label(
-                                                                [
-                                                                    "Saved Queries",
-                                                                    html.Span(
-                                                                        create_settings_tooltip(
-                                                                            "saved_queries",
-                                                                            "saved-queries-help",
-                                                                        ),
-                                                                        style={
-                                                                            "marginLeft": "0.25rem"
-                                                                        },
-                                                                    ),
-                                                                ],
-                                                                className="form-label small text-muted mb-1",
-                                                            ),
-                                                            dcc.Dropdown(
-                                                                id="jira-query-profile-selector",
-                                                                options=_get_query_profile_options(),
-                                                                value=_get_default_jql_profile_id(),
-                                                                placeholder="Select...",
-                                                                clearable=True,
-                                                                searchable=True,
-                                                                className="mb-2",
-                                                            ),
-                                                            dbc.ButtonGroup(
-                                                                [
-                                                                    dbc.Button(
-                                                                        html.I(
-                                                                            className="fas fa-save"
-                                                                        ),
-                                                                        id="save-jql-query-button",
-                                                                        color="primary",
-                                                                        size="sm",
-                                                                        title="Save current query",
-                                                                    ),
-                                                                    dbc.Button(
-                                                                        html.I(
-                                                                            className="fas fa-edit"
-                                                                        ),
-                                                                        id="edit-jql-query-button",
-                                                                        color="secondary",
-                                                                        outline=True,
-                                                                        size="sm",
-                                                                        title="Edit selected query",
-                                                                    ),
-                                                                    dbc.Button(
-                                                                        html.I(
-                                                                            className="fas fa-trash"
-                                                                        ),
-                                                                        id="delete-jql-query-button",
-                                                                        color="danger",
-                                                                        outline=True,
-                                                                        size="sm",
-                                                                        title="Delete selected query",
-                                                                    ),
-                                                                ],
-                                                                size="sm",
-                                                            ),
-                                                            html.Div(
-                                                                id="jira-jql-query-save-status",
-                                                                className="small mt-1",
-                                                                children=[],
+                                                            "Saved Queries",
+                                                            html.Span(
+                                                                create_settings_tooltip(
+                                                                    "saved_queries",
+                                                                    "saved-queries-help",
+                                                                ),
+                                                                style={
+                                                                    "marginLeft": "0.25rem"
+                                                                },
                                                             ),
                                                         ],
-                                                        md=7,
+                                                        className="form-label small text-muted mb-1",
                                                     ),
+                                                    dcc.Dropdown(
+                                                        id="jira-query-profile-selector",
+                                                        options=_get_query_profile_options(),
+                                                        value=_get_default_jql_profile_id(),
+                                                        placeholder="Select...",
+                                                        clearable=True,
+                                                        searchable=True,
+                                                        className="mb-2",
+                                                    ),
+                                                    dbc.ButtonGroup(
+                                                        [
+                                                            dbc.Button(
+                                                                html.I(
+                                                                    className="fas fa-save"
+                                                                ),
+                                                                id="save-jql-query-button",
+                                                                color="primary",
+                                                                size="sm",
+                                                                title="Save current query",
+                                                            ),
+                                                            dbc.Button(
+                                                                html.I(
+                                                                    className="fas fa-edit"
+                                                                ),
+                                                                id="edit-jql-query-button",
+                                                                color="secondary",
+                                                                outline=True,
+                                                                size="sm",
+                                                                title="Edit selected query",
+                                                            ),
+                                                            dbc.Button(
+                                                                html.I(
+                                                                    className="fas fa-trash"
+                                                                ),
+                                                                id="delete-jql-query-button",
+                                                                color="danger",
+                                                                outline=True,
+                                                                size="sm",
+                                                                title="Delete selected query",
+                                                            ),
+                                                        ],
+                                                        size="sm",
+                                                    ),
+                                                    html.Div(
+                                                        id="jira-jql-query-save-status",
+                                                        className="small mt-1 mb-3",
+                                                        children=[],
+                                                    ),
+                                                ],
+                                            ),
+                                            # Action Buttons - side by side below Saved Queries
+                                            dbc.Row(
+                                                [
                                                     dbc.Col(
                                                         [
                                                             html.Label(
@@ -297,10 +297,43 @@ def create_settings_panel_expanded(id_suffix: str = "") -> html.Div:
                                                             html.Div(
                                                                 id="jira-cache-status",
                                                                 className="text-center text-muted small mt-2",
-                                                                children="Ready",
+                                                                children="",
                                                             ),
                                                         ],
-                                                        md=5,
+                                                        md=6,
+                                                    ),
+                                                    dbc.Col(
+                                                        [
+                                                            html.Label(
+                                                                [
+                                                                    "Flow & DORA Metrics",
+                                                                    html.Span(
+                                                                        create_settings_tooltip(
+                                                                            "calculate_metrics",
+                                                                            "calculate-metrics-help",
+                                                                        ),
+                                                                        style={
+                                                                            "marginLeft": "0.25rem"
+                                                                        },
+                                                                    ),
+                                                                ],
+                                                                className="form-label small text-muted mb-1",
+                                                            ),
+                                                            create_button(
+                                                                text="Calculate Metrics",
+                                                                id="calculate-metrics-button",
+                                                                variant="primary",
+                                                                icon_class="fas fa-calculator",
+                                                                className="w-100",
+                                                                size="md",
+                                                            ),
+                                                            html.Div(
+                                                                id="calculate-metrics-status",
+                                                                className="text-center text-muted small mt-2",
+                                                                children="",
+                                                            ),
+                                                        ],
+                                                        md=6,
                                                     ),
                                                 ],
                                                 className="g-2",

@@ -1038,6 +1038,28 @@ svg {
   vertical-align: middle;
 }
 
+/* ===== Alert Component Improvements ===== */
+
+/* Fix dismissable alert close button vertical alignment */
+.alert.alert-dismissible {
+  display: flex;
+  align-items: center;
+  padding-right: 3rem; /* Make room for close button */
+}
+
+.alert.alert-dismissible .btn-close {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  right: 1rem;
+  padding: 0.5rem;
+}
+
+/* Ensure alert content flexes properly */
+.alert.alert-dismissible > * {
+  flex: 1;
+}
+
 /* ===== Enhanced Accessibility & Interactive Elements ===== */
 
 /* Improved focus indicators for keyboard navigation */
