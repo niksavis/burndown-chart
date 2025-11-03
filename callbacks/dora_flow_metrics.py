@@ -1,1411 +1,1297 @@
-"""Callbacks for DORA and Flow metrics dashboard.
+"""DORA and Flow Metrics Dashboard Callbacks.
 
-Handles user interactions and metric calculations for DORA/Flow dashboards.
-Follows layered architecture: callbacks delegate to data layer for all business logic.
+Handles metric calculations and display for DORA and Flow dashboards.
+Uses ISO week bucketing (Monday-Sunday) with Data Points slider controlling display period.
+Matches architecture of existing burndown/statistics dashboards.
+
+All field mappings and configuration values come from app_settings.json - no hardcoded values.
 """
 
-from dash import callback, Output, Input, State, html, ALL, callback_context, no_update
+from dash import callback, Output, Input, State, html, dcc
 import dash_bootstrap_components as dbc
-from typing import Dict
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone, timedelta
+from typing import Dict, Any, Optional
 import logging
+
+from data.iso_week_bucketing import (
+    bucket_issues_by_week,
+    get_week_range_description,
+)
+from data.dora_calculator import (
+    calculate_deployment_frequency_v2,
+    calculate_lead_time_for_changes_v2,
+    calculate_change_failure_rate_v2,
+    calculate_mttr_v2,
+)
+
+# project_filter functions will be used when implementing operational task filtering for DORA
+from data.persistence import load_app_settings
+from ui.metric_cards import create_metric_cards_grid
 
 logger = logging.getLogger(__name__)
 
 
-def parse_time_period(
-    time_period: str,
-    custom_start: str | None = None,
-    custom_end: str | None = None,
-) -> tuple[datetime, datetime]:
-    """Parse time period selection to actual date range.
-
-    Args:
-        time_period: Selected time period ('7', '30', '90', or 'custom')
-        custom_start: Custom start date (ISO 8601) if time_period == 'custom'
-        custom_end: Custom end date (ISO 8601) if time_period == 'custom'
-
-    Returns:
-        Tuple of (start_date, end_date) as timezone-aware datetime objects
-
-    Raises:
-        ValueError: If custom period selected but dates not provided
-    """
-    now = datetime.now(timezone.utc)
-
-    if time_period == "custom":
-        if not custom_start or not custom_end:
-            # Fallback to last 30 days if custom selected but no dates
-            logger.warning(
-                "Custom period selected but no dates provided, falling back to 30 days"
-            )
-            return now - timedelta(days=30), now
-
-        try:
-            start = datetime.fromisoformat(custom_start.replace("Z", "+00:00"))
-            end = datetime.fromisoformat(custom_end.replace("Z", "+00:00"))
-
-            # Ensure timezone aware
-            if start.tzinfo is None:
-                start = start.replace(tzinfo=timezone.utc)
-            if end.tzinfo is None:
-                end = end.replace(tzinfo=timezone.utc)
-
-            return start, end
-        except (ValueError, AttributeError) as e:
-            logger.error(f"Error parsing custom dates: {e}")
-            return now - timedelta(days=30), now
-
-    # Parse preset periods
-    days = int(time_period) if time_period in ["7", "30", "90"] else 30
-    return now - timedelta(days=days), now
-
-
-def calculate_retrospective_trends(
-    issues: list,
-    metric_name: str,
-    metric_type: str,
-    field_mappings: dict,
-    time_period_days: int,
-    num_points: int = 8,
-) -> list:
-    """Calculate historical trend data by analyzing JIRA issues in time buckets.
-
-    Instead of waiting for daily snapshots to accumulate, this function
-    retrospectively calculates metrics for different time windows within
-    the available JIRA data.
-
-    Args:
-        issues: List of JIRA issues from cache
-        metric_name: Name of metric (e.g., 'flow_velocity', 'deployment_frequency')
-        metric_type: Either 'dora_metrics' or 'flow_metrics'
-        field_mappings: JIRA field mappings
-        time_period_days: Total time period (e.g., 30, 90)
-        num_points: Number of data points to generate (default: 8)
-
-    Returns:
-        List of {"date": "2025-10-01", "value": 5.2} dictionaries
-    """
-    from data.flow_calculator import (
-        calculate_flow_velocity,
-        calculate_flow_time,
-        calculate_flow_efficiency,
-        calculate_flow_load,
-    )
-    from data.dora_calculator import (
-        calculate_deployment_frequency,
-        calculate_lead_time_for_changes,
-        calculate_change_failure_rate,
-        calculate_mean_time_to_recovery,
-    )
-
-    # Calculate bucket size (e.g., 30 days / 8 points = ~4 days per bucket)
-    bucket_days = max(1, time_period_days // num_points)
-
-    trend_data = []
-    now = datetime.now(timezone.utc)
-
-    logger.info(
-        f"Retrospective trends: metric={metric_name}, time_period={time_period_days}days, "
-        f"num_points={num_points}, bucket_days={bucket_days}, total_issues={len(issues)}"
-    )
-
-    # Generate data points going backwards in time
-    for i in range(num_points):
-        # Calculate end date for this bucket (going backwards)
-        bucket_end = now - timedelta(days=i * bucket_days)
-        bucket_start = bucket_end - timedelta(days=bucket_days)
-
-        # Filter issues to this time window based on resolution/completion date
-        bucket_issues = [
-            issue
-            for issue in issues
-            if issue.get("fields", {}).get("resolutiondate")
-            and bucket_start
-            <= datetime.fromisoformat(
-                issue["fields"]["resolutiondate"].replace("Z", "+00:00")
-            )
-            < bucket_end
-        ]
-
-        logger.info(
-            f"Bucket {i}: {bucket_start.date()} to {bucket_end.date()} - {len(bucket_issues)} issues"
-        )
-
-        if not bucket_issues:
-            continue  # Skip empty buckets
-
-        # Calculate metric for this bucket
-        try:
-            if metric_type == "flow_metrics":
-                if metric_name == "flow_velocity":
-                    result = calculate_flow_velocity(
-                        bucket_issues, field_mappings, bucket_start, bucket_end
-                    )
-                elif metric_name == "flow_time":
-                    result = calculate_flow_time(bucket_issues, field_mappings)
-                elif metric_name == "flow_efficiency":
-                    result = calculate_flow_efficiency(bucket_issues, field_mappings)
-                elif metric_name == "flow_load":
-                    result = calculate_flow_load(bucket_issues, field_mappings)
-                else:
-                    continue  # Skip unsupported metrics
-            elif metric_type == "dora_metrics":
-                if metric_name == "deployment_frequency":
-                    result = calculate_deployment_frequency(
-                        bucket_issues,
-                        field_mappings,
-                        bucket_days,
-                        start_date=bucket_start,
-                        end_date=bucket_end,
-                    )
-                elif metric_name == "lead_time_for_changes":
-                    result = calculate_lead_time_for_changes(
-                        bucket_issues, field_mappings, bucket_days
-                    )
-                elif metric_name == "change_failure_rate":
-                    # CFR needs separate deployment and incident lists
-                    deployment_issues = [
-                        issue
-                        for issue in bucket_issues
-                        if issue.get("fields", {}).get(
-                            field_mappings.get("deployment_date")
-                        )
-                    ]
-                    incident_issues = [
-                        issue
-                        for issue in bucket_issues
-                        if issue.get("fields", {}).get(
-                            field_mappings.get("incident_start")
-                        )
-                    ]
-                    result = calculate_change_failure_rate(
-                        deployment_issues, incident_issues, field_mappings, bucket_days
-                    )
-                elif metric_name == "mean_time_to_recovery":
-                    result = calculate_mean_time_to_recovery(
-                        bucket_issues, field_mappings, bucket_days
-                    )
-                else:
-                    continue  # Skip unsupported metrics
-            else:
-                continue
-
-            # Extract value from result
-            logger.info(
-                f"Bucket {i} calculation result: error_state={result.get('error_state')}, "
-                f"has_value={'value' in result}, value={result.get('value', 'N/A')}"
-            )
-
-            if result.get("error_state") == "success" and "value" in result:
-                trend_data.append(
-                    {"date": bucket_start.date().isoformat(), "value": result["value"]}
-                )
-            else:
-                logger.warning(
-                    f"Bucket {i} skipped: error_state={result.get('error_state')}, "
-                    f"error_msg={result.get('error_message', 'N/A')}"
-                )
-        except Exception as e:
-            logger.warning(
-                f"Error calculating {metric_name} for bucket {bucket_start}: {e}"
-            )
-            continue
-
-    # Reverse to show oldest first (chronological order)
-    trend_data.reverse()
-
-    logger.info(
-        f"Generated {len(trend_data)} retrospective trend points for {metric_name}"
-    )
-    return trend_data
-
-
-@callback(
-    Output("dora-metrics-cards-container", "children"),
-    Output("dora-loading-state", "children"),
-    Output("dora-metrics-store", "data"),
-    Input("dora-refresh-button", "n_clicks"),
-    Input("dora-time-period-select", "value"),
-    State("dora-date-range-picker", "start_date"),
-    State("dora-date-range-picker", "end_date"),
-    prevent_initial_call=False,
-)
-def update_dora_metrics(
-    n_clicks: int | None,
-    time_period: str,
-    custom_start: str | None,
-    custom_end: str | None,
-) -> tuple:
-    """Update DORA metrics display.
-
-    T048: Now handles time period selection and custom date ranges.
-    Delegates to data layer for metric calculation.
-
-    Args:
-        n_clicks: Number of refresh button clicks
-        time_period: Selected time period ('7', '30', '90', or 'custom')
-        custom_start: Custom start date (ISO 8601) if time_period == 'custom'
-        custom_end: Custom end date (ISO 8601) if time_period == 'custom'
-
-    Returns:
-        Tuple of (metrics_cards, loading_state, metrics_store_data)
-    """
-    from ui.dora_metrics_dashboard import create_dora_loading_cards_grid
-
-    try:
-        # Parse time period to actual dates
-        start_date, end_date = parse_time_period(time_period, custom_start, custom_end)
-
-        logger.info(
-            f"DORA metrics requested for period: {start_date.isoformat()} to {end_date.isoformat()}"
-        )
-
-        # Load field mappings
-        from data.dora_calculator import calculate_all_dora_metrics
-        from data.field_mapper import load_field_mappings
-        from data.jira_simple import load_jira_cache
-        from data.persistence import load_app_settings
-
-        mappings_data = load_field_mappings()
-        all_field_mappings = mappings_data.get("field_mappings", {})
-
-        # Extract DORA-specific mappings from nested structure
-        field_mappings = all_field_mappings.get("dora", {})
-
-        if not field_mappings:
-            warning_alert = dbc.Alert(
-                [
-                    html.H5(
-                        "⚠️ Field Mappings Not Configured", className="alert-heading"
-                    ),
-                    html.P(
-                        "Please configure field mappings in the Settings panel to enable DORA metrics calculation."
-                    ),
-                    html.Hr(),
-                    html.P(
-                        "Navigate to Settings → Field Mapping to set up required fields.",
-                        className="mb-0",
-                    ),
-                ],
-                color="warning",
-                dismissable=True,
-            )
-            return create_dora_loading_cards_grid(), warning_alert, {}
-
-        # Validate JIRA configuration for DORA compatibility
-        from data.field_mapper import validate_dora_jira_compatibility
-
-        validation_result = validate_dora_jira_compatibility(field_mappings)
-        validation_mode = validation_result.get("validation_mode", "unknown")
-        compatibility_level = validation_result.get("compatibility_level", "unknown")
-
-        logger.info(
-            f"DORA validation: mode={validation_mode}, compatibility={compatibility_level}, "
-            f"errors={validation_result.get('error_count', 0)}"
-        )
-
-        # Get cached issues (from previous JIRA fetch)
-        settings = load_app_settings()
-        jql_query = settings.get("jql_query", "")
-        cache_loaded, issues = load_jira_cache(current_jql_query=jql_query)
-
-        if not cache_loaded or not issues:
-            info_alert = dbc.Alert(
-                [
-                    html.H5("ℹ️ No Data Available", className="alert-heading"),
-                    html.P(
-                        "Please fetch data from JIRA first using the 'Update Data from JIRA' button in Settings."
-                    ),
-                ],
-                color="info",
-                dismissable=True,
-            )
-            return create_dora_loading_cards_grid(), info_alert, {}
-
-        # CRITICAL: Filter out DevOps project issues for DORA metrics
-        # DORA metrics should ONLY calculate from development project issues
-        # DevOps project data is used ONLY for metadata extraction, not metric calculation
-        devops_projects = settings.get("devops_projects", [])
-        if devops_projects:
-            from data.project_filter import filter_development_issues
-
-            total_issues_count = len(issues)
-            issues = filter_development_issues(issues, devops_projects)
-            filtered_count = total_issues_count - len(issues)
-
-            if filtered_count > 0:
-                logger.info(
-                    f"DORA: Filtered out {filtered_count} DevOps project issues from {total_issues_count} total. "
-                    f"Using {len(issues)} development project issues for DORA metrics."
-                )
-
-        logger.info(f"Calculating DORA metrics for {len(issues)} issues")
-
-        # Calculate DORA metrics (Note: will show error states for missing Apache Kafka fields)
-        # Split issues into deployments and incidents for proper calculation
-        issues_dict = {
-            "deployments": issues,  # All issues (will filter by deployment_date field)
-            "incidents": issues,  # All issues (will filter by incident fields)
-        }
-
-        metrics = calculate_all_dora_metrics(
-            issues=issues_dict,
-            field_mappings=field_mappings,
-            time_period_days=int(time_period)
-            if time_period in ["7", "30", "90"]
-            else 30,
-        )
-
-        # Render metric cards with alternative names if in issue_tracker mode
-        from ui.metric_cards import create_metric_card
-
-        alternative_names = validation_result.get("recommended_interpretation", {})
-
-        cards = []
-        for metric_name, metric_data in metrics.items():
-            # Use alternative name if in issue_tracker mode
-            if validation_mode == "issue_tracker" and metric_name in alternative_names:
-                metric_data["alternative_name"] = alternative_names[metric_name]
-            card = create_metric_card(metric_data)
-            cards.append(card)
-
-        logger.info(
-            f"DORA metrics calculated: {len(cards)} cards (mode: {validation_mode})"
-        )
-
-        # Save metrics snapshot for historical trend analysis (T017: Historical trend data storage)
-        from data.persistence import save_metrics_snapshot
-
-        time_period_days = int(time_period) if time_period in ["7", "30", "90"] else 30
-        save_metrics_snapshot("dora_metrics", metrics, time_period_days)
-
-        # Show validation-aware alert
-        if validation_mode == "issue_tracker":
-            info_alert = dbc.Alert(
-                [
-                    html.H5("ℹ️ Issue Tracker Mode", className="alert-heading"),
-                    html.P(
-                        "Your JIRA instance uses standard fields without DevOps-specific tracking. "
-                        "Metrics are reinterpreted for workflow analysis:"
-                    ),
-                    html.Ul(
-                        [
-                            html.Li(f"{name} → {alt_name}")
-                            for name, alt_name in alternative_names.items()
-                            if name in metrics
-                        ]
-                    ),
-                    html.Hr(),
-                    html.P(
-                        "To enable full DORA metrics, configure custom fields for deployment and incident tracking.",
-                        className="mb-0 small",
-                    ),
-                ],
-                color="info",
-                dismissable=True,
-            )
-        elif compatibility_level == "partial":
-            warning_count = validation_result.get("warning_count", 0)
-            info_alert = dbc.Alert(
-                [
-                    html.H5("⚠️ Partial DevOps Tracking", className="alert-heading"),
-                    html.P(
-                        f"Some DORA fields are missing or using proxy mappings. {warning_count} warnings detected."
-                    ),
-                    html.P(
-                        "Check Settings → Field Mapping for details.",
-                        className="mb-0",
-                    ),
-                ],
-                color="warning",
-                dismissable=True,
-            )
-        else:
-            # Full DevOps mode or no issues
-            info_alert = html.Div()  # Empty div
-
-        return cards, info_alert, metrics
-
-    except Exception as e:
-        logger.error(f"Error updating DORA metrics: {e}", exc_info=True)
-        error_alert = dbc.Alert(
-            f"Error loading DORA metrics: {str(e)}",
-            color="danger",
-            dismissable=True,
-        )
-        return create_dora_loading_cards_grid(), error_alert, {}
+#######################################################################
+# DORA METRICS CALLBACK
+#######################################################################
 
 
 @callback(
     [
-        Output("dora-custom-date-label", "style"),
-        Output("dora-date-range-picker", "style"),
+        Output("dora-metrics-cards-container", "children"),
+        Output("dora-loading-state", "children"),
     ],
-    Input("dora-time-period-select", "value"),
-)
-def toggle_custom_date_range(time_period: str) -> tuple:
-    """Show/hide custom date range picker based on time period selection.
-
-    Args:
-        time_period: Selected time period value
-
-    Returns:
-        Tuple of style dictionaries for label and date picker
-    """
-    if time_period == "custom":
-        return (
-            {"display": "block"},  # Show label
-            {"display": "block"},  # Show date picker
-        )
-    else:
-        return (
-            {"display": "none"},  # Hide label
-            {"display": "none"},  # Hide date picker
-        )
-
-
-# ============================================================================
-# Flow Metrics Callbacks
-# ============================================================================
-
-
-@callback(
-    Output("flow-metrics-cards-container", "children"),
-    Output("flow-loading-state", "children"),
-    Output("flow-metrics-store", "data"),
-    Input("flow-refresh-button", "n_clicks"),
-    Input("flow-time-period-select", "value"),
-    State("flow-date-range-picker", "start_date"),
-    State("flow-date-range-picker", "end_date"),
+    [
+        Input("jira-issues-store", "data"),
+        Input("data-points-input", "value"),
+    ],
+    [
+        State("current-settings", "data"),
+    ],
     prevent_initial_call=False,
 )
-def update_flow_metrics(
-    n_clicks: int | None,
-    time_period: str,
-    custom_start: str | None,
-    custom_end: str | None,
-) -> tuple:
-    """Update Flow metrics display.
+def calculate_and_display_dora_metrics(
+    jira_data_store: Optional[Dict[str, Any]],
+    data_points: int,
+    app_settings: Optional[Dict[str, Any]],
+):
+    """Calculate and display DORA metrics per ISO week.
 
-    T050: Now handles time period selection and custom date ranges.
-    Delegates to data layer for metric calculation.
+    Uses Data Points slider to control how many weeks of historical data to display.
+    Metrics calculated per ISO week (Monday-Sunday boundaries).
 
     Args:
-        n_clicks: Number of refresh button clicks
-        time_period: Selected time period ('7', '30', '90', or 'custom')
-        custom_start: Custom start date (ISO 8601) if time_period == 'custom'
-        custom_end: Custom end date (ISO 8601) if time_period == 'custom'
+        jira_data_store: Cached JIRA issues from global store
+        data_points: Number of weeks to display (from Data Points slider)
+        app_settings: Application settings including field mappings
 
     Returns:
-        Tuple of (metrics_cards, loading_state, metrics_store_data)
+        Tuple of (metrics_cards_html, loading_state_html)
     """
-    from ui.flow_metrics_dashboard import create_flow_loading_cards_grid
-    from data.flow_calculator import calculate_all_flow_metrics
-    from data.field_mapper import load_field_mappings
-    from data.jira_simple import load_jira_cache
-    from data.persistence import load_app_settings
-
     try:
-        # Parse time period to actual dates
-        start_date, end_date = parse_time_period(time_period, custom_start, custom_end)
+        # Validate inputs
+        if not jira_data_store or not jira_data_store.get("issues"):
+            empty_state = create_metric_cards_grid(
+                {
+                    "deployment_frequency": {
+                        "metric_name": "deployment_frequency",
+                        "value": None,
+                        "error_state": "no_data",
+                        "error_message": "No JIRA data available. Click 'Update Data' in Settings.",
+                    },
+                    "lead_time_for_changes": {
+                        "metric_name": "lead_time_for_changes",
+                        "value": None,
+                        "error_state": "no_data",
+                    },
+                    "change_failure_rate": {
+                        "metric_name": "change_failure_rate",
+                        "value": None,
+                        "error_state": "no_data",
+                    },
+                    "mean_time_to_recovery": {
+                        "metric_name": "mean_time_to_recovery",
+                        "value": None,
+                        "error_state": "no_data",
+                    },
+                }
+            )
 
-        logger.info(
-            f"Flow metrics requested for period: {start_date.isoformat()} to {end_date.isoformat()}"
+            info_message = html.Div(
+                [
+                    html.I(className="fas fa-info-circle me-2"),
+                    "No JIRA data loaded. Click 'Update Data' in Settings to load data.",
+                ],
+                className="alert alert-info",
+            )
+
+            return empty_state, info_message
+
+        # Get issues directly - calculators expect dicts, not objects
+        all_issues = jira_data_store.get("issues", [])
+        logger.info(f"DORA: Processing {len(all_issues)} issues from jira-issues-store")
+
+        if not app_settings:
+            logger.warning("No app settings available, loading from disk")
+            app_settings = load_app_settings()
+
+        # Ensure we have app_settings (for type checker)
+        if not app_settings:
+            error_msg = "Failed to load app settings"
+            logger.error(error_msg)
+            return (
+                create_metric_cards_grid(
+                    {
+                        "deployment_frequency": {
+                            "metric_name": "deployment_frequency",
+                            "value": None,
+                            "error_state": "error",
+                            "error_message": error_msg,
+                        },
+                        "lead_time_for_changes": {
+                            "metric_name": "lead_time_for_changes",
+                            "value": None,
+                            "error_state": "error",
+                        },
+                        "change_failure_rate": {
+                            "metric_name": "change_failure_rate",
+                            "value": None,
+                            "error_state": "error",
+                        },
+                        "mean_time_to_recovery": {
+                            "metric_name": "mean_time_to_recovery",
+                            "value": None,
+                            "error_state": "error",
+                        },
+                    }
+                ),
+                html.Div(
+                    [
+                        html.I(className="fas fa-exclamation-circle me-2"),
+                        error_msg,
+                    ],
+                    className="alert alert-danger",
+                ),
+            )
+
+        # Get number of weeks to display (default 12 if not set)
+        n_weeks = data_points if data_points and data_points > 0 else 12
+
+        # Get settings
+        devops_projects = app_settings.get("devops_projects", [])
+        field_mappings = app_settings.get("field_mappings", {}).get("dora", {})
+
+        # Filter to DevOps projects only (dict format)
+        devops_issues = [
+            issue
+            for issue in all_issues
+            if issue.get("fields", {}).get("project", {}).get("key") in devops_projects
+        ]
+
+        if not devops_issues:
+            warning_state = create_metric_cards_grid(
+                {
+                    "deployment_frequency": {
+                        "metric_name": "deployment_frequency",
+                        "value": None,
+                        "error_state": "no_data",
+                        "error_message": f"No issues in DevOps projects: {', '.join(devops_projects)}",
+                    },
+                    "lead_time_for_changes": {
+                        "metric_name": "lead_time_for_changes",
+                        "value": None,
+                        "error_state": "no_data",
+                    },
+                    "change_failure_rate": {
+                        "metric_name": "change_failure_rate",
+                        "value": None,
+                        "error_state": "no_data",
+                    },
+                    "mean_time_to_recovery": {
+                        "metric_name": "mean_time_to_recovery",
+                        "value": None,
+                        "error_state": "no_data",
+                    },
+                }
+            )
+
+            warning_message = html.Div(
+                [
+                    html.I(className="fas fa-exclamation-triangle me-2"),
+                    f"No issues found in DevOps projects: {', '.join(devops_projects)}",
+                ],
+                className="alert alert-warning",
+            )
+
+            return warning_state, warning_message
+
+        # Get configuration values (no defaults - must be configured)
+        change_failure_field = field_mappings.get("deployment_successful")
+        affected_env_field = field_mappings.get("affected_environment")
+        production_value = app_settings.get("production_environment_value", "PROD")
+
+        # Calculate date range for metrics (last N weeks)
+        end_date = datetime.now(timezone.utc)
+        start_date = end_date - timedelta(days=n_weeks * 7)
+
+        # Bucket issues by ISO week (for future trend analysis)
+        _ = bucket_issues_by_week(
+            devops_issues, date_field="resolutiondate", n_weeks=n_weeks
         )
 
-        # Load field mappings
-        mappings_data = load_field_mappings()
-        all_field_mappings = mappings_data.get("field_mappings", {})
-
-        # Extract Flow-specific mappings from nested structure
-        field_mappings = all_field_mappings.get("flow", {})
-
-        if not field_mappings:
-            warning_alert = dbc.Alert(
-                [
-                    html.H5(
-                        "⚠️ Field Mappings Not Configured", className="alert-heading"
-                    ),
-                    html.P(
-                        "Please configure field mappings in the Settings panel to enable Flow metrics calculation."
-                    ),
-                    html.Hr(),
-                    html.P(
-                        "Navigate to Settings → Field Mapping to set up required fields.",
-                        className="mb-0",
-                    ),
-                ],
-                color="warning",
-                dismissable=True,
+        # Separate development and operational issues
+        # Development projects from all issues
+        dev_projects = [
+            p for p in app_settings.get("projects", []) if p not in devops_projects
+        ]
+        if not dev_projects:
+            # Fallback: assume all non-devops projects are development
+            all_projects = set(
+                issue.get("fields", {}).get("project", {}).get("key")
+                for issue in all_issues
             )
-            return create_flow_loading_cards_grid(), warning_alert, {}
+            dev_projects = list(all_projects - set(devops_projects))
 
-        # Validate JIRA configuration for Flow compatibility
-        from data.field_mapper import validate_dora_jira_compatibility
+        development_issues = [
+            issue
+            for issue in all_issues
+            if issue.get("fields", {}).get("project", {}).get("key") in dev_projects
+        ]
 
-        validation_result = validate_dora_jira_compatibility(field_mappings)
-        validation_mode = validation_result.get("validation_mode", "unknown")
-        compatibility_level = validation_result.get("compatibility_level", "unknown")
+        operational_tasks = devops_issues  # DevOps project issues are operational tasks
 
-        logger.info(
-            f"Flow validation: mode={validation_mode}, compatibility={compatibility_level}"
-        )
+        # Extract bugs for MTTR
+        production_bugs = [
+            issue
+            for issue in development_issues
+            if issue.get("fields", {}).get("issuetype", {}).get("name") == "Bug"
+        ]
 
-        # Get cached issues (from previous JIRA fetch)
-        settings = load_app_settings()
-        jql_query = settings.get("jql_query", "")
-        cache_loaded, issues = load_jira_cache(current_jql_query=jql_query)
+        # Calculate date range for metrics (last N weeks)
+        start_date = end_date - timedelta(days=n_weeks * 7)
 
-        if not cache_loaded or not issues:
-            info_alert = dbc.Alert(
-                [
-                    html.H5("ℹ️ No Data Available", className="alert-heading"),
-                    html.P(
-                        "Please fetch data from JIRA first using the 'Update Data from JIRA' button in Settings."
-                    ),
-                ],
-                color="info",
-                dismissable=True,
-            )
-            return create_flow_loading_cards_grid(), info_alert, {}
-
-        # CRITICAL: Filter out DevOps project issues for Flow metrics
-        # Flow metrics should ONLY calculate from development project issues
-        # DevOps project data is used ONLY for metadata extraction, not metric calculation
-        devops_projects = settings.get("devops_projects", [])
-        if devops_projects:
-            from data.project_filter import filter_development_issues
-
-            total_issues_count = len(issues)
-            issues = filter_development_issues(issues, devops_projects)
-            filtered_count = total_issues_count - len(issues)
-
-            if filtered_count > 0:
-                logger.info(
-                    f"Flow: Filtered out {filtered_count} DevOps project issues from {total_issues_count} total. "
-                    f"Using {len(issues)} development project issues for Flow metrics."
-                )
-
-        logger.info(f"Calculating Flow metrics for {len(issues)} issues")
-
-        # Calculate all Flow metrics
-        metrics = calculate_all_flow_metrics(
-            issues=issues,
-            field_mappings=field_mappings,
+        # Calculate DORA metrics for entire period
+        deployment_freq = calculate_deployment_frequency_v2(
+            operational_tasks,
             start_date=start_date,
             end_date=end_date,
         )
 
-        # Render metric cards with validation-aware alternative names
-        from ui.metric_cards import create_metric_card
-
-        # Get alternative interpretations for issue tracker mode
-        alternative_names = validation_result.get("recommended_interpretation", {})
-
-        cards = []
-        for metric_name, metric_data in metrics.items():
-            # Add alternative name if in issue tracker mode
-            if validation_mode == "issue_tracker" and metric_name in alternative_names:
-                metric_data["alternative_name"] = alternative_names[metric_name]
-
-            card = create_metric_card(metric_data)
-            cards.append(card)
-
-        logger.info(
-            f"Flow metrics calculated successfully: {len(cards)} cards (validation_mode={validation_mode})"
+        lead_time = calculate_lead_time_for_changes_v2(
+            development_issues,
+            operational_tasks,
+            start_date=start_date,
+            end_date=end_date,
         )
 
-        # Save metrics snapshot for historical trend analysis (T017: Historical trend data storage)
-        from data.persistence import save_metrics_snapshot
+        cfr = calculate_change_failure_rate_v2(
+            operational_tasks,
+            change_failure_field_id=change_failure_field,
+            start_date=start_date,
+            end_date=end_date,
+        )
 
-        time_period_days = (end_date - start_date).days
-        save_metrics_snapshot("flow_metrics", metrics, time_period_days)
+        mttr = calculate_mttr_v2(
+            production_bugs,
+            operational_tasks,
+            affected_environment_field_id=affected_env_field,
+            production_value=production_value,
+            start_date=start_date,
+            end_date=end_date,
+        )
 
-        # Create validation-aware alerts
-        if validation_mode == "issue_tracker":
-            # Show alternative interpretation alert
-            alert_content = [
-                html.H5("ℹ️ Issue Tracker Mode", className="alert-heading"),
-                html.P(
-                    "Your JIRA instance appears to be configured as a standard issue tracker. "
-                    "Flow metrics have been reinterpreted for workflow analysis:"
-                ),
-                html.Ul(
-                    [
-                        html.Li(f"{metric}: {alt_name}")
-                        for metric, alt_name in alternative_names.items()
-                    ]
-                ),
-                html.P(
-                    "For DevOps metrics, configure proper deployment and incident tracking fields in Field Mapping.",
-                    className="mb-0 small",
-                ),
-            ]
-            success_alert = dbc.Alert(
-                alert_content, color="info", dismissable=True, duration=8000
-            )
-        elif (
-            validation_mode == "devops"
-            and validation_result.get("compatibility_level") == "partial"
-        ):
-            # Show partial configuration warning
-            success_alert = dbc.Alert(
-                [
-                    html.H5("⚠️ Partial DevOps Tracking", className="alert-heading"),
-                    html.P(
-                        f"✅ Flow metrics calculated for {len(issues)} issues. "
-                        "Some DevOps fields are missing - configure remaining fields for complete metrics."
-                    ),
-                ],
-                color="warning",
-                dismissable=True,
-                duration=6000,
-            )
-        else:
-            # Full DevOps tracking or unknown - show simple success
-            success_alert = dbc.Alert(
-                f"✅ Flow metrics calculated successfully for {len(issues)} issues",
-                color="success",
-                dismissable=True,
-                duration=4000,
-            )
+        # TODO: Calculate weekly aggregates for trend visualization
+        # For now, create simple trend data showing current value
+        # This will be enhanced in Phase 3 with proper weekly bucketing
 
-        return cards, success_alert, metrics
+        # Create metric cards with placeholder trend data
+        metrics_data = {
+            "deployment_frequency": {
+                "metric_name": "deployment_frequency",
+                "value": deployment_freq.get("deployment_count", 0),
+                "unit": "deployments",
+                "error_state": None
+                if deployment_freq.get("deployment_count")
+                else "no_data",
+            },
+            "lead_time_for_changes": {
+                "metric_name": "lead_time_for_changes",
+                "value": round(
+                    lead_time.get("median_hours", 0) / 24, 1
+                )  # Convert hours to days
+                if lead_time.get("median_hours")
+                else None,
+                "unit": "days",
+                "error_state": None
+                if lead_time.get("median_hours") is not None
+                else "no_data",
+            },
+            "change_failure_rate": {
+                "metric_name": "change_failure_rate",
+                "value": round(cfr.get("change_failure_rate_percent", 0), 1),
+                "unit": "%",
+                "error_state": None
+                if cfr.get("total_deployments", 0) > 0
+                else "no_data",
+            },
+            "mean_time_to_recovery": {
+                "metric_name": "mean_time_to_recovery",
+                "value": round(mttr.get("median_hours", 0), 1)
+                if mttr.get("median_hours")
+                else None,
+                "unit": "hours",
+                "error_state": None
+                if mttr.get("median_hours") is not None
+                else "no_data",
+            },
+        }
+
+        # Create success message
+        week_range = get_week_range_description(n_weeks)
+        success_message = html.Div(
+            [
+                html.I(className="fas fa-check-circle me-2"),
+                f"DORA metrics calculated for {week_range}. ",
+                f"Analyzed {len(devops_issues)} issues from DevOps projects.",
+            ],
+            className="alert alert-success",
+        )
+
+        return create_metric_cards_grid(metrics_data), success_message
 
     except Exception as e:
-        logger.error(f"Error updating Flow metrics: {e}", exc_info=True)
-        error_alert = dbc.Alert(
-            [
-                html.H5("❌ Error Calculating Metrics", className="alert-heading"),
-                html.P(f"Error: {str(e)}"),
-                html.Hr(),
-                html.P(
-                    "Check browser console and server logs for details.",
-                    className="mb-0",
-                ),
-            ],
-            color="danger",
-            dismissable=True,
+        logger.error(f"Error calculating DORA metrics: {e}", exc_info=True)
+
+        error_state = create_metric_cards_grid(
+            {
+                "deployment_frequency": {
+                    "metric_name": "deployment_frequency",
+                    "value": None,
+                    "error_state": "error",
+                    "error_message": "Calculation error - check logs",
+                },
+                "lead_time_for_changes": {
+                    "metric_name": "lead_time_for_changes",
+                    "value": None,
+                    "error_state": "error",
+                },
+                "change_failure_rate": {
+                    "metric_name": "change_failure_rate",
+                    "value": None,
+                    "error_state": "error",
+                },
+                "mean_time_to_recovery": {
+                    "metric_name": "mean_time_to_recovery",
+                    "value": None,
+                    "error_state": "error",
+                },
+            }
         )
-        return create_flow_loading_cards_grid(), error_alert, {}
+
+        error_message = html.Div(
+            [
+                html.I(className="fas fa-exclamation-circle me-2"),
+                f"Error: {str(e)}",
+            ],
+            className="alert alert-danger",
+        )
+
+        return error_state, error_message
+
+
+#######################################################################
+# FLOW METRICS CALLBACK (SNAPSHOT-BASED)
+#######################################################################
+
+
+def _create_no_data_state() -> html.Div:
+    """Create UI for when no JIRA data is available."""
+    return html.Div(
+        [
+            html.I(className="fas fa-database fa-3x text-muted mb-3"),
+            html.H5("No Data Available", className="text-muted mb-2"),
+            html.P(
+                "No JIRA data found. Click 'Update Data' in Settings to load project data.",
+                className="text-muted",
+            ),
+        ],
+        className="text-center p-5",
+    )
+
+
+def _create_missing_metrics_state(week_label: str) -> html.Div:
+    """Create UI for when metrics snapshots are missing."""
+    return html.Div(
+        [
+            html.I(className="fas fa-chart-line fa-3x text-warning mb-3"),
+            html.H5("Metrics Not Available", className="text-dark mb-2"),
+            html.P(
+                f"Flow metrics for week {week_label} have not been calculated yet.",
+                className="text-muted mb-3",
+            ),
+            html.P(
+                [
+                    "Click the ",
+                    html.Strong("Refresh Metrics"),
+                    " button below to calculate metrics from changelog data. ",
+                    "This will take approximately 2 minutes.",
+                ],
+                className="text-muted mb-4",
+            ),
+            html.Div(
+                [
+                    html.I(className="fas fa-info-circle me-2"),
+                    "Metrics are calculated once per week and cached for instant display on future page loads.",
+                ],
+                className="alert alert-info",
+            ),
+        ],
+        className="text-center p-5",
+    )
 
 
 @callback(
     [
-        Output("flow-custom-date-label", "style"),
-        Output("flow-date-range-picker", "style"),
+        Output("flow-metrics-cards-container", "children"),
+        Output("flow-distribution-chart-container", "children"),
     ],
-    Input("flow-time-period-select", "value"),
-)
-def toggle_flow_custom_date_range(time_period: str) -> tuple:
-    """Show/hide custom date range picker for Flow metrics.
-
-    Args:
-        time_period: Selected time period value
-
-    Returns:
-        Tuple of style dictionaries for label and date picker
-    """
-    if time_period == "custom":
-        return (
-            {"display": "block"},  # Show label
-            {"display": "block"},  # Show date picker
-        )
-    else:
-        return (
-            {"display": "none"},  # Hide label
-            {"display": "none"},  # Hide date picker
-        )
-
-
-@callback(
-    Output("flow-distribution-chart-container", "children"),
-    Input("flow-time-period-select", "value"),
+    [
+        Input("jira-issues-store", "data"),
+        Input("data-points-input", "value"),
+        Input("metrics-refresh-trigger", "data"),  # NEW: Trigger from Refresh button
+    ],
+    [
+        State("current-settings", "data"),
+    ],
     prevent_initial_call=False,
 )
-def update_flow_distribution_chart(time_period: str):
-    """Update Flow Distribution chart.
+def calculate_and_display_flow_metrics(
+    jira_data_store: Optional[Dict[str, Any]],
+    data_points: int,
+    metrics_refresh_trigger: Optional[int],
+    app_settings: Optional[Dict[str, Any]],
+):
+    """Display Flow metrics per ISO week from snapshots.
+
+    PERFORMANCE: Reads pre-calculated weekly snapshots from metrics_snapshots.json
+    instead of calculating live (2-minute operation). Metrics are refreshed manually
+    via the "Refresh Metrics" button.
+
+    Uses Data Points slider to control how many weeks of historical data to display.
+    Metrics aggregated per ISO week (Monday-Sunday boundaries).
 
     Args:
-        time_period: Selected time period
+        jira_data_store: Cached JIRA issues from global store (used for context)
+        data_points: Number of weeks to display (from Data Points slider)
+        metrics_refresh_trigger: Timestamp of last metrics refresh (triggers update)
+        app_settings: Application settings including field mappings
 
     Returns:
-        Flow distribution chart or error message
+        Tuple of (metrics_cards_html, distribution_chart_html)
     """
     try:
-        from datetime import datetime, timedelta, timezone
-        from dash import dcc
-        from data.flow_calculator import calculate_flow_distribution
-        from data.field_mapper import load_field_mappings
-        from data.jira_simple import load_jira_cache
-        from visualization.flow_charts import create_flow_distribution_chart
-
-        # Load field mappings
-        mappings_data = load_field_mappings()
-        all_field_mappings = mappings_data.get("field_mappings", {})
-
-        # Extract Flow-specific mappings from nested structure
-        field_mappings = all_field_mappings.get("flow", {})
-
-        # Calculate time period boundaries
-        time_period_days = int(time_period) if time_period.isdigit() else 30
-        end_date = datetime.now(timezone.utc)
-        start_date = end_date - timedelta(days=time_period_days)
-
-        # Load cached JIRA issues
-        cache_loaded, issues = load_jira_cache()
-
-        if not cache_loaded or not issues:
-            return dbc.Alert(
-                "No JIRA data available. Please configure JIRA and fetch data first.",
-                color="warning",
+        # Validate inputs
+        if not jira_data_store or not jira_data_store.get("issues"):
+            return (
+                _create_no_data_state(),
+                html.Div("No distribution data", className="text-muted p-4"),
             )
 
-        # CRITICAL: Filter out DevOps project issues for Flow Distribution
-        # Flow distribution should ONLY calculate from development project issues
-        from data.persistence import load_app_settings
+        if not app_settings:
+            logger.warning("No app settings available, loading from disk")
+            app_settings = load_app_settings()
 
-        settings = load_app_settings()
-        devops_projects = settings.get("devops_projects", [])
-        if devops_projects:
-            from data.project_filter import filter_development_issues
+        # Ensure we have app_settings (for type checker)
+        if not app_settings:
+            error_msg = "Failed to load app settings"
+            logger.error(error_msg)
+            return (
+                html.Div(error_msg, className="alert alert-danger p-4"),
+                html.Div("Error", className="text-muted p-4"),
+            )
 
-            total_issues_count = len(issues)
-            issues = filter_development_issues(issues, devops_projects)
-            filtered_count = total_issues_count - len(issues)
+        # Get number of weeks to display (default 12 if not set)
+        n_weeks = data_points if data_points and data_points > 0 else 12
 
-            if filtered_count > 0:
-                logger.info(
-                    f"Flow Distribution: Filtered out {filtered_count} DevOps project issues from {total_issues_count} total. "
-                    f"Using {len(issues)} development project issues."
-                )
+        # Generate week labels for display
+        from data.time_period_calculator import get_iso_week, format_year_week
+        from data.metrics_snapshots import has_metric_snapshot
 
-        # Calculate flow distribution
-        distribution_data = calculate_flow_distribution(
-            issues, field_mappings, start_date, end_date
+        weeks = []
+        current_date = datetime.now()
+        for i in range(n_weeks):
+            year, week = get_iso_week(current_date)
+            week_label = format_year_week(year, week)
+            weeks.append(week_label)
+            current_date = current_date - timedelta(days=7)
+
+        week_labels = list(reversed(weeks))  # Oldest to newest
+        current_week_label = week_labels[-1] if week_labels else ""
+
+        logger.info(
+            f"Flow: Reading snapshots for {len(week_labels)} weeks: {week_labels[:3]}...{week_labels[-3:]}"
         )
 
-        # Handle error states
-        error_state = distribution_data.get("error_state", "success")
-        if error_state != "success":
-            error_message = distribution_data.get(
-                "error_message", "Unable to calculate distribution"
+        # Check if current week has snapshots (use flow_velocity as it's always saved)
+        if not current_week_label or not has_metric_snapshot(
+            current_week_label, "flow_velocity"
+        ):
+            logger.warning(
+                f"No Flow metrics snapshot found for week {current_week_label or 'unknown'}"
             )
-            return dbc.Alert(error_message, color="warning")
+            return (
+                _create_missing_metrics_state(current_week_label or "current"),
+                html.Div(
+                    "No distribution data available. Please refresh metrics.",
+                    className="text-muted p-4",
+                ),
+            )
 
-        # Create and return chart
-        fig = create_flow_distribution_chart(distribution_data)
-        return dcc.Graph(figure=fig, config={"displayModeBar": False})
+        # READ METRICS FROM SNAPSHOTS (instant, no calculation)
+        from data.metrics_snapshots import get_metric_snapshot
+
+        # Get current week metrics
+        flow_time_snapshot = get_metric_snapshot(current_week_label, "flow_time")
+        flow_efficiency_snapshot = get_metric_snapshot(
+            current_week_label, "flow_efficiency"
+        )
+        flow_load_snapshot = get_metric_snapshot(current_week_label, "flow_load")
+
+        # Extract values from snapshots (with defaults)
+        median_flow_time = (
+            flow_time_snapshot.get("median_days", 0) if flow_time_snapshot else 0
+        )
+        median_efficiency = (
+            flow_efficiency_snapshot.get("overall_pct", 0)
+            if flow_efficiency_snapshot
+            else 0
+        )
+        wip_count = flow_load_snapshot.get("wip_count", 0) if flow_load_snapshot else 0
+
+        # Get Flow Velocity from snapshot
+        flow_velocity_snapshot = get_metric_snapshot(
+            current_week_label, "flow_velocity"
+        )
+        total_velocity = (
+            flow_velocity_snapshot.get("completed_count", 0)
+            if flow_velocity_snapshot
+            else 0
+        )
+
+        # Work Distribution: Use current week (consistent with other Flow metrics)
+        # Show current week even if 0, matching Flow Velocity, Time, Efficiency, Load behavior
+        distribution = (
+            flow_velocity_snapshot.get("distribution", {})
+            if flow_velocity_snapshot
+            else {}
+        )
+        feature_count = distribution.get("feature", 0)
+        defect_count = distribution.get("defect", 0)
+        tech_debt_count = distribution.get("tech_debt", 0)
+        risk_count = distribution.get("risk", 0)
+
+        # Use velocity snapshot for issue count (always available, even when flow_time is N/A)
+        issues_in_period_count = (
+            flow_velocity_snapshot.get("completed_count", 0)
+            if flow_velocity_snapshot
+            else 0
+        )
+
+        logger.info(
+            f"Flow metrics from snapshot {current_week_label}: "
+            f"Flow Time={median_flow_time:.1f}d, Efficiency={median_efficiency:.1f}%, WIP={wip_count}, "
+            f"Completed={issues_in_period_count} issues"
+        )
+
+        # Load historical metric values from snapshots for sparklines
+        from data.metrics_snapshots import get_metric_weekly_values
+
+        flow_load_values = get_metric_weekly_values(
+            week_labels, "flow_load", "wip_count"
+        )
+        flow_time_values = get_metric_weekly_values(
+            week_labels, "flow_time", "median_days"
+        )
+        flow_efficiency_values = get_metric_weekly_values(
+            week_labels, "flow_efficiency", "overall_pct"
+        )
+
+        # Collect historical distribution data for all weeks
+        distribution_history = []
+        for week in week_labels:
+            week_snapshot = get_metric_snapshot(week, "flow_velocity")
+            if week_snapshot:
+                week_dist = week_snapshot.get("distribution", {})
+                distribution_history.append(
+                    {
+                        "week": week,
+                        "feature": week_dist.get("feature", 0),
+                        "defect": week_dist.get("defect", 0),
+                        "tech_debt": week_dist.get("tech_debt", 0),
+                        "risk": week_dist.get("risk", 0),
+                        "total": week_snapshot.get("completed_count", 0),
+                    }
+                )
+            else:
+                distribution_history.append(
+                    {
+                        "week": week,
+                        "feature": 0,
+                        "defect": 0,
+                        "tech_debt": 0,
+                        "risk": 0,
+                        "total": 0,
+                    }
+                )
+
+        # Note: dist_card layout moved to distribution chart section below
+        # (Keeping 4-card grid for Flow metrics consistency)
+
+        # Create stacked area chart for distribution history
+        import plotly.graph_objects as go
+
+        fig = go.Figure()
+
+        # Calculate percentages for each trace upfront
+        trace_configs = [
+            ("Feature", "feature", "rgba(25, 135, 84, 1)", "rgba(25, 135, 84, 0.4)"),
+            ("Defect", "defect", "rgba(220, 53, 69, 1)", "rgba(220, 53, 69, 0.4)"),
+            (
+                "Tech Debt",
+                "tech_debt",
+                "rgba(253, 126, 20, 1)",
+                "rgba(253, 126, 20, 0.4)",
+            ),
+            ("Risk", "risk", "rgba(255, 193, 7, 1)", "rgba(255, 193, 7, 0.4)"),
+        ]
+
+        # Add traces for each work type (stacked area) with percentage hover
+        # Color scheme: Feature (green/growth), Defect (red/problems), Tech Debt (orange/maintenance), Risk (yellow/caution)
+        for trace_name, field_key, line_color, fill_color in trace_configs:
+            # Calculate percentage for each week
+            percentages = []
+            for week_data in distribution_history:
+                total = week_data["total"]
+                count = week_data[field_key]
+                pct = (count / total * 100) if total > 0 else 0
+                percentages.append(f"{pct:.0f}")
+
+            fig.add_trace(
+                go.Scatter(
+                    x=[d["week"] for d in distribution_history],
+                    y=[d[field_key] for d in distribution_history],
+                    name=trace_name,
+                    mode="lines",
+                    line=dict(width=0.5, color=line_color),
+                    fillcolor=fill_color,
+                    stackgroup="one",
+                    customdata=percentages,
+                    hovertemplate=f"%{{y}} {trace_name} (%{{customdata}}%)<extra></extra>",
+                )
+            )
+
+        fig.update_layout(
+            title={
+                "text": "Work Distribution Over Time<br><sub style='font-size:10px;color:gray'>Hover for percentages. Target: 40-60% Feature, 20-40% Defect, 10-20% Tech Debt, 0-10% Risk</sub>",
+                "x": 0.5,
+                "xanchor": "center",
+            },
+            xaxis_title="Week",
+            yaxis_title="Number of Items",
+            hovermode="x unified",
+            height=400,
+            margin=dict(
+                l=50, r=120, t=80, b=70
+            ),  # Increased bottom margin from 40 to 70 for angled labels
+            legend=dict(
+                orientation="v",
+                yanchor="top",
+                y=1,
+                xanchor="left",
+                x=1.02,
+            ),
+            plot_bgcolor="white",
+            paper_bgcolor="white",
+        )
+
+        fig.update_xaxes(
+            type="category",  # Force categorical axis to prevent date interpretation
+            categoryorder="array",  # Use exact order from data
+            categoryarray=[
+                d["week"] for d in distribution_history
+            ],  # Explicit week order
+            showgrid=True,
+            gridwidth=1,
+            gridcolor="lightgray",
+            tickangle=-45,  # Angle labels to prevent overlap
+            tickfont=dict(size=9),  # Smaller font for better fit
+        )
+        fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor="lightgray")
+
+        # Create distribution chart section with current week summary
+        dist_html = dbc.Row(
+            [
+                dbc.Col(
+                    [
+                        dbc.Card(
+                            [
+                                dbc.CardHeader(
+                                    html.H5(
+                                        f"Work Distribution Breakdown (Week {current_week_label})",
+                                        className="mb-0",
+                                    ),
+                                    className="bg-light",
+                                ),
+                                dbc.CardBody(
+                                    [
+                                        html.P(
+                                            "Distribution of completed work across the four Flow item types. "
+                                            "Recommended ranges: 40-60% Feature, 20-40% Defect, 10-20% Tech Debt, 0-10% Risk.",
+                                            className="text-muted mb-3",
+                                        ),
+                                        # Current week summary with percentages and range indicators
+                                        (
+                                            lambda: (
+                                                # Calculate percentages
+                                                (
+                                                    feature_pct := (
+                                                        feature_count
+                                                        / total_velocity
+                                                        * 100
+                                                    )
+                                                    if total_velocity > 0
+                                                    else 0
+                                                ),
+                                                (
+                                                    defect_pct := (
+                                                        defect_count
+                                                        / total_velocity
+                                                        * 100
+                                                    )
+                                                    if total_velocity > 0
+                                                    else 0
+                                                ),
+                                                (
+                                                    tech_debt_pct := (
+                                                        tech_debt_count
+                                                        / total_velocity
+                                                        * 100
+                                                    )
+                                                    if total_velocity > 0
+                                                    else 0
+                                                ),
+                                                (
+                                                    risk_pct := (
+                                                        risk_count
+                                                        / total_velocity
+                                                        * 100
+                                                    )
+                                                    if total_velocity > 0
+                                                    else 0
+                                                ),
+                                                # Check if within recommended ranges
+                                                (
+                                                    feature_in_range := 40
+                                                    <= feature_pct
+                                                    <= 60
+                                                ),
+                                                (
+                                                    defect_in_range := 20
+                                                    <= defect_pct
+                                                    <= 40
+                                                ),
+                                                (
+                                                    tech_debt_in_range := 10
+                                                    <= tech_debt_pct
+                                                    <= 20
+                                                ),
+                                                (risk_in_range := 0 <= risk_pct <= 10),
+                                                # Create UI
+                                                dbc.Row(
+                                                    [
+                                                        dbc.Col(
+                                                            [
+                                                                html.Div(
+                                                                    [
+                                                                        html.Div(
+                                                                            [
+                                                                                html.Span(
+                                                                                    "Feature",
+                                                                                    className="small text-muted d-block",
+                                                                                ),
+                                                                                html.Span(
+                                                                                    f"{feature_count} ",
+                                                                                    className="h4 mb-0",
+                                                                                    style={
+                                                                                        "color": "#198754"
+                                                                                    },
+                                                                                ),
+                                                                                html.Span(
+                                                                                    f"({feature_pct:.0f}%)",
+                                                                                    className="h6 mb-0",
+                                                                                    style={
+                                                                                        "color": "#198754"
+                                                                                    },
+                                                                                ),
+                                                                            ]
+                                                                        ),
+                                                                        html.Small(
+                                                                            [
+                                                                                html.I(
+                                                                                    className=f"fas fa-{'check-circle text-success' if feature_in_range else 'exclamation-triangle text-warning'} me-1"
+                                                                                ),
+                                                                                html.Span(
+                                                                                    "40-60%",
+                                                                                    className="text-muted",
+                                                                                ),
+                                                                            ],
+                                                                            className="d-block mt-1",
+                                                                        ),
+                                                                    ]
+                                                                ),
+                                                            ],
+                                                            width=3,
+                                                            className="text-center mb-3",
+                                                        ),
+                                                        dbc.Col(
+                                                            [
+                                                                html.Div(
+                                                                    [
+                                                                        html.Div(
+                                                                            [
+                                                                                html.Span(
+                                                                                    "Defect",
+                                                                                    className="small text-muted d-block",
+                                                                                ),
+                                                                                html.Span(
+                                                                                    f"{defect_count} ",
+                                                                                    className="h4 mb-0",
+                                                                                    style={
+                                                                                        "color": "#dc3545"
+                                                                                    },
+                                                                                ),
+                                                                                html.Span(
+                                                                                    f"({defect_pct:.0f}%)",
+                                                                                    className="h6 mb-0",
+                                                                                    style={
+                                                                                        "color": "#dc3545"
+                                                                                    },
+                                                                                ),
+                                                                            ]
+                                                                        ),
+                                                                        html.Small(
+                                                                            [
+                                                                                html.I(
+                                                                                    className=f"fas fa-{'check-circle text-success' if defect_in_range else 'exclamation-triangle text-warning'} me-1"
+                                                                                ),
+                                                                                html.Span(
+                                                                                    "20-40%",
+                                                                                    className="text-muted",
+                                                                                ),
+                                                                            ],
+                                                                            className="d-block mt-1",
+                                                                        ),
+                                                                    ]
+                                                                ),
+                                                            ],
+                                                            width=3,
+                                                            className="text-center mb-3",
+                                                        ),
+                                                        dbc.Col(
+                                                            [
+                                                                html.Div(
+                                                                    [
+                                                                        html.Div(
+                                                                            [
+                                                                                html.Span(
+                                                                                    "Tech Debt",
+                                                                                    className="small text-muted d-block",
+                                                                                ),
+                                                                                html.Span(
+                                                                                    f"{tech_debt_count} ",
+                                                                                    className="h4 mb-0",
+                                                                                    style={
+                                                                                        "color": "#fd7e14"
+                                                                                    },
+                                                                                ),
+                                                                                html.Span(
+                                                                                    f"({tech_debt_pct:.0f}%)",
+                                                                                    className="h6 mb-0",
+                                                                                    style={
+                                                                                        "color": "#fd7e14"
+                                                                                    },
+                                                                                ),
+                                                                            ]
+                                                                        ),
+                                                                        html.Small(
+                                                                            [
+                                                                                html.I(
+                                                                                    className=f"fas fa-{'check-circle text-success' if tech_debt_in_range else 'exclamation-triangle text-warning'} me-1"
+                                                                                ),
+                                                                                html.Span(
+                                                                                    "10-20%",
+                                                                                    className="text-muted",
+                                                                                ),
+                                                                            ],
+                                                                            className="d-block mt-1",
+                                                                        ),
+                                                                    ]
+                                                                ),
+                                                            ],
+                                                            width=3,
+                                                            className="text-center mb-3",
+                                                        ),
+                                                        dbc.Col(
+                                                            [
+                                                                html.Div(
+                                                                    [
+                                                                        html.Div(
+                                                                            [
+                                                                                html.Span(
+                                                                                    "Risk",
+                                                                                    className="small text-muted d-block",
+                                                                                ),
+                                                                                html.Span(
+                                                                                    f"{risk_count} ",
+                                                                                    className="h4 mb-0",
+                                                                                    style={
+                                                                                        "color": "#ffc107"
+                                                                                    },
+                                                                                ),
+                                                                                html.Span(
+                                                                                    f"({risk_pct:.0f}%)",
+                                                                                    className="h6 mb-0",
+                                                                                    style={
+                                                                                        "color": "#ffc107"
+                                                                                    },
+                                                                                ),
+                                                                            ]
+                                                                        ),
+                                                                        html.Small(
+                                                                            [
+                                                                                html.I(
+                                                                                    className=f"fas fa-{'check-circle text-success' if risk_in_range else 'exclamation-triangle text-warning'} me-1"
+                                                                                ),
+                                                                                html.Span(
+                                                                                    "0-10%",
+                                                                                    className="text-muted",
+                                                                                ),
+                                                                            ],
+                                                                            className="d-block mt-1",
+                                                                        ),
+                                                                    ]
+                                                                ),
+                                                            ],
+                                                            width=3,
+                                                            className="text-center mb-3",
+                                                        ),
+                                                    ],
+                                                    className="mb-3",
+                                                ),
+                                            )[
+                                                -1
+                                            ]  # Return only the dbc.Row, discard calculation results
+                                        )()
+                                        if total_velocity > 0
+                                        else html.P(
+                                            "No completed work this week.",
+                                            className="text-muted text-center mb-3",
+                                        ),
+                                        # Historical trend chart
+                                        dcc.Graph(
+                                            figure=fig,
+                                            config={"displayModeBar": False},
+                                        ),
+                                    ]
+                                ),
+                            ],
+                            className="mb-4",
+                        ),
+                    ],
+                    width=12,
+                ),
+            ],
+        )
+
+        # Load velocity historical values
+        velocity_values = get_metric_weekly_values(
+            week_labels, "flow_velocity", "completed_count"
+        )
+
+        # Create metric cards using same component as DORA
+        # Reading from snapshots - error_state is "success" if data exists
+
+        # Get individual metric issue counts from snapshots (not all use velocity count)
+        flow_time_issue_count = (
+            flow_time_snapshot.get("completed_count", 0) if flow_time_snapshot else 0
+        )
+        flow_efficiency_issue_count = (
+            flow_efficiency_snapshot.get("completed_count", 0)
+            if flow_efficiency_snapshot
+            else 0
+        )
+
+        metrics_data = {
+            "flow_velocity": {
+                "metric_name": "flow_velocity",
+                "value": total_velocity,
+                "unit": "items/week",
+                "error_state": "success",  # Always valid - 0 velocity is acceptable
+                "total_issue_count": issues_in_period_count,
+                "weekly_labels": week_labels,
+                "weekly_values": velocity_values,
+                "details": {
+                    "Feature": feature_count,
+                    "Defect": defect_count,
+                    "Technical Debt": tech_debt_count,
+                    "Risk": risk_count,
+                },
+            },
+            "flow_time": {
+                "metric_name": "flow_time",
+                "value": round(median_flow_time, 1)
+                if median_flow_time is not None
+                else 0,
+                "unit": "days (median)",
+                "error_state": "success",  # Always success - 0 is valid for weeks with no completions
+                "total_issue_count": flow_time_issue_count,  # Use Flow Time's own completed count
+                "weekly_labels": week_labels,
+                "weekly_values": flow_time_values,
+            },
+            "flow_efficiency": {
+                "metric_name": "flow_efficiency",
+                "value": round(median_efficiency, 1)
+                if median_efficiency is not None
+                else 0,
+                "unit": "% (median)",
+                "error_state": "success",  # Always success - 0 is valid for weeks with no completions
+                "total_issue_count": flow_efficiency_issue_count,  # Use Flow Efficiency's own completed count
+                "weekly_labels": week_labels,
+                "weekly_values": flow_efficiency_values,
+            },
+            "flow_load": {
+                "metric_name": "flow_load",
+                "value": wip_count if wip_count is not None else 0,
+                "unit": "items (current WIP)",
+                "error_state": "success" if flow_load_snapshot else "no_data",
+                "total_issue_count": wip_count,  # Use WIP count itself (not completion count)
+                "weekly_labels": week_labels,
+                "weekly_values": flow_load_values,
+            },
+        }
+
+        metrics_html = create_metric_cards_grid(metrics_data)
+
+        return metrics_html, dist_html
 
     except Exception as e:
-        logger.error(f"Error updating flow distribution chart: {e}", exc_info=True)
-        return dbc.Alert(
-            f"Error generating distribution chart: {str(e)}",
-            color="danger",
+        logger.error(f"Error calculating Flow metrics: {e}", exc_info=True)
+
+        return (
+            html.Div("Error loading metrics", className="alert alert-danger p-4"),
+            html.Div("Error loading chart", className="text-muted p-4"),
         )
 
 
-@callback(
-    Output("dora-flow-subtab-content", "children"),
-    Input("dora-flow-subtabs", "active_tab"),
-)
-def switch_dora_flow_subtab(active_subtab: str):
-    """Switch between DORA and Flow metrics dashboards.
-
-    Args:
-        active_subtab: Active sub-tab ID ('subtab-dora' or 'subtab-flow')
-
-    Returns:
-        Dashboard content for the selected sub-tab
-    """
-    if active_subtab == "subtab-flow":
-        from ui.flow_metrics_dashboard import create_flow_dashboard
-
-        return create_flow_dashboard()
-    else:  # Default to DORA
-        from ui.dora_metrics_dashboard import create_dora_dashboard
-
-        return create_dora_dashboard()
+#######################################################################
+# REFRESH METRICS CALLBACK
+#######################################################################
 
 
 @callback(
-    Output({"type": "metric-trend-collapse", "metric": ALL}, "is_open"),
-    Input({"type": "metric-trend-button", "metric": ALL}, "n_clicks"),
-    State({"type": "metric-trend-collapse", "metric": ALL}, "is_open"),
+    Output("calculate-metrics-status", "children"),
+    [Input("calculate-metrics-button", "n_clicks")],
+    [State("data-points-input", "value")],
     prevent_initial_call=True,
 )
-def toggle_trend_display(n_clicks_list, is_open_list):
-    """Toggle trend chart visibility for metric cards using pattern matching.
-
-    Args:
-        n_clicks_list: List of n_clicks for each trend button
-        is_open_list: Current is_open state for each trend collapse
-
-    Returns:
-        List of updated is_open states for each trend collapse
-    """
-    # Find which button was clicked using ctx.triggered_id
-    if not callback_context.triggered:
-        return is_open_list  # Return current state, don't use no_update with pattern-matching ALL
-
-    triggered_id = callback_context.triggered_id
-    if not triggered_id or not isinstance(triggered_id, dict):
-        return is_open_list
-
-    # Get the metric name that was clicked
-    clicked_metric = triggered_id.get("metric")
-    if not clicked_metric:
-        return is_open_list
-
-    # Create result list with same length as inputs
-    result = []
-
-    # Get the list of output IDs from callback_context
-    outputs_list = callback_context.outputs_list
-
-    for i, output_spec in enumerate(outputs_list):
-        # Extract the metric name from the output ID
-        if isinstance(output_spec, dict) and "id" in output_spec:
-            output_id = output_spec["id"]
-            if isinstance(output_id, dict):
-                metric_name = output_id.get("metric")
-                # Get current state for this index
-                current_state = is_open_list[i] if i < len(is_open_list) else False
-                # Toggle if this is the clicked metric, otherwise keep unchanged
-                new_state = (
-                    not current_state
-                    if metric_name == clicked_metric
-                    else current_state
-                )
-                result.append(new_state)
-            else:
-                # Fallback: keep current state
-                result.append(is_open_list[i] if i < len(is_open_list) else False)
-        else:
-            # Fallback: keep current state
-            result.append(is_open_list[i] if i < len(is_open_list) else False)
-
-    return result
-
-
-@callback(
-    [
-        Output(
-            {"type": "metric-trend-chart", "metric": "deployment_frequency"}, "children"
-        ),
-        Output(
-            {"type": "metric-trend-chart", "metric": "lead_time_for_changes"},
-            "children",
-        ),
-        Output(
-            {"type": "metric-trend-chart", "metric": "change_failure_rate"}, "children"
-        ),
-        Output(
-            {"type": "metric-trend-chart", "metric": "mean_time_to_recovery"},
-            "children",
-        ),
-    ],
-    [
-        Input(
-            {"type": "metric-trend-collapse", "metric": "deployment_frequency"},
-            "is_open",
-        ),
-        Input(
-            {"type": "metric-trend-collapse", "metric": "lead_time_for_changes"},
-            "is_open",
-        ),
-        Input(
-            {"type": "metric-trend-collapse", "metric": "change_failure_rate"},
-            "is_open",
-        ),
-        Input(
-            {"type": "metric-trend-collapse", "metric": "mean_time_to_recovery"},
-            "is_open",
-        ),
-    ],
-    State("dora-metrics-store", "data"),
-    prevent_initial_call=True,
-)
-def render_dora_trend_charts(
-    df_is_open, lt_is_open, cfr_is_open, mttr_is_open, dora_data
+def calculate_metrics_from_settings(
+    button_clicks: Optional[int],
+    data_points: Optional[int],
 ):
-    """Render DORA trend charts when trend collapse is opened.
+    """Calculate Flow and DORA metrics from Settings panel button.
+
+    This is a separate callback from refresh_flow_metrics to avoid cross-tab
+    dependency issues (Settings panel is always loaded, Flow tab may not be).
+
+    Downloads changelog if needed, then calculates and saves results to
+    metrics_snapshots.json for instant display on future page loads.
+
+    Note: Metrics are saved to cache file. When user opens Flow Metrics tab,
+    it will automatically load the cached data. No need to trigger refresh
+    since the Flow Metrics tab may not be loaded yet.
 
     Args:
-        df_is_open: Deployment frequency collapse state
-        lt_is_open: Lead time collapse state
-        cfr_is_open: Change failure rate collapse state
-        mttr_is_open: MTTR collapse state
-        dora_data: DORA metrics data from store
+        button_clicks: Number of times the Settings button has been clicked
+        data_points: Number of weeks to calculate (from Data Points slider)
 
     Returns:
-        Tuple of chart components for each metric's trend-chart div
+        Status message for Settings panel
     """
-    from dash import dcc
-    from visualization.dora_charts import (
-        create_deployment_frequency_chart,
-        create_lead_time_chart,
-        create_change_failure_rate_chart,
-        create_mttr_chart,
-    )
+    # Check if button was clicked
+    if not button_clicks:
+        return ""
 
-    results = []
-    metrics = [
-        ("deployment_frequency", df_is_open, create_deployment_frequency_chart),
-        ("lead_time_for_changes", lt_is_open, create_lead_time_chart),
-        ("change_failure_rate", cfr_is_open, create_change_failure_rate_chart),
-        ("mean_time_to_recovery", mttr_is_open, create_mttr_chart),
-    ]
+    try:
+        # Show loading state
+        logger.info("Starting Flow metrics calculation from Settings panel")
 
-    for metric_name, is_open, chart_func in metrics:
-        if is_open and dora_data and metric_name in dora_data:
-            try:
-                metric_data = dora_data[metric_name]
+        # Import metrics calculator
+        from data.metrics_calculator import calculate_metrics_for_last_n_weeks
 
-                # Check if metric has error state (not "success" or None)
-                error_state = metric_data.get("error_state")
-                if error_state and error_state != "success":
-                    results.append(
-                        html.P(
-                            f"Cannot display trend: {metric_data.get('error_message', 'No data available')}",
-                            className="text-muted text-center my-3",
-                        )
-                    )
-                else:
-                    # Create chart with historical data
-                    # Load historical trend data from persistence layer
-                    from data.persistence import get_metric_trend_data
+        # Calculate metrics for the selected number of weeks
+        # Default to 12 weeks if data_points is not set
+        n_weeks = data_points if data_points and data_points > 0 else 12
+        logger.info(
+            f"Calculating metrics for {n_weeks} weeks (data_points={data_points})"
+        )
 
-                    # Get time period from dora_data metadata (default to 30 days)
-                    time_period_days = dora_data.get("time_period_days", 30)
+        success, message = calculate_metrics_for_last_n_weeks(n_weeks=n_weeks)
 
-                    # Get historical data for trend visualization
-                    historical_data = get_metric_trend_data(
-                        metric_type="dora_metrics",
-                        metric_name=metric_name,
-                        time_period_days=time_period_days,
-                    )
-
-                    # If insufficient historical data (< 3 points), calculate retrospective trends from JIRA cache
-                    if not historical_data or len(historical_data) < 3:
-                        logger.info(
-                            f"Insufficient snapshot data ({len(historical_data) if historical_data else 0} points), "
-                            f"calculating retrospective trends for {metric_name}"
-                        )
-
-                        # Load cached JIRA issues
-                        from data.jira_simple import load_jira_cache
-                        from data.field_mapper import load_field_mappings
-                        from data.persistence import load_app_settings
-
-                        # Get current JQL query and fields from settings to avoid cache invalidation
-                        settings = load_app_settings()
-                        current_jql = settings.get("jql_query", "")
-                        points_field = settings.get("jira_config", {}).get(
-                            "points_field", ""
-                        )
-                        base_fields = "key,created,resolutiondate,status,issuetype"
-                        current_fields = (
-                            f"{base_fields},{points_field}"
-                            if points_field
-                            else base_fields
-                        )
-
-                        # Load from cache (returns tuple: cache_loaded, issues)
-                        cache_loaded, cached_issues = load_jira_cache(
-                            current_jql, current_fields
-                        )
-                        mappings_data = load_field_mappings()
-                        # Extract DORA-specific field mappings from nested structure
-                        field_mappings = mappings_data.get("field_mappings", {}).get(
-                            "dora", {}
-                        )
-
-                        if cache_loaded and cached_issues:
-                            # CRITICAL: Filter out DevOps project issues for DORA trend calculation
-                            devops_projects = settings.get("devops_projects", [])
-                            if devops_projects:
-                                from data.project_filter import (
-                                    filter_development_issues,
-                                )
-
-                                total_issues_count = len(cached_issues)
-                                cached_issues = filter_development_issues(
-                                    cached_issues, devops_projects
-                                )
-                                filtered_count = total_issues_count - len(cached_issues)
-
-                                if filtered_count > 0:
-                                    logger.info(
-                                        f"DORA Trend: Filtered out {filtered_count} DevOps project issues from {total_issues_count} total. "
-                                        f"Using {len(cached_issues)} development project issues."
-                                    )
-                            historical_data = calculate_retrospective_trends(
-                                issues=cached_issues,
-                                metric_name=metric_name,
-                                metric_type="dora_metrics",
-                                field_mappings=field_mappings,
-                                time_period_days=time_period_days,
-                                num_points=8,
-                            )
-
-                    # Create chart with historical data (None if no history available)
-                    figure = chart_func(
-                        metric_data,
-                        historical_data=historical_data if historical_data else None,
-                    )
-                    results.append(
-                        dcc.Graph(
-                            figure=figure,
-                            config={"displayModeBar": False},
-                            style={"height": "300px"},
-                        )
-                    )
-            except Exception as e:
-                logger.error(f"Error rendering trend chart for {metric_name}: {e}")
-                results.append(
-                    html.P(
-                        "Error rendering chart",
-                        className="text-danger text-center my-3",
-                    )
-                )
-        else:
-            # Not open or no data, return placeholder
-            results.append(
-                html.P(
-                    "Trend chart will be displayed here",
-                    className="text-muted text-center my-3",
-                )
+        if success:
+            # Create success message with icon matching Update Data format
+            settings_status_html = html.Div(
+                [
+                    html.I(className="fas fa-check-circle me-2 text-success"),
+                    html.Span(
+                        f"Calculated {n_weeks} weeks of Flow & DORA metrics",
+                        className="fw-medium",
+                    ),
+                ],
+                className="text-success small text-center mt-2",
             )
 
-    return tuple(results)
+            logger.info(
+                f"Flow metrics calculation completed successfully: {n_weeks} weeks"
+            )
+
+            return settings_status_html
+        else:
+            # Create warning message with icon
+            settings_status_html = html.Div(
+                [
+                    html.I(className="fas fa-exclamation-triangle me-2 text-warning"),
+                    html.Span(
+                        "Metrics calculated with warnings (check logs)",
+                        className="fw-medium",
+                    ),
+                ],
+                className="text-warning small text-center mt-2",
+            )
+
+            logger.warning("Flow metrics calculation had issues")
+
+            return settings_status_html
+
+    except Exception as e:
+        error_msg = f"Error calculating metrics: {str(e)}"
+        logger.error(error_msg, exc_info=True)
+
+        # Create error message with icon
+        settings_status_html = html.Div(
+            [
+                html.I(className="fas fa-times-circle me-2 text-danger"),
+                html.Span(
+                    f"Calculation failed: {str(e)[:50]}",
+                    className="fw-medium",
+                ),
+            ],
+            className="text-danger small text-center mt-2",
+        )
+
+        return settings_status_html
 
 
-@callback(
-    [
-        Output({"type": "metric-trend-chart", "metric": "flow_velocity"}, "children"),
-        Output({"type": "metric-trend-chart", "metric": "flow_time"}, "children"),
-        Output({"type": "metric-trend-chart", "metric": "flow_efficiency"}, "children"),
-        Output({"type": "metric-trend-chart", "metric": "flow_load"}, "children"),
-        Output(
-            {"type": "metric-trend-chart", "metric": "flow_distribution"}, "children"
-        ),
-    ],
-    [
-        Input({"type": "metric-trend-collapse", "metric": "flow_velocity"}, "is_open"),
-        Input({"type": "metric-trend-collapse", "metric": "flow_time"}, "is_open"),
-        Input(
-            {"type": "metric-trend-collapse", "metric": "flow_efficiency"}, "is_open"
-        ),
-        Input({"type": "metric-trend-collapse", "metric": "flow_load"}, "is_open"),
-        Input(
-            {"type": "metric-trend-collapse", "metric": "flow_distribution"}, "is_open"
-        ),
-    ],
-    State("flow-metrics-store", "data"),
-    prevent_initial_call=True,
-)
-def render_flow_trend_charts(
-    fv_is_open, ft_is_open, fe_is_open, fl_is_open, fd_is_open, flow_data
-):
-    """Render Flow trend charts when trend collapse is opened.
+#######################################################################
+# CLIENTSIDE CALLBACKS - Button Loading States
+#######################################################################
 
-    Args:
-        fv_is_open: Flow velocity collapse state
-        ft_is_open: Flow time collapse state
-        fe_is_open: Flow efficiency collapse state
-        fl_is_open: Flow load collapse state
-        fd_is_open: Flow distribution collapse state
-        flow_data: Flow metrics data from store
 
-    Returns:
-        Tuple of chart components for each metric's trend-chart div
+def register_calculate_metrics_button_spinner(app):
+    """Register clientside callback for Calculate Metrics button loading state.
+
+    This mimics the Update Data button behavior - shows a spinning calculator
+    icon during processing and monitors for completion.
     """
-    from dash import dcc
-    from visualization.flow_charts import (
-        create_flow_velocity_trend_chart,
-        create_flow_time_trend_chart,
-        create_flow_efficiency_trend_chart,
-        create_flow_load_trend_chart,
-        create_flow_distribution_chart,
-    )
-
-    results = []
-    metrics = [
-        ("flow_velocity", fv_is_open, create_flow_velocity_trend_chart),
-        ("flow_time", ft_is_open, create_flow_time_trend_chart),
-        ("flow_efficiency", fe_is_open, create_flow_efficiency_trend_chart),
-        ("flow_load", fl_is_open, create_flow_load_trend_chart),
-        ("flow_distribution", fd_is_open, create_flow_distribution_chart),
-    ]
-
-    for metric_name, is_open, chart_func in metrics:
-        if is_open and flow_data and metric_name in flow_data:
-            try:
-                metric_data = flow_data[metric_name]
-
-                # Check if metric has error state (not "success" or None)
-                error_state = metric_data.get("error_state")
-                if error_state and error_state != "success":
-                    results.append(
-                        html.P(
-                            f"Cannot display trend: {metric_data.get('error_message', 'No data available')}",
-                            className="text-muted text-center my-3",
-                        )
-                    )
-                else:
-                    # Create chart with historical data
-                    # Load historical trend data from persistence layer
-                    from data.persistence import get_metric_trend_data
-
-                    # Get time period from flow_data metadata (default to 30 days)
-                    time_period_days = flow_data.get("time_period_days", 30)
-
-                    # Note: flow_distribution uses different function signature (just current data)
-                    if metric_name == "flow_distribution":
-                        figure = chart_func(metric_data)
-                    else:
-                        # Get historical data for trend visualization
-                        historical_data = get_metric_trend_data(
-                            metric_type="flow_metrics",
-                            metric_name=metric_name,
-                            time_period_days=time_period_days,
-                        )
-
-                        # If insufficient historical data (< 3 points), calculate retrospective trends from JIRA cache
-                        if not historical_data or len(historical_data) < 3:
-                            logger.info(
-                                f"Insufficient snapshot data ({len(historical_data) if historical_data else 0} points), "
-                                f"calculating retrospective trends for {metric_name}"
-                            )
-
-                            # Load cached JIRA issues
-                            from data.jira_simple import load_jira_cache
-                            from data.field_mapper import load_field_mappings
-                            from data.persistence import load_app_settings
-
-                            # Get current JQL query and fields from settings to avoid cache invalidation
-                            settings = load_app_settings()
-                            current_jql = settings.get("jql_query", "")
-                            points_field = settings.get("jira_config", {}).get(
-                                "points_field", ""
-                            )
-                            base_fields = "key,created,resolutiondate,status,issuetype"
-                            current_fields = (
-                                f"{base_fields},{points_field}"
-                                if points_field
-                                else base_fields
-                            )
-
-                            # Load from cache (returns tuple: cache_loaded, issues)
-                            cache_loaded, cached_issues = load_jira_cache(
-                                current_jql, current_fields
-                            )
-                            mappings_data = load_field_mappings()
-                            # Extract Flow-specific field mappings from nested structure
-                            field_mappings = mappings_data.get(
-                                "field_mappings", {}
-                            ).get("flow", {})
-
-                            if cache_loaded and cached_issues:
-                                # CRITICAL: Filter out DevOps project issues for Flow trend calculation
-                                devops_projects = settings.get("devops_projects", [])
-                                if devops_projects:
-                                    from data.project_filter import (
-                                        filter_development_issues,
-                                    )
-
-                                    total_issues_count = len(cached_issues)
-                                    cached_issues = filter_development_issues(
-                                        cached_issues, devops_projects
-                                    )
-                                    filtered_count = total_issues_count - len(
-                                        cached_issues
-                                    )
-
-                                    if filtered_count > 0:
-                                        logger.info(
-                                            f"Flow Trend: Filtered out {filtered_count} DevOps project issues from {total_issues_count} total. "
-                                            f"Using {len(cached_issues)} development project issues."
-                                        )
-                                historical_data = calculate_retrospective_trends(
-                                    issues=cached_issues,
-                                    metric_name=metric_name,
-                                    metric_type="flow_metrics",
-                                    field_mappings=field_mappings,
-                                    time_period_days=time_period_days,
-                                    num_points=8,
-                                )
-
-                        # If still no data, show single current point
-                        if not historical_data:
-                            historical_data = [
-                                {
-                                    "date": datetime.now().date().isoformat(),
-                                    "value": metric_data.get("value", 0),
+    app.clientside_callback(
+        """
+        function(n_clicks) {
+            // Button state management for Calculate Metrics button
+            if (n_clicks && n_clicks > 0) {
+                setTimeout(function() {
+                    const button = document.getElementById('calculate-metrics-button');
+                    if (button) {
+                        const originalDisabled = button.disabled;
+                        
+                        // Set loading state with spinning icon
+                        button.disabled = true;
+                        button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Calculating...';
+                        
+                        // Reset button after completion
+                        const resetButton = function() {
+                            if (button && button.disabled) {
+                                button.disabled = false;
+                                button.innerHTML = '<i class="fas fa-calculator me-2"></i>Calculate Metrics';
+                            }
+                        };
+                        
+                        // Longer timeout for metrics calculation (2.5 minutes max)
+                        setTimeout(resetButton, 150000);
+                        
+                        // Monitor for completion by watching status updates
+                        const observer = new MutationObserver(function(mutations) {
+                            const statusArea = document.getElementById('calculate-metrics-status');
+                            if (statusArea) {
+                                const content = statusArea.innerHTML.toLowerCase();
+                                // Detect completion messages
+                                if (content.includes('weeks') || 
+                                    content.includes('partial') ||
+                                    content.includes('error')) {
+                                    setTimeout(resetButton, 500);
+                                    observer.disconnect();
                                 }
-                            ]
-
-                        figure = chart_func(historical_data)
-
-                    results.append(
-                        dcc.Graph(
-                            figure=figure,
-                            config={"displayModeBar": False},
-                            style={"height": "300px"},
-                        )
-                    )
-            except Exception as e:
-                logger.error(f"Error rendering trend chart for {metric_name}: {e}")
-                results.append(
-                    html.P(
-                        "Error rendering chart",
-                        className="text-danger text-center my-3",
-                    )
-                )
-        else:
-            # Not open or no data, return placeholder
-            results.append(
-                html.P(
-                    "Trend chart will be displayed here",
-                    className="text-muted text-center my-3",
-                )
-            )
-
-    return tuple(results)
+                            }
+                        });
+                        
+                        const targetNode = document.getElementById('calculate-metrics-status');
+                        if (targetNode) {
+                            observer.observe(targetNode, { childList: true, subtree: true });
+                        }
+                    }
+                }, 50);
+            }
+            return null;
+        }
+        """,
+        Output("calculate-metrics-button", "title"),
+        [Input("calculate-metrics-button", "n_clicks")],
+        prevent_initial_call=True,
+    )
 
 
-# Export callbacks
+#######################################################################
+# METRIC DETAIL CHART COLLAPSE CALLBACKS
+#######################################################################
 
 
 @callback(
-    Output("download-dora-csv", "data"),
-    Input("export-dora-csv-button", "n_clicks"),
-    State("dora-metrics-store", "data"),
-    State("dora-time-period-select", "value"),
+    Output("flow_velocity-details-collapse", "is_open"),
+    Input("flow_velocity-details-btn", "n_clicks"),
+    State("flow_velocity-details-collapse", "is_open"),
     prevent_initial_call=True,
 )
-def export_dora_csv(n_clicks, metrics_data, time_period):
-    """Export DORA metrics to CSV format.
-
-    Args:
-        n_clicks: Button click counter (triggers callback)
-        metrics_data: Current DORA metrics data from store
-        time_period: Selected time period for context
-
-    Returns:
-        dict with filename and content for download
-    """
-    from data.metrics_export import export_dora_to_csv
-
-    if not metrics_data:
-        return no_update
-
-    # Generate CSV content
-    csv_content = export_dora_to_csv(metrics_data, f"{time_period} days")
-
-    # Generate filename with timestamp
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"dora_metrics_{timestamp}.csv"
-
-    return {"content": csv_content, "filename": filename}
+def toggle_flow_velocity_details(n_clicks, is_open):
+    """Toggle Flow Velocity detailed chart collapse."""
+    return not is_open if n_clicks else is_open
 
 
 @callback(
-    Output("download-dora-json", "data"),
-    Input("export-dora-json-button", "n_clicks"),
-    State("dora-metrics-store", "data"),
-    State("dora-time-period-select", "value"),
+    Output("flow_time-details-collapse", "is_open"),
+    Input("flow_time-details-btn", "n_clicks"),
+    State("flow_time-details-collapse", "is_open"),
     prevent_initial_call=True,
 )
-def export_dora_json(n_clicks, metrics_data, time_period):
-    """Export DORA metrics to JSON format.
-
-    Args:
-        n_clicks: Button click counter (triggers callback)
-        metrics_data: Current DORA metrics data from store
-        time_period: Selected time period for context
-
-    Returns:
-        dict with filename and content for download
-    """
-    from data.metrics_export import export_dora_to_json
-
-    if not metrics_data:
-        return no_update
-
-    # Generate JSON content
-    json_content = export_dora_to_json(metrics_data, f"{time_period} days")
-
-    # Generate filename with timestamp
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"dora_metrics_{timestamp}.json"
-
-    return {"content": json_content, "filename": filename}
+def toggle_flow_time_details(n_clicks, is_open):
+    """Toggle Flow Time detailed chart collapse."""
+    return not is_open if n_clicks else is_open
 
 
 @callback(
-    Output("download-flow-csv", "data"),
-    Input("export-flow-csv-button", "n_clicks"),
-    State("flow-metrics-store", "data"),
-    State("flow-time-period-select", "value"),
+    Output("flow_efficiency-details-collapse", "is_open"),
+    Input("flow_efficiency-details-btn", "n_clicks"),
+    State("flow_efficiency-details-collapse", "is_open"),
     prevent_initial_call=True,
 )
-def export_flow_csv(n_clicks, metrics_data, time_period):
-    """Export Flow metrics to CSV format.
-
-    Args:
-        n_clicks: Button click counter (triggers callback)
-        metrics_data: Current Flow metrics data from store
-        time_period: Selected time period for context
-
-    Returns:
-        dict with filename and content for download
-    """
-    from data.metrics_export import export_flow_to_csv
-
-    if not metrics_data:
-        return no_update
-
-    # Generate CSV content
-    csv_content = export_flow_to_csv(metrics_data, f"{time_period} days")
-
-    # Generate filename with timestamp
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"flow_metrics_{timestamp}.csv"
-
-    return {"content": csv_content, "filename": filename}
+def toggle_flow_efficiency_details(n_clicks, is_open):
+    """Toggle Flow Efficiency detailed chart collapse."""
+    return not is_open if n_clicks else is_open
 
 
 @callback(
-    Output("download-flow-json", "data"),
-    Input("export-flow-json-button", "n_clicks"),
-    State("flow-metrics-store", "data"),
-    State("flow-time-period-select", "value"),
+    Output("flow_load-details-collapse", "is_open"),
+    Input("flow_load-details-btn", "n_clicks"),
+    State("flow_load-details-collapse", "is_open"),
     prevent_initial_call=True,
 )
-def export_flow_json(n_clicks, metrics_data, time_period):
-    """Export Flow metrics to JSON format.
-
-    Args:
-        n_clicks: Button click counter (triggers callback)
-        metrics_data: Current Flow metrics data from store
-        time_period: Selected time period for context
-
-    Returns:
-        dict with filename and content for download
-    """
-    from data.metrics_export import export_flow_to_json
-
-    if not metrics_data:
-        return no_update
-
-    # Generate JSON content
-    json_content = export_flow_to_json(metrics_data, f"{time_period} days")
-
-    # Generate filename with timestamp
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"flow_metrics_{timestamp}.json"
-
-    return {"content": json_content, "filename": filename}
+def toggle_flow_load_details(n_clicks, is_open):
+    """Toggle Flow Load detailed chart collapse."""
+    return not is_open if n_clicks else is_open
