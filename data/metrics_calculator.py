@@ -578,7 +578,7 @@ def calculate_metrics_for_last_n_weeks(
                 )
 
             success, message = calculate_and_save_weekly_metrics(
-                week_label_normalized, progress_callback
+                week_label=week_label_normalized, progress_callback=progress_callback
             )
 
             if success:
