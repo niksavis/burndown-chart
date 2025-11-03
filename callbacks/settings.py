@@ -319,12 +319,14 @@ def register(app):
             State(
                 "jira-jql-query", "value"
             ),  # JQL textarea uses standard "value" property
+            State("force-refresh-checkbox", "value"),  # Force refresh checkbox
         ],
         prevent_initial_call=True,
     )
     def handle_unified_data_update(
         n_clicks,
         jql_query,
+        force_refresh,
     ):
         """
         Handle unified data update button click (JIRA data source only).
@@ -493,8 +495,13 @@ def register(app):
             # Use sync_jira_scope_and_data to get both scope data and message
             from data.jira_simple import sync_jira_scope_and_data
 
+            # Convert checkbox value to boolean (None = False)
+            force_refresh_bool = bool(force_refresh)
+            if force_refresh_bool:
+                logger.info("🔄 Force refresh enabled by user")
+
             success, message, scope_data = sync_jira_scope_and_data(
-                settings_jql, jira_config_for_sync
+                settings_jql, jira_config_for_sync, force_refresh=force_refresh_bool
             )
 
             if success:

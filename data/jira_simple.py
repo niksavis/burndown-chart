@@ -37,6 +37,78 @@ CACHE_EXPIRATION_HOURS = 24  # Cache expires after 24 hours
 #######################################################################
 
 
+def check_jira_issue_count(jql_query: str, config: Dict) -> Tuple[bool, int]:
+    """
+    Fast check: Get issue count from JIRA without fetching full issue data.
+
+    This is a lightweight query (< 1 second) that returns only the total count.
+    Used to detect if cache is stale before doing a full refresh.
+
+    Args:
+        jql_query: JQL query to count issues for
+        config: JIRA configuration with API endpoint and token
+
+    Returns:
+        Tuple of (success: bool, count: int)
+    """
+    try:
+        url = f"{config['api_endpoint']}/search"
+
+        headers = {"Accept": "application/json"}
+        if config.get("token"):
+            headers["Authorization"] = f"Bearer {config['token']}"
+
+        # maxResults=0 returns only total count (no issue data)
+        params = {
+            "jql": jql_query,
+            "maxResults": 0,  # Don't fetch issues, just count
+            "fields": "key",  # Minimal field to reduce payload
+        }
+
+        response = requests.get(url, headers=headers, params=params, timeout=10)
+
+        if response.status_code == 200:
+            data = response.json()
+            total_count = data.get("total", 0)
+            logger.info(f"✓ Issue count check: {total_count} issues for JQL query")
+            return True, total_count
+        else:
+            logger.warning(f"Issue count check failed: HTTP {response.status_code}")
+            return False, 0
+
+    except Exception as e:
+        logger.warning(f"Issue count check failed: {e}")
+        return False, 0
+
+
+def invalidate_changelog_cache(cache_file: str = JIRA_CHANGELOG_CACHE_FILE) -> bool:
+    """
+    Invalidate (delete) changelog cache when issue cache is refreshed.
+
+    This ensures changelog cache stays in sync with issue cache.
+    When issues are refreshed, changelog must also be refreshed.
+
+    Args:
+        cache_file: Path to changelog cache file
+
+    Returns:
+        True if cache was invalidated (deleted or didn't exist)
+    """
+    try:
+        if os.path.exists(cache_file):
+            os.remove(cache_file)
+            logger.info(
+                f"🗑️  Invalidated changelog cache: {cache_file} (issue cache refreshed)"
+            )
+            return True
+        else:
+            logger.info("✓ Changelog cache doesn't exist, no invalidation needed")
+            return True
+    except Exception as e:
+        logger.error(f"Error invalidating changelog cache: {e}")
+        return False
+
+
 def get_jira_config(settings_jql_query: str | None = None) -> Dict:
     """
     Load JIRA configuration with priority hierarchy: jira_config → Environment → Default.
@@ -992,9 +1064,21 @@ def jira_to_csv_format(issues: List[Dict], config: Dict) -> List[Dict]:
 
 
 def sync_jira_scope_and_data(
-    jql_query: str | None = None, ui_config: Dict | None = None
+    jql_query: str | None = None,
+    ui_config: Dict | None = None,
+    force_refresh: bool = False,
 ) -> Tuple[bool, str, Dict]:
-    """Main sync function to get JIRA scope calculation and replace CSV data."""
+    """
+    Main sync function to get JIRA scope calculation and replace CSV data.
+
+    Args:
+        jql_query: JQL query to use (overrides config)
+        ui_config: UI configuration dictionary (overrides file config)
+        force_refresh: If True, bypass cache and force fresh JIRA fetch
+
+    Returns:
+        Tuple of (success, message, scope_data)
+    """
     try:
         # Import scope calculator here to avoid circular imports
         from data.jira_scope_calculator import calculate_jira_project_scope
@@ -1037,9 +1121,39 @@ def sync_jira_scope_and_data(
         else:
             current_fields = base_fields
 
-        # Try to load from cache first, checking if JQL query and fields match
-        cache_loaded, issues = load_jira_cache(config["jql_query"], current_fields)
+        # SMART CACHING LOGIC
+        # Step 1: Check if force refresh is requested
+        if force_refresh:
+            logger.info("🔄 Force refresh requested - bypassing cache")
+            cache_loaded = False
+            issues = []
+        else:
+            # Step 2: Try to load from cache (checks version, age, JQL, fields)
+            cache_loaded, issues = load_jira_cache(config["jql_query"], current_fields)
 
+            # Step 3: If cache is valid, do a quick count check to detect changes
+            if cache_loaded and issues:
+                logger.info(
+                    f"Cache loaded: {len(issues)} issues. Checking if count changed..."
+                )
+                count_success, current_count = check_jira_issue_count(
+                    config["jql_query"], config
+                )
+
+                if count_success and current_count != len(issues):
+                    logger.info(
+                        f"🔄 Issue count changed: {len(issues)} → {current_count}. "
+                        f"Cache invalidated, fetching fresh data."
+                    )
+                    cache_loaded = False  # Force refresh due to count mismatch
+                elif count_success:
+                    logger.info(
+                        f"✓ Issue count unchanged ({current_count} issues). Using cache."
+                    )
+                else:
+                    logger.warning("Count check failed. Using cache anyway (fallback).")
+
+        # Step 4: Fetch from JIRA if cache is invalid or force refresh
         if not cache_loaded or not issues:
             # Fetch fresh data from JIRA
             fetch_success, issues = fetch_jira_issues(config)
@@ -1049,6 +1163,10 @@ def sync_jira_scope_and_data(
             # Cache the response with the JQL query and fields used
             if not cache_jira_response(issues, config["jql_query"], current_fields):
                 logger.warning("Failed to cache JIRA response")
+
+            # CRITICAL: Invalidate changelog cache when issue cache is refreshed
+            # Changelog must stay in sync with issues
+            invalidate_changelog_cache()
 
         # PHASE 2: Changelog data fetch (OPTIONAL - don't block app)
         # Changelog is only needed for Flow Time and DORA metrics

@@ -294,6 +294,17 @@ def create_settings_panel_expanded(id_suffix: str = "") -> html.Div:
                                                                 className="w-100",
                                                                 size="md",
                                                             ),
+                                                            # Force Refresh checkbox (compact)
+                                                            dbc.Checkbox(
+                                                                id="force-refresh-checkbox",
+                                                                label="Force refresh (ignore cache)",
+                                                                value=False,
+                                                                className="small text-muted mt-1",
+                                                                style={
+                                                                    "fontSize": "0.75rem",
+                                                                    "marginTop": "0.25rem",
+                                                                },
+                                                            ),
                                                             html.Div(
                                                                 id="jira-cache-status",
                                                                 className="text-center text-muted small mt-2",
