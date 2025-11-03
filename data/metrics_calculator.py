@@ -455,6 +455,17 @@ def calculate_and_save_weekly_metrics(
         report_progress("📊 Categorizing work distribution...")
         from data.flow_type_classifier import get_flow_type
 
+        # Get effort category field from configuration
+        field_mappings = app_settings.get("field_mappings", {})
+        effort_category_field = field_mappings.get("effort_category")
+
+        if not effort_category_field:
+            logger.warning(
+                "effort_category field not configured, work distribution may be inaccurate"
+            )
+            # Use a placeholder that won't match any field
+            effort_category_field = "customfield_XXXXX"
+
         distribution = {
             "feature": 0,
             "defect": 0,
@@ -463,7 +474,7 @@ def calculate_and_save_weekly_metrics(
         }
 
         for issue in issues_completed_this_week:
-            flow_type = get_flow_type(issue)
+            flow_type = get_flow_type(issue, effort_category_field)
             # Map flow types to distribution keys
             if flow_type == "Feature":
                 distribution["feature"] += 1
