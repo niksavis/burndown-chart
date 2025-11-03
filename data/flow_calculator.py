@@ -657,3 +657,1462 @@ def _get_default_unit(metric_name: str) -> str:
         "flow_distribution": "percentage",
     }
     return units.get(metric_name, "")
+
+
+# ==============================================================================
+# DORA & FLOW METRICS v2 (Example Customer Configuration)
+# ==============================================================================
+# New functions using Example Customer workflow and field mappings
+# Updated: October 31, 2025
+
+
+def calculate_flow_velocity_v2(
+    issues: List[Any],
+    completion_statuses: List[str],
+    start_date: datetime,
+    end_date: datetime,
+    effort_category_field: str = "customfield_10003",
+) -> Dict[str, Any]:
+    """
+    Calculate Flow Velocity v2 - Count completed issues by Flow type.
+
+    Uses two-tier classification from flow_type_classifier:
+    - Primary: Issue type → Flow type (Bug always = Defect)
+    - Secondary: Effort category → Flow type (Task/Story only)
+
+    Args:
+        issues: List of JIRA issue objects (not dicts)
+        completion_statuses: List of completion status names from config (e.g., ["Done", "Resolved", "Closed"])
+        start_date: Start of measurement period (timezone-aware)
+        end_date: End of measurement period (timezone-aware)
+        effort_category_field: Custom field ID for effort category (default: customfield_10003)
+
+    Returns:
+        Dictionary with:
+        {
+            "metric_name": "flow_velocity",
+            "total_completed": 70,
+            "by_flow_type": {
+                "Feature": 45,
+                "Defect": 12,
+                "Technical Debt": 8,
+                "Risk": 5
+            },
+            "unit": "items/week",
+            "error_state": "success",
+            "error_message": None,
+            "excluded_issue_count": 15,
+            "total_issue_count": 85,
+            "exclusion_reasons": {
+                "not_in_completion_status": 10,
+                "outside_date_range": 5
+            }
+        }
+
+    Example:
+        >>> from datetime import datetime, timezone
+        >>> from data.jira_simple import fetch_all_issues
+        >>> from configuration.flow_config import FlowConfig
+        >>>
+        >>> config = FlowConfig()
+        >>> issues = fetch_all_issues()
+        >>> start = datetime(2025, 10, 1, tzinfo=timezone.utc)
+        >>> end = datetime(2025, 10, 31, 23, 59, 59, tzinfo=timezone.utc)
+        >>>
+        >>> result = calculate_flow_velocity_v2(
+        ...     issues,
+        ...     config.get_completion_statuses(),
+        ...     start,
+        ...     end
+        ... )
+        >>> print(f"Completed: {result['total_completed']}")
+        >>> print(f"Features: {result['by_flow_type']['Feature']}")
+    """
+    from data.flow_type_classifier import (
+        count_by_flow_type,
+        FLOW_TYPE_FEATURE,
+        FLOW_TYPE_DEFECT,
+        FLOW_TYPE_TECHNICAL_DEBT,
+        FLOW_TYPE_RISK,
+    )
+
+    logger.info(
+        f"Calculating Flow Velocity v2 for {len(issues)} issues between {start_date.date()} and {end_date.date()}"
+    )
+
+    # Exclusion tracking
+    exclusion_reasons = {
+        "not_in_completion_status": 0,
+        "outside_date_range": 0,
+        "missing_completion_date": 0,
+    }
+
+    # Filter to completed issues in date range
+    completed_issues = []
+
+    for issue in issues:
+        # Check completion status (case-insensitive)
+        fields = issue.get("fields", {})
+        status_obj = fields.get("status", {})
+        status_name = status_obj.get("name") if isinstance(status_obj, dict) else None
+
+        if not status_name:
+            exclusion_reasons["not_in_completion_status"] += 1
+            continue
+
+        # Case-insensitive status matching
+        status_matched = any(
+            status_name.lower() == cs.lower() for cs in completion_statuses
+        )
+
+        if not status_matched:
+            exclusion_reasons["not_in_completion_status"] += 1
+            continue
+
+        # Get completion date (resolutiondate)
+        completion_date_str = fields.get("resolutiondate")
+        if not completion_date_str:
+            exclusion_reasons["missing_completion_date"] += 1
+            issue_key = issue.get("key", "unknown")
+            logger.debug(
+                f"Issue {issue_key} in completion status but missing resolutiondate"
+            )
+            continue
+
+        # Parse completion date
+        try:
+            # JIRA format: "2025-10-31T15:30:45.123+0200"
+            completion_date = datetime.fromisoformat(
+                completion_date_str.replace("Z", "+00:00")
+            )
+        except (ValueError, AttributeError) as e:
+            exclusion_reasons["missing_completion_date"] += 1
+            issue_key = issue.get("key", "unknown")
+            logger.warning(
+                f"Issue {issue_key} has invalid resolutiondate format: {completion_date_str} - {e}"
+            )
+            continue
+
+        # Check if in date range
+        if not (start_date <= completion_date <= end_date):
+            exclusion_reasons["outside_date_range"] += 1
+            continue
+
+        # Issue is completed in period
+        completed_issues.append(issue)
+
+    logger.info(
+        f"Found {len(completed_issues)} completed issues in period (excluded {sum(exclusion_reasons.values())})"
+    )
+
+    # No completed issues
+    if len(completed_issues) == 0:
+        logger.warning(
+            f"No completed issues found between {start_date.date()} and {end_date.date()}"
+        )
+        return {
+            "metric_name": "flow_velocity",
+            "total_completed": 0,
+            "by_flow_type": {
+                FLOW_TYPE_FEATURE: 0,
+                FLOW_TYPE_DEFECT: 0,
+                FLOW_TYPE_TECHNICAL_DEBT: 0,
+                FLOW_TYPE_RISK: 0,
+            },
+            "unit": "items/week",
+            "error_state": "no_data",
+            "error_message": f"No completed issues found between {start_date.date()} and {end_date.date()}",
+            "excluded_issue_count": sum(exclusion_reasons.values()),
+            "total_issue_count": len(issues),
+            "exclusion_reasons": exclusion_reasons,
+        }
+
+    # Classify by Flow type
+    flow_type_counts = count_by_flow_type(completed_issues, effort_category_field)
+    total_completed = sum(flow_type_counts.values())
+
+    # Calculate period for unit display
+    period_days = (end_date - start_date).days
+    unit = "items/week" if period_days <= 14 else "items/month"
+
+    logger.info(
+        f"Flow Velocity: {total_completed} items completed - "
+        f"Feature={flow_type_counts[FLOW_TYPE_FEATURE]}, "
+        f"Defect={flow_type_counts[FLOW_TYPE_DEFECT]}, "
+        f"Technical Debt={flow_type_counts[FLOW_TYPE_TECHNICAL_DEBT]}, "
+        f"Risk={flow_type_counts[FLOW_TYPE_RISK]}"
+    )
+
+    return {
+        "metric_name": "flow_velocity",
+        "total_completed": total_completed,
+        "by_flow_type": flow_type_counts,
+        "unit": unit,
+        "error_state": "success",
+        "error_message": None,
+        "excluded_issue_count": sum(exclusion_reasons.values()),
+        "total_issue_count": len(issues),
+        "exclusion_reasons": exclusion_reasons,
+    }
+
+
+def calculate_flow_time_v2(
+    issues: List[Any],
+    start_statuses: List[str],
+    completion_statuses: List[str],
+    active_statuses: Optional[List[str]] = None,
+    case_sensitive: bool = False,
+) -> Dict[str, Any]:
+    """
+    Calculate Flow Time v2 - Time from work start to completion.
+
+    Two calculation methods:
+    1. Total Flow Time: Time from first "In Progress" to completion (includes waiting)
+    2. Active Time Only: Time spent in active statuses (excludes waiting)
+
+    Uses changelog_processor.calculate_flow_time() for time calculations.
+
+    Args:
+        issues: List of JIRA issue objects (not dicts) with expanded changelog
+        start_statuses: Statuses that mark flow start (e.g., ["In Progress"])
+        completion_statuses: Statuses that mark completion (e.g., ["Done", "Resolved", "Closed"])
+        active_statuses: Optional list of active statuses for active-time calculation
+                        (e.g., ["In Progress", "In Review", "Testing"])
+        case_sensitive: Whether to match status names case-sensitively (default: False)
+
+    Returns:
+        Dictionary with:
+        {
+            "metric_name": "flow_time",
+            "total_flow_time": {
+                "median_hours": 48.5,
+                "mean_hours": 52.3,
+                "p75_hours": 72.0,
+                "p90_hours": 96.0,
+                "p95_hours": 120.0,
+                "count": 45
+            },
+            "active_time": {
+                "median_hours": 24.0,
+                "mean_hours": 28.5,
+                "p75_hours": 36.0,
+                "p90_hours": 48.0,
+                "p95_hours": 60.0,
+                "count": 45
+            },
+            "flow_efficiency": {
+                "median_percent": 42.5,
+                "mean_percent": 45.2,
+                "count": 45
+            },
+            "unit": "hours",
+            "error_state": "success",
+            "error_message": None,
+            "excluded_issue_count": 15,
+            "total_issue_count": 60,
+            "exclusion_reasons": {
+                "never_entered_start_status": 10,
+                "not_yet_completed": 5
+            }
+        }
+
+    Example:
+        >>> from datetime import datetime, timezone
+        >>> from data.jira_simple import fetch_all_issues_with_changelog
+        >>> from configuration.flow_config import FlowConfig
+        >>>
+        >>> config = FlowConfig()
+        >>> issues = fetch_all_issues_with_changelog()  # Includes changelog
+        >>>
+        >>> result = calculate_flow_time_v2(
+        ...     issues,
+        ...     start_statuses=["In Progress"],
+        ...     completion_statuses=["Done", "Resolved", "Closed"],
+        ...     active_statuses=["In Progress", "In Review", "Testing"]
+        ... )
+        >>> print(f"Median Flow Time: {result['total_flow_time']['median_hours']:.1f}h")
+        >>> print(f"Median Active Time: {result['active_time']['median_hours']:.1f}h")
+        >>> print(f"Median Flow Efficiency: {result['flow_efficiency']['median_percent']:.1f}%")
+    """
+    from data.changelog_processor import calculate_flow_time
+    import statistics
+
+    logger.info(f"Calculating Flow Time v2 for {len(issues)} issues")
+
+    # Exclusion tracking
+    exclusion_reasons = {
+        "never_entered_start_status": 0,
+        "not_yet_completed": 0,
+        "missing_changelog": 0,
+    }
+
+    # Collect flow time data
+    total_flow_times = []
+    active_times = []
+    flow_efficiencies = []
+
+    for issue in issues:
+        # Handle both dict and object formats
+        if isinstance(issue, dict):
+            issue_key = issue.get("key", "unknown")
+            issue_dict = {"key": issue_key, "changelog": issue.get("changelog")}
+        else:
+            issue_key = getattr(issue, "key", "unknown")
+            issue_dict = {
+                "key": issue_key,
+                "changelog": getattr(issue, "changelog", None),
+            }
+
+        # Check if issue has changelog
+        if not issue_dict["changelog"]:
+            exclusion_reasons["missing_changelog"] += 1
+            logger.debug(f"Issue {issue_key} missing changelog data")
+            continue
+
+        # Calculate flow time using changelog_processor
+        flow_time_result = calculate_flow_time(
+            issue_dict,
+            start_statuses=start_statuses,
+            completion_statuses=completion_statuses,
+            active_statuses=active_statuses,
+            case_sensitive=case_sensitive,
+        )
+
+        # Check if issue never entered flow
+        if flow_time_result["start_timestamp"] is None:
+            exclusion_reasons["never_entered_start_status"] += 1
+            continue
+
+        # Check if issue not yet completed
+        if flow_time_result["completion_timestamp"] is None:
+            exclusion_reasons["not_yet_completed"] += 1
+            continue
+
+        # Collect metrics
+        if flow_time_result["total_flow_time_hours"] is not None:
+            total_flow_times.append(flow_time_result["total_flow_time_hours"])
+
+        if flow_time_result["active_time_hours"] is not None:
+            active_times.append(flow_time_result["active_time_hours"])
+
+        if flow_time_result["flow_efficiency_percent"] is not None:
+            flow_efficiencies.append(flow_time_result["flow_efficiency_percent"])
+
+    logger.info(
+        f"Calculated Flow Time for {len(total_flow_times)} issues "
+        f"(excluded {sum(exclusion_reasons.values())})"
+    )
+
+    # No flow time data
+    if len(total_flow_times) == 0:
+        logger.warning("No flow time data available")
+        return {
+            "metric_name": "flow_time",
+            "total_flow_time": {
+                "median_hours": None,
+                "mean_hours": None,
+                "p75_hours": None,
+                "p90_hours": None,
+                "p95_hours": None,
+                "count": 0,
+            },
+            "active_time": {
+                "median_hours": None,
+                "mean_hours": None,
+                "p75_hours": None,
+                "p90_hours": None,
+                "p95_hours": None,
+                "count": 0,
+            },
+            "flow_efficiency": {
+                "median_percent": None,
+                "mean_percent": None,
+                "count": 0,
+            },
+            "unit": "hours",
+            "error_state": "no_data",
+            "error_message": "No completed issues with flow time data",
+            "excluded_issue_count": sum(exclusion_reasons.values()),
+            "total_issue_count": len(issues),
+            "exclusion_reasons": exclusion_reasons,
+        }
+
+    # Calculate total flow time statistics
+    total_flow_time_stats = {
+        "median_hours": statistics.median(total_flow_times),
+        "mean_hours": statistics.mean(total_flow_times),
+        "p75_hours": statistics.quantiles(total_flow_times, n=4)[2]
+        if len(total_flow_times) >= 4
+        else None,
+        "p90_hours": statistics.quantiles(total_flow_times, n=10)[8]
+        if len(total_flow_times) >= 10
+        else None,
+        "p95_hours": statistics.quantiles(total_flow_times, n=20)[18]
+        if len(total_flow_times) >= 20
+        else None,
+        "count": len(total_flow_times),
+    }
+
+    # Calculate active time statistics (if available)
+    active_time_stats = {
+        "median_hours": None,
+        "mean_hours": None,
+        "p75_hours": None,
+        "p90_hours": None,
+        "p95_hours": None,
+        "count": 0,
+    }
+
+    if len(active_times) > 0:
+        active_time_stats = {
+            "median_hours": statistics.median(active_times),
+            "mean_hours": statistics.mean(active_times),
+            "p75_hours": statistics.quantiles(active_times, n=4)[2]
+            if len(active_times) >= 4
+            else None,
+            "p90_hours": statistics.quantiles(active_times, n=10)[8]
+            if len(active_times) >= 10
+            else None,
+            "p95_hours": statistics.quantiles(active_times, n=20)[18]
+            if len(active_times) >= 20
+            else None,
+            "count": len(active_times),
+        }
+
+    # Calculate flow efficiency statistics (if available)
+    flow_efficiency_stats = {"median_percent": None, "mean_percent": None, "count": 0}
+
+    if len(flow_efficiencies) > 0:
+        flow_efficiency_stats = {
+            "median_percent": statistics.median(flow_efficiencies),
+            "mean_percent": statistics.mean(flow_efficiencies),
+            "count": len(flow_efficiencies),
+        }
+
+    logger.info(
+        f"Flow Time statistics: "
+        f"Median Total={total_flow_time_stats['median_hours']:.1f}h, "
+        f"Median Active={active_time_stats['median_hours']:.1f}h, "
+        f"Median Efficiency={flow_efficiency_stats['median_percent']:.1f}%"
+        if active_time_stats["median_hours"] and flow_efficiency_stats["median_percent"]
+        else f"Flow Time statistics: Median Total={total_flow_time_stats['median_hours']:.1f}h"
+    )
+
+    return {
+        "metric_name": "flow_time",
+        "total_flow_time": total_flow_time_stats,
+        "active_time": active_time_stats,
+        "flow_efficiency": flow_efficiency_stats,
+        "unit": "hours",
+        "error_state": "success",
+        "error_message": None,
+        "excluded_issue_count": sum(exclusion_reasons.values()),
+        "total_issue_count": len(issues),
+        "exclusion_reasons": exclusion_reasons,
+    }
+
+
+def calculate_flow_load_v2(
+    issues: List[Any],
+    wip_statuses: List[str],
+    wip_issue_types: Optional[List[str]] = None,
+    case_sensitive: bool = False,
+) -> Dict[str, Any]:
+    """
+    Calculate Flow Load v2 (WIP) - Current number of items in active work.
+
+    Uses positive status inclusion mapping (NOT exclusion).
+    Counts issues in WIP statuses with resolution = "Unresolved".
+
+    Args:
+        issues: List of JIRA issue objects (not dicts)
+        wip_statuses: List of WIP status names from config (positive mapping)
+                     e.g., ["In Progress", "In Review", "Ready for Testing", "Testing", "In Deployment"]
+        wip_issue_types: Optional list of issue types to include (e.g., ["Task", "Story", "Bug"])
+                        If None, all issue types are included
+        case_sensitive: Whether to match status names case-sensitively (default: False)
+
+    Returns:
+        Dictionary with:
+        {
+            "metric_name": "flow_load",
+            "wip_count": 25,
+            "by_status": {
+                "In Progress": 10,
+                "In Review": 5,
+                "Ready for Testing": 3,
+                "Testing": 4,
+                "In Deployment": 3
+            },
+            "by_issue_type": {
+                "Task": 12,
+                "Story": 8,
+                "Bug": 5
+            },
+            "unit": "items",
+            "error_state": "success",
+            "error_message": None,
+            "excluded_issue_count": 35,
+            "total_issue_count": 60,
+            "exclusion_reasons": {
+                "not_in_wip_status": 20,
+                "resolved": 10,
+                "excluded_issue_type": 5
+            }
+        }
+
+    Example:
+        >>> from data.jira_simple import fetch_all_issues
+        >>> from configuration.flow_config import FlowConfig
+        >>>
+        >>> config = FlowConfig()
+        >>> issues = fetch_all_issues()
+        >>>
+        >>> result = calculate_flow_load_v2(
+        ...     issues,
+        ...     wip_statuses=["In Progress", "In Review", "Ready for Testing", "Testing", "In Deployment"],
+        ...     wip_issue_types=["Task", "Story", "Bug"]
+        ... )
+        >>> print(f"Current WIP: {result['wip_count']} items")
+        >>> print(f"In Progress: {result['by_status']['In Progress']}")
+    """
+    logger.info(f"Calculating Flow Load v2 (WIP) for {len(issues)} issues")
+
+    # Normalize WIP statuses for matching
+    wip_statuses_normalized = [s if case_sensitive else s.lower() for s in wip_statuses]
+
+    # Normalize issue types for matching (if provided)
+    wip_issue_types_normalized = None
+    if wip_issue_types:
+        wip_issue_types_normalized = [
+            t if case_sensitive else t.lower() for t in wip_issue_types
+        ]
+
+    # Exclusion tracking
+    exclusion_reasons = {
+        "not_in_wip_status": 0,
+        "resolved": 0,
+        "excluded_issue_type": 0,
+    }
+
+    # Count WIP issues
+    wip_issues = []
+    by_status = {}
+    by_issue_type = {}
+
+    for issue in issues:
+        # Get status name - handle dict format
+        fields = issue.get("fields", {})
+        status_obj = fields.get("status", {})
+        status_name = status_obj.get("name") if isinstance(status_obj, dict) else None
+
+        if not status_name:
+            exclusion_reasons["not_in_wip_status"] += 1
+            continue
+
+        # Normalize status for matching
+        status_normalized = status_name if case_sensitive else status_name.lower()
+
+        # Check if in WIP statuses (positive inclusion)
+        if status_normalized not in wip_statuses_normalized:
+            exclusion_reasons["not_in_wip_status"] += 1
+            continue
+
+        # Check resolution status
+        resolution = fields.get("resolution")
+        if resolution and (isinstance(resolution, dict) and resolution.get("name")):
+            # Issue is resolved (not in active work)
+            exclusion_reasons["resolved"] += 1
+            continue
+
+        # Check issue type (if filtering by type)
+        issuetype_obj = fields.get("issuetype", {})
+        issue_type_name = (
+            issuetype_obj.get("name") if isinstance(issuetype_obj, dict) else None
+        )
+
+        if wip_issue_types_normalized and issue_type_name:
+            issue_type_normalized = (
+                issue_type_name if case_sensitive else issue_type_name.lower()
+            )
+            if issue_type_normalized not in wip_issue_types_normalized:
+                exclusion_reasons["excluded_issue_type"] += 1
+                continue
+
+        # Issue is in WIP
+        wip_issues.append(issue)
+
+        # Count by status
+        by_status[status_name] = by_status.get(status_name, 0) + 1
+
+        # Count by issue type
+        if issue_type_name:
+            by_issue_type[issue_type_name] = by_issue_type.get(issue_type_name, 0) + 1
+
+    wip_count = len(wip_issues)
+
+    logger.info(
+        f"Flow Load (WIP): {wip_count} items in active work "
+        f"(excluded {sum(exclusion_reasons.values())})"
+    )
+
+    if wip_count == 0:
+        logger.warning("No WIP issues found")
+        return {
+            "metric_name": "flow_load",
+            "wip_count": 0,
+            "by_status": {},
+            "by_issue_type": {},
+            "unit": "items",
+            "error_state": "no_data",
+            "error_message": "No issues found in WIP statuses",
+            "excluded_issue_count": sum(exclusion_reasons.values()),
+            "total_issue_count": len(issues),
+            "exclusion_reasons": exclusion_reasons,
+        }
+
+    logger.info(f"WIP breakdown by status: {by_status}")
+    logger.info(f"WIP breakdown by issue type: {by_issue_type}")
+
+    return {
+        "metric_name": "flow_load",
+        "wip_count": wip_count,
+        "by_status": by_status,
+        "by_issue_type": by_issue_type,
+        "unit": "items",
+        "error_state": "success",
+        "error_message": None,
+        "excluded_issue_count": sum(exclusion_reasons.values()),
+        "total_issue_count": len(issues),
+        "exclusion_reasons": exclusion_reasons,
+    }
+
+
+def calculate_flow_efficiency_v2(
+    issues: List[Any],
+    start_statuses: List[str],
+    completion_statuses: List[str],
+    active_statuses: List[str],
+    case_sensitive: bool = False,
+) -> Dict[str, Any]:
+    """
+    Calculate Flow Efficiency v2 - Percentage of time actively working vs waiting.
+
+    Flow Efficiency = (Active Time / Total Flow Time) * 100
+
+    - Active Time: Time spent in active statuses (e.g., "In Progress", "In Review", "Testing")
+    - Total Flow Time: Time from first "In Progress" to completion (includes waiting)
+    - Target: > 40% (industry benchmark)
+
+    Uses changelog_processor for time-in-status calculations.
+
+    Args:
+        issues: List of JIRA issue objects (not dicts) with expanded changelog
+        start_statuses: Statuses that mark flow start (e.g., ["In Progress"])
+        completion_statuses: Statuses that mark completion (e.g., ["Done", "Resolved", "Closed"])
+        active_statuses: List of active statuses (e.g., ["In Progress", "In Review", "Testing"])
+        case_sensitive: Whether to match status names case-sensitively (default: False)
+
+    Returns:
+        Dictionary with:
+        {
+            "metric_name": "flow_efficiency",
+            "median_percent": 42.5,
+            "mean_percent": 45.2,
+            "p25_percent": 35.0,
+            "p75_percent": 55.0,
+            "count": 45,
+            "target_percent": 40.0,
+            "meets_target_count": 28,
+            "below_target_count": 17,
+            "unit": "percentage",
+            "error_state": "success",
+            "error_message": None,
+            "excluded_issue_count": 15,
+            "total_issue_count": 60,
+            "exclusion_reasons": {
+                "never_entered_start_status": 10,
+                "not_yet_completed": 5
+            }
+        }
+
+    Example:
+        >>> from data.jira_simple import fetch_all_issues_with_changelog
+        >>> from configuration.flow_config import FlowConfig
+        >>>
+        >>> config = FlowConfig()
+        >>> issues = fetch_all_issues_with_changelog()
+        >>>
+        >>> result = calculate_flow_efficiency_v2(
+        ...     issues,
+        ...     start_statuses=["In Progress"],
+        ...     completion_statuses=["Done", "Resolved", "Closed"],
+        ...     active_statuses=["In Progress", "In Review", "Testing"]
+        ... )
+        >>> print(f"Median Flow Efficiency: {result['median_percent']:.1f}%")
+        >>> print(f"Meets 40% target: {result['meets_target_count']}/{result['count']}")
+    """
+    from data.changelog_processor import calculate_flow_time
+    import statistics
+
+    logger.info(f"Calculating Flow Efficiency v2 for {len(issues)} issues")
+
+    # Exclusion tracking
+    exclusion_reasons = {
+        "never_entered_start_status": 0,
+        "not_yet_completed": 0,
+        "missing_changelog": 0,
+    }
+
+    # Collect flow efficiency data
+    flow_efficiencies = []
+
+    TARGET_EFFICIENCY = 40.0  # Industry benchmark
+    meets_target_count = 0
+    below_target_count = 0
+
+    for issue in issues:
+        # Handle both dict and object formats
+        if isinstance(issue, dict):
+            issue_key = issue.get("key", "unknown")
+            issue_dict = {"key": issue_key, "changelog": issue.get("changelog")}
+        else:
+            issue_key = getattr(issue, "key", "unknown")
+            issue_dict = {
+                "key": issue_key,
+                "changelog": getattr(issue, "changelog", None),
+            }
+
+        # Check if issue has changelog
+        if not issue_dict["changelog"]:
+            exclusion_reasons["missing_changelog"] += 1
+            logger.debug(f"Issue {issue_key} missing changelog data")
+            continue
+
+        # Calculate flow time (includes efficiency)
+        flow_time_result = calculate_flow_time(
+            issue_dict,
+            start_statuses=start_statuses,
+            completion_statuses=completion_statuses,
+            active_statuses=active_statuses,
+            case_sensitive=case_sensitive,
+        )
+
+        # Check if issue never entered flow
+        if flow_time_result["start_timestamp"] is None:
+            exclusion_reasons["never_entered_start_status"] += 1
+            continue
+
+        # Check if issue not yet completed
+        if flow_time_result["completion_timestamp"] is None:
+            exclusion_reasons["not_yet_completed"] += 1
+            continue
+
+        # Collect flow efficiency
+        if flow_time_result["flow_efficiency_percent"] is not None:
+            efficiency = flow_time_result["flow_efficiency_percent"]
+            flow_efficiencies.append(efficiency)
+
+            # Track against target
+            if efficiency >= TARGET_EFFICIENCY:
+                meets_target_count += 1
+            else:
+                below_target_count += 1
+
+    logger.info(
+        f"Calculated Flow Efficiency for {len(flow_efficiencies)} issues "
+        f"(excluded {sum(exclusion_reasons.values())})"
+    )
+
+    # No flow efficiency data
+    if len(flow_efficiencies) == 0:
+        logger.warning("No flow efficiency data available")
+        return {
+            "metric_name": "flow_efficiency",
+            "median_percent": None,
+            "mean_percent": None,
+            "p25_percent": None,
+            "p75_percent": None,
+            "count": 0,
+            "target_percent": TARGET_EFFICIENCY,
+            "meets_target_count": 0,
+            "below_target_count": 0,
+            "unit": "percentage",
+            "error_state": "no_data",
+            "error_message": "No completed issues with flow efficiency data",
+            "excluded_issue_count": sum(exclusion_reasons.values()),
+            "total_issue_count": len(issues),
+            "exclusion_reasons": exclusion_reasons,
+        }
+
+    # Calculate statistics
+    median_efficiency = statistics.median(flow_efficiencies)
+    mean_efficiency = statistics.mean(flow_efficiencies)
+    p25_efficiency = (
+        statistics.quantiles(flow_efficiencies, n=4)[0]
+        if len(flow_efficiencies) >= 4
+        else None
+    )
+    p75_efficiency = (
+        statistics.quantiles(flow_efficiencies, n=4)[2]
+        if len(flow_efficiencies) >= 4
+        else None
+    )
+
+    logger.info(
+        f"Flow Efficiency: Median={median_efficiency:.1f}%, Mean={mean_efficiency:.1f}%, "
+        f"Target={TARGET_EFFICIENCY}% "
+        f"(Meets: {meets_target_count}, Below: {below_target_count})"
+    )
+
+    return {
+        "metric_name": "flow_efficiency",
+        "median_percent": median_efficiency,
+        "mean_percent": mean_efficiency,
+        "p25_percent": p25_efficiency,
+        "p75_percent": p75_efficiency,
+        "count": len(flow_efficiencies),
+        "target_percent": TARGET_EFFICIENCY,
+        "meets_target_count": meets_target_count,
+        "below_target_count": below_target_count,
+        "unit": "percentage",
+        "error_state": "success",
+        "error_message": None,
+        "excluded_issue_count": sum(exclusion_reasons.values()),
+        "total_issue_count": len(issues),
+        "exclusion_reasons": exclusion_reasons,
+    }
+
+
+def calculate_flow_distribution_v2(
+    issues: List[Any],
+    completion_statuses: List[str],
+    start_date: datetime,
+    end_date: datetime,
+    effort_category_field: str = "customfield_10003",
+    recommended_ranges: Optional[Dict[str, tuple]] = None,
+) -> Dict[str, Any]:
+    """
+    Calculate Flow Distribution v2 - Percentage of work by Flow type.
+
+    Uses same classification as Flow Velocity (two-tier classification).
+    Compares actual distribution against recommended ranges.
+
+    Recommended ranges (from Flow Framework):
+    - Feature: 40-60%
+    - Defect: 10-20%
+    - Technical Debt: 10-20%
+    - Risk: 10-20%
+
+    Args:
+        issues: List of JIRA issue objects (not dicts)
+        completion_statuses: List of completion status names from config
+        start_date: Start of measurement period (timezone-aware)
+        end_date: End of measurement period (timezone-aware)
+        effort_category_field: Custom field ID for effort category (default: customfield_10003)
+        recommended_ranges: Optional dict of (min_percent, max_percent) tuples per flow type
+
+    Returns:
+        Dictionary with:
+        {
+            "metric_name": "flow_distribution",
+            "total_count": 70,
+            "distribution": {
+                "Feature": {
+                    "count": 45,
+                    "percent": 64.3,
+                    "recommended_min": 40.0,
+                    "recommended_max": 60.0,
+                    "in_range": False
+                },
+                "Defect": {
+                    "count": 12,
+                    "percent": 17.1,
+                    "recommended_min": 10.0,
+                    "recommended_max": 20.0,
+                    "in_range": True
+                },
+                "Technical Debt": {
+                    "count": 8,
+                    "percent": 11.4,
+                    "recommended_min": 10.0,
+                    "recommended_max": 20.0,
+                    "in_range": True
+                },
+                "Risk": {
+                    "count": 5,
+                    "percent": 7.1,
+                    "recommended_min": 10.0,
+                    "recommended_max": 20.0,
+                    "in_range": False
+                }
+            },
+            "unit": "percentage",
+            "error_state": "success",
+            "error_message": None,
+            "excluded_issue_count": 15,
+            "total_issue_count": 85,
+            "exclusion_reasons": {
+                "not_in_completion_status": 10,
+                "outside_date_range": 5
+            }
+        }
+
+    Example:
+        >>> from datetime import datetime, timezone
+        >>> from data.jira_simple import fetch_all_issues
+        >>>
+        >>> issues = fetch_all_issues()
+        >>> start = datetime(2025, 10, 1, tzinfo=timezone.utc)
+        >>> end = datetime(2025, 10, 31, 23, 59, 59, tzinfo=timezone.utc)
+        >>>
+        >>> result = calculate_flow_distribution_v2(
+        ...     issues,
+        ...     completion_statuses=["Done", "Resolved", "Closed"],
+        ...     start_date=start,
+        ...     end_date=end
+        ... )
+        >>> print(f"Feature work: {result['distribution']['Feature']['percent']:.1f}%")
+        >>> print(f"In recommended range: {result['distribution']['Feature']['in_range']}")
+    """
+    from data.flow_type_classifier import (
+        get_flow_distribution,
+        FLOW_TYPE_FEATURE,
+        FLOW_TYPE_DEFECT,
+        FLOW_TYPE_TECHNICAL_DEBT,
+        FLOW_TYPE_RISK,
+    )
+
+    logger.info(
+        f"Calculating Flow Distribution v2 for {len(issues)} issues between {start_date.date()} and {end_date.date()}"
+    )
+
+    # Default recommended ranges (from Flow Framework)
+    if recommended_ranges is None:
+        recommended_ranges = {
+            FLOW_TYPE_FEATURE: (40.0, 60.0),
+            FLOW_TYPE_DEFECT: (10.0, 20.0),
+            FLOW_TYPE_TECHNICAL_DEBT: (10.0, 20.0),
+            FLOW_TYPE_RISK: (10.0, 20.0),
+        }
+
+    # Exclusion tracking
+    exclusion_reasons = {
+        "not_in_completion_status": 0,
+        "outside_date_range": 0,
+        "missing_completion_date": 0,
+    }
+
+    # Filter to completed issues in date range (same logic as Flow Velocity)
+    completed_issues = []
+
+    for issue in issues:
+        # Check completion status (case-insensitive) - handle dict format
+        fields = issue.get("fields", {})
+        status_obj = fields.get("status", {})
+        status_name = status_obj.get("name") if isinstance(status_obj, dict) else None
+        issue_key = issue.get("key", "unknown")
+
+        if not status_name:
+            exclusion_reasons["not_in_completion_status"] += 1
+            continue
+
+        status_matched = any(
+            status_name.lower() == cs.lower() for cs in completion_statuses
+        )
+
+        if not status_matched:
+            exclusion_reasons["not_in_completion_status"] += 1
+            continue
+
+        # Get completion date
+        completion_date_str = fields.get("resolutiondate")
+        if not completion_date_str:
+            exclusion_reasons["missing_completion_date"] += 1
+            continue
+
+        # Parse completion date
+        try:
+            completion_date = datetime.fromisoformat(
+                completion_date_str.replace("Z", "+00:00")
+            )
+        except (ValueError, AttributeError):
+            exclusion_reasons["missing_completion_date"] += 1
+            logger.warning(
+                f"Issue {issue_key} has invalid resolutiondate: {completion_date_str}"
+            )
+            continue
+
+        # Check if in date range
+        if not (start_date <= completion_date <= end_date):
+            exclusion_reasons["outside_date_range"] += 1
+            continue
+
+        completed_issues.append(issue)
+
+    logger.info(f"Found {len(completed_issues)} completed issues in period")
+
+    # No completed issues
+    if len(completed_issues) == 0:
+        logger.warning("No completed issues for flow distribution")
+        return {
+            "metric_name": "flow_distribution",
+            "total_count": 0,
+            "distribution": {
+                FLOW_TYPE_FEATURE: {
+                    "count": 0,
+                    "percent": 0.0,
+                    "recommended_min": recommended_ranges[FLOW_TYPE_FEATURE][0],
+                    "recommended_max": recommended_ranges[FLOW_TYPE_FEATURE][1],
+                    "in_range": False,
+                },
+                FLOW_TYPE_DEFECT: {
+                    "count": 0,
+                    "percent": 0.0,
+                    "recommended_min": recommended_ranges[FLOW_TYPE_DEFECT][0],
+                    "recommended_max": recommended_ranges[FLOW_TYPE_DEFECT][1],
+                    "in_range": False,
+                },
+                FLOW_TYPE_TECHNICAL_DEBT: {
+                    "count": 0,
+                    "percent": 0.0,
+                    "recommended_min": recommended_ranges[FLOW_TYPE_TECHNICAL_DEBT][0],
+                    "recommended_max": recommended_ranges[FLOW_TYPE_TECHNICAL_DEBT][1],
+                    "in_range": False,
+                },
+                FLOW_TYPE_RISK: {
+                    "count": 0,
+                    "percent": 0.0,
+                    "recommended_min": recommended_ranges[FLOW_TYPE_RISK][0],
+                    "recommended_max": recommended_ranges[FLOW_TYPE_RISK][1],
+                    "in_range": False,
+                },
+            },
+            "unit": "percentage",
+            "error_state": "no_data",
+            "error_message": "No completed issues in date range",
+            "excluded_issue_count": sum(exclusion_reasons.values()),
+            "total_issue_count": len(issues),
+            "exclusion_reasons": exclusion_reasons,
+        }
+
+    # Calculate distribution using flow_type_classifier
+    distribution_percentages = get_flow_distribution(
+        completed_issues, effort_category_field
+    )
+
+    # Get counts (calculate from percentages and total)
+    total_count = len(completed_issues)
+    from data.flow_type_classifier import count_by_flow_type
+
+    flow_type_counts = count_by_flow_type(completed_issues, effort_category_field)
+
+    # Build distribution with range checking
+    distribution = {}
+    for flow_type in [
+        FLOW_TYPE_FEATURE,
+        FLOW_TYPE_DEFECT,
+        FLOW_TYPE_TECHNICAL_DEBT,
+        FLOW_TYPE_RISK,
+    ]:
+        percent = distribution_percentages[flow_type]
+        count = flow_type_counts[flow_type]
+        min_range, max_range = recommended_ranges.get(flow_type, (0.0, 100.0))
+
+        in_range = min_range <= percent <= max_range
+
+        distribution[flow_type] = {
+            "count": count,
+            "percent": percent,
+            "recommended_min": min_range,
+            "recommended_max": max_range,
+            "in_range": in_range,
+        }
+
+    logger.info(
+        f"Flow Distribution: "
+        f"Feature={distribution[FLOW_TYPE_FEATURE]['percent']:.1f}% (range: {distribution[FLOW_TYPE_FEATURE]['in_range']}), "
+        f"Defect={distribution[FLOW_TYPE_DEFECT]['percent']:.1f}% (range: {distribution[FLOW_TYPE_DEFECT]['in_range']}), "
+        f"Technical Debt={distribution[FLOW_TYPE_TECHNICAL_DEBT]['percent']:.1f}% (range: {distribution[FLOW_TYPE_TECHNICAL_DEBT]['in_range']}), "
+        f"Risk={distribution[FLOW_TYPE_RISK]['percent']:.1f}% (range: {distribution[FLOW_TYPE_RISK]['in_range']})"
+    )
+
+    return {
+        "metric_name": "flow_distribution",
+        "total_count": total_count,
+        "distribution": distribution,
+        "unit": "percentage",
+        "error_state": "success",
+        "error_message": None,
+        "excluded_issue_count": sum(exclusion_reasons.values()),
+        "total_issue_count": len(issues),
+        "exclusion_reasons": exclusion_reasons,
+    }
+
+
+# ==============================================================================
+# Weekly Aggregation Functions
+# ==============================================================================
+
+
+def aggregate_flow_velocity_weekly(
+    issues: List,
+    completion_statuses: List[str],
+    effort_category_field: str,
+    week_labels: List[str],
+    case_sensitive: bool = False,
+) -> Dict[str, Dict]:
+    """
+    Aggregate Flow Velocity by ISO week (sum aggregation).
+
+    Counts number of completed items per week by Flow type.
+
+    Args:
+        issues: List of issue objects
+        completion_statuses: List of completion status names
+        effort_category_field: Custom field ID for effort category
+        week_labels: List of year-week labels to aggregate
+        case_sensitive: Whether to match status names case-sensitively
+
+    Returns:
+        Dictionary mapping week labels to Flow type counts
+
+    Example:
+        >>> aggregate_flow_velocity_weekly(issues, ["Done"], "customfield_10003", ["2025-43"])
+        {
+            "2025-43": {
+                "total": 25,
+                "Feature": 15,
+                "Defect": 6,
+                "Technical Debt": 3,
+                "Risk": 1
+            }
+        }
+    """
+    from data.time_period_calculator import get_year_week_label
+    from data.flow_type_classifier import count_by_flow_type
+    from datetime import datetime
+    from collections import defaultdict
+
+    logger.info(f"Aggregating Flow Velocity for {len(week_labels)} weeks")
+
+    # Initialize result
+    weekly_counts = {
+        label: {"total": 0, "Feature": 0, "Defect": 0, "Technical Debt": 0, "Risk": 0}
+        for label in week_labels
+    }
+
+    if not issues or not completion_statuses:
+        logger.warning(
+            "aggregate_flow_velocity_weekly: No issues or completion statuses provided"
+        )
+        return weekly_counts
+
+    # Convert statuses for case-insensitive matching
+    completion_statuses_lower = (
+        [s.lower() for s in completion_statuses] if not case_sensitive else []
+    )
+
+    # Group issues by week
+    week_groups = defaultdict(list)
+
+    for issue in issues:
+        try:
+            # Check completion status (dict format)
+            issue_status = issue.get("fields", {}).get("status")
+            if not issue_status:
+                continue
+
+            issue_status_name = (
+                issue_status.get("name", "")
+                if isinstance(issue_status, dict)
+                else issue_status.name
+            )
+            status_match = (
+                issue_status_name in completion_statuses
+                if case_sensitive
+                else issue_status_name.lower() in completion_statuses_lower
+            )
+
+            if not status_match:
+                continue
+
+            # Get completion date (resolutiondate) - dict format
+            resolution_date_str = issue.get("fields", {}).get("resolutiondate")
+            if not resolution_date_str:
+                continue
+
+            resolution_dt = datetime.fromisoformat(
+                resolution_date_str.replace("Z", "+00:00")
+            )
+            week_label = get_year_week_label(resolution_dt)
+
+            if week_label in weekly_counts:
+                week_groups[week_label].append(issue)
+
+        except (AttributeError, ValueError, KeyError):
+            continue
+
+    # Count by Flow type for each week
+    for week_label in week_labels:
+        week_issues = week_groups.get(week_label, [])
+        if not week_issues:
+            continue
+
+        flow_counts = count_by_flow_type(week_issues, effort_category_field)
+
+        weekly_counts[week_label]["Feature"] = flow_counts.get("Feature", 0)
+        weekly_counts[week_label]["Defect"] = flow_counts.get("Defect", 0)
+        weekly_counts[week_label]["Technical Debt"] = flow_counts.get(
+            "Technical Debt", 0
+        )
+        weekly_counts[week_label]["Risk"] = flow_counts.get("Risk", 0)
+        weekly_counts[week_label]["total"] = sum(flow_counts.values())
+
+    logger.info(
+        f"Weekly Flow Velocity aggregated for {sum(1 for c in weekly_counts.values() if c['total'] > 0)} weeks"
+    )
+    return weekly_counts
+
+
+def aggregate_flow_time_weekly(
+    flow_times: List[Dict], week_labels: List[str]
+) -> Dict[str, Dict]:
+    """
+    Aggregate Flow Time by ISO week using median.
+
+    Groups flow times by week and calculates median, mean, and percentiles
+    for both total flow time and active time.
+
+    Args:
+        flow_times: List of flow time dictionaries from calculate_flow_time_v2
+        week_labels: List of year-week labels to aggregate
+
+    Returns:
+        Dictionary mapping week labels to statistics
+
+    Example:
+        >>> aggregate_flow_time_weekly(flow_times, ["2025-43", "2025-44"])
+        {
+            "2025-43": {
+                "median_total_hours": 72.5,
+                "median_active_hours": 42.1,
+                "median_efficiency_percent": 58.1,
+                "count": 15
+            }
+        }
+    """
+    from data.time_period_calculator import get_year_week_label
+    from datetime import datetime
+    import statistics
+    from collections import defaultdict
+
+    logger.info(f"Aggregating Flow Time for {len(week_labels)} weeks")
+
+    # Initialize result
+    weekly_stats = {
+        label: {
+            "median_total_hours": None,
+            "mean_total_hours": None,
+            "median_active_hours": None,
+            "mean_active_hours": None,
+            "median_efficiency_percent": None,
+            "mean_efficiency_percent": None,
+            "count": 0,
+        }
+        for label in week_labels
+    }
+
+    if not flow_times:
+        logger.warning("aggregate_flow_time_weekly: No flow times provided")
+        return weekly_stats
+
+    # Group by week (use completion date)
+    week_groups = defaultdict(lambda: {"total": [], "active": [], "efficiency": []})
+
+    for ft in flow_times:
+        completion_date_str = ft.get("completion_date")
+        if not completion_date_str:
+            continue
+
+        try:
+            completion_dt = datetime.fromisoformat(
+                completion_date_str.replace("Z", "+00:00")
+            )
+            week_label = get_year_week_label(completion_dt)
+
+            if week_label in weekly_stats:
+                week_groups[week_label]["total"].append(ft["total_flow_time_hours"])
+                week_groups[week_label]["active"].append(ft["active_time_hours"])
+                week_groups[week_label]["efficiency"].append(
+                    ft["flow_efficiency_percent"]
+                )
+        except (ValueError, KeyError):
+            continue
+
+    # Calculate statistics for each week
+    for week_label in week_labels:
+        group = week_groups.get(week_label)
+        if not group or not group["total"]:
+            continue
+
+        total_list = group["total"]
+        active_list = group["active"]
+        efficiency_list = group["efficiency"]
+
+        weekly_stats[week_label]["count"] = len(total_list)
+
+        # Total flow time statistics
+        weekly_stats[week_label]["median_total_hours"] = round(
+            statistics.median(total_list), 2
+        )
+        weekly_stats[week_label]["mean_total_hours"] = round(
+            statistics.mean(total_list), 2
+        )
+
+        # Active time statistics
+        weekly_stats[week_label]["median_active_hours"] = round(
+            statistics.median(active_list), 2
+        )
+        weekly_stats[week_label]["mean_active_hours"] = round(
+            statistics.mean(active_list), 2
+        )
+
+        # Flow efficiency statistics
+        weekly_stats[week_label]["median_efficiency_percent"] = round(
+            statistics.median(efficiency_list), 1
+        )
+        weekly_stats[week_label]["mean_efficiency_percent"] = round(
+            statistics.mean(efficiency_list), 1
+        )
+
+    logger.info(
+        f"Weekly Flow Time aggregated for {sum(1 for s in weekly_stats.values() if s['count'] > 0)} weeks"
+    )
+    return weekly_stats
+
+
+def aggregate_flow_distribution_weekly(
+    issues: List,
+    completion_statuses: List[str],
+    effort_category_field: str,
+    week_labels: List[str],
+    case_sensitive: bool = False,
+) -> Dict[str, Dict]:
+    """
+    Aggregate Flow Distribution by ISO week (percentage).
+
+    Calculates percentage of work by Flow type per week.
+
+    Args:
+        issues: List of issue objects
+        completion_statuses: List of completion status names
+        effort_category_field: Custom field ID for effort category
+        week_labels: List of year-week labels to aggregate
+        case_sensitive: Whether to match status names case-sensitively
+
+    Returns:
+        Dictionary mapping week labels to Flow type percentages
+
+    Example:
+        >>> aggregate_flow_distribution_weekly(issues, ["Done"], "customfield_10003", ["2025-43"])
+        {
+            "2025-43": {
+                "total_count": 25,
+                "Feature": 60.0,
+                "Defect": 24.0,
+                "Technical Debt": 12.0,
+                "Risk": 4.0
+            }
+        }
+    """
+    from data.time_period_calculator import get_year_week_label
+    from data.flow_type_classifier import get_flow_distribution
+    from datetime import datetime
+    from collections import defaultdict
+
+    logger.info(f"Aggregating Flow Distribution for {len(week_labels)} weeks")
+
+    # Initialize result
+    weekly_distribution = {
+        label: {
+            "total_count": 0,
+            "Feature": 0.0,
+            "Defect": 0.0,
+            "Technical Debt": 0.0,
+            "Risk": 0.0,
+        }
+        for label in week_labels
+    }
+
+    if not issues or not completion_statuses:
+        logger.warning(
+            "aggregate_flow_distribution_weekly: No issues or completion statuses provided"
+        )
+        return weekly_distribution
+
+    # Convert statuses for case-insensitive matching
+    completion_statuses_lower = (
+        [s.lower() for s in completion_statuses] if not case_sensitive else []
+    )
+
+    # Group issues by week
+    week_groups = defaultdict(list)
+
+    for issue in issues:
+        try:
+            # Check completion status (dict format)
+            issue_status = issue.get("fields", {}).get("status")
+            if not issue_status:
+                continue
+
+            issue_status_name = (
+                issue_status.get("name", "")
+                if isinstance(issue_status, dict)
+                else issue_status.name
+            )
+            status_match = (
+                issue_status_name in completion_statuses
+                if case_sensitive
+                else issue_status_name.lower() in completion_statuses_lower
+            )
+
+            if not status_match:
+                continue
+
+            # Get completion date (resolutiondate) - dict format
+            resolution_date_str = issue.get("fields", {}).get("resolutiondate")
+            if not resolution_date_str:
+                continue
+
+            resolution_dt = datetime.fromisoformat(
+                resolution_date_str.replace("Z", "+00:00")
+            )
+            week_label = get_year_week_label(resolution_dt)
+
+            if week_label in weekly_distribution:
+                week_groups[week_label].append(issue)
+
+        except (AttributeError, ValueError, KeyError):
+            continue
+
+    # Calculate distribution for each week
+    for week_label in week_labels:
+        week_issues = week_groups.get(week_label, [])
+        if not week_issues:
+            continue
+
+        distribution = get_flow_distribution(week_issues, effort_category_field)
+
+        weekly_distribution[week_label]["total_count"] = len(week_issues)
+        weekly_distribution[week_label]["Feature"] = distribution.get("Feature", 0.0)
+        weekly_distribution[week_label]["Defect"] = distribution.get("Defect", 0.0)
+        weekly_distribution[week_label]["Technical Debt"] = distribution.get(
+            "Technical Debt", 0.0
+        )
+        weekly_distribution[week_label]["Risk"] = distribution.get("Risk", 0.0)
+
+    logger.info(
+        f"Weekly Flow Distribution aggregated for {sum(1 for d in weekly_distribution.values() if d['total_count'] > 0)} weeks"
+    )
+    return weekly_distribution

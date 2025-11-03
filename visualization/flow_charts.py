@@ -30,10 +30,10 @@ def create_flow_distribution_chart(distribution_data: Dict[str, Any]) -> go.Figu
     hover_text = []
 
     color_map = {
-        "Feature": "#0d6efd",  # primary
-        "Defect": "#dc3545",  # danger
-        "Risk": "#ffc107",  # warning
-        "Technical_Debt": "#0dcaf0",  # info
+        "Feature": "#198754",  # Green - growth/new capabilities
+        "Defect": "#dc3545",  # Red - problems/bugs
+        "Risk": "#ffc107",  # Yellow - caution/risk
+        "Technical_Debt": "#fd7e14",  # Orange - maintenance/technical work
     }
 
     for work_type, data in breakdown.items():

@@ -220,3 +220,108 @@ def get_required_fields(metric_name: str) -> list:
 def get_flow_item_type_color(item_type: str) -> str:
     """Get Bootstrap color for work item type."""
     return RECOMMENDED_FLOW_DISTRIBUTION.get(item_type, {}).get("color", "secondary")
+
+
+# ========================================================================
+# Configuration Access Helpers (Integration with MetricsConfig)
+# ========================================================================
+
+
+def get_wip_included_statuses() -> list:
+    """Get list of WIP statuses from configuration (positive inclusion).
+
+    Returns:
+        List of status names that indicate work-in-progress
+        Example: ["In Progress", "In Review", "Testing", "In Deployment"]
+    """
+    from configuration.metrics_config import get_metrics_config
+
+    try:
+        config = get_metrics_config()
+        return config.get_wip_included_statuses()
+    except Exception:
+        # Fallback to defaults
+        return ["In Progress", "In Review", "Testing"]
+
+
+def get_active_statuses() -> list:
+    """Get list of active work statuses from configuration.
+
+    Active statuses are where work is actively being done (not waiting).
+    Used for Flow Efficiency calculation.
+
+    Returns:
+        List of active status names
+        Example: ["In Progress", "In Review", "Testing"]
+    """
+    from configuration.metrics_config import get_metrics_config
+
+    try:
+        config = get_metrics_config()
+        return config.get_active_statuses()
+    except Exception:
+        # Fallback to defaults
+        return ["In Progress", "In Review", "Testing"]
+
+
+def get_wip_included_issue_types() -> list:
+    """Get list of issue types included in WIP calculation.
+
+    Returns:
+        List of issue type names
+        Example: ["Task", "Story", "Bug"]
+    """
+    from configuration.metrics_config import get_metrics_config
+
+    try:
+        config = get_metrics_config()
+        return config.get_wip_included_issue_types()
+    except Exception:
+        # Fallback to defaults
+        return ["Task", "Story", "Bug"]
+
+
+def map_effort_category_to_flow_type(effort_category: str) -> str:
+    """Map JIRA effort category to Flow Framework type.
+
+    Uses two-tier classification:
+    1. Issue type determines base flow type
+    2. Effort category can override for Task/Story (not Bug)
+
+    Args:
+        effort_category: Effort category from JIRA custom field
+
+    Returns:
+        Flow type: "Feature", "Defect", "Risk", or "Technical Debt"
+
+    Example:
+        >>> map_effort_category_to_flow_type("Technical debt")
+        "Technical Debt"
+        >>> map_effort_category_to_flow_type("Security")
+        "Risk"
+        >>> map_effort_category_to_flow_type("New feature")
+        "Feature"
+    """
+    from configuration.metrics_config import get_metrics_config
+
+    try:
+        config = get_metrics_config()
+        return config.map_effort_category_to_flow_type(effort_category)
+    except Exception:
+        # Fallback mapping
+        if not effort_category or effort_category == "None":
+            return "Feature"
+
+        effort_lower = effort_category.lower()
+
+        if "technical debt" in effort_lower or "tech debt" in effort_lower:
+            return "Technical Debt"
+        elif any(
+            keyword in effort_lower
+            for keyword in ["security", "gdpr", "regulatory", "compliance"]
+        ):
+            return "Risk"
+        elif "spike" in effort_lower or "analysis" in effort_lower:
+            return "Risk"
+        else:
+            return "Feature"

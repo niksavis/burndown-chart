@@ -260,9 +260,7 @@ def classify_issues_by_flow_type(
     return classified
 
 
-def count_by_flow_type(
-    issues: list, effort_category_field: str
-) -> Dict[str, int]:
+def count_by_flow_type(issues: list, effort_category_field: str) -> Dict[str, int]:
     """
     Count issues by Flow type.
 
@@ -292,9 +290,7 @@ def count_by_flow_type(
     }
 
 
-def get_flow_distribution(
-    issues: list, effort_category_field: str
-) -> Dict[str, float]:
+def get_flow_distribution(issues: list, effort_category_field: str) -> Dict[str, float]:
     """
     Calculate Flow distribution as percentages.
 

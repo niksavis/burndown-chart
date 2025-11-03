@@ -21,7 +21,6 @@ from data.bug_processing import (
     calculate_bug_metrics_summary,
     forecast_bug_resolution,
 )
-from data.persistence import load_unified_project_data
 from ui.bug_analysis import (
     create_bug_metrics_cards,
     create_quality_insights_panel,
@@ -65,36 +64,27 @@ def _render_bug_analysis_content(data_points_count: int):
         jira_config = load_jira_configuration()
         points_field = jira_config.get("points_field", "customfield_10016")
 
-        # Get JIRA issues - try multiple sources
+        # Get JIRA issues from cache with ALL fields (don't specify fields to avoid validation mismatch)
+        # By passing empty string for fields, load_jira_cache won't validate fields
         all_issues = []
 
-        # First: Try project_data.json
-        if not all_issues:
-            project_data = load_unified_project_data()
-            all_issues = project_data.get("jira_issues", [])
-            logger.debug(f"Loaded {len(all_issues)} issues from project file")
+        try:
+            from data.jira_simple import load_jira_cache
+            from data.persistence import load_app_settings
 
-        # Third: Try jira_cache.json directly
-        if not all_issues:
-            try:
-                from data.jira_simple import load_jira_cache
-                from data.persistence import load_app_settings
+            settings = load_app_settings()
+            jql_query = settings.get("jql_query", "")
 
-                settings = load_app_settings()
-                jql_query = settings.get("jql_query", "")
-
-                # Include points field if configured (must match cached fields)
-                base_fields = "key,created,resolutiondate,status,issuetype"
-                fields = (
-                    f"{base_fields},{points_field}" if points_field else base_fields
+            # Load cache WITHOUT field validation - pass empty string for current_fields
+            # This accepts whatever fields are in the cache
+            cache_loaded, cached_issues = load_jira_cache(jql_query, current_fields="")
+            if cache_loaded and cached_issues:
+                all_issues = cached_issues
+                logger.debug(
+                    f"Loaded {len(all_issues)} issues from JIRA cache with all fields"
                 )
-
-                cache_loaded, cached_issues = load_jira_cache(jql_query, fields)
-                if cache_loaded and cached_issues:
-                    all_issues = cached_issues
-                    logger.debug(f"Loaded {len(all_issues)} issues from JIRA cache")
-            except Exception as e:
-                logger.warning(f"Could not load from JIRA cache: {e}")
+        except Exception as e:
+            logger.warning(f"Could not load from JIRA cache: {e}")
 
         # Filter out DevOps project issues (development metrics only)
         if all_issues:

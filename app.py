@@ -16,6 +16,7 @@ import dash_bootstrap_components as dbc
 from waitress import serve
 
 from callbacks import register_all_callbacks
+from callbacks.dora_flow_metrics import register_calculate_metrics_button_spinner
 from configuration.server import get_server_config
 
 # Application imports
@@ -114,6 +115,9 @@ app.layout = serve_layout
 
 # Register all callbacks from the modular callback system
 register_all_callbacks(app)
+
+# Register clientside callbacks for button loading states
+register_calculate_metrics_button_spinner(app)
 
 #######################################################################
 # MAIN

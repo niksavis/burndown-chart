@@ -131,13 +131,19 @@ def test_jira_connection_callback(n_clicks, base_url, api_version, token):
     # Validate required fields (only base_url is required, token is optional for public servers)
     if not base_url:
         return dbc.Alert(
-            [
-                html.Strong("⚠ Missing Required Field"),
-                html.P(
-                    "Please fill in the JIRA Base URL before testing the connection.",
-                    className="mb-0 mt-2",
-                ),
-            ],
+            html.Div(
+                [
+                    html.I(className="fas fa-exclamation-triangle me-2"),
+                    html.Span(
+                        [
+                            html.Strong("Missing Required Field"),
+                            html.Br(),
+                            "Please fill in the JIRA Base URL before testing the connection.",
+                        ]
+                    ),
+                ],
+                className="d-flex align-items-start",
+            ),
             color="warning",
             dismissable=True,
         )
@@ -164,19 +170,28 @@ def test_jira_connection_callback(n_clicks, base_url, api_version, token):
         server_info = result.get("server_info", {})
         message = result.get("message", "Connection successful")
         return dbc.Alert(
-            [
-                html.Strong(f"✓ {message}"),
-                html.P(
-                    [
-                        f"Server: {server_info.get('serverTitle', 'JIRA Server')}",
-                        html.Br(),
-                        f"Version: {server_info.get('version', 'unknown')}",
-                        html.Br(),
-                        f"Response time: {result.get('response_time_ms', 0)}ms",
-                    ],
-                    className="mb-0 mt-2",
-                ),
-            ],
+            html.Div(
+                [
+                    html.I(className="fas fa-check-circle me-2"),
+                    html.Span(
+                        [
+                            html.Strong(message),
+                            html.Br(),
+                            html.Small(
+                                [
+                                    f"Server: {server_info.get('serverTitle', 'JIRA Server')}",
+                                    html.Br(),
+                                    f"Version: {server_info.get('version', 'unknown')}",
+                                    html.Br(),
+                                    f"Response time: {result.get('response_time_ms', 0)}ms",
+                                ],
+                                style={"opacity": "0.85"},
+                            ),
+                        ]
+                    ),
+                ],
+                className="d-flex align-items-start",
+            ),
             color="success",
             dismissable=True,
             duration=4000,  # Auto-dismiss after 4 seconds
@@ -187,13 +202,28 @@ def test_jira_connection_callback(n_clicks, base_url, api_version, token):
         is_version_mismatch = error_code == "api_version_mismatch"
 
         return dbc.Alert(
-            [
-                html.Strong("✗ " + result.get("message", "Connection Failed")),
-                html.P(
-                    result.get("error_details", "No additional details available"),
-                    className="mb-0 mt-2",
-                ),
-            ],
+            html.Div(
+                [
+                    html.I(
+                        className="fas fa-exclamation-triangle me-2"
+                        if is_version_mismatch
+                        else "fas fa-exclamation-circle me-2"
+                    ),
+                    html.Span(
+                        [
+                            html.Strong(result.get("message", "Connection Failed")),
+                            html.Br(),
+                            html.Small(
+                                result.get(
+                                    "error_details", "No additional details available"
+                                ),
+                                style={"opacity": "0.85"},
+                            ),
+                        ]
+                    ),
+                ],
+                className="d-flex align-items-start",
+            ),
             color="warning" if is_version_mismatch else "danger",
             dismissable=True,
         )
@@ -262,10 +292,19 @@ def save_jira_configuration_callback(
             return (
                 no_update,
                 dbc.Alert(
-                    [
-                        html.Strong("⚠ Validation Error"),
-                        html.P(error_msg, className="mb-0 mt-2"),
-                    ],
+                    html.Div(
+                        [
+                            html.I(className="fas fa-exclamation-circle me-2"),
+                            html.Span(
+                                [
+                                    html.Strong("Validation Error"),
+                                    html.Br(),
+                                    html.Small(error_msg, style={"opacity": "0.85"}),
+                                ]
+                            ),
+                        ],
+                        className="d-flex align-items-start",
+                    ),
                     color="danger",
                     dismissable=True,
                 ),
@@ -275,15 +314,25 @@ def save_jira_configuration_callback(
         cache_warning = None
         if config["cache_size_mb"] > 500:
             cache_warning = dbc.Alert(
-                [
-                    html.I(className="fas fa-exclamation-triangle me-2"),
-                    html.Strong("High Cache Size: "),
-                    html.Span(
-                        f"{config['cache_size_mb']}MB may impact disk space. "
-                        "Consider reducing if you experience storage issues."
-                    ),
-                ],
+                html.Div(
+                    [
+                        html.I(className="fas fa-exclamation-triangle me-2"),
+                        html.Span(
+                            [
+                                html.Strong("High Cache Size"),
+                                html.Br(),
+                                html.Small(
+                                    f"{config['cache_size_mb']}MB may impact disk space. "
+                                    "Consider reducing if you experience storage issues.",
+                                    style={"opacity": "0.85"},
+                                ),
+                            ]
+                        ),
+                    ],
+                    className="d-flex align-items-start",
+                ),
                 color="warning",
+                dismissable=True,
                 className="mb-2",
             )
             logger.info(
@@ -307,13 +356,22 @@ def save_jira_configuration_callback(
             logger.info("JIRA configuration saved successfully")
             # Keep modal open, show success message with auto-dismiss
             success_message = dbc.Alert(
-                [
-                    html.Strong("✓ Configuration Saved"),
-                    html.P(
-                        "JIRA settings have been saved successfully.",
-                        className="mb-0 mt-2",
-                    ),
-                ],
+                html.Div(
+                    [
+                        html.I(className="fas fa-check-circle me-2"),
+                        html.Span(
+                            [
+                                html.Strong("Configuration Saved"),
+                                html.Br(),
+                                html.Small(
+                                    "JIRA settings have been saved successfully.",
+                                    style={"opacity": "0.85"},
+                                ),
+                            ]
+                        ),
+                    ],
+                    className="d-flex align-items-start",
+                ),
                 color="success",
                 dismissable=True,
                 duration=4000,  # Auto-dismiss after 4 seconds
@@ -329,13 +387,22 @@ def save_jira_configuration_callback(
             return (
                 no_update,
                 dbc.Alert(
-                    [
-                        html.Strong("✗ Save Failed"),
-                        html.P(
-                            "An error occurred while saving the configuration. Please try again.",
-                            className="mb-0 mt-2",
-                        ),
-                    ],
+                    html.Div(
+                        [
+                            html.I(className="fas fa-exclamation-circle me-2"),
+                            html.Span(
+                                [
+                                    html.Strong("Save Failed"),
+                                    html.Br(),
+                                    html.Small(
+                                        "An error occurred while saving the configuration. Please try again.",
+                                        style={"opacity": "0.85"},
+                                    ),
+                                ]
+                            ),
+                        ],
+                        className="d-flex align-items-start",
+                    ),
                     color="danger",
                     dismissable=True,
                 ),
@@ -346,10 +413,21 @@ def save_jira_configuration_callback(
         return (
             no_update,
             dbc.Alert(
-                [
-                    html.Strong("✗ Unexpected Error"),
-                    html.P(f"Error: {str(e)}", className="mb-0 mt-2"),
-                ],
+                html.Div(
+                    [
+                        html.I(className="fas fa-exclamation-circle me-2"),
+                        html.Span(
+                            [
+                                html.Strong("Unexpected Error"),
+                                html.Br(),
+                                html.Small(
+                                    f"Error: {str(e)}", style={"opacity": "0.85"}
+                                ),
+                            ]
+                        ),
+                    ],
+                    className="d-flex align-items-start",
+                ),
                 color="danger",
                 dismissable=True,
             ),
@@ -563,13 +641,22 @@ def display_last_test_info(is_open):
             status_text = "Failed"
 
         return dbc.Alert(
-            [
-                html.I(className=f"{icon} me-2"),
-                html.Span(f"Last test: {formatted_time} - ", className="fw-bold"),
-                html.Span(status_text),
-            ],
+            html.Div(
+                [
+                    html.I(className=f"{icon} me-2"),
+                    html.Span(
+                        [
+                            html.Span(
+                                f"Last test: {formatted_time} — ", className="fw-bold"
+                            ),
+                            html.Span(status_text),
+                        ]
+                    ),
+                ],
+                className="d-flex align-items-center",
+            ),
             color=color,
-            className="py-2 small",
+            className="small",
         )
     except Exception as e:
         logger.debug(f"Could not load last test info: {e}")
@@ -609,17 +696,27 @@ def show_api_version_warning(selected_version, is_open):
             opposite_version = "v2" if selected_version == "v3" else "v3"
 
             return dbc.Alert(
-                [
-                    html.I(className="fas fa-info-circle me-2"),
-                    html.Strong("API Version Change: "),
-                    html.Span(
-                        f"Switching from {opposite_version} to {selected_version}. "
-                        "The API endpoint will be updated automatically. "
-                        "Test the connection after saving to verify compatibility."
-                    ),
-                ],
+                html.Div(
+                    [
+                        html.I(className="fas fa-info-circle me-2"),
+                        html.Span(
+                            [
+                                html.Strong("API Version Change"),
+                                html.Br(),
+                                html.Small(
+                                    f"Switching from {opposite_version} to {selected_version}. "
+                                    "The API endpoint will be updated automatically. "
+                                    "Test the connection after saving to verify compatibility.",
+                                    style={"opacity": "0.85"},
+                                ),
+                            ]
+                        ),
+                    ],
+                    className="d-flex align-items-start",
+                ),
                 color="info",
-                className="py-2 small",
+                dismissable=True,
+                className="small",
             )
         else:
             return html.Div()  # No change, no warning

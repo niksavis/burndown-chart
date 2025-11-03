@@ -101,37 +101,37 @@ def save_app_settings(
         else "",
     }
 
-    # Preserve jira_config, field_mappings, devops_projects, and field_mapping_notes if they exist
+    # Preserve DORA/Flow configuration and other settings if they exist
     try:
         existing_settings = load_app_settings()
         logger.info(
             f"save_app_settings: Loading existing settings. Keys present: {list(existing_settings.keys())}"
         )
-        if "jira_config" in existing_settings:
-            settings["jira_config"] = existing_settings["jira_config"]
-            logger.debug("Preserved existing jira_config during save")
-        if "field_mappings" in existing_settings:
-            settings["field_mappings"] = existing_settings["field_mappings"]
-            logger.debug("Preserved existing field_mappings during save")
-        if "devops_projects" in existing_settings:
-            settings["devops_projects"] = existing_settings["devops_projects"]
-            logger.info(
-                f"Preserved existing devops_projects during save: {existing_settings['devops_projects']}"
-            )
-        else:
-            logger.warning(
-                "devops_projects NOT found in existing settings - will not be preserved!"
-            )
-        if "field_mapping_notes" in existing_settings:
-            settings["field_mapping_notes"] = existing_settings["field_mapping_notes"]
-            logger.debug("Preserved existing field_mapping_notes during save")
+
+        # Keys to preserve from existing settings
+        preserve_keys = [
+            "jira_config",
+            "field_mappings",
+            "devops_projects",
+            "development_projects",
+            "production_environment_value",
+            "completion_statuses",
+            "active_statuses",
+            "flow_start_statuses",
+            "wip_statuses",
+            "field_mapping_notes",
+        ]
+
+        for key in preserve_keys:
+            if key in existing_settings:
+                settings[key] = existing_settings[key]
+                logger.debug(f"Preserved existing {key} during save")
+
         logger.info(
             f"save_app_settings: Final settings keys before write: {list(settings.keys())}"
         )
     except Exception as e:
-        logger.error(
-            f"Could not load existing settings to preserve jira_config/field_mappings/devops_projects: {e}"
-        )
+        logger.error(f"Could not load existing settings to preserve configuration: {e}")
 
     try:
         # Write to a temporary file first
@@ -754,14 +754,11 @@ def load_unified_project_data():
     """
     Load unified project data (Phase 3).
 
-    Automatically adds default bug_analysis section if missing for backward compatibility.
-
     Returns:
-        Dict: Unified project data structure (includes bug_analysis if enabled)
+        Dict: Unified project data structure
     """
     from data.schema import (
         get_default_unified_data,
-        get_default_bug_analysis_data,
         validate_project_data_structure,
     )
 
@@ -781,13 +778,6 @@ def load_unified_project_data():
             logger.warning("⚠️ Invalid unified data structure, using defaults")
             return get_default_unified_data()
 
-        # Add default bug_analysis section if missing (backward compatibility)
-        if "bug_analysis" not in data:
-            data["bug_analysis"] = get_default_bug_analysis_data()
-            logger.debug(
-                "Added default bug_analysis section for backward compatibility"
-            )
-
         return data
 
     except Exception as e:
@@ -799,14 +789,10 @@ def save_unified_project_data(data):
     """
     Save unified project data (Phase 3).
 
-    Automatically handles optional bug_analysis section if present in data.
-
     Args:
-        data: Unified project data dictionary (optionally includes bug_analysis)
+        data: Unified project data dictionary
     """
     try:
-        # Ensure bug_analysis section is preserved if present
-        # No additional validation needed - save as-is
         with open(PROJECT_DATA_FILE, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
         logger.info("✅ Saved unified project data")

@@ -330,3 +330,165 @@ def get_project_summary(
     summary["devops_projects"] = devops_projects
 
     return summary
+
+
+def filter_operational_tasks(
+    issues: List[Dict[str, Any]],
+    operational_projects: List[str],
+    development_fixversions: Optional[List[str]] = None,
+) -> List[Dict[str, Any]]:
+    """Filter operational tasks with fixVersion matching and validation.
+
+    This function implements aggressive filtering to reduce the operational task dataset:
+    1. Filter by operational projects AND issue type "Operational Task"
+    2. Remove operational tasks with NO fixVersion
+    3. If development_fixversions provided, filter by matching fixVersion
+
+    Args:
+        issues: List of Jira issues
+        operational_projects: List of operational project keys (e.g., ["RI"])
+        development_fixversions: Optional list of fixVersion IDs/names from development issues.
+                                If provided, only operational tasks with matching fixVersions are kept.
+
+    Returns:
+        Filtered list of operational tasks with valid fixVersions
+
+    Example:
+        >>> dev_fixversions = extract_all_fixversions(development_issues)
+        >>> op_tasks = filter_operational_tasks(all_issues, ["RI"], dev_fixversions)
+        >>> # Result: Only operational tasks that link to development work
+    """
+    if not operational_projects:
+        logger.warning("No operational projects configured, returning empty list")
+        return []
+
+    # Step 1: Filter by operational projects AND issue type
+    operational_tasks = [
+        issue
+        for issue in issues
+        if get_issue_project_key(issue) in operational_projects
+        and get_issue_type(issue) == "Operational Task"
+    ]
+
+    if not operational_tasks:
+        logger.info("No Operational Tasks found in operational projects")
+        return []
+
+    logger.info(
+        f"Found {len(operational_tasks)} Operational Tasks in projects: "
+        f"{', '.join(operational_projects)}"
+    )
+
+    # Step 2: Remove tasks with no fixVersion
+    tasks_with_fixversion = []
+    no_fixversion_count = 0
+
+    for task in operational_tasks:
+        fixversions = task.get("fields", {}).get("fixVersions", [])
+
+        if fixversions and len(fixversions) > 0:
+            tasks_with_fixversion.append(task)
+        else:
+            no_fixversion_count += 1
+
+    if no_fixversion_count > 0:
+        logger.info(
+            f"Removed {no_fixversion_count} operational tasks with no fixVersion "
+            f"(not linked to development work)"
+        )
+
+    # Step 3: Filter by matching fixVersions (if provided)
+    if development_fixversions is not None and len(development_fixversions) > 0:
+        # Convert to set for faster lookup
+        dev_fixversion_set = set(development_fixversions)
+
+        matched_tasks = []
+        no_match_count = 0
+
+        for task in tasks_with_fixversion:
+            fixversions = task.get("fields", {}).get("fixVersions", [])
+
+            # Check if any fixVersion matches development fixVersions
+            has_match = False
+            for fv in fixversions:
+                # Try matching by ID first
+                fv_id = fv.get("id", "")
+                if fv_id and fv_id in dev_fixversion_set:
+                    has_match = True
+                    break
+
+                # Fallback: match by name
+                fv_name = fv.get("name", "")
+                if fv_name and fv_name in dev_fixversion_set:
+                    has_match = True
+                    break
+
+            if has_match:
+                matched_tasks.append(task)
+            else:
+                no_match_count += 1
+
+        if no_match_count > 0:
+            logger.info(
+                f"Removed {no_match_count} operational tasks with fixVersions "
+                f"that don't match any development issue"
+            )
+
+        logger.info(
+            f"Final count: {len(matched_tasks)} operational tasks with matching fixVersions"
+        )
+
+        return matched_tasks
+
+    # No development fixVersions filter - return all tasks with fixVersion
+    logger.info(
+        f"No development fixVersion filter applied, returning {len(tasks_with_fixversion)} "
+        f"operational tasks with fixVersions"
+    )
+
+    return tasks_with_fixversion
+
+
+def extract_all_fixversions(issues: List[Dict[str, Any]]) -> List[str]:
+    """Extract all unique fixVersion IDs and names from a list of issues.
+
+    This helper function collects all fixVersion identifiers (both IDs and names)
+    from development issues to use as a filter for operational tasks.
+
+    Args:
+        issues: List of Jira issues
+
+    Returns:
+        List of unique fixVersion identifiers (IDs and names combined)
+
+    Example:
+        >>> dev_issues = filter_development_issues(all_issues, ["RI"])
+        >>> fixversions = extract_all_fixversions(dev_issues)
+        >>> # Result: ["12345", "12346", "R_20251021_www.example.com", ...]
+    """
+    fixversion_identifiers = set()
+
+    for issue in issues:
+        fixversions = issue.get("fields", {}).get("fixVersions", [])
+
+        for fv in fixversions:
+            # Add ID if available
+            fv_id = fv.get("id")
+            if fv_id:
+                fixversion_identifiers.add(fv_id)
+
+            # Add name if available
+            fv_name = fv.get("name")
+            if fv_name:
+                fixversion_identifiers.add(fv_name)
+
+    result = list(fixversion_identifiers)
+
+    if result:
+        logger.info(
+            f"Extracted {len(result)} unique fixVersion identifiers from {len(issues)} issues"
+        )
+    else:
+        logger.warning(f"No fixVersions found in {len(issues)} issues")
+
+    return result

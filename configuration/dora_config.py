@@ -260,3 +260,74 @@ def get_metric_description(metric_name: str) -> str:
 def get_required_fields(metric_name: str) -> list:
     """Get required field mappings for a metric."""
     return REQUIRED_DORA_FIELDS.get(metric_name, [])
+
+
+# ========================================================================
+# Configuration Access Helpers (Integration with MetricsConfig)
+# ========================================================================
+
+
+def get_operational_project_keys() -> list:
+    """Get list of operational/DevOps project keys from configuration.
+
+    Returns:
+        List of operational project keys (e.g., ["RI", "DEVOPS"])
+    """
+    from configuration.metrics_config import get_metrics_config
+
+    try:
+        config = get_metrics_config()
+        return config.get_operational_projects()
+    except Exception:
+        # Fallback to empty list if config not available
+        return []
+
+
+def get_completion_status_names() -> list:
+    """Get list of completion status names from configuration.
+
+    Returns:
+        List of completion status names (e.g., ["Done", "Resolved", "Closed"])
+    """
+    from configuration.metrics_config import get_metrics_config
+
+    try:
+        config = get_metrics_config()
+        return config.get_completion_statuses()
+    except Exception:
+        # Fallback to defaults
+        return ["Done", "Resolved", "Closed"]
+
+
+def is_status_match(
+    status_name: str, target_statuses: list, case_sensitive: bool = False
+) -> bool:
+    """Check if a status name matches any in the target list.
+
+    Supports case-insensitive matching for robustness.
+
+    Args:
+        status_name: Status name to check
+        target_statuses: List of status names to match against
+        case_sensitive: Whether to use case-sensitive matching (default: False)
+
+    Returns:
+        True if status matches any in the target list
+
+    Example:
+        >>> is_status_match("in progress", ["In Progress", "In Review"])
+        True
+        >>> is_status_match("Done", ["done", "closed"], case_sensitive=True)
+        False
+    """
+    from configuration.metrics_config import get_metrics_config
+
+    try:
+        config = get_metrics_config()
+        return config.is_status_in_list(status_name, target_statuses, case_sensitive)
+    except Exception:
+        # Fallback to simple comparison
+        if case_sensitive:
+            return status_name in target_statuses
+        else:
+            return status_name.lower() in [s.lower() for s in target_statuses]

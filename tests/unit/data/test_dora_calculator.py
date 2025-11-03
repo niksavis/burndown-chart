@@ -1,20 +1,22 @@
-"""Unit tests for DORA calculator.
+"""Unit tests for DORA calculator v2.
 
-Tests DORA metrics calculation logic following TDD approach.
-These tests are written FIRST and should FAIL until implementation is complete.
+Tests DORA metrics calculation logic with fixVersion-based calculations,
+operational task matching, and changelog processing.
+
+Phase 6 (T029): Comprehensive testing for all 4 DORA metrics v2 functions.
 """
 
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Any
+from unittest.mock import Mock, patch
 
 
 from data.dora_calculator import (
-    calculate_deployment_frequency,
-    calculate_lead_time_for_changes,
-    calculate_change_failure_rate,
-    calculate_mean_time_to_recovery,
-    calculate_all_dora_metrics,
+    calculate_deployment_frequency_v2,
+    calculate_lead_time_for_changes_v2,
+    calculate_change_failure_rate_v2,
+    calculate_mttr_v2,
 )
 
 
@@ -484,4 +486,3 @@ class TestCalculateAllDoraMetrics:
                 or metric_data["error_state"] != "success"
             )
             assert "error_state" in metric_data
-

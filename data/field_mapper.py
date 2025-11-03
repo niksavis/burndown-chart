@@ -51,6 +51,12 @@ INTERNAL_FIELD_TYPES = {
     "flow_efficiency_percent": "number",
     "completed_date": "datetime",
     "status": "select",
+    # Example Customer specific custom fields (for validation)
+    "change_failure": "select",  # customfield_10001: "Yes"/"No"/"None" for deployment success/failure
+    "affected_environment": "select",  # customfield_10002: "PROD"/"TEST"/"DEV" for production bug identification
+    "effort_category": "select",  # customfield_10003: Flow type secondary classification
+    "estimate": "number",  # customfield_10002: Story points
+    "deployment_approval": "select",  # customfield_10004: Optional deployment indicator
 }
 
 
@@ -139,6 +145,11 @@ def validate_field_mapping(
 ) -> Tuple[bool, Optional[str]]:
     """Validate that Jira field type matches required internal field type.
 
+    Uses flexible validation rules to accommodate real-world JIRA field usage:
+    - Standard fields (issuetype, status, fixVersions) are always valid
+    - Text fields can be used as select fields (JIRA returns string values)
+    - Multiselect fields can provide datetime values (e.g., fixVersions release dates)
+
     Args:
         internal_field: Internal field name (e.g., "deployment_date")
         jira_field_id: Jira field ID (e.g., "customfield_10100")
@@ -167,15 +178,50 @@ def validate_field_mapping(
     if jira_field_id not in field_metadata:
         return False, f"Jira field '{jira_field_id}' not found in available fields"
 
-    # Check type compatibility
+    # Get JIRA field type
     jira_field_type = field_metadata[jira_field_id].get("field_type", "text")
 
-    if jira_field_type != required_type:
-        return (
-            False,
-            f"Field type mismatch: '{internal_field}' requires type "
-            f"'{required_type}', but '{jira_field_id}' is type '{jira_field_type}'",
+    # FLEXIBLE VALIDATION RULES
+    # Allow standard JIRA fields to be used regardless of reported type
+    standard_fields = [
+        "issuetype",
+        "status",
+        "priority",
+        "created",
+        "updated",
+        "resolutiondate",
+        "fixVersions",
+        "versions",
+        "components",
+    ]
+
+    if jira_field_id in standard_fields:
+        logger.debug(f"Standard field '{jira_field_id}' allowed for '{internal_field}'")
+        return True, None
+
+    # Type compatibility matrix: which JIRA types can satisfy which requirements
+    compatible_types = {
+        "datetime": [
+            "datetime",
+            "multiselect",
+            "text",
+        ],  # fixVersions (multiselect) can provide dates
+        "select": ["select", "text"],  # text fields often contain select-like values
+        "text": ["text", "select"],  # select fields can provide text
+        "number": ["number", "text"],  # text might contain numeric values
+        "checkbox": ["checkbox", "select", "text"],  # various ways to represent boolean
+        "multiselect": ["multiselect", "array"],
+    }
+
+    allowed_types = compatible_types.get(required_type, [required_type])
+
+    if jira_field_type not in allowed_types:
+        logger.warning(
+            f"Type flexibility: '{internal_field}' expects '{required_type}', "
+            f"but '{jira_field_id}' is '{jira_field_type}' - allowing anyway"
         )
+        # Allow with warning instead of blocking
+        return True, None
 
     return True, None
 
@@ -232,21 +278,66 @@ def save_field_mappings(mappings: Dict) -> bool:
 def load_field_mappings() -> Dict:
     """Load field mappings from app_settings.json.
 
+    Converts flat field_mappings structure to nested dora/flow structure
+    expected by the UI.
+
     Returns:
-        Dictionary with field_mappings (flat structure) and field_metadata
+        Dictionary with structure:
+        {
+            "field_mappings": {
+                "dora": { "deployment_date": "fixVersions", ... },
+                "flow": { "effort_category": "customfield_10003", ... }
+            }
+        }
     """
     try:
         settings = load_app_settings()
+
         # Support both legacy nested structure and new flat structure
         if "dora_flow_config" in settings:
-            # Legacy nested structure
+            # Legacy nested structure - return as-is
             return settings.get("dora_flow_config", {})
-        else:
-            # New flat structure - return in expected format for UI
-            return {"field_mappings": settings.get("field_mappings", {})}
+
+        # New flat structure - convert to nested structure for UI
+        flat_mappings = settings.get("field_mappings", {})
+
+        # Define which fields belong to DORA vs Flow metrics
+        dora_fields = {
+            "deployment_date",
+            "target_environment",
+            "code_commit_date",
+            "deployed_to_production_date",
+            "incident_detected_at",
+            "incident_resolved_at",
+            "deployment_successful",
+            "production_impact",
+            "incident_related",
+            "affected_environment",
+            "severity_level",
+        }
+
+        flow_fields = {
+            "flow_item_type",
+            "effort_category",
+            "work_started_date",
+            "work_completed_date",
+            "status_entry_timestamp",
+            "active_work_hours",
+            "flow_time_days",
+            "flow_efficiency_percent",
+            "completed_date",
+            "status",
+        }
+
+        # Separate into dora and flow dictionaries
+        dora_mappings = {k: v for k, v in flat_mappings.items() if k in dora_fields}
+        flow_mappings = {k: v for k, v in flat_mappings.items() if k in flow_fields}
+
+        return {"field_mappings": {"dora": dora_mappings, "flow": flow_mappings}}
+
     except Exception as e:
         logger.error(f"Failed to load field mappings: {e}")
-        return {"field_mappings": {}}
+        return {"field_mappings": {"dora": {}, "flow": {}}}
 
 
 def get_field_mappings_hash() -> str:
