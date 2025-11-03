@@ -44,7 +44,7 @@ def create_flow_dashboard() -> dbc.Container:
                                     html.Strong("Data Points slider"),
                                     " to control number of weeks displayed.",
                                 ],
-                                className="text-muted small mb-0",
+                                className="text-muted small mb-4",
                             ),
                         ],
                         width=12,
