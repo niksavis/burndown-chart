@@ -50,15 +50,15 @@ def toggle_settings_panel(settings_clicks, settings_is_open, parameter_is_open):
     # CRITICAL FIX: Prevent firing on initial button render
     if settings_clicks is None:
         logger.warning(
-            "Settings button clicks is None - this is initial render, keeping panel closed"
+            "Settings button clicks is None - this is initial render, returning no_update"
         )
-        return False, no_update, no_update, no_update
+        return no_update, no_update, no_update, no_update
 
     if settings_clicks == 0:
         logger.warning(
-            "Settings button clicks is 0 - this is initial state, keeping panel closed"
+            "Settings button clicks is 0 - this is initial state, returning no_update"
         )
-        return False, no_update, no_update, no_update
+        return no_update, no_update, no_update, no_update
 
     new_settings_state = not settings_is_open
     logger.info(f"Toggling settings panel to: {new_settings_state}")
