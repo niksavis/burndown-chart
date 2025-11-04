@@ -316,6 +316,8 @@ def register(app):
             Output(
                 "force-refresh-store", "data", allow_duplicate=True
             ),  # Reset store after use
+            Output("update-data-unified", "disabled", allow_duplicate=True),
+            Output("update-data-unified", "children", allow_duplicate=True),
         ],
         [Input("update-data-unified", "n_clicks")],
         [
@@ -324,6 +326,7 @@ def register(app):
             ),  # JQL textarea uses standard "value" property
             State("force-refresh-store", "data"),  # Force refresh from long-press store
         ],
+        background=True,  # Run in background to prevent UI blocking
         prevent_initial_call=True,
     )
     def handle_unified_data_update(
@@ -337,14 +340,26 @@ def register(app):
         Args:
             n_clicks (int): Number of clicks on unified update button
             jql_query (str): JQL query for JIRA data source
+            force_refresh (bool): Force cache refresh flag
 
         Returns:
-            Tuple: Upload contents, filename, cache status, statistics table data
+            Tuple: Upload contents, filename, cache status, statistics table data,
+                   scope values, settings, button state
         """
+        # Normal button state
+        button_normal = [
+            html.I(className="fas fa-sync-alt", style={"marginRight": "0.5rem"}),
+            "Update Data",
+        ]
+
         if not n_clicks:
             raise PreventUpdate
 
         try:
+            # Track task progress
+            from data.task_progress import TaskProgress
+
+            TaskProgress.start_task("update_data", "Updating data from JIRA")
             # Handle JIRA data import (settings panel only uses JIRA)
             from data.jira_simple import validate_jira_config
             from data.persistence import load_app_settings
@@ -388,6 +403,8 @@ def register(app):
                     className="text-warning small mt-2",
                 )
                 logger.warning("Attempted to update data without JIRA configuration")
+                # Clear task progress
+                TaskProgress.complete_task("update_data")
                 return (
                     None,
                     None,
@@ -398,6 +415,9 @@ def register(app):
                     no_update,
                     no_update,
                     no_update,  # Don't update settings
+                    False,  # Reset force refresh
+                    False,  # Enable button
+                    button_normal,  # Reset button text
                 )
 
             # Use JQL query from input or fall back to settings
@@ -483,6 +503,8 @@ def register(app):
                 logger.error(
                     f"JIRA configuration validation failed: {validation_message}"
                 )
+                # Clear task progress
+                TaskProgress.complete_task("update_data")
                 return (
                     None,
                     None,
@@ -493,6 +515,9 @@ def register(app):
                     no_update,
                     no_update,
                     no_update,  # Don't update settings
+                    False,  # Reset force refresh
+                    False,  # Enable button
+                    button_normal,  # Reset button text
                 )
 
             # Use sync_jira_scope_and_data to get both scope data and message
@@ -627,6 +652,9 @@ def register(app):
                     f"✅ Settings before: total_items={current_settings.get('total_items')}, after: {updated_settings.get('total_items')}"
                 )
 
+                # Clear task progress
+                TaskProgress.complete_task("update_data")
+
                 # Return updated statistics AND scope values to refresh inputs AND settings store
                 return (
                     None,
@@ -639,6 +667,8 @@ def register(app):
                     estimated_points,
                     updated_settings,  # Updated settings to trigger dashboard refresh
                     False,  # Reset force refresh store
+                    False,  # Enable button
+                    button_normal,  # Reset button text
                 )
             else:
                 # Create detailed error message
@@ -654,6 +684,8 @@ def register(app):
                     className="text-danger small text-center mt-2",
                 )
                 logger.error(f"JIRA data import failed: {message}")
+                # Clear task progress
+                TaskProgress.complete_task("update_data")
                 # Return no table update on failure, keep scope values unchanged
                 return (
                     None,
@@ -666,6 +698,8 @@ def register(app):
                     no_update,
                     no_update,  # Don't update settings on error
                     False,  # Reset force refresh store
+                    False,  # Enable button
+                    button_normal,  # Reset button text
                 )
 
         except ImportError:
@@ -687,6 +721,10 @@ def register(app):
                 ],
                 className="text-danger small mt-2",
             )
+            # Clear task progress
+            from data.task_progress import TaskProgress
+
+            TaskProgress.complete_task("update_data")
             return (
                 None,
                 None,
@@ -698,6 +736,8 @@ def register(app):
                 no_update,
                 no_update,  # Don't update settings on error
                 False,  # Reset force refresh store
+                False,  # Enable button
+                button_normal,  # Reset button text
             )
         except Exception as e:
             logger.error(f"Error in unified data update: {e}")
@@ -715,6 +755,10 @@ def register(app):
                 ],
                 className="text-danger small mt-2",
             )
+            # Clear task progress
+            from data.task_progress import TaskProgress
+
+            TaskProgress.complete_task("update_data")
             return (
                 None,
                 None,
@@ -726,6 +770,8 @@ def register(app):
                 no_update,
                 no_update,  # Don't update settings on error
                 False,  # Reset force refresh store
+                False,  # Enable button
+                button_normal,  # Reset button text
             )
 
     #######################################################################
@@ -1279,61 +1325,64 @@ def register(app):
             Input("jira-query-profile-selector", "value"),
             Input("jira-query-profile-selector-mobile", "value"),
         ],
-        prevent_initial_call=True,
+        prevent_initial_call="initial_duplicate",  # Allow initial call while using allow_duplicate
     )
     def sync_dropdowns_and_show_buttons(desktop_profile_id, mobile_profile_id):
         """Sync both dropdowns, show/hide profile action buttons, and persist selection."""
         # Determine which dropdown triggered the change
         ctx = callback_context
 
-        # CRITICAL FIX: Only sync when triggered by actual user interaction
-        # If no trigger or triggered by another callback, don't interfere
-        if not ctx.triggered or not ctx.triggered[0].get("value"):
+        # Handle initial call (no trigger) - use desktop dropdown value
+        if not ctx.triggered:
             logger.info(
-                "DEBUG: sync_dropdowns_and_show_buttons - no trigger or empty value, skipping sync"
+                "DEBUG: sync_dropdowns_and_show_buttons - initial call, using desktop dropdown value"
             )
-            return (
-                no_update,
-                no_update,
-                {"display": "none"},
-                {"display": "none"},
-                {"display": "none"},
-                "",
-            )
-
-        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
-
-        # Determine which dropdown value to use
-        if trigger_id == "jira-query-profile-selector-mobile":
-            selected_profile_id = mobile_profile_id
-        elif trigger_id == "jira-query-profile-selector":
             selected_profile_id = desktop_profile_id
+            # Don't sync dropdowns on initial call, only set button visibility
+            trigger_id = None
         else:
-            # Unknown trigger, don't sync
-            logger.info(f"DEBUG: Unknown trigger: {trigger_id}, skipping sync")
-            return (
-                no_update,
-                no_update,
-                {"display": "none"},
-                {"display": "none"},
-                {"display": "none"},
-                "",
-            )
+            trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+
+            # Determine which dropdown value to use based on trigger
+            if trigger_id == "jira-query-profile-selector-mobile":
+                selected_profile_id = mobile_profile_id
+            elif trigger_id == "jira-query-profile-selector":
+                selected_profile_id = desktop_profile_id
+            else:
+                # Unknown trigger, don't sync
+                logger.info(f"DEBUG: Unknown trigger: {trigger_id}, skipping sync")
+                return (
+                    no_update,
+                    no_update,
+                    no_update,
+                    no_update,
+                    no_update,
+                    no_update,
+                )
 
         logger.info(
             f"DEBUG: sync_dropdowns_and_show_buttons called with profile_id: {selected_profile_id}"
         )
 
-        # CRITICAL FIX: Persist the selected profile ID to app_settings.json
-        # This ensures the selection is maintained on app restart/refresh
+        # Persist the selected profile ID and JQL to app_settings.json
+        # When user selects a profile from dropdown, save both the profile ID and its JQL
         try:
             from data.persistence import load_app_settings, save_app_settings
+            from data.jira_query_manager import get_query_profile_by_id
 
             app_settings = load_app_settings()
             current_profile_id = app_settings.get("active_jql_profile_id", "")
 
-            # Only save if the profile ID has changed (avoid unnecessary file writes)
-            if selected_profile_id != current_profile_id:
+            # Only save if triggered by user interaction (not initial load)
+            if trigger_id is not None and selected_profile_id != current_profile_id:
+                # Get the JQL from the selected profile
+                jql_to_save = app_settings.get("jql_query", "")
+                if selected_profile_id:
+                    profile = get_query_profile_by_id(selected_profile_id)
+                    if profile:
+                        jql_to_save = profile.get("jql", jql_to_save)
+                        logger.info(f"Saving JQL from profile: {profile.get('name')}")
+
                 save_app_settings(
                     pert_factor=app_settings["pert_factor"],
                     deadline=app_settings["deadline"],
@@ -1341,13 +1390,12 @@ def register(app):
                     show_milestone=app_settings.get("show_milestone"),
                     milestone=app_settings.get("milestone"),
                     show_points=app_settings.get("show_points"),
-                    jql_query=app_settings.get("jql_query"),
+                    jql_query=jql_to_save,  # Save the profile's JQL
                     last_used_data_source=app_settings.get("last_used_data_source"),
-                    active_jql_profile_id=selected_profile_id
-                    or "",  # Persist the selection
+                    active_jql_profile_id=selected_profile_id or "",
                 )
                 logger.info(
-                    f"Persisted selected query profile ID: {selected_profile_id}"
+                    f"Persisted profile ID: {selected_profile_id} with JQL: {jql_to_save[:50]}..."
                 )
         except Exception as e:
             logger.error(f"Error persisting profile selection: {e}")
@@ -1398,9 +1446,13 @@ def register(app):
                     else hidden_style
                 )
 
+                # On initial call, don't update dropdown values (they're already set in UI)
+                desktop_value = no_update if trigger_id is None else selected_profile_id
+                mobile_value = no_update if trigger_id is None else selected_profile_id
+
                 return (
-                    selected_profile_id,  # desktop dropdown
-                    selected_profile_id,  # mobile dropdown
+                    desktop_value,  # desktop dropdown
+                    mobile_value,  # mobile dropdown
                     visible_style,  # edit button
                     load_default_style,  # load default button
                     visible_style,  # delete button
@@ -1413,9 +1465,13 @@ def register(app):
                 # Show load default button if there's a default query
                 load_default_style = visible_style if default_query else hidden_style
 
+                # On initial call, don't update dropdown values (they're already set in UI)
+                desktop_value = no_update if trigger_id is None else selected_profile_id
+                mobile_value = no_update if trigger_id is None else selected_profile_id
+
                 return (
-                    selected_profile_id,  # desktop dropdown
-                    selected_profile_id,  # mobile dropdown
+                    desktop_value,  # desktop dropdown
+                    mobile_value,  # mobile dropdown
                     hidden_style,  # edit button
                     load_default_style,  # load default button
                     hidden_style,  # delete button
@@ -1513,10 +1569,10 @@ def register(app):
             "jira-jql-query", "value"
         ),  # JQL textarea uses standard "value" property
         [Input("jira-query-profile-selector", "value")],
-        prevent_initial_call=False,  # CRITICAL FIX: Allow initial call to load query on app start
+        prevent_initial_call=True,  # Only load when user explicitly selects a profile
     )
     def update_jql_from_profile(selected_profile_id):
-        """Update JQL textarea when a profile is selected or on initial load."""
+        """Update JQL textarea when a profile is selected by the user."""
         if not selected_profile_id:
             raise PreventUpdate
 
@@ -2559,3 +2615,67 @@ def register(app):
             return result
         else:
             raise PreventUpdate
+
+    #######################################################################
+    # TASK PROGRESS RESTORATION ON PAGE LOAD
+    #######################################################################
+
+    @app.callback(
+        [
+            Output("update-data-unified", "disabled", allow_duplicate=True),
+            Output("update-data-unified", "children", allow_duplicate=True),
+            Output("jira-cache-status", "children", allow_duplicate=True),
+        ],
+        Input("url", "pathname"),
+        prevent_initial_call="initial_duplicate",  # Run on initial page load with duplicates
+    )
+    def restore_update_data_progress(pathname):
+        """Restore Update Data button state if task is in progress.
+
+        This callback runs on page load to check if an Update Data task
+        was in progress before the page was refreshed or app restarted.
+        If so, it restores the loading state and status message.
+
+        Args:
+            pathname: Current URL pathname (triggers on page load)
+
+        Returns:
+            Tuple of (button disabled state, button children, status message)
+        """
+        from data.task_progress import TaskProgress
+
+        # Check if Update Data task is active
+        active_task = TaskProgress.get_active_task()
+
+        if active_task and active_task.get("task_id") == "update_data":
+            # Task is in progress - restore loading state
+            logger.info("Restoring Update Data progress state on page load")
+
+            button_loading = [
+                html.I(
+                    className="fas fa-spinner fa-spin", style={"marginRight": "0.5rem"}
+                ),
+                "Updating...",
+            ]
+
+            status_message = html.Div(
+                [
+                    html.I(className="fas fa-spinner fa-spin me-2 text-primary"),
+                    html.Span(
+                        TaskProgress.get_task_status_message("update_data")
+                        or "Updating data...",
+                        className="fw-medium",
+                    ),
+                ],
+                className="text-primary small text-center mt-2",
+            )
+
+            return True, button_loading, status_message
+
+        # No active task - return normal state
+        button_normal = [
+            html.I(className="fas fa-sync-alt", style={"marginRight": "0.5rem"}),
+            "Update Data",
+        ]
+
+        return False, button_normal, ""

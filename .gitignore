@@ -229,3 +229,9 @@ debug_*.png
 screenshot_*.png
 mobile_nav_error.png
 
+
+# Background callback cache directory
+cache/
+
+# Task progress tracking (runtime state file)
+task_progress.json

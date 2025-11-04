@@ -294,8 +294,9 @@ def fetch_jira_issues(
                 additional_fields.append(field_id)
 
         # Combine base fields with additional fields
+        # Sort additional fields to ensure consistent ordering for cache validation
         if additional_fields:
-            fields = f"{base_fields},{','.join(set(additional_fields))}"
+            fields = f"{base_fields},{','.join(sorted(set(additional_fields)))}"
         else:
             fields = base_fields
 
@@ -484,8 +485,9 @@ def fetch_jira_issues_with_changelog(
                 additional_fields.append(field_id)
 
         # Combine base fields with additional fields
+        # Sort additional fields to ensure consistent ordering for cache validation
         if additional_fields:
-            fields = f"{base_fields},{','.join(set(additional_fields))}"
+            fields = f"{base_fields},{','.join(sorted(set(additional_fields)))}"
         else:
             fields = base_fields
 
@@ -1116,20 +1118,32 @@ def sync_jira_scope_and_data(
                 additional_fields.append(field_id)
 
         # Build final fields string (must match fetch_jira_issues exactly)
+        # Sort additional fields to ensure consistent ordering for cache validation
         if additional_fields:
-            current_fields = f"{base_fields},{','.join(set(additional_fields))}"
+            current_fields = f"{base_fields},{','.join(sorted(set(additional_fields)))}"
         else:
             current_fields = base_fields
 
         # SMART CACHING LOGIC
+        logger.info(f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        logger.info(f"CACHE DEBUG: Starting sync_jira_scope_and_data")
+        logger.info(f"CACHE DEBUG: force_refresh = {force_refresh}")
+        logger.info(f"CACHE DEBUG: JQL = {config['jql_query'][:50]}...")
+        logger.info(f"CACHE DEBUG: Fields = {current_fields}")
+        logger.info(f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+
         # Step 1: Check if force refresh is requested
         if force_refresh:
-            logger.info("🔄 Force refresh requested - bypassing cache")
+            logger.info("🔄 CACHE DEBUG: Force refresh requested - bypassing cache")
             cache_loaded = False
             issues = []
         else:
             # Step 2: Try to load from cache (checks version, age, JQL, fields)
+            logger.info("CACHE DEBUG: Attempting to load from cache...")
             cache_loaded, issues = load_jira_cache(config["jql_query"], current_fields)
+            logger.info(
+                f"CACHE DEBUG: Cache load result: cache_loaded={cache_loaded}, issues_count={len(issues) if issues else 0}"
+            )
 
             # Step 3: If cache is valid, do a quick count check to detect changes
             if cache_loaded and issues:
@@ -1164,9 +1178,11 @@ def sync_jira_scope_and_data(
             if not cache_jira_response(issues, config["jql_query"], current_fields):
                 logger.warning("Failed to cache JIRA response")
 
-            # CRITICAL: Invalidate changelog cache when issue cache is refreshed
-            # Changelog must stay in sync with issues
+            # CRITICAL: Invalidate changelog cache ONLY when we fetch fresh data from JIRA
+            # If we used the issue cache, changelog cache is still valid
             invalidate_changelog_cache()
+        else:
+            logger.info("✓ Using cached issues - changelog cache remains valid")
 
         # PHASE 2: Changelog data fetch (OPTIONAL - don't block app)
         # Changelog is only needed for Flow Time and DORA metrics

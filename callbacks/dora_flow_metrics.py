@@ -1083,7 +1083,11 @@ def calculate_and_display_flow_metrics(
 
 
 @callback(
-    Output("calculate-metrics-status", "children"),
+    [
+        Output("calculate-metrics-status", "children"),
+        Output("calculate-metrics-button", "disabled"),
+        Output("calculate-metrics-button", "children"),
+    ],
     [Input("calculate-metrics-button", "n_clicks")],
     [State("data-points-input", "value")],
     prevent_initial_call=True,
@@ -1109,18 +1113,25 @@ def calculate_metrics_from_settings(
         data_points: Number of weeks to calculate (from Data Points slider)
 
     Returns:
-        Status message for Settings panel
+        Tuple of (status message, button disabled state, button children)
     """
     # Check if button was clicked
     if not button_clicks:
-        return ""
+        return (
+            "",
+            False,
+            [
+                html.I(className="fas fa-calculator", style={"marginRight": "0.5rem"}),
+                "Calculate Metrics",
+            ],
+        )
 
     try:
         # Show loading state
         logger.info("Starting Flow metrics calculation from Settings panel")
 
-        # Import metrics calculator
-        from data.metrics_calculator import calculate_metrics_for_last_n_weeks
+        # Track task progress
+        from data.task_progress import TaskProgress
 
         # Calculate metrics for the selected number of weeks
         # Default to 12 weeks if data_points is not set
@@ -1129,7 +1140,26 @@ def calculate_metrics_from_settings(
             f"Calculating metrics for {n_weeks} weeks (data_points={data_points})"
         )
 
+        # Mark task as started
+        TaskProgress.start_task(
+            "calculate_metrics",
+            f"Calculating {n_weeks} weeks of metrics",
+            weeks=n_weeks,
+        )
+
+        # Import metrics calculator
+        from data.metrics_calculator import calculate_metrics_for_last_n_weeks
+
         success, message = calculate_metrics_for_last_n_weeks(n_weeks=n_weeks)
+
+        # Mark task as completed
+        TaskProgress.complete_task("calculate_metrics")
+
+        # Reset button to normal state
+        button_normal = [
+            html.I(className="fas fa-calculator", style={"marginRight": "0.5rem"}),
+            "Calculate Metrics",
+        ]
 
         if success:
             # Create success message with icon matching Update Data format
@@ -1148,7 +1178,7 @@ def calculate_metrics_from_settings(
                 f"Flow metrics calculation completed successfully: {n_weeks} weeks"
             )
 
-            return settings_status_html
+            return settings_status_html, False, button_normal
         else:
             # Create warning message with icon
             settings_status_html = html.Div(
@@ -1164,9 +1194,14 @@ def calculate_metrics_from_settings(
 
             logger.warning("Flow metrics calculation had issues")
 
-            return settings_status_html
+            return settings_status_html, False, button_normal
 
     except Exception as e:
+        # Mark task as failed
+        from data.task_progress import TaskProgress
+
+        TaskProgress.complete_task("calculate_metrics")
+
         error_msg = f"Error calculating metrics: {str(e)}"
         logger.error(error_msg, exc_info=True)
 
@@ -1182,7 +1217,13 @@ def calculate_metrics_from_settings(
             className="text-danger small text-center mt-2",
         )
 
-        return settings_status_html
+        # Reset button to normal state
+        button_normal = [
+            html.I(className="fas fa-calculator", style={"marginRight": "0.5rem"}),
+            "Calculate Metrics",
+        ]
+
+        return settings_status_html, False, button_normal
 
 
 #######################################################################
@@ -1299,3 +1340,67 @@ def toggle_flow_efficiency_details(n_clicks, is_open):
 def toggle_flow_load_details(n_clicks, is_open):
     """Toggle Flow Load detailed chart collapse."""
     return not is_open if n_clicks else is_open
+
+
+#######################################################################
+# TASK PROGRESS RESTORATION ON PAGE LOAD
+#######################################################################
+
+
+@callback(
+    [
+        Output("calculate-metrics-button", "disabled", allow_duplicate=True),
+        Output("calculate-metrics-button", "children", allow_duplicate=True),
+        Output("calculate-metrics-status", "children", allow_duplicate=True),
+    ],
+    Input("url", "pathname"),
+    prevent_initial_call="initial_duplicate",  # Run on initial page load with duplicates
+)
+def restore_calculate_metrics_progress(pathname):
+    """Restore Calculate Metrics button state if task is in progress.
+
+    This callback runs on page load to check if a Calculate Metrics task
+    was in progress before the page was refreshed or app restarted.
+    If so, it restores the loading state and status message.
+
+    Args:
+        pathname: Current URL pathname (triggers on page load)
+
+    Returns:
+        Tuple of (button disabled state, button children, status message)
+    """
+    from data.task_progress import TaskProgress
+
+    # Check if Calculate Metrics task is active
+    active_task = TaskProgress.get_active_task()
+
+    if active_task and active_task.get("task_id") == "calculate_metrics":
+        # Task is in progress - restore loading state
+        logger.info("Restoring Calculate Metrics progress state on page load")
+
+        button_loading = [
+            html.I(className="fas fa-spinner fa-spin", style={"marginRight": "0.5rem"}),
+            "Calculating...",
+        ]
+
+        status_message = html.Div(
+            [
+                html.I(className="fas fa-spinner fa-spin me-2 text-primary"),
+                html.Span(
+                    TaskProgress.get_task_status_message("calculate_metrics")
+                    or "Calculating metrics...",
+                    className="fw-medium",
+                ),
+            ],
+            className="text-primary small text-center mt-2",
+        )
+
+        return True, button_loading, status_message
+
+    # No active task - return normal state
+    button_normal = [
+        html.I(className="fas fa-calculator", style={"marginRight": "0.5rem"}),
+        "Calculate Metrics",
+    ]
+
+    return False, button_normal, ""
