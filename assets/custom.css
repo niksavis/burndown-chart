@@ -3098,5 +3098,52 @@ label.fw-medium {
 }
 
 /* ================================================================
+   Long-Press Force Refresh Animation
+   ================================================================ */
+
+/* Long-press button with progress indicator */
+.long-press-button {
+  position: relative !important;
+  overflow: hidden !important;
+  transition: transform 0.1s ease !important;
+}
+
+/* Progress fill using ::before pseudo-element */
+.long-press-button::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: var(--progress-width, 0%);
+  background: rgba(0, 0, 0, 0.25); /* Darker overlay for progress */
+  z-index: 0;
+  transition: none; /* Controlled by JavaScript */
+  pointer-events: none;
+}
+
+/* Active state - background fills from left to right */
+.long-press-button.long-press-active {
+  transform: scale(0.98);
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+/* Keep button content above progress background */
+.long-press-button > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Mobile-specific adjustments */
+@media (max-width: 767px) {
+  .long-press-button {
+    min-height: 44px; /* Minimum touch target size */
+  }
+}
+
+/* ================================================================
    End of Custom Styles
    ================================================================ */

@@ -313,13 +313,16 @@ def register(app):
             Output("total-points-display", "value", allow_duplicate=True),
             Output("estimated-points-input", "value", allow_duplicate=True),
             Output("current-settings", "data", allow_duplicate=True),
+            Output(
+                "force-refresh-store", "data", allow_duplicate=True
+            ),  # Reset store after use
         ],
         [Input("update-data-unified", "n_clicks")],
         [
             State(
                 "jira-jql-query", "value"
             ),  # JQL textarea uses standard "value" property
-            State("force-refresh-checkbox", "value"),  # Force refresh checkbox
+            State("force-refresh-store", "data"),  # Force refresh from long-press store
         ],
         prevent_initial_call=True,
     )
@@ -635,6 +638,7 @@ def register(app):
                     total_points_display,  # Text field, not number
                     estimated_points,
                     updated_settings,  # Updated settings to trigger dashboard refresh
+                    False,  # Reset force refresh store
                 )
             else:
                 # Create detailed error message
@@ -661,6 +665,7 @@ def register(app):
                     no_update,
                     no_update,
                     no_update,  # Don't update settings on error
+                    False,  # Reset force refresh store
                 )
 
         except ImportError:
@@ -692,6 +697,7 @@ def register(app):
                 no_update,
                 no_update,
                 no_update,  # Don't update settings on error
+                False,  # Reset force refresh store
             )
         except Exception as e:
             logger.error(f"Error in unified data update: {e}")
@@ -719,6 +725,7 @@ def register(app):
                 no_update,
                 no_update,
                 no_update,  # Don't update settings on error
+                False,  # Reset force refresh store
             )
 
     #######################################################################

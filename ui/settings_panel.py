@@ -273,7 +273,15 @@ def create_settings_panel_expanded(id_suffix: str = "") -> html.Div:
                                                         [
                                                             html.Label(
                                                                 [
-                                                                    "Fetch Data",
+                                                                    "Fetch Data ",
+                                                                    html.Span(
+                                                                        "(Hold 3s to force refresh)",
+                                                                        className="text-muted",
+                                                                        style={
+                                                                            "fontSize": "0.75rem",
+                                                                            "fontWeight": "normal",
+                                                                        },
+                                                                    ),
                                                                     html.Span(
                                                                         create_settings_tooltip(
                                                                             "update_data",
@@ -291,19 +299,12 @@ def create_settings_panel_expanded(id_suffix: str = "") -> html.Div:
                                                                 id="update-data-unified",
                                                                 variant="primary",
                                                                 icon_class="fas fa-sync-alt",
-                                                                className="w-100",
+                                                                className="w-100 long-press-button",
                                                                 size="md",
                                                             ),
-                                                            # Force Refresh checkbox (compact)
-                                                            dbc.Checkbox(
-                                                                id="force-refresh-checkbox",
-                                                                label="Force refresh (ignore cache)",
-                                                                value=False,
-                                                                className="small text-muted mt-1",
-                                                                style={
-                                                                    "fontSize": "0.75rem",
-                                                                    "marginTop": "0.25rem",
-                                                                },
+                                                            dcc.Store(
+                                                                id="force-refresh-store",
+                                                                data=False,
                                                             ),
                                                             html.Div(
                                                                 id="jira-cache-status",
