@@ -18,6 +18,8 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
         let textChangeTimer = null;
         let startTime = null;
         let isReadyForForceRefresh = false;
+        let processingForceRefresh = false;
+        let allowNextClick = false;
         const originalText = "Update Data";
         const forceRefreshText = "Force Refresh";
         const LONG_PRESS_DURATION = 3000; // 3 seconds
@@ -70,24 +72,35 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
         function handleRelease(e) {
           // If force refresh is ready, trigger it
           if (isReadyForForceRefresh) {
-            // Set force refresh flag
-            const store = document.getElementById("force-refresh-store");
-            if (store) {
-              // Trigger by changing store value
-              const event = new CustomEvent("dash-force-refresh", {
-                detail: { forceRefresh: true },
-              });
-              window.dispatchEvent(event);
-            }
+            // PREVENT the natural click from firing
+            e.preventDefault();
+            e.stopPropagation();
 
-            // Click the button to trigger actual update
-            // Use setTimeout to allow state reset first
+            console.log("🔄 Force refresh activated!");
+
+            // Store flag globally so the callback can read it
+            window._forceRefreshPending = true;
+            console.log("✅ Set global _forceRefreshPending flag");
+
+            // Trigger button click - the callback will check the global flag
             setTimeout(function () {
+              console.log("🖱️ Clicking button");
               button.click();
-            }, 100);
+              console.log("✅ Click dispatched");
+
+              // Reset visual state
+              cancelPress();
+
+              // Clear flag after a delay
+              setTimeout(function () {
+                window._forceRefreshPending = false;
+              }, 1000);
+            }, 50);
+
+            return;
           }
 
-          // Reset state
+          // Reset state for normal clicks
           cancelPress();
         }
 
@@ -147,12 +160,20 @@ if (document.readyState === "loading") {
   }
 }
 
-// Listen for force refresh events
-window.addEventListener("dash-force-refresh", function (e) {
-  console.log("Force refresh triggered:", e.detail);
-  // Store will be updated by callback
-  const store = document.getElementById("force-refresh-store");
-  if (store && store._dashprivate_layout && store._dashprivate_layout.props) {
-    store._dashprivate_layout.props.data = true;
-  }
+// Clientside callback to update the store when button is clicked
+// This runs BEFORE the server-side callback
+window.dash_clientside = Object.assign({}, window.dash_clientside, {
+  forceRefresh: {
+    updateStore: function (n_clicks) {
+      // Check if force refresh is pending
+      if (window._forceRefreshPending) {
+        console.log(
+          "✅ Clientside callback: Force refresh detected, returning TRUE"
+        );
+        return true;
+      }
+      console.log("✅ Clientside callback: Normal click, returning FALSE");
+      return false;
+    },
+  },
 });

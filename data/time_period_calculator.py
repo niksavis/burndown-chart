@@ -6,7 +6,7 @@ Uses ISO 8601 week date system (Monday-Sunday weeks).
 
 Key Features:
 - ISO week calculation (Monday as first day of week)
-- Year-week label generation (e.g., "2025-43")
+- Year-week label generation (e.g., "2025-W43" in ISO format)
 - Current week handling (include partial data up to today)
 - Configurable display period via Data Points slider
 - Support for historical data aggregation
@@ -54,26 +54,26 @@ def get_iso_week(dt: datetime) -> Tuple[int, int]:
 
 def format_year_week(year: int, week: int) -> str:
     """
-    Format year and week number as year-week label.
+    Format year and week number as ISO week label.
 
     Args:
         year: ISO calendar year
         week: ISO week number (1-53)
 
     Returns:
-        Formatted string "YYYY-WW"
+        Formatted string "YYYY-Wxx" (ISO week format with W prefix)
 
     Example:
         >>> format_year_week(2025, 43)
-        '2025-43'
+        '2025-W43'
     """
     if not year or not week:
         logger.warning(
             f"format_year_week called with invalid values: year={year}, week={week}"
         )
-        return "0000-00"
+        return "0000-W00"
 
-    return f"{year}-{week:02d}"
+    return f"{year}-W{week:02d}"
 
 
 def get_year_week_label(dt: datetime) -> str:
@@ -86,15 +86,15 @@ def get_year_week_label(dt: datetime) -> str:
         dt: Datetime to get label for
 
     Returns:
-        Formatted year-week label "YYYY-WW"
+        Formatted year-week label "YYYY-Wxx" (ISO week format)
 
     Example:
         >>> get_year_week_label(datetime(2025, 10, 31))
-        '2025-44'
+        '2025-W44'
     """
     if not dt:
         logger.warning("get_year_week_label called with None datetime")
-        return "0000-00"
+        return "0000-W00"
 
     year, week = get_iso_week(dt)
     return format_year_week(year, week)
@@ -104,14 +104,18 @@ def parse_year_week_label(label: str) -> Tuple[int, int]:
     """
     Parse year-week label back to year and week number.
 
+    Handles both ISO format (YYYY-Wxx) and legacy format (YYYY-xx).
+
     Args:
-        label: Year-week label in format "YYYY-WW"
+        label: Year-week label in format "YYYY-Wxx" or "YYYY-xx"
 
     Returns:
         Tuple of (year, week_number)
 
     Example:
-        >>> parse_year_week_label("2025-43")
+        >>> parse_year_week_label("2025-W43")
+        (2025, 43)
+        >>> parse_year_week_label("2025-43")  # Legacy format also supported
         (2025, 43)
     """
     if not label or "-" not in label:
@@ -121,7 +125,9 @@ def parse_year_week_label(label: str) -> Tuple[int, int]:
     try:
         parts = label.split("-")
         year = int(parts[0])
-        week = int(parts[1])
+        # Remove "W" prefix if present (ISO format: "2025-W43")
+        week_str = parts[1].lstrip("W")
+        week = int(week_str)
         return (year, week)
     except (ValueError, IndexError) as e:
         logger.error(f"Failed to parse year-week label '{label}': {e}")
@@ -224,11 +230,11 @@ def generate_week_range(
         include_partial_current: If True, include current week even if incomplete
 
     Returns:
-        List of year-week labels in chronological order
+        List of year-week labels in chronological order (ISO format with W prefix)
 
     Example:
         >>> generate_week_range(date(2025, 10, 1), date(2025, 10, 31))
-        ['2025-40', '2025-41', '2025-42', '2025-43', '2025-44']
+        ['2025-W40', '2025-W41', '2025-W42', '2025-W43', '2025-W44']
     """
     if not start_date or not end_date:
         logger.warning("generate_week_range called with None dates")
@@ -283,11 +289,11 @@ def get_recent_weeks(num_weeks: int, include_partial_current: bool = True) -> Li
         include_partial_current: If True, include current week even if incomplete
 
     Returns:
-        List of year-week labels in chronological order
+        List of year-week labels in chronological order (ISO format with W prefix)
 
     Example:
         >>> get_recent_weeks(4)
-        ['2025-41', '2025-42', '2025-43', '2025-44']  # Last 4 weeks including current
+        ['2025-W41', '2025-W42', '2025-W43', '2025-W44']  # Last 4 weeks including current
     """
     if num_weeks <= 0:
         logger.warning(f"get_recent_weeks called with invalid num_weeks: {num_weeks}")
@@ -314,7 +320,7 @@ def filter_by_week_range(
     Args:
         items: List of dictionaries with date fields
         date_field: Name of the date field to filter by
-        week_labels: List of year-week labels to include
+        week_labels: List of year-week labels to include (ISO format with W prefix)
 
     Returns:
         Filtered list of items
@@ -324,7 +330,7 @@ def filter_by_week_range(
         ...     {"key": "A-1", "date": "2025-10-27T10:00:00"},
         ...     {"key": "A-2", "date": "2025-11-03T15:00:00"}
         ... ]
-        >>> filter_by_week_range(items, "date", ["2025-44"])
+        >>> filter_by_week_range(items, "date", ["2025-W44"])
         [{"key": "A-1", "date": "2025-10-27T10:00:00"}]
     """
     if not items:
@@ -388,7 +394,7 @@ def group_by_week(items: List[Dict], date_field: str) -> Dict[str, List[Dict]]:
         date_field: Name of the date field to group by
 
     Returns:
-        Dictionary mapping year-week labels to lists of items
+        Dictionary mapping year-week labels (ISO format) to lists of items
 
     Example:
         >>> items = [
@@ -396,7 +402,7 @@ def group_by_week(items: List[Dict], date_field: str) -> Dict[str, List[Dict]]:
         ...     {"key": "A-2", "date": "2025-10-28T15:00:00"}
         ... ]
         >>> group_by_week(items, "date")
-        {"2025-44": [{"key": "A-1", ...}, {"key": "A-2", ...}]}
+        {"2025-W44": [{"key": "A-1", ...}, {"key": "A-2", ...}]}
     """
     if not items:
         return {}

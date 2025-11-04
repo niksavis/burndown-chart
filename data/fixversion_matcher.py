@@ -78,17 +78,31 @@ def extract_fixversion_ids(issue: Dict) -> set:
 
 def extract_fixversion_names(issue: Dict) -> set:
     """
-    Extract fixVersion names from a JIRA issue.
+    Extract fixVersion names from a JIRA issue (normalized for matching).
+
+    Normalization includes:
+    - Convert to lowercase for case-insensitive matching
+    - Replace spaces with underscores
+    - Replace hyphens with underscores
 
     Args:
         issue: JIRA issue dictionary
 
     Returns:
-        Set of fixVersion name strings
+        Set of normalized fixVersion name strings
     """
     try:
         fixversions = get_fixversions(issue)
-        return {fv.get("name") for fv in fixversions if fv.get("name")}
+        normalized_names = set()
+
+        for fv in fixversions:
+            name = fv.get("name")
+            if name:
+                # Normalize: lowercase, spaces/hyphens to underscores
+                normalized = name.lower().replace(" ", "_").replace("-", "_")
+                normalized_names.add(normalized)
+
+        return normalized_names
     except Exception as e:
         logger.error(
             f"Error extracting fixVersion names for issue {issue.get('key', 'UNKNOWN')}: {e}"
@@ -279,9 +293,14 @@ def get_deployment_date_from_operational_task(
                 # Include if ID matches (highest priority)
                 if matching_fixversion_ids and fv_id in matching_fixversion_ids:
                     matching_fixversions.append(fv)
-                # Or if name matches (fallback)
-                elif matching_fixversion_names and fv_name in matching_fixversion_names:
-                    matching_fixversions.append(fv)
+                # Or if name matches (fallback) - MUST normalize name for comparison
+                elif matching_fixversion_names and fv_name:
+                    # Normalize: lowercase, spaces/hyphens to underscores (same as extract_fixversion_names)
+                    normalized_name = (
+                        fv_name.lower().replace(" ", "_").replace("-", "_")
+                    )
+                    if normalized_name in matching_fixversion_names:
+                        matching_fixversions.append(fv)
         else:
             matching_fixversions = all_fixversions
 
@@ -321,6 +340,128 @@ def get_deployment_date_from_operational_task(
         return None
 
 
+def get_relevant_deployment_date(
+    dev_issue: Dict,
+    operational_tasks: List[Dict],
+    deployment_ready_time: Optional[datetime] = None,
+) -> Optional[Tuple[date, Dict, str]]:
+    """
+    Get the MOST RELEVANT deployment date for Lead Time calculation.
+
+    For Lead Time, we want the deployment that happened AFTER the code was ready,
+    and is closest to the ready time (not necessarily the absolute earliest deployment).
+
+    Args:
+        dev_issue: Development issue dictionary
+        operational_tasks: List of operational task dictionaries
+        deployment_ready_time: When the code was ready for deployment (e.g., "In Deployment" status)
+
+    Returns:
+        Tuple of (deployment_date, operational_task, match_method) or None if no match
+        - deployment_date: Most relevant deployment date (date object)
+        - operational_task: Operational task with relevant deployment
+        - match_method: "id" or "name" indicating how match was found
+    """
+    dev_key = dev_issue.get("key", "UNKNOWN")
+    logger.info(
+        f"[RELEVANT_DEPLOY] {dev_key}: Starting search, ready_time={deployment_ready_time}"
+    )
+
+    try:
+        # Find all matching operational tasks
+        matching_tasks = find_matching_operational_tasks(dev_issue, operational_tasks)
+        logger.info(
+            f"[RELEVANT_DEPLOY] {dev_key}: Found {len(matching_tasks)} matching operational tasks"
+        )
+
+        if not matching_tasks:
+            logger.debug(
+                f"Development issue {dev_issue.get('key', 'UNKNOWN')}: No matching operational tasks found"
+            )
+            return None
+
+        # Get deployment dates for all matching tasks
+        deployment_dates = []
+        for op_task, match_method in matching_tasks:
+            # Get matching fixVersion IDs/names for filtering
+            dev_fixversion_ids = extract_fixversion_ids(dev_issue)
+            dev_fixversion_names = extract_fixversion_names(dev_issue)
+
+            logger.info(
+                f"[RELEVANT_DEPLOY] {dev_key}: Getting deployment date from {op_task.get('key')}, match_method={match_method}"
+            )
+
+            deployment_date = get_deployment_date_from_operational_task(
+                op_task,
+                matching_fixversion_ids=dev_fixversion_ids
+                if match_method == "id"
+                else None,
+                matching_fixversion_names=dev_fixversion_names
+                if match_method == "name"
+                else None,
+            )
+
+            logger.info(
+                f"[RELEVANT_DEPLOY] {dev_key}: Deployment date from {op_task.get('key')} = {deployment_date}"
+            )
+
+            if deployment_date:
+                deployment_dates.append((deployment_date, op_task, match_method))
+
+        if not deployment_dates:
+            logger.warning(
+                f"[RELEVANT_DEPLOY] {dev_key}: ❌ Found {len(matching_tasks)} matching operational tasks, but NONE have valid deployment dates!"
+            )
+            return None
+
+        # If deployment_ready_time provided, filter to deployments AFTER ready time
+        if deployment_ready_time:
+            ready_date = deployment_ready_time.date()
+            logger.info(
+                f"[RELEVANT_DEPLOY] {dev_key}: Ready date = {ready_date}, checking {len(deployment_dates)} deployment dates"
+            )
+
+            for dep_date, op_task, method in deployment_dates:
+                logger.info(
+                    f"[RELEVANT_DEPLOY] {dev_key}:   - {op_task.get('key')}: deployment={dep_date}, after_ready={dep_date >= ready_date}"
+                )
+
+            after_ready = [d for d in deployment_dates if d[0] >= ready_date]
+            logger.info(
+                f"[RELEVANT_DEPLOY] {dev_key}: {len(after_ready)} deployments after ready time"
+            )
+
+            if after_ready:
+                # Return the earliest deployment after ready time (closest to ready)
+                relevant = min(after_ready, key=lambda x: x[0])
+                logger.warning(
+                    f"[RELEVANT_DEPLOY] {dev_key}: ✅ USING deployment = {relevant[0]} from {relevant[1].get('key')} "
+                    f"(after ready time {ready_date}, matched by {relevant[2]})"
+                )
+                return relevant
+            else:
+                # No deployments after ready time - this is suspicious but return earliest anyway
+                logger.warning(
+                    f"[RELEVANT_DEPLOY] {dev_key}: ❌ All {len(deployment_dates)} deployments are BEFORE ready time {ready_date}. "
+                    f"Using earliest anyway."
+                )
+
+        # No ready time provided OR all deployments before ready - use earliest
+        earliest = min(deployment_dates, key=lambda x: x[0])
+        logger.debug(
+            f"Development issue {dev_issue.get('key', 'UNKNOWN')}: "
+            f"Earliest deployment = {earliest[0]} from {earliest[1].get('key')} (matched by {earliest[2]})"
+        )
+
+        return earliest
+
+    except Exception as e:
+        logger.error(
+            f"Error getting relevant deployment date for issue {dev_issue.get('key', 'UNKNOWN')}: {e}"
+        )
+        return None
+
+
 def get_earliest_deployment_date(
     dev_issue: Dict,
     operational_tasks: List[Dict],
@@ -328,7 +469,8 @@ def get_earliest_deployment_date(
     """
     Get the EARLIEST deployment date for a development issue from matching operational tasks.
 
-    This is the primary function for DORA Lead Time and MTTR calculations.
+    DEPRECATED: Use get_relevant_deployment_date() for Lead Time calculations instead.
+    This function is kept for backward compatibility with MTTR calculations.
 
     Args:
         dev_issue: Development issue dictionary

@@ -8,26 +8,15 @@ All field mappings and configuration values come from app_settings.json - no har
 """
 
 from dash import callback, Output, Input, State, html, dcc
+from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta
 from typing import Dict, Any, Optional
 import logging
 
-from data.iso_week_bucketing import (
-    bucket_issues_by_week,
-    get_week_range_description,
-)
-from data.dora_calculator import (
-    calculate_deployment_frequency_v2,
-    calculate_lead_time_for_changes_v2,
-    calculate_change_failure_rate_v2,
-    calculate_mttr_v2,
-)
-
-# project_filter functions will be used when implementing operational task filtering for DORA
 from data.persistence import load_app_settings
 from ui.metric_cards import create_metric_cards_grid
-from configuration.help_content import FLOW_METRICS_TOOLTIPS
+from configuration.help_content import FLOW_METRICS_TOOLTIPS, DORA_METRICS_TOOLTIPS
 
 logger = logging.getLogger(__name__)
 
@@ -38,47 +27,75 @@ logger = logging.getLogger(__name__)
 
 
 @callback(
+    Output("dora-metrics-cards-container", "children"),
     [
-        Output("dora-metrics-cards-container", "children"),
-        Output("dora-loading-state", "children"),
-    ],
-    [
-        Input("jira-issues-store", "data"),
+        Input("chart-tabs", "active_tab"),
         Input("data-points-input", "value"),
-    ],
-    [
-        State("current-settings", "data"),
     ],
     prevent_initial_call=False,
 )
-def calculate_and_display_dora_metrics(
-    jira_data_store: Optional[Dict[str, Any]],
+def load_and_display_dora_metrics(
+    active_tab: Optional[str],
     data_points: int,
-    app_settings: Optional[Dict[str, Any]],
 ):
-    """Calculate and display DORA metrics per ISO week.
+    """Load and display DORA metrics from cache.
 
-    Uses Data Points slider to control how many weeks of historical data to display.
-    Metrics calculated per ISO week (Monday-Sunday boundaries).
+    Similar to Flow metrics, loads pre-calculated weekly snapshots from
+    metrics_snapshots.json instead of recalculating on every tab visit.
+
+    Metrics are calculated when user clicks "Calculate Metrics" button in Settings,
+    and saved to cache for instant display.
 
     Args:
-        jira_data_store: Cached JIRA issues from global store
+        active_tab: Currently active tab (only process if DORA tab is active)
         data_points: Number of weeks to display (from Data Points slider)
-        app_settings: Application settings including field mappings
 
     Returns:
-        Tuple of (metrics_cards_html, loading_state_html)
+        Metrics cards HTML (no toast messages, consistent with Flow Metrics)
     """
     try:
-        # Validate inputs
-        if not jira_data_store or not jira_data_store.get("issues"):
+        # Only process if DORA tab is active (optimization)
+        if active_tab != "tab-dora-metrics":
+            raise PreventUpdate
+
+        # Get number of weeks to display (default 12 if not set)
+        n_weeks = data_points if data_points and data_points > 0 else 12
+
+        # Try to load from cache first
+        from data.dora_metrics_calculator import load_dora_metrics_from_cache
+
+        logger.info(f"DORA: Loading metrics from cache for {n_weeks} weeks")
+        cached_metrics = load_dora_metrics_from_cache(n_weeks=n_weeks)
+
+        # CRITICAL DEBUG LOGGING
+        logger.info(f"===== DORA METRICS DEBUG =====")
+        logger.info(f"cached_metrics type: {type(cached_metrics)}")
+        logger.info(f"cached_metrics is None: {cached_metrics is None}")
+        logger.info(f"cached_metrics bool: {bool(cached_metrics)}")
+        if cached_metrics:
+            logger.info(f"cached_metrics keys: {list(cached_metrics.keys())}")
+            for key, val in cached_metrics.items():
+                if isinstance(val, dict):
+                    logger.info(
+                        f"  {key}: value={val.get('value')}, labels={len(val.get('weekly_labels', []))}"
+                    )
+                else:
+                    logger.info(f"  {key}: {val}")
+        logger.info(f"===== END DEBUG =====")
+
+        logger.info(
+            f"DORA: Cache loaded, data is {'available' if cached_metrics else 'empty'}"
+        )
+
+        if not cached_metrics:
+            # No cache available - show prompt to calculate
             empty_state = create_metric_cards_grid(
                 {
                     "deployment_frequency": {
                         "metric_name": "deployment_frequency",
                         "value": None,
                         "error_state": "no_data",
-                        "error_message": "No JIRA data available. Click 'Update Data' in Settings.",
+                        "error_message": "No cached metrics. Click 'Calculate Metrics' in Settings.",
                     },
                     "lead_time_for_changes": {
                         "metric_name": "lead_time_for_changes",
@@ -98,258 +115,97 @@ def calculate_and_display_dora_metrics(
                 }
             )
 
-            info_message = html.Div(
-                [
-                    html.I(className="fas fa-info-circle me-2"),
-                    "No JIRA data loaded. Click 'Update Data' in Settings to load data.",
-                ],
-                className="alert alert-info",
-            )
+            return empty_state
 
-            return empty_state, info_message
-
-        # Get issues directly - calculators expect dicts, not objects
-        all_issues = jira_data_store.get("issues", [])
-        logger.info(f"DORA: Processing {len(all_issues)} issues from jira-issues-store")
-
-        if not app_settings:
-            logger.warning("No app settings available, loading from disk")
-            app_settings = load_app_settings()
-
-        # Ensure we have app_settings (for type checker)
-        if not app_settings:
-            error_msg = "Failed to load app settings"
-            logger.error(error_msg)
-            return (
-                create_metric_cards_grid(
-                    {
-                        "deployment_frequency": {
-                            "metric_name": "deployment_frequency",
-                            "value": None,
-                            "error_state": "error",
-                            "error_message": error_msg,
-                        },
-                        "lead_time_for_changes": {
-                            "metric_name": "lead_time_for_changes",
-                            "value": None,
-                            "error_state": "error",
-                        },
-                        "change_failure_rate": {
-                            "metric_name": "change_failure_rate",
-                            "value": None,
-                            "error_state": "error",
-                        },
-                        "mean_time_to_recovery": {
-                            "metric_name": "mean_time_to_recovery",
-                            "value": None,
-                            "error_state": "error",
-                        },
-                    }
-                ),
-                html.Div(
-                    [
-                        html.I(className="fas fa-exclamation-circle me-2"),
-                        error_msg,
-                    ],
-                    className="alert alert-danger",
-                ),
-            )
-
-        # Get number of weeks to display (default 12 if not set)
-        n_weeks = data_points if data_points and data_points > 0 else 12
-
-        # Get settings
-        devops_projects = app_settings.get("devops_projects", [])
-        field_mappings = app_settings.get("field_mappings", {}).get("dora", {})
-
-        # Filter to DevOps projects only (dict format)
-        devops_issues = [
-            issue
-            for issue in all_issues
-            if issue.get("fields", {}).get("project", {}).get("key") in devops_projects
-        ]
-
-        if not devops_issues:
-            warning_state = create_metric_cards_grid(
-                {
-                    "deployment_frequency": {
-                        "metric_name": "deployment_frequency",
-                        "value": None,
-                        "error_state": "no_data",
-                        "error_message": f"No issues in DevOps projects: {', '.join(devops_projects)}",
-                    },
-                    "lead_time_for_changes": {
-                        "metric_name": "lead_time_for_changes",
-                        "value": None,
-                        "error_state": "no_data",
-                    },
-                    "change_failure_rate": {
-                        "metric_name": "change_failure_rate",
-                        "value": None,
-                        "error_state": "no_data",
-                    },
-                    "mean_time_to_recovery": {
-                        "metric_name": "mean_time_to_recovery",
-                        "value": None,
-                        "error_state": "no_data",
-                    },
-                }
-            )
-
-            warning_message = html.Div(
-                [
-                    html.I(className="fas fa-exclamation-triangle me-2"),
-                    f"No issues found in DevOps projects: {', '.join(devops_projects)}",
-                ],
-                className="alert alert-warning",
-            )
-
-            return warning_state, warning_message
-
-        # Get configuration values (no defaults - must be configured)
-        change_failure_field = field_mappings.get("deployment_successful")
-        affected_env_field = field_mappings.get("affected_environment")
-        production_value = app_settings.get("production_environment_value", "PROD")
-
-        # Calculate date range for metrics (last N weeks)
-        end_date = datetime.now(timezone.utc)
-        start_date = end_date - timedelta(days=n_weeks * 7)
-
-        # Bucket issues by ISO week (for future trend analysis)
-        _ = bucket_issues_by_week(
-            devops_issues, date_field="resolutiondate", n_weeks=n_weeks
-        )
-
-        # Separate development and operational issues
-        # Development projects from all issues
-        dev_projects = [
-            p for p in app_settings.get("projects", []) if p not in devops_projects
-        ]
-        if not dev_projects:
-            # Fallback: assume all non-devops projects are development
-            all_projects = set(
-                issue.get("fields", {}).get("project", {}).get("key")
-                for issue in all_issues
-            )
-            dev_projects = list(all_projects - set(devops_projects))
-
-        development_issues = [
-            issue
-            for issue in all_issues
-            if issue.get("fields", {}).get("project", {}).get("key") in dev_projects
-        ]
-
-        operational_tasks = devops_issues  # DevOps project issues are operational tasks
-
-        # Extract bugs for MTTR
-        production_bugs = [
-            issue
-            for issue in development_issues
-            if issue.get("fields", {}).get("issuetype", {}).get("name") == "Bug"
-        ]
-
-        # Calculate date range for metrics (last N weeks)
-        start_date = end_date - timedelta(days=n_weeks * 7)
-
-        # Calculate DORA metrics for entire period
-        deployment_freq = calculate_deployment_frequency_v2(
-            operational_tasks,
-            start_date=start_date,
-            end_date=end_date,
-        )
-
-        lead_time = calculate_lead_time_for_changes_v2(
-            development_issues,
-            operational_tasks,
-            start_date=start_date,
-            end_date=end_date,
-        )
-
-        cfr = calculate_change_failure_rate_v2(
-            operational_tasks,
-            change_failure_field_id=change_failure_field,
-            start_date=start_date,
-            end_date=end_date,
-        )
-
-        mttr = calculate_mttr_v2(
-            production_bugs,
-            operational_tasks,
-            affected_environment_field_id=affected_env_field,
-            production_value=production_value,
-            start_date=start_date,
-            end_date=end_date,
-        )
-
-        # TODO: Calculate weekly aggregates for trend visualization
-        # For now, create simple trend data showing current value
-        # This will be enhanced in Phase 3 with proper weekly bucketing
-
-        # Create metric cards with placeholder trend data
+        # Load metrics from cache and create display
+        # Use .get() with defaults to safely handle missing or None values
         metrics_data = {
             "deployment_frequency": {
                 "metric_name": "deployment_frequency",
-                "value": deployment_freq.get("deployment_count", 0),
+                "value": cached_metrics.get("deployment_frequency", {}).get("value", 0),
                 "unit": "deployments",
-                "error_state": None
-                if deployment_freq.get("deployment_count")
-                else "no_data",
+                "error_state": "success",
+                "total_issue_count": cached_metrics.get("deployment_frequency", {}).get(
+                    "total_issue_count", 0
+                ),
+                "tooltip": DORA_METRICS_TOOLTIPS.get("deployment_frequency", ""),
+                "weekly_labels": cached_metrics.get("deployment_frequency", {}).get(
+                    "weekly_labels", []
+                ),
+                "weekly_values": cached_metrics.get("deployment_frequency", {}).get(
+                    "weekly_values", []
+                ),
             },
             "lead_time_for_changes": {
                 "metric_name": "lead_time_for_changes",
-                "value": round(
-                    lead_time.get("median_hours", 0) / 24, 1
-                )  # Convert hours to days
-                if lead_time.get("median_hours")
-                else None,
+                "value": cached_metrics.get("lead_time_for_changes", {}).get("value"),
                 "unit": "days",
-                "error_state": None
-                if lead_time.get("median_hours") is not None
+                "error_state": "success"
+                if cached_metrics.get("lead_time_for_changes", {}).get("value")
+                is not None
                 else "no_data",
+                "total_issue_count": cached_metrics.get(
+                    "lead_time_for_changes", {}
+                ).get("total_issue_count", 0),
+                "tooltip": DORA_METRICS_TOOLTIPS.get("lead_time_for_changes", ""),
+                "weekly_labels": cached_metrics.get("lead_time_for_changes", {}).get(
+                    "weekly_labels", []
+                ),
+                "weekly_values": cached_metrics.get("lead_time_for_changes", {}).get(
+                    "weekly_values", []
+                ),
             },
             "change_failure_rate": {
                 "metric_name": "change_failure_rate",
-                "value": round(cfr.get("change_failure_rate_percent", 0), 1),
+                "value": cached_metrics.get("change_failure_rate", {}).get("value", 0),
                 "unit": "%",
-                "error_state": None
-                if cfr.get("total_deployments", 0) > 0
-                else "no_data",
+                "error_state": "success",
+                "total_issue_count": cached_metrics.get("change_failure_rate", {}).get(
+                    "total_issue_count", 0
+                ),
+                "tooltip": DORA_METRICS_TOOLTIPS.get("change_failure_rate", ""),
+                "weekly_labels": cached_metrics.get("change_failure_rate", {}).get(
+                    "weekly_labels", []
+                ),
+                "weekly_values": cached_metrics.get("change_failure_rate", {}).get(
+                    "weekly_values", []
+                ),
             },
             "mean_time_to_recovery": {
                 "metric_name": "mean_time_to_recovery",
-                "value": round(mttr.get("median_hours", 0), 1)
-                if mttr.get("median_hours")
-                else None,
+                "value": cached_metrics.get("mean_time_to_recovery", {}).get("value"),
                 "unit": "hours",
-                "error_state": None
-                if mttr.get("median_hours") is not None
+                "error_state": "success"
+                if cached_metrics.get("mean_time_to_recovery", {}).get("value")
+                is not None
                 else "no_data",
+                "total_issue_count": cached_metrics.get(
+                    "mean_time_to_recovery", {}
+                ).get("total_issue_count", 0),
+                "tooltip": DORA_METRICS_TOOLTIPS.get("mean_time_to_recovery", ""),
+                "weekly_labels": cached_metrics.get("mean_time_to_recovery", {}).get(
+                    "weekly_labels", []
+                ),
+                "weekly_values": cached_metrics.get("mean_time_to_recovery", {}).get(
+                    "weekly_values", []
+                ),
             },
         }
 
-        # Create success message
-        week_range = get_week_range_description(n_weeks)
-        success_message = html.Div(
-            [
-                html.I(className="fas fa-check-circle me-2"),
-                f"DORA metrics calculated for {week_range}. ",
-                f"Analyzed {len(devops_issues)} issues from DevOps projects.",
-            ],
-            className="alert alert-success",
-        )
+        return create_metric_cards_grid(metrics_data)
 
-        return create_metric_cards_grid(metrics_data), success_message
-
+    except PreventUpdate:
+        raise
     except Exception as e:
-        logger.error(f"Error calculating DORA metrics: {e}", exc_info=True)
+        logger.error(f"Error loading DORA metrics from cache: {e}", exc_info=True)
 
-        error_state = create_metric_cards_grid(
+        return create_metric_cards_grid(
             {
                 "deployment_frequency": {
                     "metric_name": "deployment_frequency",
                     "value": None,
                     "error_state": "error",
-                    "error_message": "Calculation error - check logs",
+                    "error_message": "Error loading metrics - check logs",
                 },
                 "lead_time_for_changes": {
                     "metric_name": "lead_time_for_changes",
@@ -368,16 +224,6 @@ def calculate_and_display_dora_metrics(
                 },
             }
         )
-
-        error_message = html.Div(
-            [
-                html.I(className="fas fa-exclamation-circle me-2"),
-                f"Error: {str(e)}",
-            ],
-            className="alert alert-danger",
-        )
-
-        return error_state, error_message
 
 
 #######################################################################
@@ -1147,9 +993,10 @@ def calculate_metrics_from_settings(
             weeks=n_weeks,
         )
 
-        # Import metrics calculator
+        # Import metrics calculator (now handles both Flow AND DORA metrics)
         from data.metrics_calculator import calculate_metrics_for_last_n_weeks
 
+        # Calculate ALL metrics (Flow + DORA) using unified calculator
         success, message = calculate_metrics_for_last_n_weeks(n_weeks=n_weeks)
 
         # Mark task as completed
@@ -1175,7 +1022,7 @@ def calculate_metrics_from_settings(
             )
 
             logger.info(
-                f"Flow metrics calculation completed successfully: {n_weeks} weeks"
+                f"Flow & DORA metrics calculation completed successfully: {n_weeks} weeks"
             )
 
             return settings_status_html, False, button_normal
@@ -1192,7 +1039,7 @@ def calculate_metrics_from_settings(
                 className="text-warning small text-center mt-2",
             )
 
-            logger.warning("Flow metrics calculation had issues")
+            logger.warning("Flow & DORA metrics calculation had issues")
 
             return settings_status_html, False, button_normal
 
@@ -1339,6 +1186,55 @@ def toggle_flow_efficiency_details(n_clicks, is_open):
 )
 def toggle_flow_load_details(n_clicks, is_open):
     """Toggle Flow Load detailed chart collapse."""
+    return not is_open if n_clicks else is_open
+
+
+#######################################################################
+# DORA METRIC DETAIL CHART COLLAPSE CALLBACKS
+#######################################################################
+
+
+@callback(
+    Output("lead_time_for_changes-details-collapse", "is_open"),
+    Input("lead_time_for_changes-details-btn", "n_clicks"),
+    State("lead_time_for_changes-details-collapse", "is_open"),
+    prevent_initial_call=True,
+)
+def toggle_lead_time_details(n_clicks, is_open):
+    """Toggle Lead Time for Changes detailed chart collapse."""
+    return not is_open if n_clicks else is_open
+
+
+@callback(
+    Output("deployment_frequency-details-collapse", "is_open"),
+    Input("deployment_frequency-details-btn", "n_clicks"),
+    State("deployment_frequency-details-collapse", "is_open"),
+    prevent_initial_call=True,
+)
+def toggle_deployment_frequency_details(n_clicks, is_open):
+    """Toggle Deployment Frequency detailed chart collapse."""
+    return not is_open if n_clicks else is_open
+
+
+@callback(
+    Output("change_failure_rate-details-collapse", "is_open"),
+    Input("change_failure_rate-details-btn", "n_clicks"),
+    State("change_failure_rate-details-collapse", "is_open"),
+    prevent_initial_call=True,
+)
+def toggle_change_failure_rate_details(n_clicks, is_open):
+    """Toggle Change Failure Rate detailed chart collapse."""
+    return not is_open if n_clicks else is_open
+
+
+@callback(
+    Output("mean_time_to_recovery-details-collapse", "is_open"),
+    Input("mean_time_to_recovery-details-btn", "n_clicks"),
+    State("mean_time_to_recovery-details-collapse", "is_open"),
+    prevent_initial_call=True,
+)
+def toggle_mean_time_to_recovery_details(n_clicks, is_open):
+    """Toggle Mean Time to Recovery detailed chart collapse."""
     return not is_open if n_clicks else is_open
 
 

@@ -85,28 +85,17 @@ def populate_jira_issues_store(jira_status, statistics_data):
                 f"Merged changelog data into {issues_with_changelog_count} issues"
             )
 
-        # CRITICAL: Filter DevOps projects at SOURCE before ANY component sees the data
-        # This ensures Dashboard, Flow, DORA all work with development projects only
-        from data.persistence import load_app_settings
-        from data.project_filter import filter_development_issues
-
-        app_settings = load_app_settings()
-        devops_projects = app_settings.get("devops_projects", [])
-
-        if devops_projects:
-            total_before = len(issues)
-            issues = filter_development_issues(issues, devops_projects)
-            filtered_count = total_before - len(issues)
-            logger.info(
-                f"🔍 Filtered {filtered_count} DevOps issues at jira-issues-store level. "
-                f"All components will now use {len(issues)} development project issues only."
-            )
+        # CRITICAL CHANGE: Do NOT filter at store level!
+        # Each component (Dashboard, Flow, DORA) must filter what it needs:
+        # - Dashboard/Flow: filter_development_issues() for dev project issues only
+        # - DORA: Uses BOTH dev projects (for bugs, lead time) AND devops projects (for deployments)
+        # Filtering at source breaks DORA metrics which need DevOps issues!
 
         logger.info(
-            f"Populated jira-issues-store with {len(issues)} issues from {cache_file}"
+            f"Populated jira-issues-store with {len(issues)} issues from {cache_file} (unfiltered - components handle their own filtering)"
         )
 
-        # Return filtered issues - ALL components downstream get development projects only
+        # Return ALL issues - each component filters what it needs
         return {"issues": issues, "total_count": len(issues)}
 
     except Exception as e:

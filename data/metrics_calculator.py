@@ -507,6 +507,181 @@ def calculate_and_save_weekly_metrics(
             f"Saved Flow Velocity: {velocity_count} items completed in week {week_label}"
         )
 
+        # ============================================================================
+        # DORA METRICS CALCULATION
+        # ============================================================================
+        report_progress(
+            "📊 Calculating DORA metrics (Lead Time, Deployment Frequency)..."
+        )
+
+        from data.dora_calculator import (
+            calculate_lead_time_for_changes_v2,
+            aggregate_deployment_frequency_weekly,
+        )
+        from data.project_filter import (
+            filter_development_issues,
+            filter_operational_tasks,
+            extract_all_fixversions,
+        )
+
+        # Get DevOps projects from configuration
+        devops_projects = app_settings.get("devops_projects", [])
+
+        if devops_projects:
+            logger.info(
+                f"Calculating DORA metrics with DevOps projects: {devops_projects}"
+            )
+
+            # Filter issues by project type
+            # NOTE: all_issues contains only development issues (DevOps filtered out)
+            # For DORA, we need both dev issues AND operational tasks from DevOps projects
+            development_issues = filter_development_issues(all_issues, devops_projects)
+
+            # Extract fixVersions from development issues for operational task matching
+            development_fixversions = extract_all_fixversions(development_issues)
+            logger.info(
+                f"Extracted {len(development_fixversions)} unique fixVersions from development issues"
+            )
+
+            # CRITICAL: Use all_issues_raw (not filtered all_issues) to get operational tasks
+            # all_issues was filtered to EXCLUDE DevOps projects, but we need them for DORA
+            operational_tasks = filter_operational_tasks(
+                all_issues_raw,  # Use unfiltered data that includes RI project
+                devops_projects,
+                development_fixversions=development_fixversions,
+            )
+
+            logger.info(
+                f"DORA Week {week_label}: {len(development_issues)} development issues, "
+                f"{len(operational_tasks)} operational tasks (with matching fixVersions)"
+            )
+            logger.info(f"Week {week_label} boundaries: {week_start} to {week_end}")
+
+            # Calculate Lead Time for Changes
+            try:
+                lead_time_result = calculate_lead_time_for_changes_v2(
+                    development_issues,
+                    operational_tasks,
+                    start_date=week_start,
+                    end_date=week_end,
+                )
+
+                # Log exclusion details
+                if lead_time_result:
+                    logger.info(
+                        f"Week {week_label} Lead Time: {lead_time_result.get('issues_with_lead_time', 0)} issues matched, "
+                        f"{lead_time_result.get('no_deployment_status_count', 0)} no status, "
+                        f"{lead_time_result.get('no_operational_task_count', 0)} no op task, "
+                        f"{lead_time_result.get('no_deployment_date_count', 0)} no date, "
+                        f"{lead_time_result.get('excluded_count', 0)} excluded by time"
+                    )
+
+                if lead_time_result and lead_time_result.get("median_hours"):
+                    median_hours = lead_time_result.get("median_hours", 0)
+                    mean_hours = lead_time_result.get("mean_hours", 0)
+                    p95_hours = lead_time_result.get("p95_hours", 0)
+                    lead_time_count = lead_time_result.get(
+                        "issues_with_lead_time", 0
+                    )  # Use actual matched count, not total_issues
+
+                    # Save Lead Time snapshot (keep hours for loader compatibility)
+                    lead_time_snapshot = {
+                        "median_hours": median_hours,
+                        "mean_hours": mean_hours,
+                        "p95_hours": p95_hours,
+                        "count": lead_time_count,
+                    }
+                    save_metric_snapshot(
+                        week_label, "dora_lead_time", lead_time_snapshot
+                    )
+                    metrics_saved += 1
+                    metrics_details.append(
+                        f"DORA Lead Time: {median_hours / 24:.1f} days median ({lead_time_count} issues)"
+                    )
+                    logger.info(
+                        f"Saved DORA Lead Time: {median_hours / 24:.1f} days, {lead_time_count} issues"
+                    )
+                else:
+                    # Save empty snapshot (use hours for loader compatibility)
+                    lead_time_snapshot = {
+                        "median_hours": 0,
+                        "mean_hours": 0,
+                        "p95_hours": 0,
+                        "count": 0,
+                    }
+                    save_metric_snapshot(
+                        week_label, "dora_lead_time", lead_time_snapshot
+                    )
+                    metrics_saved += 1
+                    metrics_details.append(
+                        "DORA Lead Time: No Data (no matching dev→ops linkage)"
+                    )
+                    logger.info(f"DORA Lead Time: No data for week {week_label}")
+
+            except Exception as e:
+                logger.error(f"Failed to calculate DORA Lead Time: {e}", exc_info=True)
+                # Save empty snapshot on error (use hours for loader compatibility)
+                lead_time_snapshot = {
+                    "median_hours": 0,
+                    "mean_hours": 0,
+                    "p95_hours": 0,
+                    "count": 0,
+                }
+                save_metric_snapshot(week_label, "dora_lead_time", lead_time_snapshot)
+                metrics_saved += 1
+                metrics_details.append(f"DORA Lead Time: Error ({str(e)[:50]})")
+
+            # Calculate Deployment Frequency
+            try:
+                completion_statuses = app_settings.get(
+                    "completion_statuses", ["Done", "Resolved", "Closed"]
+                )
+
+                # Get deployment count for this single week
+                weekly_deployments = aggregate_deployment_frequency_weekly(
+                    operational_tasks,
+                    completion_statuses,
+                    [week_label],  # Single week
+                    case_sensitive=False,
+                )
+
+                deployment_count = weekly_deployments.get(week_label, 0)
+
+                # Save Deployment Frequency snapshot (use "deployment_count" for loader compatibility)
+                deployment_snapshot = {
+                    "deployment_count": deployment_count,
+                    "week": week_label,
+                }
+                save_metric_snapshot(
+                    week_label, "dora_deployment_frequency", deployment_snapshot
+                )
+                metrics_saved += 1
+                metrics_details.append(
+                    f"DORA Deployment Frequency: {deployment_count} deployments"
+                )
+                logger.info(
+                    f"Saved DORA Deployment Frequency: {deployment_count} deployments"
+                )
+
+            except Exception as e:
+                logger.error(
+                    f"Failed to calculate DORA Deployment Frequency: {e}", exc_info=True
+                )
+                # Save empty snapshot on error
+                deployment_snapshot = {"deployments_count": 0, "week": week_label}
+                save_metric_snapshot(
+                    week_label, "dora_deployment_frequency", deployment_snapshot
+                )
+                metrics_saved += 1
+                metrics_details.append(
+                    f"DORA Deployment Frequency: Error ({str(e)[:50]})"
+                )
+        else:
+            logger.warning("No DevOps projects configured, skipping DORA metrics")
+            metrics_details.append(
+                "DORA Metrics: Skipped (no DevOps projects configured)"
+            )
+
         # Save metadata
         trends = {
             "flow_time_trend": "stable",
@@ -565,20 +740,18 @@ def calculate_metrics_for_last_n_weeks(
         failed_weeks = []
 
         for week_label, monday, sunday in weeks:
-            # Normalize week label format (remove "W" prefix if present)
-            week_label_normalized = week_label.replace("W", "").replace("-W", "-")
+            # Use ISO week format (YYYY-Wxx) consistently - DO NOT normalize/strip the 'W'
+            # This ensures saved data keys match what loaders expect
 
-            logger.info(
-                f"Processing week {week_label_normalized} ({monday} to {sunday})"
-            )
+            logger.info(f"Processing week {week_label} ({monday} to {sunday})")
 
             if progress_callback:
                 progress_callback(
-                    f"📅 Calculating metrics for week {week_label_normalized} ({monday} to {sunday})..."
+                    f"📅 Calculating metrics for week {week_label} ({monday} to {sunday})..."
                 )
 
             success, message = calculate_and_save_weekly_metrics(
-                week_label=week_label_normalized, progress_callback=progress_callback
+                week_label=week_label, progress_callback=progress_callback
             )
 
             if success:

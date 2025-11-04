@@ -363,15 +363,33 @@ def filter_operational_tasks(
         return []
 
     # Step 1: Filter by operational projects AND issue type
-    operational_tasks = [
-        issue
-        for issue in issues
-        if get_issue_project_key(issue) in operational_projects
-        and get_issue_type(issue) == "Operational Task"
-    ]
+    operational_tasks = []
+    project_mismatch_count = 0
+    type_mismatch_count = 0
+
+    for issue in issues:
+        project_key = get_issue_project_key(issue)
+        issue_type = get_issue_type(issue)
+
+        if project_key in operational_projects:
+            if issue_type == "Operational Task":
+                operational_tasks.append(issue)
+            else:
+                type_mismatch_count += 1
+                if type_mismatch_count <= 3:  # Log first 3 examples
+                    logger.debug(
+                        f"Issue {issue.get('key')} in operational project but wrong type: "
+                        f"'{issue_type}' != 'Operational Task'"
+                    )
+        else:
+            project_mismatch_count += 1
 
     if not operational_tasks:
-        logger.info("No Operational Tasks found in operational projects")
+        logger.info(
+            f"No Operational Tasks found in operational projects. "
+            f"Checked {len(issues)} issues: {project_mismatch_count} wrong project, "
+            f"{type_mismatch_count} wrong type"
+        )
         return []
 
     logger.info(

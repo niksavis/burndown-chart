@@ -207,10 +207,50 @@ def _get_date_field_value(fields: Dict[str, Any], field_id: str) -> Optional[str
         return fields.get(field_id)
 
 
+def _check_deployment_failed(fields: Dict[str, Any], change_failure_field: str) -> bool:
+    """Check if deployment caused a failure/incident in production.
+
+    This function handles different field types for change failure indicators:
+    - Select list fields: Checks if value is "Yes" (indicating failure)
+    - Boolean fields: Returns True if field is True
+    - String fields: Checks if value indicates failure
+    - None/missing: Returns False (no failure reported)
+
+    Args:
+        fields: Issue fields dictionary from Jira API
+        change_failure_field: Jira field ID to check (e.g., "customfield_10001")
+
+    Returns:
+        True if deployment caused a failure, False otherwise
+    """
+    field_value = fields.get(change_failure_field)
+
+    if not field_value:
+        return False  # No value = no failure reported
+
+    # Handle select list field (dict with value)
+    if isinstance(field_value, dict):
+        option_value = field_value.get("value", "")
+        if option_value:
+            return option_value.lower() in ["yes", "true", "failed", "failure"]
+
+    # Handle boolean field
+    if isinstance(field_value, bool):
+        return field_value
+
+    # Handle string field
+    if isinstance(field_value, str):
+        return field_value.lower() in ["yes", "true", "failed", "failure"]
+
+    return False
+
+
 def _check_deployment_successful(
     fields: Dict[str, Any], deployment_successful_field: str
 ) -> bool:
-    """Check if deployment was successful based on field value.
+    """DEPRECATED: Use _check_deployment_failed instead.
+
+    Check if deployment was successful based on field value.
 
     This function handles different field types for deployment success indicators:
     - Multi-checkbox fields (like Deployment Approval): Checks if array contains 'Approved' option
@@ -357,7 +397,6 @@ def calculate_deployment_frequency(
         }
 
     deployment_date_field = field_mappings["deployment_date"]
-    deployment_successful_field = field_mappings.get("deployment_successful")
 
     # Calculate time period boundaries (use provided dates if available)
     if start_date is None or end_date is None:
@@ -368,6 +407,8 @@ def calculate_deployment_frequency(
         time_period_days = (end_date - start_date).days
 
     # Filter and parse deployments
+    # NOTE: Count ALL deployments, regardless of success/failure
+    # Change Failure Rate separately tracks which deployments failed
     valid_deployments = []
     excluded_count = 0
 
@@ -387,15 +428,7 @@ def calculate_deployment_frequency(
             excluded_count += 1
             continue
 
-        # Check if deployment was successful (if field is mapped)
-        if deployment_successful_field:
-            was_successful = _check_deployment_successful(
-                fields, deployment_successful_field
-            )
-            if not was_successful:
-                excluded_count += 1
-                continue
-
+        # Count ALL deployments for Deployment Frequency metric
         valid_deployments.append(deployment_date)
 
     # Handle no data case
@@ -633,33 +666,52 @@ def calculate_change_failure_rate(
             "trend_percentage": 0.0,
         }
 
-    # Count production incidents
-    production_impact_field = field_mappings.get("production_impact")
-    incident_count = 0
+    # Check if change_failure field is mapped (preferred method)
+    change_failure_field = field_mappings.get("change_failure")
     excluded_count = 0
 
-    for issue in incident_issues:
-        fields = issue.get("fields", {})
+    if change_failure_field:
+        # Method 1: Use change_failure field on deployment issues
+        # Count deployments where change_failure = "Yes" (indicating production issue)
+        failed_deployment_count = 0
 
-        # If production_impact field is mapped, only count incidents with impact
-        if production_impact_field:
-            has_impact = fields.get(production_impact_field)
-            if has_impact:
-                incident_count += 1
+        for issue in deployment_issues:
+            fields = issue.get("fields", {})
+            if _check_deployment_failed(fields, change_failure_field):
+                failed_deployment_count += 1
+
+        failure_count = failed_deployment_count
+        logger.info(
+            f"CFR Debug: Using change_failure field - {failed_deployment_count} failed out of {deployment_count} total"
+        )
+    else:
+        # Method 2: Fallback to incident-based calculation
+        # Count production incidents
+        production_impact_field = field_mappings.get("production_impact")
+        incident_count = 0
+
+        for issue in incident_issues:
+            fields = issue.get("fields", {})
+
+            # If production_impact field is mapped, only count incidents with impact
+            if production_impact_field:
+                has_impact = fields.get(production_impact_field)
+                if has_impact:
+                    incident_count += 1
+                else:
+                    excluded_count += 1
             else:
-                excluded_count += 1
-        else:
-            # If not mapped, count all incidents
-            incident_count += 1
+                # If not mapped, count all incidents
+                incident_count += 1
 
-    # DEBUG: Log final counts
-    logger.info(
-        f"CFR Debug: incident_count = {incident_count}, deployment_count = {deployment_count}"
-    )
-    logger.info(f"CFR Debug: production_impact_field = {production_impact_field}")
+        failure_count = incident_count
+        logger.info(
+            f"CFR Debug: Using incident-based calculation - {incident_count} incidents, {deployment_count} deployments"
+        )
+        logger.info(f"CFR Debug: production_impact_field = {production_impact_field}")
 
     # Calculate failure rate percentage
-    failure_rate = (incident_count / deployment_count) * 100
+    failure_rate = (failure_count / deployment_count) * 100
 
     # Determine performance tier
     tier_info = _determine_performance_tier(failure_rate, CHANGE_FAILURE_RATE_TIERS)
@@ -680,7 +732,7 @@ def calculate_change_failure_rate(
         "calculation_timestamp": datetime.now().isoformat(),
         "details": {
             "deployment_count": deployment_count,
-            "incident_count": incident_count,
+            "failure_count": failure_count,
         },
         "trend_direction": trend_data["trend_direction"],
         "trend_percentage": trend_data["trend_percentage"],
@@ -1054,7 +1106,6 @@ def calculate_lead_time_for_changes_v2(
         get_first_status_transition_timestamp,
         get_first_status_transition_from_list,
     )
-    from data.fixversion_matcher import get_earliest_deployment_date
 
     # Default time period: last 30 days of completed issues
     if end_date is None:
@@ -1104,7 +1155,12 @@ def calculate_lead_time_for_changes_v2(
                 continue
 
         # Step 2: Find matching operational task and deployment date (end time)
-        result = get_earliest_deployment_date(issue, operational_tasks)
+        # Use get_relevant_deployment_date which filters to deployments AFTER ready time
+        from data.fixversion_matcher import get_relevant_deployment_date
+
+        result = get_relevant_deployment_date(
+            issue, operational_tasks, deployment_ready_time=deployment_ready_time
+        )
 
         deployment_date = None
 
@@ -1127,13 +1183,24 @@ def calculate_lead_time_for_changes_v2(
             excluded_count += 1
             continue
 
+        # Convert date to datetime for comparison (deployment_date comes from get_earliest_deployment_date as date object)
+        if isinstance(deployment_date, datetime):
+            deployment_datetime = deployment_date
+        else:
+            # Convert date to datetime (assume midnight UTC)
+            deployment_datetime = datetime.combine(
+                deployment_date, datetime.min.time()
+            ).replace(tzinfo=timezone.utc)
+
         # Step 3: Filter by time period (based on deployment date)
-        if not (start_date <= deployment_date <= end_date):
+        if not (start_date <= deployment_datetime <= end_date):
             excluded_count += 1
             continue
 
         # Step 4: Calculate lead time
-        lead_time_seconds = (deployment_date - deployment_ready_time).total_seconds()
+        lead_time_seconds = (
+            deployment_datetime - deployment_ready_time
+        ).total_seconds()
         lead_time_hours = lead_time_seconds / 3600
 
         # Sanity check: negative lead time indicates data issue
@@ -1151,7 +1218,7 @@ def calculate_lead_time_for_changes_v2(
                 "issue_key": issue_key,
                 "lead_time_hours": round(lead_time_hours, 2),
                 "deployment_ready": deployment_ready_time.isoformat(),
-                "deployment_date": deployment_date.isoformat(),
+                "deployment_date": deployment_datetime.isoformat(),
             }
         )
 
@@ -1524,7 +1591,15 @@ def calculate_mttr_v2(
 
         if result:
             deployment_date, matched_op_task, match_method = result
-            fix_deployed = deployment_date
+            # Convert date to datetime for calculation (deployment_date is a date object)
+            if isinstance(deployment_date, datetime):
+                fix_deployed = deployment_date
+            else:
+                # Convert date to datetime (assume midnight UTC)
+                fix_deployed = datetime.combine(
+                    deployment_date, datetime.min.time()
+                ).replace(tzinfo=timezone.utc)
+
             logger.debug(
                 f"{bug_key}: Fix deployed via {matched_op_task.get('key')} (by {match_method}), "
                 f"deployment_date={fix_deployed}"
@@ -1570,7 +1645,9 @@ def calculate_mttr_v2(
                 "bug_key": bug_key,
                 "recovery_hours": round(recovery_hours, 2),
                 "created": bug_created.isoformat(),
-                "fixed": fix_deployed.isoformat(),
+                "fixed": fix_deployed.isoformat()
+                if isinstance(fix_deployed, datetime)
+                else fix_deployed.strftime("%Y-%m-%d"),
             }
         )
 

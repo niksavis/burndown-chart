@@ -11,7 +11,7 @@ from typing import Dict, Any
 import dash_bootstrap_components as dbc
 from dash import html, dcc
 
-from ui.metric_cards import create_metric_cards_grid, create_loading_card
+from ui.metric_cards import create_loading_card
 
 
 def create_dora_dashboard() -> dbc.Container:
@@ -38,11 +38,14 @@ def create_dora_dashboard() -> dbc.Container:
                             ),
                             html.P(
                                 [
-                                    html.I(className="fas fa-calendar-week me-2"),
+                                    html.I(className="fas fa-info-circle me-2"),
                                     "Metrics calculated per ISO week (Monday-Sunday). ",
                                     "Use ",
+                                    html.Strong("Calculate Metrics"),
+                                    " button in Settings panel to refresh data. ",
+                                    "Use ",
                                     html.Strong("Data Points slider"),
-                                    " in Settings to control number of weeks displayed.",
+                                    " to control number of weeks displayed.",
                                 ],
                                 className="text-muted small mb-4",
                             ),
@@ -52,61 +55,10 @@ def create_dora_dashboard() -> dbc.Container:
                 ],
                 className="mb-4",
             ),
-            # Loading/Error state placeholder
-            dbc.Row(
-                [
-                    dbc.Col(
-                        [
-                            html.Div(
-                                id="dora-loading-state",
-                                children=[],  # Will be populated by callback
-                            ),
-                        ],
-                        width=12,
-                    ),
-                ],
-                className="mb-3",
-            ),
             # Metrics cards grid
-            dbc.Row(
-                [
-                    dbc.Col(
-                        [
-                            html.Div(
-                                id="dora-metrics-cards-container",
-                                children=[
-                                    # Initial loading state
-                                    create_metric_cards_grid(
-                                        {
-                                            "deployment_frequency": {
-                                                "metric_name": "deployment_frequency",
-                                                "value": None,
-                                                "error_state": "loading",
-                                            },
-                                            "lead_time_for_changes": {
-                                                "metric_name": "lead_time_for_changes",
-                                                "value": None,
-                                                "error_state": "loading",
-                                            },
-                                            "change_failure_rate": {
-                                                "metric_name": "change_failure_rate",
-                                                "value": None,
-                                                "error_state": "loading",
-                                            },
-                                            "mean_time_to_recovery": {
-                                                "metric_name": "mean_time_to_recovery",
-                                                "value": None,
-                                                "error_state": "loading",
-                                            },
-                                        }
-                                    ),
-                                ],
-                            ),
-                        ],
-                        width=12,
-                    ),
-                ],
-                className="mb-4",
+            html.Div(
+                id="dora-metrics-cards-container",
+                children=[],  # Will be populated by callback (no loading placeholders)
             ),
             # Information and help section
             dbc.Row(

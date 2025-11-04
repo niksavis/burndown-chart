@@ -359,10 +359,18 @@ def _create_error_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
     if card_id:
         card_props["id"] = card_id
 
+    # Determine badge text based on error state
+    badge_text_map = {
+        "no_data": "No Data",
+        "missing_mapping": "Setup Required",
+        "calculation_error": "Error",
+    }
+    badge_text = badge_text_map.get(error_state, "Error")
+
     card_header = dbc.CardHeader(
         [
             html.Span(display_name, className="metric-card-title"),
-            dbc.Badge("Error", color=config["color"], className="float-end"),
+            dbc.Badge(badge_text, color=config["color"], className="float-end"),
         ]
     )
 

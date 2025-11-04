@@ -13,7 +13,15 @@ from datetime import datetime
 # Third-party library imports
 import dash
 import dash_bootstrap_components as dbc
-from dash import Input, Output, State, callback_context, html, no_update
+from dash import (
+    Input,
+    Output,
+    State,
+    callback_context,
+    html,
+    no_update,
+    ClientsideFunction,
+)
 from dash.exceptions import PreventUpdate
 
 # Application imports
@@ -302,6 +310,14 @@ def register(app):
     # Data source selection was part of old UI design and has been removed
     # JIRA data loading is now triggered directly by the "Update Data" button
 
+    # Clientside callback to detect force refresh from long-press
+    app.clientside_callback(
+        ClientsideFunction(namespace="forceRefresh", function_name="updateStore"),
+        Output("force-refresh-store", "data"),
+        Input("update-data-unified", "n_clicks"),
+        prevent_initial_call=True,
+    )
+
     @app.callback(
         [
             Output("upload-data", "contents", allow_duplicate=True),
@@ -525,8 +541,19 @@ def register(app):
 
             # Convert checkbox value to boolean (None = False)
             force_refresh_bool = bool(force_refresh)
+
+            # DEBUG: Log what we received from the store
+            logger.info(
+                f"🔍 DEBUG: force_refresh value = {force_refresh}, bool = {force_refresh_bool}"
+            )
+
             if force_refresh_bool:
-                logger.info("🔄 Force refresh enabled by user")
+                logger.info("=" * 60)
+                logger.info("🔄 FORCE REFRESH ENABLED BY USER (long-press detected)")
+                logger.info(
+                    "Cache will be invalidated and fresh data fetched from JIRA"
+                )
+                logger.info("=" * 60)
 
             success, message, scope_data = sync_jira_scope_and_data(
                 settings_jql, jira_config_for_sync, force_refresh=force_refresh_bool

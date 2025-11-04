@@ -727,6 +727,14 @@ FLOW_METRICS_TOOLTIPS = {
     "flow_distribution": "Breakdown of completed work by type: Features (new value), Defects (quality issues), Risk (security/compliance), and Tech Debt (maintenance). Balanced distribution indicates healthy development practices.",
 }
 
+# DORA METRICS HELP CONTENT - Tooltips for DORA metrics
+DORA_METRICS_TOOLTIPS = {
+    "deployment_frequency": "How often code is deployed to production. Measures release cadence and automation maturity. Elite performers deploy multiple times per day, high performers deploy weekly. More frequent deployments enable faster feedback and lower change risk.",
+    "lead_time_for_changes": "Time from code commit to production deployment in days. Measures end-to-end delivery speed from development to operations. Elite performers achieve <1 day, high performers <1 week. Shorter lead times enable faster value delivery and market response.",
+    "change_failure_rate": "Percentage of deployments causing production failures requiring remediation (rollback, hotfix, etc.). Measures deployment quality and testing effectiveness. Elite performers maintain <15% failure rate. Lower rates indicate mature testing and deployment practices.",
+    "mean_time_to_recovery": "Average time to restore service after production incident in hours. Measures operational resilience and incident response capability. Elite performers recover in <1 hour. Faster recovery reduces customer impact and business risk.",
+}
+
 # SETTINGS PANEL HELP CONTENT - Tooltips for settings panel features
 SETTINGS_PANEL_TOOLTIPS = {
     "jira_integration": "Connect to your JIRA instance to automatically import project data. Configure your JIRA server URL, authentication, and field mappings to sync work items, story points, and completion dates.",
@@ -754,5 +762,6 @@ COMPREHENSIVE_HELP_CONTENT = {
     "dashboard": DASHBOARD_METRICS_TOOLTIPS,
     "parameters": PARAMETER_INPUTS_TOOLTIPS,
     "flow_metrics": FLOW_METRICS_TOOLTIPS,
+    "dora_metrics": DORA_METRICS_TOOLTIPS,
     "settings": SETTINGS_PANEL_TOOLTIPS,
 }

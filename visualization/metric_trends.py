@@ -82,7 +82,14 @@ def create_metric_trend_sparkline(
         min_val = min(values)
         max_val = max(values)
         range_padding = (max_val - min_val) * 0.2 if max_val > min_val else 1
-        y_range = [min_val - range_padding, max_val + range_padding]
+        y_min = min_val - range_padding
+        y_max = max_val + range_padding
+
+        # For percentage/ratio metrics (values between 0-100), never go below 0
+        if max_val <= 100 and min_val >= 0:
+            y_min = max(0, y_min)  # Don't go below 0 for percentages
+
+        y_range = [y_min, y_max]
     else:
         y_range = None
 

@@ -39,10 +39,11 @@ def create_flow_dashboard() -> dbc.Container:
                             ),
                             html.P(
                                 [
-                                    html.I(className="fas fa-calculator me-2"),
+                                    html.I(className="fas fa-info-circle me-2"),
+                                    "Metrics calculated per ISO week (Monday-Sunday). ",
                                     "Use ",
                                     html.Strong("Calculate Metrics"),
-                                    " button in Settings panel to refresh metrics. ",
+                                    " button in Settings panel to refresh data. ",
                                     "Use ",
                                     html.Strong("Data Points slider"),
                                     " to control number of weeks displayed.",
