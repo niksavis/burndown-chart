@@ -37,12 +37,38 @@ def _get_default_jql_query():
 
 
 def _get_default_jql_profile_id():
-    """Get active JQL profile ID from settings."""
+    """
+    Get profile ID for dropdown initial value.
+
+    Priority:
+    1. If jql_query exactly matches a saved profile → return that profile ID
+    2. Otherwise → return empty (dropdown shows no selection)
+
+    This ensures the dropdown accurately reflects whether the current query
+    matches a saved profile or is a custom query.
+    """
     try:
         from data.persistence import load_app_settings
+        from data.jira_query_manager import load_query_profiles
 
         app_settings = load_app_settings()
-        return app_settings.get("active_jql_profile_id", "")
+        jql_query = app_settings.get("jql_query", "")
+
+        if not jql_query:
+            return ""
+
+        # Try to match current JQL query to a saved profile
+        profiles = load_query_profiles()
+        normalized_query = jql_query.strip().lower()
+
+        for profile in profiles:
+            profile_jql = profile.get("jql", "")
+            if profile_jql.strip().lower() == normalized_query:
+                return profile.get("id", "")
+
+        # No match found - return empty (user has custom query)
+        return ""
+
     except (ImportError, Exception):
         return ""
 
