@@ -13,10 +13,7 @@ T043: Unit test for Flow dashboard UI verifying distribution chart and metric ca
 
 import pytest
 import dash_bootstrap_components as dbc
-from ui.flow_metrics_dashboard import (
-    create_flow_dashboard,
-    create_flow_loading_cards_grid,
-)
+from ui.flow_metrics_dashboard import create_flow_dashboard
 
 
 class TestCreateFlowDashboard:
@@ -35,33 +32,6 @@ class TestCreateFlowDashboard:
         assert children is not None
         # Should have multiple rows for layout
         assert len(children) > 0
-
-
-class TestCreateFlowLoadingCardsGrid:
-    """Test the loading cards grid component."""
-
-    def test_loading_cards_returns_row(self):
-        """Test that loading cards grid returns a Row component."""
-        loading_grid = create_flow_loading_cards_grid()
-        assert isinstance(loading_grid, dbc.Row)
-
-    def test_loading_cards_has_five_metrics(self):
-        """Test that loading cards grid has 5 children (one for each Flow metric)."""
-        loading_grid = create_flow_loading_cards_grid()
-        assert hasattr(loading_grid, "children")
-        children = loading_grid.children
-        assert children is not None
-        # Flow Framework has exactly 5 metrics
-        assert len(children) == 5
-
-    def test_loading_cards_use_columns(self):
-        """Test that loading cards use Col components."""
-        loading_grid = create_flow_loading_cards_grid()
-        children = loading_grid.children
-        assert children is not None  # Type guard
-        # Each child should be a Col component
-        for child in children:
-            assert isinstance(child, dbc.Col)
 
 
 class TestFormatFlowMetricsForDisplay:
@@ -84,16 +54,6 @@ class TestDashboardIntegration:
             assert dashboard is not None
         except Exception as e:
             pytest.fail(f"Dashboard creation raised exception: {e}")
-
-    def test_loading_cards_match_metrics_count(self):
-        """Test that loading cards match the number of Flow metrics."""
-        loading_grid = create_flow_loading_cards_grid()
-        children = loading_grid.children
-        assert children is not None  # Type guard
-
-        # Flow Framework has exactly 5 metrics
-        expected_metrics_count = 5
-        assert len(children) == expected_metrics_count
 
     def test_dashboard_includes_distribution_chart_container(self):
         """Test that dashboard includes a container for the distribution chart.

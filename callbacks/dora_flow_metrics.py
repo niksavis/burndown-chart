@@ -67,6 +67,10 @@ def load_and_display_dora_metrics(
         logger.info(f"DORA: Loading metrics from cache for {n_weeks} weeks")
         cached_metrics = load_dora_metrics_from_cache(n_weeks=n_weeks)
 
+        # Store n_weeks in cached_metrics for display context
+        if cached_metrics:
+            cached_metrics["_n_weeks"] = n_weeks
+
         # CRITICAL DEBUG LOGGING
         logger.info(f"===== DORA METRICS DEBUG =====")
         logger.info(f"cached_metrics type: {type(cached_metrics)}")
@@ -119,16 +123,18 @@ def load_and_display_dora_metrics(
 
         # Load metrics from cache and create display
         # Use .get() with defaults to safely handle missing or None values
+        n_weeks_display = cached_metrics.get("_n_weeks", 12)
+
         metrics_data = {
             "deployment_frequency": {
                 "metric_name": "deployment_frequency",
                 "value": cached_metrics.get("deployment_frequency", {}).get("value", 0),
-                "unit": "deployments",
+                "unit": f"deployments/week (avg {n_weeks_display}w)",
                 "error_state": "success",
                 "total_issue_count": cached_metrics.get("deployment_frequency", {}).get(
                     "total_issue_count", 0
                 ),
-                "tooltip": DORA_METRICS_TOOLTIPS.get("deployment_frequency", ""),
+                "tooltip": f"{DORA_METRICS_TOOLTIPS.get('deployment_frequency', '')} Average calculated over last {n_weeks_display} weeks.",
                 "weekly_labels": cached_metrics.get("deployment_frequency", {}).get(
                     "weekly_labels", []
                 ),
@@ -139,7 +145,7 @@ def load_and_display_dora_metrics(
             "lead_time_for_changes": {
                 "metric_name": "lead_time_for_changes",
                 "value": cached_metrics.get("lead_time_for_changes", {}).get("value"),
-                "unit": "days",
+                "unit": f"days (avg {n_weeks_display}w)",
                 "error_state": "success"
                 if cached_metrics.get("lead_time_for_changes", {}).get("value")
                 is not None
@@ -147,7 +153,7 @@ def load_and_display_dora_metrics(
                 "total_issue_count": cached_metrics.get(
                     "lead_time_for_changes", {}
                 ).get("total_issue_count", 0),
-                "tooltip": DORA_METRICS_TOOLTIPS.get("lead_time_for_changes", ""),
+                "tooltip": f"{DORA_METRICS_TOOLTIPS.get('lead_time_for_changes', '')} Average calculated over last {n_weeks_display} weeks.",
                 "weekly_labels": cached_metrics.get("lead_time_for_changes", {}).get(
                     "weekly_labels", []
                 ),
@@ -158,12 +164,12 @@ def load_and_display_dora_metrics(
             "change_failure_rate": {
                 "metric_name": "change_failure_rate",
                 "value": cached_metrics.get("change_failure_rate", {}).get("value", 0),
-                "unit": "%",
+                "unit": f"% (agg {n_weeks_display}w)",
                 "error_state": "success",
                 "total_issue_count": cached_metrics.get("change_failure_rate", {}).get(
                     "total_issue_count", 0
                 ),
-                "tooltip": DORA_METRICS_TOOLTIPS.get("change_failure_rate", ""),
+                "tooltip": f"{DORA_METRICS_TOOLTIPS.get('change_failure_rate', '')} Aggregate rate calculated over last {n_weeks_display} weeks.",
                 "weekly_labels": cached_metrics.get("change_failure_rate", {}).get(
                     "weekly_labels", []
                 ),
@@ -174,7 +180,7 @@ def load_and_display_dora_metrics(
             "mean_time_to_recovery": {
                 "metric_name": "mean_time_to_recovery",
                 "value": cached_metrics.get("mean_time_to_recovery", {}).get("value"),
-                "unit": "hours",
+                "unit": f"hours (avg {n_weeks_display}w)",
                 "error_state": "success"
                 if cached_metrics.get("mean_time_to_recovery", {}).get("value")
                 is not None
@@ -182,7 +188,7 @@ def load_and_display_dora_metrics(
                 "total_issue_count": cached_metrics.get(
                     "mean_time_to_recovery", {}
                 ).get("total_issue_count", 0),
-                "tooltip": DORA_METRICS_TOOLTIPS.get("mean_time_to_recovery", ""),
+                "tooltip": f"{DORA_METRICS_TOOLTIPS.get('mean_time_to_recovery', '')} Average calculated over last {n_weeks_display} weeks.",
                 "weekly_labels": cached_metrics.get("mean_time_to_recovery", {}).get(
                     "weekly_labels", []
                 ),

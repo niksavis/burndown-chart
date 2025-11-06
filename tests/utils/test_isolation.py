@@ -58,7 +58,7 @@ def isolated_app_settings(initial_settings: Optional[Dict[str, Any]] = None):
 
     try:
         # Patch the settings file path
-        with patch("data.persistence.SETTINGS_FILE", temp_file):
+        with patch("data.persistence.APP_SETTINGS_FILE", temp_file):
             yield temp_file
     finally:
         # Cleanup

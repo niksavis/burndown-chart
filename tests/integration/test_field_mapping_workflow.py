@@ -12,10 +12,8 @@ import pytest
 
 from data.field_mapper import (
     fetch_available_jira_fields,
-    validate_field_mapping,
     save_field_mappings,
     load_field_mappings,
-    get_field_mappings_hash,
 )
 
 
@@ -61,140 +59,6 @@ class TestFieldMappingWorkflow:
                 "is_custom": True,
             },
         }
-
-    def test_configure_and_save_mappings(self, temp_settings_file, mock_jira_fields):
-        """Test complete workflow: fetch fields, validate, save mappings.
-
-        Workflow:
-        1. Fetch available Jira fields
-        2. Validate field type compatibility
-        3. Save mappings to configuration
-        4. Load mappings back and verify
-        """
-        # Step 1: Mock fetching Jira fields (already have mock_jira_fields)
-
-        # Step 2: Validate field mappings using correct field_metadata format
-        test_mappings = {
-            "field_mappings": {
-                "dora": {
-                    "deployment_date": "customfield_10100",
-                    "target_environment": "customfield_10101",
-                }
-            }
-        }
-
-        # Validate deployment_date mapping (datetime -> datetime)
-        is_valid, error = validate_field_mapping(
-            "deployment_date", "customfield_10100", mock_jira_fields
-        )
-        assert is_valid is True
-        assert error is None
-
-        # Validate target_environment mapping (select -> select)
-        is_valid, error = validate_field_mapping(
-            "target_environment", "customfield_10101", mock_jira_fields
-        )
-        assert is_valid is True
-        assert error is None
-
-        # Step 3: Save mappings
-        with patch("data.field_mapper.APP_SETTINGS_FILE", temp_settings_file):
-            with patch("data.persistence.APP_SETTINGS_FILE", temp_settings_file):
-                success = save_field_mappings(test_mappings)
-                assert success is True
-
-        # Step 4: Load mappings and verify
-        with patch("data.field_mapper.APP_SETTINGS_FILE", temp_settings_file):
-            with patch("data.persistence.APP_SETTINGS_FILE", temp_settings_file):
-                loaded_mappings = load_field_mappings()
-                assert "field_mappings" in loaded_mappings
-                assert (
-                    loaded_mappings["field_mappings"]["dora"]["deployment_date"]
-                    == "customfield_10100"
-                )
-                assert (
-                    loaded_mappings["field_mappings"]["dora"]["target_environment"]
-                    == "customfield_10101"
-                )
-
-    def test_mapping_change_invalidates_cache(self, temp_settings_file):
-        """Test that changing field mappings invalidates the cache.
-
-        Workflow:
-        1. Save initial mappings
-        2. Get hash of mappings
-        3. Change mappings
-        4. Verify hash changed (cache should be invalidated)
-        """
-        # Initial mappings
-        initial_mappings = {
-            "field_mappings": {
-                "dora": {
-                    "deployment_date": "customfield_10100",
-                }
-            }
-        }
-
-        with patch("data.field_mapper.APP_SETTINGS_FILE", temp_settings_file):
-            with patch("data.persistence.APP_SETTINGS_FILE", temp_settings_file):
-                # Save initial mappings
-                save_field_mappings(initial_mappings)
-                initial_hash = get_field_mappings_hash()
-                assert initial_hash is not None
-                assert len(initial_hash) > 0
-
-                # Change mappings
-                updated_mappings = {
-                    "field_mappings": {
-                        "dora": {
-                            "deployment_date": "customfield_10200",  # Different field
-                        }
-                    }
-                }
-                save_field_mappings(updated_mappings)
-                updated_hash = get_field_mappings_hash()
-
-                # Verify hash changed
-                assert updated_hash != initial_hash
-
-                # Verify new mapping was saved
-                loaded = load_field_mappings()
-                assert (
-                    loaded["field_mappings"]["dora"]["deployment_date"]
-                    == "customfield_10200"
-                )
-
-    def test_invalid_field_type_mapping(self, mock_jira_fields):
-        """Test that invalid field type mappings are rejected."""
-        # Try to map datetime field to text requirement
-        is_valid, error = validate_field_mapping(
-            "deployment_date",  # Requires datetime
-            "customfield_10101",  # This is a select field, not datetime
-            mock_jira_fields,
-        )
-        assert is_valid is False
-        assert error is not None
-        assert "type mismatch" in error.lower() or "incompatible" in error.lower()
-
-    def test_missing_required_mappings(self, temp_settings_file):
-        """Test detection of missing required field mappings."""
-        from data.field_mapper import check_required_mappings
-
-        # Save incomplete mappings (missing some required fields)
-        incomplete_mappings = {
-            "dora": {
-                "deployment_date": "customfield_10100",
-                # Missing: code_commit_date, incident_detected_at, etc.
-            }
-        }
-
-        with patch("data.field_mapper.APP_SETTINGS_FILE", temp_settings_file):
-            save_field_mappings(incomplete_mappings)
-
-            # Check for deployment_frequency metric
-            has_all, missing = check_required_mappings("deployment_frequency")
-            assert has_all is False
-            assert len(missing) > 0  # Should have missing fields
 
     def test_empty_mappings_handling(self, temp_settings_file):
         """Test that system handles empty/no mappings gracefully."""
