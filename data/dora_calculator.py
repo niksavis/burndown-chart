@@ -358,6 +358,7 @@ def calculate_deployment_frequency(
     start_date: Optional[datetime] = None,
     end_date: Optional[datetime] = None,
     devops_projects: Optional[List[str]] = None,
+    devops_task_types: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """Calculate deployment frequency metric.
 
@@ -369,15 +370,18 @@ def calculate_deployment_frequency(
         start_date: Optional explicit start date (overrides time_period_days calculation)
         end_date: Optional explicit end date (overrides time_period_days calculation)
         devops_projects: List of DevOps project keys (e.g., ["DEVOPS"]) for filtering deployment issues
+        devops_task_types: List of issue type names for DevOps tasks (backward compatible)
 
     Returns:
         Metric data dictionary with value, unit, performance tier, trend data, and metadata
     """
-    # Filter to deployment issues only (Operational Tasks in DevOps projects)
+    # Filter to deployment issues only (DevOps task types in DevOps projects)
     if devops_projects is None:
         devops_projects = []
 
-    deployment_issues = filter_deployment_issues(issues, devops_projects)
+    deployment_issues = filter_deployment_issues(
+        issues, devops_projects, devops_task_types
+    )
 
     # Check for required field mapping
     if "deployment_date" not in field_mappings:
@@ -602,6 +606,9 @@ def calculate_change_failure_rate(
     field_mappings: Dict[str, str],
     previous_period_value: Optional[float] = None,
     devops_projects: Optional[List[str]] = None,
+    devops_task_types: Optional[List[str]] = None,
+    bug_types: Optional[List[str]] = None,
+    production_environment_values: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """Calculate change failure rate metric.
 
@@ -611,22 +618,29 @@ def calculate_change_failure_rate(
         field_mappings: Mapping of internal fields to Jira field IDs
         previous_period_value: Previous period's metric value for trend calculation
         devops_projects: List of DevOps project keys for filtering (e.g., ["DEVOPS"])
+        devops_task_types: List of issue type names for DevOps tasks (backward compatible)
+        bug_types: List of issue type names for bugs (backward compatible)
+        production_environment_values: List of production environment identifiers (backward compatible)
 
     Returns:
         Metric data dictionary with value, unit, performance tier, trend data, and metadata
 
     Note:
         This function expects either pre-filtered issues OR will filter them if devops_projects is provided:
-        - deployment_issues: Should be Operational Tasks from DevOps projects
-        - incident_issues: Should be production Bugs from development projects
+        - deployment_issues: Should be DevOps task types from DevOps projects
+        - incident_issues: Should be production bugs from development projects
     """
     # Filter issues if devops_projects is provided (support both pre-filtered and mixed inputs)
     if devops_projects:
-        deployment_issues = filter_deployment_issues(deployment_issues, devops_projects)
+        deployment_issues = filter_deployment_issues(
+            deployment_issues, devops_projects, devops_task_types
+        )
         incident_issues = filter_incident_issues(
             incident_issues,
             devops_projects,
             production_environment_field=field_mappings.get("affected_environment"),
+            production_environment_values=production_environment_values,
+            bug_types=bug_types,
         )
     # Check for required field mappings
     if "deployment_date" not in field_mappings:

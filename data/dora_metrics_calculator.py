@@ -216,7 +216,24 @@ def calculate_dora_metrics_for_last_n_weeks(
         devops_projects = app_settings.get("devops_projects", [])
         dev_projects = app_settings.get("development_projects", [])
         field_mappings = app_settings.get("field_mappings", {})
-        production_value = app_settings.get("production_environment_value", "PROD")
+
+        # Get production environment values (backward compatible)
+        production_environment_values = app_settings.get(
+            "production_environment_values"
+        )
+        if production_environment_values is None:
+            # Fallback to legacy singular value
+            legacy_value = app_settings.get("production_environment_value", "PROD")
+            production_environment_values = [legacy_value]
+        production_value = (
+            production_environment_values[0]
+            if production_environment_values
+            else "PROD"
+        )
+
+        # Get issue type configuration (backward compatible)
+        devops_task_types = app_settings.get("devops_task_types", ["Operational Task"])
+        bug_types = app_settings.get("bug_types", ["Bug"])
 
         if not devops_projects:
             return False, "No DevOps projects configured in settings"
@@ -243,18 +260,19 @@ def calculate_dora_metrics_for_last_n_weeks(
         # Step 2: Filter operational tasks to ONLY those matching development fixVersions
         # This ensures we only count deployments related to the development project
         operational_tasks = filter_operational_tasks(
-            all_issues, devops_projects, development_fixversions
+            all_issues, devops_projects, development_fixversions, devops_task_types
         )
 
+        # Step 3: Filter production bugs using configurable bug types
         production_bugs = [
             issue
             for issue in development_issues
-            if issue.get("fields", {}).get("issuetype", {}).get("name") == "Bug"
+            if issue.get("fields", {}).get("issuetype", {}).get("name") in bug_types
         ]
 
         logger.info(
-            f"Filtered to {len(operational_tasks)} Operational Tasks (matching development fixVersions) "
-            f"and {len(production_bugs)} Bugs"
+            f"Filtered to {len(operational_tasks)} DevOps tasks ({', '.join(devops_task_types)}) "
+            f"(matching development fixVersions) and {len(production_bugs)} bugs ({', '.join(bug_types)})"
         )
 
         # Get week ranges

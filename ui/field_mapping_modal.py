@@ -18,7 +18,7 @@ def create_field_mapping_modal() -> dbc.Modal:
     modal = dbc.Modal(
         [
             dbc.ModalHeader(
-                dbc.ModalTitle("Configure Jira Field Mappings"),
+                dbc.ModalTitle("Configure JIRA Mappings"),
                 close_button=True,
             ),
             dbc.ModalBody(
@@ -27,10 +27,23 @@ def create_field_mapping_modal() -> dbc.Modal:
                     dbc.Alert(
                         [
                             html.I(className="fas fa-info-circle me-2"),
-                            "Map your Jira custom fields to the internal fields required for DORA and Flow metrics calculations.",
+                            "Configure how your JIRA instance maps to the application. Use tabs to navigate between different configuration categories.",
                         ],
                         color="info",
                         className="mb-4",
+                    ),
+                    # Tabs for different configuration sections
+                    dbc.Tabs(
+                        id="mappings-tabs",
+                        active_tab="tab-projects",
+                        children=[
+                            dbc.Tab(label="Projects", tab_id="tab-projects"),
+                            dbc.Tab(label="Fields", tab_id="tab-fields"),
+                            dbc.Tab(label="Types", tab_id="tab-types"),
+                            dbc.Tab(label="Status", tab_id="tab-status"),
+                            dbc.Tab(label="Environment", tab_id="tab-environment"),
+                        ],
+                        className="mb-3",
                     ),
                     # Loading state
                     dcc.Loading(
@@ -40,16 +53,27 @@ def create_field_mapping_modal() -> dbc.Modal:
                     ),
                     # Status messages
                     html.Div(id="field-mapping-status"),
-                    # Hidden store for tracking successful save (triggers modal close)
+                    # Hidden stores
                     dcc.Store(id="field-mapping-save-success", data=None),
+                    dcc.Store(id="jira-metadata-store", data=None),  # Cache metadata
                 ],
             ),
             dbc.ModalFooter(
                 [
+                    # Standard web pattern: Close on left (safe exit), actions grouped on right
                     dbc.Button(
-                        "Cancel",
+                        "Close",
                         id="field-mapping-cancel-button",
                         color="secondary",
+                        outline=True,  # Outline style for less prominence
+                        className="me-auto",  # Push to left, creates visual separation
+                    ),
+                    # Action buttons grouped on right: Fetch Metadata → Save
+                    dbc.Button(
+                        [html.I(className="fas fa-sync me-2"), "Fetch Metadata"],
+                        id="fetch-metadata-button",
+                        color="info",
+                        outline=True,  # Less prominent than Save
                         className="me-2",
                     ),
                     dbc.Button(
@@ -124,6 +148,44 @@ def create_field_mapping_form(
         )
         field_options.extend(custom_fields)
 
+    # Add current mapped field IDs to options if not already present (ensures they display)
+    existing_field_ids = {
+        opt["value"]
+        for opt in field_options
+        if opt.get("value") and not opt.get("disabled")
+    }
+
+    # Collect all currently mapped field IDs from both dora and flow sections
+    all_current_field_ids = set()
+    field_mappings_dict = current_mappings.get("field_mappings", {})
+
+    # Iterate through dora and flow sections
+    for section_name in ["dora", "flow"]:
+        section_mappings = field_mappings_dict.get(section_name, {})
+        if isinstance(section_mappings, dict):
+            # Add all field IDs (values) from this section
+            all_current_field_ids.update(
+                v for v in section_mappings.values() if isinstance(v, str)
+            )
+
+    # Add any missing current field IDs to options
+    for field_id in all_current_field_ids:
+        if field_id and field_id not in existing_field_ids:
+            # Add to appropriate section based on field ID type
+            if field_id.startswith("customfield_"):
+                field_options.append({"label": field_id, "value": field_id})
+            else:
+                # Insert standard fields before custom fields separator
+                insert_pos = next(
+                    (
+                        i
+                        for i, opt in enumerate(field_options)
+                        if opt.get("value") == "_separator_custom_"
+                    ),
+                    len(field_options),
+                )
+                field_options.insert(insert_pos, {"label": field_id, "value": field_id})
+
     # DORA metrics field mappings
     dora_section = create_metric_section(
         "DORA Metrics",
@@ -131,67 +193,67 @@ def create_field_mapping_form(
         [
             (
                 "deployment_date",
-                "Deployment Date",
+                "Deployment Date Field",
                 "datetime",
-                "When was this deployed to production?",
+                "⚠️ Required for DORA Deployment Frequency",
             ),
             (
                 "target_environment",
-                "Target Environment",
+                "Target Environment Field",
                 "select",
-                "Which environment was deployed to? (dev/staging/prod)",
+                "ℹ️ Deployment environment tracking (DEV/STAGING/PROD)",
             ),
             (
                 "code_commit_date",
-                "Code Commit Date",
+                "Code Commit Date Field (Optional)",
                 "datetime",
-                "When was the code committed?",
+                "ℹ️ Lead Time calculation",
             ),
             (
                 "deployed_to_production_date",
-                "Deployed to Production Date",
+                "Production Deployment Date Field",
                 "datetime",
-                "When did this reach production?",
+                "ℹ️ Lead Time to Production",
             ),
             (
                 "incident_detected_at",
-                "Incident Detected At",
+                "Incident Detection Date Field",
                 "datetime",
-                "When was the incident first detected?",
+                "⚠️ Required for DORA MTTR",
             ),
             (
                 "incident_resolved_at",
-                "Incident Resolved At",
+                "Incident Resolution Date Field",
                 "datetime",
-                "When was the incident resolved?",
+                "⚠️ Required for DORA MTTR",
             ),
             (
-                "deployment_successful",
-                "Deployment Successful",
-                "checkbox",
-                "Was the deployment successful?",
+                "change_failure",
+                "Change Failure Field",
+                "select",
+                "⚠️ Required for Change Failure Rate (values: Yes/No/None)",
             ),
             (
                 "affected_environment",
-                "Affected Environment",
+                "Affected Environment Field",
                 "select",
-                "Which environment was affected? (e.g., PROD, DEV, STAGING) - Used to filter production incidents",
+                "⚠️ Required for production incident filtering (MTTR)",
             ),
             (
                 "severity_level",
-                "Severity Level",
+                "Severity/Priority Field",
                 "select",
-                "What is the severity/priority? (e.g., High, Medium, Low) - Used to classify incident impact",
+                "ℹ️ Incident impact analysis",
             ),
             (
                 "incident_related",
-                "Incident Related",
+                "Incident Indicator Field (Optional)",
                 "text",
-                "Is this issue related to an incident?",
+                "ℹ️ Change Failure Rate calculation",
             ),
         ],
         field_options,
-        current_mappings.get("dora", {}),
+        current_mappings.get("field_mappings", {}).get("dora", {}),  # type: ignore
     )
 
     # Flow metrics field mappings
@@ -201,62 +263,43 @@ def create_field_mapping_form(
         [
             (
                 "flow_item_type",
-                "Work Item Type",
+                "Issue Type Field",
                 "select",
-                "What type of work item is this? (feature/bug/task)",
+                "⚠️ Required for Flow metrics (typically 'issuetype')",
             ),
             (
                 "effort_category",
-                "Effort Category",
+                "Effort Category Field",
                 "select",
-                "What type of effort is this? (New feature, Technical debt, Security, etc.) - Used for Work Distribution classification",
+                "ℹ️ Work classification (Feature, Tech Debt, Bug Fix, etc.)",
             ),
             (
                 "work_started_date",
-                "Work Started Date",
+                "Work Started Date Field (Optional)",
                 "datetime",
-                "When did work actually start on this item?",
+                "ℹ️ Optional - can be calculated from changelog",
             ),
             (
                 "work_completed_date",
-                "Work Completed Date",
+                "Work Completed Date Field (Optional)",
                 "datetime",
-                "When was the work completed?",
-            ),
-            (
-                "status_entry_timestamp",
-                "Status Entry Timestamp",
-                "datetime",
-                "When did this item enter the current status?",
-            ),
-            (
-                "active_work_hours",
-                "Active Work Hours",
-                "number",
-                "How many hours of active work?",
-            ),
-            (
-                "flow_time_days",
-                "Flow Time (Days)",
-                "number",
-                "How many days from start to completion?",
-            ),
-            (
-                "flow_efficiency_percent",
-                "Flow Efficiency (%)",
-                "number",
-                "What percentage of time was active work?",
+                "⚠️ Required for Flow Time calculation",
             ),
             (
                 "completed_date",
-                "Completed Date",
+                "Completed Date Field",
                 "datetime",
-                "When was this item marked as completed?",
+                "⚠️ Required for Flow metrics (typically 'resolutiondate')",
             ),
-            ("status", "Status", "select", "What is the current status?"),
+            (
+                "status",
+                "Status Field",
+                "select",
+                "⚠️ Required for WIP and Flow State (typically 'status')",
+            ),
         ],
         field_options,
-        current_mappings.get("flow", {}),
+        current_mappings.get("field_mappings", {}).get("flow", {}),  # type: ignore
     )
 
     return html.Div(

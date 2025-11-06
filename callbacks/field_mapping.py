@@ -19,7 +19,6 @@ from data.field_mapper import (
 from data.metrics_cache import invalidate_cache
 from ui.field_mapping_modal import (
     create_field_mapping_form,
-    create_field_mapping_success_alert,
     create_field_mapping_error_alert,
 )
 
@@ -190,56 +189,9 @@ def toggle_field_mapping_modal(
     return is_open
 
 
-@callback(
-    Output("field-mapping-content", "children"),
-    Input("field-mapping-modal", "is_open"),
-    prevent_initial_call=True,
-)
-def populate_field_mapping_form(is_open: bool):
-    """Populate field mapping form when modal opens.
-
-    Fetches available Jira fields and current mappings,
-    then generates the form dynamically.
-
-    Args:
-        is_open: Whether modal is open
-
-    Returns:
-        Field mapping form component or loading message
-    """
-    if not is_open:
-        return no_update
-
-    try:
-        # Load current field mappings (nested structure: dora/flow keys)
-        current_mappings_data = load_field_mappings()
-        current_mappings = current_mappings_data.get("field_mappings", {})
-
-        # Ensure nested structure exists even if empty
-        if "dora" not in current_mappings:
-            current_mappings["dora"] = {}
-        if "flow" not in current_mappings:
-            current_mappings["flow"] = {}
-
-        # Fetch available fields from Jira
-        try:
-            available_fields = fetch_available_jira_fields()
-            logger.info(f"Fetched {len(available_fields)} fields from Jira")
-        except Exception as e:
-            logger.warning(f"Could not fetch Jira fields, using fallback: {e}")
-            # Fallback to mock fields if Jira fetch fails
-            available_fields = _get_mock_jira_fields()
-
-        # Create and return the form
-        form = create_field_mapping_form(available_fields, current_mappings)
-        return form
-
-    except Exception as e:
-        logger.error(f"Error populating field mapping form: {e}")
-        return dbc.Alert(
-            f"Error loading field mappings: {str(e)}",
-            color="danger",
-        )
+# OLD CALLBACK REMOVED - Now using render_tab_content() for 5-tab system
+# The populate_field_mapping_form() callback was creating duplicate outputs
+# and has been replaced by the comprehensive mappings system below
 
 
 @callback(
@@ -248,22 +200,25 @@ def populate_field_mapping_form(is_open: bool):
         Output("field-mapping-save-success", "data"),
     ],
     Input("field-mapping-save-button", "n_clicks"),
+    State("mappings-tabs", "active_tab"),
     State({"type": "field-mapping-dropdown", "metric": ALL, "field": ALL}, "value"),
     State({"type": "field-mapping-dropdown", "metric": ALL, "field": ALL}, "id"),
     prevent_initial_call=True,
 )
 def save_field_mappings_callback(
     n_clicks: int | None,
+    active_tab: str,
     field_values: List[str],
     field_ids: List[Dict],
-) -> tuple[Any, bool | None]:
-    """Save field mappings when Save button is clicked.
+) -> tuple[Any, Any]:
+    """Save field mappings when Save button is clicked FROM FIELDS TAB ONLY.
 
     Validates all mappings, saves to persistence layer,
     and triggers cache invalidation.
 
     Args:
         n_clicks: Number of save button clicks
+        active_tab: Currently active tab ID
         field_values: List of selected dropdown values
         field_ids: List of dropdown ID dictionaries with metric and field keys
 
@@ -272,6 +227,11 @@ def save_field_mappings_callback(
     """
     if n_clicks is None:
         return no_update, None
+
+    # CRITICAL: Only run this callback when on Fields tab
+    # Other tabs are handled by save_comprehensive_mappings callback
+    if active_tab != "tab-fields":
+        return no_update, no_update
 
     try:
         # Extract mappings from dropdown values into nested structure
@@ -291,6 +251,7 @@ def save_field_mappings_callback(
             for field_name, field_id in nested_mappings[metric_type].items():
                 flat_mappings[field_name] = field_id
 
+        logger.info(f"Field mappings being saved: {flat_mappings}")
         # Create save structure with flat mappings
         new_mappings = {"field_mappings": flat_mappings}
 
@@ -316,16 +277,28 @@ def save_field_mappings_callback(
         if validation_errors:
             error_list = html.Ul([html.Li(err) for err in validation_errors])
             error_alert = dbc.Alert(
-                [
-                    html.H5("Validation Errors", className="alert-heading"),
-                    html.P("The following field mappings have type mismatches:"),
-                    error_list,
-                ],
+                html.Div(
+                    [
+                        html.I(className="fas fa-exclamation-circle me-2"),
+                        html.Span(
+                            [
+                                html.Strong("Validation Errors"),
+                                html.Br(),
+                                html.Small(
+                                    "The following field mappings have issues:",
+                                    style={"opacity": "0.85"},
+                                ),
+                                error_list,
+                            ]
+                        ),
+                    ],
+                    className="d-flex align-items-start",
+                ),
                 color="danger",
                 dismissable=True,
             )
-            # Return error alert and None for save_success (modal stays open)
-            return error_alert, None
+            # Return error alert - modal stays open
+            return error_alert, no_update
 
         # Add field metadata to save structure
         if field_metadata:
@@ -346,18 +319,77 @@ def save_field_mappings_callback(
             invalidate_cache()
             logger.info(f"Field mappings saved successfully, new hash: {new_hash}")
 
-            # Return success alert and True to trigger modal close
-            return create_field_mapping_success_alert(), True
+            # Return success alert - modal stays open like JIRA config
+            success_alert = dbc.Alert(
+                html.Div(
+                    [
+                        html.I(className="fas fa-check-circle me-2"),
+                        html.Span(
+                            [
+                                html.Strong("Mappings Saved"),
+                                html.Br(),
+                                html.Small(
+                                    "Field mappings have been saved successfully.",
+                                    style={"opacity": "0.85"},
+                                ),
+                            ]
+                        ),
+                    ],
+                    className="d-flex align-items-start",
+                ),
+                color="success",
+                dismissable=True,
+                duration=4000,  # Auto-dismiss after 4 seconds
+            )
+            return success_alert, no_update  # Keep modal open
         else:
-            # Return error alert and None (modal stays open)
-            return create_field_mapping_error_alert(
-                "Failed to save mappings to file"
-            ), None
+            # Return error alert - modal stays open
+            error_alert = dbc.Alert(
+                html.Div(
+                    [
+                        html.I(className="fas fa-exclamation-circle me-2"),
+                        html.Span(
+                            [
+                                html.Strong("Save Failed"),
+                                html.Br(),
+                                html.Small(
+                                    "Failed to save mappings to file. Please try again.",
+                                    style={"opacity": "0.85"},
+                                ),
+                            ]
+                        ),
+                    ],
+                    className="d-flex align-items-start",
+                ),
+                color="danger",
+                dismissable=True,
+            )
+            return error_alert, no_update
 
     except Exception as e:
         logger.error(f"Error saving field mappings: {e}", exc_info=True)
-        # Return error alert and None (modal stays open)
-        return create_field_mapping_error_alert(str(e)), None
+        # Return error alert - modal stays open
+        error_alert = dbc.Alert(
+            html.Div(
+                [
+                    html.I(className="fas fa-exclamation-circle me-2"),
+                    html.Span(
+                        [
+                            html.Strong("Error"),
+                            html.Br(),
+                            html.Small(
+                                f"An error occurred: {str(e)}",
+                                style={"opacity": "0.85"},
+                            ),
+                        ]
+                    ),
+                ],
+                className="d-flex align-items-start",
+            ),
+            color="danger",
+            dismissable=True,
+        )
+        return error_alert, no_update
 
 
 def _get_mock_jira_fields() -> List[Dict[str, Any]]:
@@ -454,3 +486,632 @@ def _get_mock_mappings() -> Dict[str, Dict[str, str]]:
             "completed_date": "resolutiondate",
         },
     }
+
+
+# ========================================================================
+# NEW CALLBACKS FOR COMPREHENSIVE MAPPINGS (5-TAB SYSTEM)
+# ========================================================================
+
+
+@callback(
+    Output("field-mapping-content", "children"),
+    Input("mappings-tabs", "active_tab"),
+    Input("jira-metadata-store", "data"),
+    Input(
+        "field-mapping-modal", "is_open"
+    ),  # Changed to Input to trigger on modal open
+    prevent_initial_call=False,
+)
+def render_tab_content(active_tab: str, metadata: dict, is_open: bool):
+    """
+    Render appropriate form based on active tab.
+
+    Args:
+        active_tab: ID of currently active tab
+        metadata: Cached JIRA metadata from store
+        is_open: Whether modal is open
+
+    Returns:
+        Form component for the active tab
+    """
+    from data.persistence import load_app_settings
+    from ui.project_config_form import create_project_config_form
+    from ui.issue_type_config_form import create_issue_type_config_form
+    from ui.status_config_form import create_status_config_form
+    from ui.environment_config_form import create_environment_config_form
+
+    # Don't render if modal is closed (but allow initial empty state)
+    if not is_open and callback_context.triggered:
+        # Modal closed after being open - clear content
+        return html.Div()
+
+    # Load current settings
+    settings = load_app_settings()
+    metadata = metadata or {}
+
+    # Render content based on active tab
+    if active_tab == "tab-fields":
+        # Existing field mapping form (already implemented)
+        try:
+            available_fields = fetch_available_jira_fields()
+            current_mappings = load_field_mappings()
+            return create_field_mapping_form(available_fields, current_mappings)
+        except Exception as e:
+            logger.error(f"Error loading field mappings: {e}")
+            return create_field_mapping_error_alert(str(e))
+
+    elif active_tab == "tab-projects":
+        return create_project_config_form(
+            development_projects=settings.get("development_projects", []),
+            devops_projects=settings.get("devops_projects", []),
+            available_projects=metadata.get("projects", []),
+        )
+
+    elif active_tab == "tab-types":
+        return create_issue_type_config_form(
+            devops_task_types=settings.get("devops_task_types", []),
+            bug_types=settings.get("bug_types", []),
+            story_types=settings.get("story_types", []),
+            task_types=settings.get("task_types", []),
+            available_issue_types=metadata.get("issue_types", []),
+        )
+
+    elif active_tab == "tab-status":
+        return create_status_config_form(
+            completion_statuses=settings.get("completion_statuses", []),
+            active_statuses=settings.get("active_statuses", []),
+            flow_start_statuses=settings.get("flow_start_statuses", []),
+            wip_statuses=settings.get("wip_statuses", []),
+            available_statuses=metadata.get("statuses", []),
+        )
+
+    elif active_tab == "tab-environment":
+        # Get environment field options if affected_environment is mapped
+        affected_env_field = settings.get("field_mappings", {}).get(
+            "affected_environment"
+        )
+        env_options = []
+        if affected_env_field and metadata.get("field_options"):
+            env_options = metadata.get("field_options", {}).get(affected_env_field, [])
+
+        return create_environment_config_form(
+            production_environment_values=settings.get(
+                "production_environment_values", []
+            ),
+            available_environment_values=env_options,
+        )
+
+    return html.Div("Unknown tab")
+
+
+@callback(
+    [
+        Output("jira-metadata-store", "data"),
+        Output("field-mapping-status", "children", allow_duplicate=True),
+    ],
+    Input("fetch-metadata-button", "n_clicks"),
+    Input("field-mapping-modal", "is_open"),
+    State("jira-metadata-store", "data"),
+    prevent_initial_call=True,
+)
+def fetch_metadata(n_clicks: int, is_open: bool, current_metadata: dict):
+    """
+    Fetch JIRA metadata when button clicked or modal opened (if not cached).
+
+    Args:
+        n_clicks: Number of times fetch button clicked
+        is_open: Whether modal is open
+        current_metadata: Currently cached metadata
+
+    Returns:
+        Dictionary with fetched metadata
+    """
+    from data.jira_metadata import create_metadata_fetcher
+    from data.persistence import load_app_settings
+
+    # Determine trigger
+    ctx = callback_context
+    if not ctx.triggered:
+        return no_update, no_update
+
+    trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+
+    # If modal just opened and we have cached data, don't refetch
+    if trigger_id == "field-mapping-modal" and current_metadata:
+        return no_update, no_update
+
+    try:
+        # Load JIRA configuration
+        settings = load_app_settings()
+        jira_config = settings.get("jira_config", {})
+
+        if not jira_config.get("configured"):
+            logger.warning("JIRA not configured, cannot fetch metadata")
+            error_alert = dbc.Alert(
+                html.Div(
+                    [
+                        html.I(className="fas fa-exclamation-circle me-2"),
+                        html.Span(
+                            [
+                                html.Strong("JIRA Not Configured"),
+                                html.Br(),
+                                html.Small(
+                                    "Please configure JIRA connection first.",
+                                    style={"opacity": "0.85"},
+                                ),
+                            ]
+                        ),
+                    ],
+                    className="d-flex align-items-start",
+                ),
+                color="danger",
+                dismissable=True,
+            )
+            return {"error": "JIRA not configured"}, error_alert
+
+        # Create fetcher and fetch all metadata
+        fetcher = create_metadata_fetcher(
+            jira_url=jira_config.get("base_url", ""),
+            jira_token=jira_config.get("token", ""),
+            api_version=jira_config.get("api_version", "v2"),
+        )
+
+        logger.info("Fetching JIRA metadata...")
+
+        # Fetch all metadata types
+        fields = fetcher.fetch_fields()
+
+        # Log all custom fields to help find the correct field ID
+        custom_fields = [f for f in fields if f.get("custom", False)]
+        logger.info(f"Found {len(custom_fields)} custom fields in JIRA:")
+        for field in custom_fields:
+            logger.info(f"  - {field['id']}: {field['name']} (type: {field['type']})")
+
+        projects = fetcher.fetch_projects()
+        issue_types = fetcher.fetch_issue_types()
+        statuses = fetcher.fetch_statuses()
+
+        # Auto-detect configurations
+        auto_detected_types = fetcher.auto_detect_issue_types(issue_types)
+        auto_detected_statuses = fetcher.auto_detect_statuses(statuses)
+
+        # Fetch environment field options if mapped
+        affected_env_field = settings.get("field_mappings", {}).get(
+            "affected_environment"
+        )
+        env_options = []
+        if affected_env_field:
+            logger.info(
+                f"Fetching field options for affected_environment field: {affected_env_field}"
+            )
+            env_options = fetcher.fetch_field_options(affected_env_field)
+            logger.info(f"Found {len(env_options)} environment values: {env_options}")
+            auto_detected_prod = fetcher.auto_detect_production_identifiers(env_options)
+            logger.info(f"Auto-detected production identifiers: {auto_detected_prod}")
+        else:
+            logger.warning(
+                "affected_environment field not mapped, cannot fetch environment values"
+            )
+            auto_detected_prod = []
+
+        metadata = {
+            "fields": fields,
+            "projects": projects,
+            "issue_types": issue_types,
+            "statuses": statuses,
+            "field_options": {affected_env_field: env_options}
+            if affected_env_field
+            else {},
+            "auto_detected": {
+                "issue_types": auto_detected_types,
+                "statuses": auto_detected_statuses,
+                "production_identifiers": auto_detected_prod,
+            },
+            "fetched_at": callback_context.triggered[0]["value"],
+        }
+
+        logger.info(
+            f"Successfully fetched metadata: {len(projects)} projects, {len(issue_types)} issue types, {len(statuses)} statuses"
+        )
+
+        # Show success toast message
+        success_alert = dbc.Alert(
+            html.Div(
+                [
+                    html.I(className="fas fa-check-circle me-2"),
+                    html.Span(
+                        [
+                            html.Strong("Metadata Fetched"),
+                            html.Br(),
+                            html.Small(
+                                f"Loaded {len(projects)} projects, {len(issue_types)} issue types, {len(statuses)} statuses.",
+                                style={"opacity": "0.85"},
+                            ),
+                        ]
+                    ),
+                ],
+                className="d-flex align-items-start",
+            ),
+            color="success",
+            dismissable=True,
+            duration=4000,  # Auto-dismiss after 4 seconds
+        )
+
+        return metadata, success_alert
+
+    except Exception as e:
+        logger.error(f"Error fetching JIRA metadata: {e}")
+        error_alert = dbc.Alert(
+            html.Div(
+                [
+                    html.I(className="fas fa-exclamation-circle me-2"),
+                    html.Span(
+                        [
+                            html.Strong("Fetch Failed"),
+                            html.Br(),
+                            html.Small(
+                                f"Error fetching metadata: {str(e)}",
+                                style={"opacity": "0.85"},
+                            ),
+                        ]
+                    ),
+                ],
+                className="d-flex align-items-start",
+            ),
+            color="danger",
+            dismissable=True,
+        )
+        return {"error": str(e)}, error_alert
+
+
+@callback(
+    Output("field-mapping-save-success", "data", allow_duplicate=True),
+    Output("field-mapping-status", "children", allow_duplicate=True),
+    Input("field-mapping-save-button", "n_clicks"),
+    State("mappings-tabs", "active_tab"),
+    State("field-mapping-content", "children"),
+    prevent_initial_call=True,
+)
+def save_comprehensive_mappings(n_clicks, active_tab, content_children):
+    """
+    Save comprehensive mappings configuration to app_settings.json.
+
+    This callback handles Projects, Types, Status, and Environment tabs.
+    It extracts values from the rendered content dynamically.
+    Fields tab has its own dedicated callback.
+
+    Validates configuration and provides feedback on errors/warnings.
+    """
+    from data.persistence import save_app_settings, load_app_settings
+    from data.config_validation import (
+        validate_comprehensive_config,
+        format_validation_messages,
+    )
+
+    if not n_clicks:
+        return no_update, no_update
+
+    # Skip this callback if on Fields tab (Fields tab has its own save callback)
+    if active_tab == "tab-fields":
+        return no_update, no_update
+
+    # Extract dropdown values from the content children
+    # This requires parsing the component tree to find dropdown values
+    def extract_dropdown_value(component_id, children):
+        """Recursively extract dropdown value from component tree."""
+        if children is None:
+            return None
+
+        # Handle dict (component)
+        if isinstance(children, dict):
+            # Check if this is the dropdown we're looking for
+            props = children.get("props", {})
+            if props.get("id") == component_id:
+                return props.get("value")
+            # Recursively search children
+            for key in ["children", "content"]:
+                if key in props:
+                    result = extract_dropdown_value(component_id, props[key])
+                    if result is not None:
+                        return result
+        # Handle list
+        elif isinstance(children, list):
+            for child in children:
+                result = extract_dropdown_value(component_id, child)
+                if result is not None:
+                    return result
+
+        return None
+
+    # Extract values based on active tab
+    dev_projects = None
+    devops_projects = None
+    devops_task_types = None
+    bug_types = None
+    story_types = None
+    task_types = None
+    completion_statuses = None
+    active_statuses = None
+    flow_start_statuses = None
+    wip_statuses = None
+    production_env_values = None
+
+    if active_tab == "tab-projects":
+        dev_projects = extract_dropdown_value(
+            "development-projects-dropdown", content_children
+        )
+        devops_projects = extract_dropdown_value(
+            "devops-projects-dropdown", content_children
+        )
+    elif active_tab == "tab-types":
+        devops_task_types = extract_dropdown_value(
+            "devops-task-types-dropdown", content_children
+        )
+        bug_types = extract_dropdown_value("bug-types-dropdown", content_children)
+        story_types = extract_dropdown_value("story-types-dropdown", content_children)
+        task_types = extract_dropdown_value("task-types-dropdown", content_children)
+    elif active_tab == "tab-status":
+        completion_statuses = extract_dropdown_value(
+            "completion-statuses-dropdown", content_children
+        )
+        active_statuses = extract_dropdown_value(
+            "active-statuses-dropdown", content_children
+        )
+        flow_start_statuses = extract_dropdown_value(
+            "flow-start-statuses-dropdown", content_children
+        )
+        wip_statuses = extract_dropdown_value("wip-statuses-dropdown", content_children)
+    elif active_tab == "tab-environment":
+        production_env_values = extract_dropdown_value(
+            "production-environment-values-dropdown", content_children
+        )
+
+    try:
+        # Load current settings
+        settings = load_app_settings()
+
+        # DEBUG: Log received values
+        logger.info(
+            f"Save mappings callback - received completion_statuses: {completion_statuses}, type: {type(completion_statuses)}"
+        )
+        logger.info(f"Save mappings callback - active tab: {active_tab}")
+
+        # Update with new values (only update non-None values)
+        if dev_projects is not None:
+            settings["development_projects"] = (
+                dev_projects
+                if isinstance(dev_projects, list)
+                else [dev_projects]
+                if dev_projects
+                else []
+            )
+
+        if devops_projects is not None:
+            settings["devops_projects"] = (
+                devops_projects
+                if isinstance(devops_projects, list)
+                else [devops_projects]
+                if devops_projects
+                else []
+            )
+
+        if devops_task_types is not None:
+            settings["devops_task_types"] = (
+                devops_task_types
+                if isinstance(devops_task_types, list)
+                else [devops_task_types]
+                if devops_task_types
+                else []
+            )
+
+        if bug_types is not None:
+            settings["bug_types"] = (
+                bug_types
+                if isinstance(bug_types, list)
+                else [bug_types]
+                if bug_types
+                else []
+            )
+
+        if story_types is not None:
+            settings["story_types"] = (
+                story_types
+                if isinstance(story_types, list)
+                else [story_types]
+                if story_types
+                else []
+            )
+
+        if task_types is not None:
+            settings["task_types"] = (
+                task_types
+                if isinstance(task_types, list)
+                else [task_types]
+                if task_types
+                else []
+            )
+
+        if completion_statuses is not None:
+            settings["completion_statuses"] = (
+                completion_statuses
+                if isinstance(completion_statuses, list)
+                else [completion_statuses]
+                if completion_statuses
+                else []
+            )
+
+        if active_statuses is not None:
+            settings["active_statuses"] = (
+                active_statuses
+                if isinstance(active_statuses, list)
+                else [active_statuses]
+                if active_statuses
+                else []
+            )
+
+        if flow_start_statuses is not None:
+            settings["flow_start_statuses"] = (
+                flow_start_statuses
+                if isinstance(flow_start_statuses, list)
+                else [flow_start_statuses]
+                if flow_start_statuses
+                else []
+            )
+
+        if wip_statuses is not None:
+            settings["wip_statuses"] = (
+                wip_statuses
+                if isinstance(wip_statuses, list)
+                else [wip_statuses]
+                if wip_statuses
+                else []
+            )
+
+        if production_env_values is not None:
+            settings["production_environment_values"] = (
+                production_env_values
+                if isinstance(production_env_values, list)
+                else [production_env_values]
+                if production_env_values
+                else []
+            )
+
+        # DEBUG: Log updated settings
+        logger.info(
+            f"Save mappings - updated completion_statuses in settings: {settings.get('completion_statuses')}"
+        )
+
+        # Validate comprehensive configuration
+        validation_result = validate_comprehensive_config(settings)
+
+        # Check for errors (block save)
+        if validation_result["errors"]:
+            error_message = format_validation_messages(validation_result)
+            error_alert = dbc.Alert(
+                html.Div(
+                    [
+                        html.I(className="fas fa-exclamation-circle me-2"),
+                        html.Span(
+                            [
+                                html.Strong("Validation Errors"),
+                                html.Br(),
+                                html.Small(
+                                    "Configuration has errors:",
+                                    style={"opacity": "0.85"},
+                                ),
+                                html.Pre(error_message, className="mt-2 mb-0"),
+                            ]
+                        ),
+                    ],
+                    className="d-flex align-items-start",
+                ),
+                color="danger",
+                dismissable=True,
+            )
+            return no_update, error_alert
+
+        # Save settings (NOTE: field_mappings NOT included - managed by Fields tab's own callback)
+        save_app_settings(
+            pert_factor=settings.get("pert_factor"),
+            deadline=settings.get("deadline"),
+            data_points_count=settings.get("data_points_count"),
+            show_milestone=settings.get("show_milestone"),
+            milestone=settings.get("milestone"),
+            show_points=settings.get("show_points"),
+            jql_query=settings.get("jql_query"),
+            last_used_data_source=settings.get("last_used_data_source"),
+            active_jql_profile_id=settings.get("active_jql_profile_id"),
+            jira_config=settings.get("jira_config"),
+            # field_mappings=settings.get("field_mappings"),  # REMOVED - Fields tab has its own save callback
+            devops_projects=settings.get("devops_projects"),
+            development_projects=settings.get("development_projects"),
+            devops_task_types=settings.get("devops_task_types"),
+            bug_types=settings.get("bug_types"),
+            story_types=settings.get("story_types"),
+            task_types=settings.get("task_types"),
+            production_environment_values=settings.get("production_environment_values"),
+            completion_statuses=settings.get("completion_statuses"),
+            active_statuses=settings.get("active_statuses"),
+            flow_start_statuses=settings.get("flow_start_statuses"),
+            wip_statuses=settings.get("wip_statuses"),
+        )
+
+        # Invalidate metrics cache since configuration changed
+        invalidate_cache()
+
+        logger.info(f"Comprehensive mappings saved successfully from tab: {active_tab}")
+
+        # Show success with warnings if any
+        if validation_result["warnings"]:
+            warning_message = format_validation_messages(validation_result)
+            success_alert = dbc.Alert(
+                html.Div(
+                    [
+                        html.I(className="fas fa-check-circle me-2"),
+                        html.Span(
+                            [
+                                html.Strong("Configuration Saved"),
+                                html.Br(),
+                                html.Small(
+                                    "Configuration saved with warnings:",
+                                    style={"opacity": "0.85"},
+                                ),
+                                html.Pre(warning_message, className="mt-2 mb-0"),
+                            ]
+                        ),
+                    ],
+                    className="d-flex align-items-start",
+                ),
+                color="warning",
+                dismissable=True,
+            )
+        else:
+            success_alert = dbc.Alert(
+                html.Div(
+                    [
+                        html.I(className="fas fa-check-circle me-2"),
+                        html.Span(
+                            [
+                                html.Strong("Configuration Saved"),
+                                html.Br(),
+                                html.Small(
+                                    f"Configuration for {active_tab.replace('tab-', '').title()} saved successfully.",
+                                    style={"opacity": "0.85"},
+                                ),
+                            ]
+                        ),
+                    ],
+                    className="d-flex align-items-start",
+                ),
+                color="success",
+                dismissable=True,
+                duration=4000,  # Auto-dismiss after 4 seconds
+            )
+
+        # Keep modal open - return no_update for save success store
+        return no_update, success_alert
+
+    except Exception as e:
+        logger.error(f"Error saving comprehensive mappings: {e}")
+        error_alert = dbc.Alert(
+            html.Div(
+                [
+                    html.I(className="fas fa-exclamation-circle me-2"),
+                    html.Span(
+                        [
+                            html.Strong("Save Failed"),
+                            html.Br(),
+                            html.Small(
+                                f"Failed to save configuration: {str(e)}",
+                                style={"opacity": "0.85"},
+                            ),
+                        ]
+                    ),
+                ],
+                className="d-flex align-items-start",
+            ),
+            color="danger",
+            dismissable=True,
+        )
+        # Keep modal open
+        return no_update, error_alert

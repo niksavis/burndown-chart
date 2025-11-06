@@ -65,6 +65,19 @@ def save_app_settings(
     jql_query=None,
     last_used_data_source=None,
     active_jql_profile_id=None,
+    jira_config=None,
+    field_mappings=None,
+    development_projects=None,
+    devops_projects=None,
+    devops_task_types=None,
+    bug_types=None,
+    story_types=None,
+    task_types=None,
+    production_environment_values=None,
+    completion_statuses=None,
+    active_statuses=None,
+    flow_start_statuses=None,
+    wip_statuses=None,
 ):
     """
     Save app-level settings to JSON file.
@@ -82,6 +95,19 @@ def save_app_settings(
         jql_query: JQL query for JIRA integration
         last_used_data_source: Last selected data source (JIRA or CSV)
         active_jql_profile_id: ID of the currently active JQL query profile
+        jira_config: JIRA configuration dictionary
+        field_mappings: Field mappings configuration
+        development_projects: List of development project keys
+        devops_projects: List of devops project keys
+        devops_task_types: List of DevOps task type names
+        bug_types: List of bug type names
+        story_types: List of story type names
+        task_types: List of task type names
+        production_environment_values: List of production environment identifiers
+        completion_statuses: List of completion status names
+        active_statuses: List of active status names
+        flow_start_statuses: List of flow start status names
+        wip_statuses: List of WIP status names
     """
     settings = {
         "pert_factor": pert_factor,
@@ -101,6 +127,34 @@ def save_app_settings(
         else "",
     }
 
+    # Add comprehensive mappings configuration if provided
+    if jira_config is not None:
+        settings["jira_config"] = jira_config
+    if field_mappings is not None:
+        settings["field_mappings"] = field_mappings
+    if development_projects is not None:
+        settings["development_projects"] = development_projects
+    if devops_projects is not None:
+        settings["devops_projects"] = devops_projects
+    if devops_task_types is not None:
+        settings["devops_task_types"] = devops_task_types
+    if bug_types is not None:
+        settings["bug_types"] = bug_types
+    if story_types is not None:
+        settings["story_types"] = story_types
+    if task_types is not None:
+        settings["task_types"] = task_types
+    if production_environment_values is not None:
+        settings["production_environment_values"] = production_environment_values
+    if completion_statuses is not None:
+        settings["completion_statuses"] = completion_statuses
+    if active_statuses is not None:
+        settings["active_statuses"] = active_statuses
+    if flow_start_statuses is not None:
+        settings["flow_start_statuses"] = flow_start_statuses
+    if wip_statuses is not None:
+        settings["wip_statuses"] = wip_statuses
+
     # Preserve DORA/Flow configuration and other settings if they exist
     try:
         existing_settings = load_app_settings()
@@ -108,13 +162,18 @@ def save_app_settings(
             f"save_app_settings: Loading existing settings. Keys present: {list(existing_settings.keys())}"
         )
 
-        # Keys to preserve from existing settings
+        # Keys to preserve from existing settings (if not explicitly provided)
         preserve_keys = [
             "jira_config",
             "field_mappings",
             "devops_projects",
             "development_projects",
-            "production_environment_value",
+            "devops_task_types",
+            "bug_types",
+            "story_types",
+            "task_types",
+            "production_environment_values",
+            "production_environment_value",  # Legacy support
             "completion_statuses",
             "active_statuses",
             "flow_start_statuses",
@@ -123,9 +182,14 @@ def save_app_settings(
         ]
 
         for key in preserve_keys:
-            if key in existing_settings:
+            if key in existing_settings and key not in settings:
                 settings[key] = existing_settings[key]
                 logger.debug(f"Preserved existing {key} during save")
+                # Extra logging for field_mappings to debug config reversion issue
+                if key == "field_mappings":
+                    logger.info(
+                        f"Preserving field_mappings from existing settings: {existing_settings[key]}"
+                    )
 
         logger.info(
             f"save_app_settings: Final settings keys before write: {list(settings.keys())}"

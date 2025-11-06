@@ -1712,8 +1712,9 @@ def test_jira_connection(base_url: str, token: str, api_version: str = "v3") -> 
                 "error_details": "URL must start with http:// or https://",
             }
 
-        # Construct serverInfo endpoint (use API v2 as it's more universally supported)
-        server_info_url = f"{clean_url}/rest/api/2/serverInfo"
+        # Construct serverInfo endpoint using configured API version
+        api_ver = api_version.replace("v", "")  # Normalize "v2" or "2" to "2"
+        server_info_url = f"{clean_url}/rest/api/{api_ver}/serverInfo"
 
         # Prepare headers with authentication
         headers = {"Accept": "application/json", "Content-Type": "application/json"}

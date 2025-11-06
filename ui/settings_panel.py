@@ -161,16 +161,16 @@ def create_settings_panel_expanded(id_suffix: str = "") -> html.Div:
                                                             dbc.Button(
                                                                 [
                                                                     html.I(
-                                                                        className="fas fa-columns me-1"
+                                                                        className="fas fa-project-diagram me-1"
                                                                     ),
-                                                                    "Fields",
+                                                                    "Mappings",
                                                                 ],
                                                                 id="open-field-mapping-modal",
                                                                 color="info",
                                                                 size="sm",
                                                                 outline=True,
                                                                 className="me-2",
-                                                                title="Configure DORA & Flow metrics field mappings",
+                                                                title="Configure JIRA mappings (fields, projects, types, statuses, environment)",
                                                             ),
                                                             create_jira_config_button(
                                                                 compact=True

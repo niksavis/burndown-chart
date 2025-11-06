@@ -45,10 +45,6 @@ INTERNAL_FIELD_TYPES = {
     "flow_item_type": "select",
     "work_started_date": "datetime",
     "work_completed_date": "datetime",
-    "status_entry_timestamp": "datetime",
-    "active_work_hours": "number",
-    "flow_time_days": "number",
-    "flow_efficiency_percent": "number",
     "completed_date": "datetime",
     "status": "select",
     # Example Customer specific custom fields (for validation)
@@ -309,7 +305,7 @@ def load_field_mappings() -> Dict:
             "deployed_to_production_date",
             "incident_detected_at",
             "incident_resolved_at",
-            "deployment_successful",
+            "change_failure",  # Changed from deployment_successful to change_failure
             "production_impact",
             "incident_related",
             "affected_environment",
@@ -321,10 +317,6 @@ def load_field_mappings() -> Dict:
             "effort_category",
             "work_started_date",
             "work_completed_date",
-            "status_entry_timestamp",
-            "active_work_hours",
-            "flow_time_days",
-            "flow_efficiency_percent",
             "completed_date",
             "status",
         }
