@@ -68,8 +68,6 @@ def create_flow_dashboard() -> dbc.Container:
             ),
             # Store for metrics data
             dcc.Store(id="flow-metrics-store", data={}),
-            # Store to trigger metrics refresh (timestamp of last refresh)
-            dcc.Store(id="metrics-refresh-trigger", data=None),
         ],
         fluid=True,
         className="py-4",

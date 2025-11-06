@@ -31,12 +31,14 @@ logger = logging.getLogger(__name__)
     [
         Input("chart-tabs", "active_tab"),
         Input("data-points-input", "value"),
+        Input("metrics-refresh-trigger", "data"),  # Trigger refresh after calculation
     ],
     prevent_initial_call=False,
 )
 def load_and_display_dora_metrics(
     active_tab: Optional[str],
     data_points: int,
+    refresh_trigger: Optional[Any],
 ):
     """Load and display DORA metrics from cache.
 
@@ -72,7 +74,7 @@ def load_and_display_dora_metrics(
             cached_metrics["_n_weeks"] = n_weeks
 
         # CRITICAL DEBUG LOGGING
-        logger.info(f"===== DORA METRICS DEBUG =====")
+        logger.info("===== DORA METRICS DEBUG =====")
         logger.info(f"cached_metrics type: {type(cached_metrics)}")
         logger.info(f"cached_metrics is None: {cached_metrics is None}")
         logger.info(f"cached_metrics bool: {bool(cached_metrics)}")
@@ -85,41 +87,17 @@ def load_and_display_dora_metrics(
                     )
                 else:
                     logger.info(f"  {key}: {val}")
-        logger.info(f"===== END DEBUG =====")
+        logger.info("===== END DEBUG =====")
 
         logger.info(
             f"DORA: Cache loaded, data is {'available' if cached_metrics else 'empty'}"
         )
 
         if not cached_metrics:
-            # No cache available - show prompt to calculate
-            empty_state = create_metric_cards_grid(
-                {
-                    "deployment_frequency": {
-                        "metric_name": "deployment_frequency",
-                        "value": None,
-                        "error_state": "no_data",
-                        "error_message": "No cached metrics. Click 'Calculate Metrics' in Settings.",
-                    },
-                    "lead_time_for_changes": {
-                        "metric_name": "lead_time_for_changes",
-                        "value": None,
-                        "error_state": "no_data",
-                    },
-                    "change_failure_rate": {
-                        "metric_name": "change_failure_rate",
-                        "value": None,
-                        "error_state": "no_data",
-                    },
-                    "mean_time_to_recovery": {
-                        "metric_name": "mean_time_to_recovery",
-                        "value": None,
-                        "error_state": "no_data",
-                    },
-                }
-            )
+            # No cache available - show unified empty state
+            from ui.empty_states import create_no_metrics_state
 
-            return empty_state
+            return create_no_metrics_state(metric_type="DORA")
 
         # Load metrics from cache and create display
         # Use .get() with defaults to safely handle missing or None values
@@ -237,52 +215,6 @@ def load_and_display_dora_metrics(
 #######################################################################
 
 
-def _create_no_data_state() -> html.Div:
-    """Create UI for when no JIRA data is available."""
-    return html.Div(
-        [
-            html.I(className="fas fa-database fa-3x text-muted mb-3"),
-            html.H5("No Data Available", className="text-muted mb-2"),
-            html.P(
-                "No JIRA data found. Click 'Update Data' in Settings to load project data.",
-                className="text-muted",
-            ),
-        ],
-        className="text-center p-5",
-    )
-
-
-def _create_missing_metrics_state(week_label: str) -> html.Div:
-    """Create UI for when metrics snapshots are missing."""
-    return html.Div(
-        [
-            html.I(className="fas fa-chart-line fa-3x text-warning mb-3"),
-            html.H5("Metrics Not Available", className="text-dark mb-2"),
-            html.P(
-                f"Flow metrics for week {week_label} have not been calculated yet.",
-                className="text-muted mb-3",
-            ),
-            html.P(
-                [
-                    "Click the ",
-                    html.Strong("Refresh Metrics"),
-                    " button below to calculate metrics from changelog data. ",
-                    "This will take approximately 2 minutes.",
-                ],
-                className="text-muted mb-4",
-            ),
-            html.Div(
-                [
-                    html.I(className="fas fa-info-circle me-2"),
-                    "Metrics are calculated once per week and cached for instant display on future page loads.",
-                ],
-                className="alert alert-info",
-            ),
-        ],
-        className="text-center p-5",
-    )
-
-
 @callback(
     [
         Output("flow-metrics-cards-container", "children"),
@@ -325,8 +257,10 @@ def calculate_and_display_flow_metrics(
     try:
         # Validate inputs
         if not jira_data_store or not jira_data_store.get("issues"):
+            from ui.empty_states import create_no_data_state
+
             return (
-                _create_no_data_state(),
+                create_no_data_state(),
                 html.Div("No distribution data", className="text-muted p-4"),
             )
 
@@ -369,11 +303,13 @@ def calculate_and_display_flow_metrics(
         if not current_week_label or not has_metric_snapshot(
             current_week_label, "flow_velocity"
         ):
+            from ui.empty_states import create_no_metrics_state
+
             logger.warning(
                 f"No Flow metrics snapshot found for week {current_week_label or 'unknown'}"
             )
             return (
-                _create_missing_metrics_state(current_week_label or "current"),
+                create_no_metrics_state(metric_type="Flow"),
                 html.Div(
                     "No distribution data available. Please refresh metrics.",
                     className="text-muted p-4",
@@ -939,6 +875,7 @@ def calculate_and_display_flow_metrics(
         Output("calculate-metrics-status", "children"),
         Output("calculate-metrics-button", "disabled"),
         Output("calculate-metrics-button", "children"),
+        Output("metrics-refresh-trigger", "data"),  # Trigger refresh after calculation
     ],
     [Input("calculate-metrics-button", "n_clicks")],
     [State("data-points-input", "value")],
@@ -956,16 +893,20 @@ def calculate_metrics_from_settings(
     Downloads changelog if needed, then calculates and saves results to
     metrics_snapshots.json for instant display on future page loads.
 
+    IMPORTANT: Always calculates 52 weeks (1 year) regardless of Data Points slider.
+    The slider only controls display filtering, not calculation scope.
+    This ensures users can adjust the slider without recalculating.
+
     Note: Metrics are saved to cache file. When user opens Flow Metrics tab,
     it will automatically load the cached data. No need to trigger refresh
     since the Flow Metrics tab may not be loaded yet.
 
     Args:
         button_clicks: Number of times the Settings button has been clicked
-        data_points: Number of weeks to calculate (from Data Points slider)
+        data_points: Number of weeks currently shown in Data Points slider (display only)
 
     Returns:
-        Tuple of (status message, button disabled state, button children)
+        Tuple of (status message, button disabled state, button children, refresh timestamp)
     """
     # Check if button was clicked
     if not button_clicks:
@@ -976,6 +917,7 @@ def calculate_metrics_from_settings(
                 html.I(className="fas fa-calculator", style={"marginRight": "0.5rem"}),
                 "Calculate Metrics",
             ],
+            None,  # No refresh trigger
         )
 
     try:
@@ -985,11 +927,12 @@ def calculate_metrics_from_settings(
         # Track task progress
         from data.task_progress import TaskProgress
 
-        # Calculate metrics for the selected number of weeks
-        # Default to 12 weeks if data_points is not set
-        n_weeks = data_points if data_points and data_points > 0 else 12
+        # FIXED: Always calculate 52 weeks (1 year) regardless of Data Points slider
+        # The data_points slider controls display filtering only, not calculation scope
+        # This ensures users can adjust the slider without recalculating metrics
+        n_weeks = 52
         logger.info(
-            f"Calculating metrics for {n_weeks} weeks (data_points={data_points})"
+            f"Calculating metrics for {n_weeks} weeks (full year of data, data_points slider={data_points})"
         )
 
         # Mark task as started
@@ -1031,7 +974,9 @@ def calculate_metrics_from_settings(
                 f"Flow & DORA metrics calculation completed successfully: {n_weeks} weeks"
             )
 
-            return settings_status_html, False, button_normal
+            # Trigger refresh of Flow and DORA tabs with timestamp
+            refresh_timestamp = datetime.now().isoformat()
+            return settings_status_html, False, button_normal, refresh_timestamp
         else:
             # Create warning message with icon
             settings_status_html = html.Div(
@@ -1047,7 +992,9 @@ def calculate_metrics_from_settings(
 
             logger.warning("Flow & DORA metrics calculation had issues")
 
-            return settings_status_html, False, button_normal
+            # Still trigger refresh even with warnings (data was calculated)
+            refresh_timestamp = datetime.now().isoformat()
+            return settings_status_html, False, button_normal, refresh_timestamp
 
     except Exception as e:
         # Mark task as failed
@@ -1076,7 +1023,8 @@ def calculate_metrics_from_settings(
             "Calculate Metrics",
         ]
 
-        return settings_status_html, False, button_normal
+        # No refresh trigger on error (data may be invalid)
+        return settings_status_html, False, button_normal, None
 
 
 #######################################################################

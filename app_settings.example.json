@@ -44,19 +44,35 @@
     }
   },
 
+  "flow_type_mappings": {
+    "_comment": "AND-filter classification: Issue Type + Effort Category → Flow Type",
+    "_note": "Empty effort_categories means ALL issues of that type qualify (no filter)",
+    "Feature": {
+      "issue_types": ["Story", "Epic", "Improvement"],
+      "effort_categories": ["New feature", "Improvement", "Upgrades"]
+    },
+    "Defect": {
+      "issue_types": ["Bug"],
+      "effort_categories": []
+    },
+    "Technical_Debt": {
+      "issue_types": ["Task", "Sub-task"],
+      "effort_categories": ["Technical debt", "Maintenance"]
+    },
+    "Risk": {
+      "issue_types": ["Spike", "Security"],
+      "effort_categories": [
+        "Security",
+        "GDPR Compliance",
+        "Regulatory",
+        "Spikes (Analysis)"
+      ]
+    }
+  },
+
   "effort_category_mappings": {
-    "_comment": "Map Effort Category custom field values to Flow Types",
-    "_note": "Two-tier classification: Primary from issue type, Secondary from effort category",
-    "Technical debt": "Technical Debt",
-    "Security": "Risk",
-    "GDPR Compliance": "Risk",
-    "Regulatory": "Risk",
-    "Maintenance": "Risk",
-    "New feature": "Feature",
-    "Improvement": "Feature",
-    "Upgrades": "Feature",
-    "Spikes (Analysis)": "Feature",
-    "None": "Feature"
+    "_comment": "DEPRECATED: Use flow_type_mappings instead",
+    "_note": "Kept for backward compatibility - will be removed in future version"
   },
 
   "devops_projects": [],

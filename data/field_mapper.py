@@ -40,7 +40,6 @@ INTERNAL_FIELD_TYPES = {
     "incident_resolved_at": "datetime",
     "deployment_successful": "checkbox",
     "production_impact": "select",
-    "incident_related": "text",
     # Flow fields
     "flow_item_type": "select",
     "work_started_date": "datetime",
@@ -307,7 +306,6 @@ def load_field_mappings() -> Dict:
             "incident_resolved_at",
             "change_failure",  # Changed from deployment_successful to change_failure
             "production_impact",
-            "incident_related",
             "affected_environment",
             "severity_level",
         }

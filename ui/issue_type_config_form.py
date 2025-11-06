@@ -1,7 +1,7 @@
 """
 Issue Type Configuration Form Component
 
-Provides UI for configuring JIRA issue type mappings (DevOps tasks, bugs, stories, tasks).
+Provides UI for configuring JIRA issue type mappings for DORA and Flow metrics.
 """
 
 from dash import html, dcc
@@ -11,28 +11,40 @@ import dash_bootstrap_components as dbc
 def create_issue_type_config_form(
     devops_task_types=None,
     bug_types=None,
-    story_types=None,
-    task_types=None,
+    story_types=None,  # DEPRECATED: Use flow_type_mappings instead
+    task_types=None,  # DEPRECATED: Use flow_type_mappings instead
     available_issue_types=None,
+    flow_type_mappings=None,
+    available_effort_categories=None,
 ):
     """
     Create issue type mapping configuration form.
 
     Args:
-        devops_task_types: List of DevOps task type names
-        bug_types: List of bug type names
-        story_types: List of story type names
-        task_types: List of task type names
+        devops_task_types: List of DevOps task type names (DORA)
+        bug_types: List of incident type names for production incidents (DORA MTTR) - can include Bug, Incident, Production Issue, etc.
+        story_types: DEPRECATED - Use flow_type_mappings instead
+        task_types: DEPRECATED - Use flow_type_mappings instead
         available_issue_types: List of available issue type dictionaries from JIRA
+        flow_type_mappings: Dict with Flow type mappings (Feature, Defect, etc.)
+        available_effort_categories: List of effort category values from JIRA
 
     Returns:
         Dash component with issue type configuration UI
     """
     devops_task_types = devops_task_types or []
     bug_types = bug_types or []
-    story_types = story_types or []
-    task_types = task_types or []
     available_issue_types = available_issue_types or []
+    available_effort_categories = available_effort_categories or []
+
+    # Initialize flow_type_mappings with defaults if not provided
+    if flow_type_mappings is None:
+        flow_type_mappings = {
+            "Feature": {"issue_types": [], "effort_categories": []},
+            "Defect": {"issue_types": [], "effort_categories": []},
+            "Technical_Debt": {"issue_types": [], "effort_categories": []},
+            "Risk": {"issue_types": [], "effort_categories": []},
+        }
 
     # Create options for dropdowns - include current values even if metadata not fetched
     issue_type_options = [
@@ -42,9 +54,29 @@ def create_issue_type_config_form(
 
     # Add current values to options if not already present (ensures they display)
     existing_types = {it.get("name", "") for it in available_issue_types}
-    for issue_type in devops_task_types + bug_types + story_types + task_types:
+    for issue_type in devops_task_types + bug_types:
         if issue_type and issue_type not in existing_types:
             issue_type_options.append({"label": issue_type, "value": issue_type})
+
+    # Add flow type issue types to options
+    for flow_type, config in flow_type_mappings.items():
+        for issue_type in config.get("issue_types", []):
+            if issue_type and issue_type not in existing_types:
+                issue_type_options.append({"label": issue_type, "value": issue_type})
+                existing_types.add(issue_type)
+
+    # Create effort category options
+    effort_category_options = [
+        {"label": cat, "value": cat} for cat in available_effort_categories
+    ]
+
+    # Add current effort categories to options if not present
+    existing_categories = set(available_effort_categories)
+    for flow_type, config in flow_type_mappings.items():
+        for category in config.get("effort_categories", []):
+            if category and category not in existing_categories:
+                effort_category_options.append({"label": category, "value": category})
+                existing_categories.add(category)
 
     return html.Div(
         [
@@ -54,101 +86,492 @@ def create_issue_type_config_form(
                     dbc.Col(
                         [
                             html.Label(
-                                "DevOps Task Types (Required for DORA)",
-                                className="fw-bold mb-2",
+                                "DevOps Task Types",
+                                className="form-label fw-bold",
                             ),
+                            html.P(
+                                "⚠️ Required for DORA Deployment Frequency",
+                                className="text-muted small mb-2",
+                            ),
+                        ],
+                        width=12,
+                        md=4,
+                    ),
+                    dbc.Col(
+                        [
                             dcc.Dropdown(
                                 id="devops-task-types-dropdown",
                                 options=issue_type_options,  # type: ignore  # Dash accepts list[dict]
                                 value=devops_task_types,
                                 multi=True,
-                                placeholder="Select DevOps task types...",
+                                placeholder="Type or select issue types...",
                                 className="mb-2",
-                            ),
-                            html.Small(
-                                "ℹ️ Deployment tracking for DORA Frequency",
-                                className="text-muted d-block mb-3",
+                                clearable=True,
+                                searchable=True,
+                                optionHeight=50,
+                                maxHeight=300,
                             ),
                         ],
                         width=12,
-                    )
-                ]
+                        md=8,
+                    ),
+                ],
+                className="mb-3",
             ),
-            # Bug Types
+            # Incident Types
             dbc.Row(
                 [
                     dbc.Col(
                         [
                             html.Label(
-                                "Bug Types (Required for MTTR)",
-                                className="fw-bold mb-2",
+                                "Incident Types",
+                                className="form-label fw-bold",
                             ),
+                            html.P(
+                                "⚠️ Required for DORA MTTR",
+                                className="text-muted small mb-2",
+                            ),
+                        ],
+                        width=12,
+                        md=4,
+                    ),
+                    dbc.Col(
+                        [
                             dcc.Dropdown(
                                 id="bug-types-dropdown",
                                 options=issue_type_options,  # type: ignore  # Dash accepts list[dict]
                                 value=bug_types,
                                 multi=True,
-                                placeholder="Select bug types...",
+                                placeholder="Type or select incident types...",
                                 className="mb-2",
-                            ),
-                            html.Small(
-                                "ℹ️ Production incident tracking for DORA MTTR",
-                                className="text-muted d-block mb-3",
+                                clearable=True,
+                                searchable=True,
+                                optionHeight=50,
+                                maxHeight=300,
                             ),
                         ],
                         width=12,
-                    )
-                ]
+                        md=8,
+                    ),
+                ],
+                className="mb-3",
             ),
-            # Story Types
-            dbc.Row(
+            # Flow Metrics Section Header
+            html.Hr(className="my-4"),
+            dbc.Card(
                 [
-                    dbc.Col(
+                    dbc.CardHeader(
+                        html.H5("Flow Metrics Type Classification", className="mb-0"),
+                        className="bg-light",
+                    ),
+                    dbc.CardBody(
                         [
-                            html.Label(
-                                "Story Types (Optional)", className="fw-bold mb-2"
+                            html.P(
+                                "Configure AND-filter: Issue Type + Effort Category → Flow Type. Leave Effort Categories empty to match all issues of that type.",
+                                className="text-muted small mb-3",
                             ),
-                            dcc.Dropdown(
-                                id="story-types-dropdown",
-                                options=issue_type_options,  # type: ignore  # Dash accepts list[dict]
-                                value=story_types,
-                                multi=True,
-                                placeholder="Select story types...",
-                                className="mb-2",
-                            ),
-                            html.Small(
-                                "ℹ️ Work classification (future use)",
-                                className="text-muted d-block mb-3",
-                            ),
-                        ],
-                        width=12,
-                    )
-                ]
+                        ]
+                    ),
+                ],
+                className="mb-3",
             ),
-            # Task Types
-            dbc.Row(
+            # Feature Types - Grouped Card
+            dbc.Card(
                 [
-                    dbc.Col(
+                    dbc.CardBody(
                         [
-                            html.Label(
-                                "Task Types (Optional)", className="fw-bold mb-2"
+                            html.Div(
+                                [
+                                    html.I(
+                                        className="fas fa-lightbulb me-2 text-success"
+                                    ),
+                                    html.Strong("Feature Types"),
+                                    html.Span(
+                                        " - New capabilities and improvements (Target: 40-70%)",
+                                        className="text-muted small ms-2",
+                                    ),
+                                ],
+                                className="mb-3",
                             ),
-                            dcc.Dropdown(
-                                id="task-types-dropdown",
-                                options=issue_type_options,  # type: ignore  # Dash accepts list[dict]
-                                value=task_types,
-                                multi=True,
-                                placeholder="Select task types...",
+                            dbc.Row(
+                                [
+                                    dbc.Col(
+                                        [
+                                            html.Label(
+                                                "1️⃣ Issue Types",
+                                                className="form-label fw-bold",
+                                            ),
+                                            html.P(
+                                                "Required: Select at least one issue type",
+                                                className="text-muted small mb-2",
+                                            ),
+                                        ],
+                                        width=12,
+                                        md=4,
+                                    ),
+                                    dbc.Col(
+                                        [
+                                            dcc.Dropdown(
+                                                id="flow-feature-issue-types-dropdown",
+                                                options=issue_type_options,  # type: ignore  # Dash accepts list[dict]
+                                                value=flow_type_mappings.get(
+                                                    "Feature", {}
+                                                ).get("issue_types", []),
+                                                multi=True,
+                                                placeholder="Type or select issue types...",
+                                                className="mb-2",
+                                                clearable=True,
+                                                searchable=True,
+                                                optionHeight=50,
+                                                maxHeight=300,
+                                            ),
+                                        ],
+                                        width=12,
+                                        md=8,
+                                    ),
+                                ],
                                 className="mb-2",
                             ),
-                            html.Small(
-                                "ℹ️ Work classification (future use)",
-                                className="text-muted d-block mb-3",
+                            dbc.Row(
+                                [
+                                    dbc.Col(
+                                        [
+                                            html.Label(
+                                                "2️⃣ Effort Categories (optional)",
+                                                className="form-label",
+                                            ),
+                                            html.P(
+                                                "ℹ️ Leave empty to match ALL above issue types",
+                                                className="text-muted small mb-2",
+                                            ),
+                                        ],
+                                        width=12,
+                                        md=4,
+                                    ),
+                                    dbc.Col(
+                                        [
+                                            dcc.Dropdown(
+                                                id="flow-feature-effort-categories-dropdown",
+                                                options=effort_category_options,  # type: ignore  # Dash accepts list[dict]
+                                                value=flow_type_mappings.get(
+                                                    "Feature", {}
+                                                ).get("effort_categories", []),
+                                                multi=True,
+                                                placeholder="Type or select categories...",
+                                                className="mb-2",
+                                                clearable=True,
+                                                searchable=True,
+                                                optionHeight=50,
+                                                maxHeight=300,
+                                            ),
+                                        ],
+                                        width=12,
+                                        md=8,
+                                    ),
+                                ],
                             ),
                         ],
-                        width=12,
-                    )
-                ]
+                        className="border-start border-flow-feature border-4",
+                    ),
+                ],
+                className="mb-3",
+            ),
+            # Defect Types - Grouped Card
+            dbc.Card(
+                [
+                    dbc.CardBody(
+                        [
+                            html.Div(
+                                [
+                                    html.I(className="fas fa-bug me-2 text-danger"),
+                                    html.Strong("Defect Types"),
+                                    html.Span(
+                                        " - Bug fixes and production incidents (Target: < 20%)",
+                                        className="text-muted small ms-2",
+                                    ),
+                                ],
+                                className="mb-3",
+                            ),
+                            dbc.Row(
+                                [
+                                    dbc.Col(
+                                        [
+                                            html.Label(
+                                                "1️⃣ Issue Types",
+                                                className="form-label fw-bold",
+                                            ),
+                                            html.P(
+                                                "Required: Select at least one issue type",
+                                                className="text-muted small mb-2",
+                                            ),
+                                        ],
+                                        width=12,
+                                        md=4,
+                                    ),
+                                    dbc.Col(
+                                        [
+                                            dcc.Dropdown(
+                                                id="flow-defect-issue-types-dropdown",
+                                                options=issue_type_options,  # type: ignore  # Dash accepts list[dict]
+                                                value=flow_type_mappings.get(
+                                                    "Defect", {}
+                                                ).get("issue_types", []),
+                                                multi=True,
+                                                placeholder="Type or select issue types...",
+                                                className="mb-2",
+                                                clearable=True,
+                                                searchable=True,
+                                                optionHeight=50,
+                                                maxHeight=300,
+                                            ),
+                                        ],
+                                        width=12,
+                                        md=8,
+                                    ),
+                                ],
+                                className="mb-2",
+                            ),
+                            dbc.Row(
+                                [
+                                    dbc.Col(
+                                        [
+                                            html.Label(
+                                                "2️⃣ Effort Categories (optional)",
+                                                className="form-label",
+                                            ),
+                                            html.P(
+                                                "ℹ️ Leave empty to match ALL above issue types",
+                                                className="text-muted small mb-2",
+                                            ),
+                                        ],
+                                        width=12,
+                                        md=4,
+                                    ),
+                                    dbc.Col(
+                                        [
+                                            dcc.Dropdown(
+                                                id="flow-defect-effort-categories-dropdown",
+                                                options=effort_category_options,  # type: ignore  # Dash accepts list[dict]
+                                                value=flow_type_mappings.get(
+                                                    "Defect", {}
+                                                ).get("effort_categories", []),
+                                                multi=True,
+                                                placeholder="Type or select categories...",
+                                                className="mb-2",
+                                                clearable=True,
+                                                searchable=True,
+                                                optionHeight=50,
+                                                maxHeight=300,
+                                            ),
+                                        ],
+                                        width=12,
+                                        md=8,
+                                    ),
+                                ],
+                            ),
+                        ],
+                        className="border-start border-flow-defect border-4",
+                    ),
+                ],
+                className="mb-3",
+            ),
+            # Technical Debt Types - Grouped Card
+            dbc.Card(
+                [
+                    dbc.CardBody(
+                        [
+                            html.Div(
+                                [
+                                    html.I(className="fas fa-wrench me-2"),
+                                    html.Strong("Technical Debt Types"),
+                                    html.Span(
+                                        " - Refactoring and technical improvements (Target: 10-20%)",
+                                        className="text-muted small ms-2",
+                                    ),
+                                ],
+                                className="mb-3",
+                            ),
+                            dbc.Row(
+                                [
+                                    dbc.Col(
+                                        [
+                                            html.Label(
+                                                "1️⃣ Issue Types",
+                                                className="form-label fw-bold",
+                                            ),
+                                            html.P(
+                                                "Required: Select at least one issue type",
+                                                className="text-muted small mb-2",
+                                            ),
+                                        ],
+                                        width=12,
+                                        md=4,
+                                    ),
+                                    dbc.Col(
+                                        [
+                                            dcc.Dropdown(
+                                                id="flow-technical-debt-issue-types-dropdown",
+                                                options=issue_type_options,  # type: ignore  # Dash accepts list[dict]
+                                                value=flow_type_mappings.get(
+                                                    "Technical_Debt", {}
+                                                ).get("issue_types", []),
+                                                multi=True,
+                                                placeholder="Type or select issue types...",
+                                                className="mb-2",
+                                                clearable=True,
+                                                searchable=True,
+                                                optionHeight=50,
+                                                maxHeight=300,
+                                            ),
+                                        ],
+                                        width=12,
+                                        md=8,
+                                    ),
+                                ],
+                                className="mb-2",
+                            ),
+                            dbc.Row(
+                                [
+                                    dbc.Col(
+                                        [
+                                            html.Label(
+                                                "2️⃣ Effort Categories (optional)",
+                                                className="form-label",
+                                            ),
+                                            html.P(
+                                                "ℹ️ Leave empty to match ALL above issue types",
+                                                className="text-muted small mb-2",
+                                            ),
+                                        ],
+                                        width=12,
+                                        md=4,
+                                    ),
+                                    dbc.Col(
+                                        [
+                                            dcc.Dropdown(
+                                                id="flow-technical-debt-effort-categories-dropdown",
+                                                options=effort_category_options,  # type: ignore  # Dash accepts list[dict]
+                                                value=flow_type_mappings.get(
+                                                    "Technical_Debt", {}
+                                                ).get("effort_categories", []),
+                                                multi=True,
+                                                placeholder="Type or select categories...",
+                                                className="mb-2",
+                                                clearable=True,
+                                                searchable=True,
+                                                optionHeight=50,
+                                                maxHeight=300,
+                                            ),
+                                        ],
+                                        width=12,
+                                        md=8,
+                                    ),
+                                ],
+                            ),
+                        ],
+                        className="border-start border-flow-tech-debt border-4",
+                    ),
+                ],
+                className="mb-3",
+            ),
+            # Risk Types - Grouped Card
+            dbc.Card(
+                [
+                    dbc.CardBody(
+                        [
+                            html.Div(
+                                [
+                                    html.I(className="fas fa-shield-alt me-2"),
+                                    html.Strong("Risk Types"),
+                                    html.Span(
+                                        " - Security, compliance, and experiments (Target: < 10%)",
+                                        className="text-muted small ms-2",
+                                    ),
+                                ],
+                                className="mb-3",
+                            ),
+                            dbc.Row(
+                                [
+                                    dbc.Col(
+                                        [
+                                            html.Label(
+                                                "1️⃣ Issue Types",
+                                                className="form-label fw-bold",
+                                            ),
+                                            html.P(
+                                                "Required: Select at least one issue type",
+                                                className="text-muted small mb-2",
+                                            ),
+                                        ],
+                                        width=12,
+                                        md=4,
+                                    ),
+                                    dbc.Col(
+                                        [
+                                            dcc.Dropdown(
+                                                id="flow-risk-issue-types-dropdown",
+                                                options=issue_type_options,  # type: ignore  # Dash accepts list[dict]
+                                                value=flow_type_mappings.get(
+                                                    "Risk", {}
+                                                ).get("issue_types", []),
+                                                multi=True,
+                                                placeholder="Type or select issue types...",
+                                                className="mb-2",
+                                                clearable=True,
+                                                searchable=True,
+                                                optionHeight=50,
+                                                maxHeight=300,
+                                            ),
+                                        ],
+                                        width=12,
+                                        md=8,
+                                    ),
+                                ],
+                                className="mb-2",
+                            ),
+                            dbc.Row(
+                                [
+                                    dbc.Col(
+                                        [
+                                            html.Label(
+                                                "2️⃣ Effort Categories (optional)",
+                                                className="form-label",
+                                            ),
+                                            html.P(
+                                                "ℹ️ Leave empty to match ALL above issue types",
+                                                className="text-muted small mb-2",
+                                            ),
+                                        ],
+                                        width=12,
+                                        md=4,
+                                    ),
+                                    dbc.Col(
+                                        [
+                                            dcc.Dropdown(
+                                                id="flow-risk-effort-categories-dropdown",
+                                                options=effort_category_options,  # type: ignore  # Dash accepts list[dict]
+                                                value=flow_type_mappings.get(
+                                                    "Risk", {}
+                                                ).get("effort_categories", []),
+                                                multi=True,
+                                                placeholder="Type or select categories...",
+                                                className="mb-2",
+                                                clearable=True,
+                                                searchable=True,
+                                                optionHeight=50,
+                                                maxHeight=300,
+                                            ),
+                                        ],
+                                        width=12,
+                                        md=8,
+                                    ),
+                                ],
+                            ),
+                        ],
+                        className="border-start border-flow-risk border-4",
+                    ),
+                ],
+                className="mb-3",
             ),
             # Validation warnings
             html.Div(id="issue-type-config-validation-warnings", className="mt-3"),

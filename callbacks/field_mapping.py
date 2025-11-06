@@ -195,6 +195,37 @@ def toggle_field_mapping_modal(
 
 
 @callback(
+    Output({"type": "field-mapping-dropdown", "metric": ALL, "field": ALL}, "value"),
+    Input({"type": "field-mapping-dropdown", "metric": ALL, "field": ALL}, "value"),
+    prevent_initial_call=True,
+)
+def enforce_single_selection_in_multi_dropdown(
+    field_values: List[List[str]],
+) -> List[List[str]]:
+    """Enforce single selection in multi-select dropdowns for consistent styling.
+
+    Multi-select dropdowns are used to get the blue pill styling automatically,
+    but we only want one value selected at a time. This callback keeps only
+    the most recently selected value.
+
+    Args:
+        field_values: List of selected values (each is a list due to multi=True)
+
+    Returns:
+        List of values with only the last selection kept (each a list with 0-1 items)
+    """
+    result = []
+    for value_list in field_values:
+        if value_list and len(value_list) > 1:
+            # Keep only the last selected value
+            result.append([value_list[-1]])
+        else:
+            # Keep empty list or single value as-is
+            result.append(value_list if value_list else [])
+    return result
+
+
+@callback(
     [
         Output("field-mapping-status", "children"),
         Output("field-mapping-save-success", "data"),
@@ -208,7 +239,7 @@ def toggle_field_mapping_modal(
 def save_field_mappings_callback(
     n_clicks: int | None,
     active_tab: str,
-    field_values: List[str],
+    field_values: List[List[str]],  # Now list of lists due to multi=True
     field_ids: List[Dict],
 ) -> tuple[Any, Any]:
     """Save field mappings when Save button is clicked FROM FIELDS TAB ONLY.
@@ -237,7 +268,10 @@ def save_field_mappings_callback(
         # Extract mappings from dropdown values into nested structure
         nested_mappings = {"dora": {}, "flow": {}}
 
-        for field_id_dict, field_value in zip(field_ids, field_values):
+        for field_id_dict, field_value_list in zip(field_ids, field_values):
+            # Extract single value from list (multi=True returns lists)
+            field_value = field_value_list[0] if field_value_list else None
+
             if field_value:  # Only include non-empty mappings
                 metric_type = field_id_dict.get("metric")
                 internal_field = field_id_dict.get("field")
@@ -478,7 +512,6 @@ def _get_mock_mappings() -> Dict[str, Dict[str, str]]:
         "dora": {
             "deployment_date": "customfield_10001",
             "code_commit_date": "customfield_10004",
-            "incident_related": "customfield_10006",
         },
         "flow": {
             "flow_item_type": "customfield_10007",
@@ -548,12 +581,27 @@ def render_tab_content(active_tab: str, metadata: dict, is_open: bool):
         )
 
     elif active_tab == "tab-types":
+        # Get flow_type_mappings from settings (new structure)
+        flow_type_mappings = settings.get("flow_type_mappings", {})
+
+        # Get effort category field options if mapped (same pattern as environment)
+        effort_category_field = settings.get("field_mappings", {}).get(
+            "effort_category"
+        )
+        available_effort_categories = []
+        if effort_category_field and metadata.get("field_options"):
+            available_effort_categories = metadata.get("field_options", {}).get(
+                effort_category_field, []
+            )
+
         return create_issue_type_config_form(
             devops_task_types=settings.get("devops_task_types", []),
             bug_types=settings.get("bug_types", []),
-            story_types=settings.get("story_types", []),
-            task_types=settings.get("task_types", []),
+            story_types=settings.get("story_types", []),  # DEPRECATED
+            task_types=settings.get("task_types", []),  # DEPRECATED
             available_issue_types=metadata.get("issue_types", []),
+            flow_type_mappings=flow_type_mappings,
+            available_effort_categories=available_effort_categories,
         )
 
     elif active_tab == "tab-status":
@@ -694,14 +742,37 @@ def fetch_metadata(n_clicks: int, is_open: bool, current_metadata: dict):
             )
             auto_detected_prod = []
 
+        # Fetch effort category field options if mapped
+        effort_category_field = settings.get("field_mappings", {}).get(
+            "effort_category"
+        )
+        effort_category_options = []
+        if effort_category_field:
+            logger.info(
+                f"Fetching field options for effort_category field: {effort_category_field}"
+            )
+            effort_category_options = fetcher.fetch_field_options(effort_category_field)
+            logger.info(
+                f"Found {len(effort_category_options)} effort category values: {effort_category_options}"
+            )
+        else:
+            logger.warning(
+                "effort_category field not mapped, cannot fetch effort category values"
+            )
+
+        # Build field_options dictionary with all fetched fields
+        field_options_dict = {}
+        if affected_env_field:
+            field_options_dict[affected_env_field] = env_options
+        if effort_category_field:
+            field_options_dict[effort_category_field] = effort_category_options
+
         metadata = {
             "fields": fields,
             "projects": projects,
             "issue_types": issue_types,
             "statuses": statuses,
-            "field_options": {affected_env_field: env_options}
-            if affected_env_field
-            else {},
+            "field_options": field_options_dict,
             "auto_detected": {
                 "issue_types": auto_detected_types,
                 "statuses": auto_detected_statuses,
@@ -836,6 +907,16 @@ def save_comprehensive_mappings(n_clicks, active_tab, content_children):
     wip_statuses = None
     production_env_values = None
 
+    # Flow type mapping variables
+    flow_feature_types = None
+    flow_feature_categories = None
+    flow_defect_types = None
+    flow_defect_categories = None
+    flow_tech_debt_types = None
+    flow_tech_debt_categories = None
+    flow_risk_types = None
+    flow_risk_categories = None
+
     if active_tab == "tab-projects":
         dev_projects = extract_dropdown_value(
             "development-projects-dropdown", content_children
@@ -848,8 +929,38 @@ def save_comprehensive_mappings(n_clicks, active_tab, content_children):
             "devops-task-types-dropdown", content_children
         )
         bug_types = extract_dropdown_value("bug-types-dropdown", content_children)
-        story_types = extract_dropdown_value("story-types-dropdown", content_children)
-        task_types = extract_dropdown_value("task-types-dropdown", content_children)
+        story_types = extract_dropdown_value(
+            "story-types-dropdown", content_children
+        )  # DEPRECATED
+        task_types = extract_dropdown_value(
+            "task-types-dropdown", content_children
+        )  # DEPRECATED
+
+        # Extract Flow type mappings (new structure)
+        flow_feature_types = extract_dropdown_value(
+            "flow-feature-issue-types-dropdown", content_children
+        )
+        flow_feature_categories = extract_dropdown_value(
+            "flow-feature-effort-categories-dropdown", content_children
+        )
+        flow_defect_types = extract_dropdown_value(
+            "flow-defect-issue-types-dropdown", content_children
+        )
+        flow_defect_categories = extract_dropdown_value(
+            "flow-defect-effort-categories-dropdown", content_children
+        )
+        flow_tech_debt_types = extract_dropdown_value(
+            "flow-technical-debt-issue-types-dropdown", content_children
+        )
+        flow_tech_debt_categories = extract_dropdown_value(
+            "flow-technical-debt-effort-categories-dropdown", content_children
+        )
+        flow_risk_types = extract_dropdown_value(
+            "flow-risk-issue-types-dropdown", content_children
+        )
+        flow_risk_categories = extract_dropdown_value(
+            "flow-risk-effort-categories-dropdown", content_children
+        )
     elif active_tab == "tab-status":
         completion_statuses = extract_dropdown_value(
             "completion-statuses-dropdown", content_children
@@ -930,6 +1041,44 @@ def save_comprehensive_mappings(n_clicks, active_tab, content_children):
                 if task_types
                 else []
             )
+
+        # Save Flow type mappings (new structure)
+        if active_tab == "tab-types":
+            # Build flow_type_mappings structure
+            flow_type_mappings = {}
+
+            # Helper function to normalize to list
+            def to_list(value):
+                if value is None:
+                    return []
+                return value if isinstance(value, list) else [value] if value else []
+
+            # Feature mapping
+            flow_type_mappings["Feature"] = {
+                "issue_types": to_list(flow_feature_types),
+                "effort_categories": to_list(flow_feature_categories),
+            }
+
+            # Defect mapping
+            flow_type_mappings["Defect"] = {
+                "issue_types": to_list(flow_defect_types),
+                "effort_categories": to_list(flow_defect_categories),
+            }
+
+            # Technical Debt mapping
+            flow_type_mappings["Technical_Debt"] = {
+                "issue_types": to_list(flow_tech_debt_types),
+                "effort_categories": to_list(flow_tech_debt_categories),
+            }
+
+            # Risk mapping
+            flow_type_mappings["Risk"] = {
+                "issue_types": to_list(flow_risk_types),
+                "effort_categories": to_list(flow_risk_categories),
+            }
+
+            settings["flow_type_mappings"] = flow_type_mappings
+            logger.info(f"Updated flow_type_mappings: {flow_type_mappings}")
 
         if completion_statuses is not None:
             settings["completion_statuses"] = (
@@ -1034,6 +1183,7 @@ def save_comprehensive_mappings(n_clicks, active_tab, content_children):
             active_statuses=settings.get("active_statuses"),
             flow_start_statuses=settings.get("flow_start_statuses"),
             wip_statuses=settings.get("wip_statuses"),
+            flow_type_mappings=settings.get("flow_type_mappings"),
         )
 
         # Invalidate metrics cache since configuration changed

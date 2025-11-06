@@ -15,49 +15,65 @@ from datetime import datetime
 from typing import Dict, List, Any, Optional
 
 from configuration.flow_config import RECOMMENDED_FLOW_DISTRIBUTION
+from configuration.metrics_config import get_metrics_config
 
 logger = logging.getLogger(__name__)
 
 
-def _map_issue_type_to_flow_type(issue_type_value: Any) -> str:
-    """Map Jira issue type to Flow item type.
+def _map_issue_to_flow_type(
+    issue: Dict[str, Any],
+    flow_type_field: str,
+    effort_category_field: Optional[str] = None,
+) -> Optional[str]:
+    """Classify issue to Flow type using user-configured AND-filter mappings.
 
-    This function handles both custom Flow item type fields and standard Jira
-    issue types used as proxies.
+    Uses two-tier classification system:
+    1. Primary: Issue type must match configured issue_types
+    2. Secondary: If effort_categories configured, effort category must also match
+    3. Empty effort_categories = no filter (all issues of that type qualify)
 
     Args:
-        issue_type_value: Jira field value (can be dict with 'name' or 'value', or string)
+        issue: JIRA issue dictionary
+        flow_type_field: Field ID for issue type (e.g., "issuetype")
+        effort_category_field: Optional field ID for effort category
 
     Returns:
-        Flow item type: "Feature", "Defect", "Risk", or "Technical_Debt"
+        Flow type ("Feature", "Defect", "Technical_Debt", "Risk") or None if no match
+
+    Examples:
+        Feature config: issue_types=["Story"], effort_categories=["New feature"]
+        - Story with "New feature" → Feature ✓
+        - Story with "Bug Fix" → None ✗
+
+        Defect config: issue_types=["Bug"], effort_categories=[]
+        - Bug with any effort category → Defect ✓
     """
-    # Extract string value from various formats
+    fields = issue.get("fields", {})
+
+    # Extract issue type
+    issue_type_value = fields.get(flow_type_field)
     if isinstance(issue_type_value, dict):
-        # Could be {"name": "Bug"} or {"value": "Feature"}
-        type_str = issue_type_value.get("value") or issue_type_value.get(
-            "name", "Unknown"
-        )
+        issue_type = issue_type_value.get("name") or issue_type_value.get("value", "")
     else:
-        type_str = str(issue_type_value) if issue_type_value else "Unknown"
+        issue_type = str(issue_type_value) if issue_type_value else ""
 
-    # Direct match for custom Flow item types
-    if type_str in ["Feature", "Defect", "Risk", "Technical_Debt"]:
-        return type_str
+    if not issue_type:
+        return None
 
-    # Proxy mapping from standard Jira issue types
-    proxy_mapping = {
-        "Bug": "Defect",
-        "Story": "Feature",
-        "Improvement": "Feature",
-        "New Feature": "Feature",
-        "Task": "Technical_Debt",
-        "Sub-task": "Technical_Debt",
-        "Epic": "Feature",
-        "Spike": "Risk",
-        "Security": "Risk",
-    }
+    # Extract effort category (optional)
+    effort_category = None
+    if effort_category_field:
+        effort_value = fields.get(effort_category_field)
+        if isinstance(effort_value, dict):
+            effort_category = effort_value.get("value") or effort_value.get("name")
+        else:
+            effort_category = str(effort_value) if effort_value else None
 
-    return proxy_mapping.get(type_str, "Feature")  # Default to Feature
+    # Use configured classification
+    config = get_metrics_config()
+    flow_type = config.classify_issue_to_flow_type(issue_type, effort_category)
+
+    return flow_type
 
 
 def _calculate_trend(
@@ -130,6 +146,7 @@ def calculate_flow_velocity(
 
         flow_type_field = field_mappings["flow_item_type"]
         completed_field = field_mappings["completed_date"]
+        effort_category_field = field_mappings.get("effort_category")  # Optional
 
         # Count completed items by type
         type_counts = {"Feature": 0, "Defect": 0, "Risk": 0, "Technical_Debt": 0}
@@ -155,11 +172,12 @@ def calculate_flow_velocity(
             if not (start_date <= completed_date <= end_date):
                 continue
 
-            # Get work type
-            work_type_value = fields.get(flow_type_field)
-            work_type = _map_issue_type_to_flow_type(work_type_value)
+            # Classify issue to Flow type using configured mappings
+            work_type = _map_issue_to_flow_type(
+                issue, flow_type_field, effort_category_field
+            )
 
-            if work_type in type_counts:
+            if work_type and work_type in type_counts:
                 type_counts[work_type] += 1
                 total_count += 1
 
@@ -403,6 +421,7 @@ def calculate_flow_load(
 
         status_field = field_mappings["status"]
         type_field = field_mappings.get("flow_item_type")
+        effort_category_field = field_mappings.get("effort_category")  # Optional
 
         # Count in-progress items by type
         type_counts = {"Feature": 0, "Defect": 0, "Risk": 0, "Technical_Debt": 0}
@@ -428,12 +447,13 @@ def calculate_flow_load(
             ]:
                 wip_count += 1
 
-                # Get work type if available
+                # Classify work type if available
                 if type_field:
-                    work_type_value = fields.get(type_field)
-                    work_type = _map_issue_type_to_flow_type(work_type_value)
+                    work_type = _map_issue_to_flow_type(
+                        issue, type_field, effort_category_field
+                    )
 
-                    if work_type in type_counts:
+                    if work_type and work_type in type_counts:
                         type_counts[work_type] += 1
 
         # Calculate trend if previous period value is provided
@@ -492,6 +512,7 @@ def calculate_flow_distribution(
 
         flow_type_field = field_mappings["flow_item_type"]
         completed_field = field_mappings["completed_date"]
+        effort_category_field = field_mappings.get("effort_category")  # Optional
 
         # Count items by type
         type_counts = {"Feature": 0, "Defect": 0, "Risk": 0, "Technical_Debt": 0}
@@ -516,11 +537,12 @@ def calculate_flow_distribution(
             if not (start_date <= completed_date <= end_date):
                 continue
 
-            # Get work type
-            work_type_value = fields.get(flow_type_field)
-            work_type = _map_issue_type_to_flow_type(work_type_value)
+            # Classify issue to Flow type using configured mappings
+            work_type = _map_issue_to_flow_type(
+                issue, flow_type_field, effort_category_field
+            )
 
-            if work_type in type_counts:
+            if work_type and work_type in type_counts:
                 type_counts[work_type] += 1
 
         total_count = sum(type_counts.values())

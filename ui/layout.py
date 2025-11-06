@@ -216,6 +216,8 @@ def create_app_layout(settings, statistics, is_sample_data):
             dcc.Store(id="ui-state", data={"loading": False, "last_tab": None}),
             # Store for viewport size detection (mobile, tablet, desktop)
             dcc.Store(id="viewport-size", data="desktop"),
+            # Store for triggering metrics refresh (DORA/Flow)
+            dcc.Store(id="metrics-refresh-trigger", data=None),
             # Interval component for dynamic viewport detection
             dcc.Interval(
                 id="viewport-detector",

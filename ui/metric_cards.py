@@ -142,8 +142,8 @@ def _create_success_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
     else:
         formatted_value = "N/A"
 
-    # Build card
-    card_props = {"className": "metric-card mb-3"}
+    # Build card with h-100 for consistent heights with error cards
+    card_props = {"className": "metric-card mb-3 h-100"}
     if card_id:
         card_props["id"] = card_id
 
@@ -306,7 +306,10 @@ def _create_success_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
 
 
 def _create_error_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
-    """Create card for error state with actionable guidance."""
+    """Create card for error state with actionable guidance.
+
+    Updated to match h-100 layout of success cards for consistent card heights.
+    """
     error_state = metric_data.get("error_state", "unknown_error")
     error_message = metric_data.get("error_message", "An error occurred")
 
@@ -318,9 +321,9 @@ def _create_error_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
     error_config = {
         "missing_mapping": {
             "icon": "fas fa-cog",
-            "title": "⚙️ Field Mapping Required",
+            "title": "Field Mapping Required",
             "color": "warning",
-            "action_text": "Open Settings",
+            "action_text": "Configure Mappings",
             "action_id": {
                 "type": "open-field-mapping",
                 "index": metric_name,
@@ -328,17 +331,18 @@ def _create_error_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
             "message_override": "Configure JIRA field mappings in Settings to enable this metric.",
         },
         "no_data": {
-            "icon": "fas fa-chart-line",
-            "title": "📊 No Data Available",
-            "color": "info",
-            "action_text": "Change Time Period",
+            "icon": "fas fa-inbox",
+            "title": "No Data Available",
+            "color": "secondary",
+            "action_text": "Recalculate Metrics",
             "action_id": "open-time-period-selector",
+            "message_override": "No data found for the selected time period. Try recalculating metrics or adjusting the time range.",
         },
         "calculation_error": {
             "icon": "fas fa-exclamation-triangle",
-            "title": "❌ Calculation Error",
+            "title": "Calculation Error",
             "color": "danger",
-            "action_text": "Retry",
+            "action_text": "Retry Calculation",
             "action_id": "retry-metric-calculation",
         },
     }
@@ -347,15 +351,15 @@ def _create_error_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
         error_state,
         {
             "icon": "fas fa-exclamation-circle",
-            "title": "⚠️ Error",
+            "title": "Error",
             "color": "warning",
             "action_text": "View Details",
             "action_id": "view-error-details",
         },
     )
 
-    # Build card
-    card_props = {"className": "metric-card metric-card-error mb-3"}
+    # Build card with consistent h-100 class for equal heights
+    card_props = {"className": "metric-card metric-card-error mb-3 h-100"}
     if card_id:
         card_props["id"] = card_id
 
@@ -376,47 +380,29 @@ def _create_error_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
 
     card_body = dbc.CardBody(
         [
-            html.I(className=f"{config['icon']} fa-3x text-{config['color']} mb-3"),
-            html.H5(config["title"], className="mb-3"),
-            html.P(
-                config.get("message_override", error_message),
-                className="text-muted mb-3",
-            ),
-            dbc.Button(
-                config["action_text"],
-                id=config["action_id"],
-                color=config["color"],
-                outline=True,
-                className="metric-card-action-button",
-            ),
-            # Hidden trend collapse placeholder to satisfy pattern-matching callbacks
-            # Error cards don't show trends, but callbacks expect these IDs to exist
-            dbc.Collapse(
-                dbc.Card(
-                    dbc.CardBody(
-                        [
-                            html.Div(
-                                id={
-                                    "type": "metric-trend-chart",
-                                    "metric": metric_name,
-                                },
-                                children=[
-                                    html.P(
-                                        "Trend not available for error state",
-                                        className="text-muted text-center my-3",
-                                    )
-                                ],
-                            )
-                        ]
+            # Icon and title (compact layout)
+            html.Div(
+                [
+                    html.I(
+                        className=f"{config['icon']} fa-2x text-{config['color']} mb-2"
                     ),
-                    className="mt-2",
-                ),
-                id={"type": "metric-trend-collapse", "metric": metric_name},
-                is_open=False,
-                style={"display": "none"},
+                    html.H2("—", className="text-center metric-value mb-1 text-muted"),
+                    html.P(
+                        config["title"],
+                        className="text-muted text-center metric-unit mb-2",
+                    ),
+                ],
+                className="text-center",
+            ),
+            # Divider matching success cards
+            html.Hr(className="my-2"),
+            # Error message (compact)
+            html.Small(
+                config.get("message_override", error_message),
+                className="text-muted d-block text-center",
             ),
         ],
-        className="text-center",
+        className="d-flex flex-column",
     )
 
     return dbc.Card([card_header, card_body], **card_props)  # type: ignore[call-arg]

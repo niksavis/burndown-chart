@@ -171,7 +171,9 @@ def validate_comprehensive_config(config: Dict[str, Any]) -> Dict[str, List[str]
         )
 
     if not bug_types:
-        warnings.append("Bug types empty - DORA MTTR will not work")
+        warnings.append(
+            "Incident types empty - DORA MTTR will not work without production incident issue types"
+        )
 
     # Status validation
     completion_statuses = config.get("completion_statuses", [])

@@ -263,7 +263,7 @@ def calculate_dora_metrics_for_last_n_weeks(
             all_issues, devops_projects, development_fixversions, devops_task_types
         )
 
-        # Step 3: Filter production bugs using configurable bug types
+        # Step 3: Filter production incidents using configurable incident types
         production_bugs = [
             issue
             for issue in development_issues
@@ -272,7 +272,7 @@ def calculate_dora_metrics_for_last_n_weeks(
 
         logger.info(
             f"Filtered to {len(operational_tasks)} DevOps tasks ({', '.join(devops_task_types)}) "
-            f"(matching development fixVersions) and {len(production_bugs)} bugs ({', '.join(bug_types)})"
+            f"(matching development fixVersions) and {len(production_bugs)} production incidents ({', '.join(bug_types)})"
         )
 
         # Get week ranges

@@ -245,12 +245,6 @@ def create_field_mapping_form(
                 "select",
                 "ℹ️ Incident impact analysis",
             ),
-            (
-                "incident_related",
-                "Incident Indicator Field (Optional)",
-                "text",
-                "ℹ️ Change Failure Rate calculation",
-            ),
         ],
         field_options,
         current_mappings.get("field_mappings", {}).get("dora", {}),  # type: ignore
@@ -350,13 +344,7 @@ def create_metric_section(
                 dbc.Col(
                     [
                         html.Label(
-                            [
-                                label,
-                                html.Span(
-                                    f" ({required_type})",
-                                    className="text-muted small",
-                                ),
-                            ],
+                            label,
                             className="form-label fw-bold",
                         ),
                         html.P(
@@ -377,16 +365,16 @@ def create_metric_section(
                                 "field": field_id,
                             },
                             options=dash_options,
-                            value=current_value,
+                            value=[current_value]
+                            if current_value
+                            else [],  # Multi expects list
                             placeholder="Type or select Jira field...",
                             className="mb-2",
                             clearable=True,
-                            searchable=True,  # Allow typing to search/filter
-                            optionHeight=50,  # Taller options for better readability
-                            maxHeight=300,  # Limit dropdown height for better UX
-                            style={
-                                "position": "relative"
-                            },  # Ensure proper positioning context
+                            searchable=True,
+                            optionHeight=50,
+                            maxHeight=300,
+                            multi=True,  # Enable multi-select for consistent styling
                         ),
                         # Validation message placeholder
                         html.Div(
@@ -396,7 +384,6 @@ def create_metric_section(
                     ],
                     width=12,
                     md=8,
-                    style={"overflow": "visible"},  # Allow dropdown to overflow column
                 ),
             ],
             className="mb-3",

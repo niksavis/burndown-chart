@@ -83,7 +83,13 @@ class MetricsConfig:
                 "completion_statuses": ["Done"],
             },
             "project_config": {"operational_projects": []},
-            "effort_category_mappings": {},
+            "flow_type_mappings": {
+                "Feature": {"issue_types": ["Story", "Epic"], "effort_categories": []},
+                "Defect": {"issue_types": ["Bug"], "effort_categories": []},
+                "Technical_Debt": {"issue_types": ["Task"], "effort_categories": []},
+                "Risk": {"issue_types": ["Spike"], "effort_categories": []},
+            },
+            "effort_category_mappings": {},  # Deprecated
         }
 
     # ========================================================================
@@ -298,6 +304,88 @@ class MetricsConfig:
         return self.config.get("workflow_config", {}).get(
             "wip_issue_types", ["Task", "Story", "Bug"]
         )
+
+    # ========================================================================
+    # Flow Type Mappings (AND-filter classification)
+    # ========================================================================
+
+    def get_flow_type_mappings(self) -> Dict[str, Dict[str, List[str]]]:
+        """Get Flow type classification mappings (AND-filter system).
+
+        Returns:
+            Dictionary with Flow types as keys, each containing:
+            - issue_types: List of JIRA issue types
+            - effort_categories: List of effort category values (empty = no filter)
+
+        Example:
+            {
+                "Feature": {
+                    "issue_types": ["Story", "Epic"],
+                    "effort_categories": ["New feature", "Improvement"]
+                },
+                "Defect": {
+                    "issue_types": ["Bug"],
+                    "effort_categories": []  # Empty = all Bugs are Defects
+                }
+            }
+        """
+        # Check for new flow_type_mappings structure
+        if "flow_type_mappings" in self.config:
+            return self.config["flow_type_mappings"]
+
+        # Fallback to default mappings if not configured
+        return {
+            "Feature": {"issue_types": ["Story", "Epic"], "effort_categories": []},
+            "Defect": {"issue_types": ["Bug"], "effort_categories": []},
+            "Technical_Debt": {"issue_types": ["Task"], "effort_categories": []},
+            "Risk": {"issue_types": ["Spike"], "effort_categories": []},
+        }
+
+    def classify_issue_to_flow_type(
+        self, issue_type: str, effort_category: Optional[str] = None
+    ) -> Optional[str]:
+        """Classify an issue to a Flow type using AND-filter logic.
+
+        Args:
+            issue_type: JIRA issue type name (e.g., "Story", "Bug")
+            effort_category: Effort category value (optional)
+
+        Returns:
+            Flow type ("Feature", "Defect", "Technical_Debt", "Risk") or None
+
+        Logic:
+            For each Flow type configuration:
+            1. Check if issue_type is in configured issue_types
+            2. If effort_categories is empty → match (no filter)
+            3. If effort_categories is not empty → check if effort_category matches
+
+        Example:
+            >>> config.classify_issue_to_flow_type("Story", "New feature")
+            "Feature"
+            >>> config.classify_issue_to_flow_type("Story", "Bug Fix")
+            None  # If "Bug Fix" not in Feature's effort_categories
+            >>> config.classify_issue_to_flow_type("Bug", "Security")
+            "Defect"  # If Defect has empty effort_categories
+        """
+        mappings = self.get_flow_type_mappings()
+
+        for flow_type, config in mappings.items():
+            issue_types = config.get("issue_types", [])
+            effort_categories = config.get("effort_categories", [])
+
+            # Check if issue type matches
+            if issue_type not in issue_types:
+                continue
+
+            # If no effort category filter, issue qualifies
+            if not effort_categories:
+                return flow_type
+
+            # If effort category filter exists, must match
+            if effort_category and effort_category in effort_categories:
+                return flow_type
+
+        return None  # No match found
 
     # ========================================================================
     # Validation

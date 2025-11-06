@@ -218,14 +218,125 @@ class JiraMetadataFetcher:
             return self._field_options_cache[field_id]
 
         # Try field configuration endpoints first
+        # Strategy: Try multiple JIRA REST API endpoints to get ALL possible field values
         try:
-            url = f"{self.jira_url}/rest/api/{self.api_version}/field/{field_id}/context/defaultValue"
+            # Try 1: Get field configuration contexts and their options (with pagination)
+            url = (
+                f"{self.jira_url}/rest/api/{self.api_version}/field/{field_id}/context"
+            )
             response = requests.get(url, headers=self.headers, timeout=10)
 
-            # If context endpoint fails, try options endpoint
-            if response.status_code == 404:
-                url = f"{self.jira_url}/rest/api/{self.api_version}/customFieldOption/{field_id}"
-                response = requests.get(url, headers=self.headers, timeout=10)
+            if response.status_code == 200:
+                contexts = response.json().get("values", [])
+                logger.info(f"Found {len(contexts)} contexts for field {field_id}")
+
+                all_options = set()
+                for context in contexts:
+                    context_id = context.get("id")
+                    context_name = context.get("name", "unknown")
+                    logger.info(f"Processing context {context_id} ({context_name})")
+
+                    if context_id:
+                        # Fetch ALL options for this context with pagination
+                        start_at = 0
+                        max_results = 100
+                        has_more = True
+
+                        while has_more:
+                            options_url = f"{self.jira_url}/rest/api/{self.api_version}/field/{field_id}/context/{context_id}/option"
+                            params = {"startAt": start_at, "maxResults": max_results}
+                            options_response = requests.get(
+                                options_url,
+                                headers=self.headers,
+                                params=params,
+                                timeout=10,
+                            )
+
+                            if options_response.status_code == 200:
+                                options_data = options_response.json()
+                                options = options_data.get("values", [])
+                                total = options_data.get("total", len(options))
+                                is_last = options_data.get("isLast", True)
+
+                                logger.info(
+                                    f"Context {context_id}: Retrieved {len(options)} options (startAt={start_at}, total={total})"
+                                )
+
+                                for option in options:
+                                    option_value = option.get("value")
+                                    is_disabled = option.get("disabled", False)
+
+                                    if option_value:
+                                        # Include ALL options (both enabled and disabled)
+                                        # Users may want to map to disabled values if they exist in historical data
+                                        all_options.add(option_value)
+                                        if is_disabled:
+                                            logger.info(
+                                                f"  - Found disabled option: {option_value}"
+                                            )
+
+                                # Check if there are more results
+                                if is_last or len(options) < max_results:
+                                    has_more = False
+                                else:
+                                    start_at += len(options)
+                            else:
+                                logger.warning(
+                                    f"Failed to fetch options for context {context_id}: {options_response.status_code}"
+                                )
+                                has_more = False
+
+                if all_options:
+                    values = sorted(all_options)
+                    self._field_options_cache[field_id] = values
+                    logger.info(
+                        f"Fetched {len(values)} total options for field {field_id} from all contexts: {values}"
+                    )
+                    return values
+
+            # Try 2: Get field details (contains schema with allowedValues)
+            # This should work for select/multi-select custom fields
+            url = f"{self.jira_url}/rest/api/{self.api_version}/field/{field_id}"
+            response = requests.get(url, headers=self.headers, timeout=10)
+
+            if response.status_code == 200:
+                field_data = response.json()
+                # Check if field has allowedValues in schema
+                schema = field_data.get("schema", {})
+                custom_data = schema.get("custom", "")
+
+                # For select fields, allowedValues might be in different places
+                allowed_values = field_data.get("allowedValues", [])
+                if not allowed_values:
+                    allowed_values = schema.get("allowedValues", [])
+
+                if allowed_values:
+                    values = []
+                    for val in allowed_values:
+                        if isinstance(val, str):
+                            values.append(val)
+                        elif isinstance(val, dict):
+                            # Try different keys where value might be stored
+                            value = (
+                                val.get("value") or val.get("name") or val.get("label")
+                            )
+                            if value:
+                                values.append(value)
+
+                    if values:
+                        self._field_options_cache[field_id] = values
+                        logger.info(
+                            f"Fetched {len(values)} options for field {field_id} from field schema: {values}"
+                        )
+                        return values
+                else:
+                    logger.debug(
+                        f"No allowedValues found in field schema for {field_id} (type: {custom_data})"
+                    )
+
+            # Try 3: Legacy customFieldOption endpoint (for older JIRA versions)
+            url = f"{self.jira_url}/rest/api/{self.api_version}/customFieldOption/{field_id}"
+            response = requests.get(url, headers=self.headers, timeout=10)
 
             if response.status_code == 200:
                 data = response.json()
@@ -240,25 +351,88 @@ class JiraMetadataFetcher:
                 if values:
                     self._field_options_cache[field_id] = values
                     logger.info(
-                        f"Fetched {len(values)} options for field {field_id} from field config"
+                        f"Fetched {len(values)} options for field {field_id} from legacy endpoint"
                     )
                     return values
 
         except requests.exceptions.RequestException as e:
             logger.debug(f"Field config API failed for {field_id}: {e}")
 
-        # Fallback: Extract unique values from actual issues
-        logger.info(f"Trying to extract unique values for {field_id} from issues")
+        # Fallback 1: Try to extract from cached JIRA data (FAST - no API calls)
+        logger.info(f"Trying to extract {field_id} values from jira_cache.json")
         try:
-            values = self._fetch_field_values_from_issues(field_id)
+            import os
+            import json
+
+            cache_file = "jira_cache.json"
+            if os.path.exists(cache_file):
+                with open(cache_file, "r", encoding="utf-8") as f:
+                    cache_data = json.load(f)
+
+                issues = cache_data.get("issues", [])
+                logger.info(
+                    f"Found {len(issues)} cached issues, extracting {field_id} values"
+                )
+
+                unique_values = set()
+                for issue in issues:
+                    field_value = issue.get("fields", {}).get(field_id)
+
+                    if field_value is None:
+                        continue
+
+                    # Handle different field types
+                    if isinstance(field_value, str):
+                        unique_values.add(field_value)
+                    elif isinstance(field_value, dict):
+                        # For select/option fields
+                        if "value" in field_value:
+                            unique_values.add(field_value["value"])
+                        elif "name" in field_value:
+                            unique_values.add(field_value["name"])
+                    elif isinstance(field_value, list):
+                        # For multi-select fields
+                        for item in field_value:
+                            if isinstance(item, str):
+                                unique_values.add(item)
+                            elif isinstance(item, dict):
+                                if "value" in item:
+                                    unique_values.add(item["value"])
+                                elif "name" in item:
+                                    unique_values.add(item["name"])
+
+                if unique_values:
+                    values = sorted(unique_values)
+                    self._field_options_cache[field_id] = values
+                    logger.info(
+                        f"Extracted {len(values)} unique values for {field_id} from cache: {values}"
+                    )
+                    return values
+                else:
+                    logger.info(f"No values found for {field_id} in cache")
+            else:
+                logger.info(f"Cache file {cache_file} not found")
+
+        except Exception as e:
+            logger.warning(f"Failed to extract from cache: {e}")
+
+        # Fallback 2: Extract from live issues via JQL (same as production identifiers pattern)
+        logger.info(
+            f"Fetching {field_id} values from JIRA via JQL query (sampling up to 1000 issues)"
+        )
+        try:
+            values = self._fetch_field_values_from_issues(
+                field_id, scoped=True, max_results=1000
+            )
+
             if values:
                 self._field_options_cache[field_id] = values
                 logger.info(
-                    f"Extracted {len(values)} unique values for field {field_id} from issues"
+                    f"Extracted {len(values)} unique values for field {field_id} from JIRA issues: {values}"
                 )
                 return values
             else:
-                logger.warning(f"No values found for field {field_id} in issues")
+                logger.warning(f"No values found for field {field_id}")
                 return []
 
         except Exception as e:
@@ -266,7 +440,7 @@ class JiraMetadataFetcher:
             return []
 
     def _fetch_field_values_from_issues(
-        self, field_id: str, max_results: int = 1000
+        self, field_id: str, max_results: int = 1000, scoped: bool = True
     ) -> List[str]:
         """
         Extract unique values for a field from actual JIRA issues.
@@ -276,6 +450,7 @@ class JiraMetadataFetcher:
         Args:
             field_id: JIRA field ID (e.g., customfield_11309)
             max_results: Maximum issues to query (default: 1000)
+            scoped: Whether to scope query to configured projects (default: True)
 
         Returns:
             List of unique values found in issues
@@ -284,15 +459,8 @@ class JiraMetadataFetcher:
             from data.persistence import load_app_settings
 
             logger.info(
-                f"Attempting to fetch field values from issues for field: {field_id}"
+                f"Attempting to fetch field values from issues for field: {field_id} (scoped={scoped})"
             )
-
-            # Load configured development projects to scope the query
-            # Use only development projects (not devops) because:
-            # - Users may not have full access to devops projects
-            # - Custom fields may not exist in devops projects
-            settings = load_app_settings()
-            dev_projects = settings.get("development_projects", [])
 
             # Get field name for JQL query (some JIRA instances require field name, not ID)
             field_name = None
@@ -302,27 +470,42 @@ class JiraMetadataFetcher:
                         field_name = field.get("name")
                         break
 
-            # Build JQL query with project scope if available
-            # Try field name in quotes first (works better in some JIRA instances)
-            if dev_projects:
-                project_clause = f"project IN ({','.join(dev_projects)}) AND "
-                if field_name:
-                    jql = f'{project_clause}"{field_name}" IS NOT EMPTY'
+            # Build JQL query with optional project scope
+            if scoped:
+                # Load configured development projects to scope the query
+                settings = load_app_settings()
+                dev_projects = settings.get("development_projects", [])
+
+                if dev_projects:
+                    project_clause = f"project IN ({','.join(dev_projects)}) AND "
+                    if field_name:
+                        jql = f'{project_clause}"{field_name}" IS NOT EMPTY'
+                    else:
+                        jql = f"{project_clause}{field_id} IS NOT EMPTY"
                 else:
-                    jql = f"{project_clause}{field_id} IS NOT EMPTY"
+                    # No projects configured, search all
+                    if field_name:
+                        jql = f'"{field_name}" IS NOT EMPTY'
+                    else:
+                        jql = f"{field_id} IS NOT EMPTY"
             else:
+                # Unscoped - search ALL projects
                 if field_name:
                     jql = f'"{field_name}" IS NOT EMPTY'
                 else:
                     jql = f"{field_id} IS NOT EMPTY"
 
-            logger.info(f"Executing JQL query: {jql} (max {max_results} results)")
+            # Limit to recent issues and order by creation date for faster query
+            jql_with_order = f"{jql} ORDER BY created DESC"
+            logger.info(
+                f"Executing JQL query: {jql_with_order} (max {max_results} results - SAMPLING ONLY)"
+            )
             url = f"{self.jira_url}/rest/api/{self.api_version}/search"
 
             params = {
-                "jql": jql,
+                "jql": jql_with_order,
                 "fields": field_id,
-                "maxResults": max_results,
+                "maxResults": min(max_results, 100),  # Hard cap at 100 for safety
             }
 
             response = requests.get(

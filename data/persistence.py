@@ -78,6 +78,7 @@ def save_app_settings(
     active_statuses=None,
     flow_start_statuses=None,
     wip_statuses=None,
+    flow_type_mappings=None,
 ):
     """
     Save app-level settings to JSON file.
@@ -108,6 +109,7 @@ def save_app_settings(
         active_statuses: List of active status names
         flow_start_statuses: List of flow start status names
         wip_statuses: List of WIP status names
+        flow_type_mappings: Dict with Flow type classifications (Feature, Defect, etc.)
     """
     settings = {
         "pert_factor": pert_factor,
@@ -154,6 +156,8 @@ def save_app_settings(
         settings["flow_start_statuses"] = flow_start_statuses
     if wip_statuses is not None:
         settings["wip_statuses"] = wip_statuses
+    if flow_type_mappings is not None:
+        settings["flow_type_mappings"] = flow_type_mappings
 
     # Preserve DORA/Flow configuration and other settings if they exist
     try:
@@ -178,6 +182,7 @@ def save_app_settings(
             "active_statuses",
             "flow_start_statuses",
             "wip_statuses",
+            "flow_type_mappings",
             "field_mapping_notes",
         ]
 

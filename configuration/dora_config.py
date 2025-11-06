@@ -124,7 +124,7 @@ DORA_BENCHMARKS = {
 REQUIRED_DORA_FIELDS = {
     "deployment_frequency": ["deployment_date", "target_environment"],
     "lead_time_for_changes": ["code_commit_date", "deployed_to_production_date"],
-    "change_failure_rate": ["deployment_successful", "incident_related"],
+    "change_failure_rate": ["change_failure"],
     "mean_time_to_recovery": ["incident_detected_at", "incident_resolved_at"],
 }
 

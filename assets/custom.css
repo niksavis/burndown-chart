@@ -63,6 +63,46 @@
 
   /* Mobile */
   --touch-target-min: 44px;
+
+  /* Flow Metrics Colors (matching chart colors) */
+  --flow-feature-color: #198754; /* Green */
+  --flow-defect-color: #dc3545; /* Red */
+  --flow-risk-color: #ffc107; /* Yellow */
+  --flow-tech-debt-color: #fd7e14; /* Orange */
+}
+
+/* ===== Flow Metrics Type Classification Border Colors ===== */
+.border-flow-feature {
+  border-color: var(--flow-feature-color) !important;
+}
+
+.border-flow-defect {
+  border-color: var(--flow-defect-color) !important;
+}
+
+.border-flow-risk {
+  border-color: var(--flow-risk-color) !important;
+}
+
+.border-flow-tech-debt {
+  border-color: var(--flow-tech-debt-color) !important;
+}
+
+/* Icon colors for Flow type cards */
+.border-flow-feature .fa-lightbulb {
+  color: var(--flow-feature-color) !important;
+}
+
+.border-flow-defect .fa-bug {
+  color: var(--flow-defect-color) !important;
+}
+
+.border-flow-tech-debt .fa-wrench {
+  color: var(--flow-tech-debt-color) !important;
+}
+
+.border-flow-risk .fa-shield-alt {
+  color: var(--flow-risk-color) !important;
 }
 
 /* ===== Parameter Panel Styles (User Story 1) ===== */

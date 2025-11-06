@@ -60,87 +60,156 @@ def create_dora_dashboard() -> dbc.Container:
                 id="dora-metrics-cards-container",
                 children=[],  # Will be populated by callback (no loading placeholders)
             ),
-            # Information and help section
-            dbc.Row(
-                [
-                    dbc.Col(
+            # Information and help section (only shown when metrics are available)
+            html.Div(
+                id="dora-info-section",
+                children=[
+                    dbc.Row(
                         [
-                            dbc.Card(
+                            dbc.Col(
                                 [
-                                    dbc.CardHeader(
+                                    dbc.Card(
                                         [
-                                            html.I(className="fas fa-info-circle me-2"),
-                                            "About DORA Metrics",
+                                            dbc.CardHeader(
+                                                [
+                                                    html.I(
+                                                        className="fas fa-rocket me-2"
+                                                    ),
+                                                    "About DORA Metrics",
+                                                ],
+                                                className="fw-bold",
+                                            ),
+                                            dbc.CardBody(
+                                                [
+                                                    html.P(
+                                                        "DORA (DevOps Research and Assessment) metrics measure software "
+                                                        "delivery and operational performance:",
+                                                        className="mb-3",
+                                                    ),
+                                                    dbc.Row(
+                                                        [
+                                                            dbc.Col(
+                                                                [
+                                                                    html.Div(
+                                                                        [
+                                                                            html.I(
+                                                                                className="fas fa-rocket text-primary me-2"
+                                                                            ),
+                                                                            html.Strong(
+                                                                                "Deployment Frequency"
+                                                                            ),
+                                                                        ],
+                                                                        className="mb-1",
+                                                                    ),
+                                                                    html.P(
+                                                                        "How often you deploy to production",
+                                                                        className="text-muted small mb-0",
+                                                                    ),
+                                                                ],
+                                                                md=6,
+                                                                className="mb-3",
+                                                            ),
+                                                            dbc.Col(
+                                                                [
+                                                                    html.Div(
+                                                                        [
+                                                                            html.I(
+                                                                                className="fas fa-clock text-success me-2"
+                                                                            ),
+                                                                            html.Strong(
+                                                                                "Lead Time for Changes"
+                                                                            ),
+                                                                        ],
+                                                                        className="mb-1",
+                                                                    ),
+                                                                    html.P(
+                                                                        "Time from commit to production",
+                                                                        className="text-muted small mb-0",
+                                                                    ),
+                                                                ],
+                                                                md=6,
+                                                                className="mb-3",
+                                                            ),
+                                                        ]
+                                                    ),
+                                                    dbc.Row(
+                                                        [
+                                                            dbc.Col(
+                                                                [
+                                                                    html.Div(
+                                                                        [
+                                                                            html.I(
+                                                                                className="fas fa-exclamation-triangle text-warning me-2"
+                                                                            ),
+                                                                            html.Strong(
+                                                                                "Change Failure Rate"
+                                                                            ),
+                                                                        ],
+                                                                        className="mb-1",
+                                                                    ),
+                                                                    html.P(
+                                                                        "% of deployments causing incidents",
+                                                                        className="text-muted small mb-0",
+                                                                    ),
+                                                                ],
+                                                                md=6,
+                                                                className="mb-3",
+                                                            ),
+                                                            dbc.Col(
+                                                                [
+                                                                    html.Div(
+                                                                        [
+                                                                            html.I(
+                                                                                className="fas fa-wrench text-danger me-2"
+                                                                            ),
+                                                                            html.Strong(
+                                                                                "Mean Time to Recovery"
+                                                                            ),
+                                                                        ],
+                                                                        className="mb-1",
+                                                                    ),
+                                                                    html.P(
+                                                                        "Time to restore service after incident",
+                                                                        className="text-muted small mb-0",
+                                                                    ),
+                                                                ],
+                                                                md=6,
+                                                                className="mb-3",
+                                                            ),
+                                                        ]
+                                                    ),
+                                                    html.Hr(className="my-3"),
+                                                    html.P(
+                                                        [
+                                                            html.I(
+                                                                className="fas fa-chart-bar me-2"
+                                                            ),
+                                                            "Metrics show performance tiers (Elite, High, Medium, Low) based on ",
+                                                            html.A(
+                                                                "DORA research",
+                                                                href="https://dora.dev/",
+                                                                target="_blank",
+                                                                className="text-decoration-none",
+                                                            ),
+                                                            ". Data is mapped from your JIRA projects using configurable field mappings.",
+                                                        ],
+                                                        className="mb-0 text-muted small",
+                                                    ),
+                                                ]
+                                            ),
                                         ],
-                                        className="fw-bold",
-                                    ),
-                                    dbc.CardBody(
-                                        [
-                                            html.P(
-                                                "DORA metrics measure software delivery performance through "
-                                                "four key indicators:",
-                                                className="mb-2",
-                                            ),
-                                            html.Ul(
-                                                [
-                                                    html.Li(
-                                                        [
-                                                            html.Strong(
-                                                                "Deployment Frequency: "
-                                                            ),
-                                                            "How often code is deployed to production",
-                                                        ]
-                                                    ),
-                                                    html.Li(
-                                                        [
-                                                            html.Strong(
-                                                                "Lead Time for Changes: "
-                                                            ),
-                                                            "Time from code commit to production deployment",
-                                                        ]
-                                                    ),
-                                                    html.Li(
-                                                        [
-                                                            html.Strong(
-                                                                "Change Failure Rate: "
-                                                            ),
-                                                            "Percentage of deployments causing incidents",
-                                                        ]
-                                                    ),
-                                                    html.Li(
-                                                        [
-                                                            html.Strong(
-                                                                "Mean Time to Recovery: "
-                                                            ),
-                                                            "Average time to restore service after an incident",
-                                                        ]
-                                                    ),
-                                                ],
-                                                className="mb-2",
-                                            ),
-                                            html.P(
-                                                [
-                                                    "Performance tiers (Elite, High, Medium, Low) are based on ",
-                                                    html.A(
-                                                        "DORA research benchmarks",
-                                                        href="https://dora.dev/",
-                                                        target="_blank",
-                                                        className="text-decoration-none",
-                                                    ),
-                                                    ".",
-                                                ],
-                                                className="mb-0 text-muted",
-                                            ),
-                                        ]
+                                        className="border-0 shadow-sm",
                                     ),
                                 ],
-                                className="border-start border-primary border-4",
+                                width=12,
                             ),
                         ],
-                        width=12,
-                    ),
+                        className="mb-4",
+                    )
                 ],
-                className="mb-4",
+                style={
+                    "display": "none"
+                },  # Hidden by default, shown by callback when metrics exist
             ),
             # Store for metrics data
             dcc.Store(id="dora-metrics-store", data={}),

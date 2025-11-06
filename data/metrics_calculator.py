@@ -451,20 +451,22 @@ def calculate_and_save_weekly_metrics(
             metrics_details.append(f"Flow Load: ⚠️ {error_msg}")
             logger.warning(f"Flow Load calculation failed: {load_error} - {error_msg}")
 
-        # Calculate work distribution using flow_type_classifier with effort categories
+        # Calculate work distribution using user-configured flow_type_mappings
         report_progress("📊 Categorizing work distribution...")
-        from data.flow_type_classifier import get_flow_type
+        from configuration.metrics_config import get_metrics_config
 
-        # Get effort category field from configuration
+        # Get field mappings from configuration
         field_mappings = app_settings.get("field_mappings", {})
+        flow_type_field = field_mappings.get("flow_item_type", "issuetype")
         effort_category_field = field_mappings.get("effort_category")
 
         if not effort_category_field:
             logger.warning(
-                "effort_category field not configured, work distribution may be inaccurate"
+                "effort_category field not configured, classification will use issue type only"
             )
-            # Use a placeholder that won't match any field
-            effort_category_field = "customfield_XXXXX"
+
+        # Get metrics config for classification
+        config = get_metrics_config()
 
         distribution = {
             "feature": 0,
@@ -474,7 +476,31 @@ def calculate_and_save_weekly_metrics(
         }
 
         for issue in issues_completed_this_week:
-            flow_type = get_flow_type(issue, effort_category_field)
+            fields = issue.get("fields", {})
+
+            # Extract issue type
+            issue_type_value = fields.get(flow_type_field)
+            if isinstance(issue_type_value, dict):
+                issue_type = issue_type_value.get("name") or issue_type_value.get(
+                    "value", ""
+                )
+            else:
+                issue_type = str(issue_type_value) if issue_type_value else ""
+
+            # Extract effort category (optional)
+            effort_category = None
+            if effort_category_field:
+                effort_value = fields.get(effort_category_field)
+                if isinstance(effort_value, dict):
+                    effort_category = effort_value.get("value") or effort_value.get(
+                        "name"
+                    )
+                else:
+                    effort_category = str(effort_value) if effort_value else None
+
+            # Use configured classification
+            flow_type = config.classify_issue_to_flow_type(issue_type, effort_category)
+
             # Map flow types to distribution keys
             if flow_type == "Feature":
                 distribution["feature"] += 1
@@ -482,11 +508,13 @@ def calculate_and_save_weekly_metrics(
                 distribution["defect"] += 1
             elif flow_type == "Risk":
                 distribution["risk"] += 1
-            elif flow_type == "Technical Debt":
+            elif flow_type == "Technical_Debt":
                 distribution["tech_debt"] += 1
             else:
-                # Unknown types go to tech_debt as catchall
-                distribution["tech_debt"] += 1
+                # Unknown types - don't count (or could default to feature)
+                logger.debug(
+                    f"Issue {issue.get('key')} has unknown flow type: {flow_type}"
+                )
 
         logger.info(
             f"Work distribution for week {week_label}: "
@@ -536,6 +564,14 @@ def calculate_and_save_weekly_metrics(
             # NOTE: all_issues contains only development issues (DevOps filtered out)
             # For DORA, we need both dev issues AND operational tasks from DevOps projects
             development_issues = filter_development_issues(all_issues, devops_projects)
+
+            # Filter bugs from development issues for CFR and MTTR
+            bug_types = app_settings.get("bug_types", ["Bug"])
+            production_bugs = [
+                issue
+                for issue in development_issues
+                if issue.get("fields", {}).get("issuetype", {}).get("name") in bug_types
+            ]
 
             # Extract fixVersions from development issues for operational task matching
             development_fixversions = extract_all_fixversions(development_issues)
@@ -676,6 +712,140 @@ def calculate_and_save_weekly_metrics(
                 metrics_details.append(
                     f"DORA Deployment Frequency: Error ({str(e)[:50]})"
                 )
+
+            # Calculate Change Failure Rate
+            try:
+                from data.dora_calculator import calculate_change_failure_rate_v2
+
+                # Get required field mappings
+                change_failure_field = field_mappings.get("change_failure")
+
+                if not change_failure_field:
+                    logger.warning(
+                        "Change Failure or Affected Environment field not configured"
+                    )
+                    cfr_snapshot = {
+                        "change_failure_rate_percent": 0,
+                        "total_deployments": 0,
+                        "failed_deployments": 0,
+                        "week": week_label,
+                    }
+                    save_metric_snapshot(
+                        week_label, "dora_change_failure_rate", cfr_snapshot
+                    )
+                    metrics_saved += 1
+                    metrics_details.append("DORA CFR: Skipped (field not configured)")
+                else:
+                    cfr_result = calculate_change_failure_rate_v2(
+                        operational_tasks,
+                        change_failure_field_id=change_failure_field,
+                        start_date=week_start,
+                        end_date=week_end,
+                    )
+
+                    cfr_percent = cfr_result.get("change_failure_rate_percent", 0)
+                    total_deps = cfr_result.get("total_deployments", 0)
+                    failed_deps = cfr_result.get("failed_deployments", 0)
+
+                    cfr_snapshot = {
+                        "change_failure_rate_percent": cfr_percent,
+                        "total_deployments": total_deps,
+                        "failed_deployments": failed_deps,
+                        "week": week_label,
+                    }
+                    save_metric_snapshot(
+                        week_label, "dora_change_failure_rate", cfr_snapshot
+                    )
+                    metrics_saved += 1
+                    metrics_details.append(
+                        f"DORA CFR: {cfr_percent:.1f}% ({failed_deps}/{total_deps} deployments)"
+                    )
+                    logger.info(
+                        f"Saved DORA CFR: {cfr_percent:.1f}% ({failed_deps}/{total_deps})"
+                    )
+
+            except Exception as e:
+                logger.error(
+                    f"Failed to calculate DORA Change Failure Rate: {e}", exc_info=True
+                )
+                cfr_snapshot = {
+                    "change_failure_rate_percent": 0,
+                    "total_deployments": 0,
+                    "failed_deployments": 0,
+                    "week": week_label,
+                }
+                save_metric_snapshot(
+                    week_label, "dora_change_failure_rate", cfr_snapshot
+                )
+                metrics_saved += 1
+                metrics_details.append(f"DORA CFR: Error ({str(e)[:50]})")
+
+            # Calculate Mean Time To Recovery (MTTR)
+            try:
+                from data.dora_calculator import calculate_mttr_v2
+
+                # Get required field mappings
+                affected_env_field = field_mappings.get("affected_environment")
+                production_value = app_settings.get(
+                    "production_environment_values", ["PROD"]
+                )[0]
+
+                if not affected_env_field:
+                    logger.warning("Affected Environment field not configured for MTTR")
+                    mttr_snapshot = {
+                        "median_hours": None,
+                        "bugs_with_mttr": 0,
+                        "week": week_label,
+                    }
+                    save_metric_snapshot(week_label, "dora_mttr", mttr_snapshot)
+                    metrics_saved += 1
+                    metrics_details.append("DORA MTTR: Skipped (field not configured)")
+                else:
+                    mttr_result = calculate_mttr_v2(
+                        production_bugs,
+                        operational_tasks,
+                        affected_environment_field_id=affected_env_field,
+                        production_value=production_value,
+                        start_date=week_start,
+                        end_date=week_end,
+                    )
+
+                    median_hours = mttr_result.get("median_hours")
+                    bugs_count = mttr_result.get("bugs_with_mttr", 0)
+
+                    mttr_snapshot = {
+                        "median_hours": median_hours,
+                        "bugs_with_mttr": bugs_count,
+                        "week": week_label,
+                    }
+                    save_metric_snapshot(week_label, "dora_mttr", mttr_snapshot)
+                    metrics_saved += 1
+
+                    if median_hours:
+                        mttr_days = median_hours / 24
+                        metrics_details.append(
+                            f"DORA MTTR: {mttr_days:.1f} days median ({bugs_count} bugs)"
+                        )
+                        logger.info(
+                            f"Saved DORA MTTR: {mttr_days:.1f} days ({bugs_count} bugs)"
+                        )
+                    else:
+                        metrics_details.append(
+                            "DORA MTTR: No Data (no production bugs resolved)"
+                        )
+                        logger.info(f"DORA MTTR: No data for week {week_label}")
+
+            except Exception as e:
+                logger.error(f"Failed to calculate DORA MTTR: {e}", exc_info=True)
+                mttr_snapshot = {
+                    "median_hours": None,
+                    "bugs_with_mttr": 0,
+                    "week": week_label,
+                }
+                save_metric_snapshot(week_label, "dora_mttr", mttr_snapshot)
+                metrics_saved += 1
+                metrics_details.append(f"DORA MTTR: Error ({str(e)[:50]})")
+
         else:
             logger.warning("No DevOps projects configured, skipping DORA metrics")
             metrics_details.append(

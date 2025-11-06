@@ -191,7 +191,7 @@ def filter_incident_issues(
     production_environment_values: Optional[List[str]] = None,
     bug_types: Optional[List[str]] = None,
 ) -> List[Dict[str, Any]]:
-    """Filter to production incident issues (Bug types in Development projects).
+    """Filter to production incident issues (incident types like Bug, Incident, Production Issue, etc. in Development projects).
 
     Use this for: DORA Mean Time to Recovery, Change Failure Rate.
 
