@@ -358,6 +358,7 @@ def calculate_deployment_frequency(
     start_date: Optional[datetime] = None,
     end_date: Optional[datetime] = None,
     devops_projects: Optional[List[str]] = None,
+    development_projects: Optional[List[str]] = None,
     devops_task_types: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """Calculate deployment frequency metric.
@@ -369,18 +370,39 @@ def calculate_deployment_frequency(
         previous_period_value: Previous period's metric value for trend calculation
         start_date: Optional explicit start date (overrides time_period_days calculation)
         end_date: Optional explicit end date (overrides time_period_days calculation)
-        devops_projects: List of DevOps project keys (e.g., ["DEVOPS"]) for filtering deployment issues
+        devops_projects: List of DevOps project keys (e.g., ["OPS"]) for filtering deployment issues
+        development_projects: List of Development project keys (e.g., ["DEV"]) for fixVersion filtering
         devops_task_types: List of issue type names for DevOps tasks (backward compatible)
 
     Returns:
         Metric data dictionary with value, unit, performance tier, trend data, and metadata
     """
-    # Filter to deployment issues only (DevOps task types in DevOps projects)
+    # Import filtering functions
+    from data.project_filter import (
+        filter_development_issues,
+        extract_all_fixversions,
+        filter_operational_tasks,
+    )
+
+    # Filter to deployment issues only (Operational Tasks in DevOps projects linked to development work)
     if devops_projects is None:
         devops_projects = []
 
-    deployment_issues = filter_deployment_issues(
-        issues, devops_projects, devops_task_types
+    # Extract fixVersions from development issues for filtering
+    development_fixversions = None
+    if development_projects:
+        development_issues = filter_development_issues(issues, devops_projects)
+        development_fixversions = extract_all_fixversions(development_issues)
+        logger.info(
+            f"Extracted {len(development_fixversions)} unique fixVersions from development issues"
+        )
+
+    # Filter Operational Tasks to only those linked to development work via fixVersion
+    deployment_issues = filter_operational_tasks(
+        issues,
+        operational_projects=devops_projects,
+        development_fixversions=development_fixversions,
+        devops_task_types=devops_task_types,
     )
 
     # Check for required field mapping
@@ -488,18 +510,25 @@ def calculate_lead_time_for_changes(
     field_mappings: Dict[str, str],
     previous_period_value: Optional[float] = None,
     devops_projects: Optional[List[str]] = None,
+    active_statuses: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """Calculate lead time for changes metric.
 
     Lead time measures the time from code commit to production deployment.
+
+    Code Commit Date: First transition into ANY active_statuses (from changelog)
+    Deployment Date: Extracted from fixVersion.releaseDate
+
     This metric links work items (Stories/Tasks in dev projects) to deployments
     (Operational Tasks in DevOps projects) via the fixVersion field.
 
     Args:
-        issues: List of change issue dictionaries from Jira (work items, not deployment issues)
+        issues: List of change issue dictionaries from Jira (work items with changelog)
         field_mappings: Mapping of internal fields to Jira field IDs
         previous_period_value: Previous period's metric value for trend calculation
         devops_projects: List of DevOps project keys (used if filtering is needed)
+        active_statuses: List of active status names (e.g., ["In Progress", "In Review", "Testing"])
+                        If None, loads from configuration
 
     Returns:
         Metric data dictionary with value, unit, performance tier, trend data, and metadata
@@ -508,8 +537,11 @@ def calculate_lead_time_for_changes(
         For lead time, we calculate from work items (dev projects) that have deployment dates
         in their fixVersions field. The fixVersions link work items to deployments.
     """
+    # Import changelog processor for status transition detection
+    from data.changelog_processor import get_first_status_transition_from_list
+
     # Check for required field mappings
-    required_fields = ["code_commit_date", "deployed_to_production_date"]
+    required_fields = ["deployed_to_production_date"]
     missing_fields = [f for f in required_fields if f not in field_mappings]
 
     if missing_fields:
@@ -527,18 +559,51 @@ def calculate_lead_time_for_changes(
             "trend_percentage": 0.0,
         }
 
-    commit_date_field = field_mappings["code_commit_date"]
+    # Load active_statuses from configuration if not provided
+    if active_statuses is None:
+        from configuration.metrics_config import get_metrics_config
+
+        config = get_metrics_config()
+        active_statuses = config.get_active_statuses()
+        if not active_statuses:
+            return {
+                "metric_name": "lead_time_for_changes",
+                "value": None,
+                "unit": "days",
+                "error_state": "missing_config",
+                "error_message": "Configure 'active_statuses' in app_settings.json",
+                "performance_tier": None,
+                "performance_tier_color": None,
+                "total_issue_count": len(issues),
+                "excluded_issue_count": 0,
+                "trend_direction": "stable",
+                "trend_percentage": 0.0,
+            }
+
     deploy_date_field = field_mappings["deployed_to_production_date"]
 
     # Calculate lead times
     lead_times = []
     excluded_count = 0
+    no_active_transition_count = 0
 
     for issue in issues:
         fields = issue.get("fields", {})
 
-        # Parse dates (handles special fields like fixVersions)
-        commit_date = _parse_datetime(_get_date_field_value(fields, commit_date_field))
+        # Get commit date from CHANGELOG - first transition to any active_statuses
+        commit_result = get_first_status_transition_from_list(
+            issue, active_statuses, case_sensitive=False
+        )
+
+        if not commit_result:
+            # Issue never entered active statuses
+            no_active_transition_count += 1
+            excluded_count += 1
+            continue
+
+        _, commit_date = commit_result  # Unpack (status_name, timestamp)
+
+        # Parse deployment date (handles special fields like fixVersions)
         deploy_date = _parse_datetime(_get_date_field_value(fields, deploy_date_field))
 
         if not commit_date or not deploy_date:
@@ -561,12 +626,22 @@ def calculate_lead_time_for_changes(
 
     # Handle no data case
     if not lead_times:
+        error_details = []
+        if no_active_transition_count > 0:
+            error_details.append(
+                f"{no_active_transition_count} never entered active statuses"
+            )
+
+        error_msg = "No changes with valid commit and deployment dates"
+        if error_details:
+            error_msg += f" ({', '.join(error_details)})"
+
         return {
             "metric_name": "lead_time_for_changes",
             "value": None,
             "unit": "days",
             "error_state": "no_data",
-            "error_message": "No changes with valid commit and deployment dates",
+            "error_message": error_msg,
             "performance_tier": None,
             "performance_tier_color": None,
             "total_issue_count": len(issues),
@@ -758,18 +833,41 @@ def calculate_mean_time_to_recovery(
     field_mappings: Dict[str, str],
     previous_period_value: Optional[float] = None,
     devops_projects: Optional[List[str]] = None,
+    operational_tasks: Optional[List[Dict[str, Any]]] = None,
 ) -> Dict[str, Any]:
-    """Calculate mean time to recovery (MTTR) metric.
+    """Calculate mean time to recovery (MTTR) metric with two-mode calculation.
+
+    MODE A: devops_projects IS configured
+        - Calculate: Bug.created → Linked_Operational_Task.resolutiondate
+        - Uses fixVersion matching to find related operational tasks
+        - Bugs without linked operational tasks are skipped
+        - Represents actual production recovery time (when deployment is resolved)
+
+    MODE B: devops_projects NOT configured
+        - Calculate: Bug.created → Bug.resolutiondate
+        - All production bugs included
+        - Represents bug fix time (no deployment process)
 
     Args:
-        issues: List of incident issue dictionaries from Jira (mixed or pre-filtered)
+        issues: List of incident issue dictionaries from Jira (Bugs from development projects)
         field_mappings: Mapping of internal fields to Jira field IDs
         previous_period_value: Previous period's metric value for trend calculation
-        devops_projects: List of DevOps project keys for filtering incidents
+        devops_projects: List of DevOps project keys - determines calculation mode
+        operational_tasks: List of Operational Task issues (required for MODE A)
 
     Returns:
         Metric data dictionary with value, unit, performance tier, trend data, and metadata
     """
+    # Determine calculation mode based on devops_projects configuration
+    use_operational_tasks = devops_projects and len(devops_projects) > 0
+
+    if use_operational_tasks:
+        logger.info("MTTR Mode A: Using Bug → Linked Operational Task calculation")
+    else:
+        logger.info(
+            "MTTR Mode B: Using Bug → Bug resolution calculation (no devops_projects)"
+        )
+
     # Filter to production incidents (Bugs in development projects)
     if devops_projects:
         issues = filter_incident_issues(
@@ -777,8 +875,13 @@ def calculate_mean_time_to_recovery(
             devops_projects,
             production_environment_field=field_mappings.get("affected_environment"),
         )
+
     # Check for required field mappings
-    required_fields = ["incident_detected_at", "incident_resolved_at"]
+    required_fields = ["incident_detected_at"]
+    if not use_operational_tasks:
+        # MODE B: Need incident_resolved_at for bug resolution
+        required_fields.append("incident_resolved_at")
+
     missing_fields = [f for f in required_fields if f not in field_mappings]
 
     if missing_fields:
@@ -797,52 +900,131 @@ def calculate_mean_time_to_recovery(
         }
 
     detected_field = field_mappings["incident_detected_at"]
-    resolved_field = field_mappings["incident_resolved_at"]
 
     # Calculate recovery times
     recovery_times = []
     excluded_count = 0
+    no_linked_task_count = 0
 
-    for issue in issues:
-        fields = issue.get("fields", {})
+    if use_operational_tasks:
+        # MODE A: Bug → Linked Operational Task
+        from data.fixversion_matcher import find_matching_operational_tasks
 
-        # Parse dates (handles special fields like fixVersions)
-        detected_at = _parse_datetime(_get_date_field_value(fields, detected_field))
-        resolved_at = _parse_datetime(_get_date_field_value(fields, resolved_field))
+        if not operational_tasks:
+            logger.warning("MTTR Mode A requires operational_tasks parameter")
+            operational_tasks = []
 
-        if not detected_at or not resolved_at:
-            # Skip unresolved incidents or missing data
-            excluded_count += 1
-            continue
+        for issue in issues:
+            fields = issue.get("fields", {})
 
-        # Calculate recovery time in hours
-        recovery_delta = resolved_at - detected_at
-        recovery_hours = recovery_delta.total_seconds() / 3600  # Convert to hours
+            # Parse bug detection date (when bug was created)
+            detected_at = _parse_datetime(_get_date_field_value(fields, detected_field))
 
-        if recovery_hours < 0:
-            # Skip invalid data (resolved before detected)
-            excluded_count += 1
-            logger.warning(
-                f"Issue {issue.get('key')}: resolved date before detected date"
+            if not detected_at:
+                excluded_count += 1
+                continue
+
+            # Find linked operational tasks via fixVersion
+            matching_tasks = find_matching_operational_tasks(
+                issue, operational_tasks, match_by="auto"
             )
-            continue
 
-        recovery_times.append(recovery_hours)
+            if not matching_tasks:
+                # No linked operational task - skip this bug
+                no_linked_task_count += 1
+                excluded_count += 1
+                logger.debug(
+                    f"Issue {issue.get('key')}: No linked operational task via fixVersion"
+                )
+                continue
+
+            # Use earliest operational task resolution date
+            earliest_resolution = None
+            for op_task, match_method in matching_tasks:
+                op_fields = op_task.get("fields", {})
+                op_resolved = _parse_datetime(
+                    _get_date_field_value(op_fields, "resolutiondate")
+                )
+
+                if op_resolved:
+                    if earliest_resolution is None or op_resolved < earliest_resolution:
+                        earliest_resolution = op_resolved
+
+            if not earliest_resolution:
+                excluded_count += 1
+                logger.debug(
+                    f"Issue {issue.get('key')}: Linked operational tasks not resolved"
+                )
+                continue
+
+            # Calculate recovery time: Bug created → Operational task resolved
+            recovery_delta = earliest_resolution - detected_at
+            recovery_hours = recovery_delta.total_seconds() / 3600
+
+            if recovery_hours < 0:
+                excluded_count += 1
+                logger.warning(
+                    f"Issue {issue.get('key')}: operational task resolved before bug created"
+                )
+                continue
+
+            recovery_times.append(recovery_hours)
+
+    else:
+        # MODE B: Bug → Bug resolution
+        resolved_field = field_mappings["incident_resolved_at"]
+
+        for issue in issues:
+            fields = issue.get("fields", {})
+
+            # Parse dates
+            detected_at = _parse_datetime(_get_date_field_value(fields, detected_field))
+            resolved_at = _parse_datetime(_get_date_field_value(fields, resolved_field))
+
+            if not detected_at or not resolved_at:
+                excluded_count += 1
+                continue
+
+            # Calculate recovery time in hours
+            recovery_delta = resolved_at - detected_at
+            recovery_hours = recovery_delta.total_seconds() / 3600
+
+            if recovery_hours < 0:
+                excluded_count += 1
+                logger.warning(
+                    f"Issue {issue.get('key')}: resolved date before detected date"
+                )
+                continue
+
+            recovery_times.append(recovery_hours)
 
     # Handle no data case
     if not recovery_times:
+        error_details = []
+        if use_operational_tasks and no_linked_task_count > 0:
+            error_details.append(
+                f"{no_linked_task_count} bugs without linked operational tasks"
+            )
+
+        error_msg = "No resolved incidents found for calculation"
+        if error_details:
+            error_msg += f" ({', '.join(error_details)})"
+
         return {
             "metric_name": "mean_time_to_recovery",
             "value": None,
             "unit": "hours",
             "error_state": "no_data",
-            "error_message": "No resolved incidents found for calculation",
+            "error_message": error_msg,
             "performance_tier": None,
             "performance_tier_color": None,
             "total_issue_count": len(issues),
             "excluded_issue_count": excluded_count,
             "trend_direction": "stable",
             "trend_percentage": 0.0,
+            "calculation_mode": "operational_task"
+            if use_operational_tasks
+            else "bug_resolution",
         }
 
     # Calculate average recovery time
@@ -867,6 +1049,9 @@ def calculate_mean_time_to_recovery(
         "calculation_timestamp": datetime.now().isoformat(),
         "trend_direction": trend_data["trend_direction"],
         "trend_percentage": trend_data["trend_percentage"],
+        "calculation_mode": "operational_task"
+        if use_operational_tasks
+        else "bug_resolution",
     }
 
 
@@ -907,7 +1092,7 @@ def calculate_all_dora_metrics(
 
 
 # ============================================================================
-# NEW IMPLEMENTATIONS - Configuration-Driven DORA Metrics for Example Customer
+# NEW IMPLEMENTATIONS - Configuration-Driven DORA Metrics
 # ============================================================================
 
 
@@ -918,14 +1103,14 @@ def calculate_deployment_frequency_v2(
 ) -> Dict[str, Any]:
     """Calculate deployment frequency using fixVersion.releaseDate.
 
-    This is the Example Customer-specific implementation that uses:
+    This implementation uses:
     - Operational tasks filtered by project_filter.filter_operational_tasks()
     - fixVersion.releaseDate as the authoritative deployment date
     - Only counts deployments where releaseDate <= today (already happened)
 
     Args:
         operational_tasks: Operational Task issues already filtered by:
-                          - Operational projects (e.g., ["RI"])
+                          - Operational projects (e.g., ["OPS"])
                           - Issue type = "Operational Task"
                           - Has fixVersion with matching development issues
         start_date: Optional start date for period (defaults to 30 days ago)
@@ -1085,7 +1270,7 @@ def calculate_lead_time_for_changes_v2(
     Lead Time measures the time from when code is deployment-ready ("In Deployment" status)
     to when it's actually deployed to production (operational task fixVersion.releaseDate).
 
-    This implementation follows the Example Customer specification:
+    This implementation uses:
     - Start time: First "In Deployment" status timestamp (from changelog)
     - End time: Matching operational task fixVersion.releaseDate
     - Fallback 1: Use "Done" status if never reached "In Deployment"
@@ -1310,8 +1495,8 @@ def calculate_change_failure_rate_v2(
     Change Failure Rate measures the percentage of deployments that result in failures
     requiring remediation (e.g., hotfix, rollback, fix forward).
 
-    This implementation follows the Example Customer specification:
-    - Field: customfield_10001 ("Change failure")
+    This implementation uses:
+    - Custom field for change failure indicator (configured in field_mappings)
     - ONLY "Yes" = failure (everything else = success: "No", "None", null, empty)
     - Only count deployments that have happened (fixVersion.releaseDate <= today)
 
@@ -1489,8 +1674,8 @@ def calculate_mttr_v2(
     MTTR measures the time from when a production bug is created to when the fix
     is deployed to production.
 
-    This implementation follows the Example Customer specification:
-    - Filter bugs with customfield_10002 == "PROD" (exact match, case-sensitive)
+    This implementation uses:
+    - Filter bugs by environment custom field (e.g., "PROD" value)
     - Start time: bug.fields.created
     - End time: Matching operational task fixVersion.releaseDate
     - Fallback: bug.fields.resolutiondate if no operational task found

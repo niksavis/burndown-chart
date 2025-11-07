@@ -129,30 +129,58 @@ class TestFlowTimeCalculation:
     """Test Flow Time metric calculation."""
 
     def test_flow_time_with_valid_issues(self):
-        """Test flow time calculation with valid start and end dates."""
+        """Test flow time calculation with valid start and end dates using changelog."""
         issues = [
             {
                 "key": "TEST-1",
                 "fields": {
-                    "customfield_10201": "2025-01-10T10:00:00.000Z",  # work_started_date
-                    "customfield_10202": "2025-01-15T10:00:00.000Z",  # work_completed_date
+                    "resolutiondate": "2025-01-15T10:00:00.000Z",  # work_completed_date
+                },
+                "changelog": {
+                    "histories": [
+                        {
+                            "created": "2025-01-10T10:00:00.000Z",
+                            "items": [
+                                {
+                                    "field": "status",
+                                    "fromString": "To Do",
+                                    "toString": "In Progress",  # First WIP status
+                                }
+                            ],
+                        }
+                    ]
                 },
             },
             {
                 "key": "TEST-2",
                 "fields": {
-                    "customfield_10201": "2025-01-12T10:00:00.000Z",
-                    "customfield_10202": "2025-01-20T10:00:00.000Z",
+                    "resolutiondate": "2025-01-20T10:00:00.000Z",
+                },
+                "changelog": {
+                    "histories": [
+                        {
+                            "created": "2025-01-12T10:00:00.000Z",
+                            "items": [
+                                {
+                                    "field": "status",
+                                    "fromString": "To Do",
+                                    "toString": "Selected",  # First WIP status
+                                }
+                            ],
+                        }
+                    ]
                 },
             },
         ]
 
         field_mappings = {
-            "work_started_date": "customfield_10201",
-            "work_completed_date": "customfield_10202",
+            "work_completed_date": "resolutiondate",
         }
 
-        result = calculate_flow_time(issues, field_mappings)
+        # Provide WIP statuses for changelog-based calculation
+        wip_statuses = ["Selected", "In Progress", "In Review"]
+
+        result = calculate_flow_time(issues, field_mappings, wip_statuses=wip_statuses)
 
         assert result["metric_name"] == "flow_time"
         assert result["value"] > 0  # Average of 5 days and 8 days = 6.5 days
@@ -162,30 +190,44 @@ class TestFlowTimeCalculation:
         assert result["excluded_issue_count"] == 0
 
     def test_flow_time_with_missing_dates(self):
-        """Test flow time excludes issues with missing dates."""
+        """Test flow time excludes issues with missing changelog transitions."""
         issues = [
             {
                 "key": "TEST-1",
                 "fields": {
-                    "customfield_10201": "2025-01-10T10:00:00.000Z",
-                    "customfield_10202": "2025-01-15T10:00:00.000Z",
+                    "resolutiondate": "2025-01-15T10:00:00.000Z",
+                },
+                "changelog": {
+                    "histories": [
+                        {
+                            "created": "2025-01-10T10:00:00.000Z",
+                            "items": [
+                                {
+                                    "field": "status",
+                                    "fromString": "To Do",
+                                    "toString": "In Progress",
+                                }
+                            ],
+                        }
+                    ]
                 },
             },
             {
                 "key": "TEST-2",
                 "fields": {
-                    "customfield_10201": "2025-01-12T10:00:00.000Z",
-                    # Missing work_completed_date
+                    "resolutiondate": "2025-01-20T10:00:00.000Z",
                 },
+                # Missing changelog - never entered WIP
             },
         ]
 
         field_mappings = {
-            "work_started_date": "customfield_10201",
-            "work_completed_date": "customfield_10202",
+            "work_completed_date": "resolutiondate",
         }
 
-        result = calculate_flow_time(issues, field_mappings)
+        wip_statuses = ["In Progress", "In Review"]
+
+        result = calculate_flow_time(issues, field_mappings, wip_statuses=wip_statuses)
 
         assert result["error_state"] == "success"
         assert result["excluded_issue_count"] == 1
@@ -196,37 +238,89 @@ class TestFlowEfficiencyCalculation:
     """Test Flow Efficiency metric calculation."""
 
     def test_flow_efficiency_with_valid_data(self):
-        """Test efficiency calculation with valid active hours and flow time."""
+        """Test efficiency calculation using changelog time-in-status."""
         issues = [
             {
                 "key": "TEST-1",
                 "fields": {
-                    "customfield_10204": 40,  # active_work_hours
-                    "customfield_10205": 10,  # flow_time_days (240 hours)
+                    "resolutiondate": "2025-01-20T10:00:00.000Z",
+                },
+                "changelog": {
+                    "histories": [
+                        # Entered WIP (Selected)
+                        {
+                            "created": "2025-01-10T10:00:00.000Z",
+                            "items": [
+                                {
+                                    "field": "status",
+                                    "fromString": "To Do",
+                                    "toString": "Selected",
+                                }
+                            ],
+                        },
+                        # Entered Active (In Progress) - 2 days after Selected
+                        {
+                            "created": "2025-01-12T10:00:00.000Z",
+                            "items": [
+                                {
+                                    "field": "status",
+                                    "fromString": "Selected",
+                                    "toString": "In Progress",
+                                }
+                            ],
+                        },
+                        # Moved to Review - 3 days after In Progress
+                        {
+                            "created": "2025-01-15T10:00:00.000Z",
+                            "items": [
+                                {
+                                    "field": "status",
+                                    "fromString": "In Progress",
+                                    "toString": "In Review",
+                                }
+                            ],
+                        },
+                        # Done - 5 days after Review
+                        {
+                            "created": "2025-01-20T10:00:00.000Z",
+                            "items": [
+                                {
+                                    "field": "status",
+                                    "fromString": "In Review",
+                                    "toString": "Done",
+                                }
+                            ],
+                        },
+                    ]
                 },
             },
         ]
 
-        field_mappings = {
-            "active_work_hours": "customfield_10204",
-            "flow_time_days": "customfield_10205",
-        }
+        field_mappings = {}
 
-        result = calculate_flow_efficiency(issues, field_mappings)
+        # Active statuses: In Progress (3 days) + In Review (5 days) = 8 days
+        # WIP statuses: Selected (2 days) + In Progress (3 days) + In Review (5 days) = 10 days
+        # Efficiency = (8 / 10) * 100 = 80%
+        active_statuses = ["In Progress", "In Review"]
+        wip_statuses = ["Selected", "In Progress", "In Review"]
+
+        result = calculate_flow_efficiency(
+            issues,
+            field_mappings,
+            active_statuses=active_statuses,
+            wip_statuses=wip_statuses,
+        )
 
         assert result["metric_name"] == "flow_efficiency"
         assert result["unit"] == "percentage"
         assert result["error_state"] == "success"
-        # Efficiency = (40 / (10 * 24)) * 100 = 16.67%
-        assert 15 < result["value"] < 18
+        # Efficiency should be around 80%
+        assert 75 < result["value"] < 85
 
     def test_flow_efficiency_with_no_data(self):
         """Test efficiency calculation with no valid data."""
         issues = []
-        field_mappings = {
-            "active_work_hours": "customfield_10204",
-            "flow_time_days": "customfield_10205",
-        }
+        field_mappings = {}
 
         result = calculate_flow_efficiency(issues, field_mappings)
 

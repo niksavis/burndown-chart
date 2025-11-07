@@ -220,49 +220,80 @@ def calculate_flow_time(
     issues: List[Dict],
     field_mappings: Dict[str, str],
     previous_period_value: Optional[float] = None,
+    wip_statuses: Optional[List[str]] = None,
+    completion_statuses: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
-    """Calculate Flow Time - average time from start to completion.
+    """Calculate Flow Time - average time from WIP start to completion.
+
+    Work Started: First transition into ANY wip_statuses (from changelog)
+    Work Completed: From work_completed_date field (resolutiondate)
 
     Args:
-        issues: List of Jira issues
-        field_mappings: Field mappings for work_started_date and work_completed_date
+        issues: List of Jira issues (with changelog data)
+        field_mappings: Field mappings for work_completed_date
         previous_period_value: Previous period's metric value for trend calculation
+        wip_statuses: List of WIP status names (e.g., ["Selected", "In Progress", ...])
+                     If None, loads from configuration
+        completion_statuses: List of completion status names (optional, for validation)
 
     Returns:
         Metric dictionary with average flow time in days and trend data
     """
     try:
+        # Import changelog processor
+        from data.changelog_processor import get_first_status_transition_from_list
+
         # Check required mappings
-        if (
-            "work_started_date" not in field_mappings
-            or "work_completed_date" not in field_mappings
-        ):
+        if "work_completed_date" not in field_mappings:
             return _create_error_response(
                 "flow_time",
                 "missing_mapping",
-                "Missing required field mappings: work_started_date or work_completed_date",
+                "Missing required field mapping: work_completed_date",
             )
 
-        start_field = field_mappings["work_started_date"]
+        # Load wip_statuses from configuration if not provided
+        if wip_statuses is None:
+            from configuration.metrics_config import get_metrics_config
+
+            config = get_metrics_config()
+            wip_statuses = config.get_wip_included_statuses()
+            if not wip_statuses:
+                return _create_error_response(
+                    "flow_time",
+                    "missing_config",
+                    "Configure 'wip_statuses' in app_settings.json",
+                )
+
         complete_field = field_mappings["work_completed_date"]
 
         flow_times = []
         excluded_count = 0
+        no_wip_transition_count = 0
 
         for issue in issues:
             fields = issue.get("fields", {})
 
-            start_date_str = fields.get(start_field)
+            # Get work started date from CHANGELOG - first transition to any wip_statuses
+            work_started_result = get_first_status_transition_from_list(
+                issue, wip_statuses, case_sensitive=False
+            )
+
+            if not work_started_result:
+                # Issue never entered WIP statuses
+                no_wip_transition_count += 1
+                excluded_count += 1
+                continue
+
+            _, start_date = work_started_result  # Unpack (status_name, timestamp)
+
+            # Get completion date from field
             complete_date_str = fields.get(complete_field)
 
-            if not start_date_str or not complete_date_str:
+            if not complete_date_str:
                 excluded_count += 1
                 continue
 
             try:
-                start_date = datetime.fromisoformat(
-                    start_date_str.replace("Z", "+00:00")
-                )
                 complete_date = datetime.fromisoformat(
                     complete_date_str.replace("Z", "+00:00")
                 )
@@ -277,10 +308,20 @@ def calculate_flow_time(
                 continue
 
         if not flow_times:
+            error_details = []
+            if no_wip_transition_count > 0:
+                error_details.append(
+                    f"{no_wip_transition_count} never entered WIP statuses"
+                )
+
+            error_msg = "No issues with valid start and completion dates"
+            if error_details:
+                error_msg += f" ({', '.join(error_details)})"
+
             return _create_error_response(
                 "flow_time",
                 "no_data",
-                "No issues with valid start and completion dates",
+                error_msg,
                 total_issue_count=len(issues),
                 excluded_issue_count=excluded_count,
             )
@@ -311,69 +352,102 @@ def calculate_flow_efficiency(
     issues: List[Dict],
     field_mappings: Dict[str, str],
     previous_period_value: Optional[float] = None,
+    active_statuses: Optional[List[str]] = None,
+    wip_statuses: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
-    """Calculate Flow Efficiency - ratio of active work time to total time.
+    """Calculate Flow Efficiency - ratio of active work time to total WIP time.
+
+    Flow Efficiency = (time in active_statuses / time in wip_statuses) × 100
+
+    Uses changelog to calculate:
+    - Active time: Total time spent in active_statuses (actual work)
+    - WIP time: Total time spent in wip_statuses (includes waiting)
 
     Args:
-        issues: List of Jira issues
-        field_mappings: Field mappings for active_work_hours and flow_time_days
+        issues: List of Jira issues (with changelog data)
+        field_mappings: Field mappings (not used for changelog-based calculation)
         previous_period_value: Previous period's metric value for trend calculation
+        active_statuses: List of active status names (e.g., ["In Progress", "In Review", "Testing"])
+                        If None, loads from configuration
+        wip_statuses: List of WIP status names (e.g., ["Selected", "In Progress", ...])
+                     If None, loads from configuration
 
     Returns:
         Metric dictionary with efficiency percentage and trend data
     """
     try:
-        # Check required mappings
-        if (
-            "active_work_hours" not in field_mappings
-            or "flow_time_days" not in field_mappings
-        ):
-            return _create_error_response(
-                "flow_efficiency",
-                "missing_mapping",
-                "Missing required field mappings: active_work_hours or flow_time_days",
-            )
+        # Import changelog processor
+        from data.changelog_processor import calculate_time_in_status
 
-        active_hours_field = field_mappings["active_work_hours"]
-        flow_time_field = field_mappings["flow_time_days"]
+        # Load statuses from configuration if not provided
+        if active_statuses is None or wip_statuses is None:
+            from configuration.metrics_config import get_metrics_config
+
+            config = get_metrics_config()
+
+            if active_statuses is None:
+                active_statuses = config.get_active_statuses()
+            if wip_statuses is None:
+                wip_statuses = config.get_wip_included_statuses()
+
+            if not active_statuses:
+                return _create_error_response(
+                    "flow_efficiency",
+                    "missing_config",
+                    "Configure 'active_statuses' in app_settings.json",
+                )
+            if not wip_statuses:
+                return _create_error_response(
+                    "flow_efficiency",
+                    "missing_config",
+                    "Configure 'wip_statuses' in app_settings.json",
+                )
 
         total_active_hours = 0
-        total_flow_hours = 0
+        total_wip_hours = 0
         excluded_count = 0
+        no_changelog_count = 0
 
         for issue in issues:
-            fields = issue.get("fields", {})
+            # Calculate time in active statuses (working)
+            active_hours = calculate_time_in_status(
+                issue, active_statuses, case_sensitive=False
+            )
 
-            active_hours = fields.get(active_hours_field)
-            flow_time_days = fields.get(flow_time_field)
+            # Calculate time in all WIP statuses (total flow time)
+            wip_hours = calculate_time_in_status(
+                issue, wip_statuses, case_sensitive=False
+            )
 
-            if active_hours is None or flow_time_days is None:
+            if wip_hours == 0:
+                # Issue never entered WIP or no changelog data
+                if not issue.get("changelog"):
+                    no_changelog_count += 1
                 excluded_count += 1
                 continue
 
-            try:
-                active_hours = float(active_hours)
-                flow_time_days = float(flow_time_days)
+            # Accumulate totals
+            total_active_hours += active_hours
+            total_wip_hours += wip_hours
 
-                if active_hours >= 0 and flow_time_days > 0:
-                    total_active_hours += active_hours
-                    total_flow_hours += flow_time_days * 24  # Convert days to hours
-                else:
-                    excluded_count += 1
-            except (ValueError, TypeError):
-                excluded_count += 1
-                continue
+        if total_wip_hours == 0:
+            error_details = []
+            if no_changelog_count > 0:
+                error_details.append(f"{no_changelog_count} missing changelog data")
 
-        if total_flow_hours == 0:
+            error_msg = "No issues with valid WIP time data"
+            if error_details:
+                error_msg += f" ({', '.join(error_details)})"
+
             return _create_error_response(
                 "flow_efficiency",
                 "no_data",
-                "No issues with valid active hours and flow time data",
+                error_msg,
                 total_issue_count=len(issues),
                 excluded_issue_count=excluded_count,
             )
 
-        efficiency_percentage = (total_active_hours / total_flow_hours) * 100
+        efficiency_percentage = (total_active_hours / total_wip_hours) * 100
 
         # Calculate trend if previous period value is provided
         trend_data = _calculate_trend(efficiency_percentage, previous_period_value)
@@ -682,10 +756,10 @@ def _get_default_unit(metric_name: str) -> str:
 
 
 # ==============================================================================
-# DORA & FLOW METRICS v2 (Example Customer Configuration)
+# DORA & FLOW METRICS v2 (Configuration-Driven)
 # ==============================================================================
-# New functions using Example Customer workflow and field mappings
-# Updated: October 31, 2025
+# New functions using workflow configuration and field mappings
+# Updated: November 7, 2025
 
 
 def calculate_flow_velocity_v2(
