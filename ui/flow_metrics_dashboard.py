@@ -58,14 +58,14 @@ def create_flow_dashboard() -> dbc.Container:
             ),
             # Metrics cards grid
             html.Div(
-                id="flow-metrics-cards-container",
                 children=[],  # Will be populated by callback
+                id="flow-metrics-cards-container",
                 className="mb-4",  # Add spacing below cards
             ),
             # Distribution chart section (rendered by callback)
             html.Div(
-                id="flow-distribution-chart-container",
                 children=[],  # Will be populated by callback
+                id="flow-distribution-chart-container",
             ),
             # Store for metrics data
             dcc.Store(id="flow-metrics-store", data={}),
@@ -168,10 +168,10 @@ def _create_flow_error_card(metric_data: Dict[str, Any], metric_name: str) -> db
     return dbc.Card(
         [
             dbc.CardBody(
-                [
+                children=[
                     html.H6(metric_name, className="text-muted mb-2"),
                     html.Div(
-                        [
+                        children=[
                             html.I(
                                 className="fas fa-exclamation-triangle text-warning me-2"
                             ),
@@ -230,7 +230,7 @@ def _create_type_breakdown(details: Dict[str, Any]) -> html.Div:
         return html.Div()
 
     return html.Div(
-        type_badges,
+        children=type_badges,
         className="mt-2",
     )
 
@@ -262,7 +262,7 @@ def _create_trend_indicator(details: Dict[str, Any]) -> html.Div:
         color = "secondary"
 
     return html.Div(
-        [
+        children=[
             html.I(className=f"fas {icon} text-{color} me-1"),
             html.Span(
                 f"{abs(trend_percentage):.1f}%",
@@ -272,6 +272,89 @@ def _create_trend_indicator(details: Dict[str, Any]) -> html.Div:
         ],
         className="mt-2",
     )
+
+
+def _get_flow_performance_tier(metric_name: str, value: float) -> str:
+    """Get performance tier label for Flow metrics.
+
+    Args:
+        metric_name: Metric identifier (e.g., "flow_velocity", "flow_time")
+        value: Metric value
+
+    Returns:
+        Performance tier label (e.g., "Healthy", "Good", "Needs Improvement")
+    """
+    if metric_name == "flow_load":
+        # Flow Load (WIP) - health-based tiers
+        if value < 10:
+            return "Healthy"
+        elif value < 20:
+            return "Warning"
+        elif value < 30:
+            return "High"
+        else:
+            return "Critical"
+    elif metric_name == "flow_velocity":
+        # Flow Velocity - higher is better
+        if value >= 20:
+            return "Excellent"
+        elif value >= 10:
+            return "Good"
+        elif value >= 5:
+            return "Fair"
+        else:
+            return "Low"
+    elif metric_name == "flow_time":
+        # Flow Time - lower is better (days)
+        if value <= 3:
+            return "Excellent"
+        elif value <= 7:
+            return "Good"
+        elif value <= 14:
+            return "Fair"
+        else:
+            return "Slow"
+    elif metric_name == "flow_efficiency":
+        # Flow Efficiency - percentage, higher is better
+        if value >= 40:
+            return "Excellent"
+        elif value >= 25:
+            return "Good"
+        elif value >= 15:
+            return "Fair"
+        else:
+            return "Low"
+
+    return "Unknown"
+
+
+def _get_flow_performance_tier_color(metric_name: str, value: float) -> str:
+    """Get performance tier color for Flow metrics.
+
+    Args:
+        metric_name: Metric identifier
+        value: Metric value
+
+    Returns:
+        Color name (green/blue/yellow/orange/red)
+    """
+    tier = _get_flow_performance_tier(metric_name, value)
+
+    # Map tier labels to colors with visual distinction
+    # Excellent (best) -> green, Good -> blue, Fair -> yellow, Low/Slow/High -> orange, Critical -> red
+    tier_color_map = {
+        "Excellent": "green",
+        "Good": "blue",  # Use blue to distinguish from Excellent
+        "Healthy": "green",
+        "Fair": "yellow",
+        "Warning": "yellow",
+        "Slow": "orange",
+        "Low": "orange",
+        "High": "orange",
+        "Critical": "red",
+    }
+
+    return tier_color_map.get(tier, "yellow")
 
 
 def _get_flow_metric_color(metric_name: str, value: float) -> str:
@@ -307,10 +390,13 @@ def _get_flow_metric_color(metric_name: str, value: float) -> str:
 
 
 def create_flow_metrics_cards_grid(metrics_data: dict):
-    """Create a grid of Flow metric cards with info tooltips.
+    """Create a grid of Flow metric cards with Phase 1 enhancements.
 
-    This is the Flow-specific version that uses create_flow_metric_card()
-    which includes info icon tooltips for each metric.
+    Now uses the same create_metric_card() function as DORA metrics to include:
+    - Performance tier badges (Healthy/Warning/Critical for WIP, Good/Needs Improvement for others)
+    - Trend indicators with percentage change
+    - Mini sparklines
+    - Collapsible detail charts
 
     Args:
         metrics_data: Dictionary mapping metric names to metric data
@@ -320,6 +406,8 @@ def create_flow_metrics_cards_grid(metrics_data: dict):
                     "metric_name": "flow_velocity",
                     "value": 5.2,
                     "unit": "items/week",
+                    "weekly_labels": [...],
+                    "weekly_values": [...],
                     ...
                 },
                 "flow_time": {...}
@@ -328,18 +416,36 @@ def create_flow_metrics_cards_grid(metrics_data: dict):
     Returns:
         dbc.Row containing the grid of Flow metric cards
     """
+    from ui.metric_cards import create_metric_card
+
     if not metrics_data:
         return html.Div(
-            "No Flow metrics available. Please ensure data is loaded.",
+            children="No Flow metrics available. Please ensure data is loaded.",
             className="text-muted p-3",
         )
 
-    # Create cards using Flow-specific function with tooltips
+    # Create cards using the same function as DORA metrics (with Phase 1 enhancements)
     cards = []
     for metric_name, metric_info in metrics_data.items():
-        card_id = f"flow-metric-{metric_name}"
-        card = create_flow_metric_card(metric_info, card_id)
-        # Responsive column: full width on mobile, half on tablet, quarter on desktop
-        cards.append(dbc.Col(card, width=12, md=6, lg=3))
+        # Add performance tier and tooltip if not already present
+        if "performance_tier" not in metric_info:
+            metric_info["performance_tier"] = _get_flow_performance_tier(
+                metric_name, metric_info.get("value", 0)
+            )
+        if "performance_tier_color" not in metric_info:
+            metric_info["performance_tier_color"] = _get_flow_performance_tier_color(
+                metric_name, metric_info.get("value", 0)
+            )
+        if "tooltip" not in metric_info:
+            metric_info["tooltip"] = FLOW_METRICS_TOOLTIPS.get(metric_name, "")
 
-    return dbc.Row(cards, className="metric-cards-grid")
+        # Use the card ID that matches the expected format for callbacks
+        card_id = f"{metric_name}-card"
+        card = create_metric_card(metric_info, card_id)
+
+        # Responsive column: full width on mobile, half on tablet, quarter on desktop
+        cards.append(
+            dbc.Col(card, width=12, md=6, lg=3, className="col-lg-3 col-md-6 col-12")
+        )
+
+    return dbc.Row(cards, className="metric-cards-grid mb-4")

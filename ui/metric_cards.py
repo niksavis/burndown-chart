@@ -355,6 +355,7 @@ def _create_success_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
     # Map performance tier colors to Bootstrap colors
     tier_color_map = {
         "green": "success",
+        "blue": "info",  # Add blue -> info mapping
         "yellow": "warning",
         "orange": "warning",
         "red": "danger",

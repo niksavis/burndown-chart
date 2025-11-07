@@ -869,12 +869,24 @@ def calculate_and_display_flow_metrics(
             else 0
         )
 
+        # Import performance tier calculation functions
+        from ui.flow_metrics_dashboard import (
+            _get_flow_performance_tier,
+            _get_flow_performance_tier_color,
+        )
+
         metrics_data = {
             "flow_velocity": {
                 "metric_name": "flow_velocity",
                 "value": total_velocity,
                 "unit": "items/week",
                 "error_state": "success",  # Always valid - 0 velocity is acceptable
+                "performance_tier": _get_flow_performance_tier(
+                    "flow_velocity", total_velocity
+                ),
+                "performance_tier_color": _get_flow_performance_tier_color(
+                    "flow_velocity", total_velocity
+                ),
                 "total_issue_count": issues_in_period_count,
                 "weekly_labels": week_labels,
                 "weekly_values": velocity_values,
@@ -892,6 +904,12 @@ def calculate_and_display_flow_metrics(
                 else 0,
                 "unit": "days (median)",
                 "error_state": "success",  # Always success - 0 is valid for weeks with no completions
+                "performance_tier": _get_flow_performance_tier(
+                    "flow_time", median_flow_time if median_flow_time is not None else 0
+                ),
+                "performance_tier_color": _get_flow_performance_tier_color(
+                    "flow_time", median_flow_time if median_flow_time is not None else 0
+                ),
                 "total_issue_count": flow_time_issue_count,  # Use Flow Time's own completed count
                 "weekly_labels": week_labels,
                 "weekly_values": flow_time_values,
@@ -903,6 +921,14 @@ def calculate_and_display_flow_metrics(
                 else 0,
                 "unit": "% (median)",
                 "error_state": "success",  # Always success - 0 is valid for weeks with no completions
+                "performance_tier": _get_flow_performance_tier(
+                    "flow_efficiency",
+                    median_efficiency if median_efficiency is not None else 0,
+                ),
+                "performance_tier_color": _get_flow_performance_tier_color(
+                    "flow_efficiency",
+                    median_efficiency if median_efficiency is not None else 0,
+                ),
                 "total_issue_count": flow_efficiency_issue_count,  # Use Flow Efficiency's own completed count
                 "weekly_labels": week_labels,
                 "weekly_values": flow_efficiency_values,
@@ -912,6 +938,12 @@ def calculate_and_display_flow_metrics(
                 "value": wip_count if wip_count is not None else 0,
                 "unit": "items (current WIP)",
                 "error_state": "success" if flow_load_snapshot else "no_data",
+                "performance_tier": _get_flow_performance_tier(
+                    "flow_load", wip_count if wip_count is not None else 0
+                ),
+                "performance_tier_color": _get_flow_performance_tier_color(
+                    "flow_load", wip_count if wip_count is not None else 0
+                ),
                 "total_issue_count": wip_count,  # Use WIP count itself (not completion count)
                 "weekly_labels": week_labels,
                 "weekly_values": flow_load_values,
