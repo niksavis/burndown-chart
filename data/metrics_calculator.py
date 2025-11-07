@@ -625,7 +625,7 @@ def calculate_and_save_weekly_metrics(
                         "median_hours": median_hours,
                         "mean_hours": mean_hours,
                         "p95_hours": p95_hours,
-                        "count": lead_time_count,
+                        "issues_with_lead_time": lead_time_count,
                     }
                     save_metric_snapshot(
                         week_label, "dora_lead_time", lead_time_snapshot
@@ -643,7 +643,7 @@ def calculate_and_save_weekly_metrics(
                         "median_hours": 0,
                         "mean_hours": 0,
                         "p95_hours": 0,
-                        "count": 0,
+                        "issues_with_lead_time": 0,
                     }
                     save_metric_snapshot(
                         week_label, "dora_lead_time", lead_time_snapshot
@@ -661,7 +661,7 @@ def calculate_and_save_weekly_metrics(
                     "median_hours": 0,
                     "mean_hours": 0,
                     "p95_hours": 0,
-                    "count": 0,
+                    "issues_with_lead_time": 0,
                 }
                 save_metric_snapshot(week_label, "dora_lead_time", lead_time_snapshot)
                 metrics_saved += 1
@@ -751,11 +751,25 @@ def calculate_and_save_weekly_metrics(
                     cfr_percent = cfr_result.get("change_failure_rate_percent", 0)
                     total_deps = cfr_result.get("total_deployments", 0)
                     failed_deps = cfr_result.get("failed_deployments", 0)
+                    # NEW: Get release data
+                    total_releases = cfr_result.get("total_releases", 0)
+                    failed_releases = cfr_result.get("failed_releases", 0)
+                    release_names = cfr_result.get("release_names", [])
+                    failed_release_names = cfr_result.get("failed_release_names", [])
+                    release_failure_rate = cfr_result.get(
+                        "release_failure_rate_percent", 0
+                    )
 
                     cfr_snapshot = {
                         "change_failure_rate_percent": cfr_percent,
                         "total_deployments": total_deps,
                         "failed_deployments": failed_deps,
+                        # NEW: Release tracking
+                        "total_releases": total_releases,
+                        "failed_releases": failed_releases,
+                        "release_failure_rate_percent": release_failure_rate,
+                        "release_names": release_names,
+                        "failed_release_names": failed_release_names,
                         "week": week_label,
                     }
                     save_metric_snapshot(
@@ -763,10 +777,12 @@ def calculate_and_save_weekly_metrics(
                     )
                     metrics_saved += 1
                     metrics_details.append(
-                        f"DORA CFR: {cfr_percent:.1f}% ({failed_deps}/{total_deps} deployments)"
+                        f"DORA CFR: {cfr_percent:.1f}% ({failed_deps}/{total_deps} deployments, "
+                        f"{failed_releases}/{total_releases} releases)"
                     )
                     logger.info(
-                        f"Saved DORA CFR: {cfr_percent:.1f}% ({failed_deps}/{total_deps})"
+                        f"Saved DORA CFR: {cfr_percent:.1f}% ({failed_deps}/{total_deps} deployments, "
+                        f"{failed_releases}/{total_releases} releases)"
                     )
 
             except Exception as e:
@@ -816,10 +832,14 @@ def calculate_and_save_weekly_metrics(
                     )
 
                     median_hours = mttr_result.get("median_hours")
+                    mean_hours = mttr_result.get("mean_hours")
+                    p95_hours = mttr_result.get("p95_hours")
                     bugs_count = mttr_result.get("bugs_with_mttr", 0)
 
                     mttr_snapshot = {
                         "median_hours": median_hours,
+                        "mean_hours": mean_hours,
+                        "p95_hours": p95_hours,
                         "bugs_with_mttr": bugs_count,
                         "week": week_label,
                     }

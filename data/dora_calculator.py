@@ -1560,6 +1560,12 @@ def calculate_change_failure_rate_v2(
     no_release_date_count = 0
     future_deployment_count = 0
 
+    # NEW: Track unique releases (fixVersions)
+    unique_releases = set()  # All unique releases
+    failed_releases = set()  # Unique releases that had at least one failure
+    release_names = []  # List of all release names
+    failed_release_names = []  # List of failed release names
+
     failure_details = []
 
     for task in operational_tasks:
@@ -1573,6 +1579,7 @@ def calculate_change_failure_rate_v2(
 
         # Find earliest releaseDate that's in the past
         deployment_date = None
+        release_name = None  # Track the release name for this deployment
 
         for fv in fixversions:
             release_date_str = fv.get("releaseDate", "")
@@ -1594,6 +1601,7 @@ def calculate_change_failure_rate_v2(
                 # Use earliest deployment date
                 if deployment_date is None or release_date < deployment_date:
                     deployment_date = release_date
+                    release_name = fv.get("name", "")  # NEW: Track release name
 
             except (ValueError, TypeError) as e:
                 logger.warning(
@@ -1612,8 +1620,14 @@ def calculate_change_failure_rate_v2(
             excluded_count += 1
             continue
 
-        # This is a valid deployment - check for failure
+        # This is a valid deployment - track release
         total_deployments += 1
+
+        # NEW: Track unique release
+        if release_name:
+            unique_releases.add(release_name)
+            if release_name not in release_names:
+                release_names.append(release_name)
 
         # Get change failure field value
         change_failure_value = task.get("fields", {}).get(change_failure_field_id)
@@ -1631,25 +1645,41 @@ def calculate_change_failure_rate_v2(
 
         if is_failure:
             failed_deployments += 1
+            # NEW: Track failed release
+            if release_name:
+                failed_releases.add(release_name)
+                if release_name not in failed_release_names:
+                    failed_release_names.append(release_name)
+
             failure_details.append(
                 {
                     "task_key": task_key,
                     "deployment_date": deployment_date.isoformat(),
                     "change_failure_value": change_failure_value,
+                    "release_name": release_name,  # NEW: Include release name
                 }
             )
         else:
             successful_deployments += 1
 
-    # Calculate change failure rate
+    # Calculate change failure rate (for both deployments and releases)
     if total_deployments > 0:
         change_failure_rate = (failed_deployments / total_deployments) * 100
     else:
         change_failure_rate = 0.0
 
+    # NEW: Calculate release-based CFR
+    total_releases = len(unique_releases)
+    failed_release_count = len(failed_releases)
+    if total_releases > 0:
+        release_failure_rate = (failed_release_count / total_releases) * 100
+    else:
+        release_failure_rate = 0.0
+
     logger.info(
-        f"Change Failure Rate: {failed_deployments}/{total_deployments} failures "
-        f"({change_failure_rate:.1f}%)"
+        f"Change Failure Rate: {failed_deployments}/{total_deployments} deployment failures "
+        f"({change_failure_rate:.1f}%), {failed_release_count}/{total_releases} release failures "
+        f"({release_failure_rate:.1f}%)"
     )
 
     if no_release_date_count > 0:
@@ -1667,6 +1697,13 @@ def calculate_change_failure_rate_v2(
         "failed_deployments": failed_deployments,
         "successful_deployments": successful_deployments,
         "change_failure_rate_percent": round(change_failure_rate, 2),
+        # NEW: Release-based metrics
+        "total_releases": total_releases,
+        "failed_releases": failed_release_count,
+        "release_failure_rate_percent": round(release_failure_rate, 2),
+        "release_names": release_names,
+        "failed_release_names": failed_release_names,
+        # Original fields
         "excluded_count": excluded_count,
         "no_release_date_count": no_release_date_count,
         "future_deployment_count": future_deployment_count,
@@ -2224,6 +2261,11 @@ def aggregate_change_failure_rate_weekly(
             "failure_rate_percent": 0.0,
             "total_deployments": 0,
             "failed_deployments": 0,
+            # NEW: Release tracking
+            "total_releases": 0,
+            "failed_releases": 0,
+            "release_names": [],
+            "failed_release_names": [],
         }
         for label in week_labels
     }
@@ -2242,6 +2284,9 @@ def aggregate_change_failure_rate_weekly(
     # Group by week
     week_totals = defaultdict(int)
     week_failures = defaultdict(int)
+    # NEW: Track unique releases per week
+    week_releases = defaultdict(set)  # week_label -> set of release names
+    week_failed_releases = defaultdict(set)  # week_label -> set of failed release names
 
     today = date.today()
 
@@ -2302,6 +2347,15 @@ def aggregate_change_failure_rate_weekly(
                 deployed_versions, key=lambda fv: get_release_date(fv)
             )
             release_date_str = get_release_date(earliest_release)
+
+            # NEW: Get release name
+            def get_release_name(fv):
+                if isinstance(fv, dict):
+                    return fv.get("name", "")
+                return getattr(fv, "name", "")
+
+            release_name = get_release_name(earliest_release)
+
             deployment_dt = datetime.strptime(release_date_str, "%Y-%m-%d")
             week_label = get_year_week_label(deployment_dt)
 
@@ -2311,10 +2365,17 @@ def aggregate_change_failure_rate_weekly(
             # Count total deployment
             week_totals[week_label] += 1
 
+            # NEW: Track unique release
+            if release_name:
+                week_releases[week_label].add(release_name)
+
             # Check if failed
             failure_value = fields.get(change_failure_field)
             if failure_value and str(failure_value).strip().lower() == "yes":
                 week_failures[week_label] += 1
+                # NEW: Track failed release
+                if release_name:
+                    week_failed_releases[week_label].add(release_name)
 
         except (AttributeError, ValueError):
             continue
@@ -2323,9 +2384,17 @@ def aggregate_change_failure_rate_weekly(
     for week_label in week_labels:
         total = week_totals.get(week_label, 0)
         failures = week_failures.get(week_label, 0)
+        # NEW: Get release data
+        releases = week_releases.get(week_label, set())
+        failed_releases = week_failed_releases.get(week_label, set())
 
         weekly_stats[week_label]["total_deployments"] = total
         weekly_stats[week_label]["failed_deployments"] = failures
+        # NEW: Store release data
+        weekly_stats[week_label]["total_releases"] = len(releases)
+        weekly_stats[week_label]["failed_releases"] = len(failed_releases)
+        weekly_stats[week_label]["release_names"] = list(releases)
+        weekly_stats[week_label]["failed_release_names"] = list(failed_releases)
 
         if total > 0:
             weekly_stats[week_label]["failure_rate_percent"] = round(

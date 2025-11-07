@@ -133,6 +133,8 @@ def calculate_and_save_dora_weekly_metrics(
             "dora_lead_time",
             {
                 "median_hours": lead_time.get("median_hours"),
+                "mean_hours": lead_time.get("mean_hours"),
+                "p95_hours": lead_time.get("p95_hours"),
                 "issues_with_lead_time": lead_time.get("issues_with_lead_time", 0),
                 "week_label": week_label,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -158,6 +160,8 @@ def calculate_and_save_dora_weekly_metrics(
             "dora_mttr",
             {
                 "median_hours": mttr.get("median_hours"),
+                "mean_hours": mttr.get("mean_hours"),
+                "p95_hours": mttr.get("p95_hours"),
                 "bugs_with_mttr": mttr.get("bugs_with_mttr", 0),
                 "week_label": week_label,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -334,17 +338,26 @@ def load_dora_metrics_from_cache(n_weeks: int = 12) -> Optional[Dict[str, Any]]:
 
         weekly_labels = []
         weekly_deployment_freq = []
+        weekly_release_freq = []  # NEW: Track release counts per week
         weekly_lead_time = []
         weekly_cfr = []
+        weekly_cfr_releases = []  # NEW: Track CFR for releases
         weekly_mttr = []
 
         # Aggregate metrics across all weeks
         total_deployments = 0
         total_releases = 0  # NEW: Track unique releases
         all_lead_times = []
+        all_lead_times_p95 = []  # NEW: Track P95 values
+        all_lead_times_mean = []  # NEW: Track mean values
         total_cfr_numerator = 0
         total_cfr_denominator = 0
+        # NEW: CFR release tracking
+        total_cfr_failed_releases = 0
+        total_cfr_total_releases = 0
         all_mttr_values = []
+        all_mttr_p95 = []  # NEW: Track P95 MTTR values
+        all_mttr_mean = []  # NEW: Track mean MTTR values
 
         # Track issue counts for "Based on X issues" display
         total_lead_time_issues = 0
@@ -372,6 +385,7 @@ def load_dora_metrics_from_cache(n_weeks: int = 12) -> Optional[Dict[str, Any]]:
             df_count = df_data.get("deployment_count", 0) if df_data else 0
             release_count = df_data.get("release_count", 0) if df_data else 0  # NEW
             weekly_deployment_freq.append(df_count)
+            weekly_release_freq.append(release_count)  # NEW: Track releases per week
             total_deployments += df_count
             total_releases += release_count  # NEW: Accumulate unique releases
             if df_count > 0:
@@ -379,17 +393,29 @@ def load_dora_metrics_from_cache(n_weeks: int = 12) -> Optional[Dict[str, Any]]:
 
             # Lead Time (convert to days for display)
             lt_hours = lt_data.get("median_hours") if lt_data else None
-            lt_count = lt_data.get("count", 0) if lt_data else 0
+            lt_p95_hours = lt_data.get("p95_hours") if lt_data else None  # NEW
+            lt_mean_hours = lt_data.get("mean_hours") if lt_data else None  # NEW
+            lt_count = (
+                lt_data.get("issues_with_lead_time", 0) if lt_data else 0
+            )  # FIX: Use correct field name
             logger.info(
                 f"[LOAD_CACHE] Week {week_label}: lt_data={lt_data}, lt_hours={lt_hours}"
             )
             lt_days = round(lt_hours / 24, 1) if lt_hours else 0
             weekly_lead_time.append(lt_days)
+
+            # Accumulate issue count regardless of whether we have hours
+            if lt_count > 0:
+                total_lead_time_issues += lt_count
+
             if (
                 lt_hours is not None and lt_hours > 0
             ):  # Fixed: check for None, not falsiness
                 all_lead_times.append(lt_hours)
-                total_lead_time_issues += lt_count  # Accumulate matched issue count
+                if lt_p95_hours is not None:
+                    all_lead_times_p95.append(lt_p95_hours)
+                if lt_mean_hours is not None:
+                    all_lead_times_mean.append(lt_mean_hours)
                 logger.info(
                     f"[LOAD_CACHE] Week {week_label}: Added {lt_hours}h to all_lead_times (total: {len(all_lead_times)})"
                 )
@@ -399,20 +425,41 @@ def load_dora_metrics_from_cache(n_weeks: int = 12) -> Optional[Dict[str, Any]]:
                 cfr_data.get("change_failure_rate_percent", 0) if cfr_data else 0
             )
             weekly_cfr.append(round(cfr_percent, 1))
+            # NEW: Track release-based CFR
+            cfr_release_percent = (
+                cfr_data.get("release_failure_rate_percent", 0) if cfr_data else 0
+            )
+            weekly_cfr_releases.append(round(cfr_release_percent, 1))
+
             if cfr_data:
                 total_cfr_numerator += cfr_data.get("failed_deployments", 0)
                 total_cfr_denominator += cfr_data.get("total_deployments", 0)
                 total_cfr_issues += cfr_data.get(
                     "total_deployments", 0
                 )  # Count total deployments analyzed
+                # NEW: Accumulate release-based CFR
+                total_cfr_failed_releases += cfr_data.get("failed_releases", 0)
+                total_cfr_total_releases += cfr_data.get("total_releases", 0)
 
             # MTTR
             mttr_hours = mttr_data.get("median_hours") if mttr_data else None
-            mttr_count = mttr_data.get("count", 0) if mttr_data else 0
+            mttr_p95_hours = mttr_data.get("p95_hours") if mttr_data else None  # NEW
+            mttr_mean_hours = mttr_data.get("mean_hours") if mttr_data else None  # NEW
+            mttr_count = (
+                mttr_data.get("bugs_with_mttr", 0) if mttr_data else 0
+            )  # FIX: Use correct field name
             weekly_mttr.append(round(mttr_hours, 1) if mttr_hours else 0)
+
+            # Accumulate issue count regardless of whether we have hours
+            if mttr_count > 0:
+                total_mttr_issues += mttr_count
+
             if mttr_hours:
                 all_mttr_values.append(mttr_hours)
-                total_mttr_issues += mttr_count  # Accumulate production bug count
+                if mttr_p95_hours is not None:
+                    all_mttr_p95.append(mttr_p95_hours)
+                if mttr_mean_hours is not None:
+                    all_mttr_mean.append(mttr_mean_hours)
 
         # Calculate overall metrics
         # Deployment Frequency: average deployments and releases per week
@@ -427,14 +474,38 @@ def load_dora_metrics_from_cache(n_weeks: int = 12) -> Optional[Dict[str, Any]]:
         overall_lead_time = (
             sum(all_lead_times) / len(all_lead_times) if all_lead_times else None
         )
+        # NEW: Calculate P95 and mean for lead time
+        overall_lead_time_p95 = (
+            sum(all_lead_times_p95) / len(all_lead_times_p95)
+            if all_lead_times_p95
+            else None
+        )
+        overall_lead_time_mean = (
+            sum(all_lead_times_mean) / len(all_lead_times_mean)
+            if all_lead_times_mean
+            else None
+        )
         logger.info(f"[LOAD_CACHE] overall_lead_time (hours): {overall_lead_time}")
         overall_cfr = (
             (total_cfr_numerator / total_cfr_denominator * 100)
             if total_cfr_denominator > 0
             else 0
         )
+        # NEW: Calculate release-based CFR
+        overall_cfr_releases = (
+            (total_cfr_failed_releases / total_cfr_total_releases * 100)
+            if total_cfr_total_releases > 0
+            else 0
+        )
         overall_mttr = (
             sum(all_mttr_values) / len(all_mttr_values) if all_mttr_values else None
+        )
+        # NEW: Calculate P95 and mean for MTTR
+        overall_mttr_p95 = (
+            sum(all_mttr_p95) / len(all_mttr_p95) if all_mttr_p95 else None
+        )
+        overall_mttr_mean = (
+            sum(all_mttr_mean) / len(all_mttr_mean) if all_mttr_mean else None
         )
 
         # If no cache data exists, return None
@@ -448,24 +519,41 @@ def load_dora_metrics_from_cache(n_weeks: int = 12) -> Optional[Dict[str, Any]]:
                 "release_value": round(release_freq_per_week, 2),  # NEW
                 "weekly_labels": weekly_labels,
                 "weekly_values": weekly_deployment_freq,
+                "weekly_release_values": weekly_release_freq,  # NEW: Release counts per week
                 "total_issue_count": total_deployment_issues,
             },
             "lead_time_for_changes": {
                 "value": round(overall_lead_time / 24, 1)
                 if overall_lead_time is not None
                 else None,
+                "p95_value": round(overall_lead_time_p95 / 24, 1)
+                if overall_lead_time_p95 is not None
+                else None,  # NEW: P95 in days
+                "mean_value": round(overall_lead_time_mean / 24, 1)
+                if overall_lead_time_mean is not None
+                else None,  # NEW: Mean in days
                 "weekly_labels": weekly_labels,
                 "weekly_values": weekly_lead_time,
                 "total_issue_count": total_lead_time_issues,
             },
             "change_failure_rate": {
                 "value": round(overall_cfr, 1),
+                "release_value": round(
+                    overall_cfr_releases, 1
+                ),  # NEW: Release-based CFR
                 "weekly_labels": weekly_labels,
                 "weekly_values": weekly_cfr,
+                "weekly_release_values": weekly_cfr_releases,  # NEW: Release CFR per week
                 "total_issue_count": total_cfr_issues,
             },
             "mean_time_to_recovery": {
                 "value": round(overall_mttr, 1) if overall_mttr else None,
+                "p95_value": round(overall_mttr_p95, 1)
+                if overall_mttr_p95 is not None
+                else None,  # NEW: P95 MTTR
+                "mean_value": round(overall_mttr_mean, 1)
+                if overall_mttr_mean is not None
+                else None,  # NEW: Mean MTTR
                 "weekly_labels": weekly_labels,
                 "weekly_values": weekly_mttr,
                 "total_issue_count": total_mttr_issues,

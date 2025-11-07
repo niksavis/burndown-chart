@@ -59,6 +59,220 @@ def _create_mini_bar_sparkline(
     )
 
 
+def _create_detailed_chart(
+    metric_name: str,
+    display_name: str,
+    weekly_labels: List[str],
+    weekly_values: List[float],
+    metric_data: Dict[str, Any],
+    sparkline_color: str,
+) -> Any:
+    """Create detailed chart for metric card collapse section.
+
+    Special handling for:
+    - deployment_frequency: Shows dual lines (deployments vs releases) and details table
+    - change_failure_rate: Shows dual lines (deployment CFR vs release CFR)
+    For other metrics, shows standard single-line chart.
+
+    Args:
+        metric_name: Internal metric name (e.g., "deployment_frequency", "change_failure_rate")
+        display_name: Display name for chart title
+        weekly_labels: Week labels
+        weekly_values: Primary metric values
+        metric_data: Full metric data dict with potential weekly_release_values
+        sparkline_color: Color for the chart
+
+    Returns:
+        Div containing chart and optional details table
+    """
+    from visualization.metric_trends import (
+        create_metric_trend_sparkline,
+        create_dual_line_trend,
+    )
+
+    # Special case 1: deployment_frequency with release tracking
+    if metric_name == "deployment_frequency" and "weekly_release_values" in metric_data:
+        weekly_release_values = metric_data.get("weekly_release_values", [])
+        chart = create_dual_line_trend(
+            week_labels=weekly_labels,
+            deployment_values=weekly_values,
+            release_values=weekly_release_values,
+            height=250,
+            show_axes=True,
+        )
+
+        # Add deployment details table
+        details_table = _create_deployment_details_table(
+            metric_data=metric_data,
+            weekly_labels=weekly_labels,
+            weekly_deployments=weekly_values,
+            weekly_releases=weekly_release_values,
+        )
+
+        return html.Div([chart, details_table])
+
+    # Special case 2: change_failure_rate with release tracking
+    if metric_name == "change_failure_rate" and "weekly_release_values" in metric_data:
+        weekly_release_values = metric_data.get("weekly_release_values", [])
+        # Reuse dual line chart but with different labels
+        chart = create_dual_line_trend(
+            week_labels=weekly_labels,
+            deployment_values=weekly_values,
+            release_values=weekly_release_values,
+            height=250,
+            show_axes=True,
+        )
+
+        # Customize the chart for CFR context with a note
+        cfr_note = html.Div(
+            [
+                html.Hr(className="my-2"),
+                html.Small(
+                    [
+                        html.I(className="fas fa-info-circle me-1 text-info"),
+                        "Blue line shows deployment-based CFR (operational tasks), ",
+                        "Green line shows release-based CFR (unique fixVersions). ",
+                        "Release-based CFR avoids double-counting failures for the same release.",
+                    ],
+                    className="text-muted",
+                ),
+            ],
+            className="text-center",
+        )
+
+        return html.Div([chart, cfr_note])
+
+    # Standard single-line chart for other metrics
+    return create_metric_trend_sparkline(
+        week_labels=weekly_labels,
+        values=weekly_values,
+        metric_name=display_name,
+        unit=metric_data.get("unit", ""),
+        height=200,
+        show_axes=True,
+        color=sparkline_color,
+    )
+
+
+def _create_deployment_details_table(
+    metric_data: Dict[str, Any],
+    weekly_labels: List[str],
+    weekly_deployments: List[float],
+    weekly_releases: List[float],
+) -> html.Div:
+    """Create details table showing release names per week.
+
+    Args:
+        metric_data: Full metric data with weekly_release_names
+        weekly_labels: Week labels
+        weekly_deployments: Deployment counts per week
+        weekly_releases: Release counts per week
+
+    Returns:
+        Div containing summary and table
+    """
+    # Calculate ratio stats
+    total_deployments = sum(weekly_deployments)
+    total_releases = sum(weekly_releases)
+    ratio = total_deployments / total_releases if total_releases > 0 else 0
+
+    # Create summary
+    summary = html.Div(
+        [
+            html.Hr(className="my-3"),
+            html.H6("Deployment Details", className="text-center mb-2"),
+            html.Div(
+                [
+                    html.Small(
+                        [
+                            f"Total: {int(total_deployments)} deployments • ",
+                            f"{int(total_releases)} releases • ",
+                            f"Ratio: {ratio:.1f}:1",
+                        ],
+                        className="text-muted",
+                    ),
+                ],
+                className="text-center mb-3",
+            ),
+        ]
+    )
+
+    # Get release names from snapshots (need to load from cache)
+    # For now, show a simple week-by-week breakdown
+    table_rows = []
+
+    for i, week in enumerate(weekly_labels):
+        if i < len(weekly_deployments) and i < len(weekly_releases):
+            deployments = int(weekly_deployments[i])
+            releases = int(weekly_releases[i])
+
+            if deployments > 0 or releases > 0:
+                week_ratio = deployments / releases if releases > 0 else deployments
+
+                table_rows.append(
+                    html.Tr(
+                        [
+                            html.Td(week, style={"fontSize": "0.85rem"}),
+                            html.Td(
+                                str(deployments),
+                                className="text-center",
+                                style={"fontSize": "0.85rem"},
+                            ),
+                            html.Td(
+                                str(releases),
+                                className="text-center",
+                                style={"fontSize": "0.85rem"},
+                            ),
+                            html.Td(
+                                f"{week_ratio:.1f}:1",
+                                className="text-center",
+                                style={"fontSize": "0.85rem"},
+                            ),
+                        ]
+                    )
+                )
+
+    if not table_rows:
+        table_content = html.Div(
+            html.Small(
+                "No deployment activity in selected period", className="text-muted"
+            ),
+            className="text-center my-2",
+        )
+    else:
+        table_content = html.Table(
+            [
+                html.Thead(
+                    html.Tr(
+                        [
+                            html.Th("Week", style={"fontSize": "0.85rem"}),
+                            html.Th(
+                                "Deployments",
+                                className="text-center",
+                                style={"fontSize": "0.85rem"},
+                            ),
+                            html.Th(
+                                "Releases",
+                                className="text-center",
+                                style={"fontSize": "0.85rem"},
+                            ),
+                            html.Th(
+                                "Ratio",
+                                className="text-center",
+                                style={"fontSize": "0.85rem"},
+                            ),
+                        ]
+                    )
+                ),
+                html.Tbody(table_rows),
+            ],
+            className="table table-sm table-hover",
+            style={"fontSize": "0.85rem"},
+        )
+
+    return html.Div([summary, table_content])
+
+
 def create_metric_card(metric_data: dict, card_id: Optional[str] = None) -> dbc.Card:
     """Create a metric display card.
 
@@ -110,7 +324,10 @@ def _create_success_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
     - weekly_labels: List of week labels (e.g., ["2025-W40", "2025-W41", ...])
     - weekly_values: List of metric values for each week
     """
-    from visualization.metric_trends import create_metric_trend_sparkline
+    from visualization.metric_trends import (
+        create_metric_trend_sparkline,
+        create_dual_line_trend,
+    )
 
     # Map performance tier colors to Bootstrap colors
     tier_color_map = {
@@ -138,6 +355,8 @@ def _create_success_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
     # Format value - special handling for deployment_frequency with release count
     value = metric_data.get("value")
     release_value = metric_data.get("release_value")  # NEW: for deployment_frequency
+    p95_value = metric_data.get("p95_value")  # NEW: for lead_time and mttr
+    mean_value = metric_data.get("mean_value")  # NEW: for lead_time and mttr
 
     if value is not None:
         formatted_value = f"{value:.1f}" if value >= 10 else f"{value:.2f}"
@@ -152,25 +371,31 @@ def _create_success_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
     else:
         formatted_release_value = None
 
+    # Format P95 value if present (lead_time and mttr metrics)
+    if p95_value is not None:
+        formatted_p95_value = (
+            f"{p95_value:.1f}" if p95_value >= 10 else f"{p95_value:.2f}"
+        )
+    else:
+        formatted_p95_value = None
+
     # Build card with h-100 for consistent heights with error cards
     card_props = {"className": "metric-card mb-3 h-100"}
     if card_id:
         card_props["id"] = card_id
 
-    # Build card header children with optional tooltip for alternative names
+    # Build card header with flex layout for title on left, badge on right
     if alternative_name:
-        header_children: List[Any] = [
-            html.Span(
-                [
-                    html.I(
-                        className="fas fa-info-circle me-2 text-info",
-                        title=tooltip_text,
-                    ),
-                    display_name,
-                ],
-                className="metric-card-title",
-            )
-        ]
+        title_element = html.Span(
+            [
+                html.I(
+                    className="fas fa-info-circle me-2 text-info",
+                    title=tooltip_text,
+                ),
+                display_name,
+            ],
+            className="metric-card-title",
+        )
     else:
         # Start with just the display name
         title_content = [display_name]
@@ -189,19 +414,25 @@ def _create_success_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
                 ]
             )
 
-        header_children: List[Any] = [
-            html.Span(title_content, className="metric-card-title")
-        ]
+        title_element = html.Span(title_content, className="metric-card-title")
 
-    # Add performance tier badge if present
-    if metric_data.get("performance_tier"):
-        header_children.append(
-            dbc.Badge(
-                metric_data.get("performance_tier", "Unknown"),
-                color=bootstrap_color,
-                className="float-end",
-            )
+    # Build header with flex layout
+    header_children: List[Any] = [
+        html.Div(
+            [
+                title_element,
+                dbc.Badge(
+                    metric_data.get("performance_tier", "Unknown"),
+                    color=bootstrap_color,
+                    className="ms-auto",
+                    style={"fontSize": "0.75rem", "fontWeight": "600"},
+                )
+                if metric_data.get("performance_tier")
+                else None,
+            ],
+            className="d-flex align-items-center justify-content-between w-100",
         )
+    ]
 
     card_header = dbc.CardHeader(header_children)
 
@@ -216,24 +447,64 @@ def _create_success_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
         ),
     ]
 
-    # Add release count for deployment_frequency metric
-    if formatted_release_value is not None and metric_name == "deployment_frequency":
-        card_body_children.append(
-            html.Div(
-                [
-                    html.Small(
-                        [
-                            html.I(className="fas fa-code-branch me-1"),
-                            f"{formatted_release_value} releases/week",
-                        ],
-                        className="text-muted",
-                        style={"fontSize": "0.85rem"},
-                    ),
-                ],
-                className="text-center mb-2",
-                style={"marginTop": "-0.5rem"},
+    # Add release count for deployment_frequency and change_failure_rate metrics
+    # Add P95 for lead_time_for_changes and mean_time_to_recovery metrics
+    if formatted_release_value is not None and metric_name in [
+        "deployment_frequency",
+        "change_failure_rate",
+    ]:
+        # Determine text and icon based on metric type
+        release_config = {
+            "deployment_frequency": {
+                "text": f"{formatted_release_value} releases/week",
+                "icon": "fas fa-code-branch me-1",
+            },
+            "change_failure_rate": {
+                "text": f"{formatted_release_value}% release CFR",
+                "icon": "fas fa-code-branch me-1",
+            },
+        }
+
+        config = release_config.get(metric_name, {})
+        if config:
+            card_body_children.append(
+                html.Div(
+                    [
+                        html.I(className=config["icon"]),
+                        html.Span(config["text"]),
+                    ],
+                    className="text-center text-muted small mb-2",
+                )
             )
-        )
+
+    # Add P95 information for lead_time_for_changes and mean_time_to_recovery
+    elif formatted_p95_value is not None and metric_name in [
+        "lead_time_for_changes",
+        "mean_time_to_recovery",
+    ]:
+        # Determine text and icon based on metric type
+        p95_config = {
+            "lead_time_for_changes": {
+                "text": f"{formatted_p95_value}d P95 (95% faster)",
+                "icon": "fas fa-chart-line me-1",
+            },
+            "mean_time_to_recovery": {
+                "text": f"{formatted_p95_value}h P95 (95% faster)",
+                "icon": "fas fa-chart-line me-1",
+            },
+        }
+
+        config = p95_config.get(metric_name, {})
+        if config:
+            card_body_children.append(
+                html.Div(
+                    [
+                        html.I(className=config["icon"]),
+                        html.Span(config["text"]),
+                    ],
+                    className="text-center text-muted small mb-2",
+                )
+            )
 
     # Add inline trend sparkline if weekly data is provided
     weekly_labels = metric_data.get("weekly_labels", [])
@@ -289,14 +560,14 @@ def _create_success_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
                                     f"Weekly {display_name} Trend",
                                     className="mb-3 text-center",
                                 ),
-                                create_metric_trend_sparkline(
-                                    week_labels=weekly_labels,
-                                    values=weekly_values,
-                                    metric_name=display_name,
-                                    unit=metric_data.get("unit", ""),
-                                    height=200,
-                                    show_axes=True,
-                                    color=sparkline_color,
+                                # Special handling for deployment_frequency to show dual lines
+                                _create_detailed_chart(
+                                    metric_name=metric_name,
+                                    display_name=display_name,
+                                    weekly_labels=weekly_labels,
+                                    weekly_values=weekly_values,
+                                    metric_data=metric_data,
+                                    sparkline_color=sparkline_color,
                                 ),
                                 html.Div(
                                     [

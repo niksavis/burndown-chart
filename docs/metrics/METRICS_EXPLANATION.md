@@ -28,26 +28,44 @@ All DORA and Flow metrics are **calculated weekly** (ISO week: Monday-Sunday) an
 
 **What it measures**: How often deployments happen to production
 
+**Important Distinction**: 
+- **Deployment** = An operational task (deployment activity/process)
+- **Release** = A unique fixVersion (the actual code release)
+- **Example**: 2 operational tasks with fixVersion `R_20251104_www.example.com` = **2 deployments, 1 release**
+
 **Calculation Method**:
-- **Per Week**: COUNT of operational tasks with `fixVersion.releaseDate` in that week
-- **Absolute Count**: Each week shows actual number of deployments
+- **Per Week (Deployments)**: COUNT of operational tasks with `fixVersion.releaseDate` in that week
+- **Per Week (Releases)**: COUNT of UNIQUE fixVersion names in that week
+- **Absolute Count**: Each week shows actual numbers
 - **Filtering**:
   - Only tasks where `status IN completion_statuses` (Done, Closed, etc.)
   - Only tasks with `fixVersion.releaseDate <= today` (excludes future deployments)
   - Uses **earliest releaseDate** if multiple fixVersions exist
 
 **Display Value** (Card):
-- **Unit**: `deployments/week (avg Nw)`
-- **Calculation**: `AVERAGE(weekly_deployment_counts)` across N weeks
-- **Example**: 12 weeks with counts `[2, 3, 4, 2, 5, 3, 2, 4, 3, 2, 3, 4]` → Average = 3.1 deployments/week
+- **Primary Unit**: `deployments/week (avg Nw)`
+- **Primary Calculation**: `AVERAGE(weekly_deployment_counts)` across N weeks
+- **Secondary Display**: `releases/week` (shown below primary value)
+- **Secondary Calculation**: `AVERAGE(weekly_release_counts)` across N weeks
+- **Example**: 12 weeks with deployment counts `[2, 3, 4, 2, 5, 3, 2, 4, 3, 2, 3, 4]` and release counts `[1, 2, 3, 1, 3, 2, 1, 2, 2, 1, 2, 3]`
+  - Average deployments = 3.1 deployments/week
+  - Average releases = 1.9 releases/week
 
 **Scatter Chart** (Weekly Data Points):
 - **X-axis**: Week labels (2025-45, 2025-46, etc.)
 - **Y-axis**: Absolute deployment count for that week
 - **Values**: Each point = actual deployments in that week (NOT cumulative, NOT average)
+- **Note**: Currently shows deployments only. Could be enhanced to show both metrics or releases separately.
 
 **Trend Line**:
 - Shows progression of weekly deployment frequency over time
+
+**Why Track Both?**:
+- Multiple operational tasks (deployments) for one release indicates:
+  - Complex deployment process (multiple stages: staging → production)
+  - Deployment rollback and retry scenarios
+  - Multiple environment deployments tracked separately
+- Helps identify deployment efficiency vs. release cadence
 
 **Code Location**: `data/dora_calculator.py::calculate_deployment_frequency_v2()` and `aggregate_deployment_frequency_weekly()`
 
@@ -68,15 +86,22 @@ All DORA and Flow metrics are **calculated weekly** (ISO week: Monday-Sunday) an
 - **Aggregation**: **MEDIAN** of all lead times in that week (not mean - robust to outliers)
 
 **Display Value** (Card):
-- **Unit**: `days (avg Nw)`
-- **Calculation**: 
+- **Primary Unit**: `days (16w median avg)`
+- **Primary Calculation**: 
   1. Calculate median hours for each week
   2. Convert to days: `median_hours / 24`
-  3. Average the weekly medians: `AVERAGE(weekly_median_days)` across N weeks
+  3. Average the weekly medians: `AVERAGE(weekly_median_days)` across 16 weeks
+- **Secondary Display**: P95 and Mean averages (shown below primary value)
+  - **P95**: 95th percentile - only 5% of issues take longer than this
+  - **Mean**: Arithmetic average - useful for capacity planning
+  - Both averaged across the same 16-week period
 - **Example**: 
-  - Week 1: Issues with lead times [24h, 48h, 72h] → Median = 48h = 2 days
-  - Week 2: Issues with lead times [36h, 60h] → Median = 48h = 2 days
-  - Average = (2 + 2) / 2 = 2 days
+  - Week 1: Issues with lead times [24h, 48h, 72h] → Median = 48h (2d), Mean = 48h (2d), P95 = 67.2h (2.8d)
+  - Week 2: Issues with lead times [36h, 60h] → Median = 48h (2d), Mean = 48h (2d), P95 = 57.6h (2.4d)
+  - Averages: Median = 2d, Mean = 2d, P95 = 2.6d
+- **Card Display**:
+  - Primary: "2 days (16w median avg)"
+  - Secondary: "📊 P95: 2.6d • Avg: 2d"
 
 **Scatter Chart** (Weekly Data Points):
 - **X-axis**: Week labels
@@ -86,6 +111,11 @@ All DORA and Flow metrics are **calculated weekly** (ISO week: Monday-Sunday) an
 **Why Median, Not Mean?**
 - Outliers (e.g., 1 issue taking 200 hours) don't skew the metric
 - More representative of "typical" lead time
+
+**Why Show P95 and Mean?**
+- **P95**: Helps identify outliers and set realistic SLAs (95% of changes complete within this time)
+- **Mean**: Useful for capacity planning and resource allocation
+- Together they provide a complete picture of lead time distribution
 
 **Code Location**: `data/dora_calculator.py::calculate_lead_time_for_changes_v2()` and `aggregate_lead_time_weekly()`
 
@@ -145,19 +175,31 @@ All DORA and Flow metrics are **calculated weekly** (ISO week: Monday-Sunday) an
 - **Aggregation**: **MEDIAN** of all recovery times in that week
 
 **Display Value** (Card):
-- **Unit**: `hours (avg Nw)`
-- **Calculation**:
+- **Primary Unit**: `hours (16w median avg)`
+- **Primary Calculation**:
   1. Calculate median hours for each week
-  2. Average the weekly medians: `AVERAGE(weekly_median_hours)` across N weeks
+  2. Average the weekly medians: `AVERAGE(weekly_median_hours)` across 16 weeks
+- **Secondary Display**: P95 and Mean averages (shown below primary value)
+  - **P95**: 95th percentile - only 5% of bugs take longer to fix
+  - **Mean**: Arithmetic average - useful for capacity planning
+  - Both averaged across the same 16-week period
 - **Example**:
-  - Week 1: Bugs with recovery times [12h, 24h, 48h] → Median = 24h
-  - Week 2: Bugs with recovery times [18h, 36h] → Median = 27h
-  - Average = (24 + 27) / 2 = 25.5 hours
+  - Week 1: Bugs with recovery times [12h, 24h, 48h] → Median = 24h, Mean = 28h, P95 = 44.4h
+  - Week 2: Bugs with recovery times [18h, 36h] → Median = 27h, Mean = 27h, P95 = 34.2h
+  - Averages: Median = 25.5h, Mean = 27.5h, P95 = 39.3h
+- **Card Display**:
+  - Primary: "25.5 hours (16w median avg)"
+  - Secondary: "📊 P95: 39.3h • Avg: 27.5h"
 
 **Scatter Chart** (Weekly Data Points):
 - **X-axis**: Week labels
 - **Y-axis**: Median MTTR in **hours** for that week
 - **Values**: Each point = median of all recovery times in that week
+
+**Why Show P95 and Mean?**
+- **P95**: Helps set incident response SLAs (95% of bugs fixed within this time)
+- **Mean**: Useful for team capacity planning and on-call rotations
+- Together they help identify both typical recovery time and worst-case scenarios
 
 **Code Location**: `data/dora_calculator.py::calculate_mttr_v2()` and `aggregate_mttr_weekly()`
 
@@ -315,17 +357,23 @@ All DORA and Flow metrics are **calculated weekly** (ISO week: Monday-Sunday) an
 
 ## Summary Table: Time Units & Aggregations
 
-| Metric                   | Time Unit        | Per-Week Aggregation         | Card Display                 | Chart Y-Axis   |
-| ------------------------ | ---------------- | ---------------------------- | ---------------------------- | -------------- |
-| **Deployment Frequency** | N/A (count)      | SUM (absolute count)         | AVERAGE of weekly counts     | Absolute count |
-| **Lead Time**            | Hours → Days     | MEDIAN of all lead times     | AVERAGE of weekly medians    | Median days    |
-| **Change Failure Rate**  | N/A (percentage) | % of failures                | AGGREGATE % across all weeks | Weekly %       |
-| **MTTR**                 | Hours            | MEDIAN of all recovery times | AVERAGE of weekly medians    | Median hours   |
-| **Flow Velocity**        | N/A (count)      | SUM (absolute count)         | Current week count           | Absolute count |
-| **Flow Time**            | Hours → Days     | MEDIAN of all flow times     | AVERAGE of weekly medians    | Median days    |
-| **Flow Efficiency**      | N/A (percentage) | % active/WIP                 | Current week %               | Weekly %       |
-| **Flow Load**            | N/A (count)      | COUNT at week end            | Current week count           | Absolute count |
-| **Flow Distribution**    | N/A (percentage) | % by type                    | Stacked area chart           | Count by type  |
+| Metric                   | Time Unit        | Per-Week Aggregation         | Card Display                               | Secondary Info | Chart Y-Axis   |
+| ------------------------ | ---------------- | ---------------------------- | ------------------------------------------ | -------------- | -------------- |
+| **Deployment Frequency** | N/A (count)      | SUM (absolute count)         | AVERAGE of weekly counts (16w median avg)  | Releases/week  | Absolute count |
+| **Lead Time**            | Hours → Days     | MEDIAN of all lead times     | AVERAGE of weekly medians (16w median avg) | P95 + Mean     | Median days    |
+| **Change Failure Rate**  | N/A (percentage) | % of failures                | AGGREGATE % across all weeks (16w agg)     | Releases/week  | Weekly %       |
+| **MTTR**                 | Hours            | MEDIAN of all recovery times | AVERAGE of weekly medians (16w median avg) | P95 + Mean     | Median hours   |
+| **Flow Velocity**        | N/A (count)      | SUM (absolute count)         | Current week count                         | None           | Absolute count |
+| **Flow Time**            | Hours → Days     | MEDIAN of all flow times     | AVERAGE of weekly medians                  | None           | Median days    |
+| **Flow Efficiency**      | N/A (percentage) | % active/WIP                 | Current week %                             | None           | Weekly %       |
+| **Flow Load**            | N/A (count)      | COUNT at week end            | Current week count                         | None           | Absolute count |
+| **Flow Distribution**    | N/A (percentage) | % by type                    | Stacked area chart                         | None           | Count by type  |
+
+**Notes**:
+- **16w median avg**: Primary values average the weekly medians over a 16-week rolling window
+- **16w agg**: CFR aggregates failures/deployments across all 16 weeks (not averaged)
+- **P95 + Mean**: Secondary statistics shown below primary value for Lead Time and MTTR
+- **Releases/week**: Secondary metric for Deployment Frequency and CFR cards
 
 ---
 

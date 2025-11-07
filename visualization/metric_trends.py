@@ -352,3 +352,151 @@ def get_trend_indicator(
         "icon": icon,
         "color": color,
     }
+
+
+def create_dual_line_trend(
+    week_labels: List[str],
+    deployment_values: List[float],
+    release_values: List[float],
+    height: int = 250,
+    show_axes: bool = True,
+) -> dcc.Graph:
+    """Create dual-line trend chart for deployments vs releases.
+
+    Visualizes both operational deployments and unique releases on the same chart
+    to help users understand the relationship between deployment activities and
+    actual code releases.
+
+    Args:
+        week_labels: List of week labels (e.g., ["2025-W40", "2025-W41", ...])
+        deployment_values: Deployment counts per week (operational tasks)
+        release_values: Release counts per week (unique fixVersions)
+        height: Height of chart in pixels (default: 250)
+        show_axes: Whether to show axis labels (default: True)
+
+    Returns:
+        Dash Graph component with dual-line visualization
+
+    Example:
+        >>> week_labels = ["2025-W40", "2025-W41", "2025-W42"]
+        >>> deployments = [12, 15, 14]
+        >>> releases = [6, 8, 7]
+        >>> chart = create_dual_line_trend(week_labels, deployments, releases)
+    """
+    # Handle empty data
+    if not week_labels or not deployment_values:
+        return dcc.Graph(
+            figure={
+                "data": [],
+                "layout": {
+                    "height": height,
+                    "margin": {"t": 0, "r": 0, "b": 0, "l": 0},
+                    "xaxis": {"visible": False},
+                    "yaxis": {"visible": False},
+                    "annotations": [
+                        {
+                            "text": "No trend data available",
+                            "xref": "paper",
+                            "yref": "paper",
+                            "x": 0.5,
+                            "y": 0.5,
+                            "showarrow": False,
+                            "font": {"size": 10, "color": "#999"},
+                        }
+                    ],
+                },
+            },
+            config={"displayModeBar": False},
+            style={"height": f"{height}px"},
+        )
+
+    # Create traces for deployments and releases
+    traces = []
+
+    # Deployment trace (primary - operational tasks)
+    traces.append(
+        go.Scatter(
+            x=week_labels,
+            y=deployment_values,
+            mode="lines+markers",
+            name="Deployments (Tasks)",
+            line={"color": "#0d6efd", "width": 3},
+            marker={"size": 8, "color": "#0d6efd"},
+            hovertemplate="<b>%{x}</b><br>Deployments: %{y}<extra></extra>",
+        )
+    )
+
+    # Release trace (secondary - unique fixVersions)
+    traces.append(
+        go.Scatter(
+            x=week_labels,
+            y=release_values,
+            mode="lines+markers",
+            name="Releases (fixVersions)",
+            line={"color": "#28a745", "width": 2, "dash": "dot"},
+            marker={"size": 6, "color": "#28a745", "symbol": "diamond"},
+            hovertemplate="<b>%{x}</b><br>Releases: %{y}<extra></extra>",
+        )
+    )
+
+    # Determine y-axis range based on both lines
+    all_values = deployment_values + release_values
+    if all_values:
+        min_val = min(all_values)
+        max_val = max(all_values)
+        range_padding = (max_val - min_val) * 0.2 if max_val > min_val else 1
+        y_min = max(0, min_val - range_padding)  # Never go below 0 for counts
+        y_max = max_val + range_padding
+        y_range = [y_min, y_max]
+    else:
+        y_range = None
+
+    # Create layout
+    layout = {
+        "height": height,
+        "margin": {
+            "t": 10,
+            "r": 10,
+            "b": 60 if show_axes else 5,
+            "l": 45 if show_axes else 5,
+        },
+        "xaxis": {
+            "type": "category",
+            "categoryorder": "array",
+            "categoryarray": week_labels,
+            "visible": show_axes,
+            "showgrid": False,
+            "zeroline": False,
+            "tickangle": -45,
+            "tickfont": {"size": 9},
+        },
+        "yaxis": {
+            "visible": show_axes,
+            "showgrid": True,
+            "zeroline": False,
+            "range": y_range,
+            "tickfont": {"size": 10},
+            "title": "Count per Week" if show_axes else "",
+        },
+        "showlegend": True,
+        "legend": {
+            "orientation": "h",
+            "yanchor": "bottom",
+            "y": 1.02,
+            "xanchor": "center",
+            "x": 0.5,
+            "font": {"size": 10},
+        },
+        "hovermode": "x unified",
+        "plot_bgcolor": "rgba(0,0,0,0)",
+        "paper_bgcolor": "rgba(0,0,0,0)",
+    }
+
+    figure = {"data": traces, "layout": layout}
+
+    return dcc.Graph(
+        figure=figure,
+        config={"displayModeBar": False},
+        style={"height": f"{height}px"},
+        className="metric-dual-line-chart",
+    )

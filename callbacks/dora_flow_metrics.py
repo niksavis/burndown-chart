@@ -103,15 +103,54 @@ def load_and_display_dora_metrics(
         # Use .get() with defaults to safely handle missing or None values
         n_weeks_display = cached_metrics.get("_n_weeks", 12)
 
+        # Import tier calculation function
+        from data.dora_calculator import (
+            _determine_performance_tier,
+            DEPLOYMENT_FREQUENCY_TIERS,
+            LEAD_TIME_TIERS,
+            CHANGE_FAILURE_RATE_TIERS,
+            MTTR_TIERS,
+        )
+
+        # Calculate performance tiers for each metric
+        deployment_freq_value = cached_metrics.get("deployment_frequency", {}).get(
+            "value", 0
+        )
+        # Convert deployments/week to deployments/month for tier comparison
+        deployments_per_month = deployment_freq_value * 4.33  # Average weeks per month
+
+        deployment_freq_tier = _determine_performance_tier(
+            deployments_per_month, DEPLOYMENT_FREQUENCY_TIERS
+        )
+
+        lead_time_value = cached_metrics.get("lead_time_for_changes", {}).get("value")
+        lead_time_tier = (
+            _determine_performance_tier(lead_time_value, LEAD_TIME_TIERS)
+            if lead_time_value is not None
+            else {"tier": "Unknown", "color": "secondary"}
+        )
+
+        cfr_value = cached_metrics.get("change_failure_rate", {}).get("value", 0)
+        cfr_tier = _determine_performance_tier(cfr_value, CHANGE_FAILURE_RATE_TIERS)
+
+        mttr_value = cached_metrics.get("mean_time_to_recovery", {}).get("value")
+        mttr_tier = (
+            _determine_performance_tier(mttr_value, MTTR_TIERS)
+            if mttr_value is not None
+            else {"tier": "Unknown", "color": "secondary"}
+        )
+
         metrics_data = {
             "deployment_frequency": {
                 "metric_name": "deployment_frequency",
-                "value": cached_metrics.get("deployment_frequency", {}).get("value", 0),
+                "value": deployment_freq_value,
                 "release_value": cached_metrics.get("deployment_frequency", {}).get(
                     "release_value", 0
                 ),  # NEW
                 "unit": f"deployments/week (avg {n_weeks_display}w)",
                 "error_state": "success",
+                "performance_tier": deployment_freq_tier["tier"],
+                "performance_tier_color": deployment_freq_tier["color"],
                 "total_issue_count": cached_metrics.get("deployment_frequency", {}).get(
                     "total_issue_count", 0
                 ),
@@ -122,15 +161,26 @@ def load_and_display_dora_metrics(
                 "weekly_values": cached_metrics.get("deployment_frequency", {}).get(
                     "weekly_values", []
                 ),
+                "weekly_release_values": cached_metrics.get(
+                    "deployment_frequency", {}
+                ).get("weekly_release_values", []),  # NEW: For scatter chart
             },
             "lead_time_for_changes": {
                 "metric_name": "lead_time_for_changes",
                 "value": cached_metrics.get("lead_time_for_changes", {}).get("value"),
-                "unit": f"days (avg {n_weeks_display}w)",
+                "p95_value": cached_metrics.get("lead_time_for_changes", {}).get(
+                    "p95_value"
+                ),  # NEW: P95 lead time
+                "mean_value": cached_metrics.get("lead_time_for_changes", {}).get(
+                    "mean_value"
+                ),  # NEW: Mean lead time
+                "unit": f"days ({n_weeks_display}w median avg)",
                 "error_state": "success"
                 if cached_metrics.get("lead_time_for_changes", {}).get("value")
                 is not None
                 else "no_data",
+                "performance_tier": lead_time_tier["tier"],
+                "performance_tier_color": lead_time_tier["color"],
                 "total_issue_count": cached_metrics.get(
                     "lead_time_for_changes", {}
                 ).get("total_issue_count", 0),
@@ -145,27 +195,43 @@ def load_and_display_dora_metrics(
             "change_failure_rate": {
                 "metric_name": "change_failure_rate",
                 "value": cached_metrics.get("change_failure_rate", {}).get("value", 0),
+                "release_value": cached_metrics.get("change_failure_rate", {}).get(
+                    "release_value", 0
+                ),  # NEW: Release-based CFR
                 "unit": f"% (agg {n_weeks_display}w)",
                 "error_state": "success",
+                "performance_tier": cfr_tier["tier"],
+                "performance_tier_color": cfr_tier["color"],
                 "total_issue_count": cached_metrics.get("change_failure_rate", {}).get(
                     "total_issue_count", 0
                 ),
-                "tooltip": f"{DORA_METRICS_TOOLTIPS.get('change_failure_rate', '')} Aggregate rate calculated over last {n_weeks_display} weeks.",
+                "tooltip": f"{DORA_METRICS_TOOLTIPS.get('change_failure_rate', '')} Aggregate rate calculated over last {n_weeks_display} weeks. Deployment-based vs Release-based rates.",
                 "weekly_labels": cached_metrics.get("change_failure_rate", {}).get(
                     "weekly_labels", []
                 ),
                 "weekly_values": cached_metrics.get("change_failure_rate", {}).get(
                     "weekly_values", []
                 ),
+                "weekly_release_values": cached_metrics.get(
+                    "change_failure_rate", {}
+                ).get("weekly_release_values", []),  # NEW: Release CFR per week
             },
             "mean_time_to_recovery": {
                 "metric_name": "mean_time_to_recovery",
                 "value": cached_metrics.get("mean_time_to_recovery", {}).get("value"),
-                "unit": f"hours (avg {n_weeks_display}w)",
+                "p95_value": cached_metrics.get("mean_time_to_recovery", {}).get(
+                    "p95_value"
+                ),  # NEW: P95 MTTR
+                "mean_value": cached_metrics.get("mean_time_to_recovery", {}).get(
+                    "mean_value"
+                ),  # NEW: Mean MTTR
+                "unit": f"hours ({n_weeks_display}w median avg)",
                 "error_state": "success"
                 if cached_metrics.get("mean_time_to_recovery", {}).get("value")
                 is not None
                 else "no_data",
+                "performance_tier": mttr_tier["tier"],
+                "performance_tier_color": mttr_tier["color"],
                 "total_issue_count": cached_metrics.get(
                     "mean_time_to_recovery", {}
                 ).get("total_issue_count", 0),

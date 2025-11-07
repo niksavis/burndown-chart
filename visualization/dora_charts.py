@@ -296,17 +296,17 @@ def create_dora_summary_chart(metrics_data: Dict[str, Dict[str, Any]]) -> go.Fig
 def create_deployment_frequency_trend(
     trend_data: List[Dict[str, Any]], metric_data: Dict[str, Any]
 ) -> go.Figure:
-    """Create deployment frequency trend chart over time.
+    """Create deployment frequency trend chart over time with separate deployment and release lines.
 
     T054: Trend visualization for Deployment Frequency metric.
 
     Args:
-        trend_data: List of historical data points with date and value
-            [{"date": "2025-01-01", "value": 30.5}, ...]
+        trend_data: List of historical data points with date, value (deployments), and release_value (releases)
+            [{"date": "2025-01-01", "value": 30.5, "release_value": 15.2}, ...]
         metric_data: Current metric metadata (tier, benchmarks)
 
     Returns:
-        Plotly figure with trend line and benchmark zones
+        Plotly figure with dual trend lines (deployments and releases) and benchmark zones
     """
     if not trend_data or len(trend_data) == 0:
         # Return empty figure with message
@@ -327,19 +327,20 @@ def create_deployment_frequency_trend(
         )
         return fig
 
-    # Parse dates and values
+    # Parse dates, deployment values, and release values
     dates = [datetime.fromisoformat(d["date"]) for d in trend_data]
-    values = [d["value"] for d in trend_data]
+    deployment_values = [d["value"] for d in trend_data]
+    release_values = [d.get("release_value", 0) for d in trend_data]
 
     fig = go.Figure()
 
-    # Add trend line
+    # Add deployment trend line (primary - operational tasks)
     fig.add_trace(
         go.Scatter(
             x=dates,
-            y=values,
+            y=deployment_values,
             mode="lines+markers",
-            name="Deployment Frequency",
+            name="Deployments (Operational Tasks)",
             line=dict(color="#0d6efd", width=3),
             marker=dict(size=8, color="#0d6efd"),
             hovertemplate="<b>%{x|%Y-%m-%d}</b><br>"
@@ -348,7 +349,22 @@ def create_deployment_frequency_trend(
         )
     )
 
-    # Add benchmark zones as horizontal lines
+    # Add release trend line (secondary - unique fixVersions)
+    fig.add_trace(
+        go.Scatter(
+            x=dates,
+            y=release_values,
+            mode="lines+markers",
+            name="Releases (Unique fixVersions)",
+            line=dict(color="#28a745", width=2, dash="dot"),
+            marker=dict(size=6, color="#28a745", symbol="diamond"),
+            hovertemplate="<b>%{x|%Y-%m-%d}</b><br>"
+            + "Releases: %{y:.1f}/month<br>"
+            + "<extra></extra>",
+        )
+    )
+
+    # Add benchmark zones as horizontal lines (based on deployments)
     # Elite: > 30/month, High: 4-30/month, Medium: 1-4/month, Low: < 1/month
     benchmark_lines = [
         {"value": 30, "name": "Elite", "color": "rgba(40, 167, 69, 0.2)"},
@@ -366,13 +382,20 @@ def create_deployment_frequency_trend(
         )
 
     fig.update_layout(
-        title="Deployment Frequency Trend",
+        title="Deployment Frequency Trend: Deployments vs Releases",
         xaxis_title="Date",
-        yaxis_title="Deployments per Month",
+        yaxis_title="Frequency per Month",
         hovermode="x unified",
         template="plotly_white",
         height=350,
         margin=dict(l=50, r=50, t=50, b=50),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="center",
+            x=0.5,
+        ),
     )
 
     return fig
