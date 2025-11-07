@@ -1159,6 +1159,7 @@ def calculate_deployment_frequency_v2(
 
     today = datetime.now(timezone.utc)
     valid_deployments = []
+    unique_releases = set()  # Track unique fixVersion names (releases)
     excluded_count = 0
     no_release_date_count = 0
     future_deployment_count = 0
@@ -1173,6 +1174,7 @@ def calculate_deployment_frequency_v2(
 
         # Find earliest releaseDate that's in the past
         deployment_date = None
+        release_name = None
 
         for fv in fixversions:
             release_date_str = fv.get("releaseDate", "")
@@ -1197,6 +1199,7 @@ def calculate_deployment_frequency_v2(
                 # Use earliest deployment date from all fixVersions
                 if deployment_date is None or release_date < deployment_date:
                     deployment_date = release_date
+                    release_name = fv.get("name", "")  # Track the release name
 
             except (ValueError, TypeError) as e:
                 logger.warning(
@@ -1217,8 +1220,12 @@ def calculate_deployment_frequency_v2(
                 {
                     "task_key": task.get("key", "unknown"),
                     "deployment_date": deployment_date.isoformat(),
+                    "release_name": release_name,
                 }
             )
+            # Track unique release names
+            if release_name:
+                unique_releases.add(release_name)
         else:
             excluded_count += 1
 
@@ -1237,18 +1244,25 @@ def calculate_deployment_frequency_v2(
 
     # Calculate frequency
     deployment_count = len(valid_deployments)
+    release_count = len(unique_releases)  # Count of unique releases
     deployments_per_week = (
         (deployment_count / period_days) * 7 if period_days > 0 else 0.0
     )
+    releases_per_week = (release_count / period_days) * 7 if period_days > 0 else 0.0
 
     logger.info(
-        f"Deployment Frequency: {deployment_count} deployments in {period_days} days "
-        f"({deployments_per_week:.2f} per week)"
+        f"Deployment Frequency: {deployment_count} deployments ({release_count} unique releases) "
+        f"in {period_days} days ({deployments_per_week:.2f} deployments/week, "
+        f"{releases_per_week:.2f} releases/week)"
     )
 
     return {
         "deployment_count": deployment_count,
+        "release_count": release_count,  # NEW: Unique releases
         "deployments_per_week": round(deployments_per_week, 2),
+        "releases_per_week": round(
+            releases_per_week, 2
+        ),  # NEW: Unique releases per week
         "period_days": period_days,
         "start_date": start_date.isoformat(),
         "end_date": end_date.isoformat(),
@@ -1256,6 +1270,7 @@ def calculate_deployment_frequency_v2(
         "no_release_date_count": no_release_date_count,
         "future_deployment_count": future_deployment_count,
         "deployments": valid_deployments,
+        "unique_releases": sorted(list(unique_releases)),  # NEW: List of release names
     }
 
 
@@ -1925,11 +1940,11 @@ def aggregate_deployment_frequency_weekly(
     completion_statuses: List[str],
     week_labels: List[str],
     case_sensitive: bool = False,
-) -> Dict[str, int]:
+) -> Dict[str, Dict]:
     """
     Aggregate deployment frequency by ISO week.
 
-    Counts number of deployments per week (sum aggregation).
+    Counts both deployments (operational tasks) and releases (unique fixVersions) per week.
 
     Args:
         operational_tasks: List of operational task issue objects
@@ -1938,11 +1953,14 @@ def aggregate_deployment_frequency_weekly(
         case_sensitive: Whether to match status names case-sensitively
 
     Returns:
-        Dictionary mapping week labels to deployment counts
+        Dictionary mapping week labels to deployment and release counts
 
     Example:
         >>> aggregate_deployment_frequency_weekly(op_tasks, ["Done"], ["2025-43", "2025-44"])
-        {"2025-43": 12, "2025-44": 15}
+        {
+            "2025-43": {"deployments": 12, "releases": 8},
+            "2025-44": {"deployments": 15, "releases": 12}
+        }
     """
     from data.time_period_calculator import get_year_week_label
     from datetime import datetime
@@ -1950,7 +1968,9 @@ def aggregate_deployment_frequency_weekly(
     logger.info(f"Aggregating deployment frequency for {len(week_labels)} weeks")
 
     # Initialize result with zero counts
-    weekly_counts = {label: 0 for label in week_labels}
+    weekly_counts = {
+        label: {"deployments": 0, "releases": set()} for label in week_labels
+    }
 
     if not operational_tasks or not completion_statuses:
         logger.warning(
@@ -2020,16 +2040,24 @@ def aggregate_deployment_frequency_weekly(
                     return fv.get("releaseDate", "")
                 return getattr(fv, "releaseDate", "")
 
+            def get_release_name(fv):
+                if isinstance(fv, dict):
+                    return fv.get("name", "")
+                return getattr(fv, "name", "")
+
             earliest_release = min(
                 deployed_versions, key=lambda fv: get_release_date(fv)
             )
             release_date_str = get_release_date(earliest_release)
+            release_name = get_release_name(earliest_release)
             deployment_dt = datetime.strptime(release_date_str, "%Y-%m-%d")
             week_label = get_year_week_label(deployment_dt)
 
             # Increment count if week is in target weeks
             if week_label in weekly_counts:
-                weekly_counts[week_label] += 1
+                weekly_counts[week_label]["deployments"] += 1
+                if release_name:
+                    weekly_counts[week_label]["releases"].add(release_name)
 
         except (AttributeError, ValueError) as e:
             task_key = (
@@ -2040,8 +2068,23 @@ def aggregate_deployment_frequency_weekly(
             logger.debug(f"Error processing task {task_key}: {e}")
             continue
 
-    logger.info(f"Weekly deployment counts: {weekly_counts}")
-    return weekly_counts
+    # Convert sets to counts for return value
+    result = {}
+    for week_label in week_labels:
+        result[week_label] = {
+            "deployments": weekly_counts[week_label]["deployments"],
+            "releases": len(weekly_counts[week_label]["releases"]),
+            "release_names": sorted(list(weekly_counts[week_label]["releases"])),
+        }
+
+    # Log summary
+    summary = [
+        f"{w}: {r['deployments']}d/{r['releases']}r"
+        for w, r in result.items()
+        if r["deployments"] > 0
+    ]
+    logger.info(f"Weekly deployment counts: {summary}")
+    return result
 
 
 def aggregate_lead_time_weekly(

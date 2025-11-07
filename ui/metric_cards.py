@@ -135,12 +135,22 @@ def _create_success_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
         display_name = metric_name.replace("_", " ").title()
         tooltip_text = None
 
-    # Format value
+    # Format value - special handling for deployment_frequency with release count
     value = metric_data.get("value")
+    release_value = metric_data.get("release_value")  # NEW: for deployment_frequency
+
     if value is not None:
         formatted_value = f"{value:.1f}" if value >= 10 else f"{value:.2f}"
     else:
         formatted_value = "N/A"
+
+    # Format release value if present (deployment_frequency metric)
+    if release_value is not None:
+        formatted_release_value = (
+            f"{release_value:.1f}" if release_value >= 10 else f"{release_value:.2f}"
+        )
+    else:
+        formatted_release_value = None
 
     # Build card with h-100 for consistent heights with error cards
     card_props = {"className": "metric-card mb-3 h-100"}
@@ -205,6 +215,25 @@ def _create_success_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
             className="text-muted text-center metric-unit mb-1",
         ),
     ]
+
+    # Add release count for deployment_frequency metric
+    if formatted_release_value is not None and metric_name == "deployment_frequency":
+        card_body_children.append(
+            html.Div(
+                [
+                    html.Small(
+                        [
+                            html.I(className="fas fa-code-branch me-1"),
+                            f"{formatted_release_value} releases/week",
+                        ],
+                        className="text-muted",
+                        style={"fontSize": "0.85rem"},
+                    ),
+                ],
+                className="text-center mb-2",
+                style={"marginTop": "-0.5rem"},
+            )
+        )
 
     # Add inline trend sparkline if weekly data is provided
     weekly_labels = metric_data.get("weekly_labels", [])

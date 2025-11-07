@@ -107,12 +107,15 @@ def load_and_display_dora_metrics(
             "deployment_frequency": {
                 "metric_name": "deployment_frequency",
                 "value": cached_metrics.get("deployment_frequency", {}).get("value", 0),
+                "release_value": cached_metrics.get("deployment_frequency", {}).get(
+                    "release_value", 0
+                ),  # NEW
                 "unit": f"deployments/week (avg {n_weeks_display}w)",
                 "error_state": "success",
                 "total_issue_count": cached_metrics.get("deployment_frequency", {}).get(
                     "total_issue_count", 0
                 ),
-                "tooltip": f"{DORA_METRICS_TOOLTIPS.get('deployment_frequency', '')} Average calculated over last {n_weeks_display} weeks.",
+                "tooltip": f"{DORA_METRICS_TOOLTIPS.get('deployment_frequency', '')} Average calculated over last {n_weeks_display} weeks. Deployment = operational task, Release = unique fixVersion.",
                 "weekly_labels": cached_metrics.get("deployment_frequency", {}).get(
                     "weekly_labels", []
                 ),

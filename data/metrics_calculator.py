@@ -681,11 +681,16 @@ def calculate_and_save_weekly_metrics(
                     case_sensitive=False,
                 )
 
-                deployment_count = weekly_deployments.get(week_label, 0)
+                week_data = weekly_deployments.get(week_label, {})
+                deployment_count = week_data.get("deployments", 0)
+                release_count = week_data.get("releases", 0)
+                release_names = week_data.get("release_names", [])
 
-                # Save Deployment Frequency snapshot (use "deployment_count" for loader compatibility)
+                # Save Deployment Frequency snapshot with both deployments and releases
                 deployment_snapshot = {
                     "deployment_count": deployment_count,
+                    "release_count": release_count,  # NEW: Unique releases
+                    "release_names": release_names,  # NEW: List of release names
                     "week": week_label,
                 }
                 save_metric_snapshot(
@@ -693,10 +698,10 @@ def calculate_and_save_weekly_metrics(
                 )
                 metrics_saved += 1
                 metrics_details.append(
-                    f"DORA Deployment Frequency: {deployment_count} deployments"
+                    f"DORA Deployment Frequency: {deployment_count} deployments, {release_count} releases"
                 )
                 logger.info(
-                    f"Saved DORA Deployment Frequency: {deployment_count} deployments"
+                    f"Saved DORA Deployment Frequency: {deployment_count} deployments, {release_count} releases"
                 )
 
             except Exception as e:

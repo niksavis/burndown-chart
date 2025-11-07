@@ -340,6 +340,7 @@ def load_dora_metrics_from_cache(n_weeks: int = 12) -> Optional[Dict[str, Any]]:
 
         # Aggregate metrics across all weeks
         total_deployments = 0
+        total_releases = 0  # NEW: Track unique releases
         all_lead_times = []
         total_cfr_numerator = 0
         total_cfr_denominator = 0
@@ -367,10 +368,12 @@ def load_dora_metrics_from_cache(n_weeks: int = 12) -> Optional[Dict[str, Any]]:
             if df_data or lt_data or cfr_data or mttr_data:
                 has_any_data = True
 
-            # Deployment Frequency
+            # Deployment Frequency - with release count
             df_count = df_data.get("deployment_count", 0) if df_data else 0
+            release_count = df_data.get("release_count", 0) if df_data else 0  # NEW
             weekly_deployment_freq.append(df_count)
             total_deployments += df_count
+            total_releases += release_count  # NEW: Accumulate unique releases
             if df_count > 0:
                 total_deployment_issues += df_count  # Count actual deployments
 
@@ -412,10 +415,13 @@ def load_dora_metrics_from_cache(n_weeks: int = 12) -> Optional[Dict[str, Any]]:
                 total_mttr_issues += mttr_count  # Accumulate production bug count
 
         # Calculate overall metrics
-        # Deployment Frequency: average deployments per week
+        # Deployment Frequency: average deployments and releases per week
         deployment_freq_per_week = (
             total_deployments / len(weeks) if len(weeks) > 0 else 0
         )
+        release_freq_per_week = (
+            total_releases / len(weeks) if len(weeks) > 0 else 0
+        )  # NEW
 
         logger.info(f"[LOAD_CACHE] all_lead_times list: {all_lead_times}")
         overall_lead_time = (
@@ -439,6 +445,7 @@ def load_dora_metrics_from_cache(n_weeks: int = 12) -> Optional[Dict[str, Any]]:
         return {
             "deployment_frequency": {
                 "value": round(deployment_freq_per_week, 2),
+                "release_value": round(release_freq_per_week, 2),  # NEW
                 "weekly_labels": weekly_labels,
                 "weekly_values": weekly_deployment_freq,
                 "total_issue_count": total_deployment_issues,
