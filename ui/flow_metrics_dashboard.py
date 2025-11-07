@@ -23,6 +23,13 @@ def create_flow_dashboard() -> dbc.Container:
     """
     return dbc.Container(
         [
+            # Store for tracking if user has seen welcome banner (uses localStorage)
+            dcc.Store(id="flow-welcome-dismissed", storage_type="local", data=False),
+            # Welcome banner for first-time users (dismissible)
+            html.Div(
+                id="flow-welcome-banner",
+                children=[],  # Will be populated by callback based on storage
+            ),
             # Compact overview section with distinct background
             dbc.Card(
                 dbc.CardBody(
@@ -41,7 +48,7 @@ def create_flow_dashboard() -> dbc.Container:
                     "borderRadius": "8px",
                 },
             ),
-            # Info banner
+            # Info banner with balanced spacing
             html.P(
                 [
                     html.I(className="fas fa-info-circle me-2"),
@@ -51,7 +58,7 @@ def create_flow_dashboard() -> dbc.Container:
                     html.Strong("Data Points slider"),
                     " controls weeks displayed.",
                 ],
-                className="text-muted small mb-3",
+                className="text-muted small mb-3 mt-3",  # Equal top and bottom margin
             ),
             # Metrics cards grid
             html.Div(

@@ -65,7 +65,28 @@ def create_flow_distribution_chart(distribution_data: Dict[str, Any]) -> go.Figu
             go.Pie(
                 labels=labels,
                 values=values,
-                marker=dict(colors=colors),
+                marker=dict(
+                    colors=colors,
+                    line=dict(
+                        # Add thicker border to out-of-range segments for visual indicator
+                        color=[
+                            "#ffffff"
+                            if breakdown.get(work_type.replace(" ", "_"), {}).get(
+                                "within_range", True
+                            )
+                            else "#dc3545"  # Red border for out-of-range
+                            for work_type in labels
+                        ],
+                        width=[
+                            2
+                            if breakdown.get(work_type.replace(" ", "_"), {}).get(
+                                "within_range", True
+                            )
+                            else 4  # Thicker border for out-of-range
+                            for work_type in labels
+                        ],
+                    ),
+                ),
                 hovertemplate="%{customdata}<extra></extra>",
                 customdata=hover_text,
                 textinfo="label+percent",
@@ -73,6 +94,36 @@ def create_flow_distribution_chart(distribution_data: Dict[str, Any]) -> go.Figu
             )
         ]
     )
+
+    # Add annotations showing target ranges for each work type
+    annotations = []
+    y_position = 1.15  # Start position above chart
+
+    for work_type, data in breakdown.items():
+        recommended_min = data.get("recommended_min", 0)
+        recommended_max = data.get("recommended_max", 0)
+        within_range = data.get("within_range", True)
+
+        label = work_type.replace("_", " ")
+        status_icon = "✓" if within_range else "⚠"
+        color = "green" if within_range else "red"
+
+        annotations.append(
+            dict(
+                text=f"{status_icon} {label}: {recommended_min}-{recommended_max}%",
+                xref="paper",
+                yref="paper",
+                x=0.5,
+                y=y_position,
+                xanchor="center",
+                yanchor="top",
+                showarrow=False,
+                font=dict(size=10, color=color),
+                bgcolor="rgba(255, 255, 255, 0.8)",
+                borderpad=2,
+            )
+        )
+        y_position -= 0.06  # Move down for next annotation
 
     fig.update_layout(
         title={
@@ -88,8 +139,9 @@ def create_flow_distribution_chart(distribution_data: Dict[str, Any]) -> go.Figu
             xanchor="center",
             x=0.5,
         ),
-        height=400,
-        margin=dict(t=80, b=80, l=40, r=40),
+        annotations=annotations,
+        height=500,  # Increased height to accommodate target range annotations
+        margin=dict(t=150, b=80, l=40, r=40),  # Increased top margin for annotations
     )
 
     return fig
@@ -179,6 +231,34 @@ def create_flow_efficiency_trend_chart(
     efficiency_color = line_color or colors["flow_efficiency"]
 
     fig = go.Figure()
+
+    # Add healthy range zone (25-40%) - the "sweet spot" for flow efficiency
+    # This range indicates good balance between active work and wait time
+    fig.add_shape(
+        type="rect",
+        x0=dates[0] if dates else 0,
+        x1=dates[-1] if dates else 1,
+        y0=25,
+        y1=40,
+        fillcolor="rgba(25, 135, 84, 0.1)",  # Light green with transparency
+        line=dict(
+            color="rgba(25, 135, 84, 0.3)",
+            width=1,
+            dash="dot",
+        ),
+        layer="below",
+    )
+
+    # Add annotation explaining the healthy range
+    fig.add_annotation(
+        x=dates[len(dates) // 2] if dates else 0.5,  # Middle of chart
+        y=32.5,  # Middle of 25-40% range
+        text="Healthy Range (25-40%)",
+        showarrow=False,
+        font=dict(size=10, color="rgba(25, 135, 84, 0.7)"),
+        bgcolor="rgba(255, 255, 255, 0.8)",
+        borderpad=4,
+    )
 
     # REMOVED: Performance zones create visual noise
     # Clean design without distracting background zones

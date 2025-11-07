@@ -100,6 +100,145 @@ def _create_mini_bar_sparkline(
     )
 
 
+def _get_metric_explanation(metric_name: str) -> str:
+    """Get explanation text for what a metric measures.
+
+    Args:
+        metric_name: Internal metric name
+
+    Returns:
+        Explanation text for the metric
+    """
+    explanations = {
+        "deployment_frequency": "How often you deploy to production. Higher is better - measures delivery velocity.",
+        "lead_time_for_changes": "Time from code commit to production. Lower is better - measures delivery speed.",
+        "change_failure_rate": "Percentage of deployments causing failures. Lower is better - measures quality.",
+        "mean_time_to_recovery": "Time to restore service after incident. Lower is better - measures resilience.",
+        "flow_velocity": "Work items completed per week. Higher is better - measures throughput.",
+        "flow_load": "Work in progress (WIP). Lower WIP enables faster delivery and better focus.",
+        "flow_time": "Time to complete work items. Lower is better - measures cycle time.",
+        "flow_efficiency": "Active work time vs. total time. 25-40% is healthy - too high indicates overload.",
+        "flow_distribution": "Mix of feature vs. defect vs. risk work. Balance indicates healthy product development.",
+    }
+
+    return explanations.get(
+        metric_name, "Metric indicator for team performance and delivery capability."
+    )
+
+
+def _get_metric_relationship_hint(
+    metric_name: str, value: Optional[float], metric_data: Dict[str, Any]
+) -> Optional[str]:
+    """Get relationship hint showing how this metric affects others.
+
+    Args:
+        metric_name: Internal metric name
+        value: Current metric value
+        metric_data: Full metric data dictionary
+
+    Returns:
+        Relationship hint text or None
+    """
+    if value is None:
+        return None
+
+    # Only show hints when metrics are in concerning states
+
+    # Flow Load (WIP) - affects everything
+    if metric_name == "flow_load":
+        wip_thresholds = metric_data.get("wip_thresholds", {})
+        high_threshold = wip_thresholds.get("high", 30)
+
+        if value >= high_threshold:
+            return "💡 High WIP typically increases Lead Time and Flow Time"
+
+    # Change Failure Rate - affects MTTR
+    elif metric_name == "change_failure_rate":
+        if value > 30:
+            return "💡 High failure rate often increases MTTR and slows delivery"
+
+    # Lead Time - affected by WIP
+    elif metric_name == "lead_time_for_changes":
+        unit = metric_data.get("unit", "")
+        if "day" in unit.lower() and value > 7:
+            return "💡 Long lead time may indicate high WIP or process bottlenecks"
+
+    # Flow Time - affected by WIP
+    elif metric_name == "flow_time":
+        if value > 14:  # More than 2 weeks
+            return "💡 Long cycle time may indicate high WIP or too much waiting"
+
+    # Flow Efficiency - related to waiting
+    elif metric_name == "flow_efficiency":
+        if value < 20:
+            return "💡 Low efficiency indicates high wait times between work stages"
+        elif value > 60:
+            return "💡 Very high efficiency may indicate team overload - check WIP"
+
+    return None
+
+
+def _get_action_prompt(
+    metric_name: str, value: Optional[float], metric_data: Dict[str, Any]
+) -> Optional[str]:
+    """Get actionable guidance when metrics are concerning.
+
+    Args:
+        metric_name: Internal metric name
+        value: Current metric value
+        metric_data: Full metric data dictionary
+
+    Returns:
+        Action prompt text or None if metric is healthy
+    """
+    if value is None:
+        return None
+
+    # Flow Load (WIP) - Critical state
+    if metric_name == "flow_load":
+        wip_thresholds = metric_data.get("wip_thresholds", {})
+        critical_threshold = wip_thresholds.get("critical", 40)
+
+        if value >= critical_threshold:
+            return "Stop starting new work. Focus on finishing existing items to reduce WIP."
+
+    # Change Failure Rate - High failure rate
+    elif metric_name == "change_failure_rate":
+        if value > 30:
+            return "High failure rate detected. Review deployment process and testing procedures."
+
+    # Lead Time for Changes - Slow delivery (>1 week = 7 days)
+    elif metric_name == "lead_time_for_changes":
+        unit = metric_data.get("unit", "")
+        if "day" in unit.lower() and value > 7:
+            return (
+                "Slow delivery cycle. Check for bottlenecks and consider reducing WIP."
+            )
+
+    # Mean Time to Recovery - Slow recovery (>1 day = 24 hours)
+    elif metric_name == "mean_time_to_recovery":
+        unit = metric_data.get("unit", "")
+        if "hour" in unit.lower() and value > 24:
+            return "Slow incident recovery. Review incident response process and automation."
+        elif "day" in unit.lower() and value > 1:
+            return "Slow incident recovery. Review incident response process and automation."
+
+    # Deployment Frequency - Low deployment rate
+    elif metric_name == "deployment_frequency":
+        # Check if deploying less than once per week (< ~0.14 deploys/week = < 1/month)
+        if value < 1:
+            return "Low deployment frequency. Consider smaller batch sizes and more frequent releases."
+
+    # Flow Efficiency - Too low or too high
+    elif metric_name == "flow_efficiency":
+        if value < 20:
+            return "Low efficiency indicates high wait times. Investigate process bottlenecks."
+        elif value > 60:
+            return "Very high efficiency may indicate overload. Check WIP and team capacity."
+
+    return None
+
+
 def _create_detailed_chart(
     metric_name: str,
     display_name: str,
@@ -592,43 +731,92 @@ def _create_success_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
             className="metric-card-title",
         )
     else:
-        # Start with just the display name
+        # Start with display name
         title_content = [display_name]
 
-        # Add info tooltip if provided
+        # Add metric explanation tooltip if available (from configuration)
+        # If not available, use generic explanation as fallback
         if metric_tooltip:
-            title_content.extend(
-                [
-                    " ",
-                    create_info_tooltip(
-                        help_text=metric_tooltip,
-                        id_suffix=f"metric-{metric_name}",
-                        placement="top",
-                        variant="dark",
-                    ),
-                ]
-            )
+            help_text = metric_tooltip
+        else:
+            help_text = _get_metric_explanation(metric_name)
+
+        title_content.extend(
+            [
+                " ",
+                create_info_tooltip(
+                    help_text=help_text,
+                    id_suffix=f"metric-{metric_name}",
+                    placement="top",
+                    variant="dark",
+                ),
+            ]
+        )
 
         title_element = html.Span(title_content, className="metric-card-title")
 
     # Build header with flex layout
     # Special badge for Flow Load (WIP) showing health status
-    if metric_name == "flow_load" and value is not None:
-        if value < 10:
-            badge_text = "Healthy"
-        elif value < 20:
-            badge_text = "Warning"
-        elif value < 30:
-            badge_text = "High"
-        else:
-            badge_text = "Critical"
+    badge_element = None
+    badge_tooltip_text = None
 
-        # For flow_load, always use standard Bootstrap colors
+    if metric_name == "flow_load" and value is not None:
+        # Get dynamic thresholds if available
+        wip_thresholds = metric_data.get("wip_thresholds", {})
+
+        if wip_thresholds and "healthy" in wip_thresholds:
+            healthy_threshold = wip_thresholds["healthy"]
+            warning_threshold = wip_thresholds["warning"]
+            high_threshold = wip_thresholds["high"]
+            critical_threshold = wip_thresholds["critical"]
+
+            # Apply dynamic thresholds and format badge text with threshold value
+            if value < healthy_threshold:
+                badge_text = f"Healthy (<{healthy_threshold:.1f})"
+                badge_tooltip_text = (
+                    "Optimal WIP - Team capacity is healthy and sustainable"
+                )
+            elif value < warning_threshold:
+                badge_text = f"Warning (<{warning_threshold:.1f})"
+                badge_tooltip_text = "Moderate WIP - Monitor closely, consider finishing items before starting new work"
+            elif value < high_threshold:
+                badge_text = f"High (<{high_threshold:.1f})"
+                badge_tooltip_text = (
+                    "High WIP - Too much work in progress, implement WIP limits"
+                )
+            else:
+                badge_text = f"Critical (≥{critical_threshold:.1f})"
+                badge_tooltip_text = (
+                    "Critical WIP - Severely overloaded, immediate action required"
+                )
+        else:
+            # Fallback to hardcoded thresholds with values
+            if value < 10:
+                badge_text = "Healthy (<10)"
+                badge_tooltip_text = (
+                    "Optimal WIP - Team capacity is healthy and sustainable"
+                )
+            elif value < 20:
+                badge_text = "Warning (<20)"
+                badge_tooltip_text = "Moderate WIP - Monitor closely, consider finishing items before starting new work"
+            elif value < 30:
+                badge_text = "High (<30)"
+                badge_tooltip_text = (
+                    "High WIP - Too much work in progress, implement WIP limits"
+                )
+            else:
+                badge_text = "Critical (≥40)"
+                badge_tooltip_text = (
+                    "Critical WIP - Severely overloaded, immediate action required"
+                )
+
+        # Create badge with custom or standard colors
         if use_custom_class:
             badge_element = dbc.Badge(
                 children=badge_text,
                 className=f"ms-auto bg-{bootstrap_color}",
                 style={"fontSize": "0.75rem", "fontWeight": "600"},
+                id=f"badge-{card_id}" if card_id else f"badge-{metric_name}",
             )
         else:
             badge_element = dbc.Badge(
@@ -636,18 +824,31 @@ def _create_success_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
                 color=bootstrap_color,
                 className="ms-auto",
                 style={"fontSize": "0.75rem", "fontWeight": "600"},
+                id=f"badge-{card_id}" if card_id else f"badge-{metric_name}",
             )
     else:
-        # Regular badge for other metrics
+        # Regular badge for other metrics (DORA metrics)
         perf_tier = metric_data.get("performance_tier")
 
         if perf_tier:
+            # Set tooltip text based on performance tier
+            tier_tooltips = {
+                "Elite": "Top 10% of teams - world-class performance",
+                "High": "Top 25% of teams - strong performance",
+                "Medium": "Top 50% of teams - room for improvement",
+                "Low": "Below average - needs immediate attention",
+            }
+            badge_tooltip_text = tier_tooltips.get(
+                perf_tier, "Performance tier indicator"
+            )
+
             # Use className for custom colors, color parameter for standard Bootstrap colors
             if use_custom_class:
                 badge_element = dbc.Badge(
                     children=perf_tier,
                     className=f"ms-auto bg-{bootstrap_color}",
                     style={"fontSize": "0.75rem", "fontWeight": "600"},
+                    id=f"badge-{card_id}" if card_id else f"badge-{metric_name}",
                 )
             else:
                 badge_element = dbc.Badge(
@@ -655,15 +856,31 @@ def _create_success_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
                     color=bootstrap_color,
                     className="ms-auto",
                     style={"fontSize": "0.75rem", "fontWeight": "600"},
+                    id=f"badge-{card_id}" if card_id else f"badge-{metric_name}",
                 )
-        else:
-            badge_element = None
+
+    # Wrap badge with tooltip if we have tooltip text
+    if badge_element and badge_tooltip_text:
+        badge_id = f"badge-{card_id}" if card_id else f"badge-{metric_name}"
+        badge_with_tooltip = html.Div(
+            [
+                badge_element,
+                dbc.Tooltip(
+                    badge_tooltip_text,
+                    target=badge_id,
+                    placement="top",
+                ),
+            ],
+            className="d-inline-block",
+        )
+    else:
+        badge_with_tooltip = badge_element
 
     header_children: List[Any] = [
         html.Div(
             [
                 title_element,
-                badge_element,
+                badge_with_tooltip,
             ],
             className="d-flex align-items-center justify-content-between w-100",
         )
@@ -681,6 +898,17 @@ def _create_success_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
             className="text-muted text-center metric-unit mb-1",
         ),
     ]
+
+    # Add relationship hint if metric is in concerning state
+    relationship_hint = _get_metric_relationship_hint(metric_name, value, metric_data)
+    if relationship_hint:
+        card_body_children.append(
+            html.P(
+                relationship_hint,
+                className="text-muted text-center small mb-2",
+                style={"fontSize": "0.8rem", "fontStyle": "italic"},
+            )
+        )
 
     # Add trend indicator with percentage change
     weekly_labels = metric_data.get("weekly_labels", [])
@@ -708,9 +936,9 @@ def _create_success_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
                 percent_change = -100.0
 
             # Determine if trend is good based on metric type
-            # For deployment_frequency: higher is better (green up, red down)
-            # For lead_time, mttr, cfr: lower is better (green down, red up)
-            is_higher_better = metric_name in ["deployment_frequency"]
+            # For deployment_frequency, flow_velocity: higher is better (green up, red down)
+            # For lead_time, mttr, cfr, flow_time, flow_load: lower is better (green down, red up)
+            is_higher_better = metric_name in ["deployment_frequency", "flow_velocity"]
 
             # Show neutral/stable indicator for no change (exactly 0.0%)
             if percent_change == 0.0:
@@ -741,14 +969,55 @@ def _create_success_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
                 trend_color = "secondary"
                 trend_icon = "fas fa-minus"
 
+            # Create context-aware tooltip explaining if trend is good or bad
+            if percent_change == 0.0:
+                trend_tooltip = "No change from recent average - stable performance"
+            elif is_higher_better:
+                # Higher is better (Deployment Frequency, Flow Velocity)
+                if percent_change > 0:
+                    trend_tooltip = (
+                        "Trending better ↑ - Higher than recent average. Keep it up!"
+                    )
+                else:
+                    trend_tooltip = "Trending worse ↓ - Lower than recent average. Review bottlenecks."
+            else:
+                # Lower is better (Lead Time, MTTR, CFR, Flow Time, Flow Load)
+                if percent_change < 0:
+                    trend_tooltip = (
+                        "Trending better ↓ - Lower than recent average. Great progress!"
+                    )
+                else:
+                    trend_tooltip = "Trending worse ↑ - Higher than recent average. Needs attention."
+
+            # Small changes are neutral
+            if abs(percent_change) < 5 and percent_change != 0.0:
+                trend_tooltip = "Minor change - performance is relatively stable"
+
+            # Create trend indicator with tooltip
+            trend_indicator = html.Div(
+                [
+                    html.I(className=f"{trend_icon} me-1"),
+                    html.Span(trend_text),
+                ],
+                className=f"text-center text-{trend_color} small mb-2",
+                style={"fontWeight": "500"},
+                id=f"trend-{card_id}" if card_id else f"trend-{metric_name}",
+            )
+
+            # Wrap trend indicator with tooltip
             card_body_children.append(
                 html.Div(
                     [
-                        html.I(className=f"{trend_icon} me-1"),
-                        html.Span(trend_text),
+                        trend_indicator,
+                        dbc.Tooltip(
+                            trend_tooltip,
+                            target=f"trend-{card_id}"
+                            if card_id
+                            else f"trend-{metric_name}",
+                            placement="top",
+                        ),
                     ],
-                    className=f"text-center text-{trend_color} small mb-2",
-                    style={"fontWeight": "500"},
+                    className="d-inline-block w-100",
                 )
             )
             trend_added = True
@@ -763,6 +1032,21 @@ def _create_success_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
                 ],
                 className="text-center text-muted small mb-2",
                 style={"fontWeight": "500"},
+            )
+        )
+
+    # Add action prompts for concerning metrics
+    action_prompt = _get_action_prompt(metric_name, value, metric_data)
+    if action_prompt:
+        card_body_children.append(
+            dbc.Alert(
+                [
+                    html.I(className="fas fa-exclamation-triangle me-2"),
+                    html.Span(action_prompt),
+                ],
+                color="warning",
+                className="mt-2 mb-2 py-2 px-3",
+                style={"fontSize": "0.85rem", "lineHeight": "1.4"},
             )
         )
 

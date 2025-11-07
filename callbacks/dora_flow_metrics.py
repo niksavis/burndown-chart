@@ -1434,3 +1434,163 @@ def restore_calculate_metrics_progress(pathname):
     ]
 
     return False, button_normal, ""
+
+
+@callback(
+    Output("dora-welcome-banner", "children"),
+    Input("dora-welcome-dismissed", "data"),
+    prevent_initial_call=False,
+)
+def show_dora_welcome_banner(dismissed):
+    """Show welcome banner for first-time users.
+
+    Args:
+        dismissed: Boolean from localStorage indicating if user dismissed banner
+
+    Returns:
+        Welcome banner alert or empty list if dismissed
+    """
+    # If user has dismissed the banner, don't show it
+    if dismissed:
+        return []
+
+    return dbc.Alert(
+        [
+            html.Div(
+                [
+                    html.I(className="fas fa-rocket me-2"),
+                    html.Strong("Welcome to DORA Metrics!", className="me-2"),
+                ],
+                className="mb-2",
+            ),
+            html.P(
+                [
+                    "Start by reviewing these metrics in order: ",
+                    html.Strong("Deployment Frequency"),
+                    " (delivery speed) → ",
+                    html.Strong("Lead Time"),
+                    " (cycle time) → ",
+                    html.Strong("Change Failure Rate"),
+                    " (quality) → ",
+                    html.Strong("MTTR"),
+                    " (resilience).",
+                ],
+                className="mb-2 small",
+            ),
+            html.P(
+                [
+                    "💡 Elite performers deploy ",
+                    html.Strong("multiple times per day"),
+                    " with ",
+                    html.Strong("<15% failure rate"),
+                    " and recover in ",
+                    html.Strong("<1 hour"),
+                    ".",
+                ],
+                className="mb-0 small",
+            ),
+        ],
+        id="dora-welcome-alert",
+        color="info",
+        dismissable=True,
+        className="mb-3",
+    )
+
+
+@callback(
+    Output("dora-welcome-dismissed", "data"),
+    Input("dora-welcome-alert", "is_open"),
+    prevent_initial_call=True,
+)
+def dismiss_dora_welcome_banner(is_open):
+    """Mark welcome banner as dismissed when user closes it.
+
+    Args:
+        is_open: False when alert is dismissed
+
+    Returns:
+        True to store in localStorage
+    """
+    # When alert is closed (is_open becomes False/None), mark as dismissed
+    if is_open is False or is_open is None:
+        return True
+    return False
+
+
+@callback(
+    Output("flow-welcome-banner", "children"),
+    Input("flow-welcome-dismissed", "data"),
+    prevent_initial_call=False,
+)
+def show_flow_welcome_banner(dismissed):
+    """Show welcome banner for first-time Flow metrics users.
+
+    Args:
+        dismissed: Boolean from localStorage indicating if user dismissed banner
+
+    Returns:
+        Welcome banner alert or empty list if dismissed
+    """
+    # If user has dismissed the banner, don't show it
+    if dismissed:
+        return []
+
+    return dbc.Alert(
+        [
+            html.Div(
+                [
+                    html.I(className="fas fa-water me-2"),
+                    html.Strong("Welcome to Flow Metrics!", className="me-2"),
+                ],
+                className="mb-2",
+            ),
+            html.P(
+                [
+                    "Start by checking ",
+                    html.Strong("Flow Load (WIP)"),
+                    " - keep it low for faster delivery. Then review ",
+                    html.Strong("Flow Velocity"),
+                    " (throughput) and ",
+                    html.Strong("Flow Time"),
+                    " (cycle time).",
+                ],
+                className="mb-2 small",
+            ),
+            html.P(
+                [
+                    "💡 Healthy teams maintain ",
+                    html.Strong("WIP < 10 items"),
+                    ", ",
+                    html.Strong("Flow Efficiency 25-40%"),
+                    ", and balanced ",
+                    html.Strong("Distribution"),
+                    " (40-60% features, 20-40% defects).",
+                ],
+                className="mb-0 small",
+            ),
+        ],
+        id="flow-welcome-alert",
+        color="info",
+        dismissable=True,
+        className="mb-3",
+    )
+
+
+@callback(
+    Output("flow-welcome-dismissed", "data"),
+    Input("flow-welcome-alert", "is_open"),
+    prevent_initial_call=True,
+)
+def dismiss_flow_welcome_banner(is_open):
+    """Mark Flow welcome banner as dismissed when user closes it.
+
+    Args:
+        is_open: False when alert is dismissed
+
+    Returns:
+        True to store in localStorage
+    """
+    # When alert is closed (is_open becomes False/None), mark as dismissed
+    if is_open is False or is_open is None:
+        return True
+    return False
