@@ -7,6 +7,97 @@
 
 All DORA and Flow metrics are **calculated weekly** (ISO week: Monday-Sunday) and stored as snapshots in `metrics_snapshots.json`. The UI displays these pre-calculated snapshots for performance.
 
+## Reading the Metric Cards (Visual Guide)
+
+Each metric card provides multiple visual signals to help you quickly assess performance:
+
+### Performance Tier Badge
+- **Elite** (Green): Top-tier performance per DORA/Flow standards
+- **High** (Blue): Above average performance
+- **Medium** (Yellow): Average performance, room for improvement
+- **Low** (Red): Below average, needs attention
+- **Special for Flow Load (WIP)**: Shows health status instead
+  - **Healthy** (Green): <10 items in progress
+  - **Warning** (Yellow): 10-19 items
+  - **High** (Orange): 20-29 items
+  - **Critical** (Red): ≥30 items
+
+### Trend Indicators (Below Main Value)
+Shows how the current period compares to historical average:
+
+- **→ (Right Arrow, Gray)**: Stable - exactly 0.0% change from previous average
+  - Example: "→ 0.0% vs prev avg"
+  - Indicates consistent, predictable performance
+  
+- **↑ (Up Arrow)**: Increase of ≥5% from previous average
+  - **Green**: Good improvement (Deployment Frequency)
+  - **Red**: Concerning increase (Lead Time, MTTR, CFR, WIP)
+  - Example: "↑ 12.5% vs prev avg"
+  
+- **↓ (Down Arrow)**: Decrease of ≥5% from previous average
+  - **Green**: Good improvement (Lead Time, MTTR, CFR, WIP)
+  - **Red**: Concerning decrease (Deployment Frequency)
+  - Example: "↓ 8.3% vs prev avg"
+  
+- **− (Minus, Gray)**: Small change (<5%) or insufficient historical data
+  - Example: "− 2.1% vs prev avg" or "− No trend data yet"
+  - Indicates stability within normal variance
+
+**How to Read Trends**:
+- Compare current period's median/average to previous periods' average
+- Helps identify improving/degrading trends before they become critical
+- Gray indicators (→ and −) mean "stable" - neither good nor bad
+
+### Secondary Metrics (Below Trend)
+Provides additional context for deeper analysis:
+
+**For Deployment Frequency & Change Failure Rate**:
+- Shows unique releases (vs. deployment tasks)
+- Example: "📦 1.9 releases/week"
+- Helps distinguish release cadence from deployment process complexity
+
+**For Lead Time & MTTR**:
+- **P95**: 95th percentile - worst-case scenarios (5% of issues exceed this)
+- **Mean**: Arithmetic average - capacity planning baseline
+- Example: "📊 P95: 12.5d • Avg: 8.2d"
+- Useful for SLA setting and identifying outliers
+
+### Inline Sparkline
+- Mini-chart below secondary metrics shows weekly trend
+- Quick visual pattern recognition (upward/downward/stable)
+- Colored by performance tier
+
+### Card Height Consistency
+All cards maintain uniform height regardless of data availability:
+- Cards with trends show trend indicators
+- Cards without sufficient data show "No trend data yet" placeholder
+- Ensures clean, professional grid layout
+
+### Detail Charts (Click to Expand)
+Click any DORA metric card to view detailed weekly breakdown:
+
+**DORA Metrics - Performance Tier Zones**:
+- Background zones show Elite/High/Medium/Low thresholds
+- Your weekly data points plotted against industry standards
+- Helps visualize where you are vs. where you want to be
+- Color-coded zones:
+  - **Green**: Elite performance (top 10% of teams)
+  - **Blue**: High performance (top 25%)
+  - **Yellow**: Medium performance (top 50%)
+  - **Red**: Low performance (needs improvement)
+- Example: Lead Time chart shows zones at <1h (Elite), 1d-1w (High), 1w-1mo (Medium), >1mo (Low)
+
+**Flow Metrics - Trend Analysis**:
+- Standard trend charts without zones (no universal Flow standards exist)
+- Focus on your team's historical patterns and trends
+- Useful for tracking improvements over time
+
+**Work Distribution Breakdown**:
+- Stacked area chart shows Feature/Defect/Tech Debt/Risk evolution
+- Hover shows percentages for each work type
+- Current week summary with recommended ranges
+- Helps maintain healthy work balance
+
 ## Time Periods & Aggregation Strategy
 
 ### Weekly Bucketing (ISO Weeks)
@@ -47,14 +138,18 @@ All DORA and Flow metrics are **calculated weekly** (ISO week: Monday-Sunday) an
 - **Primary Calculation**: `AVERAGE(weekly_deployment_counts)` across N weeks
 - **Secondary Display**: `releases/week` (shown below primary value)
 - **Secondary Calculation**: `AVERAGE(weekly_release_counts)` across N weeks
+- **Trend Indicator**: Shows % change vs. previous average (↑ green = good, ↓ red = concerning)
+- **Performance Badge**: Elite (≥30/mo) → High (≥7/mo) → Medium (≥1/mo) → Low (<1/mo)
 - **Example**: 12 weeks with deployment counts `[2, 3, 4, 2, 5, 3, 2, 4, 3, 2, 3, 4]` and release counts `[1, 2, 3, 1, 3, 2, 1, 2, 2, 1, 2, 3]`
   - Average deployments = 3.1 deployments/week
   - Average releases = 1.9 releases/week
+  - Card shows: "3.1 deployments/week" with "📦 1.9 releases/week" below
 
 **Scatter Chart** (Weekly Data Points):
 - **X-axis**: Week labels (2025-45, 2025-46, etc.)
 - **Y-axis**: Absolute deployment count for that week
 - **Values**: Each point = actual deployments in that week (NOT cumulative, NOT average)
+- **Background Zones**: Elite/High/Medium/Low performance tiers per DORA standards
 - **Note**: Currently shows deployments only. Could be enhanced to show both metrics or releases separately.
 
 **Trend Line**:
@@ -95,18 +190,22 @@ All DORA and Flow metrics are **calculated weekly** (ISO week: Monday-Sunday) an
   - **P95**: 95th percentile - only 5% of issues take longer than this
   - **Mean**: Arithmetic average - useful for capacity planning
   - Both averaged across the same 16-week period
+- **Trend Indicator**: Shows % change vs. previous average (↓ green = improvement, ↑ red = regression)
+- **Performance Badge**: Elite (<1h) → High (<1d) → Medium (<1w) → Low (>1w)
 - **Example**: 
   - Week 1: Issues with lead times [24h, 48h, 72h] → Median = 48h (2d), Mean = 48h (2d), P95 = 67.2h (2.8d)
   - Week 2: Issues with lead times [36h, 60h] → Median = 48h (2d), Mean = 48h (2d), P95 = 57.6h (2.4d)
   - Averages: Median = 2d, Mean = 2d, P95 = 2.6d
 - **Card Display**:
   - Primary: "2 days (16w median avg)"
+  - Trend: "↓ 5.2% vs prev avg" (green = improving)
   - Secondary: "📊 P95: 2.6d • Avg: 2d"
 
 **Scatter Chart** (Weekly Data Points):
 - **X-axis**: Week labels
 - **Y-axis**: Median lead time in **days** for that week
 - **Values**: Each point = median of all lead times in that week
+- **Background Zones**: Elite/High/Medium/Low performance tiers per DORA standards
 
 **Why Median, Not Mean?**
 - Outliers (e.g., 1 issue taking 200 hours) don't skew the metric
@@ -140,15 +239,20 @@ All DORA and Flow metrics are **calculated weekly** (ISO week: Monday-Sunday) an
   - `total_deployments = SUM(all weekly deployment counts)`
   - `total_failures = SUM(all weekly failure counts)`
   - `CFR = (total_failures / total_deployments) × 100`
+- **Trend Indicator**: Shows % change vs. previous average (↓ green = improvement, ↑ red = regression)
+- **Performance Badge**: Elite (0-15%) → High (16-30%) → Medium (31-45%) → Low (>45%)
+- **Special Case**: Shows "→ 0.0% vs prev avg" when stable at 0% (no failures)
 - **Example**:
   - Week 1: 10 deployments, 1 failure → 10%
   - Week 2: 20 deployments, 0 failures → 0%
   - Aggregate: (1 / 30) × 100 = 3.3% ✓ (NOT (10% + 0%) / 2 = 5% ✗)
+  - Card shows: "3.3%" with "→ 0.0% vs prev avg" if stable
 
 **Scatter Chart** (Weekly Data Points):
 - **X-axis**: Week labels
 - **Y-axis**: Failure rate **percentage** for that week
 - **Values**: Each point = `(failures / deployments) × 100` for that week
+- **Background Zones**: Elite/High/Medium/Low performance tiers per DORA standards
 
 **Why Aggregate, Not Average?**
 - Prevents weeks with few deployments from skewing the metric
@@ -183,18 +287,22 @@ All DORA and Flow metrics are **calculated weekly** (ISO week: Monday-Sunday) an
   - **P95**: 95th percentile - only 5% of bugs take longer to fix
   - **Mean**: Arithmetic average - useful for capacity planning
   - Both averaged across the same 16-week period
+- **Trend Indicator**: Shows % change vs. previous average (↓ green = improvement, ↑ red = regression)
+- **Performance Badge**: Elite (<1h) → High (<1d) → Medium (<1w) → Low (>1w)
 - **Example**:
   - Week 1: Bugs with recovery times [12h, 24h, 48h] → Median = 24h, Mean = 28h, P95 = 44.4h
   - Week 2: Bugs with recovery times [18h, 36h] → Median = 27h, Mean = 27h, P95 = 34.2h
   - Averages: Median = 25.5h, Mean = 27.5h, P95 = 39.3h
 - **Card Display**:
   - Primary: "25.5 hours (16w median avg)"
+  - Trend: "↓ 3.8% vs prev avg" (green = improving)
   - Secondary: "📊 P95: 39.3h • Avg: 27.5h"
 
 **Scatter Chart** (Weekly Data Points):
 - **X-axis**: Week labels
 - **Y-axis**: Median MTTR in **hours** for that week
 - **Values**: Each point = median of all recovery times in that week
+- **Background Zones**: Elite/High/Medium/Low performance tiers per DORA standards
 
 **Why Show P95 and Mean?**
 - **P95**: Helps set incident response SLAs (95% of bugs fixed within this time)
@@ -320,7 +428,13 @@ All DORA and Flow metrics are **calculated weekly** (ISO week: Monday-Sunday) an
 **Display Value** (Card):
 - **Unit**: `items` (current week only)
 - **Calculation**: WIP count for the **most recent week**
-- **Example**: Week 2025-45 had 15 items in progress → Display: "15 items"
+- **Health Badge**: Shows WIP health status (replaces generic performance tier)
+  - **Healthy** (Green): <10 items
+  - **Warning** (Yellow): 10-19 items
+  - **High** (Orange): 20-29 items
+  - **Critical** (Red): ≥30 items
+- **Trend Indicator**: Shows % change vs. previous average (↓ green = improvement, ↑ red = growing WIP)
+- **Example**: Week 2025-45 had 15 items in progress → Display: "15 items" with "Warning" badge
 
 **Scatter Chart** (Weekly Data Points):
 - **X-axis**: Week labels
@@ -357,23 +471,26 @@ All DORA and Flow metrics are **calculated weekly** (ISO week: Monday-Sunday) an
 
 ## Summary Table: Time Units & Aggregations
 
-| Metric                   | Time Unit        | Per-Week Aggregation         | Card Display                               | Secondary Info | Chart Y-Axis   |
-| ------------------------ | ---------------- | ---------------------------- | ------------------------------------------ | -------------- | -------------- |
-| **Deployment Frequency** | N/A (count)      | SUM (absolute count)         | AVERAGE of weekly counts (16w median avg)  | Releases/week  | Absolute count |
-| **Lead Time**            | Hours → Days     | MEDIAN of all lead times     | AVERAGE of weekly medians (16w median avg) | P95 + Mean     | Median days    |
-| **Change Failure Rate**  | N/A (percentage) | % of failures                | AGGREGATE % across all weeks (16w agg)     | Releases/week  | Weekly %       |
-| **MTTR**                 | Hours            | MEDIAN of all recovery times | AVERAGE of weekly medians (16w median avg) | P95 + Mean     | Median hours   |
-| **Flow Velocity**        | N/A (count)      | SUM (absolute count)         | Current week count                         | None           | Absolute count |
-| **Flow Time**            | Hours → Days     | MEDIAN of all flow times     | AVERAGE of weekly medians                  | None           | Median days    |
-| **Flow Efficiency**      | N/A (percentage) | % active/WIP                 | Current week %                             | None           | Weekly %       |
-| **Flow Load**            | N/A (count)      | COUNT at week end            | Current week count                         | None           | Absolute count |
-| **Flow Distribution**    | N/A (percentage) | % by type                    | Stacked area chart                         | None           | Count by type  |
+| Metric                   | Time Unit        | Per-Week Aggregation         | Card Display                               | Secondary Info   | Trend Direction | Chart Y-Axis   |
+| ------------------------ | ---------------- | ---------------------------- | ------------------------------------------ | ---------------- | --------------- | -------------- |
+| **Deployment Frequency** | N/A (count)      | SUM (absolute count)         | AVERAGE of weekly counts (16w median avg)  | Releases/week    | ↑ green ↓ red   | Absolute count |
+| **Lead Time**            | Hours → Days     | MEDIAN of all lead times     | AVERAGE of weekly medians (16w median avg) | P95 + Mean       | ↓ green ↑ red   | Median days    |
+| **Change Failure Rate**  | N/A (percentage) | % of failures                | AGGREGATE % across all weeks (16w agg)     | Releases/week    | ↓ green ↑ red   | Weekly %       |
+| **MTTR**                 | Hours            | MEDIAN of all recovery times | AVERAGE of weekly medians (16w median avg) | P95 + Mean       | ↓ green ↑ red   | Median hours   |
+| **Flow Velocity**        | N/A (count)      | SUM (absolute count)         | Current week count                         | Work type counts | ↑ green ↓ red   | Absolute count |
+| **Flow Time**            | Hours → Days     | MEDIAN of all flow times     | AVERAGE of weekly medians                  | None             | ↓ green ↑ red   | Median days    |
+| **Flow Efficiency**      | N/A (percentage) | % active/WIP                 | Current week %                             | None             | ↑ green ↓ red   | Weekly %       |
+| **Flow Load (WIP)**      | N/A (count)      | COUNT at week end            | Current week count                         | Health badge     | ↓ green ↑ red   | Absolute count |
+| **Flow Distribution**    | N/A (percentage) | % by type                    | Stacked area chart                         | Range indicators | N/A             | Count by type  |
 
 **Notes**:
 - **16w median avg**: Primary values average the weekly medians over a 16-week rolling window
 - **16w agg**: CFR aggregates failures/deployments across all 16 weeks (not averaged)
 - **P95 + Mean**: Secondary statistics shown below primary value for Lead Time and MTTR
 - **Releases/week**: Secondary metric for Deployment Frequency and CFR cards
+- **Trend Direction**: Shows which arrow color indicates improvement (green) vs. regression (red)
+- **→ (Right Arrow)**: Always gray, indicates exactly 0.0% change (stable)
+- **− (Minus)**: Always gray, indicates <5% change or no historical data
 
 ---
 
@@ -519,6 +636,176 @@ A: No data found for that metric in the time period. Check:
 - releaseDate is populated and in the past
 - Field mappings are correct
 - Issues match completion statuses
+
+---
+
+## Practical Examples: Reading the UI
+
+### Example 1: Healthy Team Performance
+
+**Deployment Frequency Card**:
+```
+┌─────────────────────────────────────┐
+│ Deployment Frequency      [Elite]🟢 │
+│                                     │
+│         12.5 deployments/week       │
+│         (16w median avg)            │
+│                                     │
+│  ↑ 8.3% vs prev avg        [green] │
+│  📦 8.2 releases/week              │
+│  ━━━━━━━━━━ [sparkline] ━━━━━━━━━ │
+└─────────────────────────────────────┘
+```
+**What it tells you**:
+- Elite tier = deploying ≥30/month (on track!)
+- ↑ 8.3% (green) = deployment frequency increasing (good!)
+- 12.5 deployments for 8.2 releases = 1.5x deployment-to-release ratio
+- Ratio >1 indicates: staging deployments, rollbacks, or multi-environment tracking
+
+**Lead Time Card**:
+```
+┌─────────────────────────────────────┐
+│ Lead Time for Changes      [High]🔵 │
+│                                     │
+│            3.2 days                 │
+│         (16w median avg)            │
+│                                     │
+│  ↓ 12.1% vs prev avg      [green]  │
+│  📊 P95: 5.8d • Avg: 4.1d          │
+│  ━━━━━━━━━━ [sparkline] ━━━━━━━━━ │
+└─────────────────────────────────────┘
+```
+**What it tells you**:
+- High tier = 1d-1w lead time (solid performance)
+- ↓ 12.1% (green) = getting faster (great trend!)
+- P95 at 5.8d = 95% of changes deploy within a week
+- Gap between median (3.2d) and mean (4.1d) = some outliers pulling average up
+
+**Flow Load Card**:
+```
+┌─────────────────────────────────────┐
+│ Flow Load (WIP)       [Healthy]🟢   │
+│                                     │
+│            8 items                  │
+│         (current week)              │
+│                                     │
+│  ↓ 5.9% vs prev avg       [green]  │
+│  ━━━━━━━━━━ [sparkline] ━━━━━━━━━ │
+└─────────────────────────────────────┘
+```
+**What it tells you**:
+- Healthy badge (<10 items) = team not overloaded
+- ↓ 5.9% (green) = WIP decreasing (less multitasking)
+- Low WIP typically correlates with faster flow time
+
+---
+
+### Example 2: Warning Signs
+
+**Change Failure Rate Card**:
+```
+┌─────────────────────────────────────┐
+│ Change Failure Rate      [Medium]🟡 │
+│                                     │
+│            18.5%                    │
+│            (16w agg)                │
+│                                     │
+│  ↑ 22.7% vs prev avg       [red]   │
+│  📦 7.8 releases/week              │
+│  ━━━━━━━━━━ [sparkline] ━━━━━━━━━ │
+└─────────────────────────────────────┘
+```
+**What it tells you**:
+- Medium tier (16-30%) = room for improvement
+- ↑ 22.7% (red) = failure rate increasing (concerning!)
+- Action needed: Review testing processes, deployment procedures
+- Investigate: Are failures clustered around specific releases?
+
+**Flow Load Card**:
+```
+┌─────────────────────────────────────┐
+│ Flow Load (WIP)        [Critical]🔴 │
+│                                     │
+│            32 items                 │
+│         (current week)              │
+│                                     │
+│  ↑ 18.2% vs prev avg       [red]   │
+│  ━━━━━━━━━━ [sparkline] ━━━━━━━━━ │
+└─────────────────────────────────────┘
+```
+**What it tells you**:
+- Critical badge (≥30 items) = team overloaded
+- ↑ 18.2% (red) = WIP growing rapidly (danger!)
+- High WIP = context switching, slower delivery, burnout risk
+- Action needed: Stop starting, start finishing! Implement WIP limits
+
+---
+
+### Example 3: Stable Performance
+
+**MTTR Card**:
+```
+┌─────────────────────────────────────┐
+│ Mean Time to Recovery    [Elite]🟢  │
+│                                     │
+│           0.8 hours                 │
+│         (16w median avg)            │
+│                                     │
+│  → 0.0% vs prev avg       [gray]   │
+│  📊 P95: 1.2h • Avg: 0.9h          │
+│  ━━━━━━━━━━ [sparkline] ━━━━━━━━━ │
+└─────────────────────────────────────┘
+```
+**What it tells you**:
+- Elite tier (<1h) = bugs fixed quickly (excellent!)
+- → 0.0% (gray right arrow) = perfectly stable, no change
+- Consistent performance = predictable, reliable processes
+- P95 at 1.2h = even worst-case bugs fixed in ~1 hour
+
+---
+
+### Example 4: Insufficient Historical Data
+
+**Lead Time Card** (New Project):
+```
+┌─────────────────────────────────────┐
+│ Lead Time for Changes    [Medium]🟡 │
+│                                     │
+│            5.2 days                 │
+│            (3w data)                │
+│                                     │
+│  − No trend data yet      [gray]   │
+│  📊 P95: 8.1d • Avg: 6.3d          │
+│  ━━ [short sparkline] ━━           │
+└─────────────────────────────────────┘
+```
+**What it tells you**:
+- − (minus, gray) = not enough history for trend comparison
+- Still shows current performance tier and statistics
+- Sparkline is short (only 3 weeks of data)
+- Wait for more data before analyzing trends
+
+---
+
+### How to Use These Signals for Team Decisions
+
+**Daily Standup**:
+- Glance at WIP health badge → Red/Orange = focus on finishing over starting
+- Check Flow Velocity trend → Declining? Discuss blockers
+
+**Sprint Planning**:
+- Review Lead Time P95 → Set realistic sprint commitments
+- Check Flow Distribution → Rebalance if needed (e.g., 80% features, 5% tech debt = unhealthy)
+
+**Retrospective**:
+- Compare trend indicators across all metrics
+- Green arrows = what's working? (double down!)
+- Red arrows = what needs attention? (action items!)
+
+**Leadership Reviews**:
+- Performance tier badges = quick executive summary
+- Detail charts with zones = show progress toward Elite performance
+- Trend indicators = demonstrate continuous improvement (or need for support)
 
 ---
 
