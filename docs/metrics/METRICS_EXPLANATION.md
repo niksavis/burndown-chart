@@ -7,6 +7,205 @@
 
 All DORA and Flow metrics are **calculated weekly** (ISO week: Monday-Sunday) and stored as snapshots in `metrics_snapshots.json`. The UI displays these pre-calculated snapshots for performance.
 
+---
+
+## Quick Start Guide
+
+**New to DORA & Flow Metrics?** Start here:
+
+### Week 1: Focus on These Core Metrics
+
+1. **Deployment Frequency** (DORA) - How often you ship to production
+   - **Why first**: Easy to measure, immediate visibility into delivery cadence
+   - **Goal**: Aim for at least weekly deployments (Medium tier)
+   - **Quick win**: Track current rate, set weekly deployment goal
+
+2. **Flow Load (WIP)** (Flow) - How much work is in progress
+   - **Why second**: Single biggest lever for improving speed
+   - **Goal**: Keep WIP below calculated healthy threshold (green zone)
+   - **Quick win**: Stop starting new work until WIP drops below warning threshold
+
+3. **Flow Velocity** (Flow) - How much work you complete per week
+   - **Why third**: Baseline for capacity planning and forecasting
+   - **Goal**: Establish consistent, predictable throughput
+   - **Quick win**: Track for 4 weeks to establish baseline velocity
+
+### Week 2-4: Add Quality & Speed Metrics
+
+4. **Change Failure Rate** (DORA) - Percentage of deployments that fail
+   - **Goal**: Keep below 15% (Elite tier)
+   - **Action**: If >30%, pause new features and fix deployment process
+
+5. **Lead Time for Changes** (DORA) - Time from code ready to deployed
+   - **Goal**: Under 1 week (Medium tier), under 1 day (High tier)
+   - **Action**: If >1 week, investigate deployment bottlenecks
+
+6. **Flow Time** (Flow) - Time from start to completion
+   - **Goal**: Consistent, predictable cycle time (varies by team)
+   - **Action**: If increasing, check WIP and identify blockers
+
+### Beyond Week 4: Optimize
+
+7. **MTTR** (DORA) - Time to recover from production incidents
+8. **Flow Efficiency** (Flow) - Active work time vs. waiting time
+9. **Flow Distribution** (Flow) - Balance of feature/defect/tech debt/risk work
+
+**Progressive Approach**: Don't try to optimize all metrics at once. Focus on 2-3 at a time, establish baselines, then expand.
+
+---
+
+## Metric Relationships: How They Connect
+
+Understanding how metrics interact helps you make better decisions:
+
+### The WIP-Speed Connection (Most Important!)
+
+```
+High WIP → Slower Flow Time → Slower Lead Time → Lower Deployment Frequency
+  ↓
+Context Switching + Blocked Items + Lost Focus
+```
+
+**Why it matters**: Flow Load (WIP) is your control lever. Reduce WIP → Everything else improves.
+
+**Example**:
+- Team has 45 items in WIP (Critical) with 8-day Flow Time
+- Reduce WIP to 15 items (Warning) → Flow Time drops to 5 days
+- Faster Flow Time → Faster Lead Time → More frequent deployments
+
+### The Quality-Speed Balance
+
+```
+Fast Deployment + Low CFR = Elite Performance ✅
+Fast Deployment + High CFR = Technical Debt Accumulation ❌
+Slow Deployment + Low CFR = Risk Aversion (missing opportunities) ⚠️
+```
+
+**Optimal Zone**: Deploy frequently (≥1/week) while maintaining CFR <15%.
+
+**Warning Signs**:
+- CFR >30% + Increasing Deployment Frequency = Quality problems, slow down!
+- CFR <5% + Low Deployment Frequency = Overengineering, ship more!
+
+### The Efficiency Paradox
+
+```
+Flow Efficiency = Active Time / Total Time
+
+100% Efficiency = No buffer time = System overload ❌
+  0% Efficiency = All waiting = Process broken ❌
+25-40% Efficiency = Healthy balance = Sustainable pace ✅
+```
+
+**Counterintuitive**: Lower efficiency (25-40%) is BETTER than higher efficiency (>60%) because:
+- Teams need planning time, code review time, testing time
+- Buffer capacity prevents cascading delays when issues arise
+- Sustainable pace prevents burnout
+
+**Action**: If efficiency >60%, you're likely overloaded (check WIP). If <20%, investigate bottlenecks.
+
+### The Distribution-Quality Connection
+
+```
+Feature Work >70% + Defect Work <10% = Future quality problems ⚠️
+Feature Work <40% + Defect Work >40% = Already in quality crisis ❌
+Balanced: Features 40-60%, Defects 20-40%, Tech Debt 10-20% ✅
+```
+
+**Leading Indicator**: Flow Distribution predicts future CFR and MTTR.
+
+**Warning Signs**:
+- Skewing toward features (>70%) → Expect CFR to rise in 4-8 weeks
+- Skewing toward defects (>40%) → Quality crisis already in progress
+
+---
+
+## Common Pitfalls & Anti-Patterns
+
+Avoid these mistakes when using metrics:
+
+### 1. Gaming the Metrics ❌
+
+**Anti-Pattern**: Optimizing one metric at the expense of others.
+
+**Examples**:
+- Deploying tiny changes constantly to boost Deployment Frequency (but Lead Time stays high)
+- Classifying production bugs as non-PROD to lower MTTR
+- Splitting work into tiny tasks to boost Flow Velocity (but nothing valuable ships)
+
+**Solution**: Always view metrics as a **balanced scorecard**. Elite teams excel across ALL metrics, not just one.
+
+### 2. Comparing Across Teams ❌
+
+**Anti-Pattern**: Using metrics to rank teams or individuals.
+
+**Why it fails**:
+- Different team contexts (greenfield vs. legacy, microservices vs. monolith)
+- Different business constraints (compliance, security requirements)
+- Creates perverse incentives (gaming, sandbagging, hiding problems)
+
+**Solution**: Each team competes against their **own historical baseline**, not other teams.
+
+### 3. Setting Arbitrary Targets ❌
+
+**Anti-Pattern**: "All teams must achieve Elite tier in all metrics by Q2."
+
+**Why it fails**:
+- Ignores team context and constraints
+- Creates pressure to game metrics
+- Elite tier may not be necessary or cost-effective for all contexts
+
+**Solution**: Set goals based on **business impact** ("reduce customer-impacting incidents by 50%") and let metrics guide improvement.
+
+### 4. Focusing on Lagging Indicators Only ❌
+
+**Anti-Pattern**: Only tracking DORA metrics (outcomes) without Flow metrics (process).
+
+**Why it fails**:
+- DORA metrics tell you WHAT happened, not WHY
+- Can't improve what you don't measure at the process level
+
+**Solution**: Use Flow metrics to understand and improve the process. DORA metrics validate that improvements worked.
+
+**Example**:
+- DORA: "Lead Time increased 30% this month" ← What happened
+- Flow: "WIP increased from 15 to 35 items" ← Why it happened
+- Action: "Implement WIP limits to restore Lead Time" ← How to fix
+
+### 5. Analysis Paralysis ❌
+
+**Anti-Pattern**: Calculating every metric, creating dashboards, but never taking action.
+
+**Why it fails**:
+- Metrics are a means to improvement, not the end goal
+- Data without action is waste
+
+**Solution**: For each metric review, identify 1-2 **actionable experiments**:
+- "Try WIP limit of 12 items for 2 weeks, measure impact on Flow Time"
+- "Add automated deployment tests, measure impact on CFR"
+
+### 6. Ignoring Outliers ❌
+
+**Anti-Pattern**: Only looking at median/average values.
+
+**Why it fails**:
+- P95 values reveal worst-case scenarios that frustrate customers
+- Long tail issues indicate systemic problems
+
+**Solution**: Always check P95 alongside median. If P95 is 3x+ higher than median, investigate outliers.
+
+### 7. Short-Term Thinking ❌
+
+**Anti-Pattern**: Reacting to week-to-week fluctuations.
+
+**Why it fails**:
+- Metrics naturally vary week to week
+- Overreacting creates thrashing
+
+**Solution**: Look for **trends over 4+ weeks**. One bad week is noise. Four bad weeks is a signal.
+
+---
+
 ## Reading the Metric Cards (Visual Guide)
 
 Each metric card provides multiple visual signals to help you quickly assess performance:
@@ -604,6 +803,89 @@ Analysis:
 - **Hover**: Shows percentage for each type
 - **Current Week Summary**: Shows counts and percentages with range indicators
 
+**Actionable Guidance by Distribution Pattern**:
+
+### Healthy Balance (✅ Sustainable Growth)
+```
+Features: 40-60%  │████████████░░░░░░░░│
+Defects:  20-30%  │████████░░░░░░░░░░░░│
+Tech Debt: 10-20% │████░░░░░░░░░░░░░░░░│
+Risk:      5-10%  │██░░░░░░░░░░░░░░░░░░│
+```
+**What it means**: Team is delivering value while maintaining quality and addressing technical health.
+**Action**: Maintain current balance. Monitor for shifts.
+
+### Feature-Heavy (⚠️ Quality Debt Accumulating)
+```
+Features: >70%    │██████████████████░░│
+Defects:  <15%    │███░░░░░░░░░░░░░░░░░│
+Tech Debt: <5%    │█░░░░░░░░░░░░░░░░░░░│
+Risk:      <5%    │█░░░░░░░░░░░░░░░░░░░│
+```
+**What it means**: Short-term velocity at expense of quality. Expect CFR and MTTR to increase in 4-8 weeks.
+**Warning Signs**: 
+- Code getting harder to change
+- Bug count increasing
+- Team velocity slowing despite more features
+**Action**: 
+- Allocate 20% capacity to Tech Debt immediately
+- Increase automated test coverage
+- Schedule architecture review
+
+### Defect Crisis (❌ Quality Problems Manifested)
+```
+Features: <30%    │██████░░░░░░░░░░░░░░│
+Defects:  >50%    │██████████████████░░│
+Tech Debt: <10%   │██░░░░░░░░░░░░░░░░░░│
+Risk:      <5%    │█░░░░░░░░░░░░░░░░░░░│
+```
+**What it means**: Team overwhelmed with bugs, little progress on new value.
+**Warning Signs**:
+- Customer complaints increasing
+- Team morale declining
+- Velocity collapsing
+**Action**: 
+- **STOP starting new features** until defect rate drops below 40%
+- Implement bug rotation (dedicated person per day/week)
+- Root cause analysis: Why are so many bugs being created?
+- Consider quality freeze: Fix top 10 most painful bugs before anything else
+
+### Tech Debt Cleanup Mode (⚠️ Investment Period)
+```
+Features: 20-30%  │██████░░░░░░░░░░░░░░│
+Defects:  15-25%  │█████░░░░░░░░░░░░░░░│
+Tech Debt: 40-50% │██████████████░░░░░░│
+Risk:      5-10%  │██░░░░░░░░░░░░░░░░░░│
+```
+**What it means**: Deliberate investment in technical health (refactoring, upgrades, migrations).
+**When appropriate**:
+- After major release
+- Before starting new major initiative
+- When velocity has slowed due to technical issues
+**Action**: 
+- Set time-box (e.g., "Tech Debt sprint for 2 weeks")
+- Define clear outcomes (e.g., "Upgrade to Node 20", "Eliminate deprecated API calls")
+- Return to balanced distribution after time-box ends
+
+### Risk-Heavy (⚠️ Compliance/Security Focus)
+```
+Features: 20-30%  │██████░░░░░░░░░░░░░░│
+Defects:  20-30%  │██████░░░░░░░░░░░░░░│
+Tech Debt: 10-15% │███░░░░░░░░░░░░░░░░░│
+Risk:      30-40% │████████████░░░░░░░░│
+```
+**What it means**: Heavy security/compliance work (audits, certifications, vulnerability remediation).
+**When appropriate**:
+- Pre-audit preparation
+- Post-security incident response
+- Regulatory compliance deadlines
+**Action**: 
+- Set time-box for risk work
+- Communicate impact to stakeholders (reduced feature velocity)
+- Return to balanced distribution after compliance achieved
+
+**Pro Tip**: Use 4-week rolling average to smooth weekly fluctuations. React to trends, not individual weeks.
+
 **Code Location**: `data/flow_calculator.py::aggregate_flow_distribution_weekly()`
 
 ---
@@ -706,18 +988,31 @@ INFO: Week 2025-45: MTTR: Median 24.0h from 3 bugs (excluded 5: 2 not PROD, 3 no
 To verify metrics are correct:
 
 1. **Check Field Mappings** (`app_settings.json`):
-   - `deployment_date`: "fixVersions"
-   - `change_failure`: "customfield_10001" (or your field)
-   - `affected_environment`: "customfield_10002" (or your field)
-   - `effort_category`: "customfield_10003" (or your field)
+   - `deployment_date`: Field containing deployment/release date (e.g., "fixVersions")
+   - `change_failure`: Custom field indicating deployment success/failure
+   - `affected_environment`: Field identifying production vs. non-production bugs
+   - `effort_category`: Field for work classification (Feature, Tech Debt, Risk)
 
 2. **Check Project Config**:
-   - `devops_projects`: ["RI"] (operational tasks project)
-   - `development_projects`: ["A935"] (development issues project)
-   - `production_environment_values`: ["PROD"]
+   - `devops_projects`: List of operational/DevOps project keys
+   - `development_projects`: List of development project keys
+   - `production_environment_values`: Values that identify production environment (e.g., ["PROD", "Production"])
 
 3. **Check Status Config**:
-   - `completion_statuses`: ["Done", "Resolved", "Closed", "Canceled"]
+   - `completion_statuses`: Statuses that indicate work is complete
+   - `wip_statuses`: Statuses that indicate work is in progress
+   - `active_statuses`: Subset of WIP statuses where work is actively being worked on
+
+4. **Check Flow Type Mappings**:
+   - Verify `flow_type_mappings` correctly classifies work types
+   - Test with sample issues to ensure classification works as expected
+
+5. **Verify Calculations**:
+   - Pick one week and manually verify calculations
+   - Compare calculated values with expected results
+   - Check excluded counts in logs for unexpected filtering
+
+---
    - `wip_statuses`: ["Selected", "In Progress", "Testing", ...]
    - `active_statuses`: ["In Progress", "In Review", "Testing"]
 
