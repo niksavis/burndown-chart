@@ -143,15 +143,37 @@ def _create_detailed_chart(
         return html.Div([chart, cfr_note])
 
     # Standard single-line chart for other metrics
-    return create_metric_trend_sparkline(
-        week_labels=weekly_labels,
-        values=weekly_values,
-        metric_name=display_name,
-        unit=metric_data.get("unit", ""),
-        height=200,
-        show_axes=True,
-        color=sparkline_color,
-    )
+    # Use full trend chart with performance zones for DORA metrics
+    from visualization.metric_trends import create_metric_trend_full
+
+    is_dora_metric = metric_name in [
+        "deployment_frequency",
+        "lead_time_for_changes",
+        "change_failure_rate",
+        "mean_time_to_recovery",
+    ]
+
+    if is_dora_metric:
+        # Use full chart with performance tier zones
+        return create_metric_trend_full(
+            week_labels=weekly_labels,
+            values=weekly_values,
+            metric_name=metric_name,  # Use internal name for zone matching
+            unit=metric_data.get("unit", ""),
+            height=250,
+            show_performance_zones=True,
+        )
+    else:
+        # Use sparkline for Flow metrics
+        return create_metric_trend_sparkline(
+            week_labels=weekly_labels,
+            values=weekly_values,
+            metric_name=display_name,
+            unit=metric_data.get("unit", ""),
+            height=200,
+            show_axes=True,
+            color=sparkline_color,
+        )
 
 
 def _create_deployment_details_table(
@@ -327,6 +349,7 @@ def _create_success_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
     from visualization.metric_trends import (
         create_metric_trend_sparkline,
         create_dual_line_trend,
+        create_metric_trend_full,
     )
 
     # Map performance tier colors to Bootstrap colors
@@ -338,10 +361,24 @@ def _create_success_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
     }
 
     tier_color = metric_data.get("performance_tier_color", "secondary")
-    bootstrap_color = tier_color_map.get(tier_color, "secondary")
 
-    # Format metric name for display - use alternative_name if provided
+    # Special handling for Flow Load (WIP) - apply health-based color coding
     metric_name = metric_data.get("metric_name", "Unknown Metric")
+    value = metric_data.get("value")
+
+    if metric_name == "flow_load" and value is not None:
+        # Override tier_color with WIP health thresholds
+        # These thresholds can be made configurable later
+        if value < 10:
+            tier_color = "green"  # Healthy
+        elif value < 20:
+            tier_color = "yellow"  # Warning
+        elif value < 30:
+            tier_color = "orange"  # High
+        else:
+            tier_color = "red"  # Critical
+
+    bootstrap_color = tier_color_map.get(tier_color, "secondary")
     alternative_name = metric_data.get("alternative_name")
     metric_tooltip = metric_data.get("tooltip")  # Optional tooltip text
 
@@ -417,18 +454,41 @@ def _create_success_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
         title_element = html.Span(title_content, className="metric-card-title")
 
     # Build header with flex layout
+    # Special badge for Flow Load (WIP) showing health status
+    if metric_name == "flow_load" and value is not None:
+        if value < 10:
+            badge_text = "Healthy"
+        elif value < 20:
+            badge_text = "Warning"
+        elif value < 30:
+            badge_text = "High"
+        else:
+            badge_text = "Critical"
+
+        badge_element = dbc.Badge(
+            badge_text,
+            color=bootstrap_color,
+            className="ms-auto",
+            style={"fontSize": "0.75rem", "fontWeight": "600"},
+        )
+    else:
+        # Regular badge for other metrics
+        badge_element = (
+            dbc.Badge(
+                metric_data.get("performance_tier", "Unknown"),
+                color=bootstrap_color,
+                className="ms-auto",
+                style={"fontSize": "0.75rem", "fontWeight": "600"},
+            )
+            if metric_data.get("performance_tier")
+            else None
+        )
+
     header_children: List[Any] = [
         html.Div(
             [
                 title_element,
-                dbc.Badge(
-                    metric_data.get("performance_tier", "Unknown"),
-                    color=bootstrap_color,
-                    className="ms-auto",
-                    style={"fontSize": "0.75rem", "fontWeight": "600"},
-                )
-                if metric_data.get("performance_tier")
-                else None,
+                badge_element,
             ],
             className="d-flex align-items-center justify-content-between w-100",
         )
@@ -446,6 +506,90 @@ def _create_success_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
             className="text-muted text-center metric-unit mb-1",
         ),
     ]
+
+    # Add trend indicator with percentage change
+    weekly_labels = metric_data.get("weekly_labels", [])
+    weekly_values = metric_data.get("weekly_values", [])
+
+    trend_added = False  # Track if we added a trend indicator
+
+    if weekly_values and len(weekly_values) >= 2:
+        # Calculate trend: compare most recent value to median of previous values
+        current_value = weekly_values[-1]
+        previous_values = weekly_values[:-1]
+        if previous_values:
+            previous_avg = sum(previous_values) / len(previous_values)
+            # Handle case where average is 0 (but we still want to show trend)
+            if previous_avg > 0:
+                percent_change = ((current_value - previous_avg) / previous_avg) * 100
+            elif current_value > 0:
+                # If previous was 0 but current is non-zero, show large increase
+                percent_change = 100.0
+            elif current_value == 0 and previous_avg == 0:
+                # Both zero - show neutral/no change
+                percent_change = 0.0
+            else:
+                # Current is 0 but previous was non-zero (shouldn't happen if previous_avg > 0 check failed)
+                percent_change = -100.0
+
+            # Determine if trend is good based on metric type
+            # For deployment_frequency: higher is better (green up, red down)
+            # For lead_time, mttr, cfr: lower is better (green down, red up)
+            is_higher_better = metric_name in ["deployment_frequency"]
+
+            # Show neutral/stable indicator for no change (exactly 0.0%)
+            if percent_change == 0.0:
+                trend_color = "secondary"
+                trend_icon = "fas fa-arrow-right"
+                trend_text = "0.0% vs prev avg"
+            elif is_higher_better:
+                # Higher is better metrics
+                if percent_change > 0:
+                    trend_color = "success"
+                    trend_icon = "fas fa-arrow-up"
+                else:
+                    trend_color = "danger"
+                    trend_icon = "fas fa-arrow-down"
+                trend_text = f"{abs(percent_change):.1f}% vs prev avg"
+            else:
+                # Lower is better metrics
+                if percent_change < 0:
+                    trend_color = "success"
+                    trend_icon = "fas fa-arrow-down"
+                else:
+                    trend_color = "danger"
+                    trend_icon = "fas fa-arrow-up"
+                trend_text = f"{abs(percent_change):.1f}% vs prev avg"
+
+            # Show neutral color for very small changes (< 5% but not exactly 0)
+            if abs(percent_change) < 5 and percent_change != 0.0:
+                trend_color = "secondary"
+                trend_icon = "fas fa-minus"
+
+            card_body_children.append(
+                html.Div(
+                    [
+                        html.I(className=f"{trend_icon} me-1"),
+                        html.Span(trend_text),
+                    ],
+                    className=f"text-center text-{trend_color} small mb-2",
+                    style={"fontWeight": "500"},
+                )
+            )
+            trend_added = True
+
+    # Add placeholder if no trend was added (maintains consistent card height)
+    if not trend_added:
+        card_body_children.append(
+            html.Div(
+                [
+                    html.I(className="fas fa-minus me-1"),
+                    html.Span("No trend data yet"),
+                ],
+                className="text-center text-muted small mb-2",
+                style={"fontWeight": "500"},
+            )
+        )
 
     # Add release count for deployment_frequency and change_failure_rate metrics
     # Add P95 for lead_time_for_changes and mean_time_to_recovery metrics
@@ -507,9 +651,7 @@ def _create_success_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
             )
 
     # Add inline trend sparkline if weekly data is provided
-    weekly_labels = metric_data.get("weekly_labels", [])
-    weekly_values = metric_data.get("weekly_values", [])
-
+    # Note: weekly_labels and weekly_values already fetched above for trend indicator
     if weekly_labels and weekly_values and len(weekly_labels) > 1:
         # Determine color based on performance tier
         sparkline_color = {
@@ -781,4 +923,4 @@ def create_metric_cards_grid(
         col = dbc.Col(card, width=12, md=6, lg=3)
         cards.append(col)
 
-    return dbc.Row(cards, className="metric-cards-grid")
+    return dbc.Row(cards, className="metric-cards-grid mb-4")

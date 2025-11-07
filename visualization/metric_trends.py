@@ -8,6 +8,158 @@ from typing import List, Optional, Dict, Any
 from dash import dcc
 
 
+def _add_performance_tier_zones(
+    figure: go.Figure,
+    metric_name: str,
+    y_max: float,
+    x_range: List[str],
+) -> None:
+    """Add colored background zones for performance tiers to chart.
+
+    Adds visual performance tier zones (Elite/High/Medium/Low) as colored
+    background rectangles to help users immediately understand if their
+    metric values are good or need improvement.
+
+    Args:
+        figure: Plotly figure object to add zones to
+        metric_name: DORA metric name (deployment_frequency, lead_time_for_changes, etc.)
+        y_max: Maximum y-axis value for positioning zones
+        x_range: X-axis range (typically week labels) for zone width
+
+    Modifies figure in place by adding shape annotations for each tier.
+    """
+    from configuration.dora_config import DORA_BENCHMARKS
+
+    if metric_name not in DORA_BENCHMARKS:
+        return  # No zones for non-DORA metrics
+
+    benchmarks = DORA_BENCHMARKS[metric_name]
+
+    # Define tier boundaries based on metric type
+    if metric_name == "deployment_frequency":
+        # Higher is better - Elite at top
+        # Convert thresholds to deployments per month for consistency
+        elite_threshold = benchmarks["elite"]["threshold"] * 30  # per day to per month
+        high_threshold = benchmarks["high"]["threshold"] * 4  # per week to per month
+        medium_threshold = benchmarks["medium"]["threshold"]  # already per month
+
+        zones = [
+            {
+                "y0": elite_threshold,
+                "y1": y_max * 1.1,
+                "color": "rgba(25, 135, 84, 0.1)",
+                "name": "Elite",
+            },
+            {
+                "y0": high_threshold,
+                "y1": elite_threshold,
+                "color": "rgba(255, 193, 7, 0.1)",
+                "name": "High",
+            },
+            {
+                "y0": medium_threshold,
+                "y1": high_threshold,
+                "color": "rgba(253, 126, 20, 0.1)",
+                "name": "Medium",
+            },
+            {
+                "y0": 0,
+                "y1": medium_threshold,
+                "color": "rgba(220, 53, 69, 0.1)",
+                "name": "Low",
+            },
+        ]
+
+    elif metric_name in ["lead_time_for_changes", "mean_time_to_recovery"]:
+        # Lower is better - Elite at bottom
+        elite_threshold = benchmarks["elite"]["threshold"]
+        high_threshold = benchmarks["high"]["threshold"]
+        medium_threshold = benchmarks["medium"]["threshold"]
+
+        # For display: convert hours to days if metric is MTTR
+        if metric_name == "mean_time_to_recovery":
+            elite_threshold = elite_threshold / 24  # hours to days
+            high_threshold = high_threshold * 1  # already in days
+            medium_threshold = medium_threshold * 1  # already in days
+
+        zones = [
+            {
+                "y0": 0,
+                "y1": elite_threshold,
+                "color": "rgba(25, 135, 84, 0.1)",
+                "name": "Elite",
+            },
+            {
+                "y0": elite_threshold,
+                "y1": high_threshold,
+                "color": "rgba(255, 193, 7, 0.1)",
+                "name": "High",
+            },
+            {
+                "y0": high_threshold,
+                "y1": medium_threshold,
+                "color": "rgba(253, 126, 20, 0.1)",
+                "name": "Medium",
+            },
+            {
+                "y0": medium_threshold,
+                "y1": y_max * 1.1,
+                "color": "rgba(220, 53, 69, 0.1)",
+                "name": "Low",
+            },
+        ]
+
+    elif metric_name == "change_failure_rate":
+        # Lower is better - Elite at bottom (percentage)
+        elite_threshold = benchmarks["elite"]["threshold"]
+        high_threshold = benchmarks["high"]["threshold"]
+        medium_threshold = benchmarks["medium"]["threshold"]
+
+        zones = [
+            {
+                "y0": 0,
+                "y1": elite_threshold,
+                "color": "rgba(25, 135, 84, 0.1)",
+                "name": "Elite",
+            },
+            {
+                "y0": elite_threshold,
+                "y1": high_threshold,
+                "color": "rgba(255, 193, 7, 0.1)",
+                "name": "High",
+            },
+            {
+                "y0": high_threshold,
+                "y1": medium_threshold,
+                "color": "rgba(253, 126, 20, 0.1)",
+                "name": "Medium",
+            },
+            {
+                "y0": medium_threshold,
+                "y1": 100,
+                "color": "rgba(220, 53, 69, 0.1)",
+                "name": "Low",
+            },
+        ]
+    else:
+        return  # Unknown metric type
+
+    # Add zones as background shapes (drawn first, behind data)
+    for zone in zones:
+        figure.add_shape(
+            type="rect",
+            xref="paper",  # Use paper coordinates for full width
+            yref="y",
+            x0=0,
+            y0=zone["y0"],
+            x1=1,
+            y1=zone["y1"],
+            fillcolor=zone["color"],
+            line={"width": 0},
+            layer="below",  # Draw behind data traces
+        )
+
+
 def create_metric_trend_sparkline(
     week_labels: List[str],
     values: List[float],
@@ -143,11 +295,13 @@ def create_metric_trend_full(
     target_line: Optional[float] = None,
     target_label: str = "Target",
     height: int = 200,
+    show_performance_zones: bool = True,
 ) -> dcc.Graph:
     """
     Create a full-size trend chart for metric details.
 
-    Used in collapsible sections or detail views.
+    Used in collapsible sections or detail views. Optionally shows
+    performance tier zones (Elite/High/Medium/Low) as colored backgrounds.
 
     Args:
         week_labels: List of week labels
@@ -157,13 +311,14 @@ def create_metric_trend_full(
         target_line: Optional target value to show as horizontal line
         target_label: Label for target line
         height: Height of chart in pixels (default: 200)
+        show_performance_zones: Whether to show performance tier zones (default: True)
 
     Returns:
         Dash Graph component with full trend visualization
 
     Example:
         >>> sparkline = create_metric_trend_full(
-        ...     week_labels, values, "Lead Time", "days",
+        ...     week_labels, values, "lead_time_for_changes", "days",
         ...     target_line=1.0, target_label="Elite (< 1 day)"
         ... )
     """
@@ -182,6 +337,13 @@ def create_metric_trend_full(
             config={"displayModeBar": False},
             style={"height": f"{height}px"},
         )
+
+    # Determine y-axis range
+    min_val = min(values)
+    max_val = max(values)
+    range_padding = (max_val - min_val) * 0.2 if max_val > min_val else 1
+    y_min = max(0, min_val - range_padding)  # Never go below 0
+    y_max = max_val + range_padding
 
     # Create main trace
     traces = [
@@ -227,6 +389,7 @@ def create_metric_trend_full(
             "title": unit if unit else metric_name,
             "showgrid": True,
             "gridcolor": "#E5E5E5",
+            "range": [y_min, y_max],
         },
         "hovermode": "x unified",
         "legend": {
@@ -238,7 +401,11 @@ def create_metric_trend_full(
         },
     }
 
-    figure = {"data": traces, "layout": layout}
+    figure = go.Figure(data=traces, layout=layout)
+
+    # Add performance tier zones if requested
+    if show_performance_zones:
+        _add_performance_tier_zones(figure, metric_name, y_max, week_labels)
 
     return dcc.Graph(
         figure=figure,

@@ -60,6 +60,7 @@ def create_flow_dashboard() -> dbc.Container:
             html.Div(
                 id="flow-metrics-cards-container",
                 children=[],  # Will be populated by callback
+                className="mb-4",  # Add spacing below cards
             ),
             # Distribution chart section (rendered by callback)
             html.Div(
