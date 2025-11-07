@@ -130,8 +130,30 @@ def _render_bug_analysis_content(data_points_count: int):
             f"(date range: {date_from.date()} to {date_to.date()}, {data_points_count} weeks)"
         )
 
+        # Check if there are no bugs at all - show helpful placeholder
+        if len(all_bug_issues) == 0:
+            from ui.loading_utils import create_content_placeholder
+
+            return create_content_placeholder(
+                type="chart",
+                text="No bug data available. Load project data with bug issues to see bug analysis, trends, and quality insights.",
+                icon="fa-bug",
+                height="400px",
+            )
+
         # Initialize weekly_stats (needed for quality insights)
         weekly_stats = []
+
+        # Check if there are no bugs in the timeline - show specific placeholder
+        if len(timeline_filtered_bugs) == 0 and len(all_bug_issues) > 0:
+            from ui.loading_utils import create_content_placeholder
+
+            return create_content_placeholder(
+                type="chart",
+                text=f"No bug data in selected timeframe. Found {len(all_bug_issues)} total bugs, but none in the last {data_points_count} weeks. Use the Data Points slider in Settings to expand the timeline.",
+                icon="fa-calendar-times",
+                height="400px",
+            )
 
         # Calculate weekly bug statistics using timeline-filtered bugs
         try:

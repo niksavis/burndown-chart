@@ -69,6 +69,82 @@
   --flow-defect-color: #dc3545; /* Red */
   --flow-risk-color: #ffc107; /* Yellow */
   --flow-tech-debt-color: #fd7e14; /* Orange */
+
+  /* Performance Tier Colors - Semaphore Style */
+  --tier-elite: #198754; /* Green - Elite/Excellent */
+  --tier-high: #0dcaf0; /* Cyan/Blue - High/Good */
+  --tier-medium: #ffc107; /* Yellow - Medium/Fair */
+  --tier-low-orange: #fd7e14; /* Orange - Low/Slow */
+  --tier-critical: #dc3545; /* Red - Critical/Worst */
+}
+
+/* ===== Performance Tier Badge Colors (Semaphore Style) ===== */
+/* Custom badge color for orange tier (between yellow and red) */
+.badge.bg-tier-orange {
+  background-color: var(--tier-low-orange) !important;
+  color: #000 !important; /* Dark text for contrast */
+}
+
+.badge.bg-tier-elite {
+  background-color: var(--tier-elite) !important;
+  color: #fff !important;
+}
+
+.badge.bg-tier-high {
+  background-color: var(--tier-high) !important;
+  color: #000 !important; /* Dark text for cyan background */
+}
+
+.badge.bg-tier-medium {
+  background-color: var(--tier-medium) !important;
+  color: #000 !important; /* Dark text for yellow background */
+}
+
+.badge.bg-tier-critical {
+  background-color: var(--tier-critical) !important;
+  color: #fff !important;
+}
+
+/* Text color utilities for performance tiers */
+.text-tier-orange {
+  color: var(--tier-low-orange) !important;
+}
+
+.text-tier-elite {
+  color: var(--tier-elite) !important;
+}
+
+.text-tier-high {
+  color: var(--tier-high) !important;
+}
+
+.text-tier-medium {
+  color: var(--tier-medium) !important;
+}
+
+.text-tier-critical {
+  color: var(--tier-critical) !important;
+}
+
+/* Border colors for performance tiers (used in compact metric cards) */
+.border-tier-orange {
+  border-color: var(--tier-low-orange) !important;
+}
+
+.border-tier-elite {
+  border-color: var(--tier-elite) !important;
+}
+
+.border-tier-high {
+  border-color: var(--tier-high) !important;
+}
+
+.border-tier-medium {
+  border-color: var(--tier-medium) !important;
+}
+
+.border-tier-critical {
+  border-color: var(--tier-critical) !important;
 }
 
 /* ===== Flow Metrics Type Classification Border Colors ===== */
@@ -3182,6 +3258,55 @@ label.fw-medium {
   .long-press-button {
     min-height: 44px; /* Minimum touch target size */
   }
+}
+
+/* ================================================================
+   Compact Metric Overview Cards
+   ================================================================ */
+
+/* Compact metric cards for dashboard headers */
+.compact-metric-card {
+  border-left: 3px solid var(--color-primary);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.compact-metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1) !important;
+}
+
+.compact-metric-card .card-body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* Responsive adjustments for compact cards */
+@media (max-width: 767px) {
+  .compact-metric-card {
+    min-height: 70px;
+  }
+}
+
+/* ================================================================
+   Overview Section Container (DORA & Flow Metrics)
+   ================================================================ */
+
+/* Overview section with distinct background for metric overview cards */
+.overview-section {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+  transition: box-shadow 0.3s ease;
+}
+
+.overview-section:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Ensure compact cards inside overview section have proper spacing */
+.overview-section .compact-metric-card {
+  background-color: white !important;
+  border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 /* ================================================================

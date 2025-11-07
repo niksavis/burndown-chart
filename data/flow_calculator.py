@@ -2212,3 +2212,111 @@ def aggregate_flow_distribution_weekly(
         f"Weekly Flow Distribution aggregated for {sum(1 for d in weekly_distribution.values() if d['total_count'] > 0)} weeks"
     )
     return weekly_distribution
+
+
+def calculate_wip_thresholds_from_history(
+    velocity_snapshots: List[Dict[str, Any]],
+    flow_time_snapshots: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    """Calculate WIP thresholds using Little's Law and historical percentiles.
+
+    Little's Law: L = λ × W
+    - L (WIP) = Average work in progress
+    - λ (Throughput) = Items completed per time period (Flow Velocity)
+    - W (Cycle Time) = Average time to complete item (Flow Time)
+
+    Methodology:
+    1. For each historical week, calculate optimal WIP = velocity × (flow_time_days / 7)
+    2. Compute percentiles from distribution (P25, P50, P75, P90)
+    3. Add 20% buffer to P25, P50, P75 for stability zones
+    4. Use P90 as critical threshold (no buffer - danger zone)
+
+    Args:
+        velocity_snapshots: List of weekly Flow Velocity data with 'completed_count'
+        flow_time_snapshots: List of weekly Flow Time data with 'median_days'
+
+    Returns:
+        Dictionary with threshold values:
+        {
+            "healthy": float,     # P25 + 20% buffer (green)
+            "warning": float,     # P50 + 20% buffer (yellow)
+            "high": float,        # P75 + 20% buffer (orange)
+            "critical": float,    # P90 (red - danger zone)
+            "method": "Little's Law (percentile-based)"
+        }
+
+    Example:
+        Week 1: velocity=20, flow_time=5d → optimal_wip = 20 × (5/7) ≈ 14
+        Week 2: velocity=18, flow_time=6d → optimal_wip = 18 × (6/7) ≈ 15
+        ...
+        P25=12, P50=15, P75=18, P90=22
+        → healthy=14, warning=18, high=22, critical=22
+    """
+    try:
+        import numpy as np
+    except ImportError:
+        logger.warning("NumPy not available, falling back to hardcoded WIP thresholds")
+        return {
+            "healthy": 10,
+            "warning": 20,
+            "high": 30,
+            "critical": 40,
+            "method": "hardcoded (fallback)",
+        }
+
+    # Calculate optimal WIP for each week using Little's Law
+    optimal_wips = []
+
+    for vel_snapshot, time_snapshot in zip(velocity_snapshots, flow_time_snapshots):
+        velocity = vel_snapshot.get("completed_count", 0)
+        flow_time_days = time_snapshot.get("median_days", 0)
+
+        if velocity > 0 and flow_time_days > 0:
+            # Little's Law: WIP = Throughput × Cycle Time
+            cycle_time_weeks = flow_time_days / 7.0
+            optimal_wip = velocity * cycle_time_weeks
+            optimal_wips.append(optimal_wip)
+
+    if len(optimal_wips) < 4:
+        # Need at least 4 data points for meaningful percentiles
+        logger.warning(
+            f"Insufficient historical data ({len(optimal_wips)} weeks), using hardcoded WIP thresholds"
+        )
+        return {
+            "healthy": 10,
+            "warning": 20,
+            "high": 30,
+            "critical": 40,
+            "method": "hardcoded (insufficient data)",
+        }
+
+    # Calculate percentile-based thresholds
+    p25 = float(np.percentile(optimal_wips, 25))
+    p50 = float(np.percentile(optimal_wips, 50))  # Median
+    p75 = float(np.percentile(optimal_wips, 75))
+    p90 = float(np.percentile(optimal_wips, 90))
+
+    # Apply 20% buffer to lower thresholds for stability zones
+    # Critical threshold has no buffer - it's the danger zone
+    thresholds = {
+        "healthy": round(p25 * 1.2, 1),  # Green zone: below 25th percentile + buffer
+        "warning": round(p50 * 1.2, 1),  # Yellow zone: below median + buffer
+        "high": round(p75 * 1.2, 1),  # Orange zone: below 75th percentile + buffer
+        "critical": round(p90, 1),  # Red zone: at/above 90th percentile
+        "method": "Little's Law (percentile-based)",
+        "data_points": len(optimal_wips),
+        "p25": round(p25, 1),
+        "p50": round(p50, 1),
+        "p75": round(p75, 1),
+        "p90": round(p90, 1),
+    }
+
+    logger.info(
+        f"Calculated WIP thresholds from {len(optimal_wips)} weeks: "
+        f"Healthy<{thresholds['healthy']}, "
+        f"Warning<{thresholds['warning']}, "
+        f"High<{thresholds['high']}, "
+        f"Critical≥{thresholds['critical']}"
+    )
+
+    return thresholds

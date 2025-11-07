@@ -8,11 +8,52 @@ This module provides functions to create metric display cards with support for:
 """
 
 from typing import Any, Dict, List, Optional
+import logging
 
 import dash_bootstrap_components as dbc
 from dash import html
 
 from ui.tooltip_utils import create_info_tooltip
+
+logger = logging.getLogger(__name__)
+
+
+def _get_flow_performance_tier_color_hex(metric_name: str, value: float) -> str:
+    """Get hex color code for Flow metric performance tier.
+
+    Maps Flow metric performance tiers to semaphore colors:
+    - Excellent/Healthy: Green (#198754)
+    - Good: Cyan (#0dcaf0)
+    - Fair/Warning: Yellow (#ffc107)
+    - Slow/Low/High: Orange (#fd7e14)
+    - Critical: Red (#dc3545)
+
+    Args:
+        metric_name: Flow metric identifier (e.g., "flow_velocity", "flow_time")
+        value: Metric value
+
+    Returns:
+        Hex color code for performance tier
+    """
+    # Import tier determination function
+    from ui.flow_metrics_dashboard import _get_flow_performance_tier
+
+    tier = _get_flow_performance_tier(metric_name, value)
+
+    # Map tier labels to semaphore hex colors
+    tier_color_map = {
+        "Excellent": "#198754",  # Green
+        "Good": "#0dcaf0",  # Cyan
+        "Healthy": "#198754",  # Green
+        "Fair": "#ffc107",  # Yellow
+        "Warning": "#ffc107",  # Yellow
+        "Slow": "#fd7e14",  # Orange
+        "Low": "#fd7e14",  # Orange
+        "High": "#fd7e14",  # Orange (for WIP)
+        "Critical": "#dc3545",  # Red
+    }
+
+    return tier_color_map.get(tier, "#6f42c1")  # Default to purple if unknown
 
 
 def _create_mini_bar_sparkline(
@@ -85,20 +126,37 @@ def _create_detailed_chart(
     Returns:
         Div containing chart and optional details table
     """
+    # Import visualization functions needed for chart creation
     from visualization.metric_trends import (
         create_metric_trend_sparkline,
         create_dual_line_trend,
+        create_metric_trend_full,
     )
+    from visualization.flow_charts import create_flow_efficiency_trend_chart
 
     # Special case 1: deployment_frequency with release tracking
     if metric_name == "deployment_frequency" and "weekly_release_values" in metric_data:
         weekly_release_values = metric_data.get("weekly_release_values", [])
+
+        # Use performance tier color already calculated from overall metric value
+        # (Don't recalculate based on latest week - use the metric_data color)
+        tier_color = metric_data.get("performance_tier_color", "blue")
+
+        tier_color_map = {
+            "green": "#198754",  # Elite
+            "blue": "#0dcaf0",  # High (cyan)
+            "yellow": "#ffc107",  # Medium
+            "orange": "#fd7e14",  # Low
+        }
+        primary_color = tier_color_map.get(tier_color, "#0d6efd")
+
         chart = create_dual_line_trend(
             week_labels=weekly_labels,
             deployment_values=weekly_values,
             release_values=weekly_release_values,
             height=250,
             show_axes=True,
+            primary_color=primary_color,  # Dynamic color based on performance
         )
 
         # Add deployment details table
@@ -114,13 +172,26 @@ def _create_detailed_chart(
     # Special case 2: change_failure_rate with release tracking
     if metric_name == "change_failure_rate" and "weekly_release_values" in metric_data:
         weekly_release_values = metric_data.get("weekly_release_values", [])
-        # Reuse dual line chart but with different labels
+
+        # Use performance tier color already calculated from overall metric value
+        tier_color = metric_data.get("performance_tier_color", "green")
+
+        tier_color_map = {
+            "green": "#198754",  # Elite
+            "blue": "#0dcaf0",  # High (cyan)
+            "yellow": "#ffc107",  # Medium
+            "orange": "#fd7e14",  # Low
+        }
+        primary_color = tier_color_map.get(tier_color, "#0d6efd")
+
+        # Reuse dual line chart but with different labels and dynamic color
         chart = create_dual_line_trend(
             week_labels=weekly_labels,
             deployment_values=weekly_values,
             release_values=weekly_release_values,
             height=250,
             show_axes=True,
+            primary_color=primary_color,  # Dynamic color based on performance
         )
 
         # Customize the chart for CFR context with a note
@@ -144,8 +215,6 @@ def _create_detailed_chart(
 
     # Standard single-line chart for other metrics
     # Use full trend chart with performance zones for DORA metrics
-    from visualization.metric_trends import create_metric_trend_full
-
     is_dora_metric = metric_name in [
         "deployment_frequency",
         "lead_time_for_changes",
@@ -154,6 +223,18 @@ def _create_detailed_chart(
     ]
 
     if is_dora_metric:
+        # Use performance tier color already calculated from overall metric value
+        tier_color = metric_data.get("performance_tier_color", "blue")
+
+        # Map tier colors to hex codes (semaphore style)
+        tier_color_map = {
+            "green": "#198754",  # Elite
+            "blue": "#0dcaf0",  # High (cyan)
+            "yellow": "#ffc107",  # Medium
+            "orange": "#fd7e14",  # Low
+        }
+        line_color = tier_color_map.get(tier_color, "#6c757d")
+
         # Use full chart with performance tier zones
         return create_metric_trend_full(
             week_labels=weekly_labels,
@@ -162,9 +243,67 @@ def _create_detailed_chart(
             unit=metric_data.get("unit", ""),
             height=250,
             show_performance_zones=True,
+            line_color=line_color,  # Dynamic color based on performance
+        )
+    elif metric_name == "flow_efficiency":
+        # Phase 2.2: Use specialized Flow Efficiency chart with health zones
+        from visualization.flow_charts import create_flow_efficiency_trend_chart
+        from dash import dcc
+
+        # Convert data format for flow_charts function (expects {date, value})
+        trend_data = [
+            {"date": week, "value": value}
+            for week, value in zip(weekly_labels, weekly_values)
+        ]
+
+        # Calculate performance tier color based on most recent value
+        latest_value = weekly_values[-1] if weekly_values else 0
+        tier_color = _get_flow_performance_tier_color_hex(
+            "flow_efficiency", latest_value
+        )
+
+        figure = create_flow_efficiency_trend_chart(trend_data, line_color=tier_color)
+
+        # CRITICAL: Remove plotly toolbar completely
+        return dcc.Graph(
+            figure=figure,
+            config={
+                "displayModeBar": False,  # Remove plotly toolbar completely
+                "staticPlot": False,  # Allow hover but no tools
+                "responsive": True,  # Mobile-responsive scaling
+            },
+        )
+    elif metric_name == "flow_load":
+        # Use specialized Flow Load chart with dynamic WIP thresholds
+        from visualization.flow_charts import create_flow_load_trend_chart
+        from dash import dcc
+
+        # Convert data format for flow_charts function (expects {date, value})
+        trend_data = [
+            {"date": week, "value": value}
+            for week, value in zip(weekly_labels, weekly_values)
+        ]
+
+        # Extract WIP thresholds from metric_data (if calculated)
+        wip_thresholds = metric_data.get("wip_thresholds", None)
+
+        figure = create_flow_load_trend_chart(trend_data, wip_thresholds=wip_thresholds)
+
+        # CRITICAL: Remove plotly toolbar completely
+        return dcc.Graph(
+            figure=figure,
+            config={
+                "displayModeBar": False,  # Remove plotly toolbar completely
+                "staticPlot": False,  # Allow hover but no tools
+                "responsive": True,  # Mobile-responsive scaling
+            },
         )
     else:
-        # Use sparkline for Flow metrics
+        # Use sparkline for other Flow metrics
+        # Calculate performance tier color based on most recent value
+        latest_value = weekly_values[-1] if weekly_values else 0
+        tier_color = _get_flow_performance_tier_color_hex(metric_name, latest_value)
+
         return create_metric_trend_sparkline(
             week_labels=weekly_labels,
             values=weekly_values,
@@ -172,7 +311,7 @@ def _create_detailed_chart(
             unit=metric_data.get("unit", ""),
             height=200,
             show_axes=True,
-            color=sparkline_color,
+            color=tier_color,  # Dynamic color based on performance
         )
 
 
@@ -346,19 +485,14 @@ def _create_success_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
     - weekly_labels: List of week labels (e.g., ["2025-W40", "2025-W41", ...])
     - weekly_values: List of metric values for each week
     """
-    from visualization.metric_trends import (
-        create_metric_trend_sparkline,
-        create_dual_line_trend,
-        create_metric_trend_full,
-    )
-
-    # Map performance tier colors to Bootstrap colors
+    # Map performance tier colors to Bootstrap/custom colors
+    # Use custom 'tier-orange' class for proper visual distinction
     tier_color_map = {
-        "green": "success",
-        "blue": "info",  # Add blue -> info mapping
-        "yellow": "warning",
-        "orange": "warning",
-        "red": "danger",
+        "green": "success",  # Elite/Excellent
+        "blue": "tier-high",  # High/Good - custom cyan
+        "yellow": "tier-medium",  # Medium/Fair - custom yellow
+        "orange": "tier-orange",  # Low/Slow - custom orange
+        "red": "danger",  # Critical/Worst
     }
 
     tier_color = metric_data.get("performance_tier_color", "secondary")
@@ -368,18 +502,42 @@ def _create_success_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
     value = metric_data.get("value")
 
     if metric_name == "flow_load" and value is not None:
-        # Override tier_color with WIP health thresholds
-        # These thresholds can be made configurable later
-        if value < 10:
-            tier_color = "green"  # Healthy
-        elif value < 20:
-            tier_color = "yellow"  # Warning
-        elif value < 30:
-            tier_color = "orange"  # High
-        else:
-            tier_color = "red"  # Critical
+        # Get dynamic thresholds calculated from historical data using Little's Law
+        wip_thresholds = metric_data.get("wip_thresholds", {})
 
+        # Use dynamic thresholds if available, otherwise fall back to hardcoded defaults
+        if wip_thresholds and "healthy" in wip_thresholds:
+            healthy_threshold = wip_thresholds["healthy"]
+            warning_threshold = wip_thresholds["warning"]
+            high_threshold = wip_thresholds["high"]
+            # critical_threshold = wip_thresholds["critical"]  # Not used in tier logic
+
+            # Apply dynamic thresholds
+            if value < healthy_threshold:
+                tier_color = "green"  # Healthy
+            elif value < warning_threshold:
+                tier_color = "yellow"  # Warning
+            elif value < high_threshold:
+                tier_color = "orange"  # High
+            else:
+                tier_color = "red"  # Critical
+        else:
+            # Fallback to hardcoded thresholds if calculation failed
+            if value < 10:
+                tier_color = "green"  # Healthy
+            elif value < 20:
+                tier_color = "yellow"  # Warning
+            elif value < 30:
+                tier_color = "orange"  # High
+            else:
+                tier_color = "red"  # Critical
+
+    # Map tier colors to valid Bootstrap color names OR custom CSS classes
+    # Standard Bootstrap colors: success, danger, primary, secondary, warning, info, light, dark
+    # Custom colors need className with bg- prefix
     bootstrap_color = tier_color_map.get(tier_color, "secondary")
+    use_custom_class = bootstrap_color in ["tier-high", "tier-medium", "tier-orange"]
+
     alternative_name = metric_data.get("alternative_name")
     metric_tooltip = metric_data.get("tooltip")  # Optional tooltip text
 
@@ -394,7 +552,6 @@ def _create_success_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
     value = metric_data.get("value")
     release_value = metric_data.get("release_value")  # NEW: for deployment_frequency
     p95_value = metric_data.get("p95_value")  # NEW: for lead_time and mttr
-    mean_value = metric_data.get("mean_value")  # NEW: for lead_time and mttr
 
     if value is not None:
         formatted_value = f"{value:.1f}" if value >= 10 else f"{value:.2f}"
@@ -466,24 +623,41 @@ def _create_success_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
         else:
             badge_text = "Critical"
 
-        badge_element = dbc.Badge(
-            badge_text,
-            color=bootstrap_color,
-            className="ms-auto",
-            style={"fontSize": "0.75rem", "fontWeight": "600"},
-        )
-    else:
-        # Regular badge for other metrics
-        badge_element = (
-            dbc.Badge(
-                metric_data.get("performance_tier", "Unknown"),
+        # For flow_load, always use standard Bootstrap colors
+        if use_custom_class:
+            badge_element = dbc.Badge(
+                children=badge_text,
+                className=f"ms-auto bg-{bootstrap_color}",
+                style={"fontSize": "0.75rem", "fontWeight": "600"},
+            )
+        else:
+            badge_element = dbc.Badge(
+                children=badge_text,
                 color=bootstrap_color,
                 className="ms-auto",
                 style={"fontSize": "0.75rem", "fontWeight": "600"},
             )
-            if metric_data.get("performance_tier")
-            else None
-        )
+    else:
+        # Regular badge for other metrics
+        perf_tier = metric_data.get("performance_tier")
+
+        if perf_tier:
+            # Use className for custom colors, color parameter for standard Bootstrap colors
+            if use_custom_class:
+                badge_element = dbc.Badge(
+                    children=perf_tier,
+                    className=f"ms-auto bg-{bootstrap_color}",
+                    style={"fontSize": "0.75rem", "fontWeight": "600"},
+                )
+            else:
+                badge_element = dbc.Badge(
+                    children=perf_tier,
+                    color=bootstrap_color,
+                    className="ms-auto",
+                    style={"fontSize": "0.75rem", "fontWeight": "600"},
+                )
+        else:
+            badge_element = None
 
     header_children: List[Any] = [
         html.Div(
@@ -654,13 +828,14 @@ def _create_success_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
     # Add inline trend sparkline if weekly data is provided
     # Note: weekly_labels and weekly_values already fetched above for trend indicator
     if weekly_labels and weekly_values and len(weekly_labels) > 1:
-        # Determine color based on performance tier
+        # Determine color based on performance tier (semaphore system)
         sparkline_color = {
-            "green": "#28a745",
-            "yellow": "#ffc107",
-            "orange": "#fd7e14",
-            "red": "#dc3545",
-        }.get(tier_color, "#1f77b4")
+            "green": "#198754",  # Elite/Excellent (Bootstrap success)
+            "blue": "#0dcaf0",  # High/Good (cyan)
+            "yellow": "#ffc107",  # Medium/Fair (yellow)
+            "orange": "#fd7e14",  # Low/Slow (orange)
+            "red": "#dc3545",  # Critical (Bootstrap danger)
+        }.get(tier_color, "#6c757d")
 
         # Create inline mini sparkline (CSS-based, compact)
         mini_sparkline = _create_mini_bar_sparkline(
@@ -722,7 +897,7 @@ def _create_success_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
                                     className="text-center mt-2",
                                 ),
                             ],
-                            className="bg-light",
+                            className="bg-white border-top",  # Clean white background instead of gray
                         ),
                         id=collapse_id,
                         is_open=False,
@@ -817,7 +992,9 @@ def _create_error_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
     card_header = dbc.CardHeader(
         [
             html.Span(display_name, className="metric-card-title"),
-            dbc.Badge(badge_text, color=config["color"], className="float-end"),
+            dbc.Badge(
+                children=badge_text, color=config["color"], className="float-end"
+            ),
         ]
     )
 
@@ -920,8 +1097,8 @@ def create_metric_cards_grid(
             metric_info = {**metric_info, "tooltip": tooltips[metric_name]}
 
         card = create_metric_card(metric_info, card_id=f"{metric_name}-card")
-        # Responsive column: full width on mobile, half on tablet, quarter on desktop
-        col = dbc.Col(card, width=12, md=6, lg=3)
+        # Phase 2: One card per row for better detail chart visibility, with bottom margin
+        col = dbc.Col(card, width=12, className="mb-3")
         cards.append(col)
 
-    return dbc.Row(cards, className="metric-cards-grid mb-4")
+    return dbc.Row(cards, className="metric-cards-grid")

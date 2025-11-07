@@ -5,7 +5,8 @@ distribution pie chart and efficiency trend charts.
 """
 
 import plotly.graph_objects as go
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
+from .chart_config import get_mobile_first_layout, get_consistent_colors
 
 
 def create_flow_distribution_chart(distribution_data: Dict[str, Any]) -> go.Figure:
@@ -108,6 +109,7 @@ def create_flow_velocity_trend_chart(trend_data: List[Dict[str, Any]]) -> go.Fig
 
     dates = [item["date"] for item in trend_data]
     values = [item["value"] for item in trend_data]
+    colors = get_consistent_colors()
 
     fig = go.Figure()
 
@@ -117,33 +119,51 @@ def create_flow_velocity_trend_chart(trend_data: List[Dict[str, Any]]) -> go.Fig
             y=values,
             mode="lines+markers",
             name="Flow Velocity",
-            line=dict(color="#0d6efd", width=2),
-            marker=dict(size=8),
+            line=dict(
+                color=colors["flow_velocity"], width=3
+            ),  # Use consistent color and width
+            marker=dict(size=6, color=colors["flow_velocity"]),
             hovertemplate="<b>%{x}</b><br>Velocity: %{y} items<extra></extra>",
         )
     )
 
-    fig.update_layout(
-        title={
-            "text": "Flow Velocity Trend",
-            "x": 0.5,
-            "xanchor": "center",
-        },
-        xaxis_title="Date",
-        yaxis_title="Items per Period",
-        hovermode="x unified",
-        height=350,
-        margin=dict(t=60, b=60, l=60, r=40),
+    # Use mobile-first layout for consistency with other charts
+    layout = get_mobile_first_layout("Flow Velocity Trend")
+    layout.update(
+        {
+            "yaxis": {
+                "title": "Items per Period",
+                "showgrid": True,  # FORCE visible grid
+                "gridwidth": 1,
+                "gridcolor": "rgba(0,0,0,0.1)",  # Slightly more visible grid
+                "tickfont": {"size": 10},
+            },
+            "xaxis": {
+                "title": "Week",
+                "showgrid": True,  # FORCE visible grid
+                "gridwidth": 1,
+                "gridcolor": "rgba(0,0,0,0.1)",  # Slightly more visible grid
+                "tickfont": {"size": 10},
+            },
+            "plot_bgcolor": "white",  # FORCE white plot area
+            "paper_bgcolor": "white",  # FORCE white outer area
+        }
     )
 
+    fig.update_layout(layout)
     return fig
 
 
-def create_flow_efficiency_trend_chart(trend_data: List[Dict[str, Any]]) -> go.Figure:
+def create_flow_efficiency_trend_chart(
+    trend_data: List[Dict[str, Any]], line_color: Optional[str] = None
+) -> go.Figure:
     """Create line chart for Flow Efficiency trend over time.
+
+    Mobile-first design with clean presentation and immediate value.
 
     Args:
         trend_data: List of efficiency measurements over time
+        line_color: Optional hex color for the line (default: uses config color or green)
 
     Returns:
         Plotly Figure with line chart and threshold zones
@@ -153,76 +173,61 @@ def create_flow_efficiency_trend_chart(trend_data: List[Dict[str, Any]]) -> go.F
 
     dates = [item["date"] for item in trend_data]
     values = [item["value"] for item in trend_data]
+    colors = get_consistent_colors()
+
+    # Use provided color or fall back to config color (green for efficiency)
+    efficiency_color = line_color or colors["flow_efficiency"]
 
     fig = go.Figure()
 
-    # Add threshold zones
-    # Healthy range (25-40%)
-    fig.add_hrect(
-        y0=25,
-        y1=40,
-        fillcolor="green",
-        opacity=0.1,
-        layer="below",
-        line_width=0,
-        annotation_text="Healthy Range",
-        annotation_position="right",
-    )
+    # REMOVED: Performance zones create visual noise
+    # Clean design without distracting background zones
 
-    # Warning zone (15-25%)
-    fig.add_hrect(
-        y0=15,
-        y1=25,
-        fillcolor="orange",
-        opacity=0.1,
-        layer="below",
-        line_width=0,
-    )
-
-    # Critical zone (< 15%)
-    fig.add_hrect(
-        y0=0,
-        y1=15,
-        fillcolor="red",
-        opacity=0.1,
-        layer="below",
-        line_width=0,
-        annotation_text="Critical",
-        annotation_position="right",
-    )
-
-    # Add efficiency line
+    # Add efficiency line with dynamic color based on performance
     fig.add_trace(
         go.Scatter(
             x=dates,
             y=values,
             mode="lines+markers",
             name="Flow Efficiency",
-            line=dict(color="#0dcaf0", width=2),
-            marker=dict(size=8),
+            line=dict(color=efficiency_color, width=3),
+            marker=dict(size=6, color=efficiency_color),
             hovertemplate="<b>%{x}</b><br>Efficiency: %{y:.1f}%<extra></extra>",
         )
     )
 
-    fig.update_layout(
-        title={
-            "text": "Flow Efficiency Trend",
-            "x": 0.5,
-            "xanchor": "center",
-        },
-        xaxis_title="Date",
-        yaxis_title="Efficiency (%)",
-        hovermode="x unified",
-        height=350,
-        margin=dict(t=60, b=60, l=60, r=40),
-        yaxis=dict(range=[0, max(100, max(values) + 10)]),
+    # Use mobile-first layout with EXPLICIT white backgrounds
+    layout = get_mobile_first_layout("Flow Efficiency Trend")
+    layout.update(
+        {
+            "yaxis": {
+                "title": "Efficiency (%)",
+                "range": [0, max(100, max(values) + 10)] if values else [0, 100],
+                "showgrid": True,  # FORCE visible grid
+                "gridwidth": 1,
+                "gridcolor": "rgba(0,0,0,0.1)",  # Slightly more visible grid
+                "tickfont": {"size": 10},
+            },
+            "xaxis": {
+                "title": "Week",
+                "showgrid": True,  # FORCE visible grid
+                "gridwidth": 1,
+                "gridcolor": "rgba(0,0,0,0.1)",  # Slightly more visible grid
+                "tickfont": {"size": 10},
+            },
+            "plot_bgcolor": "white",  # FORCE white plot area
+            "paper_bgcolor": "white",  # FORCE white outer area
+        }
     )
 
+    fig.update_layout(layout)
     return fig
 
 
 def create_flow_time_trend_chart(trend_data: List[Dict[str, Any]]) -> go.Figure:
     """Create line chart for Flow Time trend over time.
+
+    Mobile-first design with clean presentation and consistent colors.
 
     Args:
         trend_data: List of flow time measurements over time
@@ -235,6 +240,7 @@ def create_flow_time_trend_chart(trend_data: List[Dict[str, Any]]) -> go.Figure:
 
     dates = [item["date"] for item in trend_data]
     values = [item["value"] for item in trend_data]
+    colors = get_consistent_colors()
 
     fig = go.Figure()
 
@@ -244,70 +250,161 @@ def create_flow_time_trend_chart(trend_data: List[Dict[str, Any]]) -> go.Figure:
             y=values,
             mode="lines+markers",
             name="Flow Time",
-            line=dict(color="#198754", width=2),
-            marker=dict(size=8),
+            line=dict(color=colors["flow_time"], width=3),
+            marker=dict(size=6, color=colors["flow_time"]),
             hovertemplate="<b>%{x}</b><br>Flow Time: %{y:.1f} days<extra></extra>",
         )
     )
 
-    fig.update_layout(
-        title={
-            "text": "Flow Time Trend",
-            "x": 0.5,
-            "xanchor": "center",
-        },
-        xaxis_title="Date",
-        yaxis_title="Days",
-        hovermode="x unified",
-        height=350,
-        margin=dict(t=60, b=60, l=60, r=40),
+    # Use mobile-first layout
+    layout = get_mobile_first_layout("Flow Time Trend")
+    layout.update(
+        {
+            "yaxis": {
+                "title": "Days",
+                "showgrid": True,  # FORCE visible grid
+                "gridwidth": 1,
+                "gridcolor": "rgba(0,0,0,0.1)",  # Slightly more visible grid
+                "tickfont": {"size": 10},
+            },
+            "xaxis": {
+                "title": "Week",
+                "showgrid": True,  # FORCE visible grid
+                "gridwidth": 1,
+                "gridcolor": "rgba(0,0,0,0.1)",  # Slightly more visible grid
+                "tickfont": {"size": 10},
+            },
+            "plot_bgcolor": "white",  # FORCE white plot area
+            "paper_bgcolor": "white",  # FORCE white outer area
+        }
     )
 
+    fig.update_layout(layout)
     return fig
 
 
-def create_flow_load_trend_chart(trend_data: List[Dict[str, Any]]) -> go.Figure:
-    """Create line chart for Flow Load (WIP) trend over time.
+def create_flow_load_trend_chart(
+    trend_data: List[Dict[str, Any]], wip_thresholds: Optional[Dict[str, Any]] = None
+) -> go.Figure:
+    """Create line chart for Flow Load (WIP) trend over time with threshold lines.
 
     Args:
         trend_data: List of WIP count measurements over time
+        wip_thresholds: Dictionary with threshold values from Little's Law calculation
+            {
+                "healthy": float,
+                "warning": float,
+                "high": float,
+                "critical": float,
+                "method": str
+            }
 
     Returns:
-        Plotly Figure with line chart
+        Plotly Figure with line chart and threshold lines
     """
     if not trend_data:
         return _create_empty_chart("No trend data available")
 
     dates = [item["date"] for item in trend_data]
     values = [item["value"] for item in trend_data]
+    colors = get_consistent_colors()
 
     fig = go.Figure()
 
+    # Add main WIP trend line
     fig.add_trace(
         go.Scatter(
             x=dates,
             y=values,
             mode="lines+markers",
             name="Flow Load (WIP)",
-            line=dict(color="#ffc107", width=2),
-            marker=dict(size=8),
+            line=dict(color=colors["flow_load"], width=3),  # Use consistent styling
+            marker=dict(size=6, color=colors["flow_load"]),
             hovertemplate="<b>%{x}</b><br>WIP Count: %{y} items<extra></extra>",
         )
     )
 
-    fig.update_layout(
-        title={
-            "text": "Flow Load (Work in Progress) Trend",
-            "x": 0.5,
-            "xanchor": "center",
-        },
-        xaxis_title="Date",
-        yaxis_title="Items in Progress",
-        hovermode="x unified",
-        height=350,
-        margin=dict(t=60, b=60, l=60, r=40),
+    # Add threshold lines if available
+    if wip_thresholds and "healthy" in wip_thresholds:
+        # Create hover traces for threshold lines (invisible but hoverable)
+        # This allows users to see threshold values on hover
+
+        # Healthy threshold (green zone upper limit)
+        fig.add_trace(
+            go.Scatter(
+                x=dates,
+                y=[wip_thresholds["healthy"]] * len(dates),
+                mode="lines",
+                name=f"Healthy Threshold ({wip_thresholds['healthy']:.1f})",
+                line=dict(color="#198754", width=2, dash="dot"),
+                hovertemplate=f"<b>Healthy Threshold</b><br>WIP &lt; {wip_thresholds['healthy']:.1f} items<br>%{{x}}<extra></extra>",
+                showlegend=False,
+            )
+        )
+
+        # Warning threshold (yellow zone upper limit)
+        fig.add_trace(
+            go.Scatter(
+                x=dates,
+                y=[wip_thresholds["warning"]] * len(dates),
+                mode="lines",
+                name=f"Warning Threshold ({wip_thresholds['warning']:.1f})",
+                line=dict(color="#ffc107", width=2, dash="dot"),
+                hovertemplate=f"<b>Warning Threshold</b><br>WIP &lt; {wip_thresholds['warning']:.1f} items<br>%{{x}}<extra></extra>",
+                showlegend=False,
+            )
+        )
+
+        # High threshold (orange zone upper limit)
+        fig.add_trace(
+            go.Scatter(
+                x=dates,
+                y=[wip_thresholds["high"]] * len(dates),
+                mode="lines",
+                name=f"High Threshold ({wip_thresholds['high']:.1f})",
+                line=dict(color="#fd7e14", width=2, dash="dot"),
+                hovertemplate=f"<b>High Threshold</b><br>WIP &lt; {wip_thresholds['high']:.1f} items<br>%{{x}}<extra></extra>",
+                showlegend=False,
+            )
+        )
+
+        # Critical threshold (red zone starts here)
+        fig.add_trace(
+            go.Scatter(
+                x=dates,
+                y=[wip_thresholds["critical"]] * len(dates),
+                mode="lines",
+                name=f"Critical Threshold ({wip_thresholds['critical']:.1f})",
+                line=dict(color="#dc3545", width=2, dash="dash"),
+                hovertemplate=f"<b>Critical Threshold</b><br>WIP ≥ {wip_thresholds['critical']:.1f} items<br>%{{x}}<extra></extra>",
+                showlegend=False,
+            )
+        )
+
+    # Use mobile-first layout for consistency
+    layout = get_mobile_first_layout("Flow Load (Work in Progress) Trend")
+    layout.update(
+        {
+            "yaxis": {
+                "title": "Items in Progress",
+                "showgrid": True,  # FORCE visible grid
+                "gridwidth": 1,
+                "gridcolor": "rgba(0,0,0,0.1)",  # Slightly more visible grid
+                "tickfont": {"size": 10},
+            },
+            "xaxis": {
+                "title": "Week",
+                "showgrid": True,  # FORCE visible grid
+                "gridwidth": 1,
+                "gridcolor": "rgba(0,0,0,0.1)",  # Slightly more visible grid
+                "tickfont": {"size": 10},
+            },
+            "plot_bgcolor": "white",  # FORCE white plot area
+            "paper_bgcolor": "white",  # FORCE white outer area
+        }
     )
 
+    fig.update_layout(layout)
     return fig
 
 

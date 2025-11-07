@@ -723,7 +723,7 @@ FLOW_METRICS_TOOLTIPS = {
     "flow_velocity": "Number of work items completed per week. Measures delivery throughput across all Flow types (Feature, Defect, Risk, Tech Debt). Higher velocity indicates faster value delivery.",
     "flow_time": "Median time from work start to completion in days. Includes both active work time and wait time. Lower flow time indicates faster delivery cycles and better predictability.",
     "flow_efficiency": "Percentage of time spent actively working vs waiting. Calculated as active time divided by total flow time. Higher efficiency (>40%) indicates less waste and smoother workflows.",
-    "flow_load": "Current work in progress (WIP) across all active statuses. Measures how much work is started but not yet completed. Lower WIP reduces context switching and improves focus.",
+    "flow_load": "Current work in progress (WIP) across all active statuses. Health thresholds calculated using Little's Law (L=λ×W): Optimal WIP = Throughput × Cycle Time. Thresholds derived from historical percentiles (P25, P50, P75, P90) with 20% buffers. Lower WIP reduces context switching and improves focus. Team-specific thresholds adapt to your actual capacity and cycle time.",
     "flow_distribution": "Breakdown of completed work by type: Features (new value), Defects (quality issues), Risk (security/compliance), and Tech Debt (maintenance). Balanced distribution indicates healthy development practices.",
 }
 

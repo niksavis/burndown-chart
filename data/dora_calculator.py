@@ -126,19 +126,24 @@ DEPLOYMENT_FREQUENCY_TIERS = {
         "unit": "per_day",
         "color": "green",
     },  # On-demand (multiple per day)
-    "High": {"min": 1, "max": 999999, "unit": "per_week", "color": "yellow"},  # Weekly
+    "High": {
+        "min": 1,
+        "max": 999999,
+        "unit": "per_week",
+        "color": "blue",
+    },  # Weekly - cyan
     "Medium": {
         "min": 1,
         "max": 999999,
         "unit": "per_month",
-        "color": "orange",
-    },  # Monthly
+        "color": "yellow",
+    },  # Monthly - yellow
     "Low": {
         "min": 0,
         "max": 1,
         "unit": "per_month",
-        "color": "red",
-    },  # Less than monthly
+        "color": "orange",
+    },  # Less than monthly - orange
 }
 
 LEAD_TIME_TIERS = {
@@ -147,22 +152,36 @@ LEAD_TIME_TIERS = {
         "min": 1,
         "max": 7,
         "unit": "days",
-        "color": "yellow",
-    },  # One day to one week
+        "color": "blue",
+    },  # One day to one week - cyan
     "Medium": {
         "min": 7,
         "max": 30,
         "unit": "days",
+        "color": "yellow",
+    },  # One week to one month - yellow
+    "Low": {
+        "min": 30,
+        "unit": "days",
         "color": "orange",
-    },  # One week to one month
-    "Low": {"min": 30, "unit": "days", "color": "red"},  # More than one month
+    },  # More than one month - orange
 }
 
 CHANGE_FAILURE_RATE_TIERS = {
     "Elite": {"max": 15, "unit": "percentage", "color": "green"},  # 0-15%
-    "High": {"min": 15, "max": 30, "unit": "percentage", "color": "yellow"},  # 15-30%
-    "Medium": {"min": 30, "max": 45, "unit": "percentage", "color": "orange"},  # 30-45%
-    "Low": {"min": 45, "unit": "percentage", "color": "red"},  # >45%
+    "High": {
+        "min": 15,
+        "max": 30,
+        "unit": "percentage",
+        "color": "blue",
+    },  # 15-30% - cyan
+    "Medium": {
+        "min": 30,
+        "max": 45,
+        "unit": "percentage",
+        "color": "yellow",
+    },  # 30-45% - yellow
+    "Low": {"min": 45, "unit": "percentage", "color": "orange"},  # >45% - orange
 }
 
 MTTR_TIERS = {
@@ -171,15 +190,19 @@ MTTR_TIERS = {
         "min": 1,
         "max": 24,
         "unit": "hours",
-        "color": "yellow",
-    },  # One hour to one day
+        "color": "blue",
+    },  # One hour to one day - cyan
     "Medium": {
         "min": 24,
         "max": 168,
         "unit": "hours",
+        "color": "yellow",
+    },  # One day to one week - yellow
+    "Low": {
+        "min": 168,
+        "unit": "hours",
         "color": "orange",
-    },  # One day to one week
-    "Low": {"min": 168, "unit": "hours", "color": "red"},  # More than one week
+    },  # More than one week - orange
 }
 
 

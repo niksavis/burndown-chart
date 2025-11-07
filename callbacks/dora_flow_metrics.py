@@ -16,6 +16,10 @@ import logging
 
 from data.persistence import load_app_settings
 from ui.metric_cards import create_metric_cards_grid
+from ui.compact_metric_cards import (
+    create_dora_metrics_overview,
+    create_flow_metrics_overview,
+)
 from configuration.help_content import FLOW_METRICS_TOOLTIPS, DORA_METRICS_TOOLTIPS
 
 logger = logging.getLogger(__name__)
@@ -27,7 +31,10 @@ logger = logging.getLogger(__name__)
 
 
 @callback(
-    Output("dora-metrics-cards-container", "children"),
+    [
+        Output("dora-metrics-cards-container", "children"),
+        Output("dora-metrics-overview", "children"),
+    ],
     [
         Input("chart-tabs", "active_tab"),
         Input("data-points-input", "value"),
@@ -245,37 +252,41 @@ def load_and_display_dora_metrics(
             },
         }
 
-        return create_metric_cards_grid(metrics_data)
+        return create_metric_cards_grid(metrics_data), create_dora_metrics_overview(
+            metrics_data
+        )
 
     except PreventUpdate:
         raise
     except Exception as e:
         logger.error(f"Error loading DORA metrics from cache: {e}", exc_info=True)
 
-        return create_metric_cards_grid(
-            {
-                "deployment_frequency": {
-                    "metric_name": "deployment_frequency",
-                    "value": None,
-                    "error_state": "error",
-                    "error_message": "Error loading metrics - check logs",
-                },
-                "lead_time_for_changes": {
-                    "metric_name": "lead_time_for_changes",
-                    "value": None,
-                    "error_state": "error",
-                },
-                "change_failure_rate": {
-                    "metric_name": "change_failure_rate",
-                    "value": None,
-                    "error_state": "error",
-                },
-                "mean_time_to_recovery": {
-                    "metric_name": "mean_time_to_recovery",
-                    "value": None,
-                    "error_state": "error",
-                },
-            }
+        error_metrics = {
+            "deployment_frequency": {
+                "metric_name": "deployment_frequency",
+                "value": None,
+                "error_state": "error",
+                "error_message": "Error loading metrics - check logs",
+            },
+            "lead_time_for_changes": {
+                "metric_name": "lead_time_for_changes",
+                "value": None,
+                "error_state": "error",
+            },
+            "change_failure_rate": {
+                "metric_name": "change_failure_rate",
+                "value": None,
+                "error_state": "error",
+            },
+            "mean_time_to_recovery": {
+                "metric_name": "mean_time_to_recovery",
+                "value": None,
+                "error_state": "error",
+            },
+        }
+        return create_metric_cards_grid(error_metrics), html.Div(
+            html.P("Error loading metrics overview", className="text-muted small"),
+            className="text-center p-3",
         )
 
 
@@ -287,6 +298,7 @@ def load_and_display_dora_metrics(
 @callback(
     [
         Output("flow-metrics-cards-container", "children"),
+        Output("flow-metrics-overview", "children"),
         Output("flow-distribution-chart-container", "children"),
     ],
     [
@@ -330,6 +342,7 @@ def calculate_and_display_flow_metrics(
 
             return (
                 create_no_data_state(),
+                html.Div(),  # Empty overview on no data
                 html.Div("No distribution data", className="text-muted p-4"),
             )
 
@@ -343,6 +356,7 @@ def calculate_and_display_flow_metrics(
             logger.error(error_msg)
             return (
                 html.Div(error_msg, className="alert alert-danger p-4"),
+                html.Div(),  # Empty overview on error
                 html.Div("Error", className="text-muted p-4"),
             )
 
@@ -379,6 +393,7 @@ def calculate_and_display_flow_metrics(
             )
             return (
                 create_no_metrics_state(metric_type="Flow"),
+                html.Div(),  # Empty overview when no metrics
                 html.Div(
                     "No distribution data available. Please refresh metrics.",
                     className="text-muted p-4",
@@ -454,6 +469,23 @@ def calculate_and_display_flow_metrics(
             week_labels, "flow_efficiency", "overall_pct"
         )
 
+        # Calculate dynamic WIP thresholds using Little's Law
+        from data.flow_calculator import calculate_wip_thresholds_from_history
+
+        # Get historical snapshots for threshold calculation
+        velocity_snapshots = []
+        flow_time_snapshots = []
+        for week in week_labels:
+            vel_snap = get_metric_snapshot(week, "flow_velocity")
+            time_snap = get_metric_snapshot(week, "flow_time")
+            if vel_snap and time_snap:
+                velocity_snapshots.append(vel_snap)
+                flow_time_snapshots.append(time_snap)
+
+        wip_thresholds = calculate_wip_thresholds_from_history(
+            velocity_snapshots, flow_time_snapshots
+        )
+
         # Collect historical distribution data for all weeks
         distribution_history = []
         for week in week_labels:
@@ -485,71 +517,99 @@ def calculate_and_display_flow_metrics(
         # Note: dist_card layout moved to distribution chart section below
         # (Keeping 4-card grid for Flow metrics consistency)
 
-        # Create stacked area chart for distribution history
+        # Create stacked BAR chart for clearer weekly visualization
+        # Bars show discrete weeks better than area chart, making gaps obvious
         import plotly.graph_objects as go
 
         fig = go.Figure()
 
-        # Calculate percentages for each trace upfront
-        trace_configs = [
-            ("Feature", "feature", "rgba(25, 135, 84, 1)", "rgba(25, 135, 84, 0.4)"),
-            ("Defect", "defect", "rgba(220, 53, 69, 1)", "rgba(220, 53, 69, 0.4)"),
+        # NO REFERENCE LINES - they're confusing on stacked charts!
+        # Instead, we'll show target ranges in hover information
+
+        # Add traces for each work type (stacked bars showing percentages)
+        # Order: Feature at BOTTOM, Risk at TOP (bottom-to-top stacking)
+        # Using DARKER washed out colors for better visibility
+        trace_configs_with_targets = [
+            (
+                "Feature",
+                "feature",
+                "#7bc975",
+                "40-60%",
+            ),  # Bottom - darker washed out green
+            ("Defect", "defect", "#ff8080", "20-40%"),  # Darker washed out red
             (
                 "Tech Debt",
                 "tech_debt",
-                "rgba(253, 126, 20, 1)",
-                "rgba(253, 126, 20, 0.4)",
-            ),
-            ("Risk", "risk", "rgba(255, 193, 7, 1)", "rgba(255, 193, 7, 0.4)"),
-        ]
-
-        # Add traces for each work type (stacked area) with percentage hover
-        # Color scheme: Feature (green/growth), Defect (red/problems), Tech Debt (orange/maintenance), Risk (yellow/caution)
-        for trace_name, field_key, line_color, fill_color in trace_configs:
-            # Calculate percentage for each week
+                "#ffbf66",
+                "10-20%",
+            ),  # Darker washed out orange
+            (
+                "Risk",
+                "risk",
+                "#ffe066",
+                "0-10%",
+            ),  # Top - darker washed out yellow
+        ]  # Add bar traces for each work type
+        for trace_name, field_key, color, target_range in trace_configs_with_targets:
+            # Calculate percentage and count for each week
             percentages = []
+            counts = []
             for week_data in distribution_history:
                 total = week_data["total"]
                 count = week_data[field_key]
                 pct = (count / total * 100) if total > 0 else 0
-                percentages.append(f"{pct:.0f}")
+                percentages.append(pct)
+                counts.append(count)
 
             fig.add_trace(
-                go.Scatter(
+                go.Bar(
                     x=[d["week"] for d in distribution_history],
-                    y=[d[field_key] for d in distribution_history],
+                    y=percentages,
                     name=trace_name,
-                    mode="lines",
-                    line=dict(width=0.5, color=line_color),
-                    fillcolor=fill_color,
-                    stackgroup="one",
-                    customdata=percentages,
-                    hovertemplate=f"%{{y}} {trace_name} (%{{customdata}}%)<extra></extra>",
+                    marker=dict(
+                        color=color,
+                        line=dict(
+                            color="white", width=0.5
+                        ),  # White borders between segments
+                    ),
+                    customdata=counts,
+                    hovertemplate=f"<b>{trace_name}</b><br>%{{y:.1f}}% (%{{customdata}} items)<br><i>Target: {target_range}</i><extra></extra>",
                 )
             )
 
+        # Clean title without confusing reference line text
+        target_info = (
+            "Target: Feature 40-60%, Defect 20-40%, Tech Debt 10-20%, Risk 0-10%"
+        )
+
         fig.update_layout(
             title={
-                "text": "Work Distribution Over Time<br><sub style='font-size:10px;color:gray'>Hover for percentages. Target: 40-60% Feature, 20-40% Defect, 10-20% Tech Debt, 0-10% Risk</sub>",
+                "text": f"Work Distribution Over Time<br><sub style='font-size:10px;color:gray'>{target_info}</sub>",
                 "x": 0.5,
                 "xanchor": "center",
             },
             xaxis_title="Week",
-            yaxis_title="Number of Items",
+            yaxis_title="Percentage of Completed Work (%)",
+            barmode="stack",  # CRITICAL: Stack bars on top of each other
+            bargap=0.05,  # Reduce gap between bars for tighter appearance
             hovermode="x unified",
             height=400,
-            margin=dict(
-                l=50, r=120, t=80, b=70
-            ),  # Increased bottom margin from 40 to 70 for angled labels
+            margin=dict(l=50, r=20, t=80, b=100),
             legend=dict(
-                orientation="v",
+                orientation="h",
                 yanchor="top",
-                y=1,
-                xanchor="left",
-                x=1.02,
+                y=-0.15,
+                xanchor="center",
+                x=0.5,
             ),
             plot_bgcolor="white",
             paper_bgcolor="white",
+        )
+
+        # Mobile-first configuration - remove plotly tools for cleaner UX
+        fig.update_layout(
+            showlegend=True,
+            dragmode=False,  # Disable drag interactions for cleaner mobile experience
         )
 
         fig.update_xaxes(
@@ -560,11 +620,16 @@ def calculate_and_display_flow_metrics(
             ],  # Explicit week order
             showgrid=True,
             gridwidth=1,
-            gridcolor="lightgray",
+            gridcolor="rgba(0,0,0,0.05)",  # Consistent barely visible grid
             tickangle=-45,  # Angle labels to prevent overlap
             tickfont=dict(size=9),  # Smaller font for better fit
         )
-        fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor="lightgray")
+        fig.update_yaxes(
+            showgrid=True,
+            gridwidth=1,
+            gridcolor="rgba(0,0,0,0.05)",  # Consistent barely visible grid
+            range=[0, 100],  # Set Y-axis range to 0-100% for percentages
+        )
 
         # Create distribution chart section with current week summary
         dist_html = dbc.Row(
@@ -838,7 +903,13 @@ def calculate_and_display_flow_metrics(
                                         # Historical trend chart
                                         dcc.Graph(
                                             figure=fig,
-                                            config={"displayModeBar": False},
+                                            config={
+                                                "displayModeBar": False,  # Remove plotly toolbar
+                                                "responsive": True,  # Mobile-responsive
+                                                "scrollZoom": False,  # Disable scroll zoom
+                                                "doubleClick": False,  # Disable double-click
+                                                "showTips": False,  # Cleaner appearance
+                                            },
                                         ),
                                     ]
                                 ),
@@ -947,6 +1018,7 @@ def calculate_and_display_flow_metrics(
                 "total_issue_count": wip_count,  # Use WIP count itself (not completion count)
                 "weekly_labels": week_labels,
                 "weekly_values": flow_load_values,
+                "wip_thresholds": wip_thresholds,  # Include dynamic thresholds
             },
         }
 
@@ -955,13 +1027,20 @@ def calculate_and_display_flow_metrics(
             metrics_data, tooltips=FLOW_METRICS_TOOLTIPS
         )
 
-        return metrics_html, dist_html
+        # Create compact overview cards for Flow metrics
+        overview_html = create_flow_metrics_overview(metrics_data)
+
+        return metrics_html, overview_html, dist_html
 
     except Exception as e:
         logger.error(f"Error calculating Flow metrics: {e}", exc_info=True)
 
         return (
             html.Div("Error loading metrics", className="alert alert-danger p-4"),
+            html.Div(
+                html.P("Error loading metrics overview", className="text-muted small"),
+                className="text-center p-3",
+            ),
             html.Div("Error loading chart", className="text-muted p-4"),
         )
 

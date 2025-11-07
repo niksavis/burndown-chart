@@ -93,10 +93,18 @@ Click any DORA metric card to view detailed weekly breakdown:
 - Useful for tracking improvements over time
 
 **Work Distribution Breakdown**:
-- Stacked area chart shows Feature/Defect/Tech Debt/Risk evolution
-- Hover shows percentages for each work type
-- Current week summary with recommended ranges
-- Helps maintain healthy work balance
+- Stacked area chart shows Feature/Defect/Tech Debt/Risk evolution over time
+- **Mobile-First Design**: Target zones clearly visible with 15-18% opacity for immediate value
+- **Enhanced Hover**: Shows current percentage, item count, and target range for each work type
+- **Progressive Disclosure**: Target ranges shown in subtitle and hover details
+- **Responsive Layout**: Horizontal legend below chart (mobile-friendly) vs. vertical sidebar (desktop)
+- **Visual Zones**: Color-coded target ranges make it easy to assess healthy work balance
+  - **Green Zone (40-60%)**: Feature work - new capabilities and business value
+  - **Red Zone (20-40%)**: Defect work - quality maintenance and bug fixes  
+  - **Orange Zone (10-20%)**: Tech Debt - infrastructure and sustainability
+  - **Yellow Zone (0-10%)**: Risk work - security, compliance, prevention
+- Current week summary with recommended ranges and indicators
+- Helps maintain healthy work balance and identify portfolio imbalances
 
 ## Time Periods & Aggregation Strategy
 
@@ -423,25 +431,156 @@ Click any DORA metric card to view detailed weekly breakdown:
 **Calculation Method**:
 - **Per Week**: COUNT of issues where `status IN wip_statuses` at end of that week
 - **Snapshot**: Point-in-time measurement (not cumulative)
-- **wip_statuses** from config (e.g., ["Selected", "In Progress", "Testing", etc.])
+- **wip_statuses** from config (e.g., ["Selected", "In Progress", "Testing", "Ready for Testing", "In Deployment"])
+
+**Historical Reconstruction**:
+For historical weeks, the system reconstructs what WIP was at that specific point in time:
+
+1. **Load All Issues** from cache (development project only, excludes operational projects)
+2. **Determine Week End Time**:
+   - Historical weeks: Sunday 23:59:59 of that week
+   - Current week: NOW (running total)
+3. **Reconstruct Status for Each Issue**:
+   - **Current Week**: Use current status directly (faster, includes issues without changelog)
+   - **Historical Weeks**: Replay changelog history
+     - Find LAST status change BEFORE week end
+     - If issue was in WIP status at that time → count it
+     - If no changelog exists → use current status (assumes issue stayed in same status)
+4. **Count Issues** where reconstructed status is in `wip_statuses` AND resolution is empty
+
+**Example Timeline**:
+```
+Issue DEV-123 (Task):
+├─ Created: Week 10 (status: "To Do")
+├─ Week 15: Moved to "Selected" ← WIP starts, counted in W15+
+├─ Week 20: Moved to "In Progress" ← Still in WIP
+├─ Week 25: Moved to "Done" ← WIP ends, not counted from W25+
+
+Week-by-week WIP count for this issue:
+W10-W14: NOT counted (status = "To Do", not in wip_statuses)
+W15-W24: COUNTED (status in wip_statuses)
+W25+: NOT counted (status = "Done", in completion_statuses)
+```
+
+**Issue Filtering**:
+- ✅ **Development Project** issues only (e.g., project key "DEV")
+- ✅ **Issue Types**: Task, Story, Bug (configurable)
+- ❌ **Operational/DevOps** projects excluded (used only for DORA deployment tracking)
+- ❌ **Operational Task** issue type excluded
+
+**Dynamic Health Thresholds (Little's Law)**:
+
+The health badge thresholds are **calculated from your team's historical data** using Little's Law from queueing theory:
+
+**Formula**: `Optimal WIP = Throughput × Cycle Time`
+- **Throughput**: Weekly velocity (items completed per week)
+- **Cycle Time**: Flow time in days (time from start to completion)
+
+**Calculation Process**:
+1. For each historical week with data:
+   - `optimal_wip = velocity × (flow_time_days / 7)`
+   - Example: 18 items/week × (6 days / 7) = 15.4 optimal WIP
+2. Collect all optimal WIP values across historical period
+3. Calculate percentiles from distribution:
+   - **P25** (25th percentile): 25% of weeks had WIP below this
+   - **P50** (median): 50% of weeks had WIP below this
+   - **P75** (75th percentile): 75% of weeks had WIP below this
+   - **P90** (90th percentile): Only 10% of weeks exceeded this
+4. Apply 20% stability buffers to create zones:
+   - **Healthy** (Green): < P25 × 1.2 (below 25th percentile with buffer)
+   - **Warning** (Yellow): < P50 × 1.2 (below median with buffer)
+   - **High** (Orange): < P75 × 1.2 (below 75th percentile with buffer)
+   - **Critical** (Red): ≥ P90 (at or above 90th percentile - danger zone)
+
+**Example Calculation**:
+```
+Historical data (25 weeks):
+- Optimal WIP values: [8.2, 10.5, 12.1, 9.8, 15.3, 11.7, ...]
+- P25 = 8.3, P50 = 14.8, P75 = 23.6, P90 = 41.9
+
+Thresholds with buffers:
+- Healthy: 8.3 × 1.2 = 10.0 items
+- Warning: 14.8 × 1.2 = 17.7 items
+- High: 23.6 × 1.2 = 28.3 items
+- Critical: 41.9 (no buffer for danger zone)
+```
+
+**Why This Matters**:
+- ✅ **Team-Specific**: Adapts to YOUR actual capacity and cycle time
+- ✅ **Data-Driven**: Based on historical performance, not arbitrary numbers
+- ✅ **Context-Aware**: Accounts for team size and work complexity
+- ✅ **Predictive**: Higher WIP correlates with slower cycle time (validated by queueing theory)
+
+**Fallback Thresholds**:
+If insufficient historical data or NumPy unavailable:
+- Healthy: <10 items
+- Warning: <20 items
+- High: <30 items
+- Critical: ≥40 items
+
+(These defaults are reasonable for teams of 5-10 people)
 
 **Display Value** (Card):
-- **Unit**: `items` (current week only)
+- **Unit**: `items (current WIP)` - shows most recent week
 - **Calculation**: WIP count for the **most recent week**
-- **Health Badge**: Shows WIP health status (replaces generic performance tier)
-  - **Healthy** (Green): <10 items
-  - **Warning** (Yellow): 10-19 items
-  - **High** (Orange): 20-29 items
-  - **Critical** (Red): ≥30 items
+- **Health Badge**: Dynamic thresholds from Little's Law (or fallback if needed)
 - **Trend Indicator**: Shows % change vs. previous average (↓ green = improvement, ↑ red = growing WIP)
-- **Example**: Week 2025-45 had 15 items in progress → Display: "15 items" with "Warning" badge
+- **Tooltip**: Explains Little's Law methodology and threshold calculation
+- **Example**: Current week has 59 items with thresholds Healthy<10.0, Warning<17.7, High<28.3, Critical≥41.9
+  - Display: "59 items" with "Critical" badge (red)
+  - Indicates: Team has too much WIP, focus on finishing before starting new work
 
-**Scatter Chart** (Weekly Data Points):
+**Scatter Chart with Threshold Lines** (Weekly Data Points):
 - **X-axis**: Week labels
 - **Y-axis**: WIP count for that week
+- **Main Line**: Blue line showing WIP trend over time
+- **Threshold Lines** (Hoverable):
+  - 🟢 **Green dotted line**: Healthy threshold (hover shows exact value)
+  - 🟡 **Yellow dotted line**: Warning threshold (hover shows exact value)
+  - 🟠 **Orange dotted line**: High threshold (hover shows exact value)
+  - 🔴 **Red dashed line**: Critical threshold (hover shows exact value)
 - **Values**: Each point = actual WIP at end of that week
+- **Hover**: Shows exact threshold values and WIP count for each week
 
-**Code Location**: `data/flow_calculator.py::calculate_flow_load_v2()` and `aggregate_flow_load_weekly()`
+**Interpreting the Chart**:
+```
+WIP
+│
+60├─────────────────────────────────── 🔴 Critical (≥41.9)
+  │              ●
+50│             ╱ ╲
+  │            ╱   ●
+40├───────────●─────╲───────────────── 🟠 High (<28.3)
+  │                  ╲
+30│                   ●─────●
+  │                          ╲
+20├────────────────────────────●────── 🟡 Warning (<17.7)
+  │                             ╲
+10├──────────────────────────────●─── 🟢 Healthy (<10.0)
+  │
+ 0└─────────────────────────────────────
+   W20  W25  W30  W35  W40  W45
+
+Analysis:
+- Weeks 20-30: WIP climbing from healthy to critical (red flag!)
+- Week 35: Peak at 52 items - team severely overloaded
+- Weeks 35-45: Declining trend (good!) but still in warning zone
+- Goal: Get below green line (10 items) for optimal flow
+```
+
+**Why WIP Matters**:
+- **Context Switching**: High WIP = team juggling too many items = slower delivery
+- **Focus**: Low WIP = team finishes work faster with fewer interruptions
+- **Predictability**: Stable WIP = predictable cycle time = reliable planning
+- **Team Health**: Critical WIP (red) = burnout risk, quality issues, missed deadlines
+
+**Recommended Actions by Zone**:
+- 🟢 **Healthy**: Maintain current WIP limit, team is operating optimally
+- 🟡 **Warning**: Review WIP limit, start finishing before starting new work
+- 🟠 **High**: Implement strict WIP limits, focus on completing in-flight work
+- 🔴 **Critical**: STOP starting new work, swarm to finish existing items, investigate bottlenecks
+
+**Code Location**: `data/flow_calculator.py::calculate_flow_load_v2()`, `calculate_wip_thresholds_from_history()`, and `aggregate_flow_load_weekly()`
 
 ---
 
@@ -453,11 +592,11 @@ Click any DORA metric card to view detailed weekly breakdown:
 - **Per Week**: For all completed items in that week:
   - Count by Flow type (Feature, Defect, Tech Debt, Risk)
   - Calculate percentages: `(count / total) × 100`
-- **Recommended Ranges**:
-  - Feature: 40-60%
-  - Defect: 20-40%
-  - Tech Debt: 10-20%
-  - Risk: 0-10%
+- **Recommended Ranges** (Flow Framework standards):
+  - **Feature: 40-60%** - New business value and capabilities (growth)
+  - **Defect: 20-40%** - Quality maintenance and bug fixes (stability)  
+  - **Tech Debt: 10-20%** - Infrastructure improvements and sustainability
+  - **Risk: 0-10%** - Security, compliance, and operational risk mitigation
 
 **Display Value** (Card shows Stacked Area Chart):
 - **X-axis**: Week labels

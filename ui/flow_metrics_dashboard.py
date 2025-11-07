@@ -23,38 +23,35 @@ def create_flow_dashboard() -> dbc.Container:
     """
     return dbc.Container(
         [
-            # Header section
-            dbc.Row(
+            # Compact overview section with distinct background
+            dbc.Card(
+                dbc.CardBody(
+                    [
+                        html.Div(
+                            id="flow-metrics-overview",
+                            children=[],  # Will be populated by callback
+                        ),
+                    ],
+                    className="pt-3 px-3 pb-0",  # Top and side padding, no bottom padding
+                ),
+                className="mb-3 overview-section",
+                style={
+                    "backgroundColor": "#f8f9fa",  # Light gray background
+                    "border": "none",
+                    "borderRadius": "8px",
+                },
+            ),
+            # Info banner
+            html.P(
                 [
-                    dbc.Col(
-                        [
-                            html.H2(
-                                "Flow Metrics Dashboard",
-                                className="mb-2",
-                            ),
-                            html.P(
-                                "Flow Framework metrics for measuring value stream efficiency "
-                                "and work distribution across Feature, Defect, Risk, and Technical Debt.",
-                                className="text-muted",
-                            ),
-                            html.P(
-                                [
-                                    html.I(className="fas fa-info-circle me-2"),
-                                    "Metrics calculated per ISO week (Monday-Sunday). ",
-                                    "Use ",
-                                    html.Strong("Calculate Metrics"),
-                                    " button in Settings panel to refresh data. ",
-                                    "Use ",
-                                    html.Strong("Data Points slider"),
-                                    " to control number of weeks displayed.",
-                                ],
-                                className="text-muted small mb-4",
-                            ),
-                        ],
-                        width=12,
-                    ),
+                    html.I(className="fas fa-info-circle me-2"),
+                    "Flow metrics calculated per ISO week. Use ",
+                    html.Strong("Calculate Metrics"),
+                    " button to refresh. ",
+                    html.Strong("Data Points slider"),
+                    " controls weeks displayed.",
                 ],
-                className="mb-4",
+                className="text-muted small mb-3",
             ),
             # Metrics cards grid
             html.Div(
@@ -219,7 +216,7 @@ def _create_type_breakdown(details: Dict[str, Any]) -> html.Div:
             label = work_type.replace("_", " ")
             type_badges.append(
                 dbc.Badge(
-                    f"{label}: {count}",
+                    children=f"{label}: {count}",
                     color=color,
                     className="me-1 mb-1",
                     pill=True,
@@ -443,9 +440,7 @@ def create_flow_metrics_cards_grid(metrics_data: dict):
         card_id = f"{metric_name}-card"
         card = create_metric_card(metric_info, card_id)
 
-        # Responsive column: full width on mobile, half on tablet, quarter on desktop
-        cards.append(
-            dbc.Col(card, width=12, md=6, lg=3, className="col-lg-3 col-md-6 col-12")
-        )
+        # Phase 2: One card per row for better detail chart visibility, with bottom margin
+        cards.append(dbc.Col(card, width=12, className="mb-3"))
 
-    return dbc.Row(cards, className="metric-cards-grid mb-4")
+    return dbc.Row(cards, className="metric-cards-grid")

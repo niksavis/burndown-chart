@@ -47,25 +47,25 @@ def _add_performance_tier_zones(
             {
                 "y0": elite_threshold,
                 "y1": y_max * 1.1,
-                "color": "rgba(25, 135, 84, 0.1)",
+                "color": "rgba(25, 135, 84, 0.02)",  # BARELY visible green
                 "name": "Elite",
             },
             {
                 "y0": high_threshold,
                 "y1": elite_threshold,
-                "color": "rgba(255, 193, 7, 0.1)",
+                "color": "rgba(255, 193, 7, 0.02)",  # BARELY visible yellow
                 "name": "High",
             },
             {
                 "y0": medium_threshold,
                 "y1": high_threshold,
-                "color": "rgba(253, 126, 20, 0.1)",
+                "color": "rgba(253, 126, 20, 0.02)",  # BARELY visible orange
                 "name": "Medium",
             },
             {
                 "y0": 0,
                 "y1": medium_threshold,
-                "color": "rgba(220, 53, 69, 0.1)",
+                "color": "rgba(220, 53, 69, 0.02)",  # BARELY visible red
                 "name": "Low",
             },
         ]
@@ -86,25 +86,25 @@ def _add_performance_tier_zones(
             {
                 "y0": 0,
                 "y1": elite_threshold,
-                "color": "rgba(25, 135, 84, 0.1)",
+                "color": "rgba(25, 135, 84, 0.02)",  # BARELY visible green
                 "name": "Elite",
             },
             {
                 "y0": elite_threshold,
                 "y1": high_threshold,
-                "color": "rgba(255, 193, 7, 0.1)",
+                "color": "rgba(255, 193, 7, 0.02)",  # BARELY visible yellow
                 "name": "High",
             },
             {
                 "y0": high_threshold,
                 "y1": medium_threshold,
-                "color": "rgba(253, 126, 20, 0.1)",
+                "color": "rgba(253, 126, 20, 0.02)",  # BARELY visible orange
                 "name": "Medium",
             },
             {
                 "y0": medium_threshold,
                 "y1": y_max * 1.1,
-                "color": "rgba(220, 53, 69, 0.1)",
+                "color": "rgba(220, 53, 69, 0.02)",  # BARELY visible red
                 "name": "Low",
             },
         ]
@@ -119,25 +119,25 @@ def _add_performance_tier_zones(
             {
                 "y0": 0,
                 "y1": elite_threshold,
-                "color": "rgba(25, 135, 84, 0.1)",
+                "color": "rgba(25, 135, 84, 0.02)",  # BARELY visible green
                 "name": "Elite",
             },
             {
                 "y0": elite_threshold,
                 "y1": high_threshold,
-                "color": "rgba(255, 193, 7, 0.1)",
+                "color": "rgba(255, 193, 7, 0.02)",  # BARELY visible yellow
                 "name": "High",
             },
             {
                 "y0": high_threshold,
                 "y1": medium_threshold,
-                "color": "rgba(253, 126, 20, 0.1)",
+                "color": "rgba(253, 126, 20, 0.02)",  # BARELY visible orange
                 "name": "Medium",
             },
             {
                 "y0": medium_threshold,
                 "y1": 100,
-                "color": "rgba(220, 53, 69, 0.1)",
+                "color": "rgba(220, 53, 69, 0.02)",  # BARELY visible red
                 "name": "Low",
             },
         ]
@@ -223,8 +223,8 @@ def create_metric_trend_sparkline(
         x=week_labels,
         y=values,
         mode="lines+markers",
-        line={"color": color, "width": 2},
-        marker={"size": 4, "color": color},
+        line={"color": color, "width": 3},
+        marker={"size": 6, "color": color},
         hovertemplate=f"<b>%{{x}}</b><br>%{{y:.2f}} {unit}<extra></extra>",
         name=metric_name,
     )
@@ -259,29 +259,39 @@ def create_metric_trend_sparkline(
             "categoryorder": "array",  # Use exact order from data
             "categoryarray": week_labels,  # Explicit week order
             "visible": show_axes,
-            "showgrid": False,
+            "showgrid": True if show_axes else False,  # Show grid when axes visible
+            "gridcolor": "rgba(0,0,0,0.1)",  # Consistent grid color
+            "gridwidth": 1,
             "zeroline": False,
             "tickangle": -45,  # Angle labels to prevent overlap with many data points
             "tickfont": {"size": 9},  # Slightly smaller font for better fit
         },
         "yaxis": {
             "visible": show_axes,
-            "showgrid": False,
+            "showgrid": True if show_axes else False,  # Show grid when axes visible
+            "gridcolor": "rgba(0,0,0,0.1)",  # Consistent grid color
+            "gridwidth": 1,
             "zeroline": False,
             "range": y_range,
             "tickfont": {"size": 10},
         },
         "showlegend": False,
         "hovermode": "x unified",
-        "plot_bgcolor": "rgba(0,0,0,0)",
-        "paper_bgcolor": "rgba(0,0,0,0)",
+        "plot_bgcolor": "white",  # White background for visibility
+        "paper_bgcolor": "white",  # White background for visibility
     }
 
     figure = {"data": [trace], "layout": layout}
 
     return dcc.Graph(
         figure=figure,
-        config={"displayModeBar": False},
+        config={
+            "displayModeBar": False,  # Mobile-first: Remove plotly toolbar
+            "responsive": True,  # Mobile-responsive scaling
+            "scrollZoom": False,  # Disable scroll zoom on mobile
+            "doubleClick": False,  # Disable double-click interactions
+            "showTips": False,  # Cleaner appearance
+        },
         style={"height": f"{height}px"},
         className="metric-sparkline",
     )
@@ -296,6 +306,7 @@ def create_metric_trend_full(
     target_label: str = "Target",
     height: int = 200,
     show_performance_zones: bool = True,
+    line_color: str = "#1f77b4",
 ) -> dcc.Graph:
     """
     Create a full-size trend chart for metric details.
@@ -312,6 +323,7 @@ def create_metric_trend_full(
         target_label: Label for target line
         height: Height of chart in pixels (default: 200)
         show_performance_zones: Whether to show performance tier zones (default: True)
+        line_color: Color for the trend line (default: blue, or dynamic based on performance tier)
 
     Returns:
         Dash Graph component with full trend visualization
@@ -319,7 +331,8 @@ def create_metric_trend_full(
     Example:
         >>> sparkline = create_metric_trend_full(
         ...     week_labels, values, "lead_time_for_changes", "days",
-        ...     target_line=1.0, target_label="Elite (< 1 day)"
+        ...     target_line=1.0, target_label="Elite (< 1 day)",
+        ...     line_color="#198754"  # Green for Elite tier
         ... )
     """
     # Handle empty data
@@ -334,7 +347,13 @@ def create_metric_trend_full(
                     "yaxis": {"visible": False},
                 },
             },
-            config={"displayModeBar": False},
+            config={
+                "displayModeBar": False,  # Mobile-first: Remove plotly toolbar
+                "responsive": True,  # Mobile-responsive scaling
+                "scrollZoom": False,  # Disable scroll zoom on mobile
+                "doubleClick": False,  # Disable double-click interactions
+                "showTips": False,  # Cleaner appearance
+            },
             style={"height": f"{height}px"},
         )
 
@@ -351,8 +370,8 @@ def create_metric_trend_full(
             x=week_labels,
             y=values,
             mode="lines+markers",
-            line={"color": "#1f77b4", "width": 3},
-            marker={"size": 8, "color": "#1f77b4"},
+            line={"color": line_color, "width": 3},
+            marker={"size": 8, "color": line_color},
             hovertemplate=f"<b>%{{x}}</b><br>%{{y:.2f}} {unit}<extra></extra>",
             name=metric_name,
         )
@@ -371,11 +390,22 @@ def create_metric_trend_full(
             )
         )
 
-    # Create layout
+    # Create mobile-first layout - CLEAN design matching Work Distribution chart
+    # Convert metric name to proper display title
+    display_titles = {
+        "deployment_frequency": "Weekly Deployment Frequency Trend",
+        "lead_time_for_changes": "Weekly Lead Time For Changes Trend",
+        "change_failure_rate": "Weekly Change Failure Rate Trend",
+        "mean_time_to_recovery": "Weekly Mean Time To Recovery Trend",
+    }
+    display_title = display_titles.get(
+        metric_name, f"Weekly {metric_name.replace('_', ' ').title()} Trend"
+    )
+
     layout = {
         "height": height,
         "title": {
-            "text": f"{metric_name} Trend",
+            "text": display_title,  # Use proper display title
             "font": {"size": 14},
             "x": 0.5,
             "xanchor": "center",
@@ -383,33 +413,38 @@ def create_metric_trend_full(
         "xaxis": {
             "title": "Week",
             "showgrid": True,
-            "gridcolor": "#E5E5E5",
+            "gridcolor": "rgba(0,0,0,0.1)",  # Barely visible grid for consistency
+            "tickfont": {"size": 10},
         },
         "yaxis": {
             "title": unit if unit else metric_name,
             "showgrid": True,
-            "gridcolor": "#E5E5E5",
+            "gridcolor": "rgba(0,0,0,0.1)",  # Barely visible grid for consistency
             "range": [y_min, y_max],
+            "tickfont": {"size": 10},
         },
         "hovermode": "x unified",
-        "legend": {
-            "orientation": "h",
-            "yanchor": "bottom",
-            "y": 1.02,
-            "xanchor": "right",
-            "x": 1,
-        },
+        "showlegend": False,  # Cleaner for trend charts
+        "margin": dict(l=50, r=20, t=50, b=50),  # Mobile-friendly margins
+        "plot_bgcolor": "white",  # CRITICAL: White plot area
+        "paper_bgcolor": "white",  # CRITICAL: White outer background
+        "font": {"size": 12},
     }
 
     figure = go.Figure(data=traces, layout=layout)
 
-    # Add performance tier zones if requested
-    if show_performance_zones:
-        _add_performance_tier_zones(figure, metric_name, y_max, week_labels)
+    # REMOVED: Performance tier zones create visual noise even at low opacity
+    # Zones removed for cleaner, professional appearance
+    # if show_performance_zones:
+    #     _add_performance_tier_zones(figure, metric_name, y_max, week_labels)
 
     return dcc.Graph(
         figure=figure,
-        config={"displayModeBar": True, "displaylogo": False},
+        config={
+            "displayModeBar": False,  # CRITICAL: Remove plotly toolbar completely
+            "staticPlot": False,  # Allow hover but no tools
+            "responsive": True,  # Mobile-responsive scaling
+        },
         style={"height": f"{height}px"},
     )
 
@@ -527,6 +562,8 @@ def create_dual_line_trend(
     release_values: List[float],
     height: int = 250,
     show_axes: bool = True,
+    primary_color: str = "#0d6efd",
+    secondary_color: str = "#28a745",
 ) -> dcc.Graph:
     """Create dual-line trend chart for deployments vs releases.
 
@@ -540,6 +577,8 @@ def create_dual_line_trend(
         release_values: Release counts per week (unique fixVersions)
         height: Height of chart in pixels (default: 250)
         show_axes: Whether to show axis labels (default: True)
+        primary_color: Color for deployment line (default: blue, or dynamic based on performance)
+        secondary_color: Color for release line (default: green)
 
     Returns:
         Dash Graph component with dual-line visualization
@@ -548,7 +587,10 @@ def create_dual_line_trend(
         >>> week_labels = ["2025-W40", "2025-W41", "2025-W42"]
         >>> deployments = [12, 15, 14]
         >>> releases = [6, 8, 7]
-        >>> chart = create_dual_line_trend(week_labels, deployments, releases)
+        >>> chart = create_dual_line_trend(
+        ...     week_labels, deployments, releases,
+        ...     primary_color="#198754"  # Green for Elite tier
+        ... )
     """
     # Handle empty data
     if not week_labels or not deployment_values:
@@ -580,15 +622,15 @@ def create_dual_line_trend(
     # Create traces for deployments and releases
     traces = []
 
-    # Deployment trace (primary - operational tasks)
+    # Deployment trace (primary - operational tasks) with dynamic color
     traces.append(
         go.Scatter(
             x=week_labels,
             y=deployment_values,
             mode="lines+markers",
             name="Deployments (Tasks)",
-            line={"color": "#0d6efd", "width": 3},
-            marker={"size": 8, "color": "#0d6efd"},
+            line={"color": primary_color, "width": 3},
+            marker={"size": 8, "color": primary_color},
             hovertemplate="<b>%{x}</b><br>Deployments: %{y}<extra></extra>",
         )
     )
@@ -600,8 +642,8 @@ def create_dual_line_trend(
             y=release_values,
             mode="lines+markers",
             name="Releases (fixVersions)",
-            line={"color": "#28a745", "width": 2, "dash": "dot"},
-            marker={"size": 6, "color": "#28a745", "symbol": "diamond"},
+            line={"color": secondary_color, "width": 2, "dash": "dot"},
+            marker={"size": 6, "color": secondary_color, "symbol": "diamond"},
             hovertemplate="<b>%{x}</b><br>Releases: %{y}<extra></extra>",
         )
     )
@@ -632,7 +674,8 @@ def create_dual_line_trend(
             "categoryorder": "array",
             "categoryarray": week_labels,
             "visible": show_axes,
-            "showgrid": False,
+            "showgrid": True,  # Enable grid for consistency
+            "gridcolor": "rgba(0,0,0,0.1)",  # Barely visible grid
             "zeroline": False,
             "tickangle": -45,
             "tickfont": {"size": 9},
@@ -640,6 +683,7 @@ def create_dual_line_trend(
         "yaxis": {
             "visible": show_axes,
             "showgrid": True,
+            "gridcolor": "rgba(0,0,0,0.1)",  # Barely visible grid
             "zeroline": False,
             "range": y_range,
             "tickfont": {"size": 10},
@@ -655,8 +699,8 @@ def create_dual_line_trend(
             "font": {"size": 10},
         },
         "hovermode": "x unified",
-        "plot_bgcolor": "rgba(0,0,0,0)",
-        "paper_bgcolor": "rgba(0,0,0,0)",
+        "plot_bgcolor": "white",  # CRITICAL: White plot area, NOT transparent
+        "paper_bgcolor": "white",  # CRITICAL: White outer area, NOT transparent
     }
 
     figure = {"data": traces, "layout": layout}
