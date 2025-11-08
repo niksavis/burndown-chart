@@ -489,40 +489,10 @@ def register(app):
         # This should not be reached due to prevent_initial_call=True
         raise PreventUpdate
 
-    @app.callback(
-        Output("sample-data-alert", "is_open"),
-        [
-            Input("btn-dismiss-sample-alert", "n_clicks"),
-            Input("is-sample-data", "data"),
-            Input("upload-data", "contents"),
-        ],
-        [State("sample-data-alert", "is_open")],
-    )
-    def toggle_sample_data_alert(n_clicks, is_sample_data, upload_contents, is_open):
-        """
-        Show or hide the sample data alert banner.
-        - Show when sample data is being used
-        - Hide when dismissed or when real data is uploaded
-        """
-        ctx = dash.callback_context
-        if not ctx.triggered:
-            # Initial load
-            return is_sample_data
-
-        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
-
-        if trigger_id == "btn-dismiss-sample-alert" and n_clicks:
-            # User dismissed the alert
-            return False
-        elif trigger_id == "upload-data" and upload_contents:
-            # Data was uploaded, hide the alert
-            return False
-        elif trigger_id == "is-sample-data":
-            # Sample data flag changed
-            return is_sample_data
-
-        # Default: maintain current state
-        return is_open
+    # REMOVED: toggle_sample_data_alert callback
+    # Sample data alert now uses Bootstrap's built-in dismissable=True behavior.
+    # No callback needed - the alert automatically closes when user clicks the × button.
+    # Alert visibility is controlled by is_open=is_sample_data in ui/layout.py
 
     # REMOVED: Obsolete callback for jira-data-reload-trigger (store doesn't exist)
     # This callback was part of old data source selection UI that has been removed

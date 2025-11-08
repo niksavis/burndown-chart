@@ -1171,6 +1171,26 @@ svg {
   padding: 0.5rem;
 }
 
+/* White close button for colored alerts (info, success, warning, danger) */
+.alert-primary .btn-close,
+.alert-secondary .btn-close,
+.alert-success .btn-close,
+.alert-danger .btn-close,
+.alert-warning .btn-close,
+.alert-info .btn-close {
+  filter: brightness(0) invert(1);
+  opacity: 0.8;
+}
+
+.alert-primary .btn-close:hover,
+.alert-secondary .btn-close:hover,
+.alert-success .btn-close:hover,
+.alert-danger .btn-close:hover,
+.alert-warning .btn-close:hover,
+.alert-info .btn-close:hover {
+  opacity: 1;
+}
+
 /* Ensure alert content flexes properly */
 .alert.alert-dismissible > * {
   flex: 1;

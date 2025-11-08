@@ -262,22 +262,25 @@ def create_app_layout(settings, statistics, is_sample_data):
             html.Div(
                 [
                     dbc.Alert(
-                        [
-                            html.I(className="fas fa-info-circle me-2"),
-                            html.Strong("Using Sample Data: "),
-                            "You're currently viewing demo data. ",
-                            "Upload your own data using the form below or add entries manually to start tracking your project.",
-                            create_action_button(
-                                "Dismiss",
-                                variant="link",
-                                size="sm",
-                                id_suffix="sample-alert",
-                                className="ms-3",
-                            ),
-                        ],
+                        html.Div(
+                            [
+                                html.I(className="fas fa-info-circle me-2"),
+                                html.Span(
+                                    [
+                                        html.Strong("Using Sample Data"),
+                                        html.Br(),
+                                        html.Small(
+                                            "You're currently viewing demo data. Upload your own data using the form below or add entries manually to start tracking your project.",
+                                            style={"opacity": "0.85"},
+                                        ),
+                                    ]
+                                ),
+                            ],
+                            className="d-flex align-items-start",
+                        ),
                         id="sample-data-alert",
                         color="info",
-                        dismissable=False,
+                        dismissable=True,
                         is_open=is_sample_data,
                         className="mb-3",
                     ),
