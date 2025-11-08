@@ -162,7 +162,13 @@ def create_no_metrics_state(metric_type: str = "Flow") -> html.Div:
                                         className="text-dark mb-3",
                                     ),
                                     html.P(
-                                        f"{metric_type} metrics are calculated from your JIRA data and cached for fast display.",
+                                        [
+                                            f"{metric_type} metrics are calculated from your JIRA data and cached for fast display. ",
+                                            "Configure Field Mappings (Settings → Field Mappings → Fields tab) ",
+                                            "and optionally specify DevOps Projects before calculating."
+                                            if metric_type == "DORA"
+                                            else "to ensure accurate metric calculation.",
+                                        ],
                                         className="text-muted mb-4",
                                     ),
                                 ],

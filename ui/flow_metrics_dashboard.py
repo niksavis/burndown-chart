@@ -25,25 +25,39 @@ def create_flow_dashboard() -> dbc.Container:
     Returns:
         dbc.Container with Flow metrics dashboard components
     """
-    # Check if JIRA data exists to determine initial state
+    # Check if JIRA data exists AND if metrics are calculated
     from data.jira_simple import load_jira_cache
     from data.persistence import load_app_settings
+    from data.metrics_snapshots import has_metric_snapshot
+    from data.time_period_calculator import get_iso_week, format_year_week
+    from datetime import datetime
 
     has_jira_data = False
+    has_metrics = False
+
     try:
         settings = load_app_settings()
         jql_query = settings.get("jql_query", "")
         cache_loaded, cached_issues = load_jira_cache(jql_query, current_fields="")
         has_jira_data = cache_loaded and cached_issues and len(cached_issues) > 0
+
+        # Check if metrics are calculated (check current week)
+        if has_jira_data:
+            year, week = get_iso_week(datetime.now())
+            current_week_label = format_year_week(year, week)
+            has_metrics = has_metric_snapshot(current_week_label, "flow_velocity")
     except Exception:
         pass  # No data available
 
-    # Determine initial content - show banner immediately if no data
-    initial_content = (
-        [create_no_data_state()]
-        if not has_jira_data
-        else [create_metrics_skeleton(num_cards=5)]
-    )
+    # Determine initial content based on what's available
+    if not has_jira_data:
+        initial_content = [create_no_data_state()]
+    elif not has_metrics:
+        from ui.empty_states import create_no_metrics_state
+
+        initial_content = [create_no_metrics_state(metric_type="Flow")]
+    else:
+        initial_content = [create_metrics_skeleton(num_cards=5)]
 
     return dbc.Container(
         [

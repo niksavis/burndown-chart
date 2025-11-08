@@ -24,23 +24,36 @@ def create_dora_dashboard() -> dbc.Container:
     Returns:
         dbc.Container with DORA metrics dashboard components
     """
-    # Check if JIRA data exists to determine initial state
+    # Check if JIRA data exists AND if metrics are calculated
     from data.jira_simple import load_jira_cache
     from data.persistence import load_app_settings
+    from data.dora_metrics_calculator import load_dora_metrics_from_cache
 
     has_jira_data = False
+    has_metrics = False
+
     try:
         settings = load_app_settings()
         jql_query = settings.get("jql_query", "")
         cache_loaded, cached_issues = load_jira_cache(jql_query, current_fields="")
         has_jira_data = cache_loaded and cached_issues and len(cached_issues) > 0
+
+        # Check if metrics are calculated
+        if has_jira_data:
+            cached_metrics = load_dora_metrics_from_cache(n_weeks=12)
+            has_metrics = bool(cached_metrics)
     except Exception:
         pass  # No data available
 
-    # Determine initial content - show banner immediately if no data
-    initial_content = (
-        [create_no_data_state()] if not has_jira_data else [create_metrics_skeleton()]
-    )
+    # Determine initial content based on what's available
+    if not has_jira_data:
+        initial_content = [create_no_data_state()]
+    elif not has_metrics:
+        from ui.empty_states import create_no_metrics_state
+
+        initial_content = [create_no_metrics_state(metric_type="DORA")]
+    else:
+        initial_content = [create_metrics_skeleton()]
 
     return dbc.Container(
         [

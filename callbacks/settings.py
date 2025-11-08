@@ -222,6 +222,11 @@ def register(app):
         )
 
         # Create updated settings
+        # CRITICAL: Ensure data_points_count is an integer (Dash sliders can return floats)
+        data_points_count = (
+            int(data_points_count) if data_points_count is not None else 12
+        )
+
         settings = {
             "pert_factor": pert_factor,
             "deadline": deadline,

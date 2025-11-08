@@ -83,8 +83,9 @@ def create_project_config_form(
                                 className="mb-2",
                             ),
                             html.Small(
-                                "⚠️ Required for DORA metrics",
-                                className="text-warning d-block mb-3",
+                                "ℹ️ Optional. Specify projects containing operational tasks (deployments, incidents). "
+                                "If empty, all issues will be scanned for DORA-relevant fields.",
+                                className="text-muted d-block mb-3",
                             ),
                         ],
                         width=12,

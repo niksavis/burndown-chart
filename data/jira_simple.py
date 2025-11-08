@@ -438,6 +438,18 @@ def fetch_jira_issues_with_changelog(
             # Use base JQL + filter for completed issues only (performance optimization)
             base_jql = config["jql_query"]
 
+            # Extract ORDER BY clause if present (must come at end of final query)
+            order_by_clause = ""
+            if "ORDER BY" in base_jql.upper():
+                # Find ORDER BY position (case-insensitive)
+                import re
+
+                match = re.search(r"\s+ORDER\s+BY\s+", base_jql, re.IGNORECASE)
+                if match:
+                    order_by_start = match.start()
+                    order_by_clause = base_jql[order_by_start:]
+                    base_jql = base_jql[:order_by_start].strip()
+
             # Load completion statuses from configuration
             try:
                 from configuration.dora_config import get_completion_status_names
@@ -445,19 +457,21 @@ def fetch_jira_issues_with_changelog(
                 completion_statuses = get_completion_status_names()
                 if completion_statuses:
                     statuses_str = ", ".join([f'"{s}"' for s in completion_statuses])
-                    jql = f"({base_jql}) AND status IN ({statuses_str})"
+                    jql = (
+                        f"({base_jql}) AND status IN ({statuses_str}){order_by_clause}"
+                    )
                     logger.info(
                         f"Fetching changelog for completed issues only (statuses: {statuses_str})"
                     )
                 else:
                     # Fallback: Use common completion statuses
-                    jql = f'({base_jql}) AND status IN ("Done", "Resolved", "Closed")'
+                    jql = f'({base_jql}) AND status IN ("Done", "Resolved", "Closed"){order_by_clause}'
                     logger.warning(
                         "No completion statuses in config, using fallback: Done, Resolved, Closed"
                     )
             except Exception as e:
                 logger.warning(f"Could not load completion statuses from config: {e}")
-                jql = f'({base_jql}) AND status IN ("Done", "Resolved", "Closed")'
+                jql = f'({base_jql}) AND status IN ("Done", "Resolved", "Closed"){order_by_clause}'
 
         # Get JIRA API endpoint
         api_endpoint = config.get("api_endpoint", "")

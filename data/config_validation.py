@@ -132,20 +132,41 @@ def validate_comprehensive_config(config: Dict[str, Any]) -> Dict[str, List[str]
     errors = []
     warnings = []
 
-    # Required fields validation
+    # Field mappings validation - distinguish between required and optional
+    # CRITICAL: Only Flow metrics baseline fields are truly required
+    # DORA fields are optional since not all JIRA setups support them
     required_field_mappings = [
-        "deployment_date",
-        "change_failure",
-        "affected_environment",
-        "flow_item_type",
-        "work_started_date",
-        "work_completed_date",
+        "flow_item_type",  # Required for Flow metrics
+        "work_completed_date",  # Required for Flow metrics
+    ]
+
+    # Optional DORA fields - warn if missing but don't block saving
+    optional_dora_fields = [
+        "deployment_date",  # DORA: Deployment Frequency
+        "change_failure",  # DORA: Change Failure Rate
+        "affected_environment",  # DORA: MTTR production filtering
+        "incident_detected_at",  # DORA: MTTR
+        "incident_resolved_at",  # DORA: MTTR
     ]
 
     field_mappings = config.get("field_mappings", {})
+
+    # Check required fields (errors)
     for field in required_field_mappings:
         if not field_mappings.get(field):
             errors.append(f"Required field mapping missing: {field}")
+
+    # Check optional DORA fields (warnings only)
+    missing_dora_fields = []
+    for field in optional_dora_fields:
+        if not field_mappings.get(field):
+            missing_dora_fields.append(field)
+
+    if missing_dora_fields:
+        warnings.append(
+            f"Optional DORA field mappings not configured: {', '.join(missing_dora_fields)}. "
+            "Some DORA metrics may be unavailable."
+        )
 
     # Project validation
     dev_projects = config.get("development_projects", [])
@@ -154,8 +175,12 @@ def validate_comprehensive_config(config: Dict[str, Any]) -> Dict[str, List[str]
     if not dev_projects:
         errors.append("At least one development project is required")
 
+    # MODE 1 vs MODE 2 guidance
     if not devops_projects:
-        warnings.append("DevOps projects empty - DORA metrics will not work")
+        warnings.append(
+            "DevOps projects empty - using MODE 2 (field-based DORA detection). "
+            "Configure field_mappings for DORA metrics to work."
+        )
 
     has_overlap, overlap_msg = validate_project_overlap(dev_projects, devops_projects)
     if has_overlap:
@@ -191,9 +216,12 @@ def validate_comprehensive_config(config: Dict[str, Any]) -> Dict[str, List[str]
 
     # Environment validation
     prod_env_values = config.get("production_environment_values", [])
-    if not prod_env_values:
+    affected_env_field = field_mappings.get("affected_environment", "")
+
+    # Only warn about production values if affected_environment is configured
+    if affected_env_field and not prod_env_values:
         warnings.append(
-            "Production environment values empty - MTTR calculation will not work"
+            "Production environment values empty - MTTR will include all bugs (not just production)"
         )
 
     return {"errors": errors, "warnings": warnings}

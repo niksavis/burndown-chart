@@ -2519,3 +2519,128 @@ def aggregate_mttr_weekly(
         f"Weekly MTTR aggregated for {sum(1 for s in weekly_stats.values() if s['count'] > 0)} weeks"
     )
     return weekly_stats
+
+
+#######################################################################
+# FIELD-BASED ISSUE DETECTION (for setups without DevOps projects)
+#######################################################################
+
+
+def filter_issues_by_dora_fields(
+    issues: List[Dict], field_mappings: Dict[str, str], app_settings: Dict[str, Any]
+) -> Dict[str, Any]:
+    """
+    Filter issues by DORA field presence (for setups without separate DevOps projects).
+
+    This function enables DORA metrics to work in simple JIRA setups where:
+    - All issues are in development projects
+    - DORA-relevant data exists as fields on regular issues
+    - No separate DevOps/Operational projects exist
+
+    Detection logic:
+    - Operational Tasks: Issues with deployment_date field populated OR fixVersions with dates
+    - Production Bugs: Issues matching bug_types with incident/resolution dates
+    - Development Issues: All other issues
+
+    Args:
+        issues: List of all JIRA issues
+        field_mappings: Field mapping configuration (from app_settings.json)
+        app_settings: Full app settings for bug_types, etc.
+
+    Returns:
+        Dict with keys:
+        - "operational_tasks": Issues with deployment-related data
+        - "development_issues": Regular development work items
+        - "production_bugs": Bug issues with incident tracking data
+        - "statistics": Detection statistics for logging
+    """
+    operational_tasks = []
+    production_bugs = []
+    development_issues = []
+
+    # Get field IDs from mappings
+    deployment_date_field = field_mappings.get("deployment_date")
+    incident_detected_field = field_mappings.get("incident_detected_at")
+    incident_resolved_field = field_mappings.get("incident_resolved_at")
+
+    # Get bug types from settings
+    bug_types = app_settings.get("bug_types", ["Bug"])
+
+    stats = {
+        "total_scanned": len(issues),
+        "operational_tasks_count": 0,
+        "production_bugs_count": 0,
+        "development_issues_count": 0,
+        "has_deployment_date": 0,
+        "has_fixversions": 0,
+        "has_incident_data": 0,
+    }
+
+    for issue in issues:
+        fields = issue.get("fields", {})
+        issue_type = fields.get("issuetype", {}).get("name", "")
+        is_bug = issue_type in bug_types
+
+        # Check for deployment data (makes it an Operational Task)
+        has_deployment_date = False
+        has_fixversions = False
+
+        if deployment_date_field and fields.get(deployment_date_field):
+            has_deployment_date = True
+            stats["has_deployment_date"] += 1
+
+        # Also check fixVersions as fallback for deployment detection
+        fix_versions = fields.get("fixVersions", [])
+        if fix_versions and isinstance(fix_versions, list) and len(fix_versions) > 0:
+            # Check if any fixVersion has a releaseDate or parseable date in name
+            for version in fix_versions:
+                if isinstance(version, dict):
+                    if version.get("releaseDate"):
+                        has_fixversions = True
+                        stats["has_fixversions"] += 1
+                        break
+                    # Check for YYYYMMDD pattern in name
+                    version_name = version.get("name", "")
+                    if re.search(r"\d{8}", version_name):
+                        has_fixversions = True
+                        stats["has_fixversions"] += 1
+                        break
+
+        # Check for incident data (makes bugs Production Bugs)
+        has_incident_data = False
+        if is_bug:
+            if (incident_detected_field and fields.get(incident_detected_field)) or (
+                incident_resolved_field and fields.get(incident_resolved_field)
+            ):
+                has_incident_data = True
+                stats["has_incident_data"] += 1
+
+        # Categorize issue
+        if has_deployment_date or has_fixversions:
+            operational_tasks.append(issue)
+            stats["operational_tasks_count"] += 1
+        elif is_bug and (has_incident_data or has_deployment_date or has_fixversions):
+            # Bugs with any tracking data are production bugs
+            production_bugs.append(issue)
+            stats["production_bugs_count"] += 1
+        else:
+            # Everything else is development work
+            development_issues.append(issue)
+            stats["development_issues_count"] += 1
+
+    logger.info(
+        f"Field-based DORA detection results: {stats['operational_tasks_count']} operational tasks, "
+        f"{stats['production_bugs_count']} production bugs, {stats['development_issues_count']} development issues "
+        f"(scanned {stats['total_scanned']} issues)"
+    )
+    logger.info(
+        f"Detection breakdown: {stats['has_deployment_date']} with deployment_date, "
+        f"{stats['has_fixversions']} with fixVersions, {stats['has_incident_data']} with incident data"
+    )
+
+    return {
+        "operational_tasks": operational_tasks,
+        "development_issues": development_issues,
+        "production_bugs": production_bugs,
+        "statistics": stats,
+    }

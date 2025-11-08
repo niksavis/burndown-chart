@@ -16,10 +16,7 @@ import logging
 
 from data.persistence import load_app_settings
 from ui.metric_cards import create_metric_cards_grid
-from ui.compact_metric_cards import (
-    create_dora_metrics_overview,
-    create_flow_metrics_overview,
-)
+from ui.work_distribution_card import create_work_distribution_card
 from configuration.help_content import FLOW_METRICS_TOOLTIPS, DORA_METRICS_TOOLTIPS
 
 logger = logging.getLogger(__name__)
@@ -31,18 +28,17 @@ logger = logging.getLogger(__name__)
 
 
 @callback(
+    Output("dora-metrics-cards-container", "children"),
     [
-        Output("dora-metrics-cards-container", "children"),
-        Output("dora-metrics-overview", "children"),
-    ],
-    [
+        Input("jira-issues-store", "data"),  # Check if JIRA data is loaded
         Input("chart-tabs", "active_tab"),
         Input("data-points-input", "value"),
-        Input("metrics-refresh-trigger", "data"),
+        Input("metrics-refresh-trigger", "data"),  # Trigger refresh after calculation
     ],
     prevent_initial_call=False,
 )
 def load_and_display_dora_metrics(
+    jira_data_store: Optional[Dict[str, Any]],
     active_tab: Optional[str],
     data_points: int,
     refresh_trigger: Optional[Any],
@@ -56,34 +52,30 @@ def load_and_display_dora_metrics(
     and saved to cache for instant display.
 
     Args:
+        jira_data_store: Cached JIRA issues from global store (used to check if data is loaded)
         active_tab: Currently active tab (only process if DORA tab is active)
         data_points: Number of weeks to display (from Data Points slider)
-        refresh_trigger: Timestamp of last refresh
+        refresh_trigger: Timestamp of last metrics refresh (triggers update)
 
     Returns:
-        Tuple of (metrics_cards_html, overview_html)
+        Metrics cards HTML (no toast messages, consistent with Flow Metrics)
     """
     try:
         # Only process if DORA tab is active (optimization)
         if active_tab != "tab-dora-metrics":
             raise PreventUpdate
 
-        # STEP 1: Check if JIRA cache file exists
-        import os
-        from data.jira_simple import JIRA_CACHE_FILE
-
-        if not os.path.exists(JIRA_CACHE_FILE):
+        # Check if JIRA data is loaded FIRST (before checking for metrics)
+        if not jira_data_store or not jira_data_store.get("issues"):
             from ui.empty_states import create_no_data_state
 
-            logger.info(
-                "DORA: No JIRA cache file found - showing 'No JIRA Data Loaded' banner"
-            )
-            return create_no_data_state(), html.Div()
+            logger.info("DORA: No JIRA data loaded, showing 'No Data' state")
+            return create_no_data_state()
 
-        # STEP 2: Get number of weeks to display (default 12 if not set)
+        # Get number of weeks to display (default 12 if not set)
         n_weeks = data_points if data_points and data_points > 0 else 12
 
-        # STEP 3: Try to load from metrics cache
+        # Try to load from cache first
         from data.dora_metrics_calculator import load_dora_metrics_from_cache
 
         logger.info(f"DORA: Loading metrics from cache for {n_weeks} weeks")
@@ -110,18 +102,14 @@ def load_and_display_dora_metrics(
         logger.info("===== END DEBUG =====")
 
         logger.info(
-            f"DORA: Metrics cache loaded, data is {'available' if cached_metrics else 'empty'}"
+            f"DORA: Cache loaded, data is {'available' if cached_metrics else 'empty'}"
         )
 
-        # STEP 4: Check if metrics have been calculated (metrics_snapshots.json exists with data)
         if not cached_metrics:
-            # JIRA data exists but metrics not calculated yet - show "Metrics Not Yet Calculated"
+            # No cache available - show unified empty state
             from ui.empty_states import create_no_metrics_state
 
-            logger.info(
-                "DORA: No metrics in cache - showing 'Metrics Not Yet Calculated' banner"
-            )
-            return create_no_metrics_state(metric_type="DORA"), html.Div()
+            return create_no_metrics_state(metric_type="DORA")
 
         # Load metrics from cache and create display
         # Use .get() with defaults to safely handle missing or None values
@@ -269,41 +257,37 @@ def load_and_display_dora_metrics(
             },
         }
 
-        return create_metric_cards_grid(metrics_data), create_dora_metrics_overview(
-            metrics_data
-        )
+        return create_metric_cards_grid(metrics_data)
 
     except PreventUpdate:
         raise
     except Exception as e:
         logger.error(f"Error loading DORA metrics from cache: {e}", exc_info=True)
 
-        error_metrics = {
-            "deployment_frequency": {
-                "metric_name": "deployment_frequency",
-                "value": None,
-                "error_state": "error",
-                "error_message": "Error loading metrics - check logs",
-            },
-            "lead_time_for_changes": {
-                "metric_name": "lead_time_for_changes",
-                "value": None,
-                "error_state": "error",
-            },
-            "change_failure_rate": {
-                "metric_name": "change_failure_rate",
-                "value": None,
-                "error_state": "error",
-            },
-            "mean_time_to_recovery": {
-                "metric_name": "mean_time_to_recovery",
-                "value": None,
-                "error_state": "error",
-            },
-        }
-        return create_metric_cards_grid(error_metrics), html.Div(
-            html.P("Error loading metrics overview", className="text-muted small"),
-            className="text-center p-3",
+        return create_metric_cards_grid(
+            {
+                "deployment_frequency": {
+                    "metric_name": "deployment_frequency",
+                    "value": None,
+                    "error_state": "error",
+                    "error_message": "Error loading metrics - check logs",
+                },
+                "lead_time_for_changes": {
+                    "metric_name": "lead_time_for_changes",
+                    "value": None,
+                    "error_state": "error",
+                },
+                "change_failure_rate": {
+                    "metric_name": "change_failure_rate",
+                    "value": None,
+                    "error_state": "error",
+                },
+                "mean_time_to_recovery": {
+                    "metric_name": "mean_time_to_recovery",
+                    "value": None,
+                    "error_state": "error",
+                },
+            }
         )
 
 
@@ -315,7 +299,6 @@ def load_and_display_dora_metrics(
 @callback(
     [
         Output("flow-metrics-cards-container", "children"),
-        Output("flow-metrics-overview", "children"),
         Output("flow-distribution-chart-container", "children"),
     ],
     [
@@ -350,28 +333,17 @@ def calculate_and_display_flow_metrics(
         app_settings: Application settings including field mappings
 
     Returns:
-        Tuple of (metrics_cards_html, overview_html, distribution_chart_html)
+        Tuple of (metrics_cards_html, distribution_chart_html)
     """
     try:
-        # Validate inputs - check if JIRA cache file exists
-        import os
-        from data.jira_simple import JIRA_CACHE_FILE
-
-        if not os.path.exists(JIRA_CACHE_FILE):
+        # Validate inputs
+        if not jira_data_store or not jira_data_store.get("issues"):
             from ui.empty_states import create_no_data_state
 
-            logger.info(
-                "Flow: No JIRA cache file found - showing 'No JIRA Data Loaded' banner"
-            )
+            # Return no_data state for metrics + HIDE Work Distribution card (like other cards)
             return (
                 create_no_data_state(),
-                html.Div(),  # Empty overview on no data
-                html.Div(),  # Empty distribution chart on no data
-            )
-            return (
-                create_no_data_state(),
-                html.Div(),  # Empty overview on no data
-                html.Div("No distribution data", className="text-muted p-4"),
+                html.Div(),  # Empty div - hide Work Distribution when no data
             )
 
         if not app_settings:
@@ -384,7 +356,6 @@ def calculate_and_display_flow_metrics(
             logger.error(error_msg)
             return (
                 html.Div(error_msg, className="alert alert-danger p-4"),
-                html.Div(),  # Empty overview on error
                 html.Div("Error", className="text-muted p-4"),
             )
 
@@ -419,13 +390,11 @@ def calculate_and_display_flow_metrics(
             logger.warning(
                 f"No Flow metrics snapshot found for week {current_week_label or 'unknown'}"
             )
+
+            # Return no_metrics state for metrics + HIDE Work Distribution card (like other cards)
             return (
                 create_no_metrics_state(metric_type="Flow"),
-                html.Div(),  # Empty overview when no metrics
-                html.Div(
-                    "No distribution data available. Please refresh metrics.",
-                    className="text-muted p-4",
-                ),
+                html.Div(),  # Empty div - hide Work Distribution when no metrics
             )
 
         # READ METRICS FROM SNAPSHOTS (instant, no calculation)
@@ -497,23 +466,6 @@ def calculate_and_display_flow_metrics(
             week_labels, "flow_efficiency", "overall_pct"
         )
 
-        # Calculate dynamic WIP thresholds using Little's Law
-        from data.flow_calculator import calculate_wip_thresholds_from_history
-
-        # Get historical snapshots for threshold calculation
-        velocity_snapshots = []
-        flow_time_snapshots = []
-        for week in week_labels:
-            vel_snap = get_metric_snapshot(week, "flow_velocity")
-            time_snap = get_metric_snapshot(week, "flow_time")
-            if vel_snap and time_snap:
-                velocity_snapshots.append(vel_snap)
-                flow_time_snapshots.append(time_snap)
-
-        wip_thresholds = calculate_wip_thresholds_from_history(
-            velocity_snapshots, flow_time_snapshots
-        )
-
         # Collect historical distribution data for all weeks
         distribution_history = []
         for week in week_labels:
@@ -545,99 +497,71 @@ def calculate_and_display_flow_metrics(
         # Note: dist_card layout moved to distribution chart section below
         # (Keeping 4-card grid for Flow metrics consistency)
 
-        # Create stacked BAR chart for clearer weekly visualization
-        # Bars show discrete weeks better than area chart, making gaps obvious
+        # Create stacked area chart for distribution history
         import plotly.graph_objects as go
 
         fig = go.Figure()
 
-        # NO REFERENCE LINES - they're confusing on stacked charts!
-        # Instead, we'll show target ranges in hover information
-
-        # Add traces for each work type (stacked bars showing percentages)
-        # Order: Feature at BOTTOM, Risk at TOP (bottom-to-top stacking)
-        # Using DARKER washed out colors for better visibility
-        trace_configs_with_targets = [
-            (
-                "Feature",
-                "feature",
-                "#7bc975",
-                "40-60%",
-            ),  # Bottom - darker washed out green
-            ("Defect", "defect", "#ff8080", "20-40%"),  # Darker washed out red
+        # Calculate percentages for each trace upfront
+        trace_configs = [
+            ("Feature", "feature", "rgba(25, 135, 84, 1)", "rgba(25, 135, 84, 0.4)"),
+            ("Defect", "defect", "rgba(220, 53, 69, 1)", "rgba(220, 53, 69, 0.4)"),
             (
                 "Tech Debt",
                 "tech_debt",
-                "#ffbf66",
-                "10-20%",
-            ),  # Darker washed out orange
-            (
-                "Risk",
-                "risk",
-                "#ffe066",
-                "0-10%",
-            ),  # Top - darker washed out yellow
-        ]  # Add bar traces for each work type
-        for trace_name, field_key, color, target_range in trace_configs_with_targets:
-            # Calculate percentage and count for each week
+                "rgba(253, 126, 20, 1)",
+                "rgba(253, 126, 20, 0.4)",
+            ),
+            ("Risk", "risk", "rgba(255, 193, 7, 1)", "rgba(255, 193, 7, 0.4)"),
+        ]
+
+        # Add traces for each work type (stacked area) with percentage hover
+        # Color scheme: Feature (green/growth), Defect (red/problems), Tech Debt (orange/maintenance), Risk (yellow/caution)
+        for trace_name, field_key, line_color, fill_color in trace_configs:
+            # Calculate percentage for each week
             percentages = []
-            counts = []
             for week_data in distribution_history:
                 total = week_data["total"]
                 count = week_data[field_key]
                 pct = (count / total * 100) if total > 0 else 0
-                percentages.append(pct)
-                counts.append(count)
+                percentages.append(f"{pct:.0f}")
 
             fig.add_trace(
-                go.Bar(
+                go.Scatter(
                     x=[d["week"] for d in distribution_history],
-                    y=percentages,
+                    y=[d[field_key] for d in distribution_history],
                     name=trace_name,
-                    marker=dict(
-                        color=color,
-                        line=dict(
-                            color="white", width=0.5
-                        ),  # White borders between segments
-                    ),
-                    customdata=counts,
-                    hovertemplate=f"<b>{trace_name}</b><br>%{{y:.1f}}% (%{{customdata}} items)<br><i>Target: {target_range}</i><extra></extra>",
+                    mode="lines",
+                    line=dict(width=0.5, color=line_color),
+                    fillcolor=fill_color,
+                    stackgroup="one",
+                    customdata=percentages,
+                    hovertemplate=f"%{{y}} {trace_name} (%{{customdata}}%)<extra></extra>",
                 )
             )
 
-        # Clean title without confusing reference line text
-        target_info = (
-            "Target: Feature 40-60%, Defect 20-40%, Tech Debt 10-20%, Risk 0-10%"
-        )
-
         fig.update_layout(
             title={
-                "text": f"Work Distribution Over Time<br><sub style='font-size:10px;color:gray'>{target_info}</sub>",
+                "text": "Work Distribution Over Time<br><sub style='font-size:10px;color:gray'>Hover for percentages. Target: 40-60% Feature, 20-40% Defect, 10-20% Tech Debt, 0-10% Risk</sub>",
                 "x": 0.5,
                 "xanchor": "center",
             },
             xaxis_title="Week",
-            yaxis_title="Percentage of Completed Work (%)",
-            barmode="stack",  # CRITICAL: Stack bars on top of each other
-            bargap=0.05,  # Reduce gap between bars for tighter appearance
+            yaxis_title="Number of Items",
             hovermode="x unified",
             height=400,
-            margin=dict(l=50, r=20, t=80, b=100),
+            margin=dict(
+                l=50, r=120, t=80, b=70
+            ),  # Increased bottom margin from 40 to 70 for angled labels
             legend=dict(
-                orientation="h",
+                orientation="v",
                 yanchor="top",
-                y=-0.15,
-                xanchor="center",
-                x=0.5,
+                y=1,
+                xanchor="left",
+                x=1.02,
             ),
             plot_bgcolor="white",
             paper_bgcolor="white",
-        )
-
-        # Mobile-first configuration - remove plotly tools for cleaner UX
-        fig.update_layout(
-            showlegend=True,
-            dragmode=False,  # Disable drag interactions for cleaner mobile experience
         )
 
         fig.update_xaxes(
@@ -648,309 +572,32 @@ def calculate_and_display_flow_metrics(
             ],  # Explicit week order
             showgrid=True,
             gridwidth=1,
-            gridcolor="rgba(0,0,0,0.05)",  # Consistent barely visible grid
+            gridcolor="lightgray",
             tickangle=-45,  # Angle labels to prevent overlap
             tickfont=dict(size=9),  # Smaller font for better fit
         )
-        fig.update_yaxes(
-            showgrid=True,
-            gridwidth=1,
-            gridcolor="rgba(0,0,0,0.05)",  # Consistent barely visible grid
-            range=[0, 100],  # Set Y-axis range to 0-100% for percentages
+        fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor="lightgray")
+
+        # Create Work Distribution card using new component (2x width, matches other metric cards)
+        distribution_data = {
+            "feature": feature_count,
+            "defect": defect_count,
+            "tech_debt": tech_debt_count,
+            "risk": risk_count,
+            "total": total_velocity,
+        }
+
+        dist_card = create_work_distribution_card(
+            distribution_data=distribution_data,
+            week_label=current_week_label,
+            distribution_history=distribution_history,
+            card_id="work-distribution-card",
         )
 
-        # Create distribution chart section with current week summary
-        dist_html = dbc.Row(
-            [
-                dbc.Col(
-                    [
-                        dbc.Card(
-                            [
-                                dbc.CardHeader(
-                                    html.H5(
-                                        f"Work Distribution Breakdown (Week {current_week_label})",
-                                        className="mb-0",
-                                    ),
-                                    className="bg-light",
-                                ),
-                                dbc.CardBody(
-                                    [
-                                        html.P(
-                                            "Distribution of completed work across the four Flow item types. "
-                                            "Recommended ranges: 40-60% Feature, 20-40% Defect, 10-20% Tech Debt, 0-10% Risk.",
-                                            className="text-muted mb-3",
-                                        ),
-                                        # Current week summary with percentages and range indicators
-                                        (
-                                            lambda: (
-                                                # Calculate percentages
-                                                (
-                                                    feature_pct := (
-                                                        feature_count
-                                                        / total_velocity
-                                                        * 100
-                                                    )
-                                                    if total_velocity > 0
-                                                    else 0
-                                                ),
-                                                (
-                                                    defect_pct := (
-                                                        defect_count
-                                                        / total_velocity
-                                                        * 100
-                                                    )
-                                                    if total_velocity > 0
-                                                    else 0
-                                                ),
-                                                (
-                                                    tech_debt_pct := (
-                                                        tech_debt_count
-                                                        / total_velocity
-                                                        * 100
-                                                    )
-                                                    if total_velocity > 0
-                                                    else 0
-                                                ),
-                                                (
-                                                    risk_pct := (
-                                                        risk_count
-                                                        / total_velocity
-                                                        * 100
-                                                    )
-                                                    if total_velocity > 0
-                                                    else 0
-                                                ),
-                                                # Check if within recommended ranges
-                                                (
-                                                    feature_in_range := 40
-                                                    <= feature_pct
-                                                    <= 60
-                                                ),
-                                                (
-                                                    defect_in_range := 20
-                                                    <= defect_pct
-                                                    <= 40
-                                                ),
-                                                (
-                                                    tech_debt_in_range := 10
-                                                    <= tech_debt_pct
-                                                    <= 20
-                                                ),
-                                                (risk_in_range := 0 <= risk_pct <= 10),
-                                                # Create UI
-                                                dbc.Row(
-                                                    [
-                                                        dbc.Col(
-                                                            [
-                                                                html.Div(
-                                                                    [
-                                                                        html.Div(
-                                                                            [
-                                                                                html.Span(
-                                                                                    "Feature",
-                                                                                    className="small text-muted d-block",
-                                                                                ),
-                                                                                html.Span(
-                                                                                    f"{feature_count} ",
-                                                                                    className="h4 mb-0",
-                                                                                    style={
-                                                                                        "color": "#198754"
-                                                                                    },
-                                                                                ),
-                                                                                html.Span(
-                                                                                    f"({feature_pct:.0f}%)",
-                                                                                    className="h6 mb-0",
-                                                                                    style={
-                                                                                        "color": "#198754"
-                                                                                    },
-                                                                                ),
-                                                                            ]
-                                                                        ),
-                                                                        html.Small(
-                                                                            [
-                                                                                html.I(
-                                                                                    className=f"fas fa-{'check-circle text-success' if feature_in_range else 'exclamation-triangle text-warning'} me-1"
-                                                                                ),
-                                                                                html.Span(
-                                                                                    "40-60%",
-                                                                                    className="text-muted",
-                                                                                ),
-                                                                            ],
-                                                                            className="d-block mt-1",
-                                                                        ),
-                                                                    ]
-                                                                ),
-                                                            ],
-                                                            width=3,
-                                                            className="text-center mb-3",
-                                                        ),
-                                                        dbc.Col(
-                                                            [
-                                                                html.Div(
-                                                                    [
-                                                                        html.Div(
-                                                                            [
-                                                                                html.Span(
-                                                                                    "Defect",
-                                                                                    className="small text-muted d-block",
-                                                                                ),
-                                                                                html.Span(
-                                                                                    f"{defect_count} ",
-                                                                                    className="h4 mb-0",
-                                                                                    style={
-                                                                                        "color": "#dc3545"
-                                                                                    },
-                                                                                ),
-                                                                                html.Span(
-                                                                                    f"({defect_pct:.0f}%)",
-                                                                                    className="h6 mb-0",
-                                                                                    style={
-                                                                                        "color": "#dc3545"
-                                                                                    },
-                                                                                ),
-                                                                            ]
-                                                                        ),
-                                                                        html.Small(
-                                                                            [
-                                                                                html.I(
-                                                                                    className=f"fas fa-{'check-circle text-success' if defect_in_range else 'exclamation-triangle text-warning'} me-1"
-                                                                                ),
-                                                                                html.Span(
-                                                                                    "20-40%",
-                                                                                    className="text-muted",
-                                                                                ),
-                                                                            ],
-                                                                            className="d-block mt-1",
-                                                                        ),
-                                                                    ]
-                                                                ),
-                                                            ],
-                                                            width=3,
-                                                            className="text-center mb-3",
-                                                        ),
-                                                        dbc.Col(
-                                                            [
-                                                                html.Div(
-                                                                    [
-                                                                        html.Div(
-                                                                            [
-                                                                                html.Span(
-                                                                                    "Tech Debt",
-                                                                                    className="small text-muted d-block",
-                                                                                ),
-                                                                                html.Span(
-                                                                                    f"{tech_debt_count} ",
-                                                                                    className="h4 mb-0",
-                                                                                    style={
-                                                                                        "color": "#fd7e14"
-                                                                                    },
-                                                                                ),
-                                                                                html.Span(
-                                                                                    f"({tech_debt_pct:.0f}%)",
-                                                                                    className="h6 mb-0",
-                                                                                    style={
-                                                                                        "color": "#fd7e14"
-                                                                                    },
-                                                                                ),
-                                                                            ]
-                                                                        ),
-                                                                        html.Small(
-                                                                            [
-                                                                                html.I(
-                                                                                    className=f"fas fa-{'check-circle text-success' if tech_debt_in_range else 'exclamation-triangle text-warning'} me-1"
-                                                                                ),
-                                                                                html.Span(
-                                                                                    "10-20%",
-                                                                                    className="text-muted",
-                                                                                ),
-                                                                            ],
-                                                                            className="d-block mt-1",
-                                                                        ),
-                                                                    ]
-                                                                ),
-                                                            ],
-                                                            width=3,
-                                                            className="text-center mb-3",
-                                                        ),
-                                                        dbc.Col(
-                                                            [
-                                                                html.Div(
-                                                                    [
-                                                                        html.Div(
-                                                                            [
-                                                                                html.Span(
-                                                                                    "Risk",
-                                                                                    className="small text-muted d-block",
-                                                                                ),
-                                                                                html.Span(
-                                                                                    f"{risk_count} ",
-                                                                                    className="h4 mb-0",
-                                                                                    style={
-                                                                                        "color": "#ffc107"
-                                                                                    },
-                                                                                ),
-                                                                                html.Span(
-                                                                                    f"({risk_pct:.0f}%)",
-                                                                                    className="h6 mb-0",
-                                                                                    style={
-                                                                                        "color": "#ffc107"
-                                                                                    },
-                                                                                ),
-                                                                            ]
-                                                                        ),
-                                                                        html.Small(
-                                                                            [
-                                                                                html.I(
-                                                                                    className=f"fas fa-{'check-circle text-success' if risk_in_range else 'exclamation-triangle text-warning'} me-1"
-                                                                                ),
-                                                                                html.Span(
-                                                                                    "0-10%",
-                                                                                    className="text-muted",
-                                                                                ),
-                                                                            ],
-                                                                            className="d-block mt-1",
-                                                                        ),
-                                                                    ]
-                                                                ),
-                                                            ],
-                                                            width=3,
-                                                            className="text-center mb-3",
-                                                        ),
-                                                    ],
-                                                    className="mb-3",
-                                                ),
-                                            )[
-                                                -1
-                                            ]  # Return only the dbc.Row, discard calculation results
-                                        )()
-                                        if total_velocity > 0
-                                        else html.P(
-                                            "No completed work this week.",
-                                            className="text-muted text-center mb-3",
-                                        ),
-                                        # Historical trend chart
-                                        dcc.Graph(
-                                            figure=fig,
-                                            config={
-                                                "displayModeBar": False,  # Remove plotly toolbar
-                                                "responsive": True,  # Mobile-responsive
-                                                "scrollZoom": False,  # Disable scroll zoom
-                                                "doubleClick": False,  # Disable double-click
-                                                "showTips": False,  # Cleaner appearance
-                                            },
-                                        ),
-                                    ]
-                                ),
-                            ],
-                            className="mb-4",
-                        ),
-                    ],
-                    width=12,
-                ),
-            ],
-        )
+        # Wrap in Row/Col for full-width layout (spans 12 columns = 2x normal metric card width)
+        dist_html = dbc.Row([dbc.Col([dist_card], width=12)])
 
-        # Load velocity historical values
+        # Load velocity historicalalues
         velocity_values = get_metric_weekly_values(
             week_labels, "flow_velocity", "completed_count"
         )
@@ -1046,7 +693,6 @@ def calculate_and_display_flow_metrics(
                 "total_issue_count": wip_count,  # Use WIP count itself (not completion count)
                 "weekly_labels": week_labels,
                 "weekly_values": flow_load_values,
-                "wip_thresholds": wip_thresholds,  # Include dynamic thresholds
             },
         }
 
@@ -1055,20 +701,13 @@ def calculate_and_display_flow_metrics(
             metrics_data, tooltips=FLOW_METRICS_TOOLTIPS
         )
 
-        # Create compact overview cards for Flow metrics
-        overview_html = create_flow_metrics_overview(metrics_data)
-
-        return metrics_html, overview_html, dist_html
+        return metrics_html, dist_html
 
     except Exception as e:
         logger.error(f"Error calculating Flow metrics: {e}", exc_info=True)
 
         return (
             html.Div("Error loading metrics", className="alert alert-danger p-4"),
-            html.Div(
-                html.P("Error loading metrics overview", className="text-muted small"),
-                className="text-center p-3",
-            ),
             html.Div("Error loading chart", className="text-muted p-4"),
         )
 
@@ -1462,163 +1101,3 @@ def restore_calculate_metrics_progress(pathname):
     ]
 
     return False, button_normal, ""
-
-
-@callback(
-    Output("dora-welcome-banner", "children"),
-    Input("dora-welcome-dismissed", "data"),
-    prevent_initial_call=False,
-)
-def show_dora_welcome_banner(dismissed):
-    """Show welcome banner for first-time users.
-
-    Args:
-        dismissed: Boolean from localStorage indicating if user dismissed banner
-
-    Returns:
-        Welcome banner alert or empty list if dismissed
-    """
-    # If user has dismissed the banner, don't show it
-    if dismissed:
-        return []
-
-    return dbc.Alert(
-        [
-            html.Div(
-                [
-                    html.I(className="fas fa-rocket me-2"),
-                    html.Strong("Welcome to DORA Metrics!", className="me-2"),
-                ],
-                className="mb-2",
-            ),
-            html.P(
-                [
-                    "Start by reviewing these metrics in order: ",
-                    html.Strong("Deployment Frequency"),
-                    " (delivery speed) → ",
-                    html.Strong("Lead Time"),
-                    " (cycle time) → ",
-                    html.Strong("Change Failure Rate"),
-                    " (quality) → ",
-                    html.Strong("MTTR"),
-                    " (resilience).",
-                ],
-                className="mb-2 small",
-            ),
-            html.P(
-                [
-                    "💡 Elite performers deploy ",
-                    html.Strong("multiple times per day"),
-                    " with ",
-                    html.Strong("<15% failure rate"),
-                    " and recover in ",
-                    html.Strong("<1 hour"),
-                    ".",
-                ],
-                className="mb-0 small",
-            ),
-        ],
-        id="dora-welcome-alert",
-        color="info",
-        dismissable=True,
-        className="mb-3",
-    )
-
-
-@callback(
-    Output("dora-welcome-dismissed", "data"),
-    Input("dora-welcome-alert", "is_open"),
-    prevent_initial_call=True,
-)
-def dismiss_dora_welcome_banner(is_open):
-    """Mark welcome banner as dismissed when user closes it.
-
-    Args:
-        is_open: False when alert is dismissed
-
-    Returns:
-        True to store in localStorage
-    """
-    # When alert is closed (is_open becomes False/None), mark as dismissed
-    if is_open is False or is_open is None:
-        return True
-    return False
-
-
-@callback(
-    Output("flow-welcome-banner", "children"),
-    Input("flow-welcome-dismissed", "data"),
-    prevent_initial_call=False,
-)
-def show_flow_welcome_banner(dismissed):
-    """Show welcome banner for first-time Flow metrics users.
-
-    Args:
-        dismissed: Boolean from localStorage indicating if user dismissed banner
-
-    Returns:
-        Welcome banner alert or empty list if dismissed
-    """
-    # If user has dismissed the banner, don't show it
-    if dismissed:
-        return []
-
-    return dbc.Alert(
-        [
-            html.Div(
-                [
-                    html.I(className="fas fa-water me-2"),
-                    html.Strong("Welcome to Flow Metrics!", className="me-2"),
-                ],
-                className="mb-2",
-            ),
-            html.P(
-                [
-                    "Start by checking ",
-                    html.Strong("Flow Load (WIP)"),
-                    " - keep it low for faster delivery. Then review ",
-                    html.Strong("Flow Velocity"),
-                    " (throughput) and ",
-                    html.Strong("Flow Time"),
-                    " (cycle time).",
-                ],
-                className="mb-2 small",
-            ),
-            html.P(
-                [
-                    "💡 Healthy teams maintain ",
-                    html.Strong("WIP < 10 items"),
-                    ", ",
-                    html.Strong("Flow Efficiency 25-40%"),
-                    ", and balanced ",
-                    html.Strong("Distribution"),
-                    " (40-60% features, 20-40% defects).",
-                ],
-                className="mb-0 small",
-            ),
-        ],
-        id="flow-welcome-alert",
-        color="info",
-        dismissable=True,
-        className="mb-3",
-    )
-
-
-@callback(
-    Output("flow-welcome-dismissed", "data"),
-    Input("flow-welcome-alert", "is_open"),
-    prevent_initial_call=True,
-)
-def dismiss_flow_welcome_banner(is_open):
-    """Mark Flow welcome banner as dismissed when user closes it.
-
-    Args:
-        is_open: False when alert is dismissed
-
-    Returns:
-        True to store in localStorage
-    """
-    # When alert is closed (is_open becomes False/None), mark as dismissed
-    if is_open is False or is_open is None:
-        return True
-    return False

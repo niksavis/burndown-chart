@@ -823,19 +823,36 @@ def _create_success_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
                 id=f"badge-{card_id}" if card_id else f"badge-{metric_name}",
             )
     else:
-        # Regular badge for other metrics (DORA metrics)
+        # Regular badge for other metrics (DORA and Flow metrics)
         perf_tier = metric_data.get("performance_tier")
 
         if perf_tier:
             # Set tooltip text based on performance tier
-            tier_tooltips = {
+            # DORA tier tooltips
+            dora_tier_tooltips = {
                 "Elite": "Top 10% of teams - world-class performance",
                 "High": "Top 25% of teams - strong performance",
                 "Medium": "Top 50% of teams - room for improvement",
                 "Low": "Below average - needs immediate attention",
             }
-            badge_tooltip_text = tier_tooltips.get(
-                perf_tier, "Performance tier indicator"
+
+            # Flow metrics tier tooltips
+            flow_tier_tooltips = {
+                # Flow Velocity
+                "Excellent": "Outstanding throughput - team is highly productive",
+                "Good": "Solid throughput - consistent delivery pace",
+                "Fair": "Acceptable throughput - room for improvement",
+                "Low": "Below target throughput - investigate bottlenecks",
+                # Flow Time
+                "Slow": "Items taking too long - reduce cycle time",
+                # Generic (used by other Flow metrics if tier matches)
+            }
+
+            # Try Flow tooltips first, then DORA tooltips, then fallback
+            badge_tooltip_text = (
+                flow_tier_tooltips.get(perf_tier)
+                or dora_tier_tooltips.get(perf_tier)
+                or "Performance tier indicator"
             )
 
             # Use className for custom colors, color parameter for standard Bootstrap colors
@@ -1237,13 +1254,24 @@ def _create_error_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
             },  # Pattern-matching ID
             "message_override": "Configure JIRA field mappings in Settings to enable this metric.",
         },
+        "field_not_configured": {
+            "icon": "fas fa-toggle-off",
+            "title": "Metric Disabled",
+            "color": "secondary",
+            "action_text": "Configure Field Mapping",
+            "action_id": {
+                "type": "open-field-mapping",
+                "index": metric_name,
+            },
+            "message_override": "This metric is disabled because the required JIRA field mapping is not configured for your JIRA setup.",
+        },
         "no_data": {
             "icon": "fas fa-inbox",
             "title": "No Data Available",
             "color": "secondary",
             "action_text": "Recalculate Metrics",
             "action_id": "open-time-period-selector",
-            "message_override": "No data found for the selected time period. Try recalculating metrics or adjusting the time range.",
+            "message_override": "No matching issues found for this metric. This may be normal if your JIRA setup doesn't track this data (e.g., deployment tracking for open-source projects).",
         },
         "calculation_error": {
             "icon": "fas fa-exclamation-triangle",
@@ -1274,6 +1302,7 @@ def _create_error_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
     badge_text_map = {
         "no_data": "No Data",
         "missing_mapping": "Setup Required",
+        "field_not_configured": "Disabled",
         "calculation_error": "Error",
     }
     badge_text = badge_text_map.get(error_state, "Error")
@@ -1314,7 +1343,17 @@ def _create_error_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
         className="d-flex flex-column",
     )
 
-    return dbc.Card([card_header, card_body], **card_props)  # type: ignore[call-arg]
+    # Add footer matching success cards (gray background for visual consistency)
+    card_footer = dbc.CardFooter(
+        html.Div(
+            "\u00a0",  # Non-breaking space to maintain minimal height
+            className="text-center text-muted",
+            style={"fontSize": "0.75rem", "opacity": "0"},
+        ),
+        className="bg-light border-top py-2",  # Same padding and styling as success cards
+    )
+
+    return dbc.Card([card_header, card_body, card_footer], **card_props)  # type: ignore[call-arg]
 
 
 def _format_additional_info(metric_data: dict) -> str:
