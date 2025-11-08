@@ -12,7 +12,7 @@ It provides functions for managing settings and statistics using JSON files.
 import json
 import os
 from datetime import datetime, timedelta
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 # Third-party library imports
 import pandas as pd
@@ -65,6 +65,20 @@ def save_app_settings(
     jql_query=None,
     last_used_data_source=None,
     active_jql_profile_id=None,
+    jira_config=None,
+    field_mappings=None,
+    development_projects=None,
+    devops_projects=None,
+    devops_task_types=None,
+    bug_types=None,
+    story_types=None,
+    task_types=None,
+    production_environment_values=None,
+    completion_statuses=None,
+    active_statuses=None,
+    flow_start_statuses=None,
+    wip_statuses=None,
+    flow_type_mappings=None,
 ):
     """
     Save app-level settings to JSON file.
@@ -82,6 +96,20 @@ def save_app_settings(
         jql_query: JQL query for JIRA integration
         last_used_data_source: Last selected data source (JIRA or CSV)
         active_jql_profile_id: ID of the currently active JQL query profile
+        jira_config: JIRA configuration dictionary
+        field_mappings: Field mappings configuration
+        development_projects: List of development project keys
+        devops_projects: List of devops project keys
+        devops_task_types: List of DevOps task type names
+        bug_types: List of bug type names
+        story_types: List of story type names
+        task_types: List of task type names
+        production_environment_values: List of production environment identifiers
+        completion_statuses: List of completion status names
+        active_statuses: List of active status names
+        flow_start_statuses: List of flow start status names
+        wip_statuses: List of WIP status names
+        flow_type_mappings: Dict with Flow type classifications (Feature, Defect, etc.)
     """
     settings = {
         "pert_factor": pert_factor,
@@ -101,14 +129,78 @@ def save_app_settings(
         else "",
     }
 
-    # Preserve jira_config if it exists (Feature 003-jira-config-separation)
+    # Add comprehensive mappings configuration if provided
+    if jira_config is not None:
+        settings["jira_config"] = jira_config
+    if field_mappings is not None:
+        settings["field_mappings"] = field_mappings
+    if development_projects is not None:
+        settings["development_projects"] = development_projects
+    if devops_projects is not None:
+        settings["devops_projects"] = devops_projects
+    if devops_task_types is not None:
+        settings["devops_task_types"] = devops_task_types
+    if bug_types is not None:
+        settings["bug_types"] = bug_types
+    if story_types is not None:
+        settings["story_types"] = story_types
+    if task_types is not None:
+        settings["task_types"] = task_types
+    if production_environment_values is not None:
+        settings["production_environment_values"] = production_environment_values
+    if completion_statuses is not None:
+        settings["completion_statuses"] = completion_statuses
+    if active_statuses is not None:
+        settings["active_statuses"] = active_statuses
+    if flow_start_statuses is not None:
+        settings["flow_start_statuses"] = flow_start_statuses
+    if wip_statuses is not None:
+        settings["wip_statuses"] = wip_statuses
+    if flow_type_mappings is not None:
+        settings["flow_type_mappings"] = flow_type_mappings
+
+    # Preserve DORA/Flow configuration and other settings if they exist
     try:
         existing_settings = load_app_settings()
-        if "jira_config" in existing_settings:
-            settings["jira_config"] = existing_settings["jira_config"]
-            logger.debug("Preserved existing jira_config during save")
+        logger.info(
+            f"save_app_settings: Loading existing settings. Keys present: {list(existing_settings.keys())}"
+        )
+
+        # Keys to preserve from existing settings (if not explicitly provided)
+        preserve_keys = [
+            "jira_config",
+            "field_mappings",
+            "devops_projects",
+            "development_projects",
+            "devops_task_types",
+            "bug_types",
+            "story_types",
+            "task_types",
+            "production_environment_values",
+            "production_environment_value",  # Legacy support
+            "completion_statuses",
+            "active_statuses",
+            "flow_start_statuses",
+            "wip_statuses",
+            "flow_type_mappings",
+            "field_mapping_notes",
+        ]
+
+        for key in preserve_keys:
+            if key in existing_settings and key not in settings:
+                settings[key] = existing_settings[key]
+                logger.debug(f"Preserved existing {key} during save")
+                # Extra logging for field_mappings to debug config reversion issue
+                if key == "field_mappings":
+                    logger.info(
+                        f"Preserving field_mappings from existing settings: {existing_settings[key]}"
+                    )
+
+        logger.info(
+            f"save_app_settings: Final settings keys before write: {list(settings.keys())}"
+        )
     except Exception as e:
-        logger.debug(f"Could not load existing settings to preserve jira_config: {e}")
+        logger.error(f"Could not load existing settings to preserve configuration: {e}")
 
     try:
         # Write to a temporary file first
@@ -121,7 +213,9 @@ def save_app_settings(
             os.remove(APP_SETTINGS_FILE)
         os.rename(temp_file, APP_SETTINGS_FILE)
 
-        logger.info(f"App settings saved to {APP_SETTINGS_FILE}")
+        logger.info(
+            f"App settings saved to {APP_SETTINGS_FILE}. Keys written: {list(settings.keys())}"
+        )
     except Exception as e:
         logger.error(f"Error saving app settings: {e}")
 
@@ -141,11 +235,7 @@ def load_app_settings():
         "milestone": None,
         "show_points": False,
         "jql_query": "project = JRASERVER",
-        "jira_api_endpoint": "https://jira.atlassian.com/rest/api/2/search",
-        "jira_token": "",
-        "jira_story_points_field": "",
-        "jira_cache_max_size": 100,
-        "last_used_data_source": "JIRA",  # Default to JIRA (swapped order)
+        "last_used_data_source": "JIRA",  # Default to JIRA
         "active_jql_profile_id": "",  # Empty means use custom query
     }
 
@@ -733,14 +823,11 @@ def load_unified_project_data():
     """
     Load unified project data (Phase 3).
 
-    Automatically adds default bug_analysis section if missing for backward compatibility.
-
     Returns:
-        Dict: Unified project data structure (includes bug_analysis if enabled)
+        Dict: Unified project data structure
     """
     from data.schema import (
         get_default_unified_data,
-        get_default_bug_analysis_data,
         validate_project_data_structure,
     )
 
@@ -760,13 +847,6 @@ def load_unified_project_data():
             logger.warning("⚠️ Invalid unified data structure, using defaults")
             return get_default_unified_data()
 
-        # Add default bug_analysis section if missing (backward compatibility)
-        if "bug_analysis" not in data:
-            data["bug_analysis"] = get_default_bug_analysis_data()
-            logger.debug(
-                "Added default bug_analysis section for backward compatibility"
-            )
-
         return data
 
     except Exception as e:
@@ -778,14 +858,10 @@ def save_unified_project_data(data):
     """
     Save unified project data (Phase 3).
 
-    Automatically handles optional bug_analysis section if present in data.
-
     Args:
-        data: Unified project data dictionary (optionally includes bug_analysis)
+        data: Unified project data dictionary
     """
     try:
-        # Ensure bug_analysis section is preserved if present
-        # No additional validation needed - save as-is
         with open(PROJECT_DATA_FILE, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
         logger.info("✅ Saved unified project data")
@@ -1300,7 +1376,14 @@ def load_jira_configuration() -> Dict[str, Any]:
 
     # Check if migration is needed
     if "jira_config" not in app_settings:
+        # Preserve field_mappings before migration
+        field_mappings = app_settings.get("field_mappings", {})
+
         app_settings = migrate_jira_config(app_settings)
+
+        # Restore field_mappings after migration
+        if field_mappings:
+            app_settings["field_mappings"] = field_mappings
 
         # Save migrated settings back to file
         try:
@@ -1321,7 +1404,15 @@ def load_jira_configuration() -> Dict[str, Any]:
             "jira_max_results",
         ]
     ):
+        # Preserve field_mappings before cleanup
+        field_mappings = app_settings.get("field_mappings", {})
+
         app_settings = cleanup_legacy_jira_fields(app_settings)
+
+        # Restore field_mappings after cleanup
+        if field_mappings:
+            app_settings["field_mappings"] = field_mappings
+
         # Save cleaned settings
         try:
             with open(APP_SETTINGS_FILE, "w") as f:
@@ -1442,6 +1533,204 @@ def save_jira_configuration(config: Dict[str, Any]) -> bool:
     except Exception as e:
         logger.error(f"Error saving JIRA configuration: {e}")
         return False
+
+
+#######################################################################
+# DORA/FLOW METRICS HISTORICAL DATA PERSISTENCE (Feature 007)
+#######################################################################
+
+
+def load_metrics_history() -> Dict[str, List[Dict[str, Any]]]:
+    """
+    Load historical DORA and Flow metrics data from unified project data.
+
+    Returns:
+        Dictionary with 'dora_metrics' and 'flow_metrics' keys, each containing
+        a list of historical metric snapshots with timestamps.
+
+    Example structure:
+        {
+            "dora_metrics": [
+                {
+                    "timestamp": "2025-10-29T10:00:00Z",
+                    "time_period_days": 30,
+                    "deployment_frequency": {"value": 5.2, "unit": "deployments/month", ...},
+                    "lead_time_for_changes": {"value": 2.5, "unit": "days", ...},
+                    ...
+                }
+            ],
+            "flow_metrics": [
+                {
+                    "timestamp": "2025-10-29T10:00:00Z",
+                    "time_period_days": 30,
+                    "flow_velocity": {"value": 45, "unit": "items/month", ...},
+                    ...
+                }
+            ]
+        }
+    """
+    try:
+        unified_data = load_unified_project_data()
+
+        # Return metrics history or empty structure if not found
+        return unified_data.get(
+            "metrics_history", {"dora_metrics": [], "flow_metrics": []}
+        )
+
+    except Exception as e:
+        logger.error(f"Error loading metrics history: {e}")
+        return {"dora_metrics": [], "flow_metrics": []}
+
+
+def save_metrics_snapshot(
+    metric_type: str, metrics_data: Dict[str, Any], time_period_days: int
+) -> bool:
+    """
+    Save a snapshot of current DORA or Flow metrics to historical data.
+
+    This enables trend analysis by storing metric values over time. Snapshots are
+    automatically deduplicated based on timestamp (same day).
+
+    Args:
+        metric_type: Either 'dora_metrics' or 'flow_metrics'
+        metrics_data: Dictionary containing all calculated metrics for the type
+        time_period_days: Time period used for the calculation (e.g., 30, 90)
+
+    Returns:
+        True if save successful, False otherwise
+
+    Example:
+        >>> dora_data = {
+        ...     "deployment_frequency": {"value": 5.2, "unit": "deployments/month"},
+        ...     "lead_time_for_changes": {"value": 2.5, "unit": "days"},
+        ... }
+        >>> save_metrics_snapshot('dora_metrics', dora_data, 30)
+        True
+    """
+    try:
+        if metric_type not in ["dora_metrics", "flow_metrics"]:
+            logger.error(f"Invalid metric type: {metric_type}")
+            return False
+
+        # Load current unified data
+        unified_data = load_unified_project_data()
+
+        # Initialize metrics_history if not present
+        if "metrics_history" not in unified_data:
+            unified_data["metrics_history"] = {
+                "dora_metrics": [],
+                "flow_metrics": [],
+            }
+
+        # Create snapshot with timestamp
+        snapshot = {
+            "timestamp": datetime.now().isoformat(),
+            "time_period_days": time_period_days,
+            **metrics_data,  # Include all metric calculations
+        }
+
+        # Get existing history for this metric type
+        history = unified_data["metrics_history"][metric_type]
+
+        # Check if we already have a snapshot from today (deduplicate)
+        today_date = datetime.now().date().isoformat()
+        existing_today = [
+            i
+            for i, s in enumerate(history)
+            if s.get("timestamp", "")[:10] == today_date
+            and s.get("time_period_days") == time_period_days
+        ]
+
+        if existing_today:
+            # Replace existing snapshot from today with same time period
+            history[existing_today[0]] = snapshot
+            logger.info(
+                f"Updated today's {metric_type} snapshot for {time_period_days}d period"
+            )
+        else:
+            # Add new snapshot
+            history.append(snapshot)
+            logger.info(
+                f"Added new {metric_type} snapshot for {time_period_days}d period"
+            )
+
+        # Limit history to last 90 days to prevent file bloat
+        cutoff_date = (datetime.now() - timedelta(days=90)).isoformat()
+        history[:] = [s for s in history if s.get("timestamp", "") >= cutoff_date]
+
+        # Sort by timestamp (oldest first)
+        history.sort(key=lambda x: x.get("timestamp", ""))
+
+        # Save updated data
+        unified_data["metrics_history"][metric_type] = history
+        unified_data["metadata"]["last_updated"] = datetime.now().isoformat()
+        save_unified_project_data(unified_data)
+
+        logger.info(f"Metrics history saved: {len(history)} {metric_type} snapshots")
+        return True
+
+    except Exception as e:
+        logger.error(f"Error saving metrics snapshot: {e}")
+        return False
+
+
+def get_metric_trend_data(
+    metric_type: str, metric_name: str, time_period_days: int = 30
+) -> List[Dict[str, Any]]:
+    """
+    Get historical trend data for a specific metric.
+
+    Args:
+        metric_type: Either 'dora_metrics' or 'flow_metrics'
+        metric_name: Name of the specific metric (e.g., 'deployment_frequency', 'flow_velocity')
+        time_period_days: Filter for specific time period (default: 30)
+
+    Returns:
+        List of data points with 'date' and 'value' keys for trend visualization
+
+    Example:
+        >>> trend = get_metric_trend_data('dora_metrics', 'deployment_frequency', 30)
+        >>> print(trend)
+        [
+            {"date": "2025-10-01", "value": 4.8},
+            {"date": "2025-10-08", "value": 5.2},
+            {"date": "2025-10-15", "value": 5.5},
+        ]
+    """
+    try:
+        history = load_metrics_history()
+
+        if metric_type not in history:
+            return []
+
+        metric_history = history[metric_type]
+
+        # Extract trend data for specific metric
+        trend_data = []
+        for snapshot in metric_history:
+            # Filter by time period
+            if snapshot.get("time_period_days") != time_period_days:
+                continue
+
+            # Extract metric value
+            metric_data = snapshot.get(metric_name, {})
+            if isinstance(metric_data, dict) and "value" in metric_data:
+                trend_data.append(
+                    {
+                        "date": snapshot.get("timestamp", "")[:10],  # YYYY-MM-DD only
+                        "value": metric_data["value"],
+                        "unit": metric_data.get("unit", ""),
+                    }
+                )
+
+        # Sort by date
+        trend_data.sort(key=lambda x: x["date"])
+
+        return trend_data
+
+    except Exception as e:
+        logger.error(f"Error getting metric trend data: {e}")
+        return []
 
 
 #######################################################################

@@ -206,9 +206,9 @@ def register(app):
         total_points = settings.get("total_points", 500)
         pert_factor = settings.get("pert_factor", 3)
         deadline = settings.get("deadline", None)
-        data_points_count = settings.get(
-            "data_points_count", len(df)
-        )  # Get selected data points count
+        data_points_count = int(
+            settings.get("data_points_count", len(df))
+        )  # Get selected data points count (ensure int)
 
         # Get milestone settings
         show_milestone = settings.get("show_milestone", False)
@@ -282,9 +282,9 @@ def register(app):
         total_points = settings.get("total_points", 500)
         pert_factor = settings.get("pert_factor", 3)
         deadline = settings.get("deadline", None)
-        data_points_count = settings.get(
-            "data_points_count", len(df)
-        )  # Get selected data points count
+        data_points_count = int(
+            settings.get("data_points_count", len(df))
+        )  # Get selected data points count (ensure int)
 
         # Get milestone settings
         show_milestone = settings.get("show_milestone", False)
@@ -712,7 +712,9 @@ def register(app):
         scope_creep_threshold = settings.get(
             "scope_creep_threshold", DEFAULT_SETTINGS["scope_creep_threshold"]
         )
-        data_points_count = settings.get("data_points_count", len(df))
+        data_points_count = int(
+            settings.get("data_points_count", len(df))
+        )  # Ensure int
 
         if df.empty:
             return html.Div(
@@ -931,7 +933,9 @@ def register(app):
             total_items = settings["total_items"]
             total_points = calc_results.get("total_points", settings["total_points"])
             deadline = settings["deadline"]
-            data_points_count = settings.get("data_points_count")
+            data_points_count = int(
+                settings.get("data_points_count", 12)
+            )  # Ensure int, default 12
 
             # Convert statistics to DataFrame
             df = pd.DataFrame(statistics)
@@ -1154,7 +1158,9 @@ def register(app):
                 from callbacks.bug_analysis import _render_bug_analysis_content
 
                 # Get data_points_count from settings
-                data_points_count = settings.get("data_points_count", 12)
+                data_points_count = int(
+                    settings.get("data_points_count", 12)
+                )  # Ensure int
 
                 # Render the actual content immediately
                 bug_analysis_content = _render_bug_analysis_content(data_points_count)
@@ -1164,6 +1170,30 @@ def register(app):
                 ui_state["loading"] = False
                 return bug_analysis_content, chart_cache, ui_state
 
+            elif active_tab == "tab-dora-metrics":
+                # Generate DORA metrics dashboard
+                # Callback will populate with metrics (prevent_initial_call=False)
+                from ui.dora_metrics_dashboard import create_dora_dashboard
+
+                dora_content = create_dora_dashboard()
+
+                # Cache the result for next time
+                chart_cache[cache_key] = dora_content
+                ui_state["loading"] = False
+                return dora_content, chart_cache, ui_state
+
+            elif active_tab == "tab-flow-metrics":
+                # Generate Flow metrics dashboard
+                # Callback will populate with metrics (prevent_initial_call=False)
+                from ui.flow_metrics_dashboard import create_flow_dashboard
+
+                flow_content = create_flow_dashboard()
+
+                # Cache the result for next time
+                chart_cache[cache_key] = flow_content
+                ui_state["loading"] = False
+                return flow_content, chart_cache, ui_state
+
             # Default fallback (should not reach here)
             fallback_content = create_content_placeholder(
                 type="chart", text="Select a tab to view data", height="400px"
@@ -1172,11 +1202,18 @@ def register(app):
             return fallback_content, chart_cache, ui_state
 
         except Exception as e:
+            import traceback
+
             logger.error(f"Error in render_tab_content callback: {e}")
+            logger.error(f"Full traceback: {traceback.format_exc()}")
             error_content = html.Div(
                 [
                     html.H4("Error Loading Chart", className="text-danger"),
                     html.P(f"An error occurred: {str(e)}"),
+                    html.P(
+                        "Please check the application logs for details.",
+                        className="text-muted",
+                    ),
                 ]
             )
             ui_state["loading"] = False

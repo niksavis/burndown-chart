@@ -95,6 +95,10 @@ def get_weekly_metrics(df, data_points_count=None):
     Returns:
         Tuple of (avg_weekly_items, avg_weekly_points, med_weekly_items, med_weekly_points)
     """
+    # Ensure data_points_count is an integer (could be float from UI slider)
+    if data_points_count is not None:
+        data_points_count = int(data_points_count)
+
     # Import here to avoid circular imports
     from data import calculate_weekly_averages
 
@@ -559,6 +563,10 @@ def prepare_visualization_data(
     Returns:
         Dictionary containing all data needed for visualization
     """
+    # Ensure data_points_count is an integer (could be float from UI slider)
+    if data_points_count is not None:
+        data_points_count = int(data_points_count)
+
     # Import needed functions
     from data.processing import (
         daily_forecast_burnup,

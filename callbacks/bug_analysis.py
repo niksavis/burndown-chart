@@ -21,7 +21,6 @@ from data.bug_processing import (
     calculate_bug_metrics_summary,
     forecast_bug_resolution,
 )
-from data.persistence import load_unified_project_data
 from ui.bug_analysis import (
     create_bug_metrics_cards,
     create_quality_insights_panel,
@@ -65,36 +64,43 @@ def _render_bug_analysis_content(data_points_count: int):
         jira_config = load_jira_configuration()
         points_field = jira_config.get("points_field", "customfield_10016")
 
-        # Get JIRA issues - try multiple sources
+        # Get JIRA issues from cache with ALL fields (don't specify fields to avoid validation mismatch)
+        # By passing empty string for fields, load_jira_cache won't validate fields
         all_issues = []
 
-        # First: Try project_data.json
-        if not all_issues:
-            project_data = load_unified_project_data()
-            all_issues = project_data.get("jira_issues", [])
-            logger.debug(f"Loaded {len(all_issues)} issues from project file")
+        try:
+            from data.jira_simple import load_jira_cache
+            from data.persistence import load_app_settings
 
-        # Third: Try jira_cache.json directly
-        if not all_issues:
-            try:
-                from data.jira_simple import load_jira_cache
-                from data.persistence import load_app_settings
+            settings = load_app_settings()
+            jql_query = settings.get("jql_query", "")
 
-                settings = load_app_settings()
-                jql_query = settings.get("jql_query", "")
-
-                # Include points field if configured (must match cached fields)
-                base_fields = "key,created,resolutiondate,status,issuetype"
-                fields = (
-                    f"{base_fields},{points_field}" if points_field else base_fields
+            # Load cache WITHOUT field validation - pass empty string for current_fields
+            # This accepts whatever fields are in the cache
+            cache_loaded, cached_issues = load_jira_cache(jql_query, current_fields="")
+            if cache_loaded and cached_issues:
+                all_issues = cached_issues
+                logger.debug(
+                    f"Loaded {len(all_issues)} issues from JIRA cache with all fields"
                 )
+        except Exception as e:
+            logger.warning(f"Could not load from JIRA cache: {e}")
 
-                cache_loaded, cached_issues = load_jira_cache(jql_query, fields)
-                if cache_loaded and cached_issues:
-                    all_issues = cached_issues
-                    logger.debug(f"Loaded {len(all_issues)} issues from JIRA cache")
-            except Exception as e:
-                logger.warning(f"Could not load from JIRA cache: {e}")
+        # Filter out DevOps project issues (development metrics only)
+        if all_issues:
+            from data.project_filter import filter_development_issues
+            from data.persistence import load_app_settings
+
+            settings = load_app_settings()
+            devops_projects = settings.get("devops_projects", [])
+
+            if devops_projects:
+                original_count = len(all_issues)
+                all_issues = filter_development_issues(all_issues, devops_projects)
+                filtered_count = original_count - len(all_issues)
+                logger.info(
+                    f"Bug Analysis: Filtered out {filtered_count} DevOps issues from {original_count} total issues"
+                )
 
         # Determine date range based on data_points_count (timeline filter)
         from datetime import datetime, timedelta
@@ -124,8 +130,38 @@ def _render_bug_analysis_content(data_points_count: int):
             f"(date range: {date_from.date()} to {date_to.date()}, {data_points_count} weeks)"
         )
 
+        # Check if there are no bugs at all - show helpful placeholder
+        if len(all_bug_issues) == 0:
+            from ui.empty_states import create_no_data_state
+
+            # Return empty state in fluid container to match DORA/Flow dashboards
+            # Wrap in div with ID for fade-in animation
+            return html.Div(
+                dbc.Container(
+                    create_no_data_state(),
+                    fluid=True,
+                    className="py-4",
+                ),
+                id="bug-analysis-tab-content",
+            )
+
         # Initialize weekly_stats (needed for quality insights)
         weekly_stats = []
+
+        # Check if there are no bugs in the timeline - show specific placeholder
+        if len(timeline_filtered_bugs) == 0 and len(all_bug_issues) > 0:
+            from ui.loading_utils import create_content_placeholder
+
+            # Wrap in div with ID for fade-in animation
+            return html.Div(
+                create_content_placeholder(
+                    type="chart",
+                    text=f"No bug data in selected timeframe. Found {len(all_bug_issues)} total bugs, but none in the last {data_points_count} weeks. Use the Data Points slider in Settings to expand the timeline.",
+                    icon="fa-calendar-times",
+                    height="400px",
+                ),
+                id="bug-analysis-tab-content",
+            )
 
         # Calculate weekly bug statistics using timeline-filtered bugs
         try:
@@ -249,37 +285,44 @@ def _render_bug_analysis_content(data_points_count: int):
             )
 
         # Return complete tab content (matches Items per Week pattern)
+        # Wrap in div with ID for fade-in animation
         return html.Div(
-            [
-                # Combined bug metrics cards (Resolution Rate + Open Bugs + Expected Resolution)
-                dbc.Row([dbc.Col([metrics_cards], width=12)], className="mb-4"),
-                # Bug trends chart
-                dbc.Row([dbc.Col([trends_chart], width=12)], className="mb-4"),
-                # T056: Bug investment chart (items + story points)
-                dbc.Row([dbc.Col([investment_chart], width=12)], className="mb-4"),
-                # Quality insights panel (T078-T082)
-                dbc.Row(
-                    [
-                        dbc.Col(
-                            [
-                                # Generate quality insights from metrics and statistics
-                                create_quality_insights_panel(
-                                    generate_quality_insights(
-                                        bug_metrics, weekly_stats
-                                    ),
-                                    weekly_stats=weekly_stats,
-                                )
-                            ],
-                            width=12,
-                        )
-                    ]
-                ),
-            ]
+            dbc.Container(
+                [
+                    # Combined bug metrics cards (Resolution Rate + Open Bugs + Expected Resolution)
+                    dbc.Row([dbc.Col([metrics_cards], width=12)], className="mb-4"),
+                    # Bug trends chart
+                    dbc.Row([dbc.Col([trends_chart], width=12)], className="mb-4"),
+                    # T056: Bug investment chart (items + story points)
+                    dbc.Row([dbc.Col([investment_chart], width=12)], className="mb-4"),
+                    # Quality insights panel (T078-T082)
+                    dbc.Row(
+                        [
+                            dbc.Col(
+                                [
+                                    # Generate quality insights from metrics and statistics
+                                    create_quality_insights_panel(
+                                        generate_quality_insights(
+                                            bug_metrics, weekly_stats
+                                        ),
+                                        weekly_stats=weekly_stats,
+                                    )
+                                ],
+                                width=12,
+                            )
+                        ]
+                    ),
+                ],
+                fluid=True,
+                className="py-4",
+            ),
+            id="bug-analysis-tab-content",
         )
 
     except Exception as e:
         logger.error(f"Error updating bug metrics: {e}", exc_info=True)
         # Return complete error page (not just error cards)
+        # Wrap in div with ID for fade-in animation
         return html.Div(
             [
                 dbc.Row(
@@ -302,7 +345,8 @@ def _render_bug_analysis_content(data_points_count: int):
                         )
                     ]
                 ),
-            ]
+            ],
+            id="bug-analysis-tab-content",
         )
 
 

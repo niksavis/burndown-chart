@@ -22,10 +22,12 @@ from configuration import logger
 #######################################################################
 
 JIRA_CACHE_FILE = "jira_cache.json"
+JIRA_CHANGELOG_CACHE_FILE = "jira_changelog_cache.json"
 DEFAULT_CACHE_MAX_SIZE_MB = 100
 
 # Cache version - increment when cache format changes or pagination logic changes
 CACHE_VERSION = "2.0"  # v2.0: Pagination support added
+CHANGELOG_CACHE_VERSION = "2.0"  # v2.0: Added critical fields (project, status, issuetype, etc.) for DORA metrics
 
 # Cache expiration - invalidate cache after this duration
 CACHE_EXPIRATION_HOURS = 24  # Cache expires after 24 hours
@@ -33,6 +35,78 @@ CACHE_EXPIRATION_HOURS = 24  # Cache expires after 24 hours
 #######################################################################
 # CORE JIRA FUNCTIONS
 #######################################################################
+
+
+def check_jira_issue_count(jql_query: str, config: Dict) -> Tuple[bool, int]:
+    """
+    Fast check: Get issue count from JIRA without fetching full issue data.
+
+    This is a lightweight query (< 1 second) that returns only the total count.
+    Used to detect if cache is stale before doing a full refresh.
+
+    Args:
+        jql_query: JQL query to count issues for
+        config: JIRA configuration with API endpoint and token
+
+    Returns:
+        Tuple of (success: bool, count: int)
+    """
+    try:
+        url = f"{config['api_endpoint']}/search"
+
+        headers = {"Accept": "application/json"}
+        if config.get("token"):
+            headers["Authorization"] = f"Bearer {config['token']}"
+
+        # maxResults=0 returns only total count (no issue data)
+        params = {
+            "jql": jql_query,
+            "maxResults": 0,  # Don't fetch issues, just count
+            "fields": "key",  # Minimal field to reduce payload
+        }
+
+        response = requests.get(url, headers=headers, params=params, timeout=10)
+
+        if response.status_code == 200:
+            data = response.json()
+            total_count = data.get("total", 0)
+            logger.info(f"✓ Issue count check: {total_count} issues for JQL query")
+            return True, total_count
+        else:
+            logger.warning(f"Issue count check failed: HTTP {response.status_code}")
+            return False, 0
+
+    except Exception as e:
+        logger.warning(f"Issue count check failed: {e}")
+        return False, 0
+
+
+def invalidate_changelog_cache(cache_file: str = JIRA_CHANGELOG_CACHE_FILE) -> bool:
+    """
+    Invalidate (delete) changelog cache when issue cache is refreshed.
+
+    This ensures changelog cache stays in sync with issue cache.
+    When issues are refreshed, changelog must also be refreshed.
+
+    Args:
+        cache_file: Path to changelog cache file
+
+    Returns:
+        True if cache was invalidated (deleted or didn't exist)
+    """
+    try:
+        if os.path.exists(cache_file):
+            os.remove(cache_file)
+            logger.info(
+                f"🗑️  Invalidated changelog cache: {cache_file} (issue cache refreshed)"
+            )
+            return True
+        else:
+            logger.info("✓ Changelog cache doesn't exist, no invalidation needed")
+            return True
+    except Exception as e:
+        logger.error(f"Error invalidating changelog cache: {e}")
+        return False
 
 
 def get_jira_config(settings_jql_query: str | None = None) -> Dict:
@@ -114,6 +188,12 @@ def get_jira_config(settings_jql_query: str | None = None) -> Dict:
             jira_config.get("max_results_per_call", 1000)  # jira_config (new structure)
             or os.getenv("JIRA_MAX_RESULTS", 1000)  # Environment variable
         ),
+        "devops_projects": app_settings.get(
+            "devops_projects", []
+        ),  # Load from app_settings
+        "field_mappings": app_settings.get(
+            "field_mappings", {}
+        ),  # Load field mappings for DORA/Flow metrics
     }
 
     return config
@@ -195,12 +275,28 @@ def fetch_jira_issues(
         if config["token"]:
             headers["Authorization"] = f"Bearer {config['token']}"
 
-        # Parameters - only fetch required fields
-        # Include story points field only if specified
-        # Include issuetype for bug analysis
-        base_fields = "key,created,resolutiondate,status,issuetype"
+        # Parameters - fetch required fields including field mappings for DORA/Flow
+        # Base fields: always fetch these standard fields
+        # CRITICAL: Include 'project' to enable filtering DevOps vs Development projects
+        base_fields = "key,project,created,resolutiondate,status,issuetype"
+
+        # Add story points field if specified
+        additional_fields = []
         if config.get("story_points_field") and config["story_points_field"].strip():
-            fields = f"{base_fields},{config['story_points_field']}"
+            additional_fields.append(config["story_points_field"])
+
+        # Add field mappings for DORA and Flow metrics
+        field_mappings = config.get("field_mappings", {})
+        for field_name, field_id in field_mappings.items():
+            if field_id and field_id.strip() and field_id not in base_fields:
+                # Add both custom fields (customfield_*) and standard fields
+                # Skip if already in base_fields to avoid duplicates
+                additional_fields.append(field_id)
+
+        # Combine base fields with additional fields
+        # Sort additional fields to ensure consistent ordering for cache validation
+        if additional_fields:
+            fields = f"{base_fields},{','.join(sorted(set(additional_fields)))}"
         else:
             fields = base_fields
 
@@ -294,6 +390,274 @@ def fetch_jira_issues(
         return False, []
     except Exception as e:
         logger.error(f"Unexpected error fetching JIRA issues: {e}")
+        return False, []
+
+
+def fetch_jira_issues_with_changelog(
+    config: Dict,
+    issue_keys: List[str] | None = None,
+    max_results: int | None = None,
+    progress_callback=None,
+) -> Tuple[bool, List[Dict]]:
+    """
+    Fetch JIRA issues WITH changelog expansion.
+
+    This is an expensive operation and should only be used for issues that need
+    status transition history (Flow Time, Flow Efficiency, Lead Time calculations).
+
+    PERFORMANCE OPTIMIZATION:
+    - Only fetch changelog for completed issues (reduces volume ~60%)
+    - Use separate cache file (jira_changelog_cache.json)
+    - Provide transparent loading feedback to user
+
+    Args:
+        config: Configuration dictionary with API endpoint, JQL query, token, etc.
+        issue_keys: Optional list of specific issue keys to fetch (for targeted fetching)
+        max_results: Page size for each API call (default: from config or 100)
+        progress_callback: Optional callback function(message: str) for progress updates
+
+    Returns:
+        Tuple of (success: bool, issues_with_changelog: List[Dict])
+    """
+    try:
+        # Use SMALLER page size for changelog fetching (50 instead of 100)
+        # Changelog includes full history - very large payloads that timeout easily
+        page_size = (
+            max_results
+            if max_results is not None
+            else min(config.get("max_results", 100), 50)  # Reduced from 100 to 50
+        )
+
+        # Build JQL query
+        if issue_keys:
+            # Fetch specific issues by key
+            keys_str = ", ".join(issue_keys)
+            jql = f"key IN ({keys_str})"
+            logger.info(f"Fetching changelog for {len(issue_keys)} specific issues")
+        else:
+            # Use base JQL + filter for completed issues only (performance optimization)
+            base_jql = config["jql_query"]
+
+            # Extract ORDER BY clause if present (must come at end of final query)
+            order_by_clause = ""
+            if "ORDER BY" in base_jql.upper():
+                # Find ORDER BY position (case-insensitive)
+                import re
+
+                match = re.search(r"\s+ORDER\s+BY\s+", base_jql, re.IGNORECASE)
+                if match:
+                    order_by_start = match.start()
+                    order_by_clause = base_jql[order_by_start:]
+                    base_jql = base_jql[:order_by_start].strip()
+
+            # Load completion statuses from configuration
+            try:
+                from configuration.dora_config import get_completion_status_names
+
+                completion_statuses = get_completion_status_names()
+                if completion_statuses:
+                    statuses_str = ", ".join([f'"{s}"' for s in completion_statuses])
+                    jql = (
+                        f"({base_jql}) AND status IN ({statuses_str}){order_by_clause}"
+                    )
+                    logger.info(
+                        f"Fetching changelog for completed issues only (statuses: {statuses_str})"
+                    )
+                else:
+                    # Fallback: Use common completion statuses
+                    jql = f'({base_jql}) AND status IN ("Done", "Resolved", "Closed"){order_by_clause}'
+                    logger.warning(
+                        "No completion statuses in config, using fallback: Done, Resolved, Closed"
+                    )
+            except Exception as e:
+                logger.warning(f"Could not load completion statuses from config: {e}")
+                jql = f'({base_jql}) AND status IN ("Done", "Resolved", "Closed"){order_by_clause}'
+
+        # Get JIRA API endpoint
+        api_endpoint = config.get("api_endpoint", "")
+        if not api_endpoint:
+            logger.error("JIRA API endpoint not configured")
+            return False, []
+
+        # Headers
+        headers = {"Accept": "application/json"}
+        if config["token"]:
+            headers["Authorization"] = f"Bearer {config['token']}"
+
+        # Fields to fetch (same as regular fetch + changelog)
+        # NOTE: fixVersions is critical for DORA Lead Time calculation (matching dev issues to operational tasks)
+        # NOTE: project is critical for filtering DevOps vs Development projects in DORA metrics
+        base_fields = (
+            "key,project,created,resolutiondate,status,issuetype,resolution,fixVersions"
+        )
+
+        # Add story points field if specified
+        additional_fields = []
+        if config.get("story_points_field") and config["story_points_field"].strip():
+            additional_fields.append(config["story_points_field"])
+
+        # Add field mappings for DORA and Flow metrics
+        field_mappings = config.get("field_mappings", {})
+        for field_name, field_id in field_mappings.items():
+            if field_id and field_id.strip() and field_id not in base_fields:
+                # Add both custom fields and standard fields (no filtering)
+                additional_fields.append(field_id)
+
+        # Combine base fields with additional fields
+        # Sort additional fields to ensure consistent ordering for cache validation
+        if additional_fields:
+            fields = f"{base_fields},{','.join(sorted(set(additional_fields)))}"
+        else:
+            fields = base_fields
+
+        # Pagination: Fetch ALL issues with changelog in batches
+        all_issues = []
+        start_at = 0
+        total_issues = None
+        max_retries = 3  # Retry failed requests up to 3 times
+
+        logger.info(f"Fetching JIRA issues WITH changelog from: {api_endpoint}")
+        logger.info(f"Using JQL: {jql}")
+        logger.info(
+            f"Page size: {page_size} per call, Fields: {fields}, Expand: changelog"
+        )
+
+        while True:
+            params = {
+                "jql": jql,
+                "maxResults": page_size,
+                "startAt": start_at,
+                "fields": fields,
+                "expand": "changelog",  # THIS IS THE KEY: Expand changelog
+            }
+
+            # Progress reporting
+            progress_msg = f"Fetching changelog page starting at {start_at} (fetched {len(all_issues)} so far)"
+            logger.info(progress_msg)
+            if progress_callback:
+                if total_issues:
+                    progress_callback(
+                        f"📥 Downloading changelog: {len(all_issues)}/{total_issues} issues"
+                    )
+                else:
+                    progress_callback(
+                        f"📥 Downloading changelog: {len(all_issues)} issues"
+                    )
+
+            # Retry logic for network failures
+            retry_count = 0
+            response = None
+            last_error = None
+
+            while retry_count < max_retries:
+                try:
+                    response = requests.get(
+                        api_endpoint,
+                        headers=headers,
+                        params=params,
+                        timeout=90,  # Increased from 30s to 90s
+                    )
+                    break  # Success, exit retry loop
+                except requests.exceptions.Timeout as e:
+                    retry_count += 1
+                    last_error = e
+                    if retry_count < max_retries:
+                        logger.warning(
+                            f"Timeout fetching changelog page at {start_at}, retry {retry_count}/{max_retries}"
+                        )
+                        if progress_callback:
+                            progress_callback(
+                                f"⚠️ Timeout, retrying... (attempt {retry_count}/{max_retries})"
+                            )
+                    else:
+                        logger.error(
+                            f"Failed to fetch changelog page at {start_at} after {max_retries} retries: {e}"
+                        )
+                        # Return partial results instead of complete failure
+                        logger.warning(
+                            f"Returning partial results: {len(all_issues)}/{total_issues or 'unknown'} issues"
+                        )
+                        return True, all_issues  # Return what we have so far
+                except requests.exceptions.RequestException as e:
+                    retry_count += 1
+                    last_error = e
+                    if retry_count < max_retries:
+                        logger.warning(
+                            f"Network error fetching changelog page at {start_at}, retry {retry_count}/{max_retries}: {e}"
+                        )
+                        if progress_callback:
+                            progress_callback(
+                                f"⚠️ Network error, retrying... (attempt {retry_count}/{max_retries})"
+                            )
+                    else:
+                        logger.error(
+                            f"Failed to fetch changelog page at {start_at} after {max_retries} retries: {e}"
+                        )
+                        # Return partial results instead of complete failure
+                        logger.warning(
+                            f"Returning partial results: {len(all_issues)}/{total_issues or 'unknown'} issues"
+                        )
+                        return True, all_issues  # Return what we have so far
+
+            if response is None:
+                # All retries failed
+                logger.error(f"All retries exhausted for changelog page at {start_at}")
+                return True, all_issues  # Return partial results
+
+            # Error handling
+            if not response.ok:
+                error_details = ""
+                try:
+                    error_json = response.json()
+                    if "errorMessages" in error_json:
+                        error_details = "; ".join(error_json["errorMessages"])
+                    elif "errors" in error_json:
+                        error_details = "; ".join(
+                            [f"{k}: {v}" for k, v in error_json["errors"].items()]
+                        )
+                    else:
+                        error_details = str(error_json)
+                except Exception:
+                    error_details = response.text[:500]
+
+                logger.error(
+                    f"JIRA API Error ({response.status_code}): {error_details}"
+                )
+                return False, []
+
+            data = response.json()
+            issues_in_page = data.get("issues", [])
+
+            # Get total from first response
+            if total_issues is None:
+                total_issues = data.get("total", 0)
+                logger.info(
+                    f"Query matches {total_issues} total issues (with changelog), fetching all with pagination..."
+                )
+
+            # Add this page's issues to our collection
+            all_issues.extend(issues_in_page)
+
+            # Check if we've fetched everything
+            if (
+                len(issues_in_page) < page_size
+                or start_at + len(issues_in_page) >= total_issues
+            ):
+                logger.info(
+                    f"✓ Changelog pagination complete: Fetched all {len(all_issues)} of {total_issues} JIRA issues with changelog"
+                )
+                break
+
+            # Move to next page
+            start_at += page_size
+
+        return True, all_issues
+
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Network error fetching JIRA issues with changelog: {e}")
+        return False, []
+    except Exception as e:
+        logger.error(f"Unexpected error fetching JIRA issues with changelog: {e}")
         return False, []
 
 
@@ -477,6 +841,142 @@ def get_cache_status(cache_file: str = JIRA_CACHE_FILE) -> str:
         return "Error reading cache status"
 
 
+def cache_changelog_response(
+    issues_with_changelog: List[Dict],
+    jql_query: str = "",
+    fields_requested: str = "",
+    cache_file: str = JIRA_CHANGELOG_CACHE_FILE,
+) -> bool:
+    """
+    Save JIRA issues with changelog to separate cache file.
+
+    This keeps changelog data separate from regular issue data for performance.
+    Changelog is only needed for Flow Time, Flow Efficiency, and Lead Time calculations.
+
+    Args:
+        issues_with_changelog: List of JIRA issues with expanded changelog
+        jql_query: JQL query used to fetch issues
+        fields_requested: Fields that were requested
+        cache_file: Path to changelog cache file
+
+    Returns:
+        True if caching successful, False otherwise
+    """
+    try:
+        cache_data = {
+            "cache_version": CHANGELOG_CACHE_VERSION,
+            "timestamp": datetime.now().isoformat(),
+            "jql_query": jql_query,
+            "fields_requested": fields_requested,
+            "issues": issues_with_changelog,
+            "total_issues": len(issues_with_changelog),
+        }
+
+        with open(cache_file, "w") as f:
+            json.dump(cache_data, f, indent=2)
+
+        logger.info(
+            f"Cached {len(issues_with_changelog)} JIRA issues WITH changelog to {cache_file} "
+            f"(v{CHANGELOG_CACHE_VERSION}, JQL: {jql_query})"
+        )
+        return True
+
+    except Exception as e:
+        logger.error(f"Error caching changelog response: {e}")
+        return False
+
+
+def load_changelog_cache(
+    current_jql_query: str = "",
+    current_fields: str = "",
+    cache_file: str = JIRA_CHANGELOG_CACHE_FILE,
+) -> Tuple[bool, List[Dict]]:
+    """
+    Load cached JIRA issues with changelog from file.
+
+    Cache is invalidated if:
+    - Cache version doesn't match current version
+    - Cache is older than CACHE_EXPIRATION_HOURS
+    - JQL query doesn't match
+    - Fields requested don't match
+
+    Args:
+        current_jql_query: Current JQL query to compare against cached query
+        current_fields: Current fields to compare against cached fields
+        cache_file: Path to changelog cache file
+
+    Returns:
+        Tuple of (cache_loaded: bool, issues: List[Dict])
+    """
+    try:
+        if not os.path.exists(cache_file):
+            return False, []
+
+        with open(cache_file, "r") as f:
+            cache_data = json.load(f)
+
+        # Check cache version
+        cached_version = cache_data.get("cache_version", "1.0")
+        if cached_version != CHANGELOG_CACHE_VERSION:
+            logger.info(
+                f"Changelog cache version mismatch. Cached: v{cached_version}, Current: v{CHANGELOG_CACHE_VERSION}. "
+                f"Cache invalidated."
+            )
+            return False, []
+
+        # Check cache age
+        cache_timestamp_str = cache_data.get("timestamp", "")
+        if cache_timestamp_str:
+            try:
+                cache_timestamp = datetime.fromisoformat(cache_timestamp_str)
+                cache_age = datetime.now() - cache_timestamp
+                if cache_age > timedelta(hours=CACHE_EXPIRATION_HOURS):
+                    logger.info(
+                        f"Changelog cache expired. Age: {cache_age.total_seconds() / 3600:.1f} hours "
+                        f"(max: {CACHE_EXPIRATION_HOURS} hours). Cache invalidated."
+                    )
+                    return False, []
+            except ValueError:
+                logger.warning(
+                    f"Invalid changelog cache timestamp format: {cache_timestamp_str}"
+                )
+                return False, []
+
+        # Check if the cached query matches the current query
+        cached_jql = cache_data.get("jql_query", "")
+        if cached_jql != current_jql_query:
+            logger.info(
+                f"Changelog cache JQL query mismatch. Cached: '{cached_jql}', Current: '{current_jql_query}'. "
+                f"Cache invalidated."
+            )
+            return False, []
+
+        # Check if the cached fields match the current fields (optional check)
+        cached_fields = cache_data.get("fields_requested", "")
+        if cached_fields and current_fields and cached_fields != current_fields:
+            logger.info(
+                f"Changelog cache fields mismatch. Cached: '{cached_fields}', Current: '{current_fields}'. "
+                f"Cache invalidated."
+            )
+            return False, []
+
+        issues = cache_data.get("issues", [])
+        cache_age_str = (
+            f"{(datetime.now() - datetime.fromisoformat(cache_timestamp_str)).total_seconds() / 3600:.1f}h old"
+            if cache_timestamp_str
+            else "unknown age"
+        )
+        logger.info(
+            f"✓ Loaded {len(issues)} JIRA issues WITH changelog from cache "
+            f"(v{cached_version}, {cache_age_str}, JQL: {cached_jql})"
+        )
+        return True, issues
+
+    except Exception as e:
+        logger.error(f"Error loading changelog cache: {e}")
+        return False, []
+
+
 def extract_story_points_value(story_points_value, field_name: str = "") -> float:
     """
     Extract numeric value from JIRA field, handling complex objects.
@@ -642,9 +1142,21 @@ def jira_to_csv_format(issues: List[Dict], config: Dict) -> List[Dict]:
 
 
 def sync_jira_scope_and_data(
-    jql_query: str | None = None, ui_config: Dict | None = None
+    jql_query: str | None = None,
+    ui_config: Dict | None = None,
+    force_refresh: bool = False,
 ) -> Tuple[bool, str, Dict]:
-    """Main sync function to get JIRA scope calculation and replace CSV data."""
+    """
+    Main sync function to get JIRA scope calculation and replace CSV data.
+
+    Args:
+        jql_query: JQL query to use (overrides config)
+        ui_config: UI configuration dictionary (overrides file config)
+        force_refresh: If True, bypass cache and force fresh JIRA fetch
+
+    Returns:
+        Tuple of (success, message, scope_data)
+    """
     try:
         # Import scope calculator here to avoid circular imports
         from data.jira_scope_calculator import calculate_jira_project_scope
@@ -667,16 +1179,71 @@ def sync_jira_scope_and_data(
         if not validate_cache_file(max_size_mb=config["cache_max_size_mb"]):
             return False, "Cache file validation failed", {}
 
-        # Calculate current fields that would be requested
+        # Calculate current fields that would be requested (MUST match fetch_jira_issues logic)
         base_fields = "key,created,resolutiondate,status,issuetype"
+        additional_fields = []
+
+        # Add story points field
         if config.get("story_points_field") and config["story_points_field"].strip():
-            current_fields = f"{base_fields},{config['story_points_field']}"
+            additional_fields.append(config["story_points_field"])
+
+        # Add field mappings for DORA and Flow metrics
+        field_mappings = config.get("field_mappings", {})
+        for field_name, field_id in field_mappings.items():
+            if field_id and field_id.strip() and field_id not in base_fields:
+                additional_fields.append(field_id)
+
+        # Build final fields string (must match fetch_jira_issues exactly)
+        # Sort additional fields to ensure consistent ordering for cache validation
+        if additional_fields:
+            current_fields = f"{base_fields},{','.join(sorted(set(additional_fields)))}"
         else:
             current_fields = base_fields
 
-        # Try to load from cache first, checking if JQL query and fields match
-        cache_loaded, issues = load_jira_cache(config["jql_query"], current_fields)
+        # SMART CACHING LOGIC
+        logger.info(f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        logger.info(f"CACHE DEBUG: Starting sync_jira_scope_and_data")
+        logger.info(f"CACHE DEBUG: force_refresh = {force_refresh}")
+        logger.info(f"CACHE DEBUG: JQL = {config['jql_query'][:50]}...")
+        logger.info(f"CACHE DEBUG: Fields = {current_fields}")
+        logger.info(f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
+        # Step 1: Check if force refresh is requested
+        if force_refresh:
+            logger.info("🔄 CACHE DEBUG: Force refresh requested - bypassing cache")
+            cache_loaded = False
+            issues = []
+        else:
+            # Step 2: Try to load from cache (checks version, age, JQL, fields)
+            logger.info("CACHE DEBUG: Attempting to load from cache...")
+            cache_loaded, issues = load_jira_cache(config["jql_query"], current_fields)
+            logger.info(
+                f"CACHE DEBUG: Cache load result: cache_loaded={cache_loaded}, issues_count={len(issues) if issues else 0}"
+            )
+
+            # Step 3: If cache is valid, do a quick count check to detect changes
+            if cache_loaded and issues:
+                logger.info(
+                    f"Cache loaded: {len(issues)} issues. Checking if count changed..."
+                )
+                count_success, current_count = check_jira_issue_count(
+                    config["jql_query"], config
+                )
+
+                if count_success and current_count != len(issues):
+                    logger.info(
+                        f"🔄 Issue count changed: {len(issues)} → {current_count}. "
+                        f"Cache invalidated, fetching fresh data."
+                    )
+                    cache_loaded = False  # Force refresh due to count mismatch
+                elif count_success:
+                    logger.info(
+                        f"✓ Issue count unchanged ({current_count} issues). Using cache."
+                    )
+                else:
+                    logger.warning("Count check failed. Using cache anyway (fallback).")
+
+        # Step 4: Fetch from JIRA if cache is invalid or force refresh
         if not cache_loaded or not issues:
             # Fetch fresh data from JIRA
             fetch_success, issues = fetch_jira_issues(config)
@@ -687,18 +1254,55 @@ def sync_jira_scope_and_data(
             if not cache_jira_response(issues, config["jql_query"], current_fields):
                 logger.warning("Failed to cache JIRA response")
 
-        # Calculate JIRA-based project scope
+            # CRITICAL: Invalidate changelog cache ONLY when we fetch fresh data from JIRA
+            # If we used the issue cache, changelog cache is still valid
+            invalidate_changelog_cache()
+        else:
+            logger.info("✓ Using cached issues - changelog cache remains valid")
+
+        # PHASE 2: Changelog data fetch (OPTIONAL - don't block app)
+        # Changelog is only needed for Flow Time and DORA metrics
+        # Skip it for now - it will be fetched in background if needed
+        logger.info(
+            "⚡ Skipping changelog fetch for fast startup. "
+            "Changelog will be loaded on-demand for Flow/DORA metrics."
+        )
+
+        # CRITICAL: Filter out DevOps project issues for burndown/velocity/statistics
+        # DevOps issues are ONLY used for DORA metrics metadata extraction
+        devops_projects = config.get("devops_projects", [])
+        logger.info(f"DEBUG: Config keys available: {list(config.keys())}")
+        logger.info(f"DEBUG: devops_projects from config: {devops_projects}")
+        if devops_projects:
+            from data.project_filter import filter_development_issues
+
+            total_issues_count = len(issues)
+            issues_for_metrics = filter_development_issues(issues, devops_projects)
+            filtered_count = total_issues_count - len(issues_for_metrics)
+
+            if filtered_count > 0:
+                logger.info(
+                    f"Filtered out {filtered_count} DevOps project issues from {total_issues_count} total issues. "
+                    f"Using {len(issues_for_metrics)} development project issues for burndown/velocity/statistics."
+                )
+        else:
+            # No DevOps projects configured, use all issues
+            issues_for_metrics = issues
+
+        # Calculate JIRA-based project scope (using ONLY development project issues)
         # Only use story_points_field if it's configured and not empty
         points_field = config.get("story_points_field", "").strip()
         if not points_field:
             # When no points field is configured, pass empty string instead of defaulting to "votes"
             points_field = ""
-        scope_data = calculate_jira_project_scope(issues, points_field, config)
+        scope_data = calculate_jira_project_scope(
+            issues_for_metrics, points_field, config
+        )
         if not scope_data:
             return False, "Failed to calculate JIRA project scope", {}
 
-        # Transform to CSV format for statistics
-        csv_data = jira_to_csv_format(issues, config)
+        # Transform to CSV format for statistics (using ONLY development project issues)
+        csv_data = jira_to_csv_format(issues_for_metrics, config)
         # Note: Empty list is valid when there are no issues, only None indicates error
 
         # Save both statistics and project scope to unified data structure
@@ -729,6 +1333,185 @@ def sync_jira_data(
     except Exception as e:
         logger.error(f"Error in JIRA data sync: {e}")
         return False, f"JIRA sync failed: {e}"
+
+
+def fetch_changelog_on_demand(config: Dict, progress_callback=None) -> Tuple[bool, str]:
+    """
+    Fetch changelog data separately for Flow Time and DORA metrics with incremental saving.
+
+    RESILIENCE FEATURES:
+    - Saves progress after each page (prevents data loss on timeout)
+    - Retries failed requests up to 3 times
+    - Returns partial results if download incomplete
+    - Uses 90-second timeout for large changelog payloads
+
+    Args:
+        config: JIRA configuration dictionary with API endpoint, token, etc.
+        progress_callback: Optional callback function(message: str) for progress updates
+
+    Returns:
+        Tuple of (success, message)
+    """
+    import json
+    from datetime import datetime
+
+    try:
+        logger.info("📊 Fetching changelog data for Flow Time and DORA metrics...")
+        if progress_callback:
+            progress_callback("📊 Starting changelog download...")
+
+        # Load existing cache to merge with new data (resume capability)
+        changelog_cache_file = "jira_changelog_cache.json"
+        changelog_cache = {}
+        if os.path.exists(changelog_cache_file):
+            try:
+                with open(changelog_cache_file, "r", encoding="utf-8") as f:
+                    changelog_cache = json.load(f)
+                logger.info(
+                    f"Loaded existing changelog cache with {len(changelog_cache)} issues"
+                )
+            except Exception as e:
+                logger.warning(f"Could not load existing changelog cache: {e}")
+                changelog_cache = {}
+
+        changelog_fetch_success, issues_with_changelog = (
+            fetch_jira_issues_with_changelog(
+                config, progress_callback=progress_callback
+            )
+        )
+
+        if changelog_fetch_success:
+            # CRITICAL OPTIMIZATION: Filter changelog to ONLY status transitions
+            # This dramatically reduces cache file size (from 1M+ lines to ~50K)
+            try:
+                total_histories_before = 0
+                total_histories_after = 0
+                batch_size = 100  # Save every 100 issues for progress resilience
+                issues_processed = 0
+
+                for issue in issues_with_changelog:
+                    issue_key = issue.get("key", "")
+                    if not issue_key:
+                        continue
+
+                    changelog_full = issue.get("changelog", {})
+                    histories = changelog_full.get("histories", [])
+                    total_histories_before += len(histories)
+
+                    # Filter to ONLY histories that contain status changes
+                    status_histories = []
+                    for history in histories:
+                        items = history.get("items", [])
+
+                        # Keep only status change items
+                        status_items = [
+                            item for item in items if item.get("field") == "status"
+                        ]
+
+                        if status_items:
+                            # Build minimal history entry with only what we need
+                            status_histories.append(
+                                {
+                                    "created": history.get("created"),
+                                    "items": [
+                                        {
+                                            "field": "status",
+                                            "fromString": item.get("fromString"),
+                                            "toString": item.get("toString"),
+                                        }
+                                        for item in status_items
+                                    ],
+                                }
+                            )
+
+                    total_histories_after += len(status_histories)
+
+                    if status_histories:
+                        # CRITICAL: Include ALL fields needed for DORA and Flow metrics
+                        # - project: Filter Development vs DevOps projects
+                        # - fixVersions: Match dev issues with operational tasks
+                        # - status: Filter completed/deployed issues
+                        # - issuetype: Filter "Operational Task" issues
+                        # - created: Used in some calculations
+                        # - resolutiondate: Fallback for deployment dates
+                        fields = issue.get("fields", {})
+                        changelog_cache[issue_key] = {
+                            "key": issue_key,
+                            "fields": {
+                                "project": fields.get("project"),
+                                "fixVersions": fields.get("fixVersions"),
+                                "status": fields.get("status"),
+                                "issuetype": fields.get("issuetype"),
+                                "created": fields.get("created"),
+                                "resolutiondate": fields.get("resolutiondate"),
+                            },
+                            "changelog": {
+                                "histories": status_histories,
+                                "total": len(status_histories),
+                            },
+                            "last_updated": datetime.now().isoformat(),
+                        }
+                        issues_processed += 1
+
+                    # INCREMENTAL SAVE: Save every 100 issues to prevent data loss on timeout
+                    if issues_processed > 0 and issues_processed % batch_size == 0:
+                        try:
+                            with open(changelog_cache_file, "w", encoding="utf-8") as f:
+                                json.dump(changelog_cache, f, indent=2)
+                            logger.info(
+                                f"💾 Incremental save: {issues_processed}/{len(issues_with_changelog)} issues"
+                            )
+                            if progress_callback:
+                                progress_callback(
+                                    f"💾 Saved progress: {issues_processed} issues"
+                                )
+                        except Exception as e:
+                            logger.warning(f"Failed to save incremental progress: {e}")
+
+                # Final save: Save all remaining issues
+                if progress_callback:
+                    progress_callback(
+                        f"💾 Finalizing changelog data for {len(changelog_cache)} issues..."
+                    )
+
+                with open(changelog_cache_file, "w", encoding="utf-8") as f:
+                    json.dump(changelog_cache, f, indent=2)
+
+                reduction_pct = (
+                    (
+                        100
+                        * (total_histories_before - total_histories_after)
+                        / total_histories_before
+                    )
+                    if total_histories_before > 0
+                    else 0
+                )
+
+                optimization_msg = f"✅ Optimized changelog cache: {total_histories_before} → {total_histories_after} histories ({reduction_pct:.1f}% reduction) for {len(changelog_cache)} issues"
+                logger.info(optimization_msg)
+                logger.info(f"✅ Saved optimized changelog to {changelog_cache_file}")
+
+                if progress_callback:
+                    progress_callback(
+                        f"✅ Changelog saved: {len(changelog_cache)} issues ({reduction_pct:.0f}% optimized)"
+                    )
+
+                return (
+                    True,
+                    f"Changelog data fetched for {len(changelog_cache)} issues (optimized: {reduction_pct:.0f}% size reduction)",
+                )
+            except Exception as e:
+                logger.warning(f"Failed to cache changelog data: {e}")
+                return False, f"Failed to cache changelog: {e}"
+        else:
+            logger.warning(
+                "Failed to fetch changelog data. Flow Time and Flow Efficiency metrics may be limited."
+            )
+            return False, "Failed to fetch changelog data from JIRA"
+
+    except Exception as e:
+        logger.error(f"Error fetching changelog on demand: {e}")
+        return False, f"Changelog fetch failed: {e}"
 
 
 def validate_jql_for_scriptrunner(jql_query: str) -> Tuple[bool, str]:
@@ -943,8 +1726,9 @@ def test_jira_connection(base_url: str, token: str, api_version: str = "v3") -> 
                 "error_details": "URL must start with http:// or https://",
             }
 
-        # Construct serverInfo endpoint (use API v2 as it's more universally supported)
-        server_info_url = f"{clean_url}/rest/api/2/serverInfo"
+        # Construct serverInfo endpoint using configured API version
+        api_ver = api_version.replace("v", "")  # Normalize "v2" or "2" to "2"
+        server_info_url = f"{clean_url}/rest/api/{api_ver}/serverInfo"
 
         # Prepare headers with authentication
         headers = {"Accept": "application/json", "Content-Type": "application/json"}

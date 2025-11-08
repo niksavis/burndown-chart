@@ -661,6 +661,10 @@ def calculate_weekly_averages(
     Returns:
         Tuple of (avg_weekly_items, avg_weekly_points, med_weekly_items, med_weekly_points)
     """
+    # Ensure data_points_count is an integer (could be float from UI slider)
+    if data_points_count is not None:
+        data_points_count = int(data_points_count)
+
     # Check if statistics_data is empty or None
     if (
         statistics_data is None
@@ -763,6 +767,10 @@ def generate_weekly_forecast(
     Returns:
         Dictionary containing forecast data for items and points
     """
+    # Ensure data_points_count is an integer (could be float from UI slider)
+    if data_points_count is not None:
+        data_points_count = int(data_points_count)
+
     # Apply data points filtering before forecast calculations
     if data_points_count is not None and data_points_count > 0:
         if (
@@ -844,7 +852,8 @@ def generate_weekly_forecast(
             )  # Slightly pessimistic but positive
         else:
             # Adjust PERT factor to be at most 1/3 of available data for stable results
-            valid_pert_factor = min(pert_factor, max(1, valid_data_count // 3))
+            # CRITICAL: Ensure valid_pert_factor is integer for .nlargest()/.nsmallest() operations
+            valid_pert_factor = int(min(pert_factor, max(1, valid_data_count // 3)))
             valid_pert_factor = max(valid_pert_factor, 1)  # Ensure at least 1
 
             # Most likely: average of all data
@@ -961,6 +970,10 @@ def calculate_performance_trend(
         - previous_avg: Average value for previous period
         - is_significant: True if change is >20%
     """
+    # Ensure data_points_count is an integer (could be float from UI slider)
+    if data_points_count is not None:
+        data_points_count = int(data_points_count)
+
     # Apply data points filtering before trend calculations
     if data_points_count is not None and data_points_count > 0:
         if (
@@ -1238,7 +1251,7 @@ def calculate_dashboard_metrics(statistics: list, settings: dict) -> dict:
         )
 
     # Calculate current velocity (10-week rolling average or all available data)
-    data_points_count = min(len(df), settings.get("data_points_count", 10))
+    data_points_count = min(len(df), int(settings.get("data_points_count", 10)))
     recent_data = df.tail(data_points_count)
 
     # Calculate weeks spanned by recent data

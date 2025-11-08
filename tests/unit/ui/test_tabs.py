@@ -21,9 +21,9 @@ class TestTabConfigRegistry:
         assert TAB_CONFIG is not None
         assert len(TAB_CONFIG) > 0
 
-    def test_tab_config_has_six_tabs(self):
-        """Test that TAB_CONFIG contains exactly 6 tabs."""
-        assert len(TAB_CONFIG) == 6
+    def test_tab_config_has_seven_tabs(self):
+        """Test that TAB_CONFIG contains exactly 8 tabs (added DORA and Flow Metrics separately in Phase 7)."""
+        assert len(TAB_CONFIG) == 8
 
     def test_tab_config_structure(self):
         """Test that each tab has required fields."""
@@ -279,6 +279,8 @@ class TestTabConfigIntegration:
             "tab-points",
             "tab-scope-tracking",
             "tab-bug-analysis",
+            "tab-dora-metrics",  # Added in Feature 007 Phase 7
+            "tab-flow-metrics",  # Added in Feature 007 Phase 7
         ]
 
         actual_order = [tab["id"] for tab in sorted_tabs]

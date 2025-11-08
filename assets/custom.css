@@ -63,6 +63,122 @@
 
   /* Mobile */
   --touch-target-min: 44px;
+
+  /* Flow Metrics Colors (matching chart colors) */
+  --flow-feature-color: #198754; /* Green */
+  --flow-defect-color: #dc3545; /* Red */
+  --flow-risk-color: #ffc107; /* Yellow */
+  --flow-tech-debt-color: #fd7e14; /* Orange */
+
+  /* Performance Tier Colors - Semaphore Style */
+  --tier-elite: #198754; /* Green - Elite/Excellent */
+  --tier-high: #0dcaf0; /* Cyan/Blue - High/Good */
+  --tier-medium: #ffc107; /* Yellow - Medium/Fair */
+  --tier-low-orange: #fd7e14; /* Orange - Low/Slow */
+  --tier-critical: #dc3545; /* Red - Critical/Worst */
+}
+
+/* ===== Performance Tier Badge Colors (Semaphore Style) ===== */
+/* Custom badge color for orange tier (between yellow and red) */
+.badge.bg-tier-orange {
+  background-color: var(--tier-low-orange) !important;
+  color: #000 !important; /* Dark text for contrast */
+}
+
+.badge.bg-tier-elite {
+  background-color: var(--tier-elite) !important;
+  color: #fff !important;
+}
+
+.badge.bg-tier-high {
+  background-color: var(--tier-high) !important;
+  color: #000 !important; /* Dark text for cyan background */
+}
+
+.badge.bg-tier-medium {
+  background-color: var(--tier-medium) !important;
+  color: #000 !important; /* Dark text for yellow background */
+}
+
+.badge.bg-tier-critical {
+  background-color: var(--tier-critical) !important;
+  color: #fff !important;
+}
+
+/* Text color utilities for performance tiers */
+.text-tier-orange {
+  color: var(--tier-low-orange) !important;
+}
+
+.text-tier-elite {
+  color: var(--tier-elite) !important;
+}
+
+.text-tier-high {
+  color: var(--tier-high) !important;
+}
+
+.text-tier-medium {
+  color: var(--tier-medium) !important;
+}
+
+.text-tier-critical {
+  color: var(--tier-critical) !important;
+}
+
+/* Border colors for performance tiers (used in compact metric cards) */
+.border-tier-orange {
+  border-color: var(--tier-low-orange) !important;
+}
+
+.border-tier-elite {
+  border-color: var(--tier-elite) !important;
+}
+
+.border-tier-high {
+  border-color: var(--tier-high) !important;
+}
+
+.border-tier-medium {
+  border-color: var(--tier-medium) !important;
+}
+
+.border-tier-critical {
+  border-color: var(--tier-critical) !important;
+}
+
+/* ===== Flow Metrics Type Classification Border Colors ===== */
+.border-flow-feature {
+  border-color: var(--flow-feature-color) !important;
+}
+
+.border-flow-defect {
+  border-color: var(--flow-defect-color) !important;
+}
+
+.border-flow-risk {
+  border-color: var(--flow-risk-color) !important;
+}
+
+.border-flow-tech-debt {
+  border-color: var(--flow-tech-debt-color) !important;
+}
+
+/* Icon colors for Flow type cards */
+.border-flow-feature .fa-lightbulb {
+  color: var(--flow-feature-color) !important;
+}
+
+.border-flow-defect .fa-bug {
+  color: var(--flow-defect-color) !important;
+}
+
+.border-flow-tech-debt .fa-wrench {
+  color: var(--flow-tech-debt-color) !important;
+}
+
+.border-flow-risk .fa-shield-alt {
+  color: var(--flow-risk-color) !important;
 }
 
 /* ===== Parameter Panel Styles (User Story 1) ===== */
@@ -1036,6 +1152,48 @@ mark.jql-operator {
 /* Ensure SVG elements align properly */
 svg {
   vertical-align: middle;
+}
+
+/* ===== Alert Component Improvements ===== */
+
+/* Fix dismissable alert close button vertical alignment */
+.alert.alert-dismissible {
+  display: flex;
+  align-items: center;
+  padding-right: 3rem; /* Make room for close button */
+}
+
+.alert.alert-dismissible .btn-close {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  right: 1rem;
+  padding: 0.5rem;
+}
+
+/* White close button for colored alerts (info, success, warning, danger) */
+.alert-primary .btn-close,
+.alert-secondary .btn-close,
+.alert-success .btn-close,
+.alert-danger .btn-close,
+.alert-warning .btn-close,
+.alert-info .btn-close {
+  filter: brightness(0) invert(1);
+  opacity: 0.8;
+}
+
+.alert-primary .btn-close:hover,
+.alert-secondary .btn-close:hover,
+.alert-success .btn-close:hover,
+.alert-danger .btn-close:hover,
+.alert-warning .btn-close:hover,
+.alert-info .btn-close:hover {
+  opacity: 1;
+}
+
+/* Ensure alert content flexes properly */
+.alert.alert-dismissible > * {
+  flex: 1;
 }
 
 /* ===== Enhanced Accessibility & Interactive Elements ===== */
@@ -2228,9 +2386,67 @@ input[type="range"]::-moz-range-thumb {
   z-index: 1060 !important;
 }
 
+/* Fix DatePickerRange calendar popup z-index */
+.DateRangePicker_picker,
+.DateRangePicker__picker {
+  z-index: 1060 !important; /* Higher than metric cards and other content */
+}
+
 /* Ensure calendar overlay appears above all content */
 .SingleDatePicker_picker {
   z-index: 1060 !important;
+}
+
+/* Style for DatePickerRange inputs - more compact display */
+#dora-date-range-picker,
+#flow-date-range-picker {
+  width: 100%;
+}
+
+#dora-date-range-picker .DateRangePickerInput,
+#flow-date-range-picker .DateRangePickerInput {
+  display: flex;
+  align-items: center;
+  border: none !important; /* Remove our custom border - component has its own */
+  background: transparent !important; /* Remove background - component handles it */
+  padding: 0 !important; /* Remove padding - component has its own */
+}
+
+#dora-date-range-picker .DateInput,
+#flow-date-range-picker .DateInput {
+  width: auto;
+  flex: 1;
+}
+
+#dora-date-range-picker .DateInput_input,
+#flow-date-range-picker .DateInput_input {
+  font-size: var(--font-size-sm);
+}
+
+#dora-date-range-picker .DateRangePickerInput_arrow,
+#flow-date-range-picker .DateRangePickerInput_arrow {
+  margin: 0 0.5rem;
+  color: var(--color-gray-600);
+}
+
+/* Make the arrow more prominent */
+#dora-date-range-picker .DateRangePickerInput_arrow svg,
+#flow-date-range-picker .DateRangePickerInput_arrow svg {
+  fill: var(--color-gray-600);
+  width: 20px;
+  height: 20px;
+}
+
+/* Custom date range container positioning */
+#dora-custom-date-range-container,
+#flow-custom-date-range-container {
+  position: relative;
+  z-index: 1070;
+}
+
+/* Ensure calendar portal appears above everything */
+.DateRangePicker_picker__portal {
+  z-index: 1070 !important;
 }
 
 /* Fix Dash Select dropdown menu z-index to appear above settings panel */
@@ -2249,6 +2465,35 @@ div[class*="__menu"] {
 /* Force dropdown menu to use absolute positioning relative to viewport */
 .Select-menu-outer {
   position: absolute !important;
+}
+
+/* ===== FIELD MAPPING MODAL DROPDOWN FIX ===== */
+/* Allow dropdowns in field mapping modal to overflow and appear on top */
+#field-mapping-modal .modal-content,
+#field-mapping-modal .modal-body,
+#field-mapping-modal .modal-dialog,
+#field-mapping-modal .card,
+#field-mapping-modal .card-body {
+  overflow: visible !important;
+}
+
+/* Override Bootstrap's default modal-body overflow */
+#field-mapping-modal .modal-body {
+  overflow-y: visible !important;
+  overflow-x: visible !important;
+}
+
+/* Ensure field mapping dropdowns appear above modal backdrop */
+#field-mapping-modal div[class*="__menu"],
+#field-mapping-modal .Select-menu-outer {
+  z-index: 1070 !important; /* Higher than modal backdrop (1055) */
+}
+
+/* Allow all rows and columns in field mapping form to overflow */
+#field-mapping-modal .row,
+#field-mapping-modal .col-md-4,
+#field-mapping-modal .col-md-8 {
+  overflow: visible !important;
 }
 
 /* Responsive Toggle Switch ===== */
@@ -2987,6 +3232,224 @@ label.fw-medium {
 .jql-test-results-hidden {
   display: none !important;
 }
+
+/* ================================================================
+   Long-Press Force Refresh Animation
+   ================================================================ */
+
+/* Long-press button with progress indicator */
+.long-press-button {
+  position: relative !important;
+  overflow: hidden !important;
+  transition: transform 0.1s ease !important;
+}
+
+/* Progress fill using ::before pseudo-element */
+.long-press-button::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: var(--progress-width, 0%);
+  background: rgba(0, 0, 0, 0.25); /* Darker overlay for progress */
+  z-index: 0;
+  transition: none; /* Controlled by JavaScript */
+  pointer-events: none;
+}
+
+/* Active state - background fills from left to right */
+.long-press-button.long-press-active {
+  transform: scale(0.98);
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+/* Keep button content above progress background */
+.long-press-button > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Mobile-specific adjustments */
+@media (max-width: 767px) {
+  .long-press-button {
+    min-height: 44px; /* Minimum touch target size */
+  }
+}
+
+/* ================================================================
+   Compact Metric Overview Cards
+   ================================================================ */
+
+/* Compact metric cards for dashboard headers */
+.compact-metric-card {
+  border-left: 3px solid var(--color-primary);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.compact-metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1) !important;
+}
+
+.compact-metric-card .card-body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* Responsive adjustments for compact cards */
+@media (max-width: 767px) {
+  .compact-metric-card {
+    min-height: 70px;
+  }
+}
+
+/* ================================================================
+   Detailed Metric Cards (DORA & Flow)
+   ================================================================ */
+
+/* Ensure all metric cards have consistent height in grid layout */
+.metric-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Card body takes available space, pushing footer to bottom */
+.metric-card .card-body {
+  flex: 1 1 auto;
+}
+
+/* Card footer always at bottom, consistent height for symmetry */
+.metric-card .card-footer {
+  flex-shrink: 0;
+  min-height: 60px; /* Ensure consistent footer height across all cards */
+  display: flex;
+  align-items: center; /* Vertically center alert content */
+  justify-content: center; /* Horizontally center alert content */
+}
+
+/* When footer has action prompt alert */
+.metric-card .card-footer .alert {
+  margin-bottom: 0 !important;
+  width: 100%; /* Full width for alert */
+}
+
+/* ================================================================
+   Overview Section Container (DORA & Flow Metrics)
+   ================================================================ */
+
+/* Overview section with distinct background for metric overview cards */
+.overview-section {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+  transition: box-shadow 0.3s ease;
+}
+
+.overview-section:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Ensure compact cards inside overview section have proper spacing */
+.overview-section .compact-metric-card {
+  background-color: white !important;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+/* ================================================================
+   Skeleton Loading Animation
+   ================================================================ */
+
+/* Shimmer animation for visible skeleton loaders */
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    to right,
+    #e9ecef 0%,
+    #f8f9fa 20%,
+    #e9ecef 40%,
+    #e9ecef 100%
+  );
+  background-size: 1000px 100%;
+  animation: skeleton-shimmer 2s linear infinite;
+  border-radius: 4px;
+}
+
+/* Skeleton container - start hidden, only show if content takes time to load */
+.metric-cards-skeleton {
+  opacity: 0;
+  animation: delayedFadeIn 0.3s ease-in forwards;
+  animation-delay: 0.1s; /* Only appear if content takes longer than 100ms */
+}
+
+/* Content that replaces skeleton - appears immediately without animation */
+.metric-cards-grid,
+.empty-state-banner {
+  opacity: 1;
+  /* No animation - instant appearance to avoid flicker */
+}
+
+/* Fade animations for smooth skeleton replacement */
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes delayedFadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Old skeleton animation (kept for compatibility) */
+@keyframes skeleton-loading {
+  0% {
+    background-color: rgba(200, 200, 200, 0.2);
+  }
+  50% {
+    background-color: rgba(200, 200, 200, 0.4);
+  }
+  100% {
+    background-color: rgba(200, 200, 200, 0.2);
+  }
+}
+
+/* DISABLED - Old approach with manual animation control */
+/*
+.metric-cards-grid,
+.empty-state-banner,
+#bug-analysis-tab-content {
+  animation: fadeIn 0.3s ease-in;
+}
+*/
 
 /* ================================================================
    End of Custom Styles

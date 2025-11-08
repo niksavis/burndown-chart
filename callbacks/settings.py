@@ -13,7 +13,15 @@ from datetime import datetime
 # Third-party library imports
 import dash
 import dash_bootstrap_components as dbc
-from dash import Input, Output, State, callback_context, html, no_update
+from dash import (
+    Input,
+    Output,
+    State,
+    callback_context,
+    html,
+    no_update,
+    ClientsideFunction,
+)
 from dash.exceptions import PreventUpdate
 
 # Application imports
@@ -214,6 +222,11 @@ def register(app):
         )
 
         # Create updated settings
+        # CRITICAL: Ensure data_points_count is an integer (Dash sliders can return floats)
+        data_points_count = (
+            int(data_points_count) if data_points_count is not None else 12
+        )
+
         settings = {
             "pert_factor": pert_factor,
             "deadline": deadline,
@@ -228,7 +241,10 @@ def register(app):
         }
 
         # Save app-level settings - load JIRA values from jira_config (Feature 003-jira-config-separation)
-        from data.persistence import save_app_settings
+        from data.persistence import save_app_settings, load_app_settings
+
+        # Load existing settings to preserve last_used_data_source and active_jql_profile_id
+        existing_settings = load_app_settings()
 
         save_app_settings(
             pert_factor,
@@ -240,6 +256,8 @@ def register(app):
             jql_query.strip()
             if jql_query and jql_query.strip()
             else "project = JRASERVER",  # Use current JQL input
+            existing_settings.get("last_used_data_source"),  # Preserve data source
+            existing_settings.get("active_jql_profile_id"),  # Preserve profile ID
             # Note: JIRA configuration is now managed separately via save_jira_configuration()
         )
 
@@ -297,6 +315,14 @@ def register(app):
     # Data source selection was part of old UI design and has been removed
     # JIRA data loading is now triggered directly by the "Update Data" button
 
+    # Clientside callback to detect force refresh from long-press
+    app.clientside_callback(
+        ClientsideFunction(namespace="forceRefresh", function_name="updateStore"),
+        Output("force-refresh-store", "data"),
+        Input("update-data-unified", "n_clicks"),
+        prevent_initial_call=True,
+    )
+
     @app.callback(
         [
             Output("upload-data", "contents", allow_duplicate=True),
@@ -307,18 +333,27 @@ def register(app):
             Output("estimated-items-input", "value", allow_duplicate=True),
             Output("total-points-display", "value", allow_duplicate=True),
             Output("estimated-points-input", "value", allow_duplicate=True),
+            Output("current-settings", "data", allow_duplicate=True),
+            Output(
+                "force-refresh-store", "data", allow_duplicate=True
+            ),  # Reset store after use
+            Output("update-data-unified", "disabled", allow_duplicate=True),
+            Output("update-data-unified", "children", allow_duplicate=True),
         ],
         [Input("update-data-unified", "n_clicks")],
         [
             State(
                 "jira-jql-query", "value"
             ),  # JQL textarea uses standard "value" property
+            State("force-refresh-store", "data"),  # Force refresh from long-press store
         ],
+        background=True,  # Run in background to prevent UI blocking
         prevent_initial_call=True,
     )
     def handle_unified_data_update(
         n_clicks,
         jql_query,
+        force_refresh,
     ):
         """
         Handle unified data update button click (JIRA data source only).
@@ -326,14 +361,26 @@ def register(app):
         Args:
             n_clicks (int): Number of clicks on unified update button
             jql_query (str): JQL query for JIRA data source
+            force_refresh (bool): Force cache refresh flag
 
         Returns:
-            Tuple: Upload contents, filename, cache status, statistics table data
+            Tuple: Upload contents, filename, cache status, statistics table data,
+                   scope values, settings, button state
         """
+        # Normal button state
+        button_normal = [
+            html.I(className="fas fa-sync-alt", style={"marginRight": "0.5rem"}),
+            "Update Data",
+        ]
+
         if not n_clicks:
             raise PreventUpdate
 
         try:
+            # Track task progress
+            from data.task_progress import TaskProgress
+
+            TaskProgress.start_task("update_data", "Updating data from JIRA")
             # Handle JIRA data import (settings panel only uses JIRA)
             from data.jira_simple import validate_jira_config
             from data.persistence import load_app_settings
@@ -377,6 +424,8 @@ def register(app):
                     className="text-warning small mt-2",
                 )
                 logger.warning("Attempted to update data without JIRA configuration")
+                # Clear task progress
+                TaskProgress.complete_task("update_data")
                 return (
                     None,
                     None,
@@ -386,6 +435,10 @@ def register(app):
                     no_update,
                     no_update,
                     no_update,
+                    no_update,  # Don't update settings
+                    False,  # Reset force refresh
+                    False,  # Enable button
+                    button_normal,  # Reset button text
                 )
 
             # Use JQL query from input or fall back to settings
@@ -427,6 +480,8 @@ def register(app):
                     app_settings["milestone"],
                     app_settings["show_points"],
                     settings_jql,
+                    app_settings.get("last_used_data_source"),  # Preserve data source
+                    app_settings.get("active_jql_profile_id"),  # Preserve profile ID
                 )
                 logger.info(f"JQL query updated and saved: JQL='{settings_jql}'")
 
@@ -438,6 +493,12 @@ def register(app):
                 "story_points_field": final_story_points_field,
                 "cache_max_size_mb": final_cache_max_size,
                 "max_results": final_max_results,
+                "devops_projects": app_settings.get(
+                    "devops_projects", []
+                ),  # Add DevOps filtering config
+                "field_mappings": app_settings.get(
+                    "field_mappings", {}
+                ),  # Add field mappings for DORA/Flow metrics
             }
 
             # Validate configuration
@@ -463,13 +524,44 @@ def register(app):
                 logger.error(
                     f"JIRA configuration validation failed: {validation_message}"
                 )
-                return None, None, cache_status_message, no_update
+                # Clear task progress
+                TaskProgress.complete_task("update_data")
+                return (
+                    None,
+                    None,
+                    cache_status_message,
+                    no_update,
+                    no_update,
+                    no_update,
+                    no_update,
+                    no_update,
+                    no_update,  # Don't update settings
+                    False,  # Reset force refresh
+                    False,  # Enable button
+                    button_normal,  # Reset button text
+                )
 
             # Use sync_jira_scope_and_data to get both scope data and message
             from data.jira_simple import sync_jira_scope_and_data
 
+            # Convert checkbox value to boolean (None = False)
+            force_refresh_bool = bool(force_refresh)
+
+            # DEBUG: Log what we received from the store
+            logger.info(
+                f"🔍 DEBUG: force_refresh value = {force_refresh}, bool = {force_refresh_bool}"
+            )
+
+            if force_refresh_bool:
+                logger.info("=" * 60)
+                logger.info("🔄 FORCE REFRESH ENABLED BY USER (long-press detected)")
+                logger.info(
+                    "Cache will be invalidated and fresh data fetched from JIRA"
+                )
+                logger.info("=" * 60)
+
             success, message, scope_data = sync_jira_scope_and_data(
-                settings_jql, jira_config_for_sync
+                settings_jql, jira_config_for_sync, force_refresh=force_refresh_bool
             )
 
             if success:
@@ -492,8 +584,8 @@ def register(app):
                     else 0
                 )
 
-                # Create detailed success message showing both counts
-                success_details = f"✓ Data loaded: {issues_count} issue{'s' if issues_count != 1 else ''} from JIRA (aggregated into {weekly_count} weekly data point{'s' if weekly_count != 1 else ''})"
+                # Create detailed success message showing both counts (icon shows success, no text checkmark needed)
+                success_details = f"Data loaded: {issues_count} issue{'s' if issues_count != 1 else ''} from JIRA (aggregated into {weekly_count} weekly data point{'s' if weekly_count != 1 else ''})"
 
                 cache_status_message = html.Div(
                     [
@@ -522,16 +614,80 @@ def register(app):
                     scope_data.get("estimated_points", 0) if scope_data else 0
                 )
 
+                # After getting CURRENT remaining work from JIRA, calculate window-based scope
+                # This ensures consistency with serve_layout() and slider callback
+                # Use the updated_statistics we just loaded above (line 488), not load_statistics() again
+                from data.persistence import load_app_settings
+
+                app_settings = load_app_settings()
+                data_points_count = app_settings.get("data_points_count", 16)
+
+                if updated_statistics and len(updated_statistics) >= data_points_count:
+                    import pandas as pd
+
+                    # Calculate remaining work at START of selected data window
+                    df = pd.DataFrame(updated_statistics)
+                    df["date"] = pd.to_datetime(df["date"])
+                    df = df.sort_values("date", ascending=False)
+                    selected_data = df.head(data_points_count)
+
+                    # Calculate completed work in the window
+                    completed_in_window_items = selected_data["completed_items"].sum()
+                    completed_in_window_points = selected_data["completed_points"].sum()
+
+                    # Remaining at START = Current remaining + Completed in window
+                    total_items_window_based = int(
+                        total_items + completed_in_window_items
+                    )
+                    total_points_window_based = (
+                        total_points + completed_in_window_points
+                    )
+
+                    logger.info(
+                        f"Scope from JIRA (current): {total_items} items, {total_points:.1f} points"
+                    )
+                    logger.info(
+                        f"Adjusted for {data_points_count}-week window: {total_items_window_based} items, {total_points_window_based:.1f} points"
+                    )
+
+                    # Use window-based values for UI
+                    total_items = total_items_window_based
+                    total_points = total_points_window_based
+
                 # Format total_points as string since it's a text display field
                 total_points_display = f"{total_points:.0f}"
 
                 logger.info(
-                    f"Scope calculated from JIRA: total_items (remaining)={total_items}, "
-                    f"estimated_items={estimated_items}, total_points (remaining)={total_points}, "
+                    f"Final scope for UI: total_items={total_items}, "
+                    f"estimated_items={estimated_items}, total_points={total_points:.1f}, "
                     f"estimated_points={estimated_points}"
                 )
 
-                # Return updated statistics AND scope values to refresh inputs
+                # Update the settings store with new values to trigger dashboard refresh
+                from data.persistence import load_app_settings
+
+                current_settings = load_app_settings()
+                updated_settings = current_settings.copy()
+                updated_settings.update(
+                    {
+                        "total_items": total_items,
+                        "total_points": total_points,
+                        "estimated_items": estimated_items,
+                        "estimated_points": estimated_points,
+                    }
+                )
+
+                logger.info(
+                    f"✅ Updating Store with window-based values: {total_items} items, {total_points:.1f} points"
+                )
+                logger.info(
+                    f"✅ Settings before: total_items={current_settings.get('total_items')}, after: {updated_settings.get('total_items')}"
+                )
+
+                # Clear task progress
+                TaskProgress.complete_task("update_data")
+
+                # Return updated statistics AND scope values to refresh inputs AND settings store
                 return (
                     None,
                     None,
@@ -541,6 +697,10 @@ def register(app):
                     estimated_items,
                     total_points_display,  # Text field, not number
                     estimated_points,
+                    updated_settings,  # Updated settings to trigger dashboard refresh
+                    False,  # Reset force refresh store
+                    False,  # Enable button
+                    button_normal,  # Reset button text
                 )
             else:
                 # Create detailed error message
@@ -556,6 +716,8 @@ def register(app):
                     className="text-danger small text-center mt-2",
                 )
                 logger.error(f"JIRA data import failed: {message}")
+                # Clear task progress
+                TaskProgress.complete_task("update_data")
                 # Return no table update on failure, keep scope values unchanged
                 return (
                     None,
@@ -566,6 +728,10 @@ def register(app):
                     no_update,
                     no_update,
                     no_update,
+                    no_update,  # Don't update settings on error
+                    False,  # Reset force refresh store
+                    False,  # Enable button
+                    button_normal,  # Reset button text
                 )
 
         except ImportError:
@@ -587,6 +753,10 @@ def register(app):
                 ],
                 className="text-danger small mt-2",
             )
+            # Clear task progress
+            from data.task_progress import TaskProgress
+
+            TaskProgress.complete_task("update_data")
             return (
                 None,
                 None,
@@ -596,6 +766,10 @@ def register(app):
                 no_update,
                 no_update,
                 no_update,
+                no_update,  # Don't update settings on error
+                False,  # Reset force refresh store
+                False,  # Enable button
+                button_normal,  # Reset button text
             )
         except Exception as e:
             logger.error(f"Error in unified data update: {e}")
@@ -613,6 +787,10 @@ def register(app):
                 ],
                 className="text-danger small mt-2",
             )
+            # Clear task progress
+            from data.task_progress import TaskProgress
+
+            TaskProgress.complete_task("update_data")
             return (
                 None,
                 None,
@@ -622,6 +800,10 @@ def register(app):
                 no_update,
                 no_update,
                 no_update,
+                no_update,  # Don't update settings on error
+                False,  # Reset force refresh store
+                False,  # Enable button
+                button_normal,  # Reset button text
             )
 
     #######################################################################
@@ -775,6 +957,35 @@ def register(app):
                 time_content = html.Small(
                     f"Last updated: {current_time}", className="text-muted"
                 )
+
+                # After getting CURRENT remaining work from JIRA, calculate window-based scope
+                # This ensures consistency with serve_layout() and slider callback
+                from data.persistence import load_app_settings, load_statistics
+
+                app_settings = load_app_settings()
+                data_points_count = app_settings.get("data_points_count", 16)
+                statistics = load_statistics()
+
+                if statistics and len(statistics) >= data_points_count:
+                    import pandas as pd
+
+                    # Calculate remaining work at START of selected data window
+                    df = pd.DataFrame(statistics)
+                    df["date"] = pd.to_datetime(df["date"])
+                    df = df.sort_values("date", ascending=False)
+                    selected_data = df.head(data_points_count)
+
+                    # Calculate completed work in the window
+                    completed_in_window_items = selected_data["completed_items"].sum()
+                    completed_in_window_points = selected_data["completed_points"].sum()
+
+                    # Remaining at START = Current remaining + Completed in window
+                    total_items = int(total_items + completed_in_window_items)
+                    estimated_points = estimated_points + completed_in_window_points
+
+                    logger.info(
+                        f"Adjusted scope for {data_points_count}-week window: {total_items} items, {estimated_points:.1f} points"
+                    )
 
                 return (
                     status_content,
@@ -1146,61 +1357,64 @@ def register(app):
             Input("jira-query-profile-selector", "value"),
             Input("jira-query-profile-selector-mobile", "value"),
         ],
-        prevent_initial_call=True,
+        prevent_initial_call="initial_duplicate",  # Allow initial call while using allow_duplicate
     )
     def sync_dropdowns_and_show_buttons(desktop_profile_id, mobile_profile_id):
         """Sync both dropdowns, show/hide profile action buttons, and persist selection."""
         # Determine which dropdown triggered the change
         ctx = callback_context
 
-        # CRITICAL FIX: Only sync when triggered by actual user interaction
-        # If no trigger or triggered by another callback, don't interfere
-        if not ctx.triggered or not ctx.triggered[0].get("value"):
+        # Handle initial call (no trigger) - use desktop dropdown value
+        if not ctx.triggered:
             logger.info(
-                "DEBUG: sync_dropdowns_and_show_buttons - no trigger or empty value, skipping sync"
+                "DEBUG: sync_dropdowns_and_show_buttons - initial call, using desktop dropdown value"
             )
-            return (
-                no_update,
-                no_update,
-                {"display": "none"},
-                {"display": "none"},
-                {"display": "none"},
-                "",
-            )
-
-        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
-
-        # Determine which dropdown value to use
-        if trigger_id == "jira-query-profile-selector-mobile":
-            selected_profile_id = mobile_profile_id
-        elif trigger_id == "jira-query-profile-selector":
             selected_profile_id = desktop_profile_id
+            # Don't sync dropdowns on initial call, only set button visibility
+            trigger_id = None
         else:
-            # Unknown trigger, don't sync
-            logger.info(f"DEBUG: Unknown trigger: {trigger_id}, skipping sync")
-            return (
-                no_update,
-                no_update,
-                {"display": "none"},
-                {"display": "none"},
-                {"display": "none"},
-                "",
-            )
+            trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+
+            # Determine which dropdown value to use based on trigger
+            if trigger_id == "jira-query-profile-selector-mobile":
+                selected_profile_id = mobile_profile_id
+            elif trigger_id == "jira-query-profile-selector":
+                selected_profile_id = desktop_profile_id
+            else:
+                # Unknown trigger, don't sync
+                logger.info(f"DEBUG: Unknown trigger: {trigger_id}, skipping sync")
+                return (
+                    no_update,
+                    no_update,
+                    no_update,
+                    no_update,
+                    no_update,
+                    no_update,
+                )
 
         logger.info(
             f"DEBUG: sync_dropdowns_and_show_buttons called with profile_id: {selected_profile_id}"
         )
 
-        # CRITICAL FIX: Persist the selected profile ID to app_settings.json
-        # This ensures the selection is maintained on app restart/refresh
+        # Persist the selected profile ID and JQL to app_settings.json
+        # When user selects a profile from dropdown, save both the profile ID and its JQL
         try:
             from data.persistence import load_app_settings, save_app_settings
+            from data.jira_query_manager import get_query_profile_by_id
 
             app_settings = load_app_settings()
             current_profile_id = app_settings.get("active_jql_profile_id", "")
 
-            # Only save if the profile ID has changed (avoid unnecessary file writes)
-            if selected_profile_id != current_profile_id:
+            # Only save if triggered by user interaction (not initial load)
+            if trigger_id is not None and selected_profile_id != current_profile_id:
+                # Get the JQL from the selected profile
+                jql_to_save = app_settings.get("jql_query", "")
+                if selected_profile_id:
+                    profile = get_query_profile_by_id(selected_profile_id)
+                    if profile:
+                        jql_to_save = profile.get("jql", jql_to_save)
+                        logger.info(f"Saving JQL from profile: {profile.get('name')}")
+
                 save_app_settings(
                     pert_factor=app_settings["pert_factor"],
                     deadline=app_settings["deadline"],
@@ -1208,13 +1422,12 @@ def register(app):
                     show_milestone=app_settings.get("show_milestone"),
                     milestone=app_settings.get("milestone"),
                     show_points=app_settings.get("show_points"),
-                    jql_query=app_settings.get("jql_query"),
+                    jql_query=jql_to_save,  # Save the profile's JQL
                     last_used_data_source=app_settings.get("last_used_data_source"),
-                    active_jql_profile_id=selected_profile_id
-                    or "",  # Persist the selection
+                    active_jql_profile_id=selected_profile_id or "",
                 )
                 logger.info(
-                    f"Persisted selected query profile ID: {selected_profile_id}"
+                    f"Persisted profile ID: {selected_profile_id} with JQL: {jql_to_save[:50]}..."
                 )
         except Exception as e:
             logger.error(f"Error persisting profile selection: {e}")
@@ -1265,9 +1478,13 @@ def register(app):
                     else hidden_style
                 )
 
+                # On initial call, don't update dropdown values (they're already set in UI)
+                desktop_value = no_update if trigger_id is None else selected_profile_id
+                mobile_value = no_update if trigger_id is None else selected_profile_id
+
                 return (
-                    selected_profile_id,  # desktop dropdown
-                    selected_profile_id,  # mobile dropdown
+                    desktop_value,  # desktop dropdown
+                    mobile_value,  # mobile dropdown
                     visible_style,  # edit button
                     load_default_style,  # load default button
                     visible_style,  # delete button
@@ -1280,9 +1497,13 @@ def register(app):
                 # Show load default button if there's a default query
                 load_default_style = visible_style if default_query else hidden_style
 
+                # On initial call, don't update dropdown values (they're already set in UI)
+                desktop_value = no_update if trigger_id is None else selected_profile_id
+                mobile_value = no_update if trigger_id is None else selected_profile_id
+
                 return (
-                    selected_profile_id,  # desktop dropdown
-                    selected_profile_id,  # mobile dropdown
+                    desktop_value,  # desktop dropdown
+                    mobile_value,  # mobile dropdown
                     hidden_style,  # edit button
                     load_default_style,  # load default button
                     hidden_style,  # delete button
@@ -1380,10 +1601,10 @@ def register(app):
             "jira-jql-query", "value"
         ),  # JQL textarea uses standard "value" property
         [Input("jira-query-profile-selector", "value")],
-        prevent_initial_call=False,  # CRITICAL FIX: Allow initial call to load query on app start
+        prevent_initial_call=True,  # Only load when user explicitly selects a profile
     )
     def update_jql_from_profile(selected_profile_id):
-        """Update JQL textarea when a profile is selected or on initial load."""
+        """Update JQL textarea when a profile is selected by the user."""
         if not selected_profile_id:
             raise PreventUpdate
 
@@ -2012,8 +2233,12 @@ def register(app):
             Input(
                 "deadline-picker", "date"
             ),  # FIXED: use correct component and property
-            Input("estimated-items-input", "value"),
-            Input("estimated-points-input", "value"),
+            Input(
+                "total-items-input", "value"
+            ),  # FIXED: use Remaining Items (not Estimated Items)
+            Input(
+                "total-points-display", "value"
+            ),  # FIXED: use Remaining Points (auto) - the calculated total
             Input("data-points-input", "value"),  # Add data points input
             Input("current-settings", "modified_timestamp"),  # Add to get show_points
         ],
@@ -2051,23 +2276,27 @@ def register(app):
         pert_factor = pert_factor or DEFAULT_PERT_FACTOR
         deadline = deadline or "2025-12-31"
         scope_items = scope_items or 0
-        scope_points = scope_points or 0
+
+        # Parse scope_points - it comes from total-points-display which is a text input
+        # Value may be a string like "1064" or a float
+        try:
+            scope_points = float(scope_points) if scope_points else 0
+        except (ValueError, TypeError):
+            scope_points = 0
 
         # Get show_points setting
         show_points = settings.get("show_points", True) if settings else True
 
-        # Get remaining items/points from project scope if available
-        from data.persistence import get_project_scope
+        # Use the scope_items and scope_points directly:
+        # - scope_items comes from total-items-input (Remaining Items at START of window)
+        # - scope_points comes from total-points-display (Remaining Points auto-calculated)
+        # Both values are already calculated in serve_layout() and the slider callback
+        remaining_items = scope_items if scope_items > 0 else None
+        remaining_points = scope_points if scope_points > 0 else None
 
-        project_scope = get_project_scope()
-        remaining_items = None
-        remaining_points = None
-
-        if project_scope:
-            remaining_items = project_scope.get("remaining_items")
-            # Use remaining_total_points (estimated) instead of remaining_points (raw count)
-            # remaining_total_points accounts for items without estimates
-            remaining_points = project_scope.get("remaining_total_points")
+        logger.info(
+            f"Banner callback - remaining_items: {remaining_items}, remaining_points: {remaining_points}"
+        )
 
         return dbc.Row(
             [
@@ -2262,6 +2491,118 @@ def register(app):
 
         return max_data_points, data_points_marks
 
+    # Helper function to calculate remaining work scope (used by multiple callbacks)
+    def calculate_remaining_work_for_data_window(data_points_count, statistics):
+        """
+        Calculate remaining work scope for a given data window.
+
+        This function calculates what the remaining work was at the START of
+        the selected time window, so burndown charts show accurate projections.
+
+        Args:
+            data_points_count: Number of data points (weeks) to include
+            statistics: List of statistics data points
+
+        Returns:
+            Tuple: (estimated_items, remaining_items, estimated_points, remaining_points_str)
+                   or None if calculation cannot be performed
+        """
+        if not statistics or not data_points_count:
+            return None
+
+        try:
+            from data.persistence import load_unified_project_data
+            import pandas as pd
+
+            # Load unified data to get current scope
+            unified_data = load_unified_project_data()
+            project_scope = unified_data.get("project_scope", {})
+
+            # If no statistics or insufficient data, use current scope values
+            if len(statistics) < data_points_count:
+                estimated_items = project_scope.get("estimated_items", 0)
+                remaining_items = project_scope.get("remaining_items", 0)
+                estimated_points = project_scope.get("estimated_points", 0)
+                remaining_points = project_scope.get("remaining_total_points", 0)
+                return (
+                    estimated_items,
+                    remaining_items,
+                    estimated_points,
+                    f"{remaining_points:.0f}",
+                )
+
+            # Convert statistics to DataFrame for easier manipulation
+            df = pd.DataFrame(statistics)
+            df["date"] = pd.to_datetime(df["date"])
+            df = df.sort_values("date", ascending=False)  # Most recent first
+
+            # Get the most recent N data points (based on slider value)
+            selected_data = df.head(data_points_count)
+
+            # Calculate cumulative completed items/points in the selected time window
+            completed_in_window_items = selected_data["completed_items"].sum()
+            completed_in_window_points = selected_data["completed_points"].sum()
+
+            # Get current remaining work from project scope
+            current_remaining_items = project_scope.get("remaining_items", 0)
+            current_remaining_points = project_scope.get("remaining_total_points", 0)
+
+            # Calculate remaining work at the START of the selected time window
+            remaining_items_at_start = (
+                current_remaining_items + completed_in_window_items
+            )
+            remaining_points_at_start = (
+                current_remaining_points + completed_in_window_points
+            )
+
+            # Calculate estimated items/points based on the data window
+            estimated_items_in_window = selected_data[
+                selected_data["completed_points"] > 0
+            ]["completed_items"].sum()
+            estimated_points_in_window = selected_data["completed_points"].sum()
+
+            # Calculate ratio of estimated to total items
+            current_total_items = project_scope.get("total_items", 1)
+            current_estimated_items = project_scope.get("estimated_items", 0)
+
+            if current_total_items > 0:
+                estimate_ratio = current_estimated_items / current_total_items
+                estimated_items_at_start = int(
+                    remaining_items_at_start * estimate_ratio
+                )
+            else:
+                estimated_items_at_start = current_estimated_items
+
+            # Calculate estimated points
+            if estimated_items_at_start > 0 and estimated_points_in_window > 0:
+                avg_points = estimated_points_in_window / max(
+                    estimated_items_in_window, 1
+                )
+                estimated_points_at_start = int(estimated_items_at_start * avg_points)
+            else:
+                estimated_points_at_start = project_scope.get("estimated_points", 0)
+
+            logger.info(
+                f"Calculated remaining work for {data_points_count} week window: "
+                f"Remaining Items: {current_remaining_items} → {remaining_items_at_start}, "
+                f"Remaining Points: {current_remaining_points:.0f} → {remaining_points_at_start:.0f}"
+            )
+
+            return (
+                estimated_items_at_start,
+                int(remaining_items_at_start),
+                estimated_points_at_start,
+                f"{remaining_points_at_start:.0f}",
+            )
+
+        except Exception as e:
+            logger.error(f"Error calculating remaining work for data window: {e}")
+            return None
+
+    # NOTE: Initial values are now calculated directly in ui/layout.py serve_layout()
+    # This ensures consistent values between app load and slider interaction
+    # No separate initialization callback needed
+
     # Callback to recalculate remaining work scope when data points slider changes
     @app.callback(
         [
@@ -2299,97 +2640,74 @@ def register(app):
         if not init_complete or not statistics or not data_points_count:
             raise PreventUpdate
 
-        try:
-            from data.persistence import load_unified_project_data
-            import pandas as pd
+        # Use the helper function to calculate remaining work
+        result = calculate_remaining_work_for_data_window(data_points_count, statistics)
 
-            # Load unified data to get current scope
-            unified_data = load_unified_project_data()
-            project_scope = unified_data.get("project_scope", {})
-
-            # If no statistics or insufficient data, use current scope values
-            if not statistics or len(statistics) < data_points_count:
-                estimated_items = project_scope.get("estimated_items", 0)
-                remaining_items = project_scope.get("remaining_items", 0)
-                estimated_points = project_scope.get("estimated_points", 0)
-                remaining_points = project_scope.get("remaining_total_points", 0)
-                return (
-                    estimated_items,
-                    remaining_items,
-                    estimated_points,
-                    f"{remaining_points:.0f}",
-                )
-
-            # Convert statistics to DataFrame for easier manipulation
-            df = pd.DataFrame(statistics)
-            df["date"] = pd.to_datetime(df["date"])
-            df = df.sort_values("date", ascending=False)  # Most recent first
-
-            # Get the most recent N data points (based on slider value)
-            selected_data = df.head(data_points_count)
-
-            # Calculate cumulative completed items/points in the selected time window
-            # This gives us how much work was completed during the selected time window
-            completed_in_window_items = selected_data["completed_items"].sum()
-            completed_in_window_points = selected_data["completed_points"].sum()
-
-            # Get current remaining work from project scope
-            current_remaining_items = project_scope.get("remaining_items", 0)
-            current_remaining_points = project_scope.get("remaining_total_points", 0)
-
-            # Calculate remaining work at the START of the selected time window
-            # remaining_at_start = current_remaining + completed_during_window
-            remaining_items_at_start = (
-                current_remaining_items + completed_in_window_items
-            )
-            remaining_points_at_start = (
-                current_remaining_points + completed_in_window_points
-            )
-
-            # For estimated items/points, we need to recalculate based on the data window
-            # Get the data for items with estimates (story points)
-            estimated_items_in_window = selected_data[
-                selected_data["completed_points"] > 0
-            ]["completed_items"].sum()
-            estimated_points_in_window = selected_data["completed_points"].sum()
-
-            # Calculate what estimated items/points would be at start of window
-            # Use the current ratio of estimated to total, applied to the start values
-            current_total_items = project_scope.get("total_items", 1)
-            current_estimated_items = project_scope.get("estimated_items", 0)
-
-            if current_total_items > 0:
-                estimate_ratio = current_estimated_items / current_total_items
-                estimated_items_at_start = int(
-                    remaining_items_at_start * estimate_ratio
-                )
-            else:
-                estimated_items_at_start = current_estimated_items
-
-            # For estimated points, use the estimated points from the window
-            # or calculate based on completed points if available
-            if estimated_items_at_start > 0 and estimated_points_in_window > 0:
-                # Calculate average points per estimated item in the window
-                avg_points = estimated_points_in_window / max(
-                    estimated_items_in_window, 1
-                )
-                estimated_points_at_start = int(estimated_items_at_start * avg_points)
-            else:
-                estimated_points_at_start = project_scope.get("estimated_points", 0)
-
-            logger.info(
-                f"Data Points slider changed to {data_points_count}: "
-                f"Remaining Items: {current_remaining_items} → {remaining_items_at_start}, "
-                f"Remaining Points: {current_remaining_points:.0f} → {remaining_points_at_start:.0f}"
-            )
-
-            return (
-                estimated_items_at_start,
-                int(remaining_items_at_start),
-                estimated_points_at_start,
-                f"{remaining_points_at_start:.0f}",
-            )
-
-        except Exception as e:
-            logger.error(f"Error updating remaining work on data points change: {e}")
+        if result:
+            return result
+        else:
             raise PreventUpdate
+
+    #######################################################################
+    # TASK PROGRESS RESTORATION ON PAGE LOAD
+    #######################################################################
+
+    @app.callback(
+        [
+            Output("update-data-unified", "disabled", allow_duplicate=True),
+            Output("update-data-unified", "children", allow_duplicate=True),
+            Output("jira-cache-status", "children", allow_duplicate=True),
+        ],
+        Input("url", "pathname"),
+        prevent_initial_call="initial_duplicate",  # Run on initial page load with duplicates
+    )
+    def restore_update_data_progress(pathname):
+        """Restore Update Data button state if task is in progress.
+
+        This callback runs on page load to check if an Update Data task
+        was in progress before the page was refreshed or app restarted.
+        If so, it restores the loading state and status message.
+
+        Args:
+            pathname: Current URL pathname (triggers on page load)
+
+        Returns:
+            Tuple of (button disabled state, button children, status message)
+        """
+        from data.task_progress import TaskProgress
+
+        # Check if Update Data task is active
+        active_task = TaskProgress.get_active_task()
+
+        if active_task and active_task.get("task_id") == "update_data":
+            # Task is in progress - restore loading state
+            logger.info("Restoring Update Data progress state on page load")
+
+            button_loading = [
+                html.I(
+                    className="fas fa-spinner fa-spin", style={"marginRight": "0.5rem"}
+                ),
+                "Updating...",
+            ]
+
+            status_message = html.Div(
+                [
+                    html.I(className="fas fa-spinner fa-spin me-2 text-primary"),
+                    html.Span(
+                        TaskProgress.get_task_status_message("update_data")
+                        or "Updating data...",
+                        className="fw-medium",
+                    ),
+                ],
+                className="text-primary small text-center mt-2",
+            )
+
+            return True, button_loading, status_message
+
+        # No active task - return normal state
+        button_normal = [
+            html.I(className="fas fa-sync-alt", style={"marginRight": "0.5rem"}),
+            "Update Data",
+        ]
+
+        return False, button_normal, ""

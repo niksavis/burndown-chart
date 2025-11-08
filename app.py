@@ -13,9 +13,12 @@ and serves as the main entry point for running the server.
 # Third-party library imports
 import dash
 import dash_bootstrap_components as dbc
+from dash import DiskcacheManager
 from waitress import serve
+import diskcache
 
 from callbacks import register_all_callbacks
+from callbacks.dora_flow_metrics import register_calculate_metrics_button_spinner
 from configuration.server import get_server_config
 
 # Application imports
@@ -25,11 +28,16 @@ from ui import serve_layout
 # APPLICATION SETUP
 #######################################################################
 
+# Configure background callback manager for long-running tasks
+cache = diskcache.Cache("./cache")
+background_callback_manager = DiskcacheManager(cache)
+
 # Initialize the Dash app with PWA support
 app = dash.Dash(
     __name__,
     title="Burndown Chart Generator",  # Custom browser tab title
     assets_folder="assets",  # Explicitly set assets folder
+    background_callback_manager=background_callback_manager,  # Enable background callbacks
     external_stylesheets=[
         dbc.themes.FLATLY,
         "https://use.fontawesome.com/releases/v5.15.4/css/all.css",  # Font Awesome for icons
@@ -114,6 +122,9 @@ app.layout = serve_layout
 
 # Register all callbacks from the modular callback system
 register_all_callbacks(app)
+
+# Register clientside callbacks for button loading states
+register_calculate_metrics_button_spinner(app)
 
 #######################################################################
 # MAIN

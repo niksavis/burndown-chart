@@ -170,10 +170,8 @@ def get_default_unified_data() -> Dict[str, Any]:
     """
     Return default unified data structure.
 
-    Includes default bug_analysis section for backward compatibility.
-
     Returns:
-        Dict: Default unified project data structure with bug_analysis
+        Dict: Default unified project data structure
     """
     from datetime import datetime
 
@@ -193,7 +191,6 @@ def get_default_unified_data() -> Dict[str, Any]:
             "version": "2.0",
             "jira_query": "",
         },
-        "bug_analysis": get_default_bug_analysis_data(),
     }
 
 

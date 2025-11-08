@@ -16,11 +16,10 @@ import dash_bootstrap_components as dbc
 from dash import dcc, html
 
 # Application imports
-from configuration import __version__
+from configuration import __version__, logger
 from data import (
     calculate_total_points,
     load_app_settings,
-    load_project_data,
     load_statistics,
 )
 from ui.button_utils import create_action_button
@@ -33,6 +32,7 @@ from ui.components import (
 from ui.grid_utils import create_full_width_layout
 from ui.tabs import create_tabs
 from ui.jira_config_modal import create_jira_config_modal
+from ui.field_mapping_modal import create_field_mapping_modal
 from ui.settings_modal import (
     create_save_query_modal,
     create_delete_query_modal,
@@ -54,35 +54,101 @@ def serve_layout():
     """
     # Load initial data using new separated functions
     app_settings = load_app_settings()
-    project_data = load_project_data()
     statistics, is_sample_data = load_statistics()
 
-    # Load unified project scope data (includes JIRA calculated values)
+    # Calculate initial parameter values based on selected time window
+    # This ensures consistency between app load and slider interaction
     from data.persistence import get_project_scope
+    import pandas as pd
 
     project_scope = get_project_scope()
+    data_points_count = app_settings.get("data_points_count", 16)
 
-    # Merge app settings and project data for backward compatibility
-    # Use project_scope values if available (from JIRA), otherwise fall back to project_data defaults
-    settings = {**app_settings, **project_data}
-    if project_scope:
-        # Update with actual JIRA calculated scope values using correct field mappings
-        settings.update(
-            {
-                "total_items": project_scope.get(
-                    "remaining_items", project_data["total_items"]
-                ),  # Remaining Total Items
-                "total_points": project_scope.get(
-                    "remaining_total_points", project_data["total_points"]
-                ),  # Remaining Total Points (with extrapolation)
-                "estimated_items": project_scope.get(
-                    "estimated_items", project_data["estimated_items"]
-                ),  # Remaining Estimated Items (non-null story points)
-                "estimated_points": project_scope.get(
-                    "estimated_points", project_data["estimated_points"]
-                ),  # Remaining Estimated Points (sum of estimated)
-            }
-        )
+    # Calculate remaining work at START of selected time window (same logic as slider callback)
+    if project_scope and statistics and len(statistics) >= data_points_count:
+        try:
+            df = pd.DataFrame(statistics)
+            df["date"] = pd.to_datetime(df["date"])
+            df = df.sort_values("date", ascending=False)
+            selected_data = df.head(data_points_count)
+
+            # Calculate completed work in the selected window
+            completed_in_window_items = selected_data["completed_items"].sum()
+            completed_in_window_points = selected_data["completed_points"].sum()
+
+            # Get current remaining work
+            current_remaining_items = project_scope.get("remaining_items", 0)
+            current_remaining_points = project_scope.get("remaining_total_points", 0)
+
+            # Calculate remaining work at START of window
+            remaining_items_at_start = (
+                current_remaining_items + completed_in_window_items
+            )
+            remaining_points_at_start = (
+                current_remaining_points + completed_in_window_points
+            )
+
+            # Calculate estimated items/points using ratio
+            current_total_items = project_scope.get("total_items", 1)
+            current_estimated_items = project_scope.get("estimated_items", 0)
+
+            if current_total_items > 0:
+                estimate_ratio = current_estimated_items / current_total_items
+                estimated_items_at_start = int(
+                    remaining_items_at_start * estimate_ratio
+                )
+            else:
+                estimated_items_at_start = current_estimated_items
+
+            # Calculate estimated points
+            estimated_items_in_window = selected_data[
+                selected_data["completed_points"] > 0
+            ]["completed_items"].sum()
+            estimated_points_in_window = selected_data["completed_points"].sum()
+
+            if estimated_items_at_start > 0 and estimated_points_in_window > 0:
+                avg_points = estimated_points_in_window / max(
+                    estimated_items_in_window, 1
+                )
+                estimated_points_at_start = int(estimated_items_at_start * avg_points)
+            else:
+                estimated_points_at_start = project_scope.get("estimated_points", 0)
+
+            # Set calculated values in settings
+            settings = {**app_settings}
+            settings.update(
+                {
+                    "total_items": int(remaining_items_at_start),
+                    "total_points": remaining_points_at_start,
+                    "estimated_items": estimated_items_at_start,
+                    "estimated_points": estimated_points_at_start,
+                }
+            )
+        except Exception as e:
+            logger.error(f"Error calculating initial window values: {e}")
+            # Fallback to current scope values
+            settings = {**app_settings}
+            if project_scope:
+                settings.update(
+                    {
+                        "total_items": project_scope.get("remaining_items", 0),
+                        "total_points": project_scope.get("remaining_total_points", 0),
+                        "estimated_items": project_scope.get("estimated_items", 0),
+                        "estimated_points": project_scope.get("estimated_points", 0),
+                    }
+                )
+    else:
+        # Fallback: use current scope values if calculation not possible
+        settings = {**app_settings}
+        if project_scope:
+            settings.update(
+                {
+                    "total_items": project_scope.get("remaining_items", 0),
+                    "total_points": project_scope.get("remaining_total_points", 0),
+                    "estimated_items": project_scope.get("estimated_items", 0),
+                    "estimated_points": project_scope.get("estimated_points", 0),
+                }
+            )
 
     app_layout = create_app_layout(settings, statistics, is_sample_data)
     return app_layout
@@ -102,10 +168,11 @@ def create_app_layout(settings, statistics, is_sample_data):
         Dash Container component with complete application layout
     """
     # Calculate total points based on estimated values (for initial display)
+    # Use .get() with defaults since these values will be set by the initialization callback
     estimated_total_points, avg_points_per_item = calculate_total_points(
-        settings["total_items"],
-        settings["estimated_items"],
-        settings["estimated_points"],
+        settings.get("total_items", 0),
+        settings.get("estimated_items", 0),
+        settings.get("estimated_points", 0),
         statistics,
     )
 
@@ -116,6 +183,8 @@ def create_app_layout(settings, statistics, is_sample_data):
         [
             # JIRA Configuration Modal (Feature 003-jira-config-separation)
             create_jira_config_modal(),
+            # Field Mapping Modal (Feature 007-dora-flow-metrics Phase 4)
+            create_field_mapping_modal(),
             # Query Management Modals
             create_save_query_modal(),
             create_delete_query_modal(),
@@ -129,6 +198,8 @@ def create_app_layout(settings, statistics, is_sample_data):
             dcc.Store(id="current-statistics", data=statistics),
             # Store for sample data flag
             dcc.Store(id="is-sample-data", data=is_sample_data),
+            # Store for raw JIRA issues data (for DORA/Flow metrics calculations)
+            dcc.Store(id="jira-issues-store", data=None),
             # Store for calculation results
             dcc.Store(
                 id="calculation-results",
@@ -145,6 +216,8 @@ def create_app_layout(settings, statistics, is_sample_data):
             dcc.Store(id="ui-state", data={"loading": False, "last_tab": None}),
             # Store for viewport size detection (mobile, tablet, desktop)
             dcc.Store(id="viewport-size", data="desktop"),
+            # Store for triggering metrics refresh (DORA/Flow)
+            dcc.Store(id="metrics-refresh-trigger", data=None),
             # Interval component for dynamic viewport detection
             dcc.Interval(
                 id="viewport-detector",
@@ -189,22 +262,25 @@ def create_app_layout(settings, statistics, is_sample_data):
             html.Div(
                 [
                     dbc.Alert(
-                        [
-                            html.I(className="fas fa-info-circle me-2"),
-                            html.Strong("Using Sample Data: "),
-                            "You're currently viewing demo data. ",
-                            "Upload your own data using the form below or add entries manually to start tracking your project.",
-                            create_action_button(
-                                "Dismiss",
-                                variant="link",
-                                size="sm",
-                                id_suffix="sample-alert",
-                                className="ms-3",
-                            ),
-                        ],
+                        html.Div(
+                            [
+                                html.I(className="fas fa-info-circle me-2"),
+                                html.Span(
+                                    [
+                                        html.Strong("Using Sample Data"),
+                                        html.Br(),
+                                        html.Small(
+                                            "You're currently viewing demo data. Upload your own data using the form below or add entries manually to start tracking your project.",
+                                            style={"opacity": "0.85"},
+                                        ),
+                                    ]
+                                ),
+                            ],
+                            className="d-flex align-items-start",
+                        ),
                         id="sample-data-alert",
                         color="info",
-                        dismissable=False,
+                        dismissable=True,
                         is_open=is_sample_data,
                         className="mb-3",
                     ),

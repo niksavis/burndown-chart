@@ -96,6 +96,10 @@ def calculate_scope_change_rate(
         - points_rate: Scope change rate for points (%)
         - throughput_ratio: Dict with items/points throughput ratios (created/completed)
     """
+    # Ensure data_points_count is an integer (could be float from UI slider)
+    if data_points_count is not None:
+        data_points_count = int(data_points_count)
+
     # Apply data points filtering
     if (
         data_points_count is not None
@@ -227,6 +231,10 @@ def calculate_weekly_scope_growth(df, data_points_count=None):
         df: DataFrame with project statistics
         data_points_count: Optional parameter to limit data to most recent N data points
     """
+    # Ensure data_points_count is an integer (could be float from UI slider)
+    if data_points_count is not None:
+        data_points_count = int(data_points_count)
+
     # Apply data points filtering
     if (
         data_points_count is not None
@@ -277,8 +285,19 @@ def calculate_weekly_scope_growth(df, data_points_count=None):
     # Sort by date
     weekly = weekly.sort_values("start_date")
 
-    # Return only the relevant columns
-    result = weekly[["week_label", "items_growth", "points_growth", "start_date"]]
+    # Return columns including raw created/completed values for UI calculations
+    result = weekly[
+        [
+            "week_label",
+            "items_growth",
+            "points_growth",
+            "start_date",
+            "created_items",
+            "completed_items",
+            "created_points",
+            "completed_points",
+        ]
+    ]
 
     return result
 
@@ -320,6 +339,10 @@ def calculate_scope_stability_index(
     Returns:
         Dict with items_stability and points_stability (0.0 to 1.0)
     """
+    # Ensure data_points_count is an integer (could be float from UI slider)
+    if data_points_count is not None:
+        data_points_count = int(data_points_count)
+
     # Apply data points filtering
     if (
         data_points_count is not None

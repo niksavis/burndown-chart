@@ -100,7 +100,10 @@ Example - Correct callback pattern:
 from callbacks import (
     bug_analysis,  # Bug analysis metrics callbacks (Feature 004)
     dashboard,  # Dashboard metrics and PERT timeline callbacks (Feature 006, User Story 2)
+    dora_flow_metrics,  # DORA/Flow metrics callbacks (Feature 007, auto-registers via @callback)  # noqa: F401
+    field_mapping,  # Field mapping callbacks (Feature 007, auto-registers via @callback)  # noqa: F401
     jira_config,  # JIRA config modal callbacks (auto-registers via @callback)  # noqa: F401
+    jira_data_store,  # JIRA issues store population (Feature 007, auto-registers via @callback)  # noqa: F401
     jql_editor,  # JQL editor textarea-to-store sync
     mobile_navigation,  # Add mobile navigation callbacks
     settings_panel,  # Settings panel callbacks (auto-registers via @callback)  # noqa: F401
@@ -126,4 +129,4 @@ def register_all_callbacks(app):
     jql_editor.register_jql_editor_callbacks(app)  # Register JQL editor sync
     bug_analysis.register(app)  # Register bug analysis callbacks (Feature 004)
     dashboard.register(app)  # Register dashboard callbacks (Feature 006, User Story 2)
-    # Note: jira_config and settings_panel callbacks auto-register via @callback decorator when imported
+    # Note: jira_config, settings_panel, jira_data_store, dora_flow_metrics, and field_mapping callbacks auto-register via @callback decorator when imported

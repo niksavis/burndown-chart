@@ -718,6 +718,23 @@ PARAMETER_INPUTS_TOOLTIPS = {
     "data_points_detail": "More data points provide stability but may miss recent trends. Fewer points are more responsive to changes but can be volatile. Balance based on your project's stability.",
 }
 
+# FLOW METRICS HELP CONTENT - Tooltips for Flow Framework metrics
+FLOW_METRICS_TOOLTIPS = {
+    "flow_velocity": "Number of work items completed per week. Measures delivery throughput across all Flow types (Feature, Defect, Risk, Tech Debt). Higher velocity indicates faster value delivery.",
+    "flow_time": "Median time from work start to completion in days. Includes both active work time and wait time. Lower flow time indicates faster delivery cycles and better predictability.",
+    "flow_efficiency": "Percentage of time spent actively working vs waiting. Calculated as active time divided by total flow time. Higher efficiency (>40%) indicates less waste and smoother workflows.",
+    "flow_load": "Current work in progress (WIP) across all active statuses. Health thresholds calculated using Little's Law (L=λ×W): Optimal WIP = Throughput × Cycle Time. Thresholds derived from historical percentiles (P25, P50, P75, P90) with 20% buffers. Lower WIP reduces context switching and improves focus. Team-specific thresholds adapt to your actual capacity and cycle time.",
+    "flow_distribution": "Breakdown of completed work by type: Features (new value), Defects (quality issues), Risk (security/compliance), and Tech Debt (maintenance). Balanced distribution indicates healthy development practices.",
+}
+
+# DORA METRICS HELP CONTENT - Tooltips for DORA metrics
+DORA_METRICS_TOOLTIPS = {
+    "deployment_frequency": "How often code is deployed to production. Measures release cadence and automation maturity. Elite performers deploy multiple times per day, high performers deploy weekly. More frequent deployments enable faster feedback and lower change risk.",
+    "lead_time_for_changes": "Time from code commit to production deployment in days. Measures end-to-end delivery speed from development to operations. Elite performers achieve <1 day, high performers <1 week. Shorter lead times enable faster value delivery and market response.",
+    "change_failure_rate": "Percentage of deployments causing production failures requiring remediation (rollback, hotfix, etc.). Measures deployment quality and testing effectiveness. Elite performers maintain <15% failure rate. Lower rates indicate mature testing and deployment practices.",
+    "mean_time_to_recovery": "Average time to restore service after production incident in hours. Measures operational resilience and incident response capability. Elite performers recover in <1 hour. Faster recovery reduces customer impact and business risk.",
+}
+
 # SETTINGS PANEL HELP CONTENT - Tooltips for settings panel features
 SETTINGS_PANEL_TOOLTIPS = {
     "jira_integration": "Connect to your JIRA instance to automatically import project data. Configure your JIRA server URL, authentication, and field mappings to sync work items, story points, and completion dates.",
@@ -728,6 +745,7 @@ SETTINGS_PANEL_TOOLTIPS = {
     "query_profiles": "Query profiles store JQL queries with descriptive names. Load saved profiles to quickly switch between different data views. Edit existing profiles to update queries or rename them. Delete profiles you no longer need.",
     "fetch_data": "Import work items from JIRA using the configured connection and JQL query. Fetches issue keys, statuses, story points, creation dates, and completion dates. Updates scope metrics and velocity data automatically.",
     "update_data": "Refresh project data from JIRA to get the latest work item statuses and metrics. Recommended frequency: daily for active projects, weekly for stable projects. Data is cached locally for offline viewing.",
+    "calculate_metrics": "Calculate Flow and DORA metrics from JIRA changelog data. Downloads status history if needed (~2 minutes), then computes Flow Time, Flow Efficiency, Lead Time, and Deployment Frequency. Run after updating JIRA data to refresh metrics with latest changes.",
     "import_data": "Upload project data from JSON or CSV files saved previously. Useful for offline analysis, data migration, or working with historical snapshots. Supports both full project data and weekly statistics exports.",
     "export_data": "Download complete project data as JSON for backup, sharing, or analysis in external tools. Includes all work items, statistics, settings, and JIRA cache. Preserves full project state for later restoration.",
     "data_formats": "JSON format: Complete structured data with all metadata. CSV format: Simplified tabular data for spreadsheet analysis. Choose JSON for full backups, CSV for external reporting and data analysis.",
@@ -743,5 +761,7 @@ COMPREHENSIVE_HELP_CONTENT = {
     "bug_analysis": BUG_ANALYSIS_TOOLTIPS,
     "dashboard": DASHBOARD_METRICS_TOOLTIPS,
     "parameters": PARAMETER_INPUTS_TOOLTIPS,
+    "flow_metrics": FLOW_METRICS_TOOLTIPS,
+    "dora_metrics": DORA_METRICS_TOOLTIPS,
     "settings": SETTINGS_PANEL_TOOLTIPS,
 }

@@ -23,7 +23,7 @@ class TestDataSourceSwitchingIntegration:
             settings_file = os.path.join(temp_dir, "app_settings.json")
 
             # Mock the settings file path
-            with patch("data.persistence.SETTINGS_FILE", settings_file):
+            with patch("data.persistence.APP_SETTINGS_FILE", settings_file):
                 # Step 1: Import and use save function
                 from data.persistence import load_app_settings, save_app_settings
 
@@ -64,7 +64,7 @@ class TestDataSourceSwitchingIntegration:
 
             with (
                 patch("data.jira_query_manager.QUERY_PROFILES_FILE", profiles_file),
-                patch("data.persistence.SETTINGS_FILE", settings_file),
+                patch("data.persistence.APP_SETTINGS_FILE", settings_file),
             ):
                 # Step 1: Create a query profile
                 from data.jira_query_manager import (
@@ -166,7 +166,7 @@ class TestDataSourceSwitchingIntegration:
         with tempfile.TemporaryDirectory() as temp_dir:
             settings_file = os.path.join(temp_dir, "app_settings.json")
 
-            with patch("data.persistence.SETTINGS_FILE", settings_file):
+            with patch("data.persistence.APP_SETTINGS_FILE", settings_file):
                 from data.persistence import load_app_settings, save_app_settings
 
                 # Step 1: Initial state - JIRA selected

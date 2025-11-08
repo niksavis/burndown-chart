@@ -177,7 +177,35 @@ cython_debug/
 app_settings.json
 project_data.json
 jira_cache.json
+jira_changelog_cache.json
 jira_query_profiles.json
+metrics_snapshots.json
+
+# Customer-specific documentation (contains real project keys, field IDs)
+docs/metrics/IMPLEMENTATION_GUIDE.md
+
+# Temporary debug/test/verification scripts (root level)
+check_*.py
+debug_*.py
+test_*.py
+verify_*.py
+analyze_*.py
+
+# Customer-specific configuration backups (NOT committed, but backed up separately)
+config-backups/
+
+# Backup files and restore points
+*_backup.json
+*.backup
+*.before-restore.*
+
+# Test artifacts and temporary files (root directory only)
+/test_configs/
+/test_data/
+/test_*.md
+/test_*.txt
+/test_*.png
+/debug_*.md
 
 # Spec Kit temporary/build files (following official spec-kit .gitignore pattern)
 sdd-*/
@@ -186,6 +214,10 @@ sdd-*/
 
 # GitHub Copilot and spec-kit agent files (may contain credentials/tokens)
 .github/
+
+# Confidential field mapping documentation (contains customer-specific data)
+DORA_FLOW_FIELD_MAPPING.md
+JIRA_CUSTOM_FIELDS.md
 
 # Debug and test artifacts (root directory only - not tests/ folder)
 /test_*.py
@@ -197,3 +229,9 @@ debug_*.png
 screenshot_*.png
 mobile_nav_error.png
 
+
+# Background callback cache directory
+cache/
+
+# Task progress tracking (runtime state file)
+task_progress.json

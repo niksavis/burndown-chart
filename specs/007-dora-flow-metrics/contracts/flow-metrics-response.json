@@ -1,0 +1,458 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Flow Metrics Response Schema",
+  "description": "Schema for Flow metrics calculation response including Velocity, Time, Efficiency, Load, and Distribution",
+  "type": "object",
+  "required": ["metrics", "time_period", "calculation_timestamp"],
+  "properties": {
+    "metrics": {
+      "type": "object",
+      "required": [
+        "flow_velocity",
+        "flow_time",
+        "flow_efficiency",
+        "flow_load",
+        "flow_distribution"
+      ],
+      "properties": {
+        "flow_velocity": {
+          "$ref": "#/definitions/flowMetric",
+          "description": "Number of work items completed per time period"
+        },
+        "flow_time": {
+          "$ref": "#/definitions/flowMetric",
+          "description": "Average time from work start to completion"
+        },
+        "flow_efficiency": {
+          "$ref": "#/definitions/flowMetric",
+          "description": "Percentage of active work time vs total time"
+        },
+        "flow_load": {
+          "$ref": "#/definitions/flowMetric",
+          "description": "Current work-in-progress count"
+        },
+        "flow_distribution": {
+          "$ref": "#/definitions/flowDistributionMetric",
+          "description": "Percentage breakdown of work types"
+        }
+      },
+      "additionalProperties": false
+    },
+    "time_period": {
+      "type": "object",
+      "required": ["start_date", "end_date", "display_label"],
+      "properties": {
+        "start_date": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Start of measurement period (UTC ISO 8601)"
+        },
+        "end_date": {
+          "type": "string",
+          "format": "date-time",
+          "description": "End of measurement period (UTC ISO 8601)"
+        },
+        "display_label": {
+          "type": "string",
+          "description": "Human-readable period label (e.g., 'Last 30 days')"
+        }
+      }
+    },
+    "calculation_timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When these metrics were calculated (UTC ISO 8601)"
+    },
+    "cache_hit": {
+      "type": "boolean",
+      "description": "Whether these results came from cache"
+    },
+    "field_mappings_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{8}$",
+      "description": "MD5 hash of field mappings used for calculation"
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "flowMetric": {
+      "type": "object",
+      "required": ["metric_name", "value", "unit", "error_state"],
+      "properties": {
+        "metric_name": {
+          "type": "string",
+          "enum": ["flow_velocity", "flow_time", "flow_efficiency", "flow_load"]
+        },
+        "value": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "description": "Calculated metric value (null if error)"
+        },
+        "unit": {
+          "type": "string",
+          "enum": [
+            "items/week",
+            "items/month",
+            "days",
+            "hours",
+            "percentage",
+            "items"
+          ]
+        },
+        "error_state": {
+          "type": "string",
+          "enum": [
+            "success",
+            "missing_mapping",
+            "no_data",
+            "calculation_error",
+            "invalid_date"
+          ]
+        },
+        "error_message": {
+          "type": ["string", "null"],
+          "maxLength": 500,
+          "description": "User-friendly error explanation (null if success)"
+        },
+        "excluded_issue_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of issues excluded due to missing data"
+        },
+        "total_issue_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total issues considered for calculation"
+        },
+        "details": {
+          "type": "object",
+          "properties": {
+            "by_type": {
+              "type": "object",
+              "description": "Breakdown by work type (Feature, Defect, Risk, Debt)",
+              "properties": {
+                "Feature": {
+                  "type": "number"
+                },
+                "Defect": {
+                  "type": "number"
+                },
+                "Risk": {
+                  "type": "number"
+                },
+                "Technical_Debt": {
+                  "type": "number"
+                }
+              }
+            },
+            "trend_direction": {
+              "type": "string",
+              "enum": ["up", "down", "stable", "unknown"],
+              "description": "Trend compared to previous period"
+            },
+            "trend_percentage": {
+              "type": "number",
+              "description": "Percentage change from previous period"
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "flowDistributionMetric": {
+      "type": "object",
+      "required": [
+        "metric_name",
+        "value",
+        "unit",
+        "error_state",
+        "distribution_breakdown"
+      ],
+      "properties": {
+        "metric_name": {
+          "type": "string",
+          "enum": ["flow_distribution"]
+        },
+        "value": {
+          "type": ["number", "null"],
+          "description": "Total percentage (should be 100 or null if error)"
+        },
+        "unit": {
+          "type": "string",
+          "enum": ["percentage"]
+        },
+        "error_state": {
+          "type": "string",
+          "enum": ["success", "missing_mapping", "no_data", "calculation_error"]
+        },
+        "error_message": {
+          "type": ["string", "null"],
+          "maxLength": 500
+        },
+        "excluded_issue_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total_issue_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "distribution_breakdown": {
+          "type": "object",
+          "required": ["Feature", "Defect", "Risk", "Technical_Debt"],
+          "properties": {
+            "Feature": {
+              "type": "object",
+              "required": [
+                "count",
+                "percentage",
+                "recommended_min",
+                "recommended_max"
+              ],
+              "properties": {
+                "count": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "percentage": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 100
+                },
+                "recommended_min": {
+                  "type": "number",
+                  "description": "Recommended minimum percentage (40)"
+                },
+                "recommended_max": {
+                  "type": "number",
+                  "description": "Recommended maximum percentage (50)"
+                },
+                "within_range": {
+                  "type": "boolean",
+                  "description": "Whether percentage is within recommended range"
+                }
+              }
+            },
+            "Defect": {
+              "type": "object",
+              "required": [
+                "count",
+                "percentage",
+                "recommended_min",
+                "recommended_max"
+              ],
+              "properties": {
+                "count": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "percentage": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 100
+                },
+                "recommended_min": {
+                  "type": "number",
+                  "description": "Recommended minimum percentage (15)"
+                },
+                "recommended_max": {
+                  "type": "number",
+                  "description": "Recommended maximum percentage (25)"
+                },
+                "within_range": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "Risk": {
+              "type": "object",
+              "required": [
+                "count",
+                "percentage",
+                "recommended_min",
+                "recommended_max"
+              ],
+              "properties": {
+                "count": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "percentage": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 100
+                },
+                "recommended_min": {
+                  "type": "number",
+                  "description": "Recommended minimum percentage (10)"
+                },
+                "recommended_max": {
+                  "type": "number",
+                  "description": "Recommended maximum percentage (15)"
+                },
+                "within_range": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "Technical_Debt": {
+              "type": "object",
+              "required": [
+                "count",
+                "percentage",
+                "recommended_min",
+                "recommended_max"
+              ],
+              "properties": {
+                "count": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "percentage": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 100
+                },
+                "recommended_min": {
+                  "type": "number",
+                  "description": "Recommended minimum percentage (20)"
+                },
+                "recommended_max": {
+                  "type": "number",
+                  "description": "Recommended maximum percentage (25)"
+                },
+                "within_range": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "examples": [
+    {
+      "metrics": {
+        "flow_velocity": {
+          "metric_name": "flow_velocity",
+          "value": 52,
+          "unit": "items/month",
+          "error_state": "success",
+          "error_message": null,
+          "excluded_issue_count": 0,
+          "total_issue_count": 52,
+          "details": {
+            "by_type": {
+              "Feature": 23,
+              "Defect": 12,
+              "Risk": 7,
+              "Technical_Debt": 10
+            },
+            "trend_direction": "up",
+            "trend_percentage": 8.3
+          }
+        },
+        "flow_time": {
+          "metric_name": "flow_time",
+          "value": 5.2,
+          "unit": "days",
+          "error_state": "success",
+          "error_message": null,
+          "excluded_issue_count": 3,
+          "total_issue_count": 52,
+          "details": {
+            "by_type": {
+              "Feature": 7.5,
+              "Defect": 3.2,
+              "Risk": 4.8,
+              "Technical_Debt": 6.1
+            },
+            "trend_direction": "down",
+            "trend_percentage": -5.5
+          }
+        },
+        "flow_efficiency": {
+          "metric_name": "flow_efficiency",
+          "value": 32.5,
+          "unit": "percentage",
+          "error_state": "success",
+          "error_message": null,
+          "excluded_issue_count": 5,
+          "total_issue_count": 52,
+          "details": {
+            "trend_direction": "up",
+            "trend_percentage": 3.2
+          }
+        },
+        "flow_load": {
+          "metric_name": "flow_load",
+          "value": 18,
+          "unit": "items",
+          "error_state": "success",
+          "error_message": null,
+          "excluded_issue_count": 0,
+          "total_issue_count": 18,
+          "details": {
+            "by_type": {
+              "Feature": 10,
+              "Defect": 5,
+              "Risk": 2,
+              "Technical_Debt": 1
+            },
+            "trend_direction": "stable",
+            "trend_percentage": 0.5
+          }
+        },
+        "flow_distribution": {
+          "metric_name": "flow_distribution",
+          "value": 100,
+          "unit": "percentage",
+          "error_state": "success",
+          "error_message": null,
+          "excluded_issue_count": 0,
+          "total_issue_count": 52,
+          "distribution_breakdown": {
+            "Feature": {
+              "count": 23,
+              "percentage": 44.2,
+              "recommended_min": 40,
+              "recommended_max": 50,
+              "within_range": true
+            },
+            "Defect": {
+              "count": 12,
+              "percentage": 23.1,
+              "recommended_min": 15,
+              "recommended_max": 25,
+              "within_range": true
+            },
+            "Risk": {
+              "count": 7,
+              "percentage": 13.5,
+              "recommended_min": 10,
+              "recommended_max": 15,
+              "within_range": true
+            },
+            "Technical_Debt": {
+              "count": 10,
+              "percentage": 19.2,
+              "recommended_min": 20,
+              "recommended_max": 25,
+              "within_range": false
+            }
+          }
+        }
+      },
+      "time_period": {
+        "start_date": "2025-01-01T00:00:00.000Z",
+        "end_date": "2025-01-31T23:59:59.999Z",
+        "display_label": "Last 30 days"
+      },
+      "calculation_timestamp": "2025-01-31T10:00:00.000Z",
+      "cache_hit": false,
+      "field_mappings_hash": "b4e6d7a2"
+    }
+  ]
+}

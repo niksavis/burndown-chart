@@ -1,50 +1,78 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+Sync Impact Report:
+- Version: 1.2.0 → 1.2.1 (Added missing data files)
+- Principles: 4 core architectural principles (no changes)
+- Updated: Added jira_changelog_cache.json, metrics_snapshots.json, task_progress.json
+- Updated: Test isolation verification to include all data files
+- Rationale: Complete list of runtime-generated JSON files for test isolation
+- Templates requiring updates: None
+- Follow-up: Verify all data files are in .gitignore and test isolation is enforced
+-->
+
+# Burndown Chart Generator Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Layered Architecture (NON-NEGOTIABLE)
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+**Rule**: Business logic MUST reside in the `data/` layer. Callbacks in `callbacks/` MUST only handle events and delegate to data layer functions.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+**Rationale**: Dash callbacks become untestable when they contain logic. Separation enables unit testing, reusability, and clear responsibility boundaries.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+**Verification**: Code review MUST reject callbacks with calculations, API calls, or data transformations. All logic functions MUST have corresponding unit tests in `tests/unit/data/`.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### II. Test Isolation (NON-NEGOTIABLE)
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+**Rule**: Tests MUST NOT create files in project root directory. All file operations MUST use `tempfile.TemporaryDirectory()` or `tempfile.NamedTemporaryFile()` with proper cleanup via pytest fixtures.
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+**Rationale**: File pollution causes test interdependencies, race conditions in parallel execution, and workspace contamination.
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+**Verification**: All test files creating `app_settings.json`, `project_data.json`, `jira_cache.json`, `jira_changelog_cache.json`, `jira_query_profiles.json`, `metrics_snapshots.json`, or `task_progress.json` MUST be flagged in code review. Use `pytest --random-order` to detect isolation violations.
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+### III. Performance Budgets (NON-NEGOTIABLE)
+
+**Rule**: Initial page load < 2 seconds. Chart rendering < 500ms. User interactions < 100ms response time.
+
+**Rationale**: Performance budgets prevent regressions and impact architectural decisions (caching, lazy loading, data structure choices).
+
+**Verification**: Performance tests in `tests/` MUST validate these targets. Violations require profiling data and justification before merge.
+
+### IV. Simplicity & Reusability (KISS + DRY)
+
+**Rule**: Keep implementations simple (KISS). Avoid duplication - extract shared logic to reusable functions (DRY).
+
+**Rationale**: Complex code is harder to test and maintain. Duplication creates multiple sources of truth and increases bug surface area.
+
+**Verification**: Code review MUST reject over-engineered solutions or copy-pasted logic. Shared utilities MUST be extracted to appropriate modules with unit tests.
+
+## Data Architecture
+
+**Persistence**: Application state persists to JSON files:
+- `app_settings.json` - PERT config, deadline, JIRA config, field_mappings (DORA/Flow)
+- `project_data.json` - Statistics, scope, metrics_history (snapshots)
+- `jira_cache.json` - JIRA API responses (24hr TTL)
+- `jira_changelog_cache.json` - JIRA changelog data cache
+- `jira_query_profiles.json` - Saved JQL queries
+- `metrics_snapshots.json` - Weekly DORA/Flow metric snapshots
+- `task_progress.json` - Runtime task progress tracking
+
+**Code Organization**:
+- `callbacks/` - Event handlers only (delegate to data layer)
+- `data/` - Business logic, JIRA API, metrics calculators (DORA/Flow), persistence
+- `ui/` - Component rendering (dashboards, modals, metric cards)
+- `visualization/` - Chart generation (burndown, DORA/Flow trends)
+- `configuration/` - Constants, settings, metric definitions
+
+## Testing Requirements
+
+Unit tests MUST be written during implementation. Integration and performance tests MAY be written after feature completion.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+This constitution supersedes conflicting guidance. All code changes MUST comply with Core Principles I-IV.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+Amendments MUST increment version per semantic versioning: MAJOR (principle removal/redefinition), MINOR (new principle), PATCH (clarifications).
+
+Reference `.github/copilot-instructions.md` for detailed implementation patterns, environment setup, tool choices, and troubleshooting.
+
+**Version**: 1.2.1 | **Ratified**: 2025-10-27 | **Last Amended**: 2025-11-08
