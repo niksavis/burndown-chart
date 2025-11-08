@@ -11,10 +11,7 @@ import logging
 
 from data.field_mapper import (
     load_field_mappings,
-    save_field_mappings,
-    get_field_mappings_hash,
     fetch_available_jira_fields,
-    validate_field_mapping,
 )
 from data.metrics_cache import invalidate_cache
 from ui.field_mapping_modal import (
@@ -225,205 +222,11 @@ def enforce_single_selection_in_multi_dropdown(
     return result
 
 
-@callback(
-    [
-        Output("field-mapping-status", "children"),
-        Output("field-mapping-save-success", "data"),
-    ],
-    Input("field-mapping-save-button", "n_clicks"),
-    State("mappings-tabs", "active_tab"),
-    State({"type": "field-mapping-dropdown", "metric": ALL, "field": ALL}, "value"),
-    State({"type": "field-mapping-dropdown", "metric": ALL, "field": ALL}, "id"),
-    prevent_initial_call=True,
-)
-def save_field_mappings_callback(
-    n_clicks: int | None,
-    active_tab: str,
-    field_values: List[List[str]],  # Now list of lists due to multi=True
-    field_ids: List[Dict],
-) -> tuple[Any, Any]:
-    """Save field mappings when Save button is clicked FROM FIELDS TAB ONLY.
-
-    Validates all mappings, saves to persistence layer,
-    and triggers cache invalidation.
-
-    Args:
-        n_clicks: Number of save button clicks
-        active_tab: Currently active tab ID
-        field_values: List of selected dropdown values
-        field_ids: List of dropdown ID dictionaries with metric and field keys
-
-    Returns:
-        Tuple of (status alert, save_success flag for closing modal)
-    """
-    if n_clicks is None:
-        return no_update, None
-
-    # CRITICAL: Only run this callback when on Fields tab
-    # Other tabs are handled by save_comprehensive_mappings callback
-    if active_tab != "tab-fields":
-        return no_update, no_update
-
-    try:
-        # Extract mappings from dropdown values into nested structure
-        nested_mappings = {"dora": {}, "flow": {}}
-
-        for field_id_dict, field_value_list in zip(field_ids, field_values):
-            # Extract single value from list (multi=True returns lists)
-            field_value = field_value_list[0] if field_value_list else None
-
-            if field_value:  # Only include non-empty mappings
-                metric_type = field_id_dict.get("metric")
-                internal_field = field_id_dict.get("field")
-
-                if metric_type in ["dora", "flow"]:
-                    nested_mappings[metric_type][internal_field] = field_value
-
-        # Flatten nested structure to flat structure for app_settings.json
-        flat_mappings = {}
-        for metric_type in ["dora", "flow"]:
-            for field_name, field_id in nested_mappings[metric_type].items():
-                flat_mappings[field_name] = field_id
-
-        logger.info(f"Field mappings being saved: {flat_mappings}")
-        # Create save structure with flat mappings
-        new_mappings = {"field_mappings": flat_mappings}
-
-        # Fetch available fields for validation
-        try:
-            available_fields = fetch_available_jira_fields()
-            field_metadata = {f["field_id"]: f for f in available_fields}
-        except Exception as e:
-            logger.warning(f"Could not fetch fields for validation: {e}")
-            # Proceed without validation if Jira is unavailable
-            field_metadata = {}
-
-        # Validate mappings if metadata available
-        validation_errors = []
-        if field_metadata:
-            for internal_field, jira_field_id in flat_mappings.items():
-                is_valid, error_msg = validate_field_mapping(
-                    internal_field, jira_field_id, field_metadata
-                )
-                if not is_valid:
-                    validation_errors.append(f"{internal_field}: {error_msg}")
-
-        if validation_errors:
-            error_list = html.Ul([html.Li(err) for err in validation_errors])
-            error_alert = dbc.Alert(
-                html.Div(
-                    [
-                        html.I(className="fas fa-exclamation-circle me-2"),
-                        html.Span(
-                            [
-                                html.Strong("Validation Errors"),
-                                html.Br(),
-                                html.Small(
-                                    "The following field mappings have issues:",
-                                    style={"opacity": "0.85"},
-                                ),
-                                error_list,
-                            ]
-                        ),
-                    ],
-                    className="d-flex align-items-start",
-                ),
-                color="danger",
-                dismissable=True,
-            )
-            # Return error alert - modal stays open
-            return error_alert, no_update
-
-        # Add field metadata to save structure
-        if field_metadata:
-            new_mappings["field_metadata"] = {
-                field_id: {
-                    "name": meta["field_name"],
-                    "type": meta["field_type"],
-                    "required": True,  # All mapped fields considered required
-                }
-                for field_id, meta in field_metadata.items()
-                if field_id in flat_mappings.values()
-            }
-
-        # Save mappings
-        if save_field_mappings(new_mappings):
-            # Invalidate metrics cache since mappings changed
-            new_hash = get_field_mappings_hash()
-            invalidate_cache()
-            logger.info(f"Field mappings saved successfully, new hash: {new_hash}")
-
-            # Return success alert - modal stays open like JIRA config
-            success_alert = dbc.Alert(
-                html.Div(
-                    [
-                        html.I(className="fas fa-check-circle me-2"),
-                        html.Span(
-                            [
-                                html.Strong("Mappings Saved"),
-                                html.Br(),
-                                html.Small(
-                                    "Field mappings have been saved successfully.",
-                                    style={"opacity": "0.85"},
-                                ),
-                            ]
-                        ),
-                    ],
-                    className="d-flex align-items-start",
-                ),
-                color="success",
-                dismissable=True,
-                duration=4000,  # Auto-dismiss after 4 seconds
-            )
-            return success_alert, no_update  # Keep modal open
-        else:
-            # Return error alert - modal stays open
-            error_alert = dbc.Alert(
-                html.Div(
-                    [
-                        html.I(className="fas fa-exclamation-circle me-2"),
-                        html.Span(
-                            [
-                                html.Strong("Save Failed"),
-                                html.Br(),
-                                html.Small(
-                                    "Failed to save mappings to file. Please try again.",
-                                    style={"opacity": "0.85"},
-                                ),
-                            ]
-                        ),
-                    ],
-                    className="d-flex align-items-start",
-                ),
-                color="danger",
-                dismissable=True,
-            )
-            return error_alert, no_update
-
-    except Exception as e:
-        logger.error(f"Error saving field mappings: {e}", exc_info=True)
-        # Return error alert - modal stays open
-        error_alert = dbc.Alert(
-            html.Div(
-                [
-                    html.I(className="fas fa-exclamation-circle me-2"),
-                    html.Span(
-                        [
-                            html.Strong("Error"),
-                            html.Br(),
-                            html.Small(
-                                f"An error occurred: {str(e)}",
-                                style={"opacity": "0.85"},
-                            ),
-                        ]
-                    ),
-                ],
-                className="d-flex align-items-start",
-            ),
-            color="danger",
-            dismissable=True,
-        )
-        return error_alert, no_update
+# REMOVED: Old save_field_mappings_callback
+# This callback has been replaced by save_comprehensive_mappings (line ~842)
+# which handles all tabs (Fields, Projects, Types, Status, Environment) with comprehensive validation.
+# The old callback only handled the Fields tab without comprehensive validation,
+# causing inconsistent save behavior between tabs.
 
 
 def _get_mock_jira_fields() -> List[Dict[str, Any]]:
@@ -847,9 +650,8 @@ def save_comprehensive_mappings(n_clicks, active_tab, content_children):
     """
     Save comprehensive mappings configuration to app_settings.json.
 
-    This callback handles Projects, Types, Status, and Environment tabs.
+    This callback handles ALL tabs: Fields, Projects, Types, Status, and Environment.
     It extracts values from the rendered content dynamically.
-    Fields tab has its own dedicated callback.
 
     Validates configuration and provides feedback on errors/warnings.
     """
@@ -862,9 +664,8 @@ def save_comprehensive_mappings(n_clicks, active_tab, content_children):
     if not n_clicks:
         return no_update, no_update
 
-    # Skip this callback if on Fields tab (Fields tab has its own save callback)
-    if active_tab == "tab-fields":
-        return no_update, no_update
+    # Note: This callback now handles ALL tabs including Fields tab
+    # The old save_field_mappings_callback is deprecated
 
     # Extract dropdown values from the content children
     # This requires parsing the component tree to find dropdown values
@@ -906,6 +707,7 @@ def save_comprehensive_mappings(n_clicks, active_tab, content_children):
     flow_start_statuses = None
     wip_statuses = None
     production_env_values = None
+    field_mappings = None  # NEW: For Fields tab
 
     # Flow type mapping variables
     flow_feature_types = None
@@ -917,7 +719,46 @@ def save_comprehensive_mappings(n_clicks, active_tab, content_children):
     flow_risk_types = None
     flow_risk_categories = None
 
-    if active_tab == "tab-projects":
+    if active_tab == "tab-fields":
+        # Extract field mappings from dropdown values
+        # Field mappings use pattern-matched IDs: {"type": "field-mapping-dropdown", "metric": "dora|flow", "field": "field_name"}
+        def extract_field_mappings_from_children(children):
+            """Extract all field mapping dropdown values from component tree."""
+            mappings = {}
+
+            def traverse(node):
+                if isinstance(node, dict):
+                    props = node.get("props", {})
+                    component_id = props.get("id")
+
+                    # Check if this is a field mapping dropdown
+                    if (
+                        isinstance(component_id, dict)
+                        and component_id.get("type") == "field-mapping-dropdown"
+                    ):
+                        field_name = component_id.get("field")
+                        value = props.get("value")
+                        # Multi-select dropdowns return lists, extract first value
+                        if isinstance(value, list) and len(value) > 0:
+                            mappings[field_name] = value[0]
+                        elif value:
+                            mappings[field_name] = value
+
+                    # Recursively search children
+                    for key in ["children", "content"]:
+                        if key in props:
+                            traverse(props[key])
+                elif isinstance(node, list):
+                    for child in node:
+                        traverse(child)
+
+            traverse(children)
+            return mappings
+
+        field_mappings = extract_field_mappings_from_children(content_children)
+        logger.info(f"Extracted field mappings from Fields tab: {field_mappings}")
+
+    elif active_tab == "tab-projects":
         dev_projects = extract_dropdown_value(
             "development-projects-dropdown", content_children
         )
@@ -986,6 +827,11 @@ def save_comprehensive_mappings(n_clicks, active_tab, content_children):
             f"Save mappings callback - received completion_statuses: {completion_statuses}, type: {type(completion_statuses)}"
         )
         logger.info(f"Save mappings callback - active tab: {active_tab}")
+
+        # Update field_mappings if from Fields tab
+        if field_mappings is not None:
+            settings["field_mappings"] = field_mappings
+            logger.info(f"Updated field_mappings from Fields tab: {field_mappings}")
 
         # Update with new values (only update non-None values)
         if dev_projects is not None:
@@ -1159,7 +1005,7 @@ def save_comprehensive_mappings(n_clicks, active_tab, content_children):
             )
             return no_update, error_alert
 
-        # Save settings (NOTE: field_mappings NOT included - managed by Fields tab's own callback)
+        # Save settings (now includes field_mappings for Fields tab)
         save_app_settings(
             pert_factor=settings.get("pert_factor"),
             deadline=settings.get("deadline"),
@@ -1171,7 +1017,9 @@ def save_comprehensive_mappings(n_clicks, active_tab, content_children):
             last_used_data_source=settings.get("last_used_data_source"),
             active_jql_profile_id=settings.get("active_jql_profile_id"),
             jira_config=settings.get("jira_config"),
-            # field_mappings=settings.get("field_mappings"),  # REMOVED - Fields tab has its own save callback
+            field_mappings=settings.get(
+                "field_mappings"
+            ),  # Now saved for Fields tab too
             devops_projects=settings.get("devops_projects"),
             development_projects=settings.get("development_projects"),
             devops_task_types=settings.get("devops_task_types"),
