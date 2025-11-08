@@ -1166,9 +1166,9 @@ def register(app):
 
             elif active_tab == "tab-dora-metrics":
                 # Generate DORA metrics dashboard
+                # Callback will populate with metrics (prevent_initial_call=False)
                 from ui.dora_metrics_dashboard import create_dora_dashboard
 
-                # Render the DORA dashboard content
                 dora_content = create_dora_dashboard()
 
                 # Cache the result for next time
@@ -1178,9 +1178,9 @@ def register(app):
 
             elif active_tab == "tab-flow-metrics":
                 # Generate Flow metrics dashboard
+                # Callback will populate with metrics (prevent_initial_call=False)
                 from ui.flow_metrics_dashboard import create_flow_dashboard
 
-                # Render the Flow dashboard content
                 flow_content = create_flow_dashboard()
 
                 # Cache the result for next time

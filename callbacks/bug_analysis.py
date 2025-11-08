@@ -132,13 +132,17 @@ def _render_bug_analysis_content(data_points_count: int):
 
         # Check if there are no bugs at all - show helpful placeholder
         if len(all_bug_issues) == 0:
-            from ui.loading_utils import create_content_placeholder
+            from ui.empty_states import create_no_data_state
 
-            return create_content_placeholder(
-                type="chart",
-                text="No bug data available. Load project data with bug issues to see bug analysis, trends, and quality insights.",
-                icon="fa-bug",
-                height="400px",
+            # Return empty state in fluid container to match DORA/Flow dashboards
+            # Wrap in div with ID for fade-in animation
+            return html.Div(
+                dbc.Container(
+                    create_no_data_state(),
+                    fluid=True,
+                    className="py-4",
+                ),
+                id="bug-analysis-tab-content",
             )
 
         # Initialize weekly_stats (needed for quality insights)
@@ -148,11 +152,15 @@ def _render_bug_analysis_content(data_points_count: int):
         if len(timeline_filtered_bugs) == 0 and len(all_bug_issues) > 0:
             from ui.loading_utils import create_content_placeholder
 
-            return create_content_placeholder(
-                type="chart",
-                text=f"No bug data in selected timeframe. Found {len(all_bug_issues)} total bugs, but none in the last {data_points_count} weeks. Use the Data Points slider in Settings to expand the timeline.",
-                icon="fa-calendar-times",
-                height="400px",
+            # Wrap in div with ID for fade-in animation
+            return html.Div(
+                create_content_placeholder(
+                    type="chart",
+                    text=f"No bug data in selected timeframe. Found {len(all_bug_issues)} total bugs, but none in the last {data_points_count} weeks. Use the Data Points slider in Settings to expand the timeline.",
+                    icon="fa-calendar-times",
+                    height="400px",
+                ),
+                id="bug-analysis-tab-content",
             )
 
         # Calculate weekly bug statistics using timeline-filtered bugs
@@ -277,37 +285,44 @@ def _render_bug_analysis_content(data_points_count: int):
             )
 
         # Return complete tab content (matches Items per Week pattern)
+        # Wrap in div with ID for fade-in animation
         return html.Div(
-            [
-                # Combined bug metrics cards (Resolution Rate + Open Bugs + Expected Resolution)
-                dbc.Row([dbc.Col([metrics_cards], width=12)], className="mb-4"),
-                # Bug trends chart
-                dbc.Row([dbc.Col([trends_chart], width=12)], className="mb-4"),
-                # T056: Bug investment chart (items + story points)
-                dbc.Row([dbc.Col([investment_chart], width=12)], className="mb-4"),
-                # Quality insights panel (T078-T082)
-                dbc.Row(
-                    [
-                        dbc.Col(
-                            [
-                                # Generate quality insights from metrics and statistics
-                                create_quality_insights_panel(
-                                    generate_quality_insights(
-                                        bug_metrics, weekly_stats
-                                    ),
-                                    weekly_stats=weekly_stats,
-                                )
-                            ],
-                            width=12,
-                        )
-                    ]
-                ),
-            ]
+            dbc.Container(
+                [
+                    # Combined bug metrics cards (Resolution Rate + Open Bugs + Expected Resolution)
+                    dbc.Row([dbc.Col([metrics_cards], width=12)], className="mb-4"),
+                    # Bug trends chart
+                    dbc.Row([dbc.Col([trends_chart], width=12)], className="mb-4"),
+                    # T056: Bug investment chart (items + story points)
+                    dbc.Row([dbc.Col([investment_chart], width=12)], className="mb-4"),
+                    # Quality insights panel (T078-T082)
+                    dbc.Row(
+                        [
+                            dbc.Col(
+                                [
+                                    # Generate quality insights from metrics and statistics
+                                    create_quality_insights_panel(
+                                        generate_quality_insights(
+                                            bug_metrics, weekly_stats
+                                        ),
+                                        weekly_stats=weekly_stats,
+                                    )
+                                ],
+                                width=12,
+                            )
+                        ]
+                    ),
+                ],
+                fluid=True,
+                className="py-4",
+            ),
+            id="bug-analysis-tab-content",
         )
 
     except Exception as e:
         logger.error(f"Error updating bug metrics: {e}", exc_info=True)
         # Return complete error page (not just error cards)
+        # Wrap in div with ID for fade-in animation
         return html.Div(
             [
                 dbc.Row(
@@ -330,7 +345,8 @@ def _render_bug_analysis_content(data_points_count: int):
                         )
                     ]
                 ),
-            ]
+            ],
+            id="bug-analysis-tab-content",
         )
 
 

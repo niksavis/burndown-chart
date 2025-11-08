@@ -13,6 +13,10 @@ from dash import html, dcc
 
 from configuration.help_content import FLOW_METRICS_TOOLTIPS
 from ui.tooltip_utils import create_info_tooltip
+from ui.empty_states import (
+    create_metrics_skeleton,
+    create_no_data_state,
+)  # Visible skeleton with shimmer
 
 
 def create_flow_dashboard() -> dbc.Container:
@@ -21,6 +25,26 @@ def create_flow_dashboard() -> dbc.Container:
     Returns:
         dbc.Container with Flow metrics dashboard components
     """
+    # Check if JIRA data exists to determine initial state
+    from data.jira_simple import load_jira_cache
+    from data.persistence import load_app_settings
+
+    has_jira_data = False
+    try:
+        settings = load_app_settings()
+        jql_query = settings.get("jql_query", "")
+        cache_loaded, cached_issues = load_jira_cache(jql_query, current_fields="")
+        has_jira_data = cache_loaded and cached_issues and len(cached_issues) > 0
+    except Exception:
+        pass  # No data available
+
+    # Determine initial content - show banner immediately if no data
+    initial_content = (
+        [create_no_data_state()]
+        if not has_jira_data
+        else [create_metrics_skeleton(num_cards=5)]
+    )
+
     return dbc.Container(
         [
             # Store for tracking if user has seen welcome banner (uses localStorage)
@@ -31,38 +55,46 @@ def create_flow_dashboard() -> dbc.Container:
                 children=[],  # Will be populated by callback based on storage
             ),
             # Compact overview section with distinct background
-            dbc.Card(
-                dbc.CardBody(
-                    [
-                        html.Div(
-                            id="flow-metrics-overview",
-                            children=[],  # Will be populated by callback
+            html.Div(
+                id="flow-overview-wrapper",
+                children=[
+                    dbc.Card(
+                        dbc.CardBody(
+                            [
+                                html.Div(
+                                    id="flow-metrics-overview",
+                                    children=[],  # Will be populated by callback
+                                ),
+                            ],
+                            className="pt-3 px-3 pb-0",  # Top and side padding, no bottom padding
                         ),
-                    ],
-                    className="pt-3 px-3 pb-0",  # Top and side padding, no bottom padding
-                ),
-                className="mb-3 overview-section",
-                style={
-                    "backgroundColor": "#f8f9fa",  # Light gray background
-                    "border": "none",
-                    "borderRadius": "8px",
-                },
-            ),
-            # Info banner with balanced spacing
-            html.P(
-                [
-                    html.I(className="fas fa-info-circle me-2"),
-                    "Flow metrics calculated per ISO week. Use ",
-                    html.Strong("Calculate Metrics"),
-                    " button to refresh. ",
-                    html.Strong("Data Points slider"),
-                    " controls weeks displayed.",
+                        className="mb-3 overview-section",
+                        style={
+                            "backgroundColor": "#f8f9fa",  # Light gray background
+                            "border": "none",
+                            "borderRadius": "8px",
+                        },
+                    ),
+                    # Info banner with balanced spacing
+                    html.P(
+                        [
+                            html.I(className="fas fa-info-circle me-2"),
+                            "Flow metrics calculated per ISO week. Use ",
+                            html.Strong("Calculate Metrics"),
+                            " button to refresh. ",
+                            html.Strong("Data Points slider"),
+                            " controls weeks displayed.",
+                        ],
+                        className="text-muted small mb-3 mt-3",  # Equal top and bottom margin
+                    ),
                 ],
-                className="text-muted small mb-3 mt-3",  # Equal top and bottom margin
+                style={
+                    "display": "none"
+                },  # Hidden by default, shown by callback when metrics exist
             ),
             # Metrics cards grid
             html.Div(
-                children=[],  # Will be populated by callback
+                children=initial_content,  # Show banner or skeleton based on data availability
                 id="flow-metrics-cards-container",
                 className="mb-4",  # Add spacing below cards
             ),

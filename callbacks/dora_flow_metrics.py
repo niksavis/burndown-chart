@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
     [
         Input("chart-tabs", "active_tab"),
         Input("data-points-input", "value"),
-        Input("metrics-refresh-trigger", "data"),  # Trigger refresh after calculation
+        Input("metrics-refresh-trigger", "data"),
     ],
     prevent_initial_call=False,
 )
@@ -58,19 +58,32 @@ def load_and_display_dora_metrics(
     Args:
         active_tab: Currently active tab (only process if DORA tab is active)
         data_points: Number of weeks to display (from Data Points slider)
+        refresh_trigger: Timestamp of last refresh
 
     Returns:
-        Metrics cards HTML (no toast messages, consistent with Flow Metrics)
+        Tuple of (metrics_cards_html, overview_html)
     """
     try:
         # Only process if DORA tab is active (optimization)
         if active_tab != "tab-dora-metrics":
             raise PreventUpdate
 
-        # Get number of weeks to display (default 12 if not set)
+        # STEP 1: Check if JIRA cache file exists
+        import os
+        from data.jira_simple import JIRA_CACHE_FILE
+
+        if not os.path.exists(JIRA_CACHE_FILE):
+            from ui.empty_states import create_no_data_state
+
+            logger.info(
+                "DORA: No JIRA cache file found - showing 'No JIRA Data Loaded' banner"
+            )
+            return create_no_data_state(), html.Div()
+
+        # STEP 2: Get number of weeks to display (default 12 if not set)
         n_weeks = data_points if data_points and data_points > 0 else 12
 
-        # Try to load from cache first
+        # STEP 3: Try to load from metrics cache
         from data.dora_metrics_calculator import load_dora_metrics_from_cache
 
         logger.info(f"DORA: Loading metrics from cache for {n_weeks} weeks")
@@ -97,14 +110,18 @@ def load_and_display_dora_metrics(
         logger.info("===== END DEBUG =====")
 
         logger.info(
-            f"DORA: Cache loaded, data is {'available' if cached_metrics else 'empty'}"
+            f"DORA: Metrics cache loaded, data is {'available' if cached_metrics else 'empty'}"
         )
 
+        # STEP 4: Check if metrics have been calculated (metrics_snapshots.json exists with data)
         if not cached_metrics:
-            # No cache available - show unified empty state
+            # JIRA data exists but metrics not calculated yet - show "Metrics Not Yet Calculated"
             from ui.empty_states import create_no_metrics_state
 
-            return create_no_metrics_state(metric_type="DORA")
+            logger.info(
+                "DORA: No metrics in cache - showing 'Metrics Not Yet Calculated' banner"
+            )
+            return create_no_metrics_state(metric_type="DORA"), html.Div()
 
         # Load metrics from cache and create display
         # Use .get() with defaults to safely handle missing or None values
@@ -333,13 +350,24 @@ def calculate_and_display_flow_metrics(
         app_settings: Application settings including field mappings
 
     Returns:
-        Tuple of (metrics_cards_html, distribution_chart_html)
+        Tuple of (metrics_cards_html, overview_html, distribution_chart_html)
     """
     try:
-        # Validate inputs
-        if not jira_data_store or not jira_data_store.get("issues"):
+        # Validate inputs - check if JIRA cache file exists
+        import os
+        from data.jira_simple import JIRA_CACHE_FILE
+
+        if not os.path.exists(JIRA_CACHE_FILE):
             from ui.empty_states import create_no_data_state
 
+            logger.info(
+                "Flow: No JIRA cache file found - showing 'No JIRA Data Loaded' banner"
+            )
+            return (
+                create_no_data_state(),
+                html.Div(),  # Empty overview on no data
+                html.Div(),  # Empty distribution chart on no data
+            )
             return (
                 create_no_data_state(),
                 html.Div(),  # Empty overview on no data

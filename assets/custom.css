@@ -3341,5 +3341,96 @@ label.fw-medium {
 }
 
 /* ================================================================
+   Skeleton Loading Animation
+   ================================================================ */
+
+/* Shimmer animation for visible skeleton loaders */
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    to right,
+    #e9ecef 0%,
+    #f8f9fa 20%,
+    #e9ecef 40%,
+    #e9ecef 100%
+  );
+  background-size: 1000px 100%;
+  animation: skeleton-shimmer 2s linear infinite;
+  border-radius: 4px;
+}
+
+/* Skeleton container - start hidden, only show if content takes time to load */
+.metric-cards-skeleton {
+  opacity: 0;
+  animation: delayedFadeIn 0.3s ease-in forwards;
+  animation-delay: 0.1s; /* Only appear if content takes longer than 100ms */
+}
+
+/* Content that replaces skeleton - appears immediately without animation */
+.metric-cards-grid,
+.empty-state-banner {
+  opacity: 1;
+  /* No animation - instant appearance to avoid flicker */
+}
+
+/* Fade animations for smooth skeleton replacement */
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes delayedFadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Old skeleton animation (kept for compatibility) */
+@keyframes skeleton-loading {
+  0% {
+    background-color: rgba(200, 200, 200, 0.2);
+  }
+  50% {
+    background-color: rgba(200, 200, 200, 0.4);
+  }
+  100% {
+    background-color: rgba(200, 200, 200, 0.2);
+  }
+}
+
+/* DISABLED - Old approach with manual animation control */
+/*
+.metric-cards-grid,
+.empty-state-banner,
+#bug-analysis-tab-content {
+  animation: fadeIn 0.3s ease-in;
+}
+*/
+
+/* ================================================================
    End of Custom Styles
    ================================================================ */
