@@ -3289,6 +3289,37 @@ label.fw-medium {
 }
 
 /* ================================================================
+   Detailed Metric Cards (DORA & Flow)
+   ================================================================ */
+
+/* Ensure all metric cards have consistent height in grid layout */
+.metric-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Card body takes available space, pushing footer to bottom */
+.metric-card .card-body {
+  flex: 1 1 auto;
+}
+
+/* Card footer always at bottom, consistent height for symmetry */
+.metric-card .card-footer {
+  flex-shrink: 0;
+  min-height: 60px; /* Ensure consistent footer height across all cards */
+  display: flex;
+  align-items: center; /* Vertically center alert content */
+  justify-content: center; /* Horizontally center alert content */
+}
+
+/* When footer has action prompt alert */
+.metric-card .card-footer .alert {
+  margin-bottom: 0 !important;
+  width: 100%; /* Full width for alert */
+}
+
+/* ================================================================
    Overview Section Container (DORA & Flow Metrics)
    ================================================================ */
 

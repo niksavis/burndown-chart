@@ -73,10 +73,10 @@ def get_mobile_first_layout(
     """Get mobile-first layout configuration for trend charts.
 
     Provides consistent layout that works well on mobile and desktop.
-    ENSURES clean white background to match Work Distribution chart design.
+    ENSURES clean white background with no titles or axis labels.
 
     Args:
-        title: Chart title
+        title: Chart title (unused - kept for compatibility)
         height: Chart height in pixels
         show_performance_zones: Whether this chart should show DORA performance zones
 
@@ -84,24 +84,26 @@ def get_mobile_first_layout(
         Dictionary with plotly layout options
     """
     return {
-        "title": {"text": title, "x": 0.5, "xanchor": "center", "font": {"size": 14}},
         "height": height,
-        "margin": dict(l=50, r=20, t=50, b=50),  # Mobile-friendly margins
+        "margin": dict(l=50, r=20, t=10, b=60),  # More space for rotated labels
         "plot_bgcolor": "white",  # CRITICAL: Clean white plot area
         "paper_bgcolor": "white",  # CRITICAL: Clean white outer background
         "hovermode": "x unified",
         "showlegend": False,  # Cleaner for trend charts
         "font": {"size": 12},
         "xaxis": {
+            "title": "",  # No axis title
             "showgrid": True,
             "gridwidth": 1,
-            "gridcolor": "rgba(0,0,0,0.1)",  # Barely visible grid for consistency
+            "gridcolor": "rgba(0,0,0,0.1)",
             "tickfont": {"size": 10},
+            "tickangle": -45,  # Consistent 45° rotation
         },
         "yaxis": {
+            "title": "",  # No axis title
             "showgrid": True,
             "gridwidth": 1,
-            "gridcolor": "rgba(0,0,0,0.1)",  # Barely visible grid for consistency
+            "gridcolor": "rgba(0,0,0,0.1)",
             "tickfont": {"size": 10},
         },
     }

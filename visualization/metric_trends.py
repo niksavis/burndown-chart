@@ -390,42 +390,28 @@ def create_metric_trend_full(
             )
         )
 
-    # Create mobile-first layout - CLEAN design matching Work Distribution chart
-    # Convert metric name to proper display title
-    display_titles = {
-        "deployment_frequency": "Weekly Deployment Frequency Trend",
-        "lead_time_for_changes": "Weekly Lead Time For Changes Trend",
-        "change_failure_rate": "Weekly Change Failure Rate Trend",
-        "mean_time_to_recovery": "Weekly Mean Time To Recovery Trend",
-    }
-    display_title = display_titles.get(
-        metric_name, f"Weekly {metric_name.replace('_', ' ').title()} Trend"
-    )
-
+    # Create mobile-first layout - CLEAN design
     layout = {
         "height": height,
-        "title": {
-            "text": display_title,  # Use proper display title
-            "font": {"size": 14},
-            "x": 0.5,
-            "xanchor": "center",
-        },
         "xaxis": {
-            "title": "Week",
+            "title": "",  # No axis title
             "showgrid": True,
-            "gridcolor": "rgba(0,0,0,0.1)",  # Barely visible grid for consistency
+            "gridcolor": "rgba(0,0,0,0.1)",
             "tickfont": {"size": 10},
+            "tickangle": -45,  # Consistent 45° rotation
         },
         "yaxis": {
-            "title": unit if unit else metric_name,
+            "title": "",  # No axis title
             "showgrid": True,
-            "gridcolor": "rgba(0,0,0,0.1)",  # Barely visible grid for consistency
+            "gridcolor": "rgba(0,0,0,0.1)",
             "range": [y_min, y_max],
             "tickfont": {"size": 10},
         },
         "hovermode": "x unified",
         "showlegend": False,  # Cleaner for trend charts
-        "margin": dict(l=50, r=20, t=50, b=50),  # Mobile-friendly margins
+        "margin": dict(
+            l=50, r=20, t=10, b=60
+        ),  # More space for rotated labels, less for title
         "plot_bgcolor": "white",  # CRITICAL: White plot area
         "paper_bgcolor": "white",  # CRITICAL: White outer background
         "font": {"size": 12},
@@ -564,6 +550,7 @@ def create_dual_line_trend(
     show_axes: bool = True,
     primary_color: str = "#0d6efd",
     secondary_color: str = "#28a745",
+    chart_title: str = "Deployment Frequency",
 ) -> dcc.Graph:
     """Create dual-line trend chart for deployments vs releases.
 
@@ -579,6 +566,7 @@ def create_dual_line_trend(
         show_axes: Whether to show axis labels (default: True)
         primary_color: Color for deployment line (default: blue, or dynamic based on performance)
         secondary_color: Color for release line (default: green)
+        chart_title: Title to display on chart (default: "Deployment Frequency")
 
     Returns:
         Dash Graph component with dual-line visualization
@@ -589,7 +577,8 @@ def create_dual_line_trend(
         >>> releases = [6, 8, 7]
         >>> chart = create_dual_line_trend(
         ...     week_labels, deployments, releases,
-        ...     primary_color="#198754"  # Green for Elite tier
+        ...     primary_color="#198754",  # Green for Elite tier
+        ...     chart_title="Deployment Frequency"
         ... )
     """
     # Handle empty data
@@ -664,7 +653,7 @@ def create_dual_line_trend(
     layout = {
         "height": height,
         "margin": {
-            "t": 10,
+            "t": 10,  # No title
             "r": 10,
             "b": 60 if show_axes else 5,
             "l": 45 if show_axes else 5,
@@ -674,26 +663,27 @@ def create_dual_line_trend(
             "categoryorder": "array",
             "categoryarray": week_labels,
             "visible": show_axes,
-            "showgrid": True,  # Enable grid for consistency
-            "gridcolor": "rgba(0,0,0,0.1)",  # Barely visible grid
+            "showgrid": True,
+            "gridcolor": "rgba(0,0,0,0.1)",
             "zeroline": False,
-            "tickangle": -45,
+            "tickangle": -45,  # Consistent 45° rotation
             "tickfont": {"size": 9},
+            "title": "",  # No axis title
         },
         "yaxis": {
             "visible": show_axes,
             "showgrid": True,
-            "gridcolor": "rgba(0,0,0,0.1)",  # Barely visible grid
+            "gridcolor": "rgba(0,0,0,0.1)",
             "zeroline": False,
             "range": y_range,
             "tickfont": {"size": 10},
-            "title": "Count per Week" if show_axes else "",
+            "title": "",  # No axis title
         },
         "showlegend": True,
         "legend": {
             "orientation": "h",
-            "yanchor": "bottom",
-            "y": 1.02,
+            "yanchor": "top",
+            "y": -0.15,  # Below chart, consistent position
             "xanchor": "center",
             "x": 0.5,
             "font": {"size": 10},

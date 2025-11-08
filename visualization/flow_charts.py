@@ -126,11 +126,6 @@ def create_flow_distribution_chart(distribution_data: Dict[str, Any]) -> go.Figu
         y_position -= 0.06  # Move down for next annotation
 
     fig.update_layout(
-        title={
-            "text": "Flow Distribution by Work Type",
-            "x": 0.5,
-            "xanchor": "center",
-        },
         showlegend=True,
         legend=dict(
             orientation="h",
@@ -141,7 +136,7 @@ def create_flow_distribution_chart(distribution_data: Dict[str, Any]) -> go.Figu
         ),
         annotations=annotations,
         height=500,  # Increased height to accommodate target range annotations
-        margin=dict(t=150, b=80, l=40, r=40),  # Increased top margin for annotations
+        margin=dict(t=60, b=80, l=40, r=40),  # Reduced top margin since no title
     )
 
     return fig
@@ -183,20 +178,6 @@ def create_flow_velocity_trend_chart(trend_data: List[Dict[str, Any]]) -> go.Fig
     layout = get_mobile_first_layout("Flow Velocity Trend")
     layout.update(
         {
-            "yaxis": {
-                "title": "Items per Period",
-                "showgrid": True,  # FORCE visible grid
-                "gridwidth": 1,
-                "gridcolor": "rgba(0,0,0,0.1)",  # Slightly more visible grid
-                "tickfont": {"size": 10},
-            },
-            "xaxis": {
-                "title": "Week",
-                "showgrid": True,  # FORCE visible grid
-                "gridwidth": 1,
-                "gridcolor": "rgba(0,0,0,0.1)",  # Slightly more visible grid
-                "tickfont": {"size": 10},
-            },
             "plot_bgcolor": "white",  # FORCE white plot area
             "paper_bgcolor": "white",  # FORCE white outer area
         }
@@ -281,19 +262,7 @@ def create_flow_efficiency_trend_chart(
     layout.update(
         {
             "yaxis": {
-                "title": "Efficiency (%)",
                 "range": [0, max(100, max(values) + 10)] if values else [0, 100],
-                "showgrid": True,  # FORCE visible grid
-                "gridwidth": 1,
-                "gridcolor": "rgba(0,0,0,0.1)",  # Slightly more visible grid
-                "tickfont": {"size": 10},
-            },
-            "xaxis": {
-                "title": "Week",
-                "showgrid": True,  # FORCE visible grid
-                "gridwidth": 1,
-                "gridcolor": "rgba(0,0,0,0.1)",  # Slightly more visible grid
-                "tickfont": {"size": 10},
             },
             "plot_bgcolor": "white",  # FORCE white plot area
             "paper_bgcolor": "white",  # FORCE white outer area
@@ -340,20 +309,6 @@ def create_flow_time_trend_chart(trend_data: List[Dict[str, Any]]) -> go.Figure:
     layout = get_mobile_first_layout("Flow Time Trend")
     layout.update(
         {
-            "yaxis": {
-                "title": "Days",
-                "showgrid": True,  # FORCE visible grid
-                "gridwidth": 1,
-                "gridcolor": "rgba(0,0,0,0.1)",  # Slightly more visible grid
-                "tickfont": {"size": 10},
-            },
-            "xaxis": {
-                "title": "Week",
-                "showgrid": True,  # FORCE visible grid
-                "gridwidth": 1,
-                "gridcolor": "rgba(0,0,0,0.1)",  # Slightly more visible grid
-                "tickfont": {"size": 10},
-            },
             "plot_bgcolor": "white",  # FORCE white plot area
             "paper_bgcolor": "white",  # FORCE white outer area
         }
@@ -465,20 +420,6 @@ def create_flow_load_trend_chart(
     layout = get_mobile_first_layout("Flow Load (Work in Progress) Trend")
     layout.update(
         {
-            "yaxis": {
-                "title": "Items in Progress",
-                "showgrid": True,  # FORCE visible grid
-                "gridwidth": 1,
-                "gridcolor": "rgba(0,0,0,0.1)",  # Slightly more visible grid
-                "tickfont": {"size": 10},
-            },
-            "xaxis": {
-                "title": "Week",
-                "showgrid": True,  # FORCE visible grid
-                "gridwidth": 1,
-                "gridcolor": "rgba(0,0,0,0.1)",  # Slightly more visible grid
-                "tickfont": {"size": 10},
-            },
             "plot_bgcolor": "white",  # FORCE white plot area
             "paper_bgcolor": "white",  # FORCE white outer area
         }

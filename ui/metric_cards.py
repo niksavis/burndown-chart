@@ -296,17 +296,12 @@ def _create_detailed_chart(
             height=250,
             show_axes=True,
             primary_color=primary_color,  # Dynamic color based on performance
+            chart_title="Deployment Frequency",  # Explicit title
         )
 
-        # Add deployment details table
-        details_table = _create_deployment_details_table(
-            metric_data=metric_data,
-            weekly_labels=weekly_labels,
-            weekly_deployments=weekly_values,
-            weekly_releases=weekly_release_values,
-        )
-
-        return html.Div([chart, details_table])
+        # Removed deployment details table for cleaner card layout
+        # (enables 2-cards-per-row grid on desktop)
+        return chart
 
     # Special case 2: change_failure_rate with release tracking
     if metric_name == "change_failure_rate" and "weekly_release_values" in metric_data:
@@ -331,6 +326,7 @@ def _create_detailed_chart(
             height=250,
             show_axes=True,
             primary_color=primary_color,  # Dynamic color based on performance
+            chart_title="Change Failure Rate",  # Explicit title
         )
 
         # Customize the chart for CFR context with a note
@@ -1035,21 +1031,6 @@ def _create_success_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
             )
         )
 
-    # Add action prompts for concerning metrics
-    action_prompt = _get_action_prompt(metric_name, value, metric_data)
-    if action_prompt:
-        card_body_children.append(
-            dbc.Alert(
-                [
-                    html.I(className="fas fa-exclamation-triangle me-2"),
-                    html.Span(action_prompt),
-                ],
-                color="warning",
-                className="mt-2 mb-2 py-2 px-3",
-                style={"fontSize": "0.85rem", "lineHeight": "1.4"},
-            )
-        )
-
     # Add release count for deployment_frequency and change_failure_rate metrics
     # Add P95 for lead_time_for_changes and mean_time_to_recovery metrics
     if formatted_release_value is not None and metric_name in [
@@ -1158,10 +1139,7 @@ def _create_success_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
                     dbc.Collapse(
                         dbc.CardBody(
                             [
-                                html.H6(
-                                    f"Weekly {display_name} Trend",
-                                    className="mb-3 text-center",
-                                ),
+                                # Removed HTML heading - chart has its own title
                                 # Special handling for deployment_frequency to show dual lines
                                 _create_detailed_chart(
                                     metric_name=metric_name,
@@ -1174,7 +1152,7 @@ def _create_success_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
                                 html.Div(
                                     [
                                         html.Small(
-                                            "Click chart to interact • Hover for values • Double-click to reset zoom",
+                                            "Hover for values • Double-click to reset zoom",
                                             className="text-muted",
                                         )
                                     ],
@@ -1204,7 +1182,34 @@ def _create_success_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
 
     card_body = dbc.CardBody(card_body_children)
 
-    return dbc.Card([card_header, card_body], **card_props)  # type: ignore[call-arg]
+    # Create footer for action prompts (keeps cards uniform height and appearance)
+    action_prompt = _get_action_prompt(metric_name, value, metric_data)
+    if action_prompt:
+        # Footer with action prompt alert
+        card_footer = dbc.CardFooter(
+            dbc.Alert(
+                [
+                    html.I(className="fas fa-exclamation-triangle me-2"),
+                    html.Span(action_prompt),
+                ],
+                color="warning",
+                className="mb-0 py-2 px-3",
+                style={"fontSize": "0.85rem", "lineHeight": "1.4"},
+            ),
+            className="bg-light border-top",
+        )
+    else:
+        # Empty footer (same gray background for visual symmetry)
+        card_footer = dbc.CardFooter(
+            html.Div(
+                "\u00a0",  # Non-breaking space to maintain minimal height
+                className="text-center text-muted",
+                style={"fontSize": "0.75rem", "opacity": "0"},
+            ),
+            className="bg-light border-top py-2",  # Same padding and styling
+        )
+
+    return dbc.Card([card_header, card_body, card_footer], **card_props)  # type: ignore[call-arg]
 
 
 def _create_error_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
@@ -1381,8 +1386,8 @@ def create_metric_cards_grid(
             metric_info = {**metric_info, "tooltip": tooltips[metric_name]}
 
         card = create_metric_card(metric_info, card_id=f"{metric_name}-card")
-        # Phase 2: One card per row for better detail chart visibility, with bottom margin
-        col = dbc.Col(card, width=12, className="mb-3")
+        # 2 cards per row on desktop (lg=6), 1 card per row on mobile (xs=12)
+        col = dbc.Col(card, xs=12, lg=6, className="mb-3")
         cards.append(col)
 
     return dbc.Row(cards, className="metric-cards-grid")

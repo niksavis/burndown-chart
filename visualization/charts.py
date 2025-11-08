@@ -325,16 +325,17 @@ def configure_axes(fig, forecast_data):
 
     # Configure x-axis
     fig.update_xaxes(
-        title={"text": "Date", "font": {"size": 16}},
+        title="",  # No axis title
         tickmode="auto",
         nticks=20,
         gridcolor="rgba(200, 200, 200, 0.2)",
         automargin=True,
+        tickangle=-45,  # Consistent 45° rotation
     )
 
     # Configure primary y-axis (items)
     fig.update_yaxes(
-        title={"text": "Remaining Items", "font": {"size": 16}},
+        title="",  # No axis title
         range=items_range,
         gridcolor=COLOR_PALETTE["items_grid"],
         zeroline=True,
@@ -344,7 +345,7 @@ def configure_axes(fig, forecast_data):
 
     # Configure secondary y-axis (points)
     fig.update_yaxes(
-        title={"text": "Remaining Points", "font": {"size": 16}},
+        title="",  # No axis title
         range=points_range,
         gridcolor=COLOR_PALETTE["points_grid"],
         zeroline=True,
