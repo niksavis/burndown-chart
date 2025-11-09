@@ -1093,8 +1093,16 @@ def calculate_all_dora_metrics(
     Returns:
         Dictionary with all four DORA metric results keyed by metric name
     """
+    import time
+
+    start_time = time.time()
+
     deployment_issues = issues.get("deployments", [])
     incident_issues = issues.get("incidents", [])
+
+    logger.info(
+        f"Starting DORA metrics calculation: {len(deployment_issues)} deployments, {len(incident_issues)} incidents, {time_period_days}d period"
+    )
 
     results = {
         "deployment_frequency": calculate_deployment_frequency(
@@ -1111,6 +1119,8 @@ def calculate_all_dora_metrics(
         ),
     }
 
+    elapsed_time = time.time() - start_time
+    logger.info(f"✓ DORA metrics calculated in {elapsed_time:.2f}s")
     return results
 
 

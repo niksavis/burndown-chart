@@ -16,11 +16,20 @@ from typing import Dict
 #######################################################################
 # LOGGING CONFIGURATION
 #######################################################################
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+# Initialize comprehensive file-based logging with rotation and redaction
+from configuration.logging_config import setup_logging, cleanup_old_logs
+
+# Setup logging on module import (runs once at application startup)
+setup_logging(
+    log_dir="logs", max_bytes=10 * 1024 * 1024, backup_count=5, log_level="INFO"
 )
+
+# Clean up old log files (30-day retention)
+cleanup_old_logs(log_dir="logs", max_age_days=30)
+
+# Get logger for this module
 logger = logging.getLogger(__name__)
+logger.info("Application configuration loaded - logging initialized")
 
 #######################################################################
 # APPLICATION CONSTANTS

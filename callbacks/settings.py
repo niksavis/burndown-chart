@@ -246,6 +246,18 @@ def register(app):
         # Load existing settings to preserve last_used_data_source and active_jql_profile_id
         existing_settings = load_app_settings()
 
+        # Check if JQL query changed for cache invalidation (T054)
+        jql_changed = False
+        old_jql = existing_settings.get("jql_query", "")
+        new_jql = (
+            jql_query.strip()
+            if jql_query and jql_query.strip()
+            else "project = JRASERVER"
+        )
+        if old_jql != new_jql:
+            jql_changed = True
+            logger.info(f"JQL query changed: '{old_jql}' → '{new_jql}'")
+
         save_app_settings(
             pert_factor,
             deadline,
@@ -287,6 +299,24 @@ def register(app):
                 "Preserving JIRA project scope data - UI input changes do not override JIRA calculations"
             )
             # JIRA project scope should ONLY be updated by JIRA operations, never by UI inputs
+
+        # T054: Invalidate cache when JQL query changes
+        if jql_changed:
+            try:
+                import glob
+                import os
+
+                cache_files = glob.glob("cache/*.json")
+                for cache_file in cache_files:
+                    try:
+                        os.remove(cache_file)
+                    except Exception as e:
+                        logger.debug(f"Could not remove cache file {cache_file}: {e}")
+                logger.info(
+                    f"✓ Invalidated {len(cache_files)} cache files due to JQL change"
+                )
+            except Exception as e:
+                logger.warning(f"Cache invalidation failed: {e}")
 
         logger.info(f"Settings updated and saved: {settings}")
         return settings, int(datetime.now().timestamp() * 1000)

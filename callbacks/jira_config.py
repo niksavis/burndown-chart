@@ -21,6 +21,7 @@ from data.persistence import (
     validate_jira_config,
 )
 from data.jira_simple import test_jira_connection
+from data.cache_manager import invalidate_cache, CacheInvalidationTrigger
 from configuration import logger
 
 

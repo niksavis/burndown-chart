@@ -1192,6 +1192,23 @@ def save_comprehensive_mappings(n_clicks, active_tab, content_children):
         # Invalidate metrics cache since configuration changed
         invalidate_cache()
 
+        # T055: Also invalidate JIRA data cache since field mappings affect cache key
+        try:
+            import glob
+            import os
+
+            cache_files = glob.glob("cache/*.json")
+            for cache_file in cache_files:
+                try:
+                    os.remove(cache_file)
+                except Exception as e:
+                    logger.debug(f"Could not remove cache file {cache_file}: {e}")
+            logger.info(
+                f"✓ Invalidated {len(cache_files)} JIRA cache files due to field mapping changes"
+            )
+        except Exception as e:
+            logger.warning(f"JIRA cache invalidation failed: {e}")
+
         logger.info(f"Comprehensive mappings saved successfully from tab: {active_tab}")
 
         # Show success with warnings if any

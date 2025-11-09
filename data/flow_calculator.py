@@ -698,7 +698,16 @@ def calculate_all_flow_metrics(
             "flow_distribution": {...}
         }
     """
-    return {
+    import time
+
+    calc_start = time.time()
+
+    period_days = (end_date - start_date).days
+    logger.info(
+        f"Starting Flow metrics calculation: {len(issues)} issues, {period_days}d period"
+    )
+
+    results = {
         "flow_velocity": calculate_flow_velocity(
             issues, field_mappings, start_date, end_date
         ),
@@ -709,6 +718,10 @@ def calculate_all_flow_metrics(
             issues, field_mappings, start_date, end_date
         ),
     }
+
+    elapsed_time = time.time() - calc_start
+    logger.info(f"✓ Flow metrics calculated in {elapsed_time:.2f}s")
+    return results
 
 
 def _create_error_response(
