@@ -67,6 +67,7 @@ def _render_bug_analysis_content(data_points_count: int):
         # Get JIRA issues from cache with ALL fields (don't specify fields to avoid validation mismatch)
         # By passing empty string for fields, load_jira_cache won't validate fields
         all_issues = []
+        cache_loaded = False  # Track if cache was successfully loaded
 
         try:
             from data.jira_simple import load_jira_cache, get_jira_config
