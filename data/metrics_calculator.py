@@ -1161,9 +1161,10 @@ def calculate_and_save_weekly_metrics(
                 from data.dora_calculator import calculate_mttr_v2
 
                 affected_env_field = field_mappings.get("affected_environment")
-                production_value = app_settings.get(
+                production_values = app_settings.get(
                     "production_environment_values", ["PROD"]
-                )[0]
+                )
+                production_value = production_values[0] if production_values else "PROD"
 
                 if not affected_env_field:
                     logger.warning("Affected Environment field not configured for MTTR")
