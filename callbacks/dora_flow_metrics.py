@@ -7,7 +7,7 @@ Matches architecture of existing burndown/statistics dashboards.
 All field mappings and configuration values come from app_settings.json - no hardcoded values.
 """
 
-from dash import callback, Output, Input, State, html, dcc
+from dash import callback, Output, Input, State, html
 from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
 from datetime import datetime, timedelta
@@ -882,55 +882,28 @@ def calculate_metrics_from_settings(
 def register_calculate_metrics_button_spinner(app):
     """Register clientside callback for Calculate Metrics button loading state.
 
-    This mimics the Update Data button behavior - shows a spinning calculator
-    icon during processing and monitors for completion.
+    Provides immediate visual feedback when button is clicked. The Python callback
+    will properly reset the button state when processing completes.
+
+    NOTE: This only sets initial loading state. The Python callback handles cleanup
+    via Output("calculate-metrics-button", "disabled") and Output("...", "children").
     """
     app.clientside_callback(
         """
         function(n_clicks) {
-            // Button state management for Calculate Metrics button
+            // Provide immediate visual feedback on button click
             if (n_clicks && n_clicks > 0) {
                 setTimeout(function() {
                     const button = document.getElementById('calculate-metrics-button');
-                    if (button) {
-                        const originalDisabled = button.disabled;
-                        
-                        // Set loading state with spinning icon
+                    if (button && !button.disabled) {
+                        // Set loading state immediately (before Python callback processes)
                         button.disabled = true;
                         button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Calculating...';
                         
-                        // Reset button after completion
-                        const resetButton = function() {
-                            if (button && button.disabled) {
-                                button.disabled = false;
-                                button.innerHTML = '<i class="fas fa-calculator me-2"></i>Calculate Metrics';
-                            }
-                        };
-                        
-                        // Longer timeout for metrics calculation (2.5 minutes max)
-                        setTimeout(resetButton, 150000);
-                        
-                        // Monitor for completion by watching status updates
-                        const observer = new MutationObserver(function(mutations) {
-                            const statusArea = document.getElementById('calculate-metrics-status');
-                            if (statusArea) {
-                                const content = statusArea.innerHTML.toLowerCase();
-                                // Detect completion messages
-                                if (content.includes('weeks') || 
-                                    content.includes('partial') ||
-                                    content.includes('error')) {
-                                    setTimeout(resetButton, 500);
-                                    observer.disconnect();
-                                }
-                            }
-                        });
-                        
-                        const targetNode = document.getElementById('calculate-metrics-status');
-                        if (targetNode) {
-                            observer.observe(targetNode, { childList: true, subtree: true });
-                        }
+                        // Python callback will reset button state when processing completes
+                        // No need for MutationObserver or fallback timeout - Dash handles it
                     }
-                }, 50);
+                }, 10); // Small delay to ensure this runs after click event
             }
             return null;
         }
