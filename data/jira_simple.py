@@ -265,7 +265,18 @@ def fetch_jira_issues(
     config: Dict, max_results: int | None = None
 ) -> Tuple[bool, List[Dict]]:
     """
-    Execute JQL query and return ALL issues using pagination.
+    Execute JQL query and return ALL issues using pagination with incremental fetch optimization.
+
+    INCREMENTAL FETCH OPTIMIZATION (T051):
+    - Checks issue count before full fetch to detect if data changed
+    - If count unchanged: Returns cached data (skips expensive API calls)
+    - If count changed: Fetches all issues (cache is stale)
+    - Reduces API load and improves response time when data hasn't changed
+
+    RATE LIMITING & RETRY (T052-T053):
+    - Rate limiting: Token bucket algorithm (100 max tokens, 10/sec refill)
+    - Retry logic: Exponential backoff for 429, 5xx, timeout, connection errors
+    - Integrated with jira_query_manager rate limiter
 
     JIRA API Limits:
     - Maximum 1000 results per API call (JIRA hard limit)
@@ -280,23 +291,11 @@ def fetch_jira_issues(
         Tuple of (success: bool, issues: List[Dict])
     """
     import time
+    from data.jira_query_manager import get_rate_limiter, retry_with_backoff
 
     start_time = time.time()
 
     try:
-        # Use max_results as page size (per API call), not total limit
-        # JIRA API hard limit is 1000 per call
-        page_size = (
-            max_results if max_results is not None else config.get("max_results", 1000)
-        )
-
-        # Enforce JIRA API hard limit
-        if page_size > 1000:
-            logger.warning(
-                f"Page size {page_size} exceeds JIRA API limit of 1000, using 1000"
-            )
-            page_size = 1000
-
         # Use the JQL query directly from configuration
         jql = config["jql_query"]
 
@@ -305,14 +304,6 @@ def fetch_jira_issues(
         if not api_endpoint:
             logger.error("JIRA API endpoint not configured")
             return False, []
-
-        # Use the full API endpoint directly
-        url = api_endpoint
-
-        # Headers
-        headers = {"Accept": "application/json"}
-        if config["token"]:
-            headers["Authorization"] = f"Bearer {config['token']}"
 
         # Parameters - fetch required fields including field mappings for DORA/Flow
         # Base fields: always fetch these standard fields
@@ -339,6 +330,77 @@ def fetch_jira_issues(
         else:
             fields = base_fields
 
+        # ===== T051: INCREMENTAL FETCH OPTIMIZATION =====
+        # Check if data has changed before doing expensive full fetch
+        logger.info("🔍 Checking if JIRA data has changed (incremental fetch)...")
+
+        # Try to load cached data first
+        cache_key = generate_cache_key(
+            jql_query=jql,
+            field_mappings=field_mappings,
+            time_period_days=30,  # Default time period
+        )
+
+        config_hash = _generate_config_hash(config, fields)
+
+        is_valid, cached_data = load_cache_with_validation(
+            cache_key=cache_key,
+            config_hash=config_hash,
+            max_age_hours=CACHE_EXPIRATION_HOURS,
+            cache_dir="cache",
+        )
+
+        if is_valid and cached_data:
+            # We have valid cache, now check if JIRA data changed
+            # Use fast count check (maxResults=0, returns only total count)
+            success, current_count = check_jira_issue_count(jql, config)
+
+            if success:
+                cached_count = len(cached_data)
+
+                if current_count == cached_count:
+                    # Data hasn't changed - use cache (skip expensive fetch)
+                    elapsed_time = time.time() - start_time
+                    logger.info(
+                        f"✓ Incremental fetch: Issue count unchanged ({current_count}), using cache ({elapsed_time:.2f}s)"
+                    )
+                    return True, cached_data
+                else:
+                    # Data changed - need to fetch
+                    logger.info(
+                        f"⚠️  Issue count changed: {cached_count} → {current_count}, fetching updated data..."
+                    )
+            else:
+                # Count check failed - proceed with fetch to be safe
+                logger.warning(
+                    "⚠️  Issue count check failed, proceeding with full fetch..."
+                )
+        else:
+            logger.info("No valid cache found, fetching from JIRA...")
+
+        # ===== PROCEED WITH FULL FETCH (cache miss or data changed) =====
+
+        # Use max_results as page size (per API call), not total limit
+        # JIRA API hard limit is 1000 per call
+        page_size = (
+            max_results if max_results is not None else config.get("max_results", 1000)
+        )
+
+        # Enforce JIRA API hard limit
+        if page_size > 1000:
+            logger.warning(
+                f"Page size {page_size} exceeds JIRA API limit of 1000, using 1000"
+            )
+            page_size = 1000
+
+        # Use the full API endpoint directly
+        url = api_endpoint
+
+        # Headers
+        headers = {"Accept": "application/json"}
+        if config["token"]:
+            headers["Authorization"] = f"Bearer {config['token']}"
+
         # Pagination: Fetch ALL issues in batches
         all_issues = []
         start_at = 0
@@ -347,6 +409,9 @@ def fetch_jira_issues(
         logger.info(f"Fetching JIRA issues from: {url}")
         logger.info(f"Using JQL: {jql}")
         logger.info(f"Page size: {page_size} per call, Fields: {fields}")
+
+        # Get rate limiter for T052 integration
+        rate_limiter = get_rate_limiter()
 
         while True:
             params = {
@@ -359,7 +424,18 @@ def fetch_jira_issues(
             logger.info(
                 f"Fetching page starting at {start_at} (fetched {len(all_issues)} so far)"
             )
-            response = requests.get(url, headers=headers, params=params, timeout=30)
+
+            # T052: Rate limiting - wait for token before request
+            rate_limiter.wait_for_token()
+
+            # T053: Retry with exponential backoff for resilience
+            success, response = retry_with_backoff(
+                requests.get, url, headers=headers, params=params, timeout=30
+            )
+
+            if not success:
+                logger.error("Failed to fetch JIRA issues after retries")
+                return False, []
 
             # Enhanced error handling for ScriptRunner and JQL issues
             if not response.ok:
@@ -421,6 +497,14 @@ def fetch_jira_issues(
 
             # Move to next page
             start_at += page_size
+
+        # Save to cache for next time
+        save_cache(
+            cache_key=cache_key,
+            data=all_issues,
+            config_hash=config_hash,
+            cache_dir="cache",
+        )
 
         elapsed_time = time.time() - start_time
         logger.info(

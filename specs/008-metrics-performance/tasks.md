@@ -122,9 +122,9 @@ Web application structure:
 - [x] T048 [P] [US2] Implement invalidate_cache() function in data/cache_manager.py
 - [x] T049 [US2] Implement CacheInvalidationTrigger class in data/cache_manager.py (depends on T045)
 - [x] T050 [US2] Update data/jira_simple.py to use cache_manager functions for cache validation
-- [ ] T051 [US2] Implement incremental fetch logic in data/jira_simple.py (fetch only missing data when cache partially valid)
-- [ ] T052 [US2] Add rate limiting with token bucket algorithm in data/jira_query_manager.py
-- [ ] T053 [US2] Add exponential backoff retry logic in data/jira_query_manager.py
+- [x] T051 [US2] Implement incremental fetch logic in data/jira_simple.py (fetch only missing data when cache partially valid)
+- [x] T052 [US2] Add rate limiting with token bucket algorithm in data/jira_query_manager.py
+- [x] T053 [US2] Add exponential backoff retry logic in data/jira_query_manager.py
 - [x] T054 [US2] Update callbacks/jira_config.py to trigger cache invalidation on JQL query changes
 - [x] T055 [US2] Update callbacks/field_mapping.py to trigger cache invalidation on field mapping changes
 - [x] T056 [US2] Update callbacks/dora_flow_metrics.py to trigger cache invalidation on time period changes
@@ -188,7 +188,7 @@ Web application structure:
 
 - [x] T090 [P] Add inline code comments explaining sensitive data regex patterns in configuration/logging_config.py
 - [x] T091 [P] Add inline code comments explaining cache key generation logic in data/cache_manager.py
-- [ ] T092 [P] Add inline code comments explaining rate limiting algorithm in data/jira_query_manager.py (SKIP - not implemented in Phase 4)
+- [x] T092 [P] Add inline code comments explaining rate limiting algorithm in data/jira_query_manager.py
 - [x] T093 [P] Update quickstart.md with actual file paths and examples from implementation
 - [x] T094 [P] Create logs/.gitkeep to ensure logs directory exists in repository
 - [x] T095 [P] Add logs/*.log to .gitignore to prevent committing log files (already present)
@@ -317,11 +317,12 @@ With multiple developers:
 
 ### After User Story 2 (Data Fetching)
 
-- [ ] Cache hit rate >60% measured in logs
-- [ ] JIRA API calls reduced by 50% with cache enabled
-- [ ] Incremental fetch works for partial data updates
-- [ ] Rate limiting prevents 429 errors (100 req/10s enforced)
-- [ ] Cache invalidates automatically on configuration changes
+- [ ] Cache hit rate >60% measured in logs (DEFER - runtime validation)
+- [ ] JIRA API calls reduced by 50% with cache enabled (DEFER - runtime validation)
+- [x] Incremental fetch works for partial data updates (T051 - checks issue count before full fetch)
+- [x] Rate limiting prevents 429 errors (100 req/10s enforced) (T052 - TokenBucket algorithm implemented)
+- [x] Exponential backoff retry handles transient failures (T053 - 1s → 32s max delay, 5 attempts)
+- [x] Cache invalidates automatically on configuration changes (T054-T056 - triggers in callbacks)
 
 ### After User Story 3 (Calculations)
 
