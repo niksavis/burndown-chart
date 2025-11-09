@@ -40,18 +40,19 @@ INTERNAL_FIELD_TYPES = {
     "incident_resolved_at": "datetime",
     "deployment_successful": "checkbox",
     "production_impact": "select",
+    "severity_level": "select",  # Severity/Priority field for incidents
     # Flow fields
     "flow_item_type": "select",
     "work_started_date": "datetime",
     "work_completed_date": "datetime",
     "completed_date": "datetime",
     "status": "select",
-    # Example Customer specific custom fields (for validation)
-    "change_failure": "select",  # customfield_10001: "Yes"/"No"/"None" for deployment success/failure
-    "affected_environment": "select",  # customfield_10002: "PROD"/"TEST"/"DEV" for production bug identification
-    "effort_category": "select",  # customfield_10003: Flow type secondary classification
-    "estimate": "number",  # customfield_10002: Story points
-    "deployment_approval": "select",  # customfield_10004: Optional deployment indicator
+    # Additional optional fields for enhanced metrics
+    "change_failure": "select",  # Deployment success/failure indicator
+    "affected_environment": "select",  # Environment affected by incidents
+    "effort_category": "select",  # Flow type secondary classification
+    "estimate": "number",  # Story points or effort estimation
+    "deployment_approval": "select",  # Optional deployment approval indicator
 }
 
 

@@ -27,7 +27,7 @@ FLOW_TYPE_TECHNICAL_DEBT = "Technical Debt"
 FLOW_TYPE_RISK = "Risk"
 
 
-# Effort category constants (from Example Customer configuration)
+# Effort category constants for flow metrics classification
 EFFORT_NEW_FEATURE = "New feature"
 EFFORT_TECHNICAL_DEBT = "Technical debt"
 EFFORT_IMPROVEMENT = "Improvement"

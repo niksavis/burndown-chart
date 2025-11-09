@@ -513,7 +513,7 @@ def extract_all_fixversions(issues: List[Dict[str, Any]]) -> List[str]:
     Example:
         >>> dev_issues = filter_development_issues(all_issues, ["RI"])
         >>> fixversions = extract_all_fixversions(dev_issues)
-        >>> # Result: ["12345", "12346", "R_20251021_www.example.com", ...]
+        >>> # Result: ["12345", "12346", "R_20251021_example", ...]
     """
     fixversion_identifiers = set()
 

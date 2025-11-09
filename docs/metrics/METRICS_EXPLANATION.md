@@ -329,7 +329,7 @@ Click any DORA metric card to view detailed weekly breakdown:
 **Important Distinction**: 
 - **Deployment** = An operational task (deployment activity/process)
 - **Release** = A unique fixVersion (the actual code release)
-- **Example**: 2 operational tasks with fixVersion `R_20251104_www.example.com` = **2 deployments, 1 release**
+- **Example**: 2 operational tasks with fixVersion `R_20251104_example` = **2 deployments, 1 release**
 
 **Calculation Method**:
 - **Per Week (Deployments)**: COUNT of operational tasks with `fixVersion.releaseDate` in that week
