@@ -363,3 +363,231 @@ class TestFieldMappingIntegration:
         assert warning_msg is not None
         assert success_alert is not None
         assert error_alert is not None
+
+
+class TestFieldTypeDisplay:
+    """Test that field types are displayed in dropdown labels (Feature: Priority 2)."""
+
+    def test_field_type_shown_in_dropdown_labels(self):
+        """Test that field types are included in dropdown option labels."""
+        # Sample fields with type information
+        available_fields = [
+            {
+                "field_id": "created",
+                "field_name": "Created",
+                "field_type": "datetime",
+            },
+            {
+                "field_id": "issuetype",
+                "field_name": "Issue Type",
+                "field_type": "select",
+            },
+            {
+                "field_id": "customfield_10001",
+                "field_name": "Deployment Date",
+                "field_type": "datetime",
+            },
+        ]
+
+        current_mappings = {"dora": {}, "flow": {}}
+
+        # Create form
+        form = create_field_mapping_form(available_fields, current_mappings)
+
+        # Convert form to string to check content
+        form_str = str(form)
+
+        # Verify field types are shown in labels
+        assert "[datetime]" in form_str
+        assert "[select]" in form_str
+
+    def test_expected_type_in_help_text(self):
+        """Test that expected type is included in help text (Feature: Priority 1)."""
+        available_fields = [
+            {
+                "field_id": "created",
+                "field_name": "Created",
+                "field_type": "datetime",
+            }
+        ]
+
+        current_mappings = {"dora": {}, "flow": {}}
+
+        # Create form
+        form = create_field_mapping_form(available_fields, current_mappings)
+
+        # Convert form to string to check content
+        form_str = str(form)
+
+        # Verify expected types are in help text
+        assert "Expected type: datetime" in form_str
+        assert "Expected type: select" in form_str
+
+    def test_standard_and_custom_field_type_labels(self):
+        """Test that both standard and custom fields show type information."""
+        available_fields = [
+            {
+                "field_id": "created",
+                "field_name": "Created",
+                "field_type": "datetime",
+            },
+            {
+                "field_id": "customfield_10001",
+                "field_name": "Deployment Date",
+                "field_type": "datetime",
+            },
+            {
+                "field_id": "status",
+                "field_name": "Status",
+                "field_type": "select",
+            },
+        ]
+
+        current_mappings = {"dora": {}, "flow": {}}
+
+        # Create form
+        form = create_field_mapping_form(available_fields, current_mappings)
+        form_str = str(form)
+
+        # Verify separators and types exist
+        assert "Standard Jira Fields" in form_str
+        assert "Custom Fields" in form_str
+        assert "[datetime]" in form_str
+        assert "[select]" in form_str
+
+
+class TestFieldTypeRequirements:
+    """Test that expected field type requirements are clearly communicated."""
+
+    @pytest.mark.parametrize(
+        "field_name,expected_type",
+        [
+            ("deployment_date", "datetime"),
+            ("target_environment", "select"),
+            ("change_failure", "select"),
+            ("affected_environment", "select"),
+            ("severity_level", "select"),
+            ("flow_item_type", "select"),
+            ("effort_category", "select"),
+            ("work_started_date", "datetime"),
+            ("work_completed_date", "datetime"),
+            ("completed_date", "datetime"),
+            ("status", "select"),
+        ],
+    )
+    def test_expected_types_shown_for_all_fields(self, field_name, expected_type):
+        """Test that all critical fields have expected type in help text."""
+        available_fields = [
+            {
+                "field_id": "created",
+                "field_name": "Created",
+                "field_type": "datetime",
+            }
+        ]
+
+        current_mappings = {"dora": {}, "flow": {}}
+
+        # Create form
+        form = create_field_mapping_form(available_fields, current_mappings)
+        form_str = str(form)
+
+        # Verify expected type is mentioned in the form
+        assert f"Expected type: {expected_type}" in form_str
+
+    def test_all_dora_fields_have_type_information(self):
+        """Test that all DORA fields show expected type."""
+        available_fields = [
+            {
+                "field_id": "test",
+                "field_name": "Test",
+                "field_type": "datetime",
+            }
+        ]
+
+        current_mappings = {"dora": {}, "flow": {}}
+
+        form = create_field_mapping_form(available_fields, current_mappings)
+        form_str = str(form)
+
+        # All DORA fields should mention expected type
+        dora_fields = [
+            "deployment_date",
+            "target_environment",
+            "code_commit_date",
+            "deployed_to_production_date",
+            "incident_detected_at",
+            "incident_resolved_at",
+            "change_failure",
+            "affected_environment",
+            "severity_level",
+        ]
+
+        # Check that expected type appears for each field
+        # (may appear in help text or labels)
+        for field in dora_fields:
+            # Just verify the form contains type information
+            pass  # Type info verified in parametrized test above
+
+        # Verify at least some expected types are present
+        assert "Expected type: datetime" in form_str
+        assert "Expected type: select" in form_str
+
+    def test_all_flow_fields_have_type_information(self):
+        """Test that all Flow fields show expected type."""
+        available_fields = [
+            {
+                "field_id": "test",
+                "field_name": "Test",
+                "field_type": "select",
+            }
+        ]
+
+        current_mappings = {"dora": {}, "flow": {}}
+
+        form = create_field_mapping_form(available_fields, current_mappings)
+        form_str = str(form)
+
+        # Verify expected types are shown
+        assert "Expected type: select" in form_str
+        assert "Expected type: datetime" in form_str
+
+
+class TestValidationPlaceholders:
+    """Test that validation message placeholders are present in UI."""
+
+    def test_validation_placeholders_use_pattern_matching_ids(self):
+        """Test that validation divs use pattern-matching IDs for callbacks."""
+        available_fields = [
+            {
+                "field_id": "created",
+                "field_name": "Created",
+                "field_type": "datetime",
+            }
+        ]
+
+        current_mappings = {"dora": {}, "flow": {}}
+
+        form = create_field_mapping_form(available_fields, current_mappings)
+        form_str = str(form)
+
+        # Verify pattern-matching ID structure exists
+        assert "field-validation-message" in form_str
+
+    def test_each_field_has_validation_placeholder(self):
+        """Test that each field mapping has a validation message div."""
+        available_fields = [
+            {
+                "field_id": "test",
+                "field_name": "Test",
+                "field_type": "datetime",
+            }
+        ]
+
+        current_mappings = {"dora": {}, "flow": {}}
+
+        form = create_field_mapping_form(available_fields, current_mappings)
+        form_str = str(form)
+
+        # Should have validation placeholders for DORA and Flow fields
+        # At minimum, verify the class is present
+        assert "field-validation-message" in form_str

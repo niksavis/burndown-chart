@@ -111,8 +111,10 @@ def create_field_mapping_form(
     custom_fields = []
 
     for field in available_fields:
+        # Include field type in dropdown label for better clarity
+        field_type = field.get("field_type", "unknown")
         field_option = {
-            "label": f"{field['field_name']} ({field['field_id']})",
+            "label": f"{field['field_name']} ({field['field_id']}) - [{field_type}]",
             "value": field["field_id"],
         }
         if field["field_id"].startswith("customfield_"):
@@ -195,55 +197,55 @@ def create_field_mapping_form(
                 "deployment_date",
                 "Deployment Date Field",
                 "datetime",
-                "⚠️ Required for DORA Deployment Frequency",
+                "⚠️ Required for DORA Deployment Frequency | Expected type: datetime",
             ),
             (
                 "target_environment",
                 "Target Environment Field",
                 "select",
-                "ℹ️ Deployment environment tracking (DEV/STAGING/PROD)",
+                "ℹ️ Deployment environment tracking (DEV/STAGING/PROD) | Expected type: select",
             ),
             (
                 "code_commit_date",
                 "Code Commit Date Field (Optional)",
                 "datetime",
-                "ℹ️ Lead Time calculation",
+                "ℹ️ Lead Time calculation | Expected type: datetime",
             ),
             (
                 "deployed_to_production_date",
                 "Production Deployment Date Field",
                 "datetime",
-                "ℹ️ Lead Time to Production",
+                "ℹ️ Lead Time to Production | Expected type: datetime",
             ),
             (
                 "incident_detected_at",
                 "Incident Detection Date Field",
                 "datetime",
-                "⚠️ Required for DORA MTTR",
+                "⚠️ Required for DORA MTTR | Expected type: datetime",
             ),
             (
                 "incident_resolved_at",
                 "Incident Resolution Date Field",
                 "datetime",
-                "⚠️ Required for DORA MTTR",
+                "⚠️ Required for DORA MTTR | Expected type: datetime",
             ),
             (
                 "change_failure",
                 "Change Failure Field",
                 "select",
-                "⚠️ Required for Change Failure Rate (values: Yes/No/None)",
+                "⚠️ Required for Change Failure Rate (values: Yes/No/None) | Expected type: select",
             ),
             (
                 "affected_environment",
                 "Affected Environment Field",
                 "select",
-                "⚠️ Required for production incident filtering (MTTR)",
+                "⚠️ Required for production incident filtering (MTTR) | Expected type: select",
             ),
             (
                 "severity_level",
                 "Severity/Priority Field",
                 "select",
-                "ℹ️ Incident impact analysis",
+                "ℹ️ Incident impact analysis | Expected type: select",
             ),
         ],
         field_options,
@@ -259,37 +261,37 @@ def create_field_mapping_form(
                 "flow_item_type",
                 "Issue Type Field",
                 "select",
-                "⚠️ Required for Flow metrics (typically 'issuetype')",
+                "⚠️ Required for Flow metrics (typically 'issuetype') | Expected type: select",
             ),
             (
                 "effort_category",
                 "Effort Category Field",
                 "select",
-                "ℹ️ Work classification (Feature, Tech Debt, Bug Fix, etc.)",
+                "ℹ️ Work classification (Feature, Tech Debt, Bug Fix, etc.) | Expected type: select",
             ),
             (
                 "work_started_date",
                 "Work Started Date Field (Optional)",
                 "datetime",
-                "ℹ️ Optional - can be calculated from changelog",
+                "ℹ️ Optional - can be calculated from changelog | Expected type: datetime",
             ),
             (
                 "work_completed_date",
                 "Work Completed Date Field (Optional)",
                 "datetime",
-                "⚠️ Required for Flow Time calculation",
+                "⚠️ Required for Flow Time calculation | Expected type: datetime",
             ),
             (
                 "completed_date",
                 "Completed Date Field",
                 "datetime",
-                "⚠️ Required for Flow metrics (typically 'resolutiondate')",
+                "⚠️ Required for Flow metrics (typically 'resolutiondate') | Expected type: datetime",
             ),
             (
                 "status",
                 "Status Field",
                 "select",
-                "⚠️ Required for WIP and Flow State (typically 'status')",
+                "⚠️ Required for WIP and Flow State (typically 'status') | Expected type: select",
             ),
         ],
         field_options,
@@ -376,9 +378,13 @@ def create_metric_section(
                             maxHeight=300,
                             multi=True,  # Enable multi-select for consistent styling
                         ),
-                        # Validation message placeholder
+                        # Validation message placeholder (pattern-matching ID for callback)
                         html.Div(
-                            id=f"field-mapping-{metric_type}-{field_id}-validation",
+                            id={
+                                "type": "field-validation-message",
+                                "metric": metric_type,
+                                "field": field_id,
+                            },
                             className="field-validation-message",
                         ),
                     ],

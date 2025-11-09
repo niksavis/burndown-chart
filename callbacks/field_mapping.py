@@ -222,6 +222,161 @@ def enforce_single_selection_in_multi_dropdown(
     return result
 
 
+@callback(
+    Output(
+        {"type": "field-validation-message", "metric": ALL, "field": ALL}, "children"
+    ),
+    Input({"type": "field-mapping-dropdown", "metric": ALL, "field": ALL}, "value"),
+    Input("field-mapping-content", "children"),  # Trigger when form loads
+    prevent_initial_call=True,
+)
+def validate_field_selection_real_time(
+    field_values: List[List[str]],
+    form_content,  # Not used, just triggers callback
+) -> List[html.Div]:
+    """Show real-time validation feedback when user selects a field.
+
+    Validates field type compatibility and shows color-coded alerts:
+    - Green: Perfect type match
+    - Yellow: Compatible type (may work)
+    - Red: Incompatible type
+    - Gray: No field selected
+
+    Args:
+        field_values: List of selected field values (each is a list due to multi=True)
+        form_content: Form content (triggers validation when form loads)
+
+    Returns:
+        List of validation message components for each dropdown
+    """
+    from data.field_mapper import INTERNAL_FIELD_TYPES, validate_field_mapping
+
+    logger.info(f"Validation callback triggered with {len(field_values)} field values")
+
+    # Get triggered dropdown context
+    ctx = callback_context
+    if not ctx.triggered:
+        logger.warning("Validation callback - no trigger context")
+        return [html.Div() for _ in field_values]
+
+    logger.info(f"Validation callback - triggered by: {ctx.triggered[0]['prop_id']}")
+
+    # Fetch available fields using the same function as the form
+    # This ensures consistent field metadata structure
+    try:
+        available_fields = fetch_available_jira_fields()
+        logger.info(
+            f"Validation callback - fetched {len(available_fields)} fields from JIRA"
+        )
+    except Exception as e:
+        logger.error(f"Error fetching fields for validation: {e}")
+        return [html.Div() for _ in field_values]
+
+    # Build field metadata lookup from available fields
+    field_metadata = {}
+    logger.debug(f"Building field metadata from {len(available_fields)} fields")
+    for field in available_fields:
+        field_id = field.get("field_id")
+        field_type = field.get("field_type", "text")
+        if field_id:
+            field_metadata[field_id] = {"field_type": field_type}
+    logger.info(f"Field metadata built with {len(field_metadata)} entries")
+
+    # Get all dropdown IDs from callback context
+    # For pattern-matching callbacks with ALL, ctx.inputs_list contains the component IDs
+    # Structure: ctx.inputs_list[0] is a list of dicts with component IDs
+    # Example: [{"id": {"type": "...", "metric": "...", "field": "..."}, "property": "value", "value": [...]}]
+
+    # Extract component IDs from inputs
+    dropdown_ids = []
+    if ctx.inputs_list and len(ctx.inputs_list) > 0:
+        for input_item in ctx.inputs_list[0]:
+            if isinstance(input_item, dict) and "id" in input_item:
+                dropdown_ids.append(input_item["id"])
+
+    logger.info(f"Found {len(dropdown_ids)} dropdown IDs")
+    if len(dropdown_ids) > 0:
+        logger.info(f"First dropdown ID structure: {dropdown_ids[0]}")
+
+    # Validate each field selection
+    results = []
+    for i, (dropdown_id, value_list) in enumerate(zip(dropdown_ids, field_values)):
+        # Extract field info from pattern-matching ID
+        internal_field = dropdown_id.get("field", "")
+
+        logger.info(
+            f"Validating dropdown {i}: internal_field='{internal_field}', value_list={value_list}"
+        )
+
+        # Get selected field ID (first item in list due to multi=True)
+        selected_field_id = (
+            value_list[0] if value_list and len(value_list) > 0 else None
+        )
+
+        if not selected_field_id:
+            # No field selected - show empty
+            logger.debug(f"Dropdown {i}: No field selected")
+            results.append(html.Div())
+            continue
+
+        # Get required type for this internal field
+        required_type = INTERNAL_FIELD_TYPES.get(internal_field, "unknown")
+
+        logger.info(
+            f"Dropdown {i}: selected_field_id='{selected_field_id}', required_type='{required_type}'"
+        )
+
+        # Get actual field type from metadata
+        actual_type = "unknown"
+        if selected_field_id in field_metadata:
+            actual_type = field_metadata[selected_field_id].get("field_type", "unknown")
+            logger.info(
+                f"Dropdown {i}: Found field type: actual_type={actual_type}, required_type={required_type}"
+            )
+        else:
+            logger.warning(
+                f"Dropdown {i}: Field {selected_field_id} not found in metadata. Sample available fields: {list(field_metadata.keys())[:10]}"
+            )
+
+        # Validate compatibility
+        is_valid = True
+        message = ""
+
+        if actual_type == "unknown" or required_type == "unknown":
+            # Cannot validate - show info
+            message = "ℹ️ Field type information unavailable"
+            color = "info"
+        elif actual_type == required_type:
+            # Perfect match
+            message = f"✓ Field type matches requirement ({required_type})"
+            color = "success"
+        else:
+            # Check if types are compatible
+            is_valid, validation_msg = validate_field_mapping(
+                internal_field, selected_field_id, field_metadata
+            )
+
+            if is_valid:
+                # Compatible but not exact match
+                message = f"⚠ Field type is {actual_type}, expected {required_type} (may work)"
+                color = "warning"
+            else:
+                # Incompatible
+                message = (
+                    f"✗ Incompatible: field is {actual_type}, expected {required_type}"
+                )
+                color = "danger"
+
+        # Create validation alert
+        results.append(
+            dbc.Alert(
+                message, color=color, className="mb-0 py-1 small", dismissable=False
+            )
+        )
+
+    return results
+
+
 # REMOVED: Old save_field_mappings_callback
 # This callback has been replaced by save_comprehensive_mappings (line ~842)
 # which handles all tabs (Fields, Projects, Types, Status, Environment) with comprehensive validation.
