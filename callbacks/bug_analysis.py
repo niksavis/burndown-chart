@@ -69,15 +69,21 @@ def _render_bug_analysis_content(data_points_count: int):
         all_issues = []
 
         try:
-            from data.jira_simple import load_jira_cache
+            from data.jira_simple import load_jira_cache, get_jira_config
             from data.persistence import load_app_settings
 
             settings = load_app_settings()
             jql_query = settings.get("jql_query", "")
 
-            # Load cache WITHOUT field validation - pass empty string for current_fields
-            # This accepts whatever fields are in the cache
-            cache_loaded, cached_issues = load_jira_cache(jql_query, current_fields="")
+            # Get JIRA configuration for cache validation (T051 requires config parameter)
+            config = get_jira_config(jql_query)
+
+            # Load cache WITH config for new cache system (cache/ directory)
+            cache_loaded, cached_issues = load_jira_cache(
+                current_jql_query=jql_query,
+                current_fields="",  # Empty string accepts any fields
+                config=config,  # Required for new cache system
+            )
             if cache_loaded and cached_issues:
                 all_issues = cached_issues
                 logger.debug(
