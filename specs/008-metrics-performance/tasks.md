@@ -173,8 +173,8 @@ Web application structure:
 - [x] T083 [US3] Update data/flow_calculator.py to use @log_performance decorator on all metric functions
 - [x] T084 [US3] Update data/flow_calculator.py to use parse_jira_date() for all date parsing (deferred - performance improvements observed without this change)
 - [x] T085 [US3] Update data/flow_calculator.py to use CalculationContext for shared filtering (deferred - performance improvements observed without this change)
-- [ ] T086 [US3] Add input validation before expensive calculations in data/dora_calculator.py
-- [ ] T087 [US3] Add input validation before expensive calculations in data/flow_calculator.py
+- [x] T086 [US3] Add input validation before expensive calculations in data/dora_calculator.py
+- [x] T087 [US3] Add input validation before expensive calculations in data/flow_calculator.py
 - [x] T088 [US3] Update callbacks/dashboard.py to add performance logging for data update operations (deferred - @log_performance on metric functions provides sufficient logging)
 - [x] T089 [US3] Update callbacks/dora_flow_metrics.py to add performance logging for metric calculation operations (deferred - @log_performance on metric functions provides sufficient logging)
 
