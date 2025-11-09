@@ -105,10 +105,16 @@ def create_dora_dashboard() -> dbc.Container:
                     "display": "none"
                 },  # Hidden by default, shown by callback when metrics exist
             ),
-            # Metrics cards grid
-            html.Div(
-                id="dora-metrics-cards-container",
-                children=initial_content,  # Show banner or skeleton based on data availability
+            # Metrics cards grid with loading wrapper
+            dcc.Loading(
+                id="dora-metrics-loading-wrapper",
+                type="dot",
+                color="#0d6efd",
+                delay_show=100,  # Only show spinner if loading takes >100ms
+                children=html.Div(
+                    id="dora-metrics-cards-container",
+                    children=initial_content,  # Show banner or skeleton based on data availability
+                ),
             ),
             # Information and help section (only shown when metrics are available)
             html.Div(
