@@ -332,10 +332,18 @@ def create_settings_panel_expanded(id_suffix: str = "") -> html.Div:
                                                                 id="force-refresh-store",
                                                                 data=False,
                                                             ),
-                                                            html.Div(
-                                                                id="jira-cache-status",
-                                                                className="text-center text-muted small mt-2",
-                                                                children="",
+                                                            dcc.Loading(
+                                                                id="update-data-loading",
+                                                                type="dot",
+                                                                color="#0d6efd",
+                                                                children=html.Div(
+                                                                    id="jira-cache-status",
+                                                                    className="text-center text-muted small mt-2",
+                                                                    style={
+                                                                        "minHeight": "40px"
+                                                                    },  # Fixed height for consistent loading position
+                                                                    children="",
+                                                                ),
                                                             ),
                                                         ],
                                                         md=6,
@@ -365,10 +373,18 @@ def create_settings_panel_expanded(id_suffix: str = "") -> html.Div:
                                                                 className="w-100",
                                                                 size="md",
                                                             ),
-                                                            html.Div(
-                                                                id="calculate-metrics-status",
-                                                                className="text-center text-muted small mt-2",
-                                                                children="",
+                                                            dcc.Loading(
+                                                                id="calculate-metrics-loading",
+                                                                type="dot",
+                                                                color="#0d6efd",
+                                                                children=html.Div(
+                                                                    id="calculate-metrics-status",
+                                                                    className="text-center text-muted small mt-2",
+                                                                    style={
+                                                                        "minHeight": "40px"
+                                                                    },  # Fixed height for consistent loading position
+                                                                    children="",
+                                                                ),
                                                             ),
                                                         ],
                                                         md=6,

@@ -377,8 +377,7 @@ def register(app):
             ),  # JQL textarea uses standard "value" property
             State("force-refresh-store", "data"),  # Force refresh from long-press store
         ],
-        background=True,  # Run in background to prevent UI blocking
-        prevent_initial_call=True,
+        prevent_initial_call="initial_duplicate",  # Run on initial load with duplicate outputs
     )
     def handle_unified_data_update(
         n_clicks,
@@ -397,6 +396,13 @@ def register(app):
             Tuple: Upload contents, filename, cache status, statistics table data,
                    scope values, settings, button state
         """
+        print(f"\n{'=' * 80}")
+        print(
+            f"UPDATE DATA CALLBACK TRIGGERED - n_clicks={n_clicks}, force_refresh={force_refresh}"
+        )
+        print(f"{'=' * 80}\n")
+        logger.info(f"[UPDATE DATA] Callback triggered - n_clicks={n_clicks}")
+
         # Normal button state
         button_normal = [
             html.I(className="fas fa-sync-alt", style={"marginRight": "0.5rem"}),
@@ -404,7 +410,21 @@ def register(app):
         ]
 
         if not n_clicks:
-            raise PreventUpdate
+            # Initial page load - return normal button state with icon
+            return (
+                None,  # upload contents
+                None,  # upload filename
+                "",  # cache status (empty)
+                no_update,  # statistics table
+                no_update,  # total items
+                no_update,  # estimated items
+                no_update,  # total points
+                no_update,  # estimated points
+                no_update,  # settings
+                False,  # force refresh
+                False,  # button disabled
+                button_normal,  # button children with icon
+            )
 
         try:
             # Track task progress
@@ -1060,60 +1080,6 @@ def register(app):
             )
             time_content = html.Small(f"Error at: {error_time}", className="text-muted")
             return status_content, time_content, no_update, no_update, no_update
-
-    # Add clientside callbacks for button loading states
-    # These provide immediate visual feedback while Python callbacks process.
-    # Python callbacks handle cleanup via Output("button", "disabled/children").
-
-    app.clientside_callback(
-        """
-        function(n_clicks) {
-            // Provide immediate visual feedback for Update Data button
-            if (n_clicks && n_clicks > 0) {
-                setTimeout(function() {
-                    const button = document.getElementById('update-data-unified');
-                    if (button && !button.disabled) {
-                        // Set loading state immediately (before Python callback processes)
-                        button.disabled = true;
-                        button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Loading...';
-                        
-                        // Python callback will reset button state when processing completes
-                        // No need for MutationObserver or fallback timeout - Dash handles it
-                    }
-                }, 10); // Small delay to ensure this runs after click event
-            }
-            return null;
-        }
-        """,
-        Output("update-data-unified", "title"),
-        [Input("update-data-unified", "n_clicks")],
-        prevent_initial_call=True,
-    )
-
-    app.clientside_callback(
-        """
-        function(n_clicks) {
-            // Provide immediate visual feedback for Calculate Scope button
-            if (n_clicks && n_clicks > 0) {
-                setTimeout(function() {
-                    const button = document.getElementById('jira-scope-calculate-btn');
-                    if (button && !button.disabled) {
-                        // Set loading state immediately (before Python callback processes)
-                        button.disabled = true;
-                        button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Calculating...';
-                        
-                        // Python callback will reset button state when processing completes
-                        // No need for MutationObserver or fallback timeout - Dash handles it
-                    }
-                }, 10); // Small delay to ensure this runs after click event
-            }
-            return null;
-        }
-        """,
-        Output("jira-scope-calculate-btn", "title"),
-        [Input("jira-scope-calculate-btn", "n_clicks")],
-        prevent_initial_call=True,
-    )
 
     #######################################################################
     # JQL QUERY PROFILE MANAGEMENT CALLBACKS

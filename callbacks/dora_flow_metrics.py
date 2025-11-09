@@ -726,7 +726,7 @@ def calculate_and_display_flow_metrics(
     ],
     [Input("calculate-metrics-button", "n_clicks")],
     [State("data-points-input", "value")],
-    prevent_initial_call=True,
+    prevent_initial_call=False,  # Run on initial load to set button state with icon
 )
 def calculate_metrics_from_settings(
     button_clicks: Optional[int],
@@ -755,6 +755,13 @@ def calculate_metrics_from_settings(
     Returns:
         Tuple of (status message, button disabled state, button children, refresh timestamp)
     """
+    print(f"\n{'=' * 80}")
+    print(f"CALCULATE METRICS CALLBACK TRIGGERED - button_clicks={button_clicks}")
+    print(f"{'=' * 80}\n")
+    logger.info(
+        f"[CALCULATE METRICS] Callback triggered - button_clicks={button_clicks}"
+    )
+
     # Check if button was clicked
     if not button_clicks:
         return (
@@ -872,46 +879,6 @@ def calculate_metrics_from_settings(
 
         # No refresh trigger on error (data may be invalid)
         return settings_status_html, False, button_normal, None
-
-
-#######################################################################
-# CLIENTSIDE CALLBACKS - Button Loading States
-#######################################################################
-
-
-def register_calculate_metrics_button_spinner(app):
-    """Register clientside callback for Calculate Metrics button loading state.
-
-    Provides immediate visual feedback when button is clicked. The Python callback
-    will properly reset the button state when processing completes.
-
-    NOTE: This only sets initial loading state. The Python callback handles cleanup
-    via Output("calculate-metrics-button", "disabled") and Output("...", "children").
-    """
-    app.clientside_callback(
-        """
-        function(n_clicks) {
-            // Provide immediate visual feedback on button click
-            if (n_clicks && n_clicks > 0) {
-                setTimeout(function() {
-                    const button = document.getElementById('calculate-metrics-button');
-                    if (button && !button.disabled) {
-                        // Set loading state immediately (before Python callback processes)
-                        button.disabled = true;
-                        button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Calculating...';
-                        
-                        // Python callback will reset button state when processing completes
-                        // No need for MutationObserver or fallback timeout - Dash handles it
-                    }
-                }, 10); // Small delay to ensure this runs after click event
-            }
-            return null;
-        }
-        """,
-        Output("calculate-metrics-button", "title"),
-        [Input("calculate-metrics-button", "n_clicks")],
-        prevent_initial_call=True,
-    )
 
 
 #######################################################################
