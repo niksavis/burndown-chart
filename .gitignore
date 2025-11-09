@@ -184,12 +184,12 @@ metrics_snapshots.json
 # Customer-specific documentation (contains real project keys, field IDs)
 docs/metrics/IMPLEMENTATION_GUIDE.md
 
-# Temporary debug/test/verification scripts (root level)
-check_*.py
-debug_*.py
-test_*.py
-verify_*.py
-analyze_*.py
+# Temporary debug/test/verification scripts (root level only)
+/check_*.py
+/debug_*.py
+/test_*.py
+/verify_*.py
+/analyze_*.py
 
 # Customer-specific configuration backups (NOT committed, but backed up separately)
 config-backups/
