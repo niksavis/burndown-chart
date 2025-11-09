@@ -15,6 +15,11 @@ import logging
 import re
 
 from data.project_filter import filter_deployment_issues, filter_incident_issues
+from data.performance_utils import (
+    log_performance,
+    parse_jira_date,
+    CalculationContext,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -373,6 +378,7 @@ def _determine_performance_tier(
     return {"tier": "Low", "color": "red"}
 
 
+@log_performance
 def calculate_deployment_frequency(
     issues: List[Dict[str, Any]],
     field_mappings: Dict[str, str],
@@ -528,6 +534,7 @@ def calculate_deployment_frequency(
     }
 
 
+@log_performance
 def calculate_lead_time_for_changes(
     issues: List[Dict[str, Any]],
     field_mappings: Dict[str, str],
@@ -698,6 +705,7 @@ def calculate_lead_time_for_changes(
     }
 
 
+@log_performance
 def calculate_change_failure_rate(
     deployment_issues: List[Dict[str, Any]],
     incident_issues: List[Dict[str, Any]],
@@ -851,6 +859,7 @@ def calculate_change_failure_rate(
     }
 
 
+@log_performance
 def calculate_mean_time_to_recovery(
     issues: List[Dict[str, Any]],
     field_mappings: Dict[str, str],

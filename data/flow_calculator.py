@@ -16,6 +16,11 @@ from typing import Dict, List, Any, Optional
 
 from configuration.flow_config import RECOMMENDED_FLOW_DISTRIBUTION
 from configuration.metrics_config import get_metrics_config
+from data.performance_utils import (
+    log_performance,
+    parse_jira_date,
+    CalculationContext,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -113,6 +118,7 @@ def _calculate_trend(
     }
 
 
+@log_performance
 def calculate_flow_velocity(
     issues: List[Dict],
     field_mappings: Dict[str, str],
@@ -216,6 +222,7 @@ def calculate_flow_velocity(
         return _create_error_response("flow_velocity", "calculation_error", str(e))
 
 
+@log_performance
 def calculate_flow_time(
     issues: List[Dict],
     field_mappings: Dict[str, str],
@@ -348,6 +355,7 @@ def calculate_flow_time(
         return _create_error_response("flow_time", "calculation_error", str(e))
 
 
+@log_performance
 def calculate_flow_efficiency(
     issues: List[Dict],
     field_mappings: Dict[str, str],
@@ -469,6 +477,7 @@ def calculate_flow_efficiency(
         return _create_error_response("flow_efficiency", "calculation_error", str(e))
 
 
+@log_performance
 def calculate_flow_load(
     issues: List[Dict],
     field_mappings: Dict[str, str],
@@ -553,6 +562,7 @@ def calculate_flow_load(
         return _create_error_response("flow_load", "calculation_error", str(e))
 
 
+@log_performance
 def calculate_flow_distribution(
     issues: List[Dict],
     field_mappings: Dict[str, str],
