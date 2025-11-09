@@ -1,12 +1,12 @@
 <!--
 Sync Impact Report:
-- Version: 1.2.0 → 1.2.1 (Added missing data files)
-- Principles: 4 core architectural principles (no changes)
-- Updated: Added jira_changelog_cache.json, metrics_snapshots.json, task_progress.json
-- Updated: Test isolation verification to include all data files
-- Rationale: Complete list of runtime-generated JSON files for test isolation
+- Version: 1.2.1 → 1.3.0 (Added Core Principle V: Data Privacy & Security)
+- Principles: 4 → 5 core architectural principles
+- Updated: Added comprehensive data privacy requirements
+- Updated: Added verification criteria for sensitive data
+- Rationale: Formalize data protection practices to prevent customer data exposure
 - Templates requiring updates: None
-- Follow-up: Verify all data files are in .gitignore and test isolation is enforced
+- Follow-up: Review all existing code for compliance with new privacy principle
 -->
 
 # Burndown Chart Generator Constitution
@@ -45,6 +45,27 @@ Sync Impact Report:
 
 **Verification**: Code review MUST reject over-engineered solutions or copy-pasted logic. Shared utilities MUST be extracted to appropriate modules with unit tests.
 
+### V. Data Privacy & Security (NON-NEGOTIABLE)
+
+**Rule**: Customer-identifying information MUST NEVER be committed to the repository. All examples, documentation, and configuration MUST use generic placeholder data.
+
+**Rationale**: Public repositories expose sensitive information. Data breaches damage trust, violate privacy obligations, and can have legal consequences.
+
+**Verification**: Code review MUST reject commits containing:
+- Real company or organization names
+- Production domain names or URLs
+- Customer-specific JIRA field IDs (e.g., customfield_XXXXX with actual production values)
+- Production environment identifiers
+- Real user data, credentials, or API tokens
+- Comments referencing specific customer implementations
+
+**Required Practices**:
+- Use placeholder names: "Acme Corp", "Example Organization"
+- Use placeholder domains: "example.com", "example.org"
+- Use generic field IDs: "customfield_10001", "customfield_10002"
+- Document patterns, not specific customer configurations
+- Review git history before pushing to ensure no sensitive data exposure
+
 ## Data Architecture
 
 **Persistence**: Application state persists to JSON files:
@@ -69,10 +90,10 @@ Unit tests MUST be written during implementation. Integration and performance te
 
 ## Governance
 
-This constitution supersedes conflicting guidance. All code changes MUST comply with Core Principles I-IV.
+This constitution supersedes conflicting guidance. All code changes MUST comply with Core Principles I-V.
 
 Amendments MUST increment version per semantic versioning: MAJOR (principle removal/redefinition), MINOR (new principle), PATCH (clarifications).
 
 Reference `.github/copilot-instructions.md` for detailed implementation patterns, environment setup, tool choices, and troubleshooting.
 
-**Version**: 1.2.1 | **Ratified**: 2025-10-27 | **Last Amended**: 2025-11-08
+**Version**: 1.3.0 | **Ratified**: 2025-10-27 | **Last Amended**: 2025-11-09
