@@ -893,6 +893,11 @@ def register(app):
             f"Rendering charts for viewport: {viewport_size} (mobile={is_mobile}, tablet={is_tablet})"
         )
 
+        # Convert checklist value to boolean (points-toggle returns list, not boolean)
+        show_points = bool(
+            show_points and (show_points is True or "show" in show_points)
+        )
+
         # CTO FIX: Clear old cache entries to prevent memory bloat (keep last 5)
         # BUT: If we're switching tabs (trigger is from chart-tabs), clear ALL cache
         # to prevent any possibility of cross-tab contamination

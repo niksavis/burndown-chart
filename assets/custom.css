@@ -2634,6 +2634,112 @@ label.fw-medium {
   overflow-x: hidden;
 }
 
+/* Mobile: Make settings panel match parameter panel styling exactly */
+@media (max-width: 768px) {
+  /* Match parameter panel dimensions and spacing */
+  .settings-panel-expanded {
+    max-height: calc(100vh - 200px) !important; /* Same as parameter panel */
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+    padding: var(--spacing-md) !important; /* Match parameter panel padding */
+    padding-bottom: 2rem !important; /* Extra padding at bottom for better scrolling */
+    background-color: var(--color-white) !important;
+    border-radius: var(--border-radius-md) !important;
+    border: 1px solid var(--color-gray-300) !important;
+    margin: 0 !important;
+    width: 100% !important;
+  }
+
+  /* Remove card-specific styling on mobile to match parameter panel */
+  .settings-panel-expanded .card {
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+  }
+
+  /* Ensure card body takes full width and has no extra padding */
+  .settings-panel-expanded .card-body {
+    overflow-y: visible !important;
+    max-height: none !important;
+    padding: 0 !important;
+    background-color: transparent !important;
+  }
+
+  /* Make columns full width on mobile like parameter panel */
+  .settings-panel-expanded .col-md-8,
+  .settings-panel-expanded .col-md-4 {
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Remove column borders on mobile */
+  .settings-panel-expanded .border-end {
+    border-right: none !important;
+  }
+
+  /* Fix toggle appearance on mobile */
+  .form-check-input {
+    width: 2.5rem !important;
+    height: 1.25rem !important;
+    cursor: pointer !important;
+  }
+
+  .form-switch .form-check-input {
+    background-position: left center !important;
+    border-radius: 2rem !important;
+    transition: background-position 0.15s ease-in-out !important;
+  }
+
+  .form-switch .form-check-input:checked {
+    background-position: right center !important;
+  }
+
+  /* Keep form-switch inline within flex containers */
+  .d-flex .form-check.form-switch {
+    display: inline-flex !important;
+    align-items: center !important;
+    margin-bottom: 0 !important;
+  }
+
+  /* Ensure form inputs in settings panel are touch-friendly on mobile (match parameter panel) */
+  .settings-panel-expanded input,
+  .settings-panel-extended .form-control {
+    min-height: 44px; /* Touch-friendly size */
+  }
+
+  /* Compact parameter summary on truly small mobile screens (< 576px) */
+  @media (max-width: 575px) {
+    .param-summary-item {
+      font-size: 0.75rem !important;
+      white-space: nowrap !important;
+    }
+
+    .param-summary-item i {
+      font-size: 0.85rem !important;
+    }
+
+    /* Reduce button text on small mobile */
+    .parameter-bar-collapsed .btn-sm {
+      font-size: 0.75rem !important;
+      padding: 0.3rem 0.6rem !important;
+    }
+
+    .parameter-bar-collapsed .btn-sm i {
+      font-size: 0.85rem !important;
+    }
+  }
+
+  /* Medium mobile/tablet (576px - 768px) - keep normal size */
+  @media (min-width: 576px) and (max-width: 767px) {
+    .param-summary-item {
+      font-size: 0.85rem !important;
+    }
+  }
+}
+
 /* Desktop: Ensure no height constraints - let browser handle scrolling naturally */
 @media (min-width: 768px) {
   /* Remove all height/overflow constraints from tab content hierarchy */

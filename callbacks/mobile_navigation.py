@@ -69,7 +69,7 @@ def handle_mobile_drawer(menu_clicks, close_clicks, overlay_clicks, nav_state):
 # Clientside callback to handle mobile navigation tab switching
 clientside_callback(
     """
-    function(dashboard_clicks, burndown_clicks, items_clicks, points_clicks, scope_clicks, bugs_clicks) {
+    function(dashboard_clicks, burndown_clicks, items_clicks, points_clicks, scope_clicks, bugs_clicks, dora_clicks, flow_clicks) {
         // Get the callback context to see which button was clicked
         if (!window.dash_clientside.callback_context.triggered.length) {
             return window.dash_clientside.no_update;
@@ -84,7 +84,9 @@ clientside_callback(
             'bottom-nav-tab-items': 'tab-items', 
             'bottom-nav-tab-points': 'tab-points',
             'bottom-nav-tab-scope-tracking': 'tab-scope-tracking',
-            'bottom-nav-tab-bug-analysis': 'tab-bug-analysis'
+            'bottom-nav-tab-bug-analysis': 'tab-bug-analysis',
+            'bottom-nav-tab-dora-metrics': 'tab-dora-metrics',
+            'bottom-nav-tab-flow-metrics': 'tab-flow-metrics'
         };
         
         const target_tab = tab_mapping[trigger_id];
@@ -109,6 +111,8 @@ clientside_callback(
         Input("bottom-nav-tab-points", "n_clicks"),
         Input("bottom-nav-tab-scope-tracking", "n_clicks"),
         Input("bottom-nav-tab-bug-analysis", "n_clicks"),
+        Input("bottom-nav-tab-dora-metrics", "n_clicks"),
+        Input("bottom-nav-tab-flow-metrics", "n_clicks"),
     ],
     prevent_initial_call=True,
 )
@@ -130,7 +134,9 @@ clientside_callback(
             { id: 'tab-items', color: '#20c997' },
             { id: 'tab-points', color: '#fd7e14' },
             { id: 'tab-scope-tracking', color: '#6f42c1' },
-            { id: 'tab-bug-analysis', color: '#dc3545' }
+            { id: 'tab-bug-analysis', color: '#dc3545' },
+            { id: 'tab-dora-metrics', color: '#6610f2' },
+            { id: 'tab-flow-metrics', color: '#20c997' }
         ];
         
         // Update each button's styling without recreating elements

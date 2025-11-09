@@ -12,7 +12,6 @@ from datetime import datetime
 
 # Third-party library imports
 import dash
-import dash_bootstrap_components as dbc
 from dash import (
     Input,
     Output,
@@ -33,6 +32,7 @@ from configuration import (
     logger,
 )
 from data import calculate_total_points
+from ui.components import create_parameter_bar_collapsed
 
 #######################################################################
 # HELPER FUNCTIONS
@@ -237,7 +237,9 @@ def register(app):
             "data_points_count": data_points_count,
             "show_milestone": show_milestone,  # Automatically set based on milestone date
             "milestone": milestone,
-            "show_points": show_points,
+            "show_points": bool(
+                show_points and (show_points is True or "show" in show_points)
+            ),  # Convert checklist to boolean
         }
 
         # Save app-level settings - load JIRA values from jira_config (Feature 003-jira-config-separation)
@@ -2198,147 +2200,23 @@ def register(app):
             f"Banner callback - remaining_items: {remaining_items}, remaining_points: {remaining_points}"
         )
 
-        return dbc.Row(
-            [
-                # Parameter Summary (left side)
-                dbc.Col(
-                    [
-                        html.Div(
-                            [
-                                html.Span(
-                                    [
-                                        html.I(className="fas fa-sliders-h me-1"),
-                                        f"Window: {pert_factor}w",
-                                    ],
-                                    className="param-summary-item me-3",
-                                    title=f"Confidence Window: {pert_factor} weeks (samples best/worst case from your velocity history)",
-                                ),
-                            ]
-                            + (
-                                [
-                                    html.Span(
-                                        [
-                                            html.I(className="fas fa-chart-line me-1"),
-                                            f"Data: {data_points}w",
-                                        ],
-                                        className="param-summary-item me-3",
-                                        title=f"Data Points: {data_points} weeks of historical data used for forecasting",
-                                    ),
-                                ]
-                                if data_points
-                                else []
-                            )
-                            + [
-                                html.Span(
-                                    [
-                                        html.I(className="fas fa-calendar me-1"),
-                                        html.Span(
-                                            "Deadline:",
-                                            className="text-muted d-none d-lg-inline me-1",
-                                            style={"fontSize": "0.85em"},
-                                        ),
-                                        f"{deadline}",
-                                    ],
-                                    className="param-summary-item me-3",
-                                    title=f"Project deadline: {deadline}",
-                                ),
-                                html.Span(
-                                    [
-                                        html.I(className="fas fa-tasks me-1"),
-                                        html.Span(
-                                            f"{'Remaining' if remaining_items is not None else 'Scope'}:",
-                                            className="text-muted d-none d-md-inline me-1",
-                                            style={"fontSize": "0.85em"},
-                                        ),
-                                        f"{(remaining_items if remaining_items is not None else scope_items):,} items",
-                                    ],
-                                    className="param-summary-item me-3",
-                                    title=f"{'Remaining' if remaining_items is not None else 'Scope'}: {(remaining_items if remaining_items is not None else scope_items):,} items",
-                                ),
-                            ]
-                            + (
-                                [
-                                    html.Span(
-                                        [
-                                            html.I(className="fas fa-chart-bar me-1"),
-                                            html.Span(
-                                                f"{'Remaining' if remaining_points is not None else 'Scope'}:",
-                                                className="text-muted d-none d-md-inline me-1",
-                                                style={"fontSize": "0.85em"},
-                                            ),
-                                            # Round points to natural number for display
-                                            f"{int(round(remaining_points if remaining_points is not None else scope_points)):,} points",
-                                        ],
-                                        className="param-summary-item",
-                                        title=f"{'Remaining' if remaining_points is not None else 'Scope'}: {int(round(remaining_points if remaining_points is not None else scope_points)):,} points",
-                                    ),
-                                ]
-                                if show_points
-                                else []
-                            ),
-                            className="d-flex align-items-center flex-wrap",
-                        ),
-                    ],
-                    xs=12,
-                    md=9,
-                    className="d-flex align-items-center",
-                ),
-                # Expand Button and Settings Button (right side)
-                dbc.Col(
-                    [
-                        html.Div(
-                            [
-                                dbc.Button(
-                                    [
-                                        html.I(
-                                            className="fas fa-chevron-down",
-                                            style={
-                                                "minWidth": "14px",
-                                                "textAlign": "center",
-                                            },
-                                        ),
-                                        html.Span(
-                                            "Parameters",
-                                            className="d-none d-lg-inline ms-2",
-                                        ),
-                                    ],
-                                    id="btn-expand-parameters",
-                                    color="primary",
-                                    outline=True,
-                                    size="sm",
-                                    className="me-2",
-                                ),
-                                dbc.Button(
-                                    [
-                                        html.I(
-                                            className="fas fa-cog",
-                                            style={
-                                                "minWidth": "14px",
-                                                "textAlign": "center",
-                                            },
-                                        ),
-                                        html.Span(
-                                            "Settings",
-                                            className="d-none d-lg-inline ms-2",
-                                        ),
-                                    ],
-                                    id="settings-button",
-                                    color="primary",
-                                    outline=True,
-                                    size="sm",
-                                    title="Configure data sources, import/export, and JQL queries",
-                                ),
-                            ],
-                            className="d-flex justify-content-end align-items-center",
-                        ),
-                    ],
-                    xs=12,
-                    md=3,
-                    className="d-flex align-items-center justify-content-end mt-2 mt-md-0",
-                ),
-            ],
-            className="g-2",
+        # Use the shared function to create the banner - no more duplicate code!
+        banner_content = create_parameter_bar_collapsed(
+            pert_factor=pert_factor,
+            deadline=deadline,
+            scope_items=scope_items,
+            scope_points=int(scope_points),  # Convert to int
+            remaining_items=remaining_items,
+            remaining_points=int(remaining_points)
+            if remaining_points is not None
+            else None,  # Convert to int
+            show_points=show_points,
+            data_points=data_points,
         )
+
+        # Extract just the Row children from the returned html.Div
+        # Type note: create_parameter_bar_collapsed always returns html.Div with children
+        return banner_content.children[0]  # type: ignore[index]
 
     # Callback to update Data Points slider marks dynamically when statistics change
     @app.callback(

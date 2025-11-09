@@ -2303,11 +2303,15 @@ def create_parameter_bar_collapsed(
                 [
                     html.I(className="fas fa-chart-bar me-1"),
                     html.Span(
-                        f"{items_label}:",
-                        className="text-muted d-none d-md-inline me-1",
+                        f"{items_label}: ",
+                        className="text-muted d-none d-sm-inline",
                         style={"fontSize": "0.85em"},
                     ),
-                    f"{display_points_rounded:,} points",
+                    f"{display_points_rounded:,}",
+                    html.Span(
+                        " points",  # Space is inside the span
+                        className="d-none d-sm-inline",
+                    ),
                 ],
                 className="param-summary-item",
                 title=f"{items_label}: {display_points_rounded:,} points",
@@ -2326,17 +2330,25 @@ def create_parameter_bar_collapsed(
                                     html.Span(
                                         [
                                             html.I(className="fas fa-sliders-h me-1"),
-                                            f"Window: {pert_factor}w",
+                                            html.Span(
+                                                "Window: ",
+                                                className="d-none d-sm-inline",
+                                            ),
+                                            f"{pert_factor}w",
                                         ],
-                                        className="param-summary-item me-3",
+                                        className="param-summary-item me-2 me-sm-3",
                                         title=f"Confidence Window: {pert_factor} weeks (samples best/worst case from your velocity history)",
                                     ),
                                     html.Span(
                                         [
                                             html.I(className="fas fa-chart-line me-1"),
-                                            f"Data: {data_points}w",
+                                            html.Span(
+                                                "Data: ",
+                                                className="d-none d-sm-inline",
+                                            ),
+                                            f"{data_points}w",
                                         ],
-                                        className="param-summary-item me-3",
+                                        className="param-summary-item me-2 me-sm-3",
                                         title=f"Data Points: {data_points} weeks of historical data used for forecasting",
                                         style={
                                             "display": "inline"
@@ -2354,9 +2366,16 @@ def create_parameter_bar_collapsed(
                                                 className="text-muted d-none d-lg-inline",
                                                 style={"fontSize": "0.85em"},
                                             ),
-                                            f"{deadline}",
+                                            html.Span(
+                                                f"{deadline}",
+                                                className="d-none d-sm-inline",
+                                            ),
+                                            html.Span(
+                                                f"{deadline[5:]}",  # Show only MM-DD on mobile
+                                                className="d-inline d-sm-none",
+                                            ),
                                         ],
-                                        className="param-summary-item me-3",
+                                        className="param-summary-item me-2 me-md-3",
                                         title=f"Project deadline: {deadline}",
                                     ),
                                     html.Span(
@@ -2364,16 +2383,16 @@ def create_parameter_bar_collapsed(
                                             html.I(className="fas fa-tasks me-1"),
                                             html.Span(
                                                 f"{items_label}: ",
-                                                className="text-muted d-none d-md-inline",
+                                                className="text-muted d-none d-sm-inline",
                                                 style={"fontSize": "0.85em"},
                                             ),
                                             f"{display_items:,}",
                                             html.Span(
-                                                " items",
-                                                className="d-none d-sm-inline",
+                                                " items",  # Space is inside the span
+                                                className="d-none d-sm-inline",  # Hide on smallest screens
                                             ),
                                         ],
-                                        className="param-summary-item me-3",
+                                        className="param-summary-item me-2 me-sm-3",
                                         title=f"{items_label}: {display_items:,} items",
                                     ),
                                 ]
@@ -2383,7 +2402,6 @@ def create_parameter_bar_collapsed(
                         ],
                         xs=12,
                         md=9,
-                        className="d-flex align-items-center",
                     ),
                     # Expand Button and Settings Button (right side)
                     dbc.Col(
@@ -2442,8 +2460,8 @@ def create_parameter_bar_collapsed(
                 className="g-2",
             ),
         ],
-        id=bar_id,
         className="parameter-bar-collapsed",
+        id=bar_id,
         style={
             "padding": DESIGN_TOKENS["spacing"]["md"],
             "backgroundColor": DESIGN_TOKENS["colors"]["gray-100"],
@@ -2976,16 +2994,28 @@ def create_parameter_panel_expanded(
                             ),
                             html.Div(
                                 [
-                                    html.Span(
-                                        "Points Tracking",
-                                        className="text-muted me-2",
-                                        style={"fontSize": "0.8rem"},
-                                    ),
-                                    dbc.Switch(
+                                    dcc.Checklist(
                                         id="points-toggle",
-                                        value=show_points,
-                                        label="",
-                                        className="d-inline-block",
+                                        options=[
+                                            {
+                                                "label": "Points Tracking",
+                                                "value": "show",
+                                            }
+                                        ],
+                                        value=["show"] if show_points else [],
+                                        className="m-0",
+                                        labelStyle={
+                                            "display": "flex",
+                                            "alignItems": "center",
+                                            "fontSize": "0.8rem",
+                                            "color": "#6c757d",
+                                            "margin": "0",
+                                        },
+                                        inputStyle={
+                                            "marginRight": "8px",
+                                            "marginTop": "0",
+                                        },
+                                        style={"fontSize": "0.8rem"},
                                     ),
                                 ],
                                 className="d-flex align-items-center",
@@ -3197,15 +3227,27 @@ def create_parameter_panel(
     total_items = settings.get("total_items", 0)
     total_points = settings.get("total_points", 0)
     data_points = settings.get("data_points_count")
+    show_points = settings.get("show_points", True)
 
+    # CRITICAL FIX: Pass total_items/total_points as BOTH scope AND remaining values
+    # The serve_layout() calculates these as remaining work at START of window,
+    # so we should display them as "Remaining" not "Scope"
+    # This ensures the initial banner matches the callback-updated banner
     return html.Div(
         [
             # Collapsed bar (always visible)
             create_parameter_bar_collapsed(
                 pert_factor=pert_factor,
                 deadline=deadline,
-                scope_items=total_items,
-                scope_points=total_points,
+                scope_items=total_items,  # Fallback if remaining_items is None
+                scope_points=total_points,  # Fallback if remaining_points is None
+                remaining_items=total_items
+                if total_items > 0
+                else None,  # Display as "Remaining"
+                remaining_points=total_points
+                if total_points > 0
+                else None,  # Display as "Remaining"
+                show_points=show_points,  # Respect Points Tracking toggle
                 id_suffix=id_suffix,
                 data_points=data_points,
             ),
