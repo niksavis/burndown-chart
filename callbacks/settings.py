@@ -246,6 +246,18 @@ def register(app):
         # Load existing settings to preserve last_used_data_source and active_jql_profile_id
         existing_settings = load_app_settings()
 
+        # Check if JQL query changed for cache invalidation (T054)
+        jql_changed = False
+        old_jql = existing_settings.get("jql_query", "")
+        new_jql = (
+            jql_query.strip()
+            if jql_query and jql_query.strip()
+            else "project = JRASERVER"
+        )
+        if old_jql != new_jql:
+            jql_changed = True
+            logger.info(f"JQL query changed: '{old_jql}' → '{new_jql}'")
+
         save_app_settings(
             pert_factor,
             deadline,
@@ -287,6 +299,24 @@ def register(app):
                 "Preserving JIRA project scope data - UI input changes do not override JIRA calculations"
             )
             # JIRA project scope should ONLY be updated by JIRA operations, never by UI inputs
+
+        # T054: Invalidate cache when JQL query changes
+        if jql_changed:
+            try:
+                import glob
+                import os
+
+                cache_files = glob.glob("cache/*.json")
+                for cache_file in cache_files:
+                    try:
+                        os.remove(cache_file)
+                    except Exception as e:
+                        logger.debug(f"Could not remove cache file {cache_file}: {e}")
+                logger.info(
+                    f"✓ Invalidated {len(cache_files)} cache files due to JQL change"
+                )
+            except Exception as e:
+                logger.warning(f"Cache invalidation failed: {e}")
 
         logger.info(f"Settings updated and saved: {settings}")
         return settings, int(datetime.now().timestamp() * 1000)
@@ -347,8 +377,7 @@ def register(app):
             ),  # JQL textarea uses standard "value" property
             State("force-refresh-store", "data"),  # Force refresh from long-press store
         ],
-        background=True,  # Run in background to prevent UI blocking
-        prevent_initial_call=True,
+        prevent_initial_call="initial_duplicate",  # Run on initial load with duplicate outputs
     )
     def handle_unified_data_update(
         n_clicks,
@@ -367,6 +396,13 @@ def register(app):
             Tuple: Upload contents, filename, cache status, statistics table data,
                    scope values, settings, button state
         """
+        print(f"\n{'=' * 80}")
+        print(
+            f"UPDATE DATA CALLBACK TRIGGERED - n_clicks={n_clicks}, force_refresh={force_refresh}"
+        )
+        print(f"{'=' * 80}\n")
+        logger.info(f"[UPDATE DATA] Callback triggered - n_clicks={n_clicks}")
+
         # Normal button state
         button_normal = [
             html.I(className="fas fa-sync-alt", style={"marginRight": "0.5rem"}),
@@ -374,7 +410,21 @@ def register(app):
         ]
 
         if not n_clicks:
-            raise PreventUpdate
+            # Initial page load - return normal button state with icon
+            return (
+                None,  # upload contents
+                None,  # upload filename
+                "",  # cache status (empty)
+                no_update,  # statistics table
+                no_update,  # total items
+                no_update,  # estimated items
+                no_update,  # total points
+                no_update,  # estimated points
+                no_update,  # settings
+                False,  # force refresh
+                False,  # button disabled
+                button_normal,  # button children with icon
+            )
 
         try:
             # Track task progress
@@ -1030,156 +1080,6 @@ def register(app):
             )
             time_content = html.Small(f"Error at: {error_time}", className="text-muted")
             return status_content, time_content, no_update, no_update, no_update
-
-    # Add clientside callbacks for button loading states
-    # These callbacks use a simple approach that directly manages button states
-    # without conflicting with existing Dash callback outputs
-
-    app.clientside_callback(
-        """
-        function(n_clicks) {
-            // Simple button state management for Update Data button
-            if (n_clicks && n_clicks > 0) {
-                setTimeout(function() {
-                    const button = document.getElementById('update-data-unified');
-                    if (button) {
-                        const originalHTML = button.innerHTML;
-                        const originalDisabled = button.disabled;
-                        
-                        // Set loading state
-                        button.disabled = true;
-                        button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Loading...';
-                        
-                        // Reset after timeout or when operation completes
-                        const resetButton = function() {
-                            if (button && button.disabled) {
-                                button.disabled = false;
-                                button.innerHTML = '<i class="fas fa-sync-alt me-2"></i>Update Data';
-                            }
-                        };
-                        
-                        // Shorter timeout since operations complete quickly
-                        setTimeout(resetButton, 8000);
-                        
-                        // Try to detect when operation completes by monitoring DOM changes
-                        const observer = new MutationObserver(function(mutations) {
-                            // Look for success/error messages in validation area
-                            const validationArea = document.getElementById('jira-validation-errors');
-                            if (validationArea) {
-                                const content = validationArea.innerHTML.toLowerCase();
-                                // Detect success, error, or completion messages
-                                if (content.includes('successfully') || 
-                                    content.includes('imported') || 
-                                    content.includes('completed') ||
-                                    content.includes('error') || 
-                                    content.includes('failed')) {
-                                    setTimeout(resetButton, 1000); // Reset 1 second after message appears
-                                    observer.disconnect();
-                                }
-                            }
-                        });
-                        
-                        const targetNode = document.getElementById('jira-validation-errors');
-                        if (targetNode) {
-                            observer.observe(targetNode, { childList: true, subtree: true });
-                            // Also check immediately if message is already there
-                            setTimeout(function() {
-                                const content = targetNode.innerHTML.toLowerCase();
-                                if (content.includes('successfully') || 
-                                    content.includes('imported') || 
-                                    content.includes('completed') ||
-                                    content.includes('error') || 
-                                    content.includes('failed')) {
-                                    setTimeout(resetButton, 1000);
-                                    observer.disconnect();
-                                }
-                            }, 1000);
-                        }
-                    }
-                }, 50); // Small delay to ensure this runs after the click
-            }
-            return null; // Don't update any output
-        }
-        """,
-        Output(
-            "update-data-unified", "title"
-        ),  # Use title as a safe output that won't conflict
-        [Input("update-data-unified", "n_clicks")],
-        prevent_initial_call=True,
-    )
-
-    app.clientside_callback(
-        """
-        function(n_clicks) {
-            // Simple button state management for Calculate Scope button
-            if (n_clicks && n_clicks > 0) {
-                setTimeout(function() {
-                    const button = document.getElementById('jira-scope-calculate-btn');
-                    if (button) {
-                        const originalHTML = button.innerHTML;
-                        const originalDisabled = button.disabled;
-                        
-                        // Set loading state
-                        button.disabled = true;
-                        button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Calculating...';
-                        
-                        // Reset after timeout or when operation completes
-                        const resetButton = function() {
-                            if (button && button.disabled) {
-                                button.disabled = false;
-                                button.innerHTML = '<i class="fas fa-calculator me-2"></i>Calculate Scope';
-                            }
-                        };
-                        
-                        // Shorter timeout since operations complete quickly
-                        setTimeout(resetButton, 8000);
-                        
-                        // Try to detect when operation completes by monitoring DOM changes
-                        const observer = new MutationObserver(function(mutations) {
-                            // Look for success/error messages in scope status area
-                            const statusArea = document.getElementById('jira-scope-status');
-                            if (statusArea) {
-                                const content = statusArea.innerHTML.toLowerCase();
-                                // Detect completion messages
-                                if (content.includes('calculated') || 
-                                    content.includes('error') || 
-                                    content.includes('⚠️') ||
-                                    content.includes('updated') ||
-                                    content.includes('completed')) {
-                                    setTimeout(resetButton, 1000); // Reset 1 second after completion
-                                    observer.disconnect();
-                                }
-                            }
-                        });
-                        
-                        const targetNode = document.getElementById('jira-scope-status');
-                        if (targetNode) {
-                            observer.observe(targetNode, { childList: true, subtree: true });
-                            // Also check immediately if message is already there
-                            setTimeout(function() {
-                                const content = targetNode.innerHTML.toLowerCase();
-                                if (content.includes('calculated') || 
-                                    content.includes('error') || 
-                                    content.includes('⚠️') ||
-                                    content.includes('updated') ||
-                                    content.includes('completed')) {
-                                    setTimeout(resetButton, 1000);
-                                    observer.disconnect();
-                                }
-                            }, 1000);
-                        }
-                    }
-                }, 50); // Small delay to ensure this runs after the click
-            }
-            return null; // Don't update any output
-        }
-        """,
-        Output(
-            "jira-scope-calculate-btn", "title"
-        ),  # Use title as a safe output that won't conflict
-        [Input("jira-scope-calculate-btn", "n_clicks")],
-        prevent_initial_call=True,
-    )
 
     #######################################################################
     # JQL QUERY PROFILE MANAGEMENT CALLBACKS

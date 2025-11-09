@@ -15,6 +15,7 @@ import logging
 import re
 
 from data.project_filter import filter_deployment_issues, filter_incident_issues
+from data.performance_utils import log_performance
 
 logger = logging.getLogger(__name__)
 
@@ -373,6 +374,7 @@ def _determine_performance_tier(
     return {"tier": "Low", "color": "red"}
 
 
+@log_performance
 def calculate_deployment_frequency(
     issues: List[Dict[str, Any]],
     field_mappings: Dict[str, str],
@@ -400,6 +402,79 @@ def calculate_deployment_frequency(
     Returns:
         Metric data dictionary with value, unit, performance tier, trend data, and metadata
     """
+    # Input validation
+    if not issues or not isinstance(issues, list):
+        logger.warning("calculate_deployment_frequency: Empty or invalid issues list")
+        return {
+            "metric_name": "deployment_frequency",
+            "value": None,
+            "unit": "deployments/month",
+            "error_state": "no_data",
+            "error_message": "No issues provided for calculation",
+            "performance_tier": None,
+            "performance_tier_color": None,
+            "total_issue_count": 0,
+            "filtered_issue_count": 0,
+            "excluded_issue_count": 0,
+            "trend_direction": "stable",
+            "trend_percentage": 0.0,
+        }
+
+    if not isinstance(field_mappings, dict):
+        logger.error("calculate_deployment_frequency: Invalid field_mappings")
+        return {
+            "metric_name": "deployment_frequency",
+            "value": None,
+            "unit": "deployments/month",
+            "error_state": "calculation_error",
+            "error_message": "Invalid field mappings configuration",
+            "performance_tier": None,
+            "performance_tier_color": None,
+            "total_issue_count": len(issues),
+            "filtered_issue_count": 0,
+            "excluded_issue_count": 0,
+            "trend_direction": "stable",
+            "trend_percentage": 0.0,
+        }
+
+    if time_period_days <= 0:
+        logger.error(
+            f"calculate_deployment_frequency: Invalid time_period_days: {time_period_days}"
+        )
+        return {
+            "metric_name": "deployment_frequency",
+            "value": None,
+            "unit": "deployments/month",
+            "error_state": "calculation_error",
+            "error_message": f"Invalid time period: {time_period_days} days",
+            "performance_tier": None,
+            "performance_tier_color": None,
+            "total_issue_count": len(issues),
+            "filtered_issue_count": 0,
+            "excluded_issue_count": 0,
+            "trend_direction": "stable",
+            "trend_percentage": 0.0,
+        }
+
+    if start_date and end_date and start_date >= end_date:
+        logger.error(
+            f"calculate_deployment_frequency: Invalid date range: {start_date} to {end_date}"
+        )
+        return {
+            "metric_name": "deployment_frequency",
+            "value": None,
+            "unit": "deployments/month",
+            "error_state": "calculation_error",
+            "error_message": "Start date must be before end date",
+            "performance_tier": None,
+            "performance_tier_color": None,
+            "total_issue_count": len(issues),
+            "filtered_issue_count": 0,
+            "excluded_issue_count": 0,
+            "trend_direction": "stable",
+            "trend_percentage": 0.0,
+        }
+
     # Import filtering functions
     from data.project_filter import (
         filter_development_issues,
@@ -528,6 +603,7 @@ def calculate_deployment_frequency(
     }
 
 
+@log_performance
 def calculate_lead_time_for_changes(
     issues: List[Dict[str, Any]],
     field_mappings: Dict[str, str],
@@ -560,6 +636,41 @@ def calculate_lead_time_for_changes(
         For lead time, we calculate from work items (dev projects) that have deployment dates
         in their fixVersions field. The fixVersions link work items to deployments.
     """
+    # Input validation
+    if not issues or not isinstance(issues, list):
+        logger.warning("calculate_lead_time_for_changes: Empty or invalid issues list")
+        return {
+            "metric_name": "lead_time_for_changes",
+            "value": None,
+            "unit": "days",
+            "error_state": "no_data",
+            "error_message": "No issues provided for calculation",
+            "performance_tier": None,
+            "performance_tier_color": None,
+            "total_issue_count": 0,
+            "filtered_issue_count": 0,
+            "excluded_issue_count": 0,
+            "trend_direction": "stable",
+            "trend_percentage": 0.0,
+        }
+
+    if not isinstance(field_mappings, dict):
+        logger.error("calculate_lead_time_for_changes: Invalid field_mappings")
+        return {
+            "metric_name": "lead_time_for_changes",
+            "value": None,
+            "unit": "days",
+            "error_state": "calculation_error",
+            "error_message": "Invalid field mappings configuration",
+            "performance_tier": None,
+            "performance_tier_color": None,
+            "total_issue_count": len(issues),
+            "filtered_issue_count": 0,
+            "excluded_issue_count": 0,
+            "trend_direction": "stable",
+            "trend_percentage": 0.0,
+        }
+
     # Import changelog processor for status transition detection
     from data.changelog_processor import get_first_status_transition_from_list
 
@@ -698,6 +809,7 @@ def calculate_lead_time_for_changes(
     }
 
 
+@log_performance
 def calculate_change_failure_rate(
     deployment_issues: List[Dict[str, Any]],
     incident_issues: List[Dict[str, Any]],
@@ -728,6 +840,43 @@ def calculate_change_failure_rate(
         - deployment_issues: Should be DevOps task types from DevOps projects
         - incident_issues: Should be production bugs from development projects
     """
+    # Input validation
+    if not isinstance(deployment_issues, list) or not isinstance(incident_issues, list):
+        logger.error("calculate_change_failure_rate: Invalid issues list(s)")
+        return {
+            "metric_name": "change_failure_rate",
+            "value": None,
+            "unit": "%",
+            "error_state": "calculation_error",
+            "error_message": "Invalid issues list provided",
+            "performance_tier": None,
+            "performance_tier_color": None,
+            "total_deployment_count": 0,
+            "total_incident_count": 0,
+            "trend_direction": "stable",
+            "trend_percentage": 0.0,
+        }
+
+    if not isinstance(field_mappings, dict):
+        logger.error("calculate_change_failure_rate: Invalid field_mappings")
+        return {
+            "metric_name": "change_failure_rate",
+            "value": None,
+            "unit": "%",
+            "error_state": "calculation_error",
+            "error_message": "Invalid field mappings configuration",
+            "performance_tier": None,
+            "performance_tier_color": None,
+            "total_deployment_count": len(deployment_issues)
+            if isinstance(deployment_issues, list)
+            else 0,
+            "total_incident_count": len(incident_issues)
+            if isinstance(incident_issues, list)
+            else 0,
+            "trend_direction": "stable",
+            "trend_percentage": 0.0,
+        }
+
     # Filter issues if devops_projects is provided (support both pre-filtered and mixed inputs)
     if devops_projects:
         deployment_issues = filter_deployment_issues(
@@ -851,6 +1000,7 @@ def calculate_change_failure_rate(
     }
 
 
+@log_performance
 def calculate_mean_time_to_recovery(
     issues: List[Dict[str, Any]],
     field_mappings: Dict[str, str],
@@ -881,6 +1031,39 @@ def calculate_mean_time_to_recovery(
     Returns:
         Metric data dictionary with value, unit, performance tier, trend data, and metadata
     """
+    # Input validation
+    if not issues or not isinstance(issues, list):
+        logger.warning("calculate_mean_time_to_recovery: Empty or invalid issues list")
+        return {
+            "metric_name": "mean_time_to_recovery",
+            "value": None,
+            "unit": "hours",
+            "error_state": "no_data",
+            "error_message": "No issues provided for calculation",
+            "performance_tier": None,
+            "performance_tier_color": None,
+            "total_issue_count": 0,
+            "excluded_issue_count": 0,
+            "trend_direction": "stable",
+            "trend_percentage": 0.0,
+        }
+
+    if not isinstance(field_mappings, dict):
+        logger.error("calculate_mean_time_to_recovery: Invalid field_mappings")
+        return {
+            "metric_name": "mean_time_to_recovery",
+            "value": None,
+            "unit": "hours",
+            "error_state": "calculation_error",
+            "error_message": "Invalid field mappings configuration",
+            "performance_tier": None,
+            "performance_tier_color": None,
+            "total_issue_count": len(issues),
+            "excluded_issue_count": 0,
+            "trend_direction": "stable",
+            "trend_percentage": 0.0,
+        }
+
     # Determine calculation mode based on devops_projects configuration
     use_operational_tasks = devops_projects and len(devops_projects) > 0
 
@@ -1093,8 +1276,16 @@ def calculate_all_dora_metrics(
     Returns:
         Dictionary with all four DORA metric results keyed by metric name
     """
+    import time
+
+    start_time = time.time()
+
     deployment_issues = issues.get("deployments", [])
     incident_issues = issues.get("incidents", [])
+
+    logger.info(
+        f"Starting DORA metrics calculation: {len(deployment_issues)} deployments, {len(incident_issues)} incidents, {time_period_days}d period"
+    )
 
     results = {
         "deployment_frequency": calculate_deployment_frequency(
@@ -1111,6 +1302,8 @@ def calculate_all_dora_metrics(
         ),
     }
 
+    elapsed_time = time.time() - start_time
+    logger.info(f"✓ DORA metrics calculated in {elapsed_time:.2f}s")
     return results
 
 

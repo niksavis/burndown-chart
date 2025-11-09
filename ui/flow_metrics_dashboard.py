@@ -26,7 +26,7 @@ def create_flow_dashboard() -> dbc.Container:
         dbc.Container with Flow metrics dashboard components
     """
     # Check if JIRA data exists AND if metrics are calculated
-    from data.jira_simple import load_jira_cache
+    from data.jira_simple import load_jira_cache, get_jira_config
     from data.persistence import load_app_settings
     from data.metrics_snapshots import has_metric_snapshot
     from data.time_period_calculator import get_iso_week, format_year_week
@@ -38,7 +38,10 @@ def create_flow_dashboard() -> dbc.Container:
     try:
         settings = load_app_settings()
         jql_query = settings.get("jql_query", "")
-        cache_loaded, cached_issues = load_jira_cache(jql_query, current_fields="")
+        config = get_jira_config(jql_query)
+        cache_loaded, cached_issues = load_jira_cache(
+            current_jql_query=jql_query, current_fields="", config=config
+        )
         has_jira_data = cache_loaded and cached_issues and len(cached_issues) > 0
 
         # Check if metrics are calculated (check current week)
@@ -106,16 +109,28 @@ def create_flow_dashboard() -> dbc.Container:
                     "display": "none"
                 },  # Hidden by default, shown by callback when metrics exist
             ),
-            # Metrics cards grid
-            html.Div(
-                children=initial_content,  # Show banner or skeleton based on data availability
-                id="flow-metrics-cards-container",
-                className="mb-4",  # Add spacing below cards
+            # Metrics cards grid with loading wrapper
+            dcc.Loading(
+                id="flow-metrics-loading-wrapper",
+                type="dot",
+                color="#0d6efd",
+                delay_show=100,  # Only show spinner if loading takes >100ms
+                children=html.Div(
+                    children=initial_content,  # Show banner or skeleton based on data availability
+                    id="flow-metrics-cards-container",
+                    className="mb-4",  # Add spacing below cards
+                ),
             ),
-            # Distribution chart section (rendered by callback)
-            html.Div(
-                children=[],  # Will be populated by callback
-                id="flow-distribution-chart-container",
+            # Distribution chart section (rendered by callback) with loading wrapper
+            dcc.Loading(
+                id="flow-distribution-loading-wrapper",
+                type="dot",
+                color="#0d6efd",
+                delay_show=100,  # Only show spinner if loading takes >100ms
+                children=html.Div(
+                    children=[],  # Will be populated by callback
+                    id="flow-distribution-chart-container",
+                ),
             ),
             # Store for metrics data
             dcc.Store(id="flow-metrics-store", data={}),

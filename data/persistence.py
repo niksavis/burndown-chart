@@ -79,6 +79,7 @@ def save_app_settings(
     flow_start_statuses=None,
     wip_statuses=None,
     flow_type_mappings=None,
+    cache_metadata=None,
 ):
     """
     Save app-level settings to JSON file.
@@ -110,6 +111,7 @@ def save_app_settings(
         flow_start_statuses: List of flow start status names
         wip_statuses: List of WIP status names
         flow_type_mappings: Dict with Flow type classifications (Feature, Defect, etc.)
+        cache_metadata: Dict with cache tracking info (last_cache_key, last_cache_timestamp, cache_config_hash)
     """
     settings = {
         "pert_factor": pert_factor,
@@ -159,6 +161,10 @@ def save_app_settings(
     if flow_type_mappings is not None:
         settings["flow_type_mappings"] = flow_type_mappings
 
+    # Add cache metadata for audit trail (Feature 008 - T057)
+    if cache_metadata is not None:
+        settings["cache_metadata"] = cache_metadata
+
     # Preserve DORA/Flow configuration and other settings if they exist
     try:
         existing_settings = load_app_settings()
@@ -184,6 +190,7 @@ def save_app_settings(
             "wip_statuses",
             "flow_type_mappings",
             "field_mapping_notes",
+            "cache_metadata",  # Feature 008 - T057
         ]
 
         for key in preserve_keys:
@@ -237,6 +244,11 @@ def load_app_settings():
         "jql_query": "project = JRASERVER",
         "last_used_data_source": "JIRA",  # Default to JIRA
         "active_jql_profile_id": "",  # Empty means use custom query
+        "cache_metadata": {  # Feature 008 - T057: Cache audit trail
+            "last_cache_key": None,
+            "last_cache_timestamp": None,
+            "cache_config_hash": None,
+        },
     }
 
     try:

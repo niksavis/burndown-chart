@@ -10,12 +10,20 @@ It fetches JIRA issues and transforms them to match the existing CSV statistics 
 #######################################################################
 import json
 import os
+import hashlib
 from datetime import datetime, timedelta
 from typing import Dict, List, Tuple
 
 import requests
 
 from configuration import logger
+from data.cache_manager import (
+    generate_cache_key,
+    load_cache_with_validation,
+    save_cache,
+    invalidate_cache,
+)
+from data.persistence import load_app_settings, save_app_settings
 
 #######################################################################
 # CONFIGURATION
@@ -226,11 +234,49 @@ def validate_jira_config(config: Dict) -> Tuple[bool, str]:
     return True, "Configuration valid"
 
 
+def _generate_config_hash(config: Dict, fields: str) -> str:
+    """
+    Generate hash of configuration for cache validation.
+
+    This hash ensures cache is invalidated when configuration changes.
+    Includes: JQL query, fields requested, field mappings, time period
+
+    Args:
+        config: JIRA configuration dictionary
+        fields: Fields requested in API call
+
+    Returns:
+        MD5 hash string of configuration
+    """
+    config_str = json.dumps(
+        {
+            "jql": config.get("jql_query", ""),
+            "fields": fields,
+            "field_mappings": config.get("field_mappings", {}),
+            "story_points_field": config.get("story_points_field", ""),
+        },
+        sort_keys=True,
+    )
+
+    return hashlib.md5(config_str.encode("utf-8")).hexdigest()
+
+
 def fetch_jira_issues(
     config: Dict, max_results: int | None = None
 ) -> Tuple[bool, List[Dict]]:
     """
-    Execute JQL query and return ALL issues using pagination.
+    Execute JQL query and return ALL issues using pagination with incremental fetch optimization.
+
+    INCREMENTAL FETCH OPTIMIZATION (T051):
+    - Checks issue count before full fetch to detect if data changed
+    - If count unchanged: Returns cached data (skips expensive API calls)
+    - If count changed: Fetches all issues (cache is stale)
+    - Reduces API load and improves response time when data hasn't changed
+
+    RATE LIMITING & RETRY (T052-T053):
+    - Rate limiting: Token bucket algorithm (100 max tokens, 10/sec refill)
+    - Retry logic: Exponential backoff for 429, 5xx, timeout, connection errors
+    - Integrated with jira_query_manager rate limiter
 
     JIRA API Limits:
     - Maximum 1000 results per API call (JIRA hard limit)
@@ -244,20 +290,12 @@ def fetch_jira_issues(
     Returns:
         Tuple of (success: bool, issues: List[Dict])
     """
+    import time
+    from data.jira_query_manager import get_rate_limiter, retry_with_backoff
+
+    start_time = time.time()
+
     try:
-        # Use max_results as page size (per API call), not total limit
-        # JIRA API hard limit is 1000 per call
-        page_size = (
-            max_results if max_results is not None else config.get("max_results", 1000)
-        )
-
-        # Enforce JIRA API hard limit
-        if page_size > 1000:
-            logger.warning(
-                f"Page size {page_size} exceeds JIRA API limit of 1000, using 1000"
-            )
-            page_size = 1000
-
         # Use the JQL query directly from configuration
         jql = config["jql_query"]
 
@@ -266,14 +304,6 @@ def fetch_jira_issues(
         if not api_endpoint:
             logger.error("JIRA API endpoint not configured")
             return False, []
-
-        # Use the full API endpoint directly
-        url = api_endpoint
-
-        # Headers
-        headers = {"Accept": "application/json"}
-        if config["token"]:
-            headers["Authorization"] = f"Bearer {config['token']}"
 
         # Parameters - fetch required fields including field mappings for DORA/Flow
         # Base fields: always fetch these standard fields
@@ -300,6 +330,77 @@ def fetch_jira_issues(
         else:
             fields = base_fields
 
+        # ===== T051: INCREMENTAL FETCH OPTIMIZATION =====
+        # Check if data has changed before doing expensive full fetch
+        logger.info("🔍 Checking if JIRA data has changed (incremental fetch)...")
+
+        # Try to load cached data first
+        cache_key = generate_cache_key(
+            jql_query=jql,
+            field_mappings=field_mappings,
+            time_period_days=30,  # Default time period
+        )
+
+        config_hash = _generate_config_hash(config, fields)
+
+        is_valid, cached_data = load_cache_with_validation(
+            cache_key=cache_key,
+            config_hash=config_hash,
+            max_age_hours=CACHE_EXPIRATION_HOURS,
+            cache_dir="cache",
+        )
+
+        if is_valid and cached_data:
+            # We have valid cache, now check if JIRA data changed
+            # Use fast count check (maxResults=0, returns only total count)
+            success, current_count = check_jira_issue_count(jql, config)
+
+            if success:
+                cached_count = len(cached_data)
+
+                if current_count == cached_count:
+                    # Data hasn't changed - use cache (skip expensive fetch)
+                    elapsed_time = time.time() - start_time
+                    logger.info(
+                        f"✓ Incremental fetch: Issue count unchanged ({current_count}), using cache ({elapsed_time:.2f}s)"
+                    )
+                    return True, cached_data
+                else:
+                    # Data changed - need to fetch
+                    logger.info(
+                        f"⚠️  Issue count changed: {cached_count} → {current_count}, fetching updated data..."
+                    )
+            else:
+                # Count check failed - proceed with fetch to be safe
+                logger.warning(
+                    "⚠️  Issue count check failed, proceeding with full fetch..."
+                )
+        else:
+            logger.info("No valid cache found, fetching from JIRA...")
+
+        # ===== PROCEED WITH FULL FETCH (cache miss or data changed) =====
+
+        # Use max_results as page size (per API call), not total limit
+        # JIRA API hard limit is 1000 per call
+        page_size = (
+            max_results if max_results is not None else config.get("max_results", 1000)
+        )
+
+        # Enforce JIRA API hard limit
+        if page_size > 1000:
+            logger.warning(
+                f"Page size {page_size} exceeds JIRA API limit of 1000, using 1000"
+            )
+            page_size = 1000
+
+        # Use the full API endpoint directly
+        url = api_endpoint
+
+        # Headers
+        headers = {"Accept": "application/json"}
+        if config["token"]:
+            headers["Authorization"] = f"Bearer {config['token']}"
+
         # Pagination: Fetch ALL issues in batches
         all_issues = []
         start_at = 0
@@ -308,6 +409,9 @@ def fetch_jira_issues(
         logger.info(f"Fetching JIRA issues from: {url}")
         logger.info(f"Using JQL: {jql}")
         logger.info(f"Page size: {page_size} per call, Fields: {fields}")
+
+        # Get rate limiter for T052 integration
+        rate_limiter = get_rate_limiter()
 
         while True:
             params = {
@@ -320,7 +424,18 @@ def fetch_jira_issues(
             logger.info(
                 f"Fetching page starting at {start_at} (fetched {len(all_issues)} so far)"
             )
-            response = requests.get(url, headers=headers, params=params, timeout=30)
+
+            # T052: Rate limiting - wait for token before request
+            rate_limiter.wait_for_token()
+
+            # T053: Retry with exponential backoff for resilience
+            success, response = retry_with_backoff(
+                requests.get, url, headers=headers, params=params, timeout=30
+            )
+
+            if not success:
+                logger.error("Failed to fetch JIRA issues after retries")
+                return False, []
 
             # Enhanced error handling for ScriptRunner and JQL issues
             if not response.ok:
@@ -383,6 +498,18 @@ def fetch_jira_issues(
             # Move to next page
             start_at += page_size
 
+        # Save to cache for next time
+        save_cache(
+            cache_key=cache_key,
+            data=all_issues,
+            config_hash=config_hash,
+            cache_dir="cache",
+        )
+
+        elapsed_time = time.time() - start_time
+        logger.info(
+            f"✓ JIRA fetch completed: {len(all_issues)} issues in {elapsed_time:.2f}s (URL: {url[:80]}...)"
+        )
         return True, all_issues
 
     except requests.exceptions.RequestException as e:
@@ -666,14 +793,75 @@ def cache_jira_response(
     jql_query: str = "",
     fields_requested: str = "",
     cache_file: str = JIRA_CACHE_FILE,
+    config: Dict | None = None,
 ) -> bool:
-    """Save raw JIRA JSON response to cache file with version, timestamp, and query tracking."""
+    """
+    Save JIRA response to cache using new cache_manager.
+
+    Args:
+        data: JIRA issues to cache
+        jql_query: JQL query used
+        fields_requested: Fields requested in API call
+        cache_file: Legacy parameter (maintains backward compatibility)
+        config: JIRA configuration for generating cache key and hash
+
+    Returns:
+        True if cached successfully
+    """
     try:
+        # Save to new cache system if config provided
+        if config:
+            field_mappings = config.get("field_mappings", {})
+            cache_key = generate_cache_key(
+                jql_query=jql_query,
+                field_mappings=field_mappings,
+                time_period_days=30,  # Default time period
+            )
+
+            config_hash = _generate_config_hash(config, fields_requested)
+
+            save_cache(
+                cache_key=cache_key,
+                data=data,
+                config_hash=config_hash,
+                cache_dir="cache",
+            )
+            logger.info(
+                f"✓ Cached {len(data)} issues to new cache system (key: {cache_key[:8]}...)"
+            )
+
+            # Save cache metadata to app settings for audit trail (Feature 008 - T057)
+            try:
+                current_settings = load_app_settings()
+                cache_metadata = {
+                    "last_cache_key": cache_key,
+                    "last_cache_timestamp": datetime.now().isoformat(),
+                    "cache_config_hash": config_hash,
+                }
+                save_app_settings(
+                    pert_factor=current_settings.get("pert_factor", 3.0),
+                    deadline=current_settings.get("deadline", "2025-12-31"),
+                    data_points_count=current_settings.get("data_points_count"),
+                    show_milestone=current_settings.get("show_milestone"),
+                    milestone=current_settings.get("milestone"),
+                    show_points=current_settings.get("show_points"),
+                    jql_query=current_settings.get("jql_query"),
+                    last_used_data_source=current_settings.get("last_used_data_source"),
+                    active_jql_profile_id=current_settings.get("active_jql_profile_id"),
+                    cache_metadata=cache_metadata,
+                )
+                logger.debug(
+                    f"✓ Saved cache metadata (key: {cache_key[:8]}..., timestamp: {cache_metadata['last_cache_timestamp']})"
+                )
+            except Exception as metadata_error:
+                logger.warning(f"Failed to save cache metadata: {metadata_error}")
+
+        # Also save to legacy cache file for backward compatibility
         cache_data = {
-            "cache_version": CACHE_VERSION,  # Track cache format version
+            "cache_version": CACHE_VERSION,
             "timestamp": datetime.now().isoformat(),
-            "jql_query": jql_query,  # Track which JQL query was used
-            "fields_requested": fields_requested,  # Track which fields were requested
+            "jql_query": jql_query,
+            "fields_requested": fields_requested,
             "issues": data,
             "total_issues": len(data),
         }
@@ -682,12 +870,12 @@ def cache_jira_response(
             json.dump(cache_data, f, indent=2)
 
         logger.info(
-            f"Cached {len(data)} JIRA issues to {cache_file} (v{CACHE_VERSION}, JQL: {jql_query}, Fields: {fields_requested})"
+            f"✓ Cached {len(data)} issues to legacy cache (v{CACHE_VERSION}, JQL: {jql_query[:50]}...)"
         )
         return True
 
     except Exception as e:
-        logger.error(f"Error caching JIRA response: {e}")
+        logger.error(f"Error caching JIRA response: {e}", exc_info=True)
         return False
 
 
@@ -695,87 +883,101 @@ def load_jira_cache(
     current_jql_query: str = "",
     current_fields: str = "",
     cache_file: str = JIRA_CACHE_FILE,
+    config: Dict | None = None,
 ) -> Tuple[bool, List[Dict]]:
     """
-    Load cached JIRA JSON response from file with version and expiration validation.
+    Load cached JIRA JSON response using new cache_manager.
 
-    Cache is invalidated if:
-    - Cache version doesn't match current version
-    - Cache is older than CACHE_EXPIRATION_HOURS
-    - JQL query doesn't match
-    - Fields requested don't match
+    Args:
+        current_jql_query: Current JQL query for cache validation
+        current_fields: Current fields for cache validation
+        cache_file: Legacy parameter (now uses cache/ directory)
+        config: JIRA configuration for generating cache key and hash
+
+    Returns:
+        Tuple of (cache_hit: bool, issues: List[Dict])
     """
+    # If no config provided, cannot validate cache
+    if not config:
+        logger.debug("No config provided for cache validation, cache miss")
+        return False, []
+
     try:
-        if not os.path.exists(cache_file):
-            return False, []
+        # Generate cache key from configuration
+        field_mappings = config.get("field_mappings", {})
+        cache_key = generate_cache_key(
+            jql_query=current_jql_query,
+            field_mappings=field_mappings,
+            time_period_days=30,  # Default time period for now
+        )
 
-        with open(cache_file, "r") as f:
-            cache_data = json.load(f)
+        # Generate config hash for validation
+        config_hash = _generate_config_hash(config, current_fields)
 
-        # Check cache version (invalidate if version mismatch)
-        cached_version = cache_data.get("cache_version", "1.0")
-        if cached_version != CACHE_VERSION:
+        # Try to load from new cache system
+        is_valid, cached_data = load_cache_with_validation(
+            cache_key=cache_key,
+            config_hash=config_hash,
+            max_age_hours=CACHE_EXPIRATION_HOURS,
+            cache_dir="cache",
+        )
+
+        if is_valid and cached_data:
             logger.info(
-                f"Cache version mismatch. Cached: v{cached_version}, Current: v{CACHE_VERSION}. "
-                f"Cache invalidated (pagination or format changed)."
+                f"✓ Cache hit: Loaded {len(cached_data)} issues from new cache system"
             )
-            return False, []
+            return True, cached_data
 
-        # Check cache age (invalidate if too old)
-        cache_timestamp_str = cache_data.get("timestamp", "")
-        if cache_timestamp_str:
-            try:
+        # Fallback: Try to load from legacy cache file for backward compatibility
+        if os.path.exists(cache_file):
+            logger.info("New cache miss, checking legacy cache file...")
+            with open(cache_file, "r") as f:
+                cache_data = json.load(f)
+
+            # Validate legacy cache
+            cached_version = cache_data.get("cache_version", "1.0")
+            if cached_version != CACHE_VERSION:
+                logger.info(
+                    f"Legacy cache version mismatch (v{cached_version} != v{CACHE_VERSION})"
+                )
+                return False, []
+
+            # Check timestamp
+            cache_timestamp_str = cache_data.get("timestamp", "")
+            if cache_timestamp_str:
                 cache_timestamp = datetime.fromisoformat(cache_timestamp_str)
                 cache_age = datetime.now() - cache_timestamp
                 if cache_age > timedelta(hours=CACHE_EXPIRATION_HOURS):
                     logger.info(
-                        f"Cache expired. Age: {cache_age.total_seconds() / 3600:.1f} hours "
-                        f"(max: {CACHE_EXPIRATION_HOURS} hours). Cache invalidated."
+                        f"Legacy cache expired ({cache_age.total_seconds() / 3600:.1f}h old)"
                     )
                     return False, []
-            except ValueError:
-                logger.warning(f"Invalid cache timestamp format: {cache_timestamp_str}")
+
+            # Check JQL/fields match
+            if cache_data.get("jql_query") != current_jql_query:
+                logger.info("Legacy cache JQL mismatch")
                 return False, []
 
-        # Check if the cached query matches the current query
-        cached_jql = cache_data.get("jql_query", "")
-        if cached_jql != current_jql_query:
-            logger.info(
-                f"Cache JQL query mismatch. Cached: '{cached_jql}', Current: '{current_jql_query}'. Cache invalidated."
+            issues = cache_data.get("issues", [])
+            logger.info(f"✓ Loaded {len(issues)} issues from legacy cache")
+
+            # Migrate to new cache system
+            logger.info("Migrating legacy cache to new system...")
+            save_cache(
+                cache_key=cache_key,
+                data=issues,
+                config_hash=config_hash,
+                cache_dir="cache",
             )
-            return False, []
 
-        # Check if the cached fields match the current fields
-        cached_fields = cache_data.get("fields_requested", "")
-        if cached_fields and current_fields and cached_fields != current_fields:
-            logger.info(
-                f"Cache fields mismatch. Cached: '{cached_fields}', Current: '{current_fields}'. Cache invalidated."
-            )
-            return False, []
+            return True, issues
 
-        # If no field info in old cache, check if current config needs story points field
-        if not cached_fields and current_fields:
-            # Extract story points field from current fields
-            base_fields = "key,created,resolutiondate,status,issuetype"
-            if current_fields != base_fields:  # User has story points field configured
-                logger.info(
-                    "Cache has no field info, but story points field is configured. Cache invalidated for field compatibility."
-                )
-                return False, []
-
-        issues = cache_data.get("issues", [])
-        cache_age_str = (
-            f"{(datetime.now() - datetime.fromisoformat(cache_timestamp_str)).total_seconds() / 3600:.1f}h old"
-            if cache_timestamp_str
-            else "unknown age"
-        )
-        logger.info(
-            f"✓ Loaded {len(issues)} JIRA issues from cache (v{cached_version}, {cache_age_str}, JQL: {cached_jql}, Fields: {cached_fields or 'base'})"
-        )
-        return True, issues
+        # No cache available
+        logger.debug("Cache miss: No valid cache found")
+        return False, []
 
     except Exception as e:
-        logger.error(f"Error loading JIRA cache: {e}")
+        logger.error(f"Error loading JIRA cache: {e}", exc_info=True)
         return False, []
 
 
@@ -1216,7 +1418,12 @@ def sync_jira_scope_and_data(
         else:
             # Step 2: Try to load from cache (checks version, age, JQL, fields)
             logger.info("CACHE DEBUG: Attempting to load from cache...")
-            cache_loaded, issues = load_jira_cache(config["jql_query"], current_fields)
+            cache_loaded, issues = load_jira_cache(
+                config["jql_query"],
+                current_fields,
+                JIRA_CACHE_FILE,
+                config,  # Pass config for new cache system
+            )
             logger.info(
                 f"CACHE DEBUG: Cache load result: cache_loaded={cache_loaded}, issues_count={len(issues) if issues else 0}"
             )
@@ -1251,7 +1458,13 @@ def sync_jira_scope_and_data(
                 return False, "Failed to fetch JIRA data", {}
 
             # Cache the response with the JQL query and fields used
-            if not cache_jira_response(issues, config["jql_query"], current_fields):
+            if not cache_jira_response(
+                issues,
+                config["jql_query"],
+                current_fields,
+                JIRA_CACHE_FILE,
+                config,  # Pass config for new cache system
+            ):
                 logger.warning("Failed to cache JIRA response")
 
             # CRITICAL: Invalidate changelog cache ONLY when we fetch fresh data from JIRA

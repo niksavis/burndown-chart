@@ -7,7 +7,7 @@ Matches architecture of existing burndown/statistics dashboards.
 All field mappings and configuration values come from app_settings.json - no hardcoded values.
 """
 
-from dash import callback, Output, Input, State, html, dcc
+from dash import callback, Output, Input, State, html
 from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
 from datetime import datetime, timedelta
@@ -726,7 +726,7 @@ def calculate_and_display_flow_metrics(
     ],
     [Input("calculate-metrics-button", "n_clicks")],
     [State("data-points-input", "value")],
-    prevent_initial_call=True,
+    prevent_initial_call=False,  # Run on initial load to set button state with icon
 )
 def calculate_metrics_from_settings(
     button_clicks: Optional[int],
@@ -755,6 +755,13 @@ def calculate_metrics_from_settings(
     Returns:
         Tuple of (status message, button disabled state, button children, refresh timestamp)
     """
+    print(f"\n{'=' * 80}")
+    print(f"CALCULATE METRICS CALLBACK TRIGGERED - button_clicks={button_clicks}")
+    print(f"{'=' * 80}\n")
+    logger.info(
+        f"[CALCULATE METRICS] Callback triggered - button_clicks={button_clicks}"
+    )
+
     # Check if button was clicked
     if not button_clicks:
         return (
@@ -774,12 +781,68 @@ def calculate_metrics_from_settings(
         # Track task progress
         from data.task_progress import TaskProgress
 
-        # FIXED: Always calculate 52 weeks (1 year) regardless of Data Points slider
-        # The data_points slider controls display filtering only, not calculation scope
-        # This ensures users can adjust the slider without recalculating metrics
-        n_weeks = 52
+        # Calculate weeks based on actual JIRA data availability
+        # Instead of hardcoding 52 weeks, check what data we actually have
+        from data.jira_simple import load_jira_cache, get_jira_config
+        from datetime import datetime
+
+        try:
+            config = get_jira_config()
+            cache_loaded, cached_issues = load_jira_cache(
+                current_jql_query="",  # Not used for cache check
+                current_fields="created,resolutiondate",  # Just need dates
+                config=config,
+            )
+
+            if cache_loaded and cached_issues:
+                # Calculate actual weeks span from JIRA data
+                created_dates = [
+                    datetime.fromisoformat(
+                        issue["fields"]["created"].replace("Z", "+00:00")
+                    )
+                    for issue in cached_issues
+                    if issue.get("fields", {}).get("created")
+                ]
+                resolved_dates = [
+                    datetime.fromisoformat(
+                        issue["fields"]["resolutiondate"].replace("Z", "+00:00")
+                    )
+                    for issue in cached_issues
+                    if issue.get("fields", {}).get("resolutiondate")
+                ]
+                all_dates = created_dates + resolved_dates
+
+                if all_dates:
+                    all_dates.sort()
+                    weeks_span = (all_dates[-1] - all_dates[0]).days // 7
+                    # Add 2 weeks buffer to ensure we capture all data
+                    # (e.g., 11 weeks span → calculate 13 weeks)
+                    n_weeks = min(
+                        weeks_span + 2, 52
+                    )  # Cap at 52 weeks to avoid excessive calculation
+                    logger.info(
+                        f"Auto-detected {weeks_span} weeks data span, calculating {n_weeks} weeks (data from {all_dates[0].date()} to {all_dates[-1].date()})"
+                    )
+                else:
+                    # No date data found, use default
+                    n_weeks = 12
+                    logger.warning(
+                        "No date data found in JIRA cache, using default 12 weeks"
+                    )
+            else:
+                # No cache or empty cache, use default
+                n_weeks = 12
+                logger.warning("JIRA cache not loaded or empty, using default 12 weeks")
+        except Exception as e:
+            # Error detecting data range, fall back to safe default
+            n_weeks = 12
+            logger.warning(
+                f"Error detecting data range: {e}, using default 12 weeks",
+                exc_info=True,
+            )
+
         logger.info(
-            f"Calculating metrics for {n_weeks} weeks (full year of data, data_points slider={data_points})"
+            f"Calculating metrics for {n_weeks} weeks (data_points slider={data_points})"
         )
 
         # Mark task as started
@@ -804,13 +867,30 @@ def calculate_metrics_from_settings(
             "Calculate Metrics",
         ]
 
+        # Extract actual weeks processed from the summary message
+        # Message format: "✅ Successfully calculated metrics for all X weeks (YYYY-WW to YYYY-WW)"
+        actual_weeks_processed = n_weeks  # Default to requested weeks
+        if "calculated metrics for all" in message.lower():
+            import re
+
+            match = re.search(r"all (\d+) weeks", message)
+            if match:
+                actual_weeks_processed = int(match.group(1))
+        elif "calculated metrics for" in message.lower():
+            # Handle partial success: "Calculated metrics for X/Y weeks"
+            import re
+
+            match = re.search(r"for (\d+)/(\d+) weeks", message)
+            if match:
+                actual_weeks_processed = int(match.group(1))
+
         if success:
             # Create success message with icon matching Update Data format
             settings_status_html = html.Div(
                 [
                     html.I(className="fas fa-check-circle me-2 text-success"),
                     html.Span(
-                        f"Calculated {n_weeks} weeks of Flow & DORA metrics",
+                        f"Calculated {actual_weeks_processed} weeks of Flow & DORA metrics",
                         className="fw-medium",
                     ),
                 ],
@@ -818,7 +898,7 @@ def calculate_metrics_from_settings(
             )
 
             logger.info(
-                f"Flow & DORA metrics calculation completed successfully: {n_weeks} weeks"
+                f"Flow & DORA metrics calculation completed successfully: {actual_weeks_processed} weeks processed (requested {n_weeks})"
             )
 
             # Trigger refresh of Flow and DORA tabs with timestamp
@@ -872,73 +952,6 @@ def calculate_metrics_from_settings(
 
         # No refresh trigger on error (data may be invalid)
         return settings_status_html, False, button_normal, None
-
-
-#######################################################################
-# CLIENTSIDE CALLBACKS - Button Loading States
-#######################################################################
-
-
-def register_calculate_metrics_button_spinner(app):
-    """Register clientside callback for Calculate Metrics button loading state.
-
-    This mimics the Update Data button behavior - shows a spinning calculator
-    icon during processing and monitors for completion.
-    """
-    app.clientside_callback(
-        """
-        function(n_clicks) {
-            // Button state management for Calculate Metrics button
-            if (n_clicks && n_clicks > 0) {
-                setTimeout(function() {
-                    const button = document.getElementById('calculate-metrics-button');
-                    if (button) {
-                        const originalDisabled = button.disabled;
-                        
-                        // Set loading state with spinning icon
-                        button.disabled = true;
-                        button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Calculating...';
-                        
-                        // Reset button after completion
-                        const resetButton = function() {
-                            if (button && button.disabled) {
-                                button.disabled = false;
-                                button.innerHTML = '<i class="fas fa-calculator me-2"></i>Calculate Metrics';
-                            }
-                        };
-                        
-                        // Longer timeout for metrics calculation (2.5 minutes max)
-                        setTimeout(resetButton, 150000);
-                        
-                        // Monitor for completion by watching status updates
-                        const observer = new MutationObserver(function(mutations) {
-                            const statusArea = document.getElementById('calculate-metrics-status');
-                            if (statusArea) {
-                                const content = statusArea.innerHTML.toLowerCase();
-                                // Detect completion messages
-                                if (content.includes('weeks') || 
-                                    content.includes('partial') ||
-                                    content.includes('error')) {
-                                    setTimeout(resetButton, 500);
-                                    observer.disconnect();
-                                }
-                            }
-                        });
-                        
-                        const targetNode = document.getElementById('calculate-metrics-status');
-                        if (targetNode) {
-                            observer.observe(targetNode, { childList: true, subtree: true });
-                        }
-                    }
-                }, 50);
-            }
-            return null;
-        }
-        """,
-        Output("calculate-metrics-button", "title"),
-        [Input("calculate-metrics-button", "n_clicks")],
-        prevent_initial_call=True,
-    )
 
 
 #######################################################################

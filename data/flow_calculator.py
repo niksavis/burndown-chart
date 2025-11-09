@@ -16,6 +16,7 @@ from typing import Dict, List, Any, Optional
 
 from configuration.flow_config import RECOMMENDED_FLOW_DISTRIBUTION
 from configuration.metrics_config import get_metrics_config
+from data.performance_utils import log_performance
 
 logger = logging.getLogger(__name__)
 
@@ -113,6 +114,7 @@ def _calculate_trend(
     }
 
 
+@log_performance
 def calculate_flow_velocity(
     issues: List[Dict],
     field_mappings: Dict[str, str],
@@ -132,6 +134,45 @@ def calculate_flow_velocity(
     Returns:
         Metric dictionary with velocity value, trend data, and breakdown by type
     """
+    # Input validation
+    if not issues or not isinstance(issues, list):
+        logger.warning("calculate_flow_velocity: Empty or invalid issues list")
+        return _create_error_response(
+            "flow_velocity",
+            "no_data",
+            "No issues provided for calculation",
+            total_issue_count=0,
+        )
+
+    if not isinstance(field_mappings, dict):
+        logger.error("calculate_flow_velocity: Invalid field_mappings")
+        return _create_error_response(
+            "flow_velocity",
+            "calculation_error",
+            "Invalid field mappings configuration",
+            total_issue_count=len(issues),
+        )
+
+    if not isinstance(start_date, datetime) or not isinstance(end_date, datetime):
+        logger.error("calculate_flow_velocity: Invalid date parameters")
+        return _create_error_response(
+            "flow_velocity",
+            "calculation_error",
+            "Invalid date parameters",
+            total_issue_count=len(issues),
+        )
+
+    if start_date >= end_date:
+        logger.error(
+            f"calculate_flow_velocity: Invalid date range: {start_date} to {end_date}"
+        )
+        return _create_error_response(
+            "flow_velocity",
+            "calculation_error",
+            "Start date must be before end date",
+            total_issue_count=len(issues),
+        )
+
     try:
         # Check required mappings
         if (
@@ -216,6 +257,7 @@ def calculate_flow_velocity(
         return _create_error_response("flow_velocity", "calculation_error", str(e))
 
 
+@log_performance
 def calculate_flow_time(
     issues: List[Dict],
     field_mappings: Dict[str, str],
@@ -239,6 +281,25 @@ def calculate_flow_time(
     Returns:
         Metric dictionary with average flow time in days and trend data
     """
+    # Input validation
+    if not issues or not isinstance(issues, list):
+        logger.warning("calculate_flow_time: Empty or invalid issues list")
+        return _create_error_response(
+            "flow_time",
+            "no_data",
+            "No issues provided for calculation",
+            total_issue_count=0,
+        )
+
+    if not isinstance(field_mappings, dict):
+        logger.error("calculate_flow_time: Invalid field_mappings")
+        return _create_error_response(
+            "flow_time",
+            "calculation_error",
+            "Invalid field mappings configuration",
+            total_issue_count=len(issues),
+        )
+
     try:
         # Import changelog processor
         from data.changelog_processor import get_first_status_transition_from_list
@@ -348,6 +409,7 @@ def calculate_flow_time(
         return _create_error_response("flow_time", "calculation_error", str(e))
 
 
+@log_performance
 def calculate_flow_efficiency(
     issues: List[Dict],
     field_mappings: Dict[str, str],
@@ -375,6 +437,25 @@ def calculate_flow_efficiency(
     Returns:
         Metric dictionary with efficiency percentage and trend data
     """
+    # Input validation
+    if not issues or not isinstance(issues, list):
+        logger.warning("calculate_flow_efficiency: Empty or invalid issues list")
+        return _create_error_response(
+            "flow_efficiency",
+            "no_data",
+            "No issues provided for calculation",
+            total_issue_count=0,
+        )
+
+    if not isinstance(field_mappings, dict):
+        logger.error("calculate_flow_efficiency: Invalid field_mappings")
+        return _create_error_response(
+            "flow_efficiency",
+            "calculation_error",
+            "Invalid field mappings configuration",
+            total_issue_count=len(issues),
+        )
+
     try:
         # Import changelog processor
         from data.changelog_processor import calculate_time_in_status
@@ -469,6 +550,7 @@ def calculate_flow_efficiency(
         return _create_error_response("flow_efficiency", "calculation_error", str(e))
 
 
+@log_performance
 def calculate_flow_load(
     issues: List[Dict],
     field_mappings: Dict[str, str],
@@ -484,6 +566,25 @@ def calculate_flow_load(
     Returns:
         Metric dictionary with WIP count, trend data, and breakdown by type
     """
+    # Input validation
+    if not issues or not isinstance(issues, list):
+        logger.warning("calculate_flow_load: Empty or invalid issues list")
+        return _create_error_response(
+            "flow_load",
+            "no_data",
+            "No issues provided for calculation",
+            total_issue_count=0,
+        )
+
+    if not isinstance(field_mappings, dict):
+        logger.error("calculate_flow_load: Invalid field_mappings")
+        return _create_error_response(
+            "flow_load",
+            "calculation_error",
+            "Invalid field mappings configuration",
+            total_issue_count=len(issues),
+        )
+
     try:
         # Check required mappings
         if "status" not in field_mappings:
@@ -553,6 +654,7 @@ def calculate_flow_load(
         return _create_error_response("flow_load", "calculation_error", str(e))
 
 
+@log_performance
 def calculate_flow_distribution(
     issues: List[Dict],
     field_mappings: Dict[str, str],
@@ -572,6 +674,45 @@ def calculate_flow_distribution(
     Returns:
         Metric dictionary with distribution breakdown, trend data, and recommended range validation
     """
+    # Input validation
+    if not issues or not isinstance(issues, list):
+        logger.warning("calculate_flow_distribution: Empty or invalid issues list")
+        return _create_error_response(
+            "flow_distribution",
+            "no_data",
+            "No issues provided for calculation",
+            total_issue_count=0,
+        )
+
+    if not isinstance(field_mappings, dict):
+        logger.error("calculate_flow_distribution: Invalid field_mappings")
+        return _create_error_response(
+            "flow_distribution",
+            "calculation_error",
+            "Invalid field mappings configuration",
+            total_issue_count=len(issues),
+        )
+
+    if not isinstance(start_date, datetime) or not isinstance(end_date, datetime):
+        logger.error("calculate_flow_distribution: Invalid date parameters")
+        return _create_error_response(
+            "flow_distribution",
+            "calculation_error",
+            "Invalid date parameters",
+            total_issue_count=len(issues),
+        )
+
+    if start_date >= end_date:
+        logger.error(
+            f"calculate_flow_distribution: Invalid date range: {start_date} to {end_date}"
+        )
+        return _create_error_response(
+            "flow_distribution",
+            "calculation_error",
+            "Start date must be before end date",
+            total_issue_count=len(issues),
+        )
+
     try:
         # Check required mappings
         if (
@@ -698,7 +839,16 @@ def calculate_all_flow_metrics(
             "flow_distribution": {...}
         }
     """
-    return {
+    import time
+
+    calc_start = time.time()
+
+    period_days = (end_date - start_date).days
+    logger.info(
+        f"Starting Flow metrics calculation: {len(issues)} issues, {period_days}d period"
+    )
+
+    results = {
         "flow_velocity": calculate_flow_velocity(
             issues, field_mappings, start_date, end_date
         ),
@@ -709,6 +859,10 @@ def calculate_all_flow_metrics(
             issues, field_mappings, start_date, end_date
         ),
     }
+
+    elapsed_time = time.time() - calc_start
+    logger.info(f"✓ Flow metrics calculated in {elapsed_time:.2f}s")
+    return results
 
 
 def _create_error_response(

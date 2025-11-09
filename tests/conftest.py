@@ -6,6 +6,8 @@ This file helps pytest discover and properly import modules from the project.
 import sys
 import time
 import threading
+import tempfile
+import os
 from pathlib import Path
 import pytest
 
@@ -127,3 +129,50 @@ def live_server(backup_configs):
 
     # Note: Daemon thread will be terminated automatically when test ends
     # Config restoration happens via backup_configs fixture
+
+
+@pytest.fixture(scope="function")
+def temp_log_dir():
+    """
+    Create temporary directory for log files in tests.
+
+    This ensures test isolation - logs don't pollute project directory.
+    Cleanup happens automatically even if test fails.
+
+    CRITICAL: Tests MUST call shutdown_logging() before fixture teardown
+    to release file handles on Windows. Otherwise, cleanup will fail with
+    PermissionError on file deletion.
+
+    Usage:
+        def test_logging(temp_log_dir):
+            from configuration.logging_config import setup_logging, shutdown_logging
+
+            setup_logging(log_dir=temp_log_dir)
+            # Test logging...
+            shutdown_logging()  # MUST call before test ends
+            # temp_log_dir will be cleaned up automatically
+    """
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        yield tmp_dir
+        # Cleanup is automatic when context exits
+        # Note: Tests must call shutdown_logging() to release file handles
+
+
+@pytest.fixture(scope="function")
+def temp_cache_dir():
+    """
+    Create temporary directory for cache files in tests.
+
+    This ensures test isolation - cache files don't pollute project directory.
+    Cleanup happens automatically even if test fails.
+
+    Usage:
+        def test_caching(temp_cache_dir):
+            cache_file = os.path.join(temp_cache_dir, "test_cache.json")
+            save_cache(cache_file, data)
+            # Test caching...
+            # temp_cache_dir will be cleaned up automatically
+    """
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        yield tmp_dir
+        # Cleanup is automatic when context exits

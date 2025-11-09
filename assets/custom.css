@@ -3394,11 +3394,28 @@ label.fw-medium {
   animation-delay: 0.1s; /* Only appear if content takes longer than 100ms */
 }
 
-/* Content that replaces skeleton - appears immediately without animation */
+/* Content that replaces skeleton - smooth fade-in to prevent flicker */
 .metric-cards-grid,
 .empty-state-banner {
-  opacity: 1;
-  /* No animation - instant appearance to avoid flicker */
+  animation: smoothFadeIn 0.15s ease-out;
+}
+
+/* Container for metric cards - prevent layout shift during updates */
+#dora-metrics-cards-container,
+#flow-metrics-cards-container {
+  min-height: 400px; /* Reserve space to prevent layout shift */
+  transition: min-height 0.2s ease-out;
+}
+
+@keyframes smoothFadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Fade animations for smooth skeleton replacement */
