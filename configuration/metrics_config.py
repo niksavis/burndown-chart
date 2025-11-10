@@ -498,3 +498,40 @@ def reload_metrics_config() -> MetricsConfig:
     global _config_instance
     _config_instance = MetricsConfig()
     return _config_instance
+
+
+# ============================================================================
+# FORECAST CONFIGURATION CONSTANTS (Feature 009)
+# ============================================================================
+
+# Forecast calculation weights (oldest to newest week)
+FORECAST_WEIGHTS_4_WEEK = [0.1, 0.2, 0.3, 0.4]  # 4-week weighted average
+
+# Minimum weeks required for forecast
+FORECAST_MIN_WEEKS = 2  # At least 2 weeks needed for baseline
+
+# Decimal precision for forecast values
+FORECAST_DECIMAL_PRECISION = 1  # Round to 1 decimal place
+
+# Trend threshold for "on track" vs "above/below" status
+FORECAST_TREND_THRESHOLD = 0.10  # ±10% neutral zone
+
+# Flow Load range percentage for WIP bounds
+FLOW_LOAD_RANGE_PERCENT = 0.20  # ±20% range
+
+# Metrics classification by direction (for trend interpretation)
+HIGHER_BETTER_METRICS = [
+    "flow_velocity",
+    "flow_efficiency",
+    "dora_deployment_frequency",
+]
+
+LOWER_BETTER_METRICS = [
+    "flow_time",
+    "dora_lead_time",
+    "dora_change_failure_rate",
+    "dora_mttr",
+]
+
+# Flow Load is bidirectional (range-based, not point-based)
+# Too high OR too low is bad

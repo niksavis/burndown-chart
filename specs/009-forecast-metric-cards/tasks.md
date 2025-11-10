@@ -23,10 +23,10 @@ All paths relative to repository root: `D:\Development\burndown-chart\`
 
 **Purpose**: Project initialization and configuration for forecast feature
 
-- [ ] T001 Create `data/metrics_calculator.py` module skeleton with docstrings
-- [ ] T002 [P] Create `configuration/metrics_config.py` if it doesn't exist, or verify it exists
-- [ ] T003 [P] Create `tests/unit/data/test_metrics_calculator.py` test file skeleton
-- [ ] T004 Add forecast configuration constants to `configuration/metrics_config.py`: FORECAST_WEIGHTS_4_WEEK, FORECAST_MIN_WEEKS, FORECAST_DECIMAL_PRECISION, FORECAST_TREND_THRESHOLD, FLOW_LOAD_RANGE_PERCENT, HIGHER_BETTER_METRICS, LOWER_BETTER_METRICS
+- [X] T001 Create `data/metrics_calculator.py` module skeleton with docstrings
+- [X] T002 [P] Create `configuration/metrics_config.py` if it doesn't exist, or verify it exists
+- [X] T003 [P] Create `tests/unit/data/test_metrics_calculator.py` test file skeleton
+- [X] T004 Add forecast configuration constants to `configuration/metrics_config.py`: FORECAST_WEIGHTS_4_WEEK, FORECAST_MIN_WEEKS, FORECAST_DECIMAL_PRECISION, FORECAST_TREND_THRESHOLD, FLOW_LOAD_RANGE_PERCENT, HIGHER_BETTER_METRICS, LOWER_BETTER_METRICS
 
 **Checkpoint**: Module structure ready for implementation
 
@@ -40,26 +40,26 @@ All paths relative to repository root: `D:\Development\burndown-chart\`
 
 ### Core Calculation Functions
 
-- [ ] T005 [P] Implement `calculate_forecast()` in `data/metrics_calculator.py` per contract spec (4-week weighted average with validation)
-- [ ] T006 [P] Implement `calculate_trend_vs_forecast()` in `data/metrics_calculator.py` per contract spec (trend direction and deviation calculation)
-- [ ] T007 [P] Implement `calculate_flow_load_range()` in `data/metrics_calculator.py` per contract spec (WIP range calculation)
+- [X] T005 [P] Implement `calculate_forecast()` in `data/metrics_calculator.py` per contract spec (4-week weighted average with validation)
+- [X] T006 [P] Implement `calculate_trend_vs_forecast()` in `data/metrics_calculator.py` per contract spec (trend direction and deviation calculation)
+- [X] T007 [P] Implement `calculate_flow_load_range()` in `data/metrics_calculator.py` per contract spec (WIP range calculation)
 
 ### Unit Tests for Foundation (TDD - Write Before Implementation)
 
-- [ ] T008 [P] Test `calculate_forecast()` with standard 4-week data in `tests/unit/data/test_metrics_calculator.py::TestCalculateForecast::test_standard_4_week_forecast`
-- [ ] T009 [P] Test `calculate_forecast()` with 2-week baseline in `tests/unit/data/test_metrics_calculator.py::TestCalculateForecast::test_building_baseline_2_weeks`
-- [ ] T010 [P] Test `calculate_forecast()` with 3-week baseline in `tests/unit/data/test_metrics_calculator.py::TestCalculateForecast::test_building_baseline_3_weeks`
-- [ ] T011 [P] Test `calculate_forecast()` with insufficient data in `tests/unit/data/test_metrics_calculator.py::TestCalculateForecast::test_insufficient_data_1_week`
-- [ ] T012 [P] Test `calculate_forecast()` with zero values in `tests/unit/data/test_metrics_calculator.py::TestCalculateForecast::test_zero_values_in_history`
-- [ ] T013 [P] Test `calculate_forecast()` error handling (negative values) in `tests/unit/data/test_metrics_calculator.py::TestCalculateForecast::test_negative_values_raise_error`
-- [ ] T014 [P] Test `calculate_trend_vs_forecast()` for higher_better metrics (above) in `tests/unit/data/test_metrics_calculator.py::TestCalculateTrendVsForecast::test_higher_better_above_threshold`
-- [ ] T015 [P] Test `calculate_trend_vs_forecast()` for higher_better metrics (below) in `tests/unit/data/test_metrics_calculator.py::TestCalculateTrendVsForecast::test_higher_better_below_threshold`
-- [ ] T016 [P] Test `calculate_trend_vs_forecast()` for lower_better metrics in `tests/unit/data/test_metrics_calculator.py::TestCalculateTrendVsForecast::test_lower_better_below_threshold`
-- [ ] T017 [P] Test `calculate_trend_vs_forecast()` on track scenario in `tests/unit/data/test_metrics_calculator.py::TestCalculateTrendVsForecast::test_higher_better_on_track`
-- [ ] T018 [P] Test `calculate_trend_vs_forecast()` Monday morning edge case in `tests/unit/data/test_metrics_calculator.py::TestCalculateTrendVsForecast::test_zero_current_value_monday`
-- [ ] T019 [P] Test `calculate_flow_load_range()` standard calculation in `tests/unit/data/test_metrics_calculator.py::TestCalculateFlowLoadRange::test_standard_range_calculation`
-- [ ] T020 [P] Test `calculate_flow_load_range()` custom range in `tests/unit/data/test_metrics_calculator.py::TestCalculateFlowLoadRange::test_custom_range_30_percent`
-- [ ] T021 [P] Test `calculate_flow_load_range()` error handling in `tests/unit/data/test_metrics_calculator.py::TestCalculateFlowLoadRange::test_zero_forecast_raises_error`
+- [X] T008 [P] Test `calculate_forecast()` with standard 4-week data in `tests/unit/data/test_metrics_calculator.py::TestCalculateForecast::test_standard_4_week_forecast`
+- [X] T009 [P] Test `calculate_forecast()` with 2-week baseline in `tests/unit/data/test_metrics_calculator.py::TestCalculateForecast::test_building_baseline_2_weeks`
+- [X] T010 [P] Test `calculate_forecast()` with 3-week baseline in `tests/unit/data/test_metrics_calculator.py::TestCalculateForecast::test_building_baseline_3_weeks`
+- [X] T011 [P] Test `calculate_forecast()` with insufficient data in `tests/unit/data/test_metrics_calculator.py::TestCalculateForecast::test_insufficient_data_1_week`
+- [X] T012 [P] Test `calculate_forecast()` with zero values in `tests/unit/data/test_metrics_calculator.py::TestCalculateForecast::test_zero_values_in_history`
+- [X] T013 [P] Test `calculate_forecast()` error handling (negative values) in `tests/unit/data/test_metrics_calculator.py::TestCalculateForecast::test_negative_values_raise_error`
+- [X] T014 [P] Test `calculate_trend_vs_forecast()` for higher_better metrics (above) in `tests/unit/data/test_metrics_calculator.py::TestCalculateTrendVsForecast::test_higher_better_above_threshold`
+- [X] T015 [P] Test `calculate_trend_vs_forecast()` for higher_better metrics (below) in `tests/unit/data/test_metrics_calculator.py::TestCalculateTrendVsForecast::test_higher_better_below_threshold`
+- [X] T016 [P] Test `calculate_trend_vs_forecast()` for lower_better metrics in `tests/unit/data/test_metrics_calculator.py::TestCalculateTrendVsForecast::test_lower_better_below_threshold`
+- [X] T017 [P] Test `calculate_trend_vs_forecast()` on track scenario in `tests/unit/data/test_metrics_calculator.py::TestCalculateTrendVsForecast::test_higher_better_on_track`
+- [X] T018 [P] Test `calculate_trend_vs_forecast()` Monday morning edge case in `tests/unit/data/test_metrics_calculator.py::TestCalculateTrendVsForecast::test_zero_current_value_monday`
+- [X] T019 [P] Test `calculate_flow_load_range()` standard calculation in `tests/unit/data/test_metrics_calculator.py::TestCalculateFlowLoadRange::test_standard_range_calculation`
+- [X] T020 [P] Test `calculate_flow_load_range()` custom range in `tests/unit/data/test_metrics_calculator.py::TestCalculateFlowLoadRange::test_custom_range_30_percent`
+- [X] T021 [P] Test `calculate_flow_load_range()` error handling in `tests/unit/data/test_metrics_calculator.py::TestCalculateFlowLoadRange::test_zero_forecast_raises_error`
 
 **Checkpoint**: Foundation ready - all forecast calculation functions implemented and tested (>95% coverage)
 
