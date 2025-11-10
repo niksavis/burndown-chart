@@ -141,7 +141,6 @@ def create_work_distribution_card(
             ],
             className="d-flex align-items-center justify-content-between w-100",
         ),
-        className="bg-light",
     )
 
     # Build metric row (4 columns) with week label - reduced spacing
@@ -388,7 +387,7 @@ def create_work_distribution_card(
         )
 
     # Build complete card
-    card_props = {"className": "metric-card mb-3"}
+    card_props = {"className": "metric-card mb-3 h-100"}
     if card_id:
         card_props["id"] = card_id
 
@@ -408,7 +407,7 @@ def create_work_distribution_no_data_card(card_id: Optional[str] = None) -> dbc.
     Returns:
         dbc.Card component with 2x width (for width=12 column)
     """
-    card_props = {"className": "metric-card mb-3"}
+    card_props = {"className": "metric-card mb-3 h-100"}
     if card_id:
         card_props["id"] = card_id
 
@@ -493,7 +492,7 @@ def create_work_distribution_no_metrics_card(
     Returns:
         dbc.Card component with 2x width (for width=12 column)
     """
-    card_props = {"className": "metric-card mb-3"}
+    card_props = {"className": "metric-card mb-3 h-100"}
     if card_id:
         card_props["id"] = card_id
 
