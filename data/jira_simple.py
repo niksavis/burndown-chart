@@ -561,6 +561,16 @@ def fetch_jira_issues_with_changelog(
             keys_str = ", ".join(issue_keys)
             jql = f"key IN ({keys_str})"
             logger.info(f"Fetching changelog for {len(issue_keys)} specific issues")
+
+            # Show prominent progress message for large fetches
+            if progress_callback and len(issue_keys) > 50:
+                estimated_time = (
+                    len(issue_keys) / page_size
+                ) * 60  # ~60 seconds per page estimate
+                progress_callback(
+                    f"⏳ Fetching changelog for {len(issue_keys)} issues "
+                    f"(~{int(estimated_time / 60)} minutes, please wait...)"
+                )
         else:
             # Use base JQL + filter for completed issues only (performance optimization)
             base_jql = config["jql_query"]
@@ -761,9 +771,22 @@ def fetch_jira_issues_with_changelog(
                 logger.info(
                     f"Query matches {total_issues} total issues (with changelog), fetching all with pagination..."
                 )
+                if progress_callback:
+                    progress_callback(
+                        f"📥 Downloading changelog for {total_issues} issues (page 1/{(total_issues + page_size - 1) // page_size})..."
+                    )
 
             # Add this page's issues to our collection
             all_issues.extend(issues_in_page)
+
+            # Show progress update for each page
+            current_page = (start_at // page_size) + 1
+            total_pages = (total_issues + page_size - 1) // page_size
+            if progress_callback and current_page > 1:
+                progress_callback(
+                    f"📥 Downloading changelog page {current_page}/{total_pages} "
+                    f"({len(all_issues)}/{total_issues} issues)..."
+                )
 
             # Check if we've fetched everything
             if (
@@ -1552,6 +1575,9 @@ def fetch_changelog_on_demand(config: Dict, progress_callback=None) -> Tuple[boo
     """
     Fetch changelog data separately for Flow Time and DORA metrics with incremental saving.
 
+    OPTIMIZATION: Only fetches changelog for issues NOT already in cache.
+    This dramatically improves performance on subsequent "Calculate Metrics" clicks.
+
     RESILIENCE FEATURES:
     - Saves progress after each page (prevents data loss on timeout)
     - Retries failed requests up to 3 times
@@ -1576,20 +1602,84 @@ def fetch_changelog_on_demand(config: Dict, progress_callback=None) -> Tuple[boo
         # Load existing cache to merge with new data (resume capability)
         changelog_cache_file = "jira_changelog_cache.json"
         changelog_cache = {}
+        cached_issue_keys = set()
+
         if os.path.exists(changelog_cache_file):
             try:
                 with open(changelog_cache_file, "r", encoding="utf-8") as f:
                     changelog_cache = json.load(f)
+                cached_issue_keys = set(changelog_cache.keys())
                 logger.info(
-                    f"Loaded existing changelog cache with {len(changelog_cache)} issues"
+                    f"📦 Loaded existing changelog cache with {len(changelog_cache)} issues"
                 )
             except Exception as e:
                 logger.warning(f"Could not load existing changelog cache: {e}")
                 changelog_cache = {}
+                cached_issue_keys = set()
 
+        # OPTIMIZATION: Determine which issues need changelog fetching
+        # Only fetch issues that are NOT already in the cache
+        jira_cache_file = "jira_cache.json"
+        issues_needing_changelog = []
+
+        if os.path.exists(jira_cache_file):
+            try:
+                with open(jira_cache_file, "r", encoding="utf-8") as f:
+                    jira_cache_data = json.load(f)
+                all_issue_keys = [
+                    issue.get("key")
+                    for issue in jira_cache_data.get("issues", [])
+                    if issue.get("key")
+                ]
+
+                # Find issues not in changelog cache
+                issues_needing_changelog = [
+                    key for key in all_issue_keys if key not in cached_issue_keys
+                ]
+
+                logger.info(
+                    f"📊 Issue analysis: {len(all_issue_keys)} total, "
+                    f"{len(cached_issue_keys)} cached, "
+                    f"{len(issues_needing_changelog)} need fetching"
+                )
+
+                if issues_needing_changelog:
+                    logger.info(
+                        f"⚡ Optimization: Only fetching changelog for {len(issues_needing_changelog)} new issues"
+                    )
+                    if progress_callback:
+                        progress_callback(
+                            f"⚡ Smart fetch: {len(issues_needing_changelog)} new issues "
+                            f"({len(cached_issue_keys)} already cached)"
+                        )
+                else:
+                    logger.info(
+                        "✅ All issues already have changelog cached - nothing to fetch!"
+                    )
+                    if progress_callback:
+                        progress_callback(
+                            f"✅ All {len(cached_issue_keys)} issues already cached - skipping download"
+                        )
+                    return (
+                        True,
+                        f"✅ Changelog already cached for all {len(cached_issue_keys)} issues",
+                    )
+
+            except Exception as e:
+                logger.warning(
+                    f"Could not analyze jira_cache.json: {e}. Fetching all changelog."
+                )
+                issues_needing_changelog = None
+        else:
+            logger.warning("jira_cache.json not found. Fetching all changelog.")
+            issues_needing_changelog = None
+
+        # Fetch changelog (only for issues not in cache if we have the list)
         changelog_fetch_success, issues_with_changelog = (
             fetch_jira_issues_with_changelog(
-                config, progress_callback=progress_callback
+                config,
+                issue_keys=issues_needing_changelog,  # Only fetch missing issues
+                progress_callback=progress_callback,
             )
         )
 
@@ -1704,14 +1794,19 @@ def fetch_changelog_on_demand(config: Dict, progress_callback=None) -> Tuple[boo
                 logger.info(optimization_msg)
                 logger.info(f"✅ Saved optimized changelog to {changelog_cache_file}")
 
+                # Calculate how many were newly fetched vs already cached
+                newly_fetched = len(issues_with_changelog)
+                total_cached = len(changelog_cache)
+                previously_cached = total_cached - newly_fetched
+
                 if progress_callback:
                     progress_callback(
-                        f"✅ Changelog saved: {len(changelog_cache)} issues ({reduction_pct:.0f}% optimized)"
+                        f"✅ Changelog complete: {newly_fetched} fetched, {previously_cached} cached, {total_cached} total"
                     )
 
                 return (
                     True,
-                    f"Changelog data fetched for {len(changelog_cache)} issues (optimized: {reduction_pct:.0f}% size reduction)",
+                    f"✅ Changelog: {newly_fetched} newly fetched + {previously_cached} already cached = {total_cached} total issues (saved {reduction_pct:.0f}% size)",
                 )
             except Exception as e:
                 logger.warning(f"Failed to cache changelog data: {e}")

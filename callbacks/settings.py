@@ -612,11 +612,28 @@ def register(app):
                 )
                 logger.info("=" * 60)
 
-            # CRITICAL FIX: Clear metrics and changelog cache to prevent mixed data
+            # CRITICAL FIX: Clear metrics cache to prevent mixed data
             # This ensures old metrics from previous queries don't contaminate new data
+            #
+            # OPTIMIZATION: Changelog cache is kept on normal refresh (only cleared on force refresh)
+            # Changelog is issue-specific (keyed by issue key), not query-specific
+            # Reusing changelog saves 1-2 minutes on subsequent "Calculate Metrics" clicks
             import os
 
-            files_to_clear = ["metrics_snapshots.json", "jira_changelog_cache.json"]
+            # Always clear metrics (query-specific, will be recalculated)
+            files_to_clear = ["metrics_snapshots.json"]
+
+            # Only clear changelog on FORCE REFRESH (expensive to re-fetch)
+            if force_refresh_bool:
+                files_to_clear.append("jira_changelog_cache.json")
+                logger.info(
+                    "🗑️ Force refresh: Will clear changelog cache and re-fetch from JIRA"
+                )
+            else:
+                logger.info(
+                    "♻️ Normal refresh: Keeping changelog cache for reuse (saves 1-2 minutes)"
+                )
+
             for file_path in files_to_clear:
                 if os.path.exists(file_path):
                     try:

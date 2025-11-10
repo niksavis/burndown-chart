@@ -77,6 +77,48 @@ def calculate_and_save_weekly_metrics(
         if not os.path.exists(cache_file):
             return False, "No JIRA data available. Please update data first."
 
+        # OPTIMIZATION: Check if metrics already exist and are up-to-date
+        # Skip recalculation if:
+        # 1. Metrics snapshot exists for this week
+        # 2. JIRA cache hasn't been updated since snapshot was created
+        # 3. This is NOT the current week (current week is a running total that changes)
+        from data.metrics_snapshots import get_metric_snapshot
+
+        # Determine if this is the current week
+        current_week_label = get_current_iso_week()
+        is_current_week_check = week_label == current_week_label
+
+        # Only use cached metrics for historical weeks
+        if not is_current_week_check:
+            existing_snapshot = get_metric_snapshot(week_label, "flow_velocity")
+            if existing_snapshot:
+                # Check if cache file is newer than snapshot
+                cache_mtime = os.path.getmtime(cache_file)
+                snapshot_timestamp_str = existing_snapshot.get("timestamp")
+
+                if snapshot_timestamp_str:
+                    snapshot_timestamp = datetime.fromisoformat(
+                        snapshot_timestamp_str.replace("Z", "+00:00")
+                    )
+                    snapshot_mtime = snapshot_timestamp.timestamp()
+
+                    if cache_mtime < snapshot_mtime:
+                        # Cache is older than snapshot - metrics are up-to-date
+                        logger.info(
+                            f"✅ Metrics for week {week_label} already exist and are up-to-date. Skipping recalculation."
+                        )
+                        report_progress(
+                            f"✅ Week {week_label} already calculated - using cached metrics"
+                        )
+                        return (
+                            True,
+                            f"✅ Metrics for week {week_label} already up-to-date",
+                        )
+        else:
+            logger.info(
+                f"📊 Week {week_label} is current week - will recalculate (running total)"
+            )
+
         with open(cache_file, "r", encoding="utf-8") as f:
             cache_data = json.load(f)
 
