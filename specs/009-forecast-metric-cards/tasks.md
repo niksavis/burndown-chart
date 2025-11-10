@@ -117,16 +117,16 @@ All paths relative to repository root: `D:\Development\burndown-chart\`
 
 ### Trend Calculation for US2
 
-- [ ] T040 [US2] Enhance `save_metrics_snapshot()` to calculate trend_vs_forecast for current week metrics using `calculate_trend_vs_forecast()`
-- [ ] T041 [US2] Map each metric to correct metric_type: use HIGHER_BETTER_METRICS and LOWER_BETTER_METRICS from config
-- [ ] T042 [US2] Implement special Flow Load trend logic: compare against range bounds instead of point estimate
+- [x] T040 [US2] Enhance `save_metrics_snapshot()` to calculate trend_vs_forecast for current week metrics using `calculate_trend_vs_forecast()`
+- [x] T041 [US2] Map each metric to correct metric_type: use HIGHER_BETTER_METRICS and LOWER_BETTER_METRICS from config
+- [x] T042 [US2] Implement special Flow Load trend logic: compare against range bounds instead of point estimate
 
 ### UI Display for US2
 
-- [ ] T043 [US2] Update `create_forecast_section()` to display trend arrow (↗ → ↘) with status text from trend_vs_forecast data
-- [ ] T044 [US2] Apply color coding from `trend_vs_forecast["color_class"]` (text-success for good, text-danger for bad, text-secondary for neutral)
-- [ ] T045 [US2] Display percentage deviation with appropriate sign: "+23% above forecast" vs "-62% vs forecast"
-- [ ] T046 [US2] Implement special "Week starting..." message for Monday morning (current_value == 0 and deviation == -100%)
+- [x] T043 [US2] Update `create_forecast_section()` to display trend arrow (↗ → ↘) with status text from trend_vs_forecast data
+- [x] T044 [US2] Apply color coding from `trend_vs_forecast["color_class"]` (text-success for good, text-danger for bad, text-secondary for neutral)
+- [x] T045 [US2] Display percentage deviation with appropriate sign: "+23% above forecast" vs "-62% vs forecast"
+- [x] T046 [US2] Implement special "Week starting..." message for Monday morning (current_value == 0 and deviation == -100%)
 
 ### Verification for US2
 

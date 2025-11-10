@@ -1544,8 +1544,15 @@ def calculate_trend_vs_forecast(
     # Determine direction and status based on metric type
     abs_deviation = abs(deviation_percent)
 
+    # Special case: Monday morning (week just started, no completions yet)
+    # Feature 009 US2 T046
+    if current_value == 0 and deviation_percent == -100.0:
+        direction = "↘"
+        status_text = "Week starting..."
+        color_class = "text-secondary"
+        is_good = True  # Week starting is not "bad"
     # Check if within threshold (neutral zone)
-    if abs_deviation <= (threshold * 100):
+    elif abs_deviation <= (threshold * 100):
         direction = "→"
         status_text = "On track"
         color_class = "text-secondary"
