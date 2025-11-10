@@ -76,6 +76,38 @@ def get_last_n_weeks(
     return list(reversed(weeks))
 
 
+def get_weeks_from_date_range(
+    start_date: datetime, end_date: datetime
+) -> List[Tuple[str, date, date]]:
+    """Get list of ISO weeks covering the date range from start to end.
+
+    Args:
+        start_date: Earliest date in range
+        end_date: Latest date in range
+
+    Returns:
+        List of tuples: (week_label, monday_date, sunday_date)
+        Sorted oldest to newest, no duplicates
+    """
+    weeks = []
+    seen_labels = set()
+
+    current = start_date
+    while current <= end_date:
+        monday, sunday = get_iso_week_bounds(current)
+        week_label = get_week_label(current)
+
+        # Only add unique weeks
+        if week_label not in seen_labels:
+            seen_labels.add(week_label)
+            weeks.append((week_label, monday, sunday))
+
+        # Move to next week
+        current = current + timedelta(days=7)
+
+    return weeks
+
+
 def bucket_issues_by_week(
     issues: List[Dict[str, Any]], date_field: str, n_weeks: int = 12
 ) -> Dict[str, List[Dict[str, Any]]]:

@@ -1255,7 +1255,7 @@ def calculate_and_save_weekly_metrics(
 
 
 def calculate_metrics_for_last_n_weeks(
-    n_weeks: int = 12, progress_callback=None
+    n_weeks: int = 12, progress_callback=None, custom_weeks=None
 ) -> Tuple[bool, str]:
     """
     Calculate metrics for the last N weeks (including current week).
@@ -1264,8 +1264,9 @@ def calculate_metrics_for_last_n_weeks(
     have enough data points.
 
     Args:
-        n_weeks: Number of weeks to calculate (default: 12)
+        n_weeks: Number of weeks to calculate (default: 12) - ignored if custom_weeks provided
         progress_callback: Optional callback function(message: str) for progress updates
+        custom_weeks: Optional list of (week_label, monday, sunday) tuples based on actual data range
 
     Returns:
         Tuple of (success: bool, summary_message: str)
@@ -1273,10 +1274,17 @@ def calculate_metrics_for_last_n_weeks(
     from data.iso_week_bucketing import get_last_n_weeks
 
     try:
-        # Get week labels for last N weeks
-        weeks = get_last_n_weeks(n_weeks)
-
-        logger.info(f"Calculating metrics for last {n_weeks} weeks")
+        # Use custom weeks if provided, otherwise generate last N weeks from today
+        if custom_weeks:
+            weeks = custom_weeks
+            n_weeks = len(weeks)
+            logger.info(
+                f"Calculating metrics for {n_weeks} custom weeks (based on actual data range)"
+            )
+        else:
+            # Get week labels for last N weeks from today
+            weeks = get_last_n_weeks(n_weeks)
+            logger.info(f"Calculating metrics for last {n_weeks} weeks from today")
 
         successful_weeks = []
         failed_weeks = []

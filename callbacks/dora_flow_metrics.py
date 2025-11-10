@@ -781,68 +781,94 @@ def calculate_metrics_from_settings(
         # Track task progress
         from data.task_progress import TaskProgress
 
-        # Calculate weeks based on actual JIRA data availability
-        # Instead of hardcoding 52 weeks, check what data we actually have
-        from data.jira_simple import load_jira_cache, get_jira_config
-        from datetime import datetime
+        # CRITICAL FIX: Calculate metrics for the FULL data range from JIRA cache
+        # NOT from today backwards, but from actual data boundaries
+        # The data_points slider only controls DISPLAY, not calculation
 
+        from data.jira_simple import load_jira_cache, get_jira_config
+        from data.iso_week_bucketing import get_week_label, get_iso_week_bounds
+        from datetime import timedelta
+
+        # Calculate actual weeks from data, not from today
+        weeks_to_calculate = []
         try:
             config = get_jira_config()
             cache_loaded, cached_issues = load_jira_cache(
-                current_jql_query="",  # Not used for cache check
-                current_fields="created,resolutiondate",  # Just need dates
+                current_jql_query="",
+                current_fields="created,resolutiondate",
                 config=config,
             )
 
             if cache_loaded and cached_issues:
-                # Calculate actual weeks span from JIRA data
-                created_dates = [
-                    datetime.fromisoformat(
-                        issue["fields"]["created"].replace("Z", "+00:00")
-                    )
-                    for issue in cached_issues
-                    if issue.get("fields", {}).get("created")
-                ]
-                resolved_dates = [
-                    datetime.fromisoformat(
-                        issue["fields"]["resolutiondate"].replace("Z", "+00:00")
-                    )
-                    for issue in cached_issues
-                    if issue.get("fields", {}).get("resolutiondate")
-                ]
-                all_dates = created_dates + resolved_dates
+                # Extract all dates from issues
+                all_dates = []
+                for issue in cached_issues:
+                    fields = issue.get("fields", {})
+
+                    for field_name in ["created", "resolutiondate"]:
+                        date_str = fields.get(field_name)
+                        if date_str:
+                            try:
+                                all_dates.append(
+                                    datetime.fromisoformat(
+                                        date_str.replace("Z", "+00:00")
+                                    )
+                                )
+                            except (ValueError, AttributeError):
+                                pass
 
                 if all_dates:
                     all_dates.sort()
-                    weeks_span = (all_dates[-1] - all_dates[0]).days // 7
-                    # Add 2 weeks buffer to ensure we capture all data
-                    # (e.g., 11 weeks span → calculate 13 weeks)
-                    n_weeks = min(
-                        weeks_span + 2, 52
-                    )  # Cap at 52 weeks to avoid excessive calculation
+                    earliest_date = all_dates[0]
+                    latest_date = all_dates[-1]
+
                     logger.info(
-                        f"Auto-detected {weeks_span} weeks data span, calculating {n_weeks} weeks (data from {all_dates[0].date()} to {all_dates[-1].date()})"
+                        f"Data range: {earliest_date.date()} to {latest_date.date()}"
+                    )
+
+                    # Generate week list from earliest to latest date
+                    current = earliest_date
+                    while current <= latest_date:
+                        monday, sunday = get_iso_week_bounds(current)
+                        week_label = get_week_label(current)
+                        weeks_to_calculate.append((week_label, monday, sunday))
+
+                        # Move to next week
+                        current = current + timedelta(days=7)
+
+                    # Remove duplicates (same week_label can appear from different dates)
+                    seen_labels = set()
+                    unique_weeks = []
+                    for week_label, monday, sunday in weeks_to_calculate:
+                        if week_label not in seen_labels:
+                            seen_labels.add(week_label)
+                            unique_weeks.append((week_label, monday, sunday))
+
+                    weeks_to_calculate = unique_weeks
+                    n_weeks = len(weeks_to_calculate)
+
+                    logger.info(
+                        f"Calculated {n_weeks} weeks from data range "
+                        f"({earliest_date.date()} to {latest_date.date()})"
                     )
                 else:
-                    # No date data found, use default
-                    n_weeks = 12
                     logger.warning(
-                        "No date data found in JIRA cache, using default 12 weeks"
+                        "No dates found in cache, falling back to 52 weeks from today"
                     )
+                    weeks_to_calculate = None
+                    n_weeks = 52
             else:
-                # No cache or empty cache, use default
-                n_weeks = 12
-                logger.warning("JIRA cache not loaded or empty, using default 12 weeks")
+                logger.warning("Cache not loaded, falling back to 52 weeks from today")
+                weeks_to_calculate = None
+                n_weeks = 52
         except Exception as e:
-            # Error detecting data range, fall back to safe default
-            n_weeks = 12
-            logger.warning(
-                f"Error detecting data range: {e}, using default 12 weeks",
-                exc_info=True,
-            )
+            logger.error(f"Error detecting data range: {e}", exc_info=True)
+            weeks_to_calculate = None
+            n_weeks = 52
 
         logger.info(
-            f"Calculating metrics for {n_weeks} weeks (data_points slider={data_points})"
+            f"Calculating metrics for {n_weeks} weeks based on actual data range. "
+            f"Data Points slider ({data_points}) controls display only."
         )
 
         # Mark task as started
@@ -856,7 +882,14 @@ def calculate_metrics_from_settings(
         from data.metrics_calculator import calculate_metrics_for_last_n_weeks
 
         # Calculate ALL metrics (Flow + DORA) using unified calculator
-        success, message = calculate_metrics_for_last_n_weeks(n_weeks=n_weeks)
+        # Pass custom weeks if we detected data range, otherwise let it use default (last N weeks from today)
+        if weeks_to_calculate:
+            success, message = calculate_metrics_for_last_n_weeks(
+                n_weeks=n_weeks, custom_weeks=weeks_to_calculate
+            )
+        else:
+            # Fallback to calculating last N weeks from today
+            success, message = calculate_metrics_for_last_n_weeks(n_weeks=n_weeks)
 
         # Mark task as completed
         TaskProgress.complete_task("calculate_metrics")

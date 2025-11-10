@@ -612,6 +612,21 @@ def register(app):
                 )
                 logger.info("=" * 60)
 
+            # CRITICAL FIX: Clear metrics and changelog cache to prevent mixed data
+            # This ensures old metrics from previous queries don't contaminate new data
+            import os
+
+            files_to_clear = ["metrics_snapshots.json", "jira_changelog_cache.json"]
+            for file_path in files_to_clear:
+                if os.path.exists(file_path):
+                    try:
+                        os.remove(file_path)
+                        logger.info(
+                            f"✓ Cleared {file_path} to prevent data contamination"
+                        )
+                    except Exception as e:
+                        logger.warning(f"Could not remove {file_path}: {e}")
+
             success, message, scope_data = sync_jira_scope_and_data(
                 settings_jql, jira_config_for_sync, force_refresh=force_refresh_bool
             )
