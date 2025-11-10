@@ -23,6 +23,33 @@ logger = logging.getLogger(__name__)
 
 
 #######################################################################
+# HELPER FUNCTIONS (Feature 009)
+#######################################################################
+
+
+def _get_metric_forecast_data(metric_name: str, week_label: str) -> tuple:
+    """Get forecast data for a metric from snapshot (Feature 009).
+
+    Args:
+        metric_name: Metric identifier (e.g., "flow_velocity", "dora_lead_time")
+        week_label: ISO week label (e.g., "2025-44")
+
+    Returns:
+        Tuple of (forecast_data, trend_vs_forecast) or (None, None) if not available
+    """
+    from data.metrics_snapshots import get_metric_snapshot
+
+    snapshot = get_metric_snapshot(week_label, metric_name)
+    if not snapshot:
+        return None, None
+
+    forecast_data = snapshot.get("forecast")
+    trend_vs_forecast = snapshot.get("trend_vs_forecast")
+
+    return forecast_data, trend_vs_forecast
+
+
+#######################################################################
 # DORA METRICS CALLBACK
 #######################################################################
 
@@ -256,6 +283,33 @@ def load_and_display_dora_metrics(
                 ),
             },
         }
+
+        # Load forecast data for current week (Feature 009)
+        from data.iso_week_bucketing import get_week_label
+
+        current_week_label = get_week_label(datetime.now())
+        logger.info(f"DORA: Loading forecast data for week {current_week_label}")
+
+        # Add forecast data to each metric (Feature 009)
+        # Note: Snapshot keys use "dora_" prefix, but metrics_data keys don't
+        metric_name_mapping = {
+            "deployment_frequency": "dora_deployment_frequency",
+            "lead_time_for_changes": "dora_lead_time",
+            "change_failure_rate": "dora_change_failure_rate",
+            "mean_time_to_recovery": "dora_mttr",
+        }
+
+        for display_name, snapshot_name in metric_name_mapping.items():
+            forecast_data, trend_vs_forecast = _get_metric_forecast_data(
+                snapshot_name, current_week_label
+            )
+            if forecast_data:
+                metrics_data[display_name]["forecast_data"] = forecast_data
+                logger.info(
+                    f"[Feature 009] Added forecast to {display_name}: {forecast_data.get('forecast_value')}"
+                )
+            if trend_vs_forecast:
+                metrics_data[display_name]["trend_vs_forecast"] = trend_vs_forecast
 
         return create_metric_cards_grid(metrics_data)
 
@@ -696,6 +750,27 @@ def calculate_and_display_flow_metrics(
             },
         }
 
+        # Load forecast data for current week (Feature 009)
+        from data.iso_week_bucketing import get_week_label
+
+        current_week_label = get_week_label(datetime.now())
+        logger.info(f"FLOW: Loading forecast data for week {current_week_label}")
+
+        # Add forecast data to each metric
+        for metric_name in [
+            "flow_velocity",
+            "flow_time",
+            "flow_efficiency",
+            "flow_load",
+        ]:
+            forecast_data, trend_vs_forecast = _get_metric_forecast_data(
+                metric_name, current_week_label
+            )
+            if forecast_data:
+                metrics_data[metric_name]["forecast_data"] = forecast_data
+            if trend_vs_forecast:
+                metrics_data[metric_name]["trend_vs_forecast"] = trend_vs_forecast
+
         # Pass Flow metrics tooltips to grid function
         metrics_html = create_metric_cards_grid(
             metrics_data, tooltips=FLOW_METRICS_TOOLTIPS
@@ -890,6 +965,26 @@ def calculate_metrics_from_settings(
         else:
             # Fallback to calculating last N weeks from today
             success, message = calculate_metrics_for_last_n_weeks(n_weeks=n_weeks)
+
+        # Add forecasts to current week after metrics calculation (Feature 009)
+        if success:
+            from data.metrics_snapshots import add_forecasts_to_week
+            from data.iso_week_bucketing import get_week_label
+
+            current_week_label = get_week_label(datetime.now())
+            logger.info(
+                f"[Feature 009] Adding forecasts to week {current_week_label} after metrics calculation"
+            )
+
+            forecast_success = add_forecasts_to_week(current_week_label)
+            if forecast_success:
+                logger.info(
+                    f"[Feature 009] Successfully added forecasts to {current_week_label}"
+                )
+            else:
+                logger.warning(
+                    f"[Feature 009] Failed to add forecasts to {current_week_label}"
+                )
 
         # Mark task as completed
         TaskProgress.complete_task("calculate_metrics")

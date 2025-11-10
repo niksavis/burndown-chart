@@ -100,6 +100,141 @@ def _create_mini_bar_sparkline(
     )
 
 
+def create_forecast_section(
+    forecast_data: Optional[Dict[str, Any]],
+    trend_vs_forecast: Optional[Dict[str, Any]],
+    metric_name: str,
+    unit: str,
+) -> html.Div:
+    """Create forecast display section for metric card (Feature 009).
+
+    Displays 4-week weighted forecast benchmark with trend indicator showing
+    current performance vs forecast.
+
+    Args:
+        forecast_data: Forecast calculation results from calculate_forecast():
+            {
+                "forecast_value": float,
+                "confidence": "established" | "building",
+                "weeks_available": int,
+                "weights_applied": List[float],
+                "historical_values": List[float],
+                "forecast_range": Optional[Dict] (for Flow Load only)
+            }
+        trend_vs_forecast: Trend analysis from calculate_trend_vs_forecast():
+            {
+                "direction": "↗" | "→" | "↘",
+                "deviation_percent": float,
+                "status_text": str,
+                "color_class": str,
+                "is_good": bool
+            }
+        metric_name: Metric identifier (e.g., "flow_velocity", "dora_lead_time")
+        unit: Metric unit for display
+
+    Returns:
+        Div containing forecast display, or empty div if no forecast data
+
+    Example:
+        >>> forecast_section = create_forecast_section(
+        ...     forecast_data={"forecast_value": 11.9, "confidence": "established", ...},
+        ...     trend_vs_forecast={"direction": "↗", "deviation_percent": 26.1, ...},
+        ...     metric_name="flow_velocity",
+        ...     unit="items/week"
+        ... )
+    """
+    # No forecast data - return empty div
+    if not forecast_data:
+        return html.Div()
+
+    forecast_value = forecast_data.get("forecast_value")
+    confidence = forecast_data.get("confidence", "building")
+    forecast_range = forecast_data.get("forecast_range")  # For Flow Load
+
+    # Format forecast value
+    if forecast_value is not None:
+        if metric_name == "flow_load" and forecast_range:
+            # Flow Load special formatting: show range
+            lower = forecast_range.get("lower", 0)
+            upper = forecast_range.get("upper", 0)
+            forecast_display = f"~{forecast_value:.1f} ({lower:.1f}-{upper:.1f})"
+        else:
+            # Standard formatting: single value
+            forecast_display = (
+                f"{forecast_value:.1f}"
+                if forecast_value >= 10
+                else f"{forecast_value:.2f}"
+            )
+    else:
+        forecast_display = "N/A"
+
+    # Build forecast section children
+    forecast_children = []
+
+    # Confidence badge (building baseline vs established)
+    if confidence == "building":
+        confidence_badge = dbc.Badge(
+            "Building baseline",
+            color="secondary",
+            className="ms-2",
+            style={"fontSize": "0.65rem", "fontWeight": "500"},
+        )
+    else:
+        confidence_badge = None
+
+    # Forecast value line
+    forecast_children.append(
+        html.Div(
+            [
+                html.Span(
+                    "Forecast: ",
+                    className="text-muted",
+                    style={"fontSize": "0.85rem"},
+                ),
+                html.Span(
+                    forecast_display,
+                    className="fw-bold",
+                    style={"fontSize": "0.85rem"},
+                ),
+                html.Span(
+                    f" {unit}",
+                    className="text-muted",
+                    style={"fontSize": "0.75rem"},
+                ),
+                confidence_badge if confidence_badge else html.Span(),
+            ],
+            className="text-center mb-1",
+        )
+    )
+
+    # Trend vs forecast (if available)
+    if trend_vs_forecast:
+        direction = trend_vs_forecast.get("direction", "→")
+        status_text = trend_vs_forecast.get("status_text", "On track")
+        color_class = trend_vs_forecast.get("color_class", "text-secondary")
+
+        forecast_children.append(
+            html.Div(
+                [
+                    html.Span(direction, className="me-1"),
+                    html.Span(status_text, className=f"{color_class}"),
+                ],
+                className="text-center small",
+                style={"fontSize": "0.8rem", "fontWeight": "500"},
+            )
+        )
+
+    # Wrap in container with subtle styling
+    return html.Div(
+        forecast_children,
+        className="mt-2 mb-2",
+        style={
+            "borderTop": "1px solid #dee2e6",
+            "paddingTop": "0.5rem",
+        },
+    )
+
+
 def _get_metric_explanation(metric_name: str) -> str:
     """Get explanation text for what a metric measures.
 
@@ -569,7 +704,12 @@ def _create_deployment_details_table(
     return html.Div([summary, table_content])
 
 
-def create_metric_card(metric_data: dict, card_id: Optional[str] = None) -> dbc.Card:
+def create_metric_card(
+    metric_data: dict,
+    card_id: Optional[str] = None,
+    forecast_data: Optional[Dict[str, Any]] = None,
+    trend_vs_forecast: Optional[Dict[str, Any]] = None,
+) -> dbc.Card:
     """Create a metric display card.
 
     Args:
@@ -587,6 +727,8 @@ def create_metric_card(metric_data: dict, card_id: Optional[str] = None) -> dbc.
                 "details": dict
             }
         card_id: Optional HTML ID for the card
+        forecast_data: Optional forecast calculation results (Feature 009)
+        trend_vs_forecast: Optional trend vs forecast analysis (Feature 009)
 
     Returns:
         Dash Bootstrap Card component
@@ -609,16 +751,23 @@ def create_metric_card(metric_data: dict, card_id: Optional[str] = None) -> dbc.
     if error_state != "success":
         return _create_error_card(metric_data, card_id)
 
-    return _create_success_card(metric_data, card_id)
+    return _create_success_card(metric_data, card_id, forecast_data, trend_vs_forecast)
 
 
-def _create_success_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
+def _create_success_card(
+    metric_data: dict,
+    card_id: Optional[str],
+    forecast_data: Optional[Dict[str, Any]] = None,
+    trend_vs_forecast: Optional[Dict[str, Any]] = None,
+) -> dbc.Card:
     """Create card for successful metric calculation.
 
     Now includes inline trend sparkline (always visible) below the metric value.
     Trend data should be provided in metric_data as:
     - weekly_labels: List of week labels (e.g., ["2025-W40", "2025-W41", ...])
     - weekly_values: List of metric values for each week
+
+    Feature 009: Also includes forecast display section when forecast_data is provided.
     """
     # Map performance tier colors to Bootstrap/custom colors
     # Use custom 'tier-orange' class for proper visual distinction
@@ -1107,6 +1256,17 @@ def _create_success_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
                 )
             )
 
+    # Add forecast section (Feature 009)
+    if forecast_data or trend_vs_forecast:
+        forecast_section = create_forecast_section(
+            forecast_data=forecast_data,
+            trend_vs_forecast=trend_vs_forecast,
+            metric_name=metric_name,
+            unit=metric_data.get("unit", ""),
+        )
+        if forecast_section.children:  # Only add if forecast section has content
+            card_body_children.append(forecast_section)
+
     # Add inline trend sparkline if weekly data is provided
     # Note: weekly_labels and weekly_values already fetched above for trend indicator
     if weekly_labels and weekly_values and len(weekly_labels) > 1:
@@ -1424,7 +1584,16 @@ def create_metric_cards_grid(
         if tooltips and metric_name in tooltips:
             metric_info = {**metric_info, "tooltip": tooltips[metric_name]}
 
-        card = create_metric_card(metric_info, card_id=f"{metric_name}-card")
+        # Extract forecast data (Feature 009)
+        forecast_data = metric_info.get("forecast_data")
+        trend_vs_forecast = metric_info.get("trend_vs_forecast")
+
+        card = create_metric_card(
+            metric_info,
+            card_id=f"{metric_name}-card",
+            forecast_data=forecast_data,
+            trend_vs_forecast=trend_vs_forecast,
+        )
         # 2 cards per row on desktop (lg=6), 1 card per row on mobile (xs=12)
         col = dbc.Col(card, xs=12, lg=6, className="mb-3")
         cards.append(col)

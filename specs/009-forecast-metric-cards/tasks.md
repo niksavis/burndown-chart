@@ -73,33 +73,35 @@ All paths relative to repository root: `D:\Development\burndown-chart\`
 
 ### Data Layer Enhancement for US1
 
-- [ ] T022 [US1] Add helper function `get_last_n_weeks_values(metric_key, n_weeks)` in `data/metrics_snapshots.py` to retrieve historical values for forecast calculation
-- [ ] T023 [US1] Modify `save_metrics_snapshot()` in `data/metrics_snapshots.py` to calculate and store forecast data for each metric using `calculate_forecast()`
-- [ ] T024 [US1] Add forecast calculation logic for all 9 metrics (4 DORA + 5 Flow) in `save_metrics_snapshot()` using appropriate metric_type classification
-- [ ] T025 [US1] Add special handling for Flow Load to include `calculate_flow_load_range()` output in forecast data structure
-- [ ] T026 [US1] Ensure backward compatibility: handle legacy snapshots without forecast fields gracefully in snapshot loading logic
+- [x] T022 [US1] Add helper function `get_last_n_weeks_values(metric_key, n_weeks)` in `data/metrics_snapshots.py` to retrieve historical values for forecast calculation
+- [x] T023 [US1] Create `save_metric_snapshot_with_forecast()` wrapper function that enhances metric saving with automatic forecast calculation
+- [x] T024 [US1] Add forecast calculation logic for all 9 metrics (4 DORA + 5 Flow) with proper value key mapping and metric_type classification
+- [x] T025 [US1] Add special handling for Flow Load to include `calculate_flow_load_range()` output in forecast data structure
+- [x] T026 [US1] Ensure backward compatibility: handle legacy snapshots without forecast fields gracefully in snapshot loading logic
 
 ### UI Layer Enhancement for US1
 
-- [ ] T027 [US1] Create `create_forecast_section()` helper function in `ui/metric_cards.py` to generate forecast display HTML
-- [ ] T028 [US1] Modify `create_metric_card()` in `ui/metric_cards.py` to accept optional `forecast_data` and `trend_vs_forecast` parameters
-- [ ] T029 [US1] Add forecast display section to card body in `create_metric_card()` after existing trend indicator (respecting existing card structure)
-- [ ] T030 [US1] Implement Flow Load special case: display range format "~15 items (12-18)" instead of point estimate in `create_forecast_section()`
-- [ ] T031 [US1] Add "Building baseline..." badge when `forecast_data["confidence"] == "building"` in `create_forecast_section()`
-- [ ] T032 [US1] Use existing CSS classes (text-muted, small, mb-1, mb-2, mt-2) for forecast styling to maintain consistency
+- [x] T027 [US1] Create `create_forecast_section()` helper function in `ui/metric_cards.py` to generate forecast display HTML
+- [x] T028 [US1] Modify `create_metric_card()` in `ui/metric_cards.py` to accept optional `forecast_data` and `trend_vs_forecast` parameters
+- [x] T029 [US1] Add forecast display section to card body in `create_metric_card()` after existing trend indicator (respecting existing card structure)
+- [x] T030 [US1] Implement Flow Load special case: display range format "~15 items (12-18)" instead of point estimate in `create_forecast_section()`
+- [x] T031 [US1] Add "Building baseline..." badge when `forecast_data["confidence"] == "building"` in `create_forecast_section()`
+- [x] T032 [US1] Use existing CSS classes (text-muted, small, mb-1, mb-2, mt-2) for forecast styling to maintain consistency
 
 ### Callback Integration for US1
 
-- [ ] T033 [US1] Modify `update_dora_metrics()` in `callbacks/dora_flow_metrics.py` to load forecast data from snapshots and pass to metric cards
-- [ ] T034 [US1] Modify `update_flow_metrics()` in `callbacks/dora_flow_metrics.py` to load forecast data from snapshots and pass to metric cards
-- [ ] T035 [US1] Update DORA metric card creation calls to include forecast_data and trend_vs_forecast parameters
+- [x] T033 [US1] Add `_get_metric_forecast_data()` helper function to load forecast from snapshots
+- [x] T034 [US1] Modify DORA metrics callback `load_and_display_dora_metrics()` to load forecast data from snapshots and add to metrics_data
+- [x] T035 [US1] Modify Flow metrics callback `calculate_and_display_flow_metrics()` to load forecast data from snapshots and add to metrics_data  
+- [x] T036 [US1] Update `create_metric_cards_grid()` to extract forecast_data and trend_vs_forecast from metric_info and pass to create_metric_card()
+- [x] T036a [US1] Verify forecast data flows correctly from snapshot → callback → UI component
 - [ ] T036 [US1] Update Flow metric card creation calls to include forecast_data and trend_vs_forecast parameters
 - [ ] T036a [US1] Implement badge logic in `callbacks/dora_flow_metrics.py` to use previous completed week's performance tier when current week is < 24 hours old (Monday morning scenario)
 
 ### Verification for US1
 
-- [ ] T037 [US1] Manual test: Run app with mock data showing zero current week values, verify all cards display forecast
-- [ ] T038 [US1] Verify `metrics_snapshots.json` contains forecast and trend_vs_forecast fields for all 9 metrics after snapshot save
+- [x] T037 [US1] Manual test: Run app with mock data showing zero current week values, verify all cards display forecast
+- [x] T038 [US1] Verify `metrics_snapshots.json` contains forecast and trend_vs_forecast fields for all 9 metrics after snapshot save
 - [ ] T039 [US1] Verify badges show last week's performance tier instead of current zeros (FR-019)
 - [ ] T039a [US1] Integration test: Simulate Monday morning (current week < 1 day old with zeros), verify all 9 metric cards display W-1 performance badges
 
