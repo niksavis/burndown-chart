@@ -229,38 +229,38 @@ All paths relative to repository root: `D:\Development\burndown-chart\`
 
 ### Mobile Responsiveness
 
-- [ ] T078 [P] Test all metric cards on 320px viewport (iPhone SE) - verify text wraps, no horizontal scroll
-- [ ] T079 [P] Test all metric cards on 375px viewport (iPhone 12) - verify optimal display
-- [ ] T080 [P] Test all metric cards on 768px viewport (iPad) - verify transition to desktop layout
+- [x] T078 [P] Test all metric cards on 320px viewport (iPhone SE) - verify text wraps, no horizontal scroll
+- [x] T079 [P] Test all metric cards on 375px viewport (iPhone 12) - verify optimal display
+- [x] T080 [P] Test all metric cards on 768px viewport (iPad) - verify transition to desktop layout
 
 ### Performance Validation
 
-- [ ] T081 Measure forecast calculation time for single metric (target: <5ms)
-- [ ] T082 Measure total dashboard load time with forecasts (target: <2 seconds)
-- [ ] T083 Measure chart rendering time with forecasts (target: <500ms)
-- [ ] T084 Run performance profiling to confirm <50ms overhead for all 9 metrics
+- [x] T081 Measure forecast calculation time for single metric (target: <5ms)
+- [x] T082 Measure total dashboard load time with forecasts (target: <2 seconds)
+- [x] T083 Measure chart rendering time with forecasts (target: <500ms)
+- [x] T084 Run performance profiling to confirm <50ms overhead for all 9 metrics
 
 ### Edge Case Handling
 
-- [ ] T085 [P] Test with historical data containing zero values (holiday weeks) - verify forecast calculates correctly
-- [ ] T086 [P] Test with all-zero historical data - verify forecast shows 0.0 with appropriate message
-- [ ] T087 [P] Test backward compatibility: load old snapshot without forecast fields, verify no errors
-- [ ] T088 Test current week value exactly equals forecast - verify "→ On track" with 0.0% deviation
+- [x] T085 [P] Test with historical data containing zero values (holiday weeks) - verify forecast calculates correctly
+- [x] T086 [P] Test with all-zero historical data - verify forecast shows 0.0 with appropriate message
+- [x] T087 [P] Test backward compatibility: load old snapshot without forecast fields, verify no errors
+- [x] T088 Test current week value exactly equals forecast - verify "→ On track" with 0.0% deviation
 
 ### Documentation
 
-- [ ] T089 [P] Update `.github/copilot-instructions.md` with forecast feature section (see plan.md Phase 1.4)
-- [ ] T090 [P] Add user-facing help content explaining forecast feature and trend indicators
-- [ ] T091 [P] Create migration guide for teams with existing historical data
+- [x] T089 [P] Update `.github/copilot-instructions.md` with forecast feature section (see plan.md Phase 1.4)
+- [x] T090 [P] Add user-facing help content explaining forecast feature and trend indicators
+- [x] T091 [P] Create migration guide for teams with existing historical data
 
 ### Final Validation
 
-- [ ] T092 Run full unit test suite: `.\.venv\Scripts\activate; pytest tests/unit/data/test_metrics_calculator.py -v` - verify >95% coverage
-- [ ] T093 Run quickstart.md validation steps to ensure developer guide is accurate
-- [ ] T094 Verify all 9 metric cards (4 DORA + 5 Flow) display forecasts correctly
-- [ ] T095 Verify all functional requirements FR-001 through FR-019 are satisfied
-- [ ] T096 Verify all success criteria SC-001 through SC-009 are met
-- [ ] T097 Final constitution check: confirm all 5 principles still satisfied post-implementation
+- [x] T092 Run full unit test suite: `.\.venv\Scripts\activate; pytest tests/unit/data/test_metrics_calculator.py -v` - verify >95% coverage
+- [x] T093 Run quickstart.md validation steps to ensure developer guide is accurate
+- [x] T094 Verify all 9 metric cards (4 DORA + 5 Flow) display forecasts correctly
+- [x] T095 Verify all functional requirements FR-001 through FR-019 are satisfied
+- [x] T096 Verify all success criteria SC-001 through SC-009 are met
+- [x] T097 Final constitution check: confirm all 5 principles still satisfied post-implementation
 
 ---
 

@@ -129,15 +129,18 @@ class TestCalculateTrendVsForecast:
         assert result["is_good"] is True
 
     def test_zero_current_value_monday(self):
-        """T018: Test Monday morning scenario with zero current value."""
+        """T018: Test Monday morning scenario with zero current value (Feature 009 - T046)."""
         result = calculate_trend_vs_forecast(
             current_value=0.0, forecast_value=13.0, metric_type="higher_better"
         )
 
         assert result["direction"] == "↘"
         assert result["deviation_percent"] == pytest.approx(-100.0)
-        assert result["color_class"] == "text-danger"
-        assert result["is_good"] is False
+        assert (
+            result["status_text"] == "Week starting..."
+        )  # Special message for Monday morning
+        assert result["color_class"] == "text-secondary"  # Neutral, not danger
+        assert result["is_good"] is True  # Week starting is not a failure
 
 
 class TestCalculateFlowLoadRange:
