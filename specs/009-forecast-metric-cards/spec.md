@@ -96,7 +96,7 @@ As a new team starting to track metrics, I want to see forecast information even
   
 - How does the system handle extreme outlier weeks in historical data?
   - Weighted average naturally dampens outliers (most recent week has 40% weight, oldest has 10%)
-  - Optional: Cap values that exceed 3 standard deviations from median for forecast calculation
+  - No additional outlier capping needed - weighted average provides sufficient smoothing
   
 - What if the current week value is exactly at forecast?
   - Show neutral trend arrow (→) with "On track" status
@@ -114,25 +114,35 @@ As a new team starting to track metrics, I want to see forecast information even
 
 ### Functional Requirements
 
-- **FR-001**: System MUST display forecast benchmarks on all Flow metric cards (Flow Velocity, Flow Time, Flow Efficiency, Flow Load, Flow Distribution)
-- **FR-002**: System MUST display forecast benchmarks on all DORA metric cards (Deployment Frequency, Lead Time, Change Failure Rate, MTTR)
-- **FR-003**: System MUST calculate forecasts using 4-week weighted average with weights: 40% (most recent), 30% (2 weeks ago), 20% (3 weeks ago), 10% (4 weeks ago)
-- **FR-004**: System MUST display trend indicators (↗ → ↘) comparing current value to forecast on all metric cards
-- **FR-005**: System MUST display percentage deviation from forecast (e.g., "+23% above forecast", "-62% vs forecast")
-- **FR-006**: System MUST use ±10% threshold for determining trend direction (↗ if >+10%, ↘ if <-10%, → if within ±10%)
-- **FR-007**: System MUST display Flow Load forecast as a range (±20%) rather than a point estimate (e.g., "~15 items (12-18)")
-- **FR-008**: System MUST color-code forecast trend indicators: green for good (↗ for higher-better metrics, ↘ for lower-better metrics), red for bad, gray for neutral
-- **FR-009**: System MUST handle metrics where lower is better (Flow Time, Lead Time, CFR, MTTR) by inverting trend interpretation
-- **FR-010**: System MUST filter out null or zero values from historical weeks before calculating forecast
-- **FR-011**: System MUST display appropriate message when fewer than 4 weeks of historical data exist (e.g., "based on 2 weeks", "Building baseline...")
-- **FR-012**: System MUST NOT show forecast when fewer than 2 valid historical weeks exist, displaying "Insufficient data for forecast" instead
-- **FR-013**: System MUST display forecast information within existing card body structure without changing card header or layout
-- **FR-014**: System MUST maintain mobile responsiveness with forecast information visible on screens as small as 320px width
-- **FR-015**: System MUST use existing CSS classes and styling patterns (text-center, text-muted, small, mb-1/mb-2) for forecast display
-- **FR-016**: System MUST show forecast with appropriate units matching the metric (items/week, hours, percentage, deploys/week)
-- **FR-017**: System MUST persist forecast data in weekly metric snapshots for historical analysis
-- **FR-018**: System MUST maintain backward compatibility with existing metric snapshots that do not contain forecast data
-- **FR-019**: Current week cards MUST display last completed week's performance badge rather than badges based on current zeros
+- **FR-001**: System MUST display forecast benchmarks on all 9 metric cards (4 DORA: Deployment Frequency, Lead Time for Changes, Change Failure Rate, Mean Time to Recovery; 5 Flow: Flow Velocity, Flow Time, Flow Efficiency, Flow Load, Flow Distribution)
+- **FR-002**: System MUST calculate forecasts using 4-week weighted average with weights: 40% (most recent), 30% (2 weeks ago), 20% (3 weeks ago), 10% (4 weeks ago)
+- **FR-003**: System MUST display trend indicators (↗ → ↘) comparing current value to forecast on all metric cards
+- **FR-004**: System MUST display percentage deviation from forecast (e.g., "+23% above forecast", "-62% vs forecast")
+- **FR-005**: System MUST use ±10% threshold for determining trend direction (↗ if >+10%, ↘ if <-10%, → if within ±10%)
+- **FR-006**: System MUST display Flow Load forecast as a range (±20%) rather than a point estimate (e.g., "~15 items (12-18)")
+- **FR-007**: System MUST color-code forecast trend indicators: green for good (↗ for higher-better metrics, ↘ for lower-better metrics), red for bad, gray for neutral
+- **FR-008**: System MUST handle metrics where lower is better (Flow Time, Lead Time, CFR, MTTR) by inverting trend interpretation
+- **FR-009**: System MUST filter out null or zero values from historical weeks before calculating forecast. If fewer than 2 valid weeks remain after filtering, return None and display "Insufficient data for forecast"
+- **FR-010**: System MUST display appropriate message when fewer than 4 weeks of historical data exist (e.g., "based on 2 weeks", "Building baseline...")
+- **FR-011**: System MUST NOT show forecast when fewer than 2 valid historical weeks exist, displaying "Insufficient data for forecast" instead
+- **FR-012**: System MUST display forecast information within existing card body structure without changing card header or layout
+- **FR-013**: System MUST maintain mobile responsiveness with forecast information visible on screens as small as 320px width
+- **FR-014**: System MUST use existing CSS classes and styling patterns (text-center, text-muted, small, mb-1/mb-2) for forecast display
+- **FR-015**: System MUST show forecast with appropriate units matching the metric (see Unit Mapping below)
+- **FR-016**: System MUST persist forecast data in weekly metric snapshots for historical analysis
+- **FR-017**: System MUST maintain backward compatibility with existing metric snapshots that do not contain forecast data
+- **FR-018**: Current week cards MUST display last completed week's performance badge rather than badges based on current zeros
+
+**Unit Mapping**:
+- Flow Velocity: items/week
+- Flow Time: hours or days (based on magnitude)
+- Flow Efficiency: % (percentage points)
+- Flow Load: items (with range format: "12-18 items")
+- Flow Distribution: % (percentage breakdown by type)
+- Deployment Frequency: deploys/month or deploys/week
+- Lead Time for Changes: hours or days
+- Change Failure Rate: %
+- Mean Time to Recovery: hours
 
 ### Key Entities
 
