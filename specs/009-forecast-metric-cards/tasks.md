@@ -95,15 +95,15 @@ All paths relative to repository root: `D:\Development\burndown-chart\`
 - [x] T035 [US1] Modify Flow metrics callback `calculate_and_display_flow_metrics()` to load forecast data from snapshots and add to metrics_data  
 - [x] T036 [US1] Update `create_metric_cards_grid()` to extract forecast_data and trend_vs_forecast from metric_info and pass to create_metric_card()
 - [x] T036a [US1] Verify forecast data flows correctly from snapshot → callback → UI component
-- [ ] T036 [US1] Update Flow metric card creation calls to include forecast_data and trend_vs_forecast parameters
-- [ ] T036a [US1] Implement badge logic in `callbacks/dora_flow_metrics.py` to use previous completed week's performance tier when current week is < 24 hours old (Monday morning scenario)
+- [X] T036 [US1] Update Flow metric card creation calls to include forecast_data and trend_vs_forecast parameters
+- [X] T036a [US1] Implement badge logic in `callbacks/dora_flow_metrics.py` to use previous completed week's performance tier when current week is < 24 hours old (Monday morning scenario)
 
 ### Verification for US1
 
 - [x] T037 [US1] Manual test: Run app with mock data showing zero current week values, verify all cards display forecast
 - [x] T038 [US1] Verify `metrics_snapshots.json` contains forecast and trend_vs_forecast fields for all 9 metrics after snapshot save
-- [ ] T039 [US1] Verify badges show last week's performance tier instead of current zeros (FR-019)
-- [ ] T039a [US1] Integration test: Simulate Monday morning (current week < 1 day old with zeros), verify all 9 metric cards display W-1 performance badges
+- [X] T039 [US1] Verify badges show last week's performance tier instead of current zeros (FR-019)
+- [X] T039a [US1] Integration test: Simulate Monday morning (current week < 1 day old with zeros), verify all 9 metric cards display W-1 performance badges
 
 **Checkpoint**: User Story 1 complete - Monday morning zero-value problem solved with forecast context
 
@@ -130,10 +130,10 @@ All paths relative to repository root: `D:\Development\burndown-chart\`
 
 ### Verification for US2
 
-- [ ] T047 [US2] Manual test: Set current week value to 5 items with forecast of 13, verify "↘ -62% vs forecast" appears with red styling
-- [ ] T048 [US2] Manual test: Set current week value to 16 items with forecast of 13, verify "↗ +23% above forecast" appears with green styling
-- [ ] T049 [US2] Manual test: Set current week value within ±10% of forecast (e.g., 14 vs 13), verify "→ On track" appears with gray styling
-- [ ] T050 [US2] Verify Flow Load with WIP=24 and range 12-18 shows "↗ +60% above normal" with warning styling
+- [X] T047 [US2] Manual test: Set current week value to 5 items with forecast of 13, verify "↘ -62% vs forecast" appears with red styling
+- [X] T048 [US2] Manual test: Set current week value to 16 items with forecast of 13, verify "↗ +23% above forecast" appears with green styling
+- [X] T049 [US2] Manual test: Set current week value within ±10% of forecast (e.g., 14 vs 13), verify "→ On track" appears with gray styling
+- [X] T050 [US2] Verify Flow Load with WIP=24 and range 12-18 shows "↗ +60% above normal" with warning styling
 
 **Checkpoint**: User Story 2 complete - Mid-week progress tracking enabled with visual trend indicators
 
