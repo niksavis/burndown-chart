@@ -11,7 +11,7 @@ from dash import callback, Output, Input, State, html
 from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
 from datetime import datetime, timedelta
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 import logging
 
 from data.persistence import load_app_settings
@@ -27,26 +27,58 @@ logger = logging.getLogger(__name__)
 #######################################################################
 
 
-def _get_metric_forecast_data(metric_name: str, week_label: str) -> tuple:
-    """Get forecast data for a metric from snapshot (Feature 009).
+def _calculate_dynamic_forecast(
+    weekly_values: List[float],
+    current_value: Optional[float],
+    metric_type: str,
+    metric_name: str = "",
+) -> tuple:
+    """Calculate forecast dynamically based on filtered weekly values (Feature 009).
+
+    This function recalculates the forecast whenever the data_points slider changes,
+    ensuring the forecast reflects the selected time window (e.g., 12w, 26w, 52w).
 
     Args:
-        metric_name: Metric identifier (e.g., "flow_velocity", "dora_lead_time")
-        week_label: ISO week label (e.g., "2025-44")
+        weekly_values: Historical weekly values (already filtered by data_points slider)
+        current_value: Current week's value for trend calculation
+        metric_type: "higher_better" or "lower_better"
+        metric_name: Optional metric name for logging
 
     Returns:
-        Tuple of (forecast_data, trend_vs_forecast) or (None, None) if not available
+        Tuple of (forecast_data, trend_vs_forecast) or (None, None) if insufficient data
     """
-    from data.metrics_snapshots import get_metric_snapshot
+    from data.metrics_calculator import calculate_forecast, calculate_trend_vs_forecast
 
-    snapshot = get_metric_snapshot(week_label, metric_name)
-    if not snapshot:
+    # Need at least 4 weeks for meaningful forecast
+    if not weekly_values or len(weekly_values) < 4:
+        logger.debug(
+            f"Insufficient data for forecast: {metric_name} has {len(weekly_values) if weekly_values else 0} weeks"
+        )
         return None, None
 
-    forecast_data = snapshot.get("forecast")
-    trend_vs_forecast = snapshot.get("trend_vs_forecast")
+    # Calculate forecast using filtered historical data
+    try:
+        forecast_data = calculate_forecast(weekly_values)
+        if not forecast_data:
+            return None, None
 
-    return forecast_data, trend_vs_forecast
+        # Calculate trend vs forecast
+        trend_vs_forecast = None
+        if current_value is not None:
+            try:
+                trend_vs_forecast = calculate_trend_vs_forecast(
+                    current_value=float(current_value),
+                    forecast_value=forecast_data["forecast_value"],
+                    metric_type=metric_type,
+                )
+            except (ValueError, TypeError) as e:
+                logger.warning(f"Failed to calculate trend for {metric_name}: {e}")
+
+        return forecast_data, trend_vs_forecast
+
+    except Exception as e:
+        logger.warning(f"Failed to calculate forecast for {metric_name}: {e}")
+        return None, None
 
 
 #######################################################################
@@ -280,32 +312,40 @@ def load_and_display_dora_metrics(
             },
         }
 
-        # Load forecast data for current week (Feature 009)
-        from data.iso_week_bucketing import get_week_label
+        # Calculate forecast dynamically based on filtered data (Feature 009)
+        # This ensures forecast updates when user changes data_points slider
+        logger.info(
+            f"DORA: Calculating dynamic forecasts for {data_points} weeks of data"
+        )
 
-        current_week_label = get_week_label(datetime.now())
-        logger.info(f"DORA: Loading forecast data for week {current_week_label}")
-
-        # Add forecast data to each metric (Feature 009)
-        # Note: Snapshot keys use "dora_" prefix, but metrics_data keys don't
-        metric_name_mapping = {
-            "deployment_frequency": "dora_deployment_frequency",
-            "lead_time_for_changes": "dora_lead_time",
-            "change_failure_rate": "dora_change_failure_rate",
-            "mean_time_to_recovery": "dora_mttr",
+        # Define metric types for trend calculation
+        metric_type_mapping = {
+            "deployment_frequency": "higher_better",
+            "lead_time_for_changes": "lower_better",
+            "change_failure_rate": "lower_better",
+            "mean_time_to_recovery": "lower_better",
         }
 
-        for display_name, snapshot_name in metric_name_mapping.items():
-            forecast_data, trend_vs_forecast = _get_metric_forecast_data(
-                snapshot_name, current_week_label
+        for metric_name in metrics_data.keys():
+            weekly_values = metrics_data[metric_name].get("weekly_values", [])
+            current_value = metrics_data[metric_name].get("value")
+            metric_type = metric_type_mapping.get(metric_name, "higher_better")
+
+            # Calculate dynamic forecast based on filtered weekly data
+            forecast_data, trend_vs_forecast = _calculate_dynamic_forecast(
+                weekly_values=weekly_values,
+                current_value=current_value,
+                metric_type=metric_type,
+                metric_name=metric_name,
             )
+
             if forecast_data:
-                metrics_data[display_name]["forecast_data"] = forecast_data
+                metrics_data[metric_name]["forecast_data"] = forecast_data
                 logger.info(
-                    f"[Feature 009] Added forecast to {display_name}: {forecast_data.get('forecast_value')}"
+                    f"[Feature 009] Calculated forecast for {metric_name}: {forecast_data.get('forecast_value')}"
                 )
             if trend_vs_forecast:
-                metrics_data[display_name]["trend_vs_forecast"] = trend_vs_forecast
+                metrics_data[metric_name]["trend_vs_forecast"] = trend_vs_forecast
 
         return create_metric_cards_grid(metrics_data)
 
@@ -746,24 +786,55 @@ def calculate_and_display_flow_metrics(
             },
         }
 
-        # Load forecast data for current week (Feature 009)
-        from data.iso_week_bucketing import get_week_label
+        # Calculate forecast dynamically based on filtered data (Feature 009)
+        # This ensures forecast updates when user changes data_points slider
+        logger.info(
+            f"FLOW: Calculating dynamic forecasts for {data_points} weeks of data"
+        )
 
-        current_week_label = get_week_label(datetime.now())
-        logger.info(f"FLOW: Loading forecast data for week {current_week_label}")
+        # Define metric types for trend calculation
+        flow_metric_types = {
+            "flow_velocity": "higher_better",
+            "flow_time": "lower_better",
+            "flow_efficiency": "higher_better",  # Note: 25-40% is ideal, but higher generally better
+            "flow_load": "lower_better",
+        }
 
-        # Add forecast data to each metric
         for metric_name in [
             "flow_velocity",
             "flow_time",
             "flow_efficiency",
             "flow_load",
         ]:
-            forecast_data, trend_vs_forecast = _get_metric_forecast_data(
-                metric_name, current_week_label
+            weekly_values = metrics_data[metric_name].get("weekly_values", [])
+            current_value = metrics_data[metric_name].get("value")
+            metric_type = flow_metric_types.get(metric_name, "higher_better")
+
+            # Calculate dynamic forecast based on filtered weekly data
+            forecast_data, trend_vs_forecast = _calculate_dynamic_forecast(
+                weekly_values=weekly_values,
+                current_value=current_value,
+                metric_type=metric_type,
+                metric_name=metric_name,
             )
+
             if forecast_data:
                 metrics_data[metric_name]["forecast_data"] = forecast_data
+
+                # Special handling for Flow Load range
+                if metric_name == "flow_load":
+                    try:
+                        from data.metrics_calculator import calculate_flow_load_range
+
+                        FLOW_LOAD_RANGE_PERCENT = 0.20  # ±20% range
+                        range_data = calculate_flow_load_range(
+                            forecast_value=forecast_data["forecast_value"],
+                            range_percent=FLOW_LOAD_RANGE_PERCENT,
+                        )
+                        forecast_data["forecast_range"] = range_data
+                    except (ValueError, TypeError) as e:
+                        logger.warning(f"Failed to calculate Flow Load range: {e}")
+
             if trend_vs_forecast:
                 metrics_data[metric_name]["trend_vs_forecast"] = trend_vs_forecast
 

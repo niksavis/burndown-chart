@@ -213,32 +213,60 @@ def create_flow_efficiency_trend_chart(
 
     fig = go.Figure()
 
-    # Add healthy range zone (25-40%) - the "sweet spot" for flow efficiency
-    # This range indicates good balance between active work and wait time
+    # Add "Good" range zone (25-40%) - optimal flow efficiency
+    # This range indicates excellent balance between active work and wait time
     fig.add_shape(
         type="rect",
         x0=dates[0] if dates else 0,
         x1=dates[-1] if dates else 1,
         y0=25,
         y1=40,
-        fillcolor="rgba(25, 135, 84, 0.1)",  # Light green with transparency
+        fillcolor="rgba(25, 135, 84, 0.15)",  # Darker green for optimal zone
         line=dict(
-            color="rgba(25, 135, 84, 0.3)",
+            color="rgba(25, 135, 84, 0.4)",
             width=1,
             dash="dot",
         ),
         layer="below",
     )
 
-    # Add annotation explaining the healthy range
+    # Add "Fair" range zone (15-25%) - acceptable flow efficiency
+    # Industry research shows 15-25% is typical in most organizations
+    fig.add_shape(
+        type="rect",
+        x0=dates[0] if dates else 0,
+        x1=dates[-1] if dates else 1,
+        y0=15,
+        y1=25,
+        fillcolor="rgba(255, 193, 7, 0.1)",  # Light yellow for acceptable zone
+        line=dict(
+            color="rgba(255, 193, 7, 0.3)",
+            width=1,
+            dash="dot",
+        ),
+        layer="below",
+    )
+
+    # Add annotation explaining the optimal range
     fig.add_annotation(
         x=dates[len(dates) // 2] if dates else 0.5,  # Middle of chart
         y=32.5,  # Middle of 25-40% range
-        text="Healthy Range (25-40%)",
+        text="Optimal (25-40%)",
         showarrow=False,
-        font=dict(size=10, color="rgba(25, 135, 84, 0.7)"),
-        bgcolor="rgba(255, 255, 255, 0.8)",
+        font=dict(size=10, color="rgba(25, 135, 84, 0.8)"),
+        bgcolor="rgba(255, 255, 255, 0.9)",
         borderpad=4,
+    )
+
+    # Add annotation for fair/typical range
+    fig.add_annotation(
+        x=dates[len(dates) // 4] if dates else 0.25,  # Left quarter of chart
+        y=20,  # Middle of 15-25% range
+        text="Typical (15-25%)",
+        showarrow=False,
+        font=dict(size=9, color="rgba(255, 193, 7, 0.8)"),
+        bgcolor="rgba(255, 255, 255, 0.9)",
+        borderpad=3,
     )
 
     # REMOVED: Performance zones create visual noise

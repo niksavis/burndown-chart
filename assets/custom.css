@@ -3175,6 +3175,18 @@ label.fw-medium {
   }
 }
 
+/* Reduce excessive white space below plotly graphs in metric cards */
+.metric-card .plotly-graph-div,
+.metric-trend-section .plotly-graph-div {
+  margin-bottom: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+/* Ensure collapsed detail charts don't add excessive spacing */
+.metric-trend-section .card-body {
+  padding-bottom: 0.5rem !important; /* Minimal bottom padding */
+}
+
 /* Chart loading states - mobile optimized */
 @media (max-width: 767px) {
   .skeleton-loader {
@@ -3540,6 +3552,12 @@ label.fw-medium {
 .metric-cards-grid,
 .empty-state-banner {
   animation: smoothFadeIn 0.15s ease-out;
+}
+
+/* Add top spacing so cards don't get cut off when they "fly up" */
+.metric-cards-grid {
+  margin-top: 1.5rem; /* 24px spacing at top */
+  padding-top: 0.5rem; /* Extra padding for animation buffer */
 }
 
 /* Container for metric cards - prevent layout shift during updates */

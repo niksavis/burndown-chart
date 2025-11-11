@@ -1529,8 +1529,8 @@ def calculate_trend_vs_forecast(
     if not isinstance(forecast_value, (int, float)):
         raise TypeError(f"forecast_value must be numeric, got {type(forecast_value)}")
 
-    if forecast_value <= 0:
-        raise ValueError(f"forecast_value must be positive, got {forecast_value}")
+    if forecast_value < 0:
+        raise ValueError(f"forecast_value must be non-negative, got {forecast_value}")
 
     valid_types = ["higher_better", "lower_better"]
     if metric_type not in valid_types:
@@ -1538,7 +1538,41 @@ def calculate_trend_vs_forecast(
             f"metric_type must be one of {valid_types}, got '{metric_type}'"
         )
 
-    # Calculate deviation percentage
+    # Special case: Zero forecast value (perfect score for lower_better metrics like CFR, MTTR)
+    # For metrics like Change Failure Rate or MTTR, a forecast of 0 means "no failures expected"
+    if forecast_value == 0:
+        if current_value == 0:
+            # Both zero - perfect performance maintained
+            direction = "→"
+            status_text = "On track"
+            color_class = "text-success"  # Zero failures/incidents is good!
+            is_good = True
+            deviation_percent = 0.0
+        elif metric_type == "lower_better":
+            # Forecast was 0 (perfect) but current > 0 (degradation)
+            # Can't calculate percentage (division by zero), so use fixed messaging
+            direction = "↗"
+            status_text = "Above forecast"
+            color_class = "text-danger"
+            is_good = False
+            deviation_percent = 100.0  # Arbitrary large value to indicate increase
+        else:  # higher_better
+            # Forecast was 0 but current > 0 (improvement)
+            direction = "↗"
+            status_text = "Above forecast"
+            color_class = "text-success"
+            is_good = True
+            deviation_percent = 100.0  # Arbitrary large value to indicate increase
+
+        return {
+            "direction": direction,
+            "deviation_percent": deviation_percent,
+            "status_text": status_text,
+            "color_class": color_class,
+            "is_good": is_good,
+        }
+
+    # Calculate deviation percentage (forecast > 0 guaranteed here)
     deviation_percent = ((current_value - forecast_value) / forecast_value) * 100
 
     # Determine direction and status based on metric type
@@ -1555,7 +1589,7 @@ def calculate_trend_vs_forecast(
     elif abs_deviation <= (threshold * 100):
         direction = "→"
         status_text = "On track"
-        color_class = "text-secondary"
+        color_class = "text-success"  # GREEN: "On track" means good performance
         is_good = True
     else:
         # Outside threshold - interpret based on metric type
