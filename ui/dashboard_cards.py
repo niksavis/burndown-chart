@@ -216,114 +216,430 @@ def create_dashboard_overview_content(metrics: Dict[str, Any]) -> html.Div:
         metrics: Dashboard metrics dictionary
 
     Returns:
-        Div containing overview content
+        Div containing overview content with enhanced visuals
     """
     completion_percentage = metrics.get("completion_percentage", 0.0)
     days_to_completion = metrics.get("days_to_completion", 0)
     completion_confidence = metrics.get("completion_confidence", 0)
     velocity_items = metrics.get("current_velocity_items", 0.0)
+    velocity_trend = metrics.get("velocity_trend", "stable")
+    days_to_deadline = metrics.get("days_to_deadline", 0)
 
-    # Create summary row
+    # Calculate project health score (0-100)
+    health_score = _calculate_health_score(metrics)
+    health_color, health_label = _get_health_color_and_label(health_score)
+
+    # Determine trend icon and color
+    trend_icons = {
+        "increasing": ("fas fa-arrow-up", "#198754"),  # Green
+        "stable": ("fas fa-minus", "#0dcaf0"),  # Cyan
+        "decreasing": ("fas fa-arrow-down", "#ffc107"),  # Warning
+        "unknown": ("fas fa-question", "#6c757d"),  # Gray
+    }
+    trend_icon, trend_color = trend_icons.get(velocity_trend, trend_icons["unknown"])
+
+    # Create summary row with enhanced visuals
     return html.Div(
         [
+            # Project Health Score - Prominent at top
             dbc.Row(
                 [
-                    # Progress summary
                     dbc.Col(
                         [
                             html.Div(
                                 [
-                                    html.Small(
-                                        "Progress",
-                                        className="text-muted text-uppercase d-block mb-1",
+                                    html.Div(
+                                        [
+                                            html.Small(
+                                                "Project Health Score",
+                                                className="text-muted text-uppercase d-block mb-2 fw-medium",
+                                            ),
+                                            html.Div(
+                                                [
+                                                    html.H1(
+                                                        f"{health_score}",
+                                                        className="mb-0 d-inline-block",
+                                                        style={
+                                                            "color": health_color,
+                                                            "fontSize": "3.5rem",
+                                                            "fontWeight": "700",
+                                                        },
+                                                    ),
+                                                    html.Span(
+                                                        "/100",
+                                                        className="text-muted ms-2",
+                                                        style={"fontSize": "1.5rem"},
+                                                    ),
+                                                ],
+                                            ),
+                                            html.Div(
+                                                [
+                                                    dbc.Badge(
+                                                        health_label,
+                                                        color=health_color.replace(
+                                                            "#", ""
+                                                        ),
+                                                        className="mt-2",
+                                                        style={
+                                                            "fontSize": "0.875rem",
+                                                            "padding": "0.5rem 1rem",
+                                                        },
+                                                    ),
+                                                ],
+                                            ),
+                                        ],
+                                        className="text-center",
                                     ),
-                                    html.H4(
-                                        f"{completion_percentage:.1f}%",
-                                        className="mb-0",
-                                        style={"color": "#0d6efd"},
+                                    # Progress bar
+                                    html.Div(
+                                        [
+                                            html.Small(
+                                                f"{completion_percentage:.1f}% Complete",
+                                                className="text-muted d-block mb-1 text-center",
+                                                style={"fontSize": "0.75rem"},
+                                            ),
+                                            dbc.Progress(
+                                                value=completion_percentage,
+                                                className="mb-0",
+                                                style={"height": "8px"},
+                                                color="success"
+                                                if completion_percentage >= 75
+                                                else "primary",
+                                            ),
+                                        ],
+                                        className="mt-3",
                                     ),
                                 ],
-                                className="text-center",
+                                className="p-3",
                             ),
                         ],
-                        xs=6,
-                        md=3,
-                        className="mb-3",
+                        xs=12,
+                        md=4,
+                        className="mb-3 mb-md-0",
                     ),
-                    # Estimated completion
+                    # Key Metrics Grid
                     dbc.Col(
                         [
-                            html.Div(
+                            dbc.Row(
                                 [
-                                    html.Small(
-                                        "Est. Completion",
-                                        className="text-muted text-uppercase d-block mb-1",
+                                    # Estimated Completion with icon
+                                    dbc.Col(
+                                        [
+                                            html.Div(
+                                                [
+                                                    html.I(
+                                                        className="fas fa-calendar-check text-success mb-2",
+                                                        style={"fontSize": "1.5rem"},
+                                                    ),
+                                                    html.Small(
+                                                        "Est. Completion",
+                                                        className="text-muted text-uppercase d-block mb-1",
+                                                    ),
+                                                    html.H4(
+                                                        f"{days_to_completion} days"
+                                                        if days_to_completion
+                                                        else "N/A",
+                                                        className="mb-0",
+                                                        style={"color": "#198754"},
+                                                    ),
+                                                ],
+                                                className="text-center",
+                                            ),
+                                        ],
+                                        xs=6,
+                                        className="mb-3",
                                     ),
-                                    html.H4(
-                                        f"{days_to_completion} days"
-                                        if days_to_completion
-                                        else "N/A",
-                                        className="mb-0",
-                                        style={"color": "#198754"},
+                                    # Velocity with trend indicator
+                                    dbc.Col(
+                                        [
+                                            html.Div(
+                                                [
+                                                    html.I(
+                                                        className=trend_icon,
+                                                        style={
+                                                            "fontSize": "1.5rem",
+                                                            "color": trend_color,
+                                                        },
+                                                    ),
+                                                    html.Small(
+                                                        "Velocity",
+                                                        className="text-muted text-uppercase d-block mb-1 mt-2",
+                                                    ),
+                                                    html.H4(
+                                                        f"{velocity_items:.1f}/wk"
+                                                        if velocity_items
+                                                        else "N/A",
+                                                        className="mb-0",
+                                                        style={"color": trend_color},
+                                                    ),
+                                                ],
+                                                className="text-center",
+                                            ),
+                                        ],
+                                        xs=6,
+                                        className="mb-3",
+                                    ),
+                                    # Confidence
+                                    dbc.Col(
+                                        [
+                                            html.Div(
+                                                [
+                                                    html.I(
+                                                        className="fas fa-chart-line text-warning mb-2",
+                                                        style={"fontSize": "1.5rem"},
+                                                    ),
+                                                    html.Small(
+                                                        "Confidence",
+                                                        className="text-muted text-uppercase d-block mb-1",
+                                                    ),
+                                                    html.H4(
+                                                        f"{completion_confidence}%"
+                                                        if completion_confidence
+                                                        else "N/A",
+                                                        className="mb-0",
+                                                        style={"color": "#ffc107"},
+                                                    ),
+                                                ],
+                                                className="text-center",
+                                            ),
+                                        ],
+                                        xs=6,
+                                        className="mb-3 mb-md-0",
+                                    ),
+                                    # Days to Deadline
+                                    dbc.Col(
+                                        [
+                                            html.Div(
+                                                [
+                                                    html.I(
+                                                        className="fas fa-flag-checkered text-primary mb-2",
+                                                        style={"fontSize": "1.5rem"},
+                                                    ),
+                                                    html.Small(
+                                                        "To Deadline",
+                                                        className="text-muted text-uppercase d-block mb-1",
+                                                    ),
+                                                    html.H4(
+                                                        f"{days_to_deadline} days"
+                                                        if days_to_deadline
+                                                        else "N/A",
+                                                        className="mb-0",
+                                                        style={"color": "#0d6efd"},
+                                                    ),
+                                                ],
+                                                className="text-center",
+                                            ),
+                                        ],
+                                        xs=6,
+                                        className="mb-3 mb-md-0",
                                     ),
                                 ],
-                                className="text-center",
+                                className="g-3",
                             ),
                         ],
-                        xs=6,
-                        md=3,
-                        className="mb-3",
-                    ),
-                    # Confidence level
-                    dbc.Col(
-                        [
-                            html.Div(
-                                [
-                                    html.Small(
-                                        "Confidence",
-                                        className="text-muted text-uppercase d-block mb-1",
-                                    ),
-                                    html.H4(
-                                        f"{completion_confidence}%"
-                                        if completion_confidence
-                                        else "N/A",
-                                        className="mb-0",
-                                        style={"color": "#ffc107"},
-                                    ),
-                                ],
-                                className="text-center",
-                            ),
-                        ],
-                        xs=6,
-                        md=3,
-                        className="mb-3",
-                    ),
-                    # Current velocity
-                    dbc.Col(
-                        [
-                            html.Div(
-                                [
-                                    html.Small(
-                                        "Velocity",
-                                        className="text-muted text-uppercase d-block mb-1",
-                                    ),
-                                    html.H4(
-                                        f"{velocity_items:.1f}/wk"
-                                        if velocity_items
-                                        else "N/A",
-                                        className="mb-0",
-                                        style={"color": "#0dcaf0"},
-                                    ),
-                                ],
-                                className="text-center",
-                            ),
-                        ],
-                        xs=6,
-                        md=3,
-                        className="mb-3",
+                        xs=12,
+                        md=8,
                     ),
                 ],
-                className="g-3",
+                className="mb-3",
             ),
+            # Key Insights Section
+            _create_key_insights(metrics),
         ]
+    )
+
+
+def _calculate_health_score(metrics: Dict[str, Any]) -> int:
+    """Calculate overall project health score (0-100).
+
+    Formula considers:
+    - Progress (25%): How much work is complete
+    - Schedule adherence (30%): Are we on track for deadline
+    - Velocity stability (25%): Is team velocity consistent
+    - Confidence (20%): How confident is the estimate
+
+    Args:
+        metrics: Dashboard metrics dictionary
+
+    Returns:
+        Health score from 0-100
+    """
+    # Progress score (0-25 points)
+    completion_percentage = metrics.get("completion_percentage", 0.0)
+    progress_score = (completion_percentage / 100) * 25
+
+    # Schedule adherence score (0-30 points)
+    days_to_completion = metrics.get("days_to_completion", 0)
+    days_to_deadline = metrics.get("days_to_deadline", 0)
+
+    if days_to_completion and days_to_deadline:
+        schedule_ratio = (
+            days_to_completion / days_to_deadline if days_to_deadline > 0 else 1.0
+        )
+        if schedule_ratio <= 0.8:  # Ahead of schedule
+            schedule_score = 30
+        elif schedule_ratio <= 1.0:  # On schedule
+            schedule_score = 25
+        elif schedule_ratio <= 1.2:  # Slightly behind
+            schedule_score = 15
+        else:  # Behind schedule
+            schedule_score = 5
+    else:
+        schedule_score = 15  # Neutral score if no data
+
+    # Velocity stability score (0-25 points)
+    velocity_trend = metrics.get("velocity_trend", "unknown")
+    trend_scores = {
+        "increasing": 25,
+        "stable": 20,
+        "decreasing": 10,
+        "unknown": 15,
+    }
+    velocity_score = trend_scores.get(velocity_trend, 15)
+
+    # Confidence score (0-20 points)
+    confidence = metrics.get("completion_confidence", 0)
+    confidence_score = (confidence / 100) * 20 if confidence else 10
+
+    # Calculate total (0-100)
+    total_score = int(
+        progress_score + schedule_score + velocity_score + confidence_score
+    )
+    return min(100, max(0, total_score))
+
+
+def _get_health_color_and_label(score: int) -> tuple[str, str]:
+    """Get color and label for health score.
+
+    Args:
+        score: Health score (0-100)
+
+    Returns:
+        Tuple of (color_hex, label_text)
+    """
+    if score >= 80:
+        return "#198754", "Excellent"  # Green
+    elif score >= 60:
+        return "#0dcaf0", "Good"  # Cyan
+    elif score >= 40:
+        return "#ffc107", "Fair"  # Yellow
+    else:
+        return "#fd7e14", "Needs Attention"  # Orange
+
+
+def _create_key_insights(metrics: Dict[str, Any]) -> html.Div:
+    """Create key insights section with actionable intelligence.
+
+    Args:
+        metrics: Dashboard metrics dictionary
+
+    Returns:
+        Div containing key insights
+    """
+    insights = []
+
+    # Schedule insight
+    days_to_completion = metrics.get("days_to_completion", 0)
+    days_to_deadline = metrics.get("days_to_deadline", 0)
+
+    if days_to_completion and days_to_deadline:
+        days_diff = days_to_deadline - days_to_completion
+        if days_diff > 0:
+            insights.append(
+                {
+                    "icon": "fas fa-check-circle",
+                    "color": "success",
+                    "text": f"Trending {abs(days_diff)} days ahead of deadline",
+                }
+            )
+        elif days_diff < 0:
+            insights.append(
+                {
+                    "icon": "fas fa-exclamation-triangle",
+                    "color": "warning",
+                    "text": f"Trending {abs(days_diff)} days behind deadline",
+                }
+            )
+        else:
+            insights.append(
+                {
+                    "icon": "fas fa-bullseye",
+                    "color": "primary",
+                    "text": "On track to meet deadline",
+                }
+            )
+
+    # Velocity insight
+    velocity_trend = metrics.get("velocity_trend", "unknown")
+    if velocity_trend == "increasing":
+        insights.append(
+            {
+                "icon": "fas fa-arrow-up",
+                "color": "success",
+                "text": "Team velocity is accelerating",
+            }
+        )
+    elif velocity_trend == "decreasing":
+        insights.append(
+            {
+                "icon": "fas fa-arrow-down",
+                "color": "warning",
+                "text": "Team velocity is declining - consider addressing blockers",
+            }
+        )
+
+    # Progress insight
+    completion_percentage = metrics.get("completion_percentage", 0.0)
+    if completion_percentage >= 75:
+        insights.append(
+            {
+                "icon": "fas fa-star",
+                "color": "success",
+                "text": "Project is in final stretch - great progress!",
+            }
+        )
+
+    # Return insights section if we have any
+    if not insights:
+        return html.Div()
+
+    return html.Div(
+        [
+            dbc.Card(
+                dbc.CardBody(
+                    [
+                        html.Div(
+                            [
+                                html.I(className="fas fa-lightbulb me-2"),
+                                html.Strong("Key Insights"),
+                            ],
+                            className="mb-2",
+                        ),
+                        html.Div(
+                            [
+                                html.Div(
+                                    [
+                                        html.I(
+                                            className=f"{insight['icon']} text-{insight['color']} me-2",
+                                        ),
+                                        html.Span(insight["text"]),
+                                    ],
+                                    className="mb-2"
+                                    if i < len(insights) - 1
+                                    else "mb-0",
+                                )
+                                for i, insight in enumerate(insights)
+                            ],
+                        ),
+                    ],
+                    className="py-2 px-3",
+                ),
+                className="border-0",
+                style={
+                    "backgroundColor": "#e7f3ff",  # Light blue background
+                    "borderLeft": "4px solid #0d6efd",
+                },
+            ),
+        ],
+        className="mt-3",
     )

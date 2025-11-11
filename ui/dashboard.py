@@ -147,6 +147,102 @@ def create_dashboard_layout(
                 ],
                 className="mb-4",
             ),
+            # Quick Actions Section
+            html.Div(
+                [
+                    dbc.Card(
+                        dbc.CardBody(
+                            [
+                                html.Div(
+                                    [
+                                        html.I(className="fas fa-bolt me-2"),
+                                        html.Strong("Quick Actions"),
+                                    ],
+                                    className="mb-3",
+                                ),
+                                dbc.Row(
+                                    [
+                                        dbc.Col(
+                                            dbc.Button(
+                                                [
+                                                    html.I(
+                                                        className="fas fa-sync-alt me-2"
+                                                    ),
+                                                    "Refresh Data",
+                                                ],
+                                                id="dashboard-refresh-data",
+                                                color="primary",
+                                                outline=True,
+                                                className="w-100",
+                                            ),
+                                            xs=12,
+                                            sm=6,
+                                            md=3,
+                                            className="mb-2 mb-md-0",
+                                        ),
+                                        dbc.Col(
+                                            dbc.Button(
+                                                [
+                                                    html.I(
+                                                        className="fas fa-chart-line me-2"
+                                                    ),
+                                                    "View Burndown",
+                                                ],
+                                                id="dashboard-view-burndown",
+                                                color="success",
+                                                outline=True,
+                                                className="w-100",
+                                                href="#",
+                                            ),
+                                            xs=12,
+                                            sm=6,
+                                            md=3,
+                                            className="mb-2 mb-md-0",
+                                        ),
+                                        dbc.Col(
+                                            dbc.Button(
+                                                [
+                                                    html.I(className="fas fa-cog me-2"),
+                                                    "Settings",
+                                                ],
+                                                id="dashboard-open-settings",
+                                                color="secondary",
+                                                outline=True,
+                                                className="w-100",
+                                            ),
+                                            xs=12,
+                                            sm=6,
+                                            md=3,
+                                            className="mb-2 mb-md-0",
+                                        ),
+                                        dbc.Col(
+                                            dbc.Button(
+                                                [
+                                                    html.I(className="fas fa-bug me-2"),
+                                                    "Bug Analysis",
+                                                ],
+                                                id="dashboard-view-bugs",
+                                                color="warning",
+                                                outline=True,
+                                                className="w-100",
+                                                href="#",
+                                            ),
+                                            xs=12,
+                                            sm=6,
+                                            md=3,
+                                            className="mb-2 mb-md-0",
+                                        ),
+                                    ],
+                                    className="g-2",
+                                ),
+                            ],
+                            className="py-3",
+                        ),
+                        className="border-0 shadow-sm",
+                    ),
+                ],
+                className="mb-4",
+            ),
             # Information and help section
             html.Div(
                 id="dashboard-info-section",
