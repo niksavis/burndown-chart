@@ -452,9 +452,14 @@ def create_metrics_skeleton(num_cards: int = 4) -> dbc.Row:
     )
 
     # Create 2-column grid with specified number of cards
+    # For Flow metrics (num_cards=5), the last card (Work Distribution) spans full width
     cols = []
-    for _ in range(num_cards):
-        cols.append(dbc.Col(skeleton_card, xs=12, lg=6, className="mb-3"))
+    for i in range(num_cards):
+        # Last card in 5-card layout spans full width (Work Distribution)
+        if num_cards == 5 and i == num_cards - 1:
+            cols.append(dbc.Col(skeleton_card, xs=12, lg=12, className="mb-3"))
+        else:
+            cols.append(dbc.Col(skeleton_card, xs=12, lg=6, className="mb-3"))
 
     return dbc.Row(
         cols,

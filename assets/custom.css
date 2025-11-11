@@ -3548,6 +3548,10 @@ label.fw-medium {
   /* Remove animation - skeleton should be visible right away */
   margin-top: 0.75rem; /* 12px spacing at top - MUST match .metric-cards-grid */
   padding-top: 0.25rem; /* Minimal padding for animation buffer - MUST match .metric-cards-grid */
+  padding-left: 0.5rem; /* Horizontal padding for shadow clearance - MUST match .metric-cards-grid */
+  padding-right: 0.5rem; /* Horizontal padding for shadow clearance - MUST match .metric-cards-grid */
+  margin-left: -0.25rem; /* Compensate for added padding - MUST match .metric-cards-grid */
+  margin-right: -0.25rem; /* Compensate for added padding - MUST match .metric-cards-grid */
 }
 
 /* Content that replaces skeleton - smooth fade-in to prevent flicker */
