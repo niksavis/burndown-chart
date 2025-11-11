@@ -3530,11 +3530,10 @@ label.fw-medium {
   border-radius: 4px;
 }
 
-/* Skeleton container - start hidden, only show if content takes time to load */
+/* Skeleton container - show immediately to prevent flash of empty content */
 .metric-cards-skeleton {
-  opacity: 0;
-  animation: delayedFadeIn 0.3s ease-in forwards;
-  animation-delay: 0.1s; /* Only appear if content takes longer than 100ms */
+  opacity: 1; /* Start visible immediately */
+  /* Remove animation - skeleton should be visible right away */
 }
 
 /* Content that replaces skeleton - smooth fade-in to prevent flicker */

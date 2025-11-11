@@ -88,10 +88,6 @@ def load_and_display_dora_metrics(
         Metrics cards HTML (no toast messages, consistent with Flow Metrics)
     """
     try:
-        # Only process if DORA tab is active (optimization)
-        if active_tab != "tab-dora-metrics":
-            raise PreventUpdate
-
         # Check if JIRA data is loaded FIRST (before checking for metrics)
         if not jira_data_store or not jira_data_store.get("issues"):
             from ui.empty_states import create_no_data_state
