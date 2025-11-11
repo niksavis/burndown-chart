@@ -3568,6 +3568,15 @@ label.fw-medium {
   overflow: visible !important; /* Allow cards to fly up without clipping */
 }
 
+/* Force text-style rendering for arrow characters to prevent emoji blue box backgrounds */
+.metric-card .small span:first-child,
+.metric-trend-arrow {
+  font-family: inherit;
+  font-variant-emoji: text; /* Force text presentation, not emoji */
+  -webkit-font-variant-emoji: text;
+  -moz-font-variant-emoji: text;
+}
+
 @keyframes smoothFadeIn {
   0% {
     opacity: 0;

@@ -206,7 +206,11 @@ def create_forecast_section(
         forecast_children.append(
             html.Div(
                 [
-                    html.Span(direction, className="me-1"),
+                    html.Span(
+                        direction,
+                        className="me-1",
+                        style={"fontFamily": "inherit", "fontVariantEmoji": "text"},
+                    ),
                     html.Span(status_text, className=f"{color_class}"),
                 ],
                 className="text-center small",
