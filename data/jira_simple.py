@@ -620,9 +620,12 @@ def fetch_jira_issues_with_changelog(
             logger.error("JIRA API endpoint not configured")
             return False, []
 
-        # Headers
-        headers = {"Accept": "application/json"}
-        if config["token"]:
+        # Headers for POST request
+        headers = {
+            "Accept": "application/json",
+            "Content-Type": "application/json",  # Required for POST with JSON body
+        }
+        if config.get("token"):  # Use .get() to safely handle missing token
             headers["Authorization"] = f"Bearer {config['token']}"
 
         # Fields to fetch (same as regular fetch + changelog)
@@ -664,12 +667,17 @@ def fetch_jira_issues_with_changelog(
         )
 
         while True:
-            params = {
+            # Use POST method with body parameters to avoid HTTP 414 "Request-URI Too Long" errors
+            # POST /search is read-only (same as GET) - documented by Atlassian for complex queries
+            # Convert fields string to list for proper JSON formatting
+            fields_list = [f.strip() for f in fields.split(",")]
+
+            body = {
                 "jql": jql,
                 "maxResults": page_size,
                 "startAt": start_at,
-                "fields": fields,
-                "expand": "changelog",  # THIS IS THE KEY: Expand changelog
+                "fields": fields_list,
+                "expand": ["changelog"],  # THIS IS THE KEY: Expand changelog
             }
 
             # Progress reporting
@@ -692,10 +700,12 @@ def fetch_jira_issues_with_changelog(
 
             while retry_count < max_retries:
                 try:
-                    response = requests.get(
+                    # POST method avoids URL length limits (HTTP 414 errors)
+                    # Parameters go in request body instead of URL
+                    response = requests.post(
                         api_endpoint,
                         headers=headers,
-                        params=params,
+                        json=body,  # Send parameters in body, not URL
                         timeout=90,  # Increased from 30s to 90s
                     )
                     break  # Success, exit retry loop
