@@ -3,6 +3,7 @@ Dashboard UI Module
 
 This module provides the dashboard layout components for the Dashboard tab.
 Supports User Story 2: Dashboard as Primary Landing View.
+Updated to match DORA/Flow metrics visual design for unified user experience.
 """
 
 #######################################################################
@@ -10,11 +11,7 @@ Supports User Story 2: Dashboard as Primary Landing View.
 #######################################################################
 # Third-party library imports
 import dash_bootstrap_components as dbc
-from dash import html
-
-# Application imports
-from ui.cards import create_dashboard_metrics_card
-from ui.style_constants import get_responsive_cols
+from dash import html, dcc
 
 
 #######################################################################
@@ -22,15 +19,18 @@ from ui.style_constants import get_responsive_cols
 #######################################################################
 
 
-def create_dashboard_layout(metrics: dict | None = None, pert_chart=None) -> html.Div:
+def create_dashboard_layout(
+    metrics: dict | None = None, pert_chart=None
+) -> dbc.Container:
     """
     Create complete dashboard layout with metrics cards and PERT timeline.
 
     This function supports User Story 2: Dashboard as Primary Landing View.
-    It composes all dashboard components in a responsive grid layout:
-    - 2x2 grid of metric cards on desktop
-    - Stacked cards on mobile
-    - PERT timeline chart below cards
+    Updated to match DORA/Flow metrics visual design with:
+    - Modern metric cards with performance badges
+    - Compact overview section with light gray background
+    - Consistent spacing and typography
+    - Responsive grid layout
 
     Args:
         metrics: DashboardMetrics dictionary (optional for initial render)
@@ -58,106 +58,71 @@ def create_dashboard_layout(metrics: dict | None = None, pert_chart=None) -> htm
             "velocity_trend": "unknown",
         }
 
-    # Create responsive column configuration
-    # Mobile: 12 cols (full width), Tablet: 6 cols (2 per row), Desktop: 3 cols (4 per row)
-    col_config = get_responsive_cols(mobile=12, tablet=6, desktop=3)
-
-    return html.Div(
+    return dbc.Container(
         [
-            # Dashboard Header
-            dbc.Row(
-                [
-                    dbc.Col(
+            # Store for tracking if user has seen welcome banner (uses localStorage)
+            dcc.Store(
+                id="dashboard-welcome-dismissed", storage_type="local", data=False
+            ),
+            # Welcome banner for first-time users (dismissible)
+            html.Div(
+                id="dashboard-welcome-banner",
+                children=[],  # Will be populated by callback based on storage
+            ),
+            # Compact overview section with distinct background (similar to DORA/Flow)
+            html.Div(
+                id="dashboard-overview-wrapper",
+                children=[
+                    dbc.Card(
+                        dbc.CardBody(
+                            [
+                                html.Div(
+                                    id="dashboard-overview",
+                                    children=[],  # Will be populated by callback
+                                ),
+                            ],
+                            className="pt-3 px-3 pb-0",  # Top and side padding, no bottom padding
+                        ),
+                        className="mb-3 overview-section",
+                        style={
+                            "backgroundColor": "#f8f9fa",  # Light gray background
+                            "border": "none",
+                            "borderRadius": "8px",
+                        },
+                    ),
+                    # Info banner with balanced spacing
+                    html.P(
                         [
-                            html.H4(
-                                [
-                                    html.I(className="fas fa-tachometer-alt me-2"),
-                                    "Project Dashboard",
-                                ],
-                                className="mb-1",
-                            ),
-                            html.P(
-                                "Real-time project health metrics and forecasts",
-                                className="text-muted mb-3",
-                            ),
+                            html.I(className="fas fa-info-circle me-2"),
+                            "Project health metrics updated in real-time. Use ",
+                            html.Strong("Update Data"),
+                            " button to refresh from JIRA.",
                         ],
-                        width=12,
+                        className="text-muted small mb-3 mt-3",  # Equal top and bottom margin
                     ),
                 ],
+                style={"display": "block"},  # Always shown for dashboard
             ),
-            # Metrics Cards Row
-            dbc.Row(
-                [
-                    # Completion Forecast Card
-                    dbc.Col(
-                        [
-                            html.Div(
-                                id="dashboard-forecast-card-container",
-                                children=create_dashboard_metrics_card(
-                                    metrics,
-                                    card_type="forecast",
-                                    id="dashboard-forecast-card",
-                                ),
-                            ),
-                        ],
-                        **col_config,
-                        className="mb-3",
-                    ),
-                    # Velocity Card
-                    dbc.Col(
-                        [
-                            html.Div(
-                                id="dashboard-velocity-card-container",
-                                children=create_dashboard_metrics_card(
-                                    metrics,
-                                    card_type="velocity",
-                                    id="dashboard-velocity-card",
-                                ),
-                            ),
-                        ],
-                        **col_config,
-                        className="mb-3",
-                    ),
-                    # Remaining Work Card
-                    dbc.Col(
-                        [
-                            html.Div(
-                                id="dashboard-remaining-card-container",
-                                children=create_dashboard_metrics_card(
-                                    metrics,
-                                    card_type="remaining",
-                                    id="dashboard-remaining-card",
-                                ),
-                            ),
-                        ],
-                        **col_config,
-                        className="mb-3",
-                    ),
-                    # PERT Timeline Card
-                    dbc.Col(
-                        [
-                            html.Div(
-                                id="dashboard-pert-card-container",
-                                children=create_dashboard_metrics_card(
-                                    metrics,
-                                    card_type="pert",
-                                    id="dashboard-pert-card",
-                                ),
-                            ),
-                        ],
-                        **col_config,
-                        className="mb-3",
-                    ),
-                ],
-                className="g-3",
+            # Metrics Cards Grid (modern style matching DORA/Flow)
+            html.Div(
+                id="dashboard-metrics-cards-container",
+                children=[],  # Will be populated by callback
+                className="mb-4",
             ),
-            # PERT Timeline Chart Row
+            # PERT Timeline Chart Section
             dbc.Row(
                 [
                     dbc.Col(
                         [
                             dbc.Card(
                                 [
+                                    dbc.CardHeader(
+                                        [
+                                            html.I(className="fas fa-chart-line me-2"),
+                                            "PERT Timeline Analysis",
+                                        ],
+                                        className="fw-bold",
+                                    ),
                                     dbc.CardBody(
                                         [
                                             html.Div(
@@ -174,14 +139,160 @@ def create_dashboard_layout(metrics: dict | None = None, pert_chart=None) -> htm
                                         ],
                                     ),
                                 ],
-                                className="shadow-sm",
+                                className="border-0 shadow-sm",
                             ),
                         ],
                         width=12,
                     ),
                 ],
-                className="mt-4",
+                className="mb-4",
             ),
+            # Information and help section
+            html.Div(
+                id="dashboard-info-section",
+                children=[
+                    dbc.Row(
+                        [
+                            dbc.Col(
+                                [
+                                    dbc.Card(
+                                        [
+                                            dbc.CardHeader(
+                                                [
+                                                    html.I(
+                                                        className="fas fa-lightbulb me-2"
+                                                    ),
+                                                    "About Project Dashboard",
+                                                ],
+                                                className="fw-bold",
+                                            ),
+                                            dbc.CardBody(
+                                                [
+                                                    html.P(
+                                                        "The Project Dashboard provides real-time visibility into your project's health and progress:",
+                                                        className="mb-3",
+                                                    ),
+                                                    dbc.Row(
+                                                        [
+                                                            dbc.Col(
+                                                                [
+                                                                    html.Div(
+                                                                        [
+                                                                            html.I(
+                                                                                className="fas fa-calendar-check text-primary me-2"
+                                                                            ),
+                                                                            html.Strong(
+                                                                                "Completion Forecast"
+                                                                            ),
+                                                                        ],
+                                                                        className="mb-1",
+                                                                    ),
+                                                                    html.P(
+                                                                        "PERT-based estimate of project completion date",
+                                                                        className="text-muted small mb-0",
+                                                                    ),
+                                                                ],
+                                                                md=6,
+                                                                className="mb-3",
+                                                            ),
+                                                            dbc.Col(
+                                                                [
+                                                                    html.Div(
+                                                                        [
+                                                                            html.I(
+                                                                                className="fas fa-tachometer-alt text-success me-2"
+                                                                            ),
+                                                                            html.Strong(
+                                                                                "Velocity Trends"
+                                                                            ),
+                                                                        ],
+                                                                        className="mb-1",
+                                                                    ),
+                                                                    html.P(
+                                                                        "Team throughput and delivery pace",
+                                                                        className="text-muted small mb-0",
+                                                                    ),
+                                                                ],
+                                                                md=6,
+                                                                className="mb-3",
+                                                            ),
+                                                        ]
+                                                    ),
+                                                    dbc.Row(
+                                                        [
+                                                            dbc.Col(
+                                                                [
+                                                                    html.Div(
+                                                                        [
+                                                                            html.I(
+                                                                                className="fas fa-tasks text-warning me-2"
+                                                                            ),
+                                                                            html.Strong(
+                                                                                "Remaining Work"
+                                                                            ),
+                                                                        ],
+                                                                        className="mb-1",
+                                                                    ),
+                                                                    html.P(
+                                                                        "Outstanding items and story points",
+                                                                        className="text-muted small mb-0",
+                                                                    ),
+                                                                ],
+                                                                md=6,
+                                                                className="mb-3",
+                                                            ),
+                                                            dbc.Col(
+                                                                [
+                                                                    html.Div(
+                                                                        [
+                                                                            html.I(
+                                                                                className="fas fa-chart-line text-info me-2"
+                                                                            ),
+                                                                            html.Strong(
+                                                                                "PERT Timeline"
+                                                                            ),
+                                                                        ],
+                                                                        className="mb-1",
+                                                                    ),
+                                                                    html.P(
+                                                                        "Optimistic, likely, and pessimistic scenarios",
+                                                                        className="text-muted small mb-0",
+                                                                    ),
+                                                                ],
+                                                                md=6,
+                                                                className="mb-3",
+                                                            ),
+                                                        ]
+                                                    ),
+                                                    html.Hr(className="my-3"),
+                                                    html.P(
+                                                        [
+                                                            html.I(
+                                                                className="fas fa-sync-alt me-2"
+                                                            ),
+                                                            "Data refreshes automatically from JIRA. Navigate to ",
+                                                            html.Strong("Settings"),
+                                                            " tab to configure data sources and update parameters.",
+                                                        ],
+                                                        className="mb-0 text-muted small",
+                                                    ),
+                                                ]
+                                            ),
+                                        ],
+                                        className="border-0 shadow-sm",
+                                    ),
+                                ],
+                                width=12,
+                            ),
+                        ],
+                        className="mb-4",
+                    )
+                ],
+                style={"display": "block"},  # Always shown for dashboard
+            ),
+            # Store for dashboard metrics data
+            dcc.Store(id="dashboard-metrics-store", data={}),
         ],
-        id="dashboard-main-container",
+        fluid=True,
+        className="dashboard-container py-4",
     )

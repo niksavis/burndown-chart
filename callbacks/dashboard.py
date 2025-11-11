@@ -16,12 +16,18 @@ Callback Contracts:
 import logging
 
 # Third-party library imports
-from dash import callback, Output, Input, no_update
+from dash import callback, Output, Input, no_update, html
 
 # Application imports
 from data.processing import calculate_dashboard_metrics, calculate_pert_timeline
 from data.persistence import load_app_settings, load_project_data
-from ui.cards import create_dashboard_metrics_card
+from ui.dashboard_cards import (
+    create_dashboard_forecast_card,
+    create_dashboard_velocity_card,
+    create_dashboard_remaining_card,
+    create_dashboard_pert_card,
+    create_dashboard_overview_content,
+)
 from visualization.charts import create_pert_timeline_chart
 
 # Configure logger
@@ -35,10 +41,8 @@ logger = logging.getLogger(__name__)
 
 @callback(
     [
-        Output("dashboard-forecast-card-container", "children"),
-        Output("dashboard-velocity-card-container", "children"),
-        Output("dashboard-remaining-card-container", "children"),
-        Output("dashboard-pert-card-container", "children"),
+        Output("dashboard-overview", "children"),
+        Output("dashboard-metrics-cards-container", "children"),
     ],
     [
         Input("statistics-data-store", "data"),
@@ -49,7 +53,7 @@ logger = logging.getLogger(__name__)
 )
 def update_dashboard_metrics(statistics_data, jira_status, parameter_state):
     """
-    Update dashboard metric cards when data changes.
+    Update dashboard overview and metric cards when data changes.
 
     Callback Contract: DC-001
 
@@ -58,6 +62,7 @@ def update_dashboard_metrics(statistics_data, jira_status, parameter_state):
     - Updates when JIRA data refreshes
     - Updates when parameters change
     - Handles missing data gracefully
+    - Uses modern metric card design matching DORA/Flow metrics
 
     Args:
         statistics_data: Statistics data from store
@@ -65,7 +70,7 @@ def update_dashboard_metrics(statistics_data, jira_status, parameter_state):
         parameter_state: Current parameter panel state
 
     Returns:
-        tuple: (forecast_card, velocity_card, remaining_card, pert_card)
+        tuple: (overview_content, metrics_cards_grid)
 
     Raises:
         PreventUpdate: If no valid data available
@@ -82,57 +87,48 @@ def update_dashboard_metrics(statistics_data, jira_status, parameter_state):
 
         if not statistics:
             logger.warning("No statistics data available for dashboard metrics")
-            # Return empty cards with "No data" message
-            empty_metrics = {
-                "completion_forecast_date": None,
-                "completion_confidence": None,
-                "days_to_completion": None,
-                "days_to_deadline": None,
-                "completion_percentage": 0.0,
-                "remaining_items": 0,
-                "remaining_points": 0.0,
-                "current_velocity_items": 0.0,
-                "current_velocity_points": 0.0,
-                "velocity_trend": "unknown",
-            }
-            return (
-                create_dashboard_metrics_card(
-                    empty_metrics, "forecast", id="dashboard-forecast-card"
-                ),
-                create_dashboard_metrics_card(
-                    empty_metrics, "velocity", id="dashboard-velocity-card"
-                ),
-                create_dashboard_metrics_card(
-                    empty_metrics, "remaining", id="dashboard-remaining-card"
-                ),
-                create_dashboard_metrics_card(
-                    empty_metrics, "pert", id="dashboard-pert-card"
-                ),
+            # Return empty state
+            from ui.empty_states import create_no_data_state
+
+            empty_overview = html.Div(
+                html.P("No data available", className="text-muted text-center mb-0"),
+                className="py-2",
             )
+            empty_cards = create_no_data_state()
+
+            return empty_overview, empty_cards
 
         # Calculate dashboard metrics
         metrics = calculate_dashboard_metrics(statistics, settings)
 
-        # Create metric cards
-        forecast_card = create_dashboard_metrics_card(
-            metrics, "forecast", id="dashboard-forecast-card"
-        )
-        velocity_card = create_dashboard_metrics_card(
-            metrics, "velocity", id="dashboard-velocity-card"
-        )
-        remaining_card = create_dashboard_metrics_card(
-            metrics, "remaining", id="dashboard-remaining-card"
-        )
-        pert_card = create_dashboard_metrics_card(
-            metrics, "pert", id="dashboard-pert-card"
+        # Create overview section
+        overview_content = create_dashboard_overview_content(metrics)
+
+        # Create individual metric cards using new dashboard_cards module
+        forecast_card = create_dashboard_forecast_card(metrics)
+        velocity_card = create_dashboard_velocity_card(metrics)
+        remaining_card = create_dashboard_remaining_card(metrics)
+        pert_card = create_dashboard_pert_card(metrics)
+
+        # Create grid layout for cards (2 cards per row on desktop)
+        import dash_bootstrap_components as dbc
+
+        cards_grid = dbc.Row(
+            [
+                dbc.Col(forecast_card, xs=12, lg=6, className="mb-3"),
+                dbc.Col(velocity_card, xs=12, lg=6, className="mb-3"),
+                dbc.Col(remaining_card, xs=12, lg=6, className="mb-3"),
+                dbc.Col(pert_card, xs=12, lg=6, className="mb-3"),
+            ],
+            className="metric-cards-grid",
         )
 
-        return forecast_card, velocity_card, remaining_card, pert_card
+        return overview_content, cards_grid
 
     except Exception as e:
         logger.error(f"Error updating dashboard metrics: {e}")
-        # Return no_update to preserve existing cards
-        return no_update, no_update, no_update, no_update
+        # Return no_update to preserve existing content
+        return no_update, no_update
 
 
 @callback(
