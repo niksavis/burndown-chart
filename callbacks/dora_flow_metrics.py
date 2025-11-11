@@ -772,7 +772,7 @@ def calculate_and_display_flow_metrics(
             "flow_load": {
                 "metric_name": "flow_load",
                 "value": wip_count if wip_count is not None else 0,
-                "unit": "items (current WIP)",
+                "unit": "items",  # Consistent with other count metrics
                 "error_state": "success" if flow_load_snapshot else "no_data",
                 "performance_tier": _get_flow_performance_tier(
                     "flow_load", wip_count if wip_count is not None else 0

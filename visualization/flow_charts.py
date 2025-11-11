@@ -372,7 +372,9 @@ def create_flow_time_trend_chart(trend_data: List[Dict[str, Any]]) -> go.Figure:
 
 
 def create_flow_load_trend_chart(
-    trend_data: List[Dict[str, Any]], wip_thresholds: Optional[Dict[str, Any]] = None
+    trend_data: List[Dict[str, Any]],
+    wip_thresholds: Optional[Dict[str, Any]] = None,
+    line_color: str = "#6f42c1",  # Default purple, but accept dynamic color
 ) -> go.Figure:
     """Create line chart for Flow Load (WIP) trend over time with threshold lines.
 
@@ -386,6 +388,7 @@ def create_flow_load_trend_chart(
                 "critical": float,
                 "method": str
             }
+        line_color: Color for the main trend line (dynamic based on performance tier)
 
     Returns:
         Plotly Figure with line chart and threshold lines
@@ -395,19 +398,18 @@ def create_flow_load_trend_chart(
 
     dates = [item["date"] for item in trend_data]
     values = [item["value"] for item in trend_data]
-    colors = get_consistent_colors()
 
     fig = go.Figure()
 
-    # Add main WIP trend line
+    # Add main WIP trend line with dynamic color
     fig.add_trace(
         go.Scatter(
             x=dates,
             y=values,
             mode="lines+markers",
             name="Flow Load (WIP)",
-            line=dict(color=colors["flow_load"], width=3),  # Use consistent styling
-            marker=dict(size=6, color=colors["flow_load"]),
+            line=dict(color=line_color, width=3),  # Use dynamic tier-based color
+            marker=dict(size=6, color=line_color),
             hovertemplate="<b>%{x}</b><br>WIP Count: %{y} items<extra></extra>",
         )
     )

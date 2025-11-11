@@ -149,22 +149,12 @@ def create_forecast_section(
 
     forecast_value = forecast_data.get("forecast_value")
     confidence = forecast_data.get("confidence", "building")
-    forecast_range = forecast_data.get("forecast_range")  # For Flow Load
 
-    # Format forecast value
+    # Format forecast value - standard formatting for all metrics
     if forecast_value is not None:
-        if metric_name == "flow_load" and forecast_range:
-            # Flow Load special formatting: show range
-            lower = forecast_range.get("lower", 0)
-            upper = forecast_range.get("upper", 0)
-            forecast_display = f"~{forecast_value:.1f} ({lower:.1f}-{upper:.1f})"
-        else:
-            # Standard formatting: single value
-            forecast_display = (
-                f"{forecast_value:.1f}"
-                if forecast_value >= 10
-                else f"{forecast_value:.2f}"
-            )
+        forecast_display = (
+            f"{forecast_value:.1f}" if forecast_value >= 10 else f"{forecast_value:.2f}"
+        )
     else:
         forecast_display = "N/A"
 
@@ -536,7 +526,7 @@ def _create_detailed_chart(
             },
         )
     elif metric_name == "flow_load":
-        # Use specialized Flow Load chart with dynamic WIP thresholds
+        # Use specialized Flow Load chart with dynamic WIP thresholds and tier-based color
         from visualization.flow_charts import create_flow_load_trend_chart
         from dash import dcc
 
@@ -549,7 +539,28 @@ def _create_detailed_chart(
         # Extract WIP thresholds from metric_data (if calculated)
         wip_thresholds = metric_data.get("wip_thresholds", None)
 
-        figure = create_flow_load_trend_chart(trend_data, wip_thresholds=wip_thresholds)
+        # Calculate performance tier color based on most recent value
+        # Note: Uses dynamic wip_thresholds from metric_data if available
+        latest_value = weekly_values[-1] if weekly_values else 0
+
+        # Determine tier color using same logic as badge (lines 776-828)
+        if wip_thresholds and "healthy" in wip_thresholds:
+            # Use dynamic thresholds
+            if latest_value < wip_thresholds["healthy"]:
+                tier_color = "#198754"  # Green - Healthy
+            elif latest_value < wip_thresholds["warning"]:
+                tier_color = "#ffc107"  # Yellow - Warning
+            elif latest_value < wip_thresholds["high"]:
+                tier_color = "#fd7e14"  # Orange - High
+            else:
+                tier_color = "#dc3545"  # Red - Critical
+        else:
+            # Fallback to standard tier color calculation
+            tier_color = _get_flow_performance_tier_color_hex("flow_load", latest_value)
+
+        figure = create_flow_load_trend_chart(
+            trend_data, wip_thresholds=wip_thresholds, line_color=tier_color
+        )
 
         # CRITICAL: Remove plotly toolbar completely
         return dcc.Graph(

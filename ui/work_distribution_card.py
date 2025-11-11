@@ -143,192 +143,238 @@ def create_work_distribution_card(
         ),
     )
 
-    # Build metric row (4 columns) with week label - reduced spacing
+    # Build metric row (4 columns) with week label - mobile-first responsive design
     metric_row = dbc.Row(
         [
-            # Week label (above metrics)
+            # Week label (above metrics) - full width on all screens
             dbc.Col(
-                [
-                    html.Small(
-                        f"Week {week_label}",
-                        className="text-muted text-center d-block mb-1",  # Reduced from mb-2
-                        style={"fontWeight": "600"},
-                    ),
-                ],
+                html.Small(
+                    f"Week {week_label}",
+                    className="text-muted text-center d-block mb-2",
+                    style={"fontWeight": "600"},
+                ),
                 width=12,
             ),
-            # Feature
+            # Feature - responsive: 6 cols mobile, 6 tablet, 3 desktop
             dbc.Col(
-                [
-                    html.Div(
-                        [
-                            html.Span("Feature", className="small text-muted d-block"),
-                            html.Span(
-                                f"{feature_count} ",
-                                className="h4 mb-0",
-                                style={"color": "#198754"},
-                            ),
-                            html.Span(
-                                f"({feature_pct:.0f}%)",
-                                className="h6 mb-0",
-                                style={"color": "#198754"},
-                            ),
-                        ]
-                    ),
-                    html.Small(
-                        [
-                            html.I(
-                                className=f"fas fa-{'check-circle text-success' if feature_in_range else 'exclamation-triangle text-warning'} me-1",
-                                id=f"{card_id}-feature-range"
-                                if card_id
-                                else "work-dist-feature-range",
-                            ),
-                            "40-60%",
-                            dbc.Tooltip(
-                                "Target: >60% (higher is better). Warning if 40-60%, Critical if <40%",
-                                target=f"{card_id}-feature-range"
-                                if card_id
-                                else "work-dist-feature-range",
-                                placement="top",
-                            ),
-                        ],
-                        className="text-muted",
-                    ),
-                ],
-                width=3,
-                className="text-center mb-2",  # Reduced from mb-3
+                html.Div(
+                    [
+                        html.Div(
+                            [
+                                html.Span(
+                                    "Feature", className="small text-muted d-block mb-1"
+                                ),
+                                html.Div(
+                                    [
+                                        html.Span(
+                                            f"{feature_count}",
+                                            className="h3 mb-0 me-2",
+                                            style={"color": "#198754"},
+                                        ),
+                                        html.Span(
+                                            f"{feature_pct:.0f}%",
+                                            className="h5 mb-0",
+                                            style={"color": "#198754"},
+                                        ),
+                                    ],
+                                    className="d-flex align-items-baseline justify-content-center",
+                                ),
+                            ],
+                            className="text-center",
+                        ),
+                        dbc.Badge(
+                            "✓ Healthy" if feature_in_range else "⚠ Low",
+                            color="success" if feature_in_range else "warning",
+                            className="mt-1",
+                            style={"fontSize": "0.7rem"},
+                            id=f"{card_id}-feature-badge"
+                            if card_id
+                            else "work-dist-feature-badge",
+                        ),
+                        dbc.Tooltip(
+                            "Target: 40-60% of work should be features",
+                            target=f"{card_id}-feature-badge"
+                            if card_id
+                            else "work-dist-feature-badge",
+                            placement="top",
+                        ),
+                    ],
+                    className="text-center",
+                ),
+                xs=6,
+                sm=6,
+                md=3,
+                className="mb-3",
             ),
-            # Defect
+            # Defect - responsive layout
             dbc.Col(
-                [
-                    html.Div(
-                        [
-                            html.Span("Defect", className="small text-muted d-block"),
-                            html.Span(
-                                f"{defect_count} ",
-                                className="h4 mb-0",
-                                style={"color": "#dc3545"},
-                            ),
-                            html.Span(
-                                f"({defect_pct:.0f}%)",
-                                className="h6 mb-0",
-                                style={"color": "#dc3545"},
-                            ),
-                        ]
-                    ),
-                    html.Small(
-                        [
-                            html.I(
-                                className=f"fas fa-{'check-circle text-success' if defect_in_range else 'exclamation-triangle text-warning'} me-1",
-                                id=f"{card_id}-defect-range"
-                                if card_id
-                                else "work-dist-defect-range",
-                            ),
-                            "20-40%",
-                            dbc.Tooltip(
-                                "Target: <20% (lower is better). Warning if 20-40%, Critical if >40%",
-                                target=f"{card_id}-defect-range"
-                                if card_id
-                                else "work-dist-defect-range",
-                                placement="top",
-                            ),
-                        ],
-                        className="text-muted",
-                    ),
-                ],
-                width=3,
-                className="text-center mb-2",
+                html.Div(
+                    [
+                        html.Div(
+                            [
+                                html.Span(
+                                    "Defect", className="small text-muted d-block mb-1"
+                                ),
+                                html.Div(
+                                    [
+                                        html.Span(
+                                            f"{defect_count}",
+                                            className="h3 mb-0 me-2",
+                                            style={"color": "#dc3545"},
+                                        ),
+                                        html.Span(
+                                            f"{defect_pct:.0f}%",
+                                            className="h5 mb-0",
+                                            style={"color": "#dc3545"},
+                                        ),
+                                    ],
+                                    className="d-flex align-items-baseline justify-content-center",
+                                ),
+                            ],
+                            className="text-center",
+                        ),
+                        dbc.Badge(
+                            "✓ Healthy" if defect_in_range else "⚠ High",
+                            color="success" if defect_in_range else "warning",
+                            className="mt-1",
+                            style={"fontSize": "0.7rem"},
+                            id=f"{card_id}-defect-badge"
+                            if card_id
+                            else "work-dist-defect-badge",
+                        ),
+                        dbc.Tooltip(
+                            "Target: <20% of work should be defects",
+                            target=f"{card_id}-defect-badge"
+                            if card_id
+                            else "work-dist-defect-badge",
+                            placement="top",
+                        ),
+                    ],
+                    className="text-center",
+                ),
+                xs=6,
+                sm=6,
+                md=3,
+                className="mb-3",
             ),
-            # Tech Debt
+            # Tech Debt - responsive layout
             dbc.Col(
-                [
-                    html.Div(
-                        [
-                            html.Span(
-                                "Tech Debt", className="small text-muted d-block"
-                            ),
-                            html.Span(
-                                f"{tech_debt_count} ",
-                                className="h4 mb-0",
-                                style={"color": "#fd7e14"},
-                            ),
-                            html.Span(
-                                f"({tech_debt_pct:.0f}%)",
-                                className="h6 mb-0",
-                                style={"color": "#fd7e14"},
-                            ),
-                        ]
-                    ),
-                    html.Small(
-                        [
-                            html.I(
-                                className=f"fas fa-{'check-circle text-success' if tech_debt_in_range else 'exclamation-triangle text-warning'} me-1",
-                                id=f"{card_id}-techdebt-range"
-                                if card_id
-                                else "work-dist-techdebt-range",
-                            ),
-                            "10-20%",
-                            dbc.Tooltip(
-                                "Target: <10% (lower is better). Warning if 10-20%, Critical if >20%",
-                                target=f"{card_id}-techdebt-range"
-                                if card_id
-                                else "work-dist-techdebt-range",
-                                placement="top",
-                            ),
-                        ],
-                        className="text-muted",
-                    ),
-                ],
-                width=3,
-                className="text-center mb-2",
+                html.Div(
+                    [
+                        html.Div(
+                            [
+                                html.Span(
+                                    "Tech Debt",
+                                    className="small text-muted d-block mb-1",
+                                ),
+                                html.Div(
+                                    [
+                                        html.Span(
+                                            f"{tech_debt_count}",
+                                            className="h3 mb-0 me-2",
+                                            style={"color": "#fd7e14"},
+                                        ),
+                                        html.Span(
+                                            f"{tech_debt_pct:.0f}%",
+                                            className="h5 mb-0",
+                                            style={"color": "#fd7e14"},
+                                        ),
+                                    ],
+                                    className="d-flex align-items-baseline justify-content-center",
+                                ),
+                            ],
+                            className="text-center",
+                        ),
+                        dbc.Badge(
+                            "✓ Healthy" if tech_debt_in_range else "⚠ High",
+                            color="success" if tech_debt_in_range else "warning",
+                            className="mt-1",
+                            style={"fontSize": "0.7rem"},
+                            id=f"{card_id}-techdebt-badge"
+                            if card_id
+                            else "work-dist-techdebt-badge",
+                        ),
+                        dbc.Tooltip(
+                            "Target: 10-20% of work for tech debt",
+                            target=f"{card_id}-techdebt-badge"
+                            if card_id
+                            else "work-dist-techdebt-badge",
+                            placement="top",
+                        ),
+                    ],
+                    className="text-center",
+                ),
+                xs=6,
+                sm=6,
+                md=3,
+                className="mb-3",
             ),
-            # Risk
+            # Risk - responsive layout
             dbc.Col(
-                [
-                    html.Div(
-                        [
-                            html.Span("Risk", className="small text-muted d-block"),
-                            html.Span(
-                                f"{risk_count} ",
-                                className="h4 mb-0",
-                                style={"color": "#ffc107"},
-                            ),
-                            html.Span(
-                                f"({risk_pct:.0f}%)",
-                                className="h6 mb-0",
-                                style={"color": "#ffc107"},
-                            ),
-                        ]
-                    ),
-                    html.Small(
-                        [
-                            html.I(
-                                className=f"fas fa-{'check-circle text-success' if risk_in_range else 'exclamation-triangle text-warning'} me-1",
-                                id=f"{card_id}-risk-range"
-                                if card_id
-                                else "work-dist-risk-range",
-                            ),
-                            "0-10%",
-                            dbc.Tooltip(
-                                "Target: 0-10% acceptable. Warning if >0%, Critical if >10%",
-                                target=f"{card_id}-risk-range"
-                                if card_id
-                                else "work-dist-risk-range",
-                                placement="top",
-                            ),
-                        ],
-                        className="text-muted",
-                    ),
-                ],
-                width=3,
-                className="text-center mb-2",
+                html.Div(
+                    [
+                        html.Div(
+                            [
+                                html.Span(
+                                    "Risk", className="small text-muted d-block mb-1"
+                                ),
+                                html.Div(
+                                    [
+                                        html.Span(
+                                            f"{risk_count}",
+                                            className="h3 mb-0 me-2",
+                                            style={"color": "#ffc107"},
+                                        ),
+                                        html.Span(
+                                            f"{risk_pct:.0f}%",
+                                            className="h5 mb-0",
+                                            style={"color": "#ffc107"},
+                                        ),
+                                    ],
+                                    className="d-flex align-items-baseline justify-content-center",
+                                ),
+                            ],
+                            className="text-center",
+                        ),
+                        dbc.Badge(
+                            "✓ Healthy" if risk_in_range else "⚠ High",
+                            color="success" if risk_in_range else "warning",
+                            className="mt-1",
+                            style={"fontSize": "0.7rem"},
+                            id=f"{card_id}-risk-badge"
+                            if card_id
+                            else "work-dist-risk-badge",
+                        ),
+                        dbc.Tooltip(
+                            "Target: 0-10% of work for risk reduction",
+                            target=f"{card_id}-risk-badge"
+                            if card_id
+                            else "work-dist-risk-badge",
+                            placement="top",
+                        ),
+                    ],
+                    className="text-center",
+                ),
+                xs=6,
+                sm=6,
+                md=3,
+                className="mb-3",
             ),
         ],
-        className="mb-2",  # Reduced from mb-3
+        className="mb-2",
     )
 
     # Create stacked bar chart using visualization module (same pattern as other charts)
     fig = create_work_distribution_chart(distribution_history)
+
+    # Add relationship hint for work distribution patterns (before chart, matching metric_cards.py)
+    relationship_hint = None
+    if defect_pct > 30 or tech_debt_pct > 15:
+        relationship_hint = html.P(
+            "💡 High defect/debt work reduces capacity for features and may signal quality issues",
+            className="text-muted text-center small mb-2",
+            style={"fontSize": "0.8rem", "fontStyle": "italic"},
+        )
 
     # Chart component with optimized height for readability
     chart = html.Div(
@@ -342,27 +388,12 @@ def create_work_distribution_card(
         ],
     )
 
-    # Add relationship hint for work distribution patterns
-    relationship_hint = None
-    if defect_pct > 30 or tech_debt_pct > 15:
-        relationship_hint = html.Div(
-            [
-                html.I(className="fas fa-lightbulb me-2", style={"color": "#0dcaf0"}),
-                html.Small(
-                    "💡 High defect/debt work reduces capacity for features and may signal quality issues",
-                    className="text-muted",
-                ),
-            ],
-            className="mt-2 px-2",
-            style={"fontSize": "0.85rem"},
-        )
-
-    # Card body with metrics and chart
+    # Card body with metrics, hint (if present), and chart
     card_body = dbc.CardBody(
         [
             metric_row,
-            chart,
             relationship_hint if relationship_hint else html.Div(),
+            chart,
         ]
     )
 

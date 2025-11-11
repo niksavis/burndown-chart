@@ -682,8 +682,8 @@ def create_dual_line_trend(
         "showlegend": True,
         "legend": {
             "orientation": "h",
-            "yanchor": "top",
-            "y": -0.15,  # Below chart, consistent position
+            "yanchor": "bottom",
+            "y": 1.02,  # Above chart to avoid overlap with x-axis dates
             "xanchor": "center",
             "x": 0.5,
             "font": {"size": 10},
