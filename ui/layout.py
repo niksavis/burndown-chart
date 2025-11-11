@@ -22,7 +22,6 @@ from data import (
     load_app_settings,
     load_statistics,
 )
-from ui.button_utils import create_action_button
 from ui.cards import (
     create_statistics_data_card,
 )
@@ -179,6 +178,7 @@ def create_app_layout(settings, statistics, is_sample_data):
     # Import help system components
     from ui.help_system import create_help_system_layout
 
+    # Modern app container with updated styling matching DORA/Flow design
     return dbc.Container(
         [
             # JIRA Configuration Modal (Feature 003-jira-config-separation)
@@ -307,10 +307,10 @@ def create_app_layout(settings, statistics, is_sample_data):
                 create_statistics_data_card(statistics),
                 row_class="mb-4",
             ),
-            # Minimal footer with useful information
+            # Modern footer with clean design matching DORA/Flow style
             html.Div(
                 [
-                    html.Hr(className="my-3"),
+                    html.Hr(className="my-4", style={"borderColor": "#dee2e6"}),
                     dbc.Row(
                         [
                             # Left column - app info
@@ -318,9 +318,11 @@ def create_app_layout(settings, statistics, is_sample_data):
                                 html.Small(
                                     [
                                         html.I(
-                                            className="fas fa-chart-line me-2 text-muted"
+                                            className="fas fa-chart-line me-2 text-primary"
                                         ),
-                                        "Burndown Chart ",
+                                        html.Span(
+                                            "Burndown Chart ", className="fw-medium"
+                                        ),
                                         html.Span(
                                             f"v{__version__}", className="text-muted"
                                         ),
@@ -328,39 +330,49 @@ def create_app_layout(settings, statistics, is_sample_data):
                                     className="text-secondary",
                                 ),
                                 width={"size": "auto"},
+                                className="d-flex align-items-center",
                             ),
-                            # Center column - GitHub link only
+                            # Center column - GitHub link
                             dbc.Col(
                                 html.Small(
-                                    create_action_button(
-                                        "GitHub",
-                                        icon="code",
-                                        variant="link",
-                                        size="sm",
-                                        id_suffix="footer",
-                                        className="text-decoration-none px-2",
+                                    html.A(
+                                        [
+                                            html.I(className="fab fa-github me-2"),
+                                            "View on GitHub",
+                                        ],
                                         href="https://github.com/niksavis/burndown-chart",
                                         target="_blank",
+                                        className="text-decoration-none text-primary",
+                                        style={"fontWeight": "500"},
                                     ),
                                 ),
                                 className="text-center",
                                 width=True,
                             ),
-                            # Right column - Data info
+                            # Right column - Last updated
                             dbc.Col(
                                 html.Small(
                                     [
-                                        f"Last updated: {datetime.now().strftime('%b %d, %Y')}",
+                                        html.I(
+                                            className="fas fa-clock me-2 text-muted"
+                                        ),
+                                        f"Updated {datetime.now().strftime('%b %d, %Y')}",
                                     ],
                                     className="text-muted text-end",
                                 ),
                                 width={"size": "auto"},
+                                className="d-flex align-items-center",
                             ),
                         ],
-                        className="d-flex justify-content-between align-items-center",
+                        className="d-flex justify-content-between align-items-center g-3",
                     ),
                 ],
-                className="mt-4 mb-2",
+                className="mt-5 mb-3",
+                style={
+                    "backgroundColor": "#f8f9fa",
+                    "borderRadius": "8px",
+                    "padding": "1rem 1.5rem",
+                },
             ),
         ],
         fluid=True,
