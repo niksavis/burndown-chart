@@ -5,10 +5,12 @@ Tests cover:
 - calculate_forecast(): 4-week weighted average with building baseline support
 - calculate_trend_vs_forecast(): Trend direction and deviation calculation
 - calculate_flow_load_range(): WIP range calculation for Flow Load
+- Performance benchmarks: <5ms per metric, <50ms for all 9 metrics
 
 Test organization follows TDD approach with test classes per function.
 """
 
+import time
 import pytest
 from data.metrics_calculator import (
     calculate_forecast,
@@ -125,7 +127,7 @@ class TestCalculateTrendVsForecast:
 
         assert result["direction"] == "→"
         assert result["status_text"] == "On track"
-        assert result["color_class"] == "text-secondary"
+        assert result["color_class"] == "text-success"  # On track is good performance
         assert result["is_good"] is True
 
     def test_zero_current_value_monday(self):
@@ -164,3 +166,33 @@ class TestCalculateFlowLoadRange:
         """T021: Test forecast=0 raises ValueError."""
         with pytest.raises(ValueError, match="must be positive"):
             calculate_flow_load_range(forecast_value=0.0)
+
+
+@pytest.mark.performance
+class TestForecastPerformance:
+    """Performance tests for forecast calculations (Feature 009 - T083)."""
+
+    def test_forecast_calculation_meets_performance_target(self):
+        """T083: Verify forecast calculations meet <5ms per metric, <50ms total target."""
+        historical = [10.0, 12.0, 11.0, 13.0]
+
+        # Measure total overhead for all 9 metrics
+        total_time = 0
+        for i in range(9):
+            start = time.perf_counter()
+            forecast = calculate_forecast(historical)
+            if forecast is not None:
+                _ = calculate_trend_vs_forecast(
+                    15.0, forecast["forecast_value"], "higher_better"
+                )
+            elapsed = (time.perf_counter() - start) * 1000
+            total_time += elapsed
+
+        # Assert performance targets
+        avg_per_metric = total_time / 9
+        assert avg_per_metric < 5.0, (
+            f"Average per metric {avg_per_metric:.3f}ms exceeds 5ms target"
+        )
+        assert total_time < 50.0, (
+            f"Total overhead {total_time:.3f}ms exceeds 50ms target"
+        )
