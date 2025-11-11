@@ -387,10 +387,7 @@ def load_and_display_dora_metrics(
 
 
 @callback(
-    [
-        Output("flow-metrics-cards-container", "children"),
-        Output("flow-distribution-chart-container", "children"),
-    ],
+    Output("flow-metrics-cards-container", "children"),
     [
         Input("jira-issues-store", "data"),
         Input("data-points-input", "value"),
@@ -430,11 +427,8 @@ def calculate_and_display_flow_metrics(
         if not jira_data_store or not jira_data_store.get("issues"):
             from ui.empty_states import create_no_data_state
 
-            # Return no_data state for metrics + HIDE Work Distribution card (like other cards)
-            return (
-                create_no_data_state(),
-                html.Div(),  # Empty div - hide Work Distribution when no data
-            )
+            # Return no_data state for all metrics (Work Distribution included in same container)
+            return create_no_data_state()
 
         if not app_settings:
             logger.warning("No app settings available, loading from disk")
@@ -444,10 +438,7 @@ def calculate_and_display_flow_metrics(
         if not app_settings:
             error_msg = "Failed to load app settings"
             logger.error(error_msg)
-            return (
-                html.Div(error_msg, className="alert alert-danger p-4"),
-                html.Div("Error", className="text-muted p-4"),
-            )
+            return html.Div(error_msg, className="alert alert-danger p-4")
 
         # Get number of weeks to display (default 12 if not set)
         n_weeks = data_points if data_points and data_points > 0 else 12
@@ -684,9 +675,6 @@ def calculate_and_display_flow_metrics(
             card_id="work-distribution-card",
         )
 
-        # Wrap in Row/Col for full-width layout (spans 12 columns = 2x normal metric card width)
-        dist_html = dbc.Row([dbc.Col([dist_card], width=12)])
-
         # Load velocity historicalalues
         velocity_values = get_metric_weekly_values(
             week_labels, "flow_velocity", "completed_count"
@@ -843,15 +831,18 @@ def calculate_and_display_flow_metrics(
             metrics_data, tooltips=FLOW_METRICS_TOOLTIPS
         )
 
-        return metrics_html, dist_html
+        # Append Work Distribution card to the same grid (spans full width = 12 columns)
+        # This ensures it has the same metric-cards-grid styling and shadow behavior
+        dist_col = dbc.Col(dist_card, xs=12, lg=12, className="mb-3")
+        if metrics_html and metrics_html.children:
+            metrics_html.children.append(dist_col)
+
+        return metrics_html
 
     except Exception as e:
         logger.error(f"Error calculating Flow metrics: {e}", exc_info=True)
 
-        return (
-            html.Div("Error loading metrics", className="alert alert-danger p-4"),
-            html.Div("Error loading chart", className="text-muted p-4"),
-        )
+        return html.Div("Error loading metrics", className="alert alert-danger p-4")
 
 
 #######################################################################

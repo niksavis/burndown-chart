@@ -3560,11 +3560,16 @@ label.fw-medium {
 .metric-cards-grid {
   margin-top: 0.75rem; /* 12px spacing at top - reduced from 1.5rem */
   padding-top: 0.25rem; /* Minimal padding for animation buffer */
+  padding-left: 0.5rem; /* Horizontal padding to prevent shadow clipping on outer edges */
+  padding-right: 0.5rem; /* Horizontal padding to prevent shadow clipping on outer edges */
+  margin-left: -0.25rem; /* Compensate for added padding to maintain grid alignment */
+  margin-right: -0.25rem; /* Compensate for added padding to maintain grid alignment */
 }
 
 /* Container for metric cards - prevent layout shift during updates */
 #dora-metrics-cards-container,
-#flow-metrics-cards-container {
+#flow-metrics-cards-container,
+#flow-distribution-chart-container {
   min-height: 400px; /* Reserve space to prevent layout shift */
   transition: min-height 0.2s ease-out;
   overflow: visible !important; /* Allow cards to fly up without clipping */

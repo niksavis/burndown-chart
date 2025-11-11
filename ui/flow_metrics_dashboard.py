@@ -109,16 +109,12 @@ def create_flow_dashboard() -> dbc.Container:
                     "display": "none"
                 },  # Hidden by default, shown by callback when metrics exist
             ),
-            # Metrics cards grid (no loading wrapper - skeleton provides loading state)
+            # Metrics cards grid (includes both Flow metrics + Work Distribution in same container)
+            # No loading wrapper - skeleton provides loading state
             html.Div(
                 children=initial_content,  # Show banner or skeleton based on data availability
                 id="flow-metrics-cards-container",
                 className="mb-4",  # Add spacing below cards
-            ),
-            # Distribution chart section (no loading wrapper for consistency)
-            html.Div(
-                children=[],  # Will be populated by callback
-                id="flow-distribution-chart-container",
             ),
             # Store for metrics data
             dcc.Store(id="flow-metrics-store", data={}),
