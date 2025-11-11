@@ -21,7 +21,6 @@ from data.cache_manager import (
     generate_cache_key,
     load_cache_with_validation,
     save_cache,
-    invalidate_cache,
 )
 from data.persistence import load_app_settings, save_app_settings
 
@@ -335,12 +334,17 @@ def fetch_jira_issues(
         logger.info("🔍 Checking if JIRA data has changed (incremental fetch)...")
 
         # Try to load cached data first
-        cache_key = generate_cache_key(
+        # CRITICAL FIX: Use generate_jira_data_cache_key() which excludes field_mappings
+        # This allows field mapping changes (like WIP states) to reuse cached JIRA data
+        # without requiring expensive re-download
+        from data.cache_manager import generate_jira_data_cache_key
+
+        cache_key = generate_jira_data_cache_key(
             jql_query=jql,
-            field_mappings=field_mappings,
             time_period_days=30,  # Default time period
         )
 
+        # Still calculate config_hash for validation, but it doesn't affect cache key
         config_hash = _generate_config_hash(config, fields)
 
         is_valid, cached_data = load_cache_with_validation(
@@ -927,14 +931,16 @@ def load_jira_cache(
 
     try:
         # Generate cache key from configuration
-        field_mappings = config.get("field_mappings", {})
-        cache_key = generate_cache_key(
+        # CRITICAL FIX: Use generate_jira_data_cache_key() which excludes field_mappings
+        # This allows field mapping changes (like WIP states) to reuse cached JIRA data
+        from data.cache_manager import generate_jira_data_cache_key
+
+        cache_key = generate_jira_data_cache_key(
             jql_query=current_jql_query,
-            field_mappings=field_mappings,
             time_period_days=30,  # Default time period for now
         )
 
-        # Generate config hash for validation
+        # Generate config hash for validation (but it doesn't affect cache key anymore)
         config_hash = _generate_config_hash(config, current_fields)
 
         # Try to load from new cache system

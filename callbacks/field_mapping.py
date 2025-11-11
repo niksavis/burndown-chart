@@ -13,7 +13,6 @@ from data.field_mapper import (
     load_field_mappings,
     fetch_available_jira_fields,
 )
-from data.metrics_cache import invalidate_cache
 from ui.field_mapping_modal import (
     create_field_mapping_form,
     create_field_mapping_error_alert,
@@ -1190,24 +1189,16 @@ def save_comprehensive_mappings(n_clicks, active_tab, content_children):
         )
 
         # Invalidate metrics cache since configuration changed
-        invalidate_cache()
+        # CRITICAL: Only invalidate metrics cache, NOT JIRA data cache
+        # This allows metrics to be recalculated from existing JIRA data when
+        # only field mappings (like WIP states) change, avoiding expensive re-download
+        from data.cache_manager import invalidate_metrics_cache_only
+        from data.metrics_cache import invalidate_cache as invalidate_dora_flow_cache
 
-        # T055: Also invalidate JIRA data cache since field mappings affect cache key
-        try:
-            import glob
-            import os
+        invalidate_metrics_cache_only()  # Invalidates metrics_snapshots.json only
+        invalidate_dora_flow_cache()  # Invalidates metrics_cache.json (DORA/Flow)
 
-            cache_files = glob.glob("cache/*.json")
-            for cache_file in cache_files:
-                try:
-                    os.remove(cache_file)
-                except Exception as e:
-                    logger.debug(f"Could not remove cache file {cache_file}: {e}")
-            logger.info(
-                f"✓ Invalidated {len(cache_files)} JIRA cache files due to field mapping changes"
-            )
-        except Exception as e:
-            logger.warning(f"JIRA cache invalidation failed: {e}")
+        logger.info("✓ Metrics cache invalidated (JIRA data cache preserved for reuse)")
 
         logger.info(f"Comprehensive mappings saved successfully from tab: {active_tab}")
 
