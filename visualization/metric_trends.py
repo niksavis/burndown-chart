@@ -251,7 +251,7 @@ def create_metric_trend_sparkline(
         "margin": {
             "t": 10,
             "r": 10,
-            "b": 60 if show_axes else 5,  # Extra space for angled labels
+            "b": 40 if show_axes else 5,  # Consistent with chart_config.py (was 60)
             "l": 45 if show_axes else 5,
         },
         "xaxis": {

@@ -342,11 +342,27 @@ def create_work_distribution_card(
         ],
     )
 
+    # Add relationship hint for work distribution patterns
+    relationship_hint = None
+    if defect_pct > 30 or tech_debt_pct > 15:
+        relationship_hint = html.Div(
+            [
+                html.I(className="fas fa-lightbulb me-2", style={"color": "#0dcaf0"}),
+                html.Small(
+                    "💡 High defect/debt work reduces capacity for features and may signal quality issues",
+                    className="text-muted",
+                ),
+            ],
+            className="mt-2 px-2",
+            style={"fontSize": "0.85rem"},
+        )
+
     # Card body with metrics and chart
     card_body = dbc.CardBody(
         [
             metric_row,
             chart,
+            relationship_hint if relationship_hint else html.Div(),
         ]
     )
 

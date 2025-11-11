@@ -3436,7 +3436,7 @@ label.fw-medium {
   flex-direction: column;
   height: 100%;
   border: 1px solid rgba(0, 0, 0, 0.125);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08); /* Increased from 0.05 for better visibility */
   background-color: #ffffff;
   border-radius: 0.375rem;
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
@@ -3556,8 +3556,8 @@ label.fw-medium {
 
 /* Add top spacing so cards don't get cut off when they "fly up" */
 .metric-cards-grid {
-  margin-top: 1.5rem; /* 24px spacing at top */
-  padding-top: 0.5rem; /* Extra padding for animation buffer */
+  margin-top: 0.75rem; /* 12px spacing at top - reduced from 1.5rem */
+  padding-top: 0.25rem; /* Minimal padding for animation buffer */
 }
 
 /* Container for metric cards - prevent layout shift during updates */
@@ -3565,6 +3565,7 @@ label.fw-medium {
 #flow-metrics-cards-container {
   min-height: 400px; /* Reserve space to prevent layout shift */
   transition: min-height 0.2s ease-out;
+  overflow: visible !important; /* Allow cards to fly up without clipping */
 }
 
 @keyframes smoothFadeIn {

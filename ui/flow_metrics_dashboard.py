@@ -368,12 +368,13 @@ def _get_flow_performance_tier(metric_name: str, value: float) -> str:
         else:
             return "Slow"
     elif metric_name == "flow_efficiency":
-        # Flow Efficiency - percentage, higher is better
-        if value >= 40:
+        # Flow Efficiency - percentage, higher is better (less waiting)
+        # Most orgs: 10-25% (lots of waiting), Good: 40-60%, Excellent: 60%+
+        if value >= 60:
             return "Excellent"
-        elif value >= 25:
+        elif value >= 40:
             return "Good"
-        elif value >= 15:
+        elif value >= 25:
             return "Fair"
         else:
             return "Low"

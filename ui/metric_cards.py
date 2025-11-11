@@ -266,6 +266,10 @@ def _get_metric_relationship_hint(
 ) -> Optional[str]:
     """Get relationship hint showing how this metric affects others.
 
+    These hints explain universal relationships between metrics and are shown
+    regardless of current metric state to provide educational context and
+    maintain consistent card layouts.
+
     Args:
         metric_name: Internal metric name
         value: Current metric value
@@ -277,46 +281,35 @@ def _get_metric_relationship_hint(
     if value is None:
         return None
 
-    # Only show hints when metrics are in concerning states
+    # Show hints for all metrics - they explain universal relationships
 
     # Flow Load (WIP) - affects everything
     if metric_name == "flow_load":
-        wip_thresholds = metric_data.get("wip_thresholds", {})
-        high_threshold = wip_thresholds.get("high", 30)
-
-        if value >= high_threshold:
-            return "💡 High WIP typically increases Lead Time and Flow Time"
+        return "💡 High WIP typically increases Lead Time and Flow Time"
 
     # Change Failure Rate - affects MTTR
     elif metric_name == "change_failure_rate":
-        if value > 30:
-            return "💡 High failure rate often increases MTTR and slows delivery"
+        return "💡 High failure rate often increases MTTR and slows delivery"
 
     # Mean Time To Recovery - affected by CFR and process maturity
     elif metric_name == "mean_time_to_recovery":
-        if value > 24:  # More than 1 day
-            return "💡 Long MTTR may indicate insufficient monitoring or unclear rollback procedures"
+        return "💡 Long MTTR may indicate insufficient monitoring or unclear rollback procedures"
 
     # Deployment Frequency - foundation for other DORA metrics
     elif metric_name == "deployment_frequency":
-        if value < 1:  # Less than 1 per week
-            return "💡 Low deployment frequency can increase batch size and Lead Time"
+        return "💡 Low deployment frequency can increase batch size and Lead Time"
 
     # Lead Time - affected by WIP
     elif metric_name == "lead_time_for_changes":
-        unit = metric_data.get("unit", "")
-        if "day" in unit.lower() and value > 7:
-            return "💡 Long lead time may indicate high WIP or process bottlenecks"
+        return "💡 Long lead time may indicate high WIP or process bottlenecks"
 
     # Flow Time - affected by WIP
     elif metric_name == "flow_time":
-        if value > 14:  # More than 2 weeks
-            return "💡 Long cycle time may indicate high WIP or too much waiting"
+        return "💡 Long cycle time may indicate high WIP or too much waiting"
 
     # Flow Velocity - core throughput metric
     elif metric_name == "flow_velocity":
-        if value < 5:  # Less than 5 items per week
-            return "💡 Low velocity may indicate bottlenecks, high WIP, or process inefficiency"
+        return "💡 Low velocity may indicate bottlenecks, high WIP, or process inefficiency"
 
     # Flow Efficiency - related to waiting
     elif metric_name == "flow_efficiency":
