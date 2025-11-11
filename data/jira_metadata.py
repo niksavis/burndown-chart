@@ -72,11 +72,11 @@ class JiraMetadataFetcher:
                 )
 
             self._fields_cache = normalized
-            logger.info(f"Fetched {len(normalized)} JIRA fields")
+            logger.info(f"[JIRA] Fetched {len(normalized)} fields")
             return normalized
 
         except requests.exceptions.RequestException as e:
-            logger.error(f"Failed to fetch JIRA fields: {e}")
+            logger.error(f"[JIRA] Failed to fetch fields: {e}")
             return []
 
     def fetch_projects(self, force_refresh: bool = False) -> List[Dict]:
@@ -110,11 +110,11 @@ class JiraMetadataFetcher:
                 )
 
             self._projects_cache = normalized
-            logger.info(f"Fetched {len(normalized)} JIRA projects")
+            logger.info(f"[JIRA] Fetched {len(normalized)} projects")
             return normalized
 
         except requests.exceptions.RequestException as e:
-            logger.error(f"Failed to fetch JIRA projects: {e}")
+            logger.error(f"[JIRA] Failed to fetch projects: {e}")
             return []
 
     def fetch_issue_types(self, force_refresh: bool = False) -> List[Dict]:
@@ -149,11 +149,11 @@ class JiraMetadataFetcher:
                 )
 
             self._issue_types_cache = normalized
-            logger.info(f"Fetched {len(normalized)} JIRA issue types")
+            logger.info(f"[JIRA] Fetched {len(normalized)} issue types")
             return normalized
 
         except requests.exceptions.RequestException as e:
-            logger.error(f"Failed to fetch JIRA issue types: {e}")
+            logger.error(f"[JIRA] Failed to fetch issue types: {e}")
             return []
 
     def fetch_statuses(self, force_refresh: bool = False) -> List[Dict]:
@@ -190,11 +190,11 @@ class JiraMetadataFetcher:
                 )
 
             self._statuses_cache = normalized
-            logger.info(f"Fetched {len(normalized)} JIRA statuses")
+            logger.info(f"[JIRA] Fetched {len(normalized)} statuses")
             return normalized
 
         except requests.exceptions.RequestException as e:
-            logger.error(f"Failed to fetch JIRA statuses: {e}")
+            logger.error(f"[JIRA] Failed to fetch statuses: {e}")
             return []
 
     def fetch_field_options(
@@ -228,13 +228,17 @@ class JiraMetadataFetcher:
 
             if response.status_code == 200:
                 contexts = response.json().get("values", [])
-                logger.info(f"Found {len(contexts)} contexts for field {field_id}")
+                logger.info(
+                    f"[JIRA] Found {len(contexts)} contexts for field {field_id}"
+                )
 
                 all_options = set()
                 for context in contexts:
                     context_id = context.get("id")
                     context_name = context.get("name", "unknown")
-                    logger.info(f"Processing context {context_id} ({context_name})")
+                    logger.info(
+                        f"[JIRA] Processing context {context_id} ({context_name})"
+                    )
 
                     if context_id:
                         # Fetch ALL options for this context with pagination
@@ -259,7 +263,7 @@ class JiraMetadataFetcher:
                                 is_last = options_data.get("isLast", True)
 
                                 logger.info(
-                                    f"Context {context_id}: Retrieved {len(options)} options (startAt={start_at}, total={total})"
+                                    f"[JIRA] Context {context_id}: Retrieved {len(options)} options (startAt={start_at}, total={total})"
                                 )
 
                                 for option in options:
@@ -272,7 +276,7 @@ class JiraMetadataFetcher:
                                         all_options.add(option_value)
                                         if is_disabled:
                                             logger.info(
-                                                f"  - Found disabled option: {option_value}"
+                                                f"[JIRA]   - Disabled option: {option_value}"
                                             )
 
                                 # Check if there are more results
@@ -282,7 +286,7 @@ class JiraMetadataFetcher:
                                     start_at += len(options)
                             else:
                                 logger.warning(
-                                    f"Failed to fetch options for context {context_id}: {options_response.status_code}"
+                                    f"[JIRA] Failed to fetch options for context {context_id}: {options_response.status_code}"
                                 )
                                 has_more = False
 
@@ -290,7 +294,7 @@ class JiraMetadataFetcher:
                     values = sorted(all_options)
                     self._field_options_cache[field_id] = values
                     logger.info(
-                        f"Fetched {len(values)} total options for field {field_id} from all contexts: {values}"
+                        f"[JIRA] Fetched {len(values)} total options for field {field_id} from all contexts: {values}"
                     )
                     return values
 
@@ -326,12 +330,12 @@ class JiraMetadataFetcher:
                     if values:
                         self._field_options_cache[field_id] = values
                         logger.info(
-                            f"Fetched {len(values)} options for field {field_id} from field schema: {values}"
+                            f"[JIRA] Fetched {len(values)} options for field {field_id} from schema: {values}"
                         )
                         return values
                 else:
                     logger.debug(
-                        f"No allowedValues found in field schema for {field_id} (type: {custom_data})"
+                        f"[JIRA] No allowedValues in schema for {field_id} (type: {custom_data})"
                     )
 
             # Try 3: Legacy customFieldOption endpoint (for older JIRA versions)
@@ -351,15 +355,15 @@ class JiraMetadataFetcher:
                 if values:
                     self._field_options_cache[field_id] = values
                     logger.info(
-                        f"Fetched {len(values)} options for field {field_id} from legacy endpoint"
+                        f"[JIRA] Fetched {len(values)} options for field {field_id} from legacy endpoint"
                     )
                     return values
 
         except requests.exceptions.RequestException as e:
-            logger.debug(f"Field config API failed for {field_id}: {e}")
+            logger.debug(f"[JIRA] Field config API failed for {field_id}: {e}")
 
         # Fallback 1: Try to extract from cached JIRA data (FAST - no API calls)
-        logger.info(f"Trying to extract {field_id} values from jira_cache.json")
+        logger.info(f"[JIRA] Trying to extract {field_id} values from jira_cache.json")
         try:
             import os
             import json
@@ -371,7 +375,7 @@ class JiraMetadataFetcher:
 
                 issues = cache_data.get("issues", [])
                 logger.info(
-                    f"Found {len(issues)} cached issues, extracting {field_id} values"
+                    f"[JIRA] Found {len(issues)} cached issues, extracting {field_id} values"
                 )
 
                 unique_values = set()
@@ -405,20 +409,20 @@ class JiraMetadataFetcher:
                     values = sorted(unique_values)
                     self._field_options_cache[field_id] = values
                     logger.info(
-                        f"Extracted {len(values)} unique values for {field_id} from cache: {values}"
+                        f"[JIRA] Extracted {len(values)} unique values from cache: {values}"
                     )
                     return values
                 else:
-                    logger.info(f"No values found for {field_id} in cache")
+                    logger.info(f"[JIRA] No values found for {field_id} in cache")
             else:
-                logger.info(f"Cache file {cache_file} not found")
+                logger.info(f"[JIRA] Cache file {cache_file} not found")
 
         except Exception as e:
-            logger.warning(f"Failed to extract from cache: {e}")
+            logger.warning(f"[JIRA] Failed to extract from cache: {e}")
 
         # Fallback 2: Extract from live issues via JQL (same as production identifiers pattern)
         logger.info(
-            f"Fetching {field_id} values from JIRA via JQL query (sampling up to 1000 issues)"
+            f"[JIRA] Fetching {field_id} values via JQL query (sampling up to 1000 issues)"
         )
         try:
             values = self._fetch_field_values_from_issues(
@@ -428,15 +432,15 @@ class JiraMetadataFetcher:
             if values:
                 self._field_options_cache[field_id] = values
                 logger.info(
-                    f"Extracted {len(values)} unique values for field {field_id} from JIRA issues: {values}"
+                    f"[JIRA] Extracted {len(values)} unique values from issues: {values}"
                 )
                 return values
             else:
-                logger.warning(f"No values found for field {field_id}")
+                logger.warning(f"[JIRA] No values found for field {field_id}")
                 return []
 
         except Exception as e:
-            logger.error(f"Failed to fetch values for field {field_id}: {e}")
+            logger.error(f"[JIRA] Failed to fetch values for field {field_id}: {e}")
             return []
 
     def _fetch_field_values_from_issues(
@@ -459,7 +463,7 @@ class JiraMetadataFetcher:
             from data.persistence import load_app_settings
 
             logger.info(
-                f"Attempting to fetch field values from issues for field: {field_id} (scoped={scoped})"
+                f"[JIRA] Attempting to fetch field values from issues: {field_id} (scoped={scoped})"
             )
 
             # Get field name for JQL query (some JIRA instances require field name, not ID)
@@ -498,7 +502,7 @@ class JiraMetadataFetcher:
             # Limit to recent issues and order by creation date for faster query
             jql_with_order = f"{jql} ORDER BY created DESC"
             logger.info(
-                f"Executing JQL query: {jql_with_order} (max {max_results} results - SAMPLING ONLY)"
+                f"[JIRA] Executing JQL: {jql_with_order} (max {max_results} - SAMPLING)"
             )
             url = f"{self.jira_url}/rest/api/{self.api_version}/search"
 
@@ -514,16 +518,16 @@ class JiraMetadataFetcher:
 
             if response.status_code != 200:
                 logger.warning(
-                    f"Issue search failed for field {field_id} ({field_name}): {response.status_code} - {response.text}"
+                    f"[JIRA] Issue search failed for {field_id} ({field_name}): {response.status_code}"
                 )
                 return []
 
             data = response.json()
             issues = data.get("issues", [])
-            logger.info(f"Query returned {len(issues)} issues")
+            logger.info(f"[JIRA] Query returned {len(issues)} issues")
 
             if not issues:
-                logger.warning(f"No issues found with {field_id}")
+                logger.warning(f"[JIRA] No issues found with {field_id}")
                 return []
 
             # Extract unique values
@@ -557,15 +561,17 @@ class JiraMetadataFetcher:
             # Sort and return as list
             sorted_values = sorted(unique_values)
             logger.info(
-                f"Found {len(sorted_values)} unique values for {field_id}: {sorted_values}"
+                f"[JIRA] Found {len(sorted_values)} unique values for {field_id}: {sorted_values}"
             )
             return sorted_values
 
         except requests.exceptions.RequestException as e:
-            logger.error(f"Failed to query issues for {field_id}: {e}")
+            logger.error(f"[JIRA] Failed to query issues for {field_id}: {e}")
             return []
         except Exception as e:
-            logger.error(f"Error extracting values from issues for {field_id}: {e}")
+            logger.error(
+                f"[JIRA] Error extracting values from issues for {field_id}: {e}"
+            )
             return []
 
     def auto_detect_devops_projects(
@@ -593,12 +599,12 @@ class JiraMetadataFetcher:
                 devops_type_names.add(issue_type["name"])
 
         if not devops_type_names:
-            logger.info("No DevOps-related issue types found")
+            logger.info("[JIRA] No DevOps-related issue types found")
             return []
 
         # For simplicity, return empty list since we'd need to query each project
         # This would require expensive API calls per project
-        logger.info(f"Found potential DevOps issue types: {devops_type_names}")
+        logger.info(f"[JIRA] Found potential DevOps issue types: {devops_type_names}")
         return []
 
     def auto_detect_issue_types(self, issue_types: List[Dict]) -> Dict[str, List[str]]:
@@ -637,7 +643,7 @@ class JiraMetadataFetcher:
             elif any(pattern in name_lower for pattern in task_patterns):
                 categories["task_types"].append(name)
 
-        logger.info(f"Auto-detected issue type categories: {categories}")
+        logger.info(f"[JIRA] Auto-detected issue type categories: {categories}")
         return categories
 
     def auto_detect_statuses(self, statuses: List[Dict]) -> Dict[str, List[str]]:
@@ -671,7 +677,7 @@ class JiraMetadataFetcher:
             elif category_key == "new":  # To Do category
                 categories["wip_statuses"].append(name)
 
-        logger.info(f"Auto-detected status categories: {categories}")
+        logger.info(f"[JIRA] Auto-detected status categories: {categories}")
         return categories
 
     def auto_detect_production_identifiers(self, field_options: List[str]) -> List[str]:
@@ -692,7 +698,7 @@ class JiraMetadataFetcher:
             if any(pattern in value_lower for pattern in prod_patterns):
                 production_values.append(value)
 
-        logger.info(f"Auto-detected production identifiers: {production_values}")
+        logger.info(f"[JIRA] Auto-detected production identifiers: {production_values}")
         return production_values
 
     def clear_cache(self):
@@ -702,7 +708,7 @@ class JiraMetadataFetcher:
         self._issue_types_cache = None
         self._statuses_cache = None
         self._field_options_cache = {}
-        logger.info("Cleared metadata cache")
+        logger.info("[JIRA] Cleared metadata cache")
 
 
 def create_metadata_fetcher(

@@ -719,7 +719,7 @@ def create_forecast_plot(
             # Log the error but continue without metrics
             logger = logging.getLogger("burndown_chart")
             logger.error(
-                f"Error preparing metrics data: {str(metrics_error)}\n{traceback.format_exc()}"
+                f"[Visualization] Error preparing metrics data: {str(metrics_error)}"
             )
 
             # Create minimal metrics data with default values
@@ -880,7 +880,7 @@ def _handle_forecast_error(e):
     # Get full stack trace
     error_trace = traceback.format_exc()
     logger = logging.getLogger("burndown_chart")
-    logger.error(f"Error in create_forecast_plot: {str(e)}\n{error_trace}")
+    logger.error(f"[Visualization] Error in create_forecast_plot: {str(e)}")
 
     # Create an empty figure with detailed error message
     fig = go.Figure()

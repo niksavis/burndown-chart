@@ -54,7 +54,7 @@ def _extract_date_from_fixversions(fix_versions) -> Optional[str]:
         fix_versions = [fix_versions]
 
     if not isinstance(fix_versions, list):
-        logger.warning(f"fixVersions field has unexpected type: {type(fix_versions)}")
+        logger.warning(f"[DORA] Invalid fixVersions type: {type(fix_versions)}")
         return None
 
     # Iterate through versions (most recent usually first)
@@ -82,7 +82,7 @@ def _extract_date_from_fixversions(fix_versions) -> Optional[str]:
                     return f"{year}-{month}-{day}"
                 except (IndexError, ValueError) as e:
                     logger.warning(
-                        f"Failed to parse date from version name '{version_name}': {e}"
+                        f"[DORA] Failed parsing date from version '{version_name}': {e}"
                     )
                     continue
 
@@ -347,7 +347,7 @@ def _parse_datetime(date_string: Optional[str]) -> Optional[datetime]:
 
         return dt
     except (ValueError, AttributeError) as e:
-        logger.warning(f"Failed to parse datetime '{date_string}': {e}")
+        logger.warning(f"[DORA] Failed parsing datetime '{date_string}': {e}")
         return None
 
 
@@ -404,7 +404,7 @@ def calculate_deployment_frequency(
     """
     # Input validation
     if not issues or not isinstance(issues, list):
-        logger.warning("calculate_deployment_frequency: Empty or invalid issues list")
+        logger.warning("[DORA] Deployment frequency: No issues provided")
         return {
             "metric_name": "deployment_frequency",
             "value": None,
@@ -421,7 +421,7 @@ def calculate_deployment_frequency(
         }
 
     if not isinstance(field_mappings, dict):
-        logger.error("calculate_deployment_frequency: Invalid field_mappings")
+        logger.error("[DORA] Deployment frequency: Invalid field mappings")
         return {
             "metric_name": "deployment_frequency",
             "value": None,
@@ -439,7 +439,7 @@ def calculate_deployment_frequency(
 
     if time_period_days <= 0:
         logger.error(
-            f"calculate_deployment_frequency: Invalid time_period_days: {time_period_days}"
+            f"[DORA] Deployment frequency: Invalid time period ({time_period_days} days)"
         )
         return {
             "metric_name": "deployment_frequency",
@@ -458,7 +458,7 @@ def calculate_deployment_frequency(
 
     if start_date and end_date and start_date >= end_date:
         logger.error(
-            f"calculate_deployment_frequency: Invalid date range: {start_date} to {end_date}"
+            f"[DORA] Deployment frequency: Invalid date range ({start_date} to {end_date})"
         )
         return {
             "metric_name": "deployment_frequency",
@@ -492,7 +492,7 @@ def calculate_deployment_frequency(
         development_issues = filter_development_issues(issues, devops_projects)
         development_fixversions = extract_all_fixversions(development_issues)
         logger.info(
-            f"Extracted {len(development_fixversions)} unique fixVersions from development issues"
+            f"[DORA] Extracted {len(development_fixversions)} unique fixVersions from dev issues"
         )
 
     # Filter Operational Tasks to only those linked to development work via fixVersion
@@ -638,7 +638,7 @@ def calculate_lead_time_for_changes(
     """
     # Input validation
     if not issues or not isinstance(issues, list):
-        logger.warning("calculate_lead_time_for_changes: Empty or invalid issues list")
+        logger.warning("[DORA] Lead time: No issues provided")
         return {
             "metric_name": "lead_time_for_changes",
             "value": None,
@@ -655,7 +655,7 @@ def calculate_lead_time_for_changes(
         }
 
     if not isinstance(field_mappings, dict):
-        logger.error("calculate_lead_time_for_changes: Invalid field_mappings")
+        logger.error("[DORA] Lead time: Invalid field mappings")
         return {
             "metric_name": "lead_time_for_changes",
             "value": None,
@@ -751,9 +751,7 @@ def calculate_lead_time_for_changes(
         if lead_time_days < 0:
             # Skip invalid data (deployment before commit)
             excluded_count += 1
-            logger.warning(
-                f"Issue {issue.get('key')}: deployment date before commit date"
-            )
+            logger.warning(f"[DORA] {issue.get('key')}: deployment before commit")
             continue
 
         lead_times.append(lead_time_days)
@@ -842,7 +840,7 @@ def calculate_change_failure_rate(
     """
     # Input validation
     if not isinstance(deployment_issues, list) or not isinstance(incident_issues, list):
-        logger.error("calculate_change_failure_rate: Invalid issues list(s)")
+        logger.error("[DORA] Change failure rate: Invalid issues lists")
         return {
             "metric_name": "change_failure_rate",
             "value": None,
@@ -858,7 +856,7 @@ def calculate_change_failure_rate(
         }
 
     if not isinstance(field_mappings, dict):
-        logger.error("calculate_change_failure_rate: Invalid field_mappings")
+        logger.error("[DORA] Change failure rate: Invalid field mappings")
         return {
             "metric_name": "change_failure_rate",
             "value": None,
@@ -908,9 +906,10 @@ def calculate_change_failure_rate(
     # Count total deployments
     deployment_count = len(deployment_issues)
 
-    # DEBUG: Log deployment and incident counts
-    logger.info(f"CFR Debug: deployment_issues count = {deployment_count}")
-    logger.info(f"CFR Debug: incident_issues count = {len(incident_issues)}")
+    # Log deployment and incident counts for troubleshooting
+    logger.debug(
+        f"[DORA] CFR calculation: {deployment_count} deployments, {len(incident_issues)} incidents"
+    )
 
     if deployment_count == 0:
         return {
@@ -942,8 +941,8 @@ def calculate_change_failure_rate(
                 failed_deployment_count += 1
 
         failure_count = failed_deployment_count
-        logger.info(
-            f"CFR Debug: Using change_failure field - {failed_deployment_count} failed out of {deployment_count} total"
+        logger.debug(
+            f"[DORA] CFR using change_failure field: {failed_deployment_count}/{deployment_count} failed"
         )
     else:
         # Method 2: Fallback to incident-based calculation
@@ -966,10 +965,9 @@ def calculate_change_failure_rate(
                 incident_count += 1
 
         failure_count = incident_count
-        logger.info(
-            f"CFR Debug: Using incident-based calculation - {incident_count} incidents, {deployment_count} deployments"
+        logger.debug(
+            f"[DORA] CFR using incidents: {incident_count} incidents, {deployment_count} deployments, field: {production_impact_field}"
         )
-        logger.info(f"CFR Debug: production_impact_field = {production_impact_field}")
 
     # Calculate failure rate percentage
     failure_rate = (failure_count / deployment_count) * 100
@@ -1033,7 +1031,7 @@ def calculate_mean_time_to_recovery(
     """
     # Input validation
     if not issues or not isinstance(issues, list):
-        logger.warning("calculate_mean_time_to_recovery: Empty or invalid issues list")
+        logger.warning("[DORA] MTTR: No issues provided")
         return {
             "metric_name": "mean_time_to_recovery",
             "value": None,
@@ -1049,7 +1047,7 @@ def calculate_mean_time_to_recovery(
         }
 
     if not isinstance(field_mappings, dict):
-        logger.error("calculate_mean_time_to_recovery: Invalid field_mappings")
+        logger.error("[DORA] MTTR: Invalid field mappings")
         return {
             "metric_name": "mean_time_to_recovery",
             "value": None,
@@ -1068,11 +1066,9 @@ def calculate_mean_time_to_recovery(
     use_operational_tasks = devops_projects and len(devops_projects) > 0
 
     if use_operational_tasks:
-        logger.info("MTTR Mode A: Using Bug → Linked Operational Task calculation")
+        logger.debug("[DORA] MTTR Mode A: Bug → Linked Operational Task")
     else:
-        logger.info(
-            "MTTR Mode B: Using Bug → Bug resolution calculation (no devops_projects)"
-        )
+        logger.debug("[DORA] MTTR Mode B: Bug → Bug resolution (no devops_projects)")
 
     # Filter to production incidents (Bugs in development projects)
     if devops_projects:
@@ -1117,7 +1113,7 @@ def calculate_mean_time_to_recovery(
         from data.fixversion_matcher import find_matching_operational_tasks
 
         if not operational_tasks:
-            logger.warning("MTTR Mode A requires operational_tasks parameter")
+            logger.warning("[DORA] MTTR Mode A requires operational_tasks parameter")
             operational_tasks = []
 
         for issue in issues:
@@ -1139,9 +1135,7 @@ def calculate_mean_time_to_recovery(
                 # No linked operational task - skip this bug
                 no_linked_task_count += 1
                 excluded_count += 1
-                logger.debug(
-                    f"Issue {issue.get('key')}: No linked operational task via fixVersion"
-                )
+                logger.debug(f"[DORA] {issue.get('key')}: No linked operational task")
                 continue
 
             # Use earliest operational task resolution date
@@ -1159,7 +1153,7 @@ def calculate_mean_time_to_recovery(
             if not earliest_resolution:
                 excluded_count += 1
                 logger.debug(
-                    f"Issue {issue.get('key')}: Linked operational tasks not resolved"
+                    f"[DORA] {issue.get('key')}: Linked operational tasks not resolved"
                 )
                 continue
 
@@ -1170,7 +1164,7 @@ def calculate_mean_time_to_recovery(
             if recovery_hours < 0:
                 excluded_count += 1
                 logger.warning(
-                    f"Issue {issue.get('key')}: operational task resolved before bug created"
+                    f"[DORA] {issue.get('key')}: Task resolved before bug created"
                 )
                 continue
 
@@ -1197,9 +1191,7 @@ def calculate_mean_time_to_recovery(
 
             if recovery_hours < 0:
                 excluded_count += 1
-                logger.warning(
-                    f"Issue {issue.get('key')}: resolved date before detected date"
-                )
+                logger.warning(f"[DORA] {issue.get('key')}: Resolved before detected")
                 continue
 
             recovery_times.append(recovery_hours)
@@ -1284,7 +1276,7 @@ def calculate_all_dora_metrics(
     incident_issues = issues.get("incidents", [])
 
     logger.info(
-        f"Starting DORA metrics calculation: {len(deployment_issues)} deployments, {len(incident_issues)} incidents, {time_period_days}d period"
+        f"[DORA] Calculating 4 metrics: {len(deployment_issues)} deployments, {len(incident_issues)} incidents ({time_period_days}d)"
     )
 
     results = {
@@ -1303,7 +1295,7 @@ def calculate_all_dora_metrics(
     }
 
     elapsed_time = time.time() - start_time
-    logger.info(f"✓ DORA metrics calculated in {elapsed_time:.2f}s")
+    logger.info(f"[DORA] Calculated 4 metrics in {elapsed_time:.2f}s")
     return results
 
 
@@ -1364,7 +1356,7 @@ def calculate_deployment_frequency_v2(
 
     period_days = (end_date - start_date).days
     if period_days <= 0:
-        logger.warning("Invalid date range: end_date must be after start_date")
+        logger.warning("[DORA] Invalid date range: end_date must be after start_date")
         return {
             "deployment_count": 0,
             "deployments_per_week": 0.0,
@@ -1419,8 +1411,7 @@ def calculate_deployment_frequency_v2(
 
             except (ValueError, TypeError) as e:
                 logger.warning(
-                    f"Failed to parse releaseDate '{release_date_str}' "
-                    f"for {task.get('key', 'unknown')}: {e}"
+                    f"[DORA] Failed parsing releaseDate '{release_date_str}' for {task.get('key', 'unknown')}: {e}"
                 )
                 continue
 
@@ -1447,15 +1438,13 @@ def calculate_deployment_frequency_v2(
 
     # Log exclusion reasons
     if no_release_date_count > 0:
-        logger.info(
-            f"Excluded {no_release_date_count} operational tasks with no releaseDate "
-            f"(use resolutiondate fallback in future enhancement)"
+        logger.debug(
+            f"[DORA] Excluded {no_release_date_count} tasks with no releaseDate"
         )
 
     if future_deployment_count > 0:
-        logger.info(
-            f"Excluded {future_deployment_count} operational tasks with future releaseDate "
-            f"(deployments not yet happened)"
+        logger.debug(
+            f"[DORA] Excluded {future_deployment_count} tasks with future releaseDate"
         )
 
     # Calculate frequency
@@ -1467,9 +1456,7 @@ def calculate_deployment_frequency_v2(
     releases_per_week = (release_count / period_days) * 7 if period_days > 0 else 0.0
 
     logger.info(
-        f"Deployment Frequency: {deployment_count} deployments ({release_count} unique releases) "
-        f"in {period_days} days ({deployments_per_week:.2f} deployments/week, "
-        f"{releases_per_week:.2f} releases/week)"
+        f"[DORA] Deployment freq: {deployment_count} deployments ({release_count} releases) in {period_days}d = {deployments_per_week:.2f}/week"
     )
 
     return {
@@ -1574,13 +1561,13 @@ def calculate_lead_time_for_changes_v2(
             if result:
                 status_name, deployment_ready_time = result
                 logger.debug(
-                    f"{issue_key}: No 'In Deployment' status, using '{status_name}' as fallback"
+                    f"[DORA] {issue_key}: No 'In Deployment' status, using '{status_name}' fallback"
                 )
             else:
                 no_deployment_status_count += 1
                 excluded_count += 1
                 logger.debug(
-                    f"{issue_key}: No deployment status or completion status found, skipping"
+                    f"[DORA] {issue_key}: No deployment/completion status, skipping"
                 )
                 continue
 
@@ -1598,14 +1585,13 @@ def calculate_lead_time_for_changes_v2(
             # Unpack the tuple: (deployment_date, operational_task, match_method)
             deployment_date, matched_op_task, match_method = result
             logger.debug(
-                f"{issue_key}: Matched to {matched_op_task.get('key')} (by {match_method}), "
-                f"deployment_date={deployment_date}"
+                f"[DORA] {issue_key}: Matched to {matched_op_task.get('key')} via {match_method}, date={deployment_date}"
             )
         else:
             # No matching operational task or no valid deployment date
             no_operational_task_count += 1
             logger.debug(
-                f"{issue_key}: No matching operational task with valid deployment date"
+                f"[DORA] {issue_key}: No matching operational task with valid deployment date"
             )
 
         # If no deployment date found, skip this issue
@@ -1636,9 +1622,7 @@ def calculate_lead_time_for_changes_v2(
         # Sanity check: negative lead time indicates data issue
         if lead_time_hours < 0:
             logger.warning(
-                f"{issue_key}: Negative lead time ({lead_time_hours:.1f}h), "
-                f"deployment_ready={deployment_ready_time.isoformat()}, "
-                f"deployment_date={deployment_date.isoformat()}"
+                f"[DORA] {issue_key}: Negative lead time ({lead_time_hours:.1f}h), ready={deployment_ready_time.isoformat()}, deployed={deployment_date.isoformat()}"
             )
             excluded_count += 1
             continue
@@ -1654,7 +1638,7 @@ def calculate_lead_time_for_changes_v2(
 
     # Calculate statistics
     if not lead_times:
-        logger.info("No valid lead times calculated")
+        logger.info("[DORA] No valid lead times calculated")
         return {
             "lead_times_hours": [],
             "median_hours": None,
@@ -1693,8 +1677,7 @@ def calculate_lead_time_for_changes_v2(
     p95 = percentile(hours_list, 95)
 
     logger.info(
-        f"Lead Time for Changes: {len(lead_times)} issues analyzed, "
-        f"median={median:.1f}h, mean={mean:.1f}h, p95={p95:.1f}h"
+        f"[DORA] Lead time: {len(lead_times)} issues, median={median:.1f}h, mean={mean:.1f}h, p95={p95:.1f}h"
     )
 
     return {
@@ -1821,7 +1804,7 @@ def calculate_change_failure_rate_v2(
 
             except (ValueError, TypeError) as e:
                 logger.warning(
-                    f"Failed to parse releaseDate '{release_date_str}' for {task_key}: {e}"
+                    f"[DORA] Failed to parse releaseDate '{release_date_str}' for {task_key}: {e}"
                 )
                 continue
 
@@ -1893,19 +1876,17 @@ def calculate_change_failure_rate_v2(
         release_failure_rate = 0.0
 
     logger.info(
-        f"Change Failure Rate: {failed_deployments}/{total_deployments} deployment failures "
-        f"({change_failure_rate:.1f}%), {failed_release_count}/{total_releases} release failures "
-        f"({release_failure_rate:.1f}%)"
+        f"[DORA] CFR: {failed_deployments}/{total_deployments} deployments ({change_failure_rate:.1f}%), {failed_release_count}/{total_releases} releases ({release_failure_rate:.1f}%)"
     )
 
     if no_release_date_count > 0:
         logger.info(
-            f"Excluded {no_release_date_count} operational tasks with no releaseDate"
+            f"[DORA] Excluded {no_release_date_count} tasks with no releaseDate"
         )
 
     if future_deployment_count > 0:
         logger.info(
-            f"Excluded {future_deployment_count} operational tasks with future releaseDate"
+            f"[DORA] Excluded {future_deployment_count} tasks with future releaseDate"
         )
 
     return {
@@ -2008,15 +1989,13 @@ def calculate_mttr_v2(
             # Case mismatch - include but warn
             filtered_prod_bugs.append(bug)
             logger.warning(
-                f"Bug {bug.get('key')}: Case mismatch in production environment - "
-                f"expected '{production_value}', got '{affected_env}'"
+                f"[DORA] {bug.get('key')}: Production env case mismatch - expected '{production_value}', got '{affected_env}'"
             )
         else:
             not_production_count += 1
 
     logger.info(
-        f"Filtered to {len(filtered_prod_bugs)} production bugs "
-        f"(excluded {not_production_count} non-production bugs)"
+        f"[DORA] Filtered to {len(filtered_prod_bugs)} production bugs (excluded {not_production_count} non-prod)"
     )
 
     # Step 2: Calculate recovery time for each production bug
@@ -2033,14 +2012,14 @@ def calculate_mttr_v2(
         if not created_str:
             no_created_date_count += 1
             excluded_count += 1
-            logger.warning(f"{bug_key}: No created date, skipping")
+            logger.warning(f"[DORA] {bug_key}: No created date, skipping")
             continue
 
         try:
             bug_created = datetime.fromisoformat(created_str.replace("Z", "+00:00"))
         except (ValueError, TypeError) as e:
             logger.warning(
-                f"{bug_key}: Failed to parse created date '{created_str}': {e}"
+                f"[DORA] {bug_key}: Failed to parse created date '{created_str}': {e}"
             )
             excluded_count += 1
             continue
@@ -2068,8 +2047,7 @@ def calculate_mttr_v2(
                 ).replace(tzinfo=timezone.utc)
 
             logger.debug(
-                f"{bug_key}: Fix deployed via {matched_op_task.get('key')} (by {match_method}), "
-                f"deployment_date={fix_deployed}"
+                f"[DORA] {bug_key}: Fix deployed via {matched_op_task.get('key')} ({match_method}), date={fix_deployed}"
             )
         else:
             # Method 2: Fallback to bug's own resolution date
@@ -2080,18 +2058,18 @@ def calculate_mttr_v2(
                         resolution_str.replace("Z", "+00:00")
                     )
                     logger.debug(
-                        f"{bug_key}: No matching operational task, using resolutiondate as fallback"
+                        f"[DORA] {bug_key}: No matching operational task, using resolutiondate"
                     )
                 except (ValueError, TypeError) as e:
                     logger.warning(
-                        f"{bug_key}: Failed to parse resolutiondate '{resolution_str}': {e}"
+                        f"[DORA] {bug_key}: Failed to parse resolutiondate '{resolution_str}': {e}"
                     )
 
         # If no fix deployed date found, skip this bug
         if not fix_deployed:
             no_fix_deployed_count += 1
             excluded_count += 1
-            logger.debug(f"{bug_key}: No fix deployed date found, skipping")
+            logger.debug(f"[DORA] {bug_key}: No fix deployed date found, skipping")
             continue
 
         # Calculate recovery time
@@ -2101,8 +2079,7 @@ def calculate_mttr_v2(
         # Sanity check: negative recovery time indicates data issue
         if recovery_hours < 0:
             logger.warning(
-                f"{bug_key}: Negative recovery time ({recovery_hours:.1f}h), "
-                f"created={bug_created.isoformat()}, fixed={fix_deployed.isoformat()}"
+                f"[DORA] {bug_key}: Negative recovery time ({recovery_hours:.1f}h), created={bug_created.isoformat()}, fixed={fix_deployed.isoformat()}"
             )
             excluded_count += 1
             continue
@@ -2120,7 +2097,7 @@ def calculate_mttr_v2(
 
     # Calculate statistics
     if not recovery_times:
-        logger.info("No valid recovery times calculated for MTTR")
+        logger.info("[DORA] No valid recovery times calculated for MTTR")
         return {
             "mttr_hours": [],
             "median_hours": None,
@@ -2160,8 +2137,7 @@ def calculate_mttr_v2(
     p95 = percentile(hours_list, 95)
 
     logger.info(
-        f"MTTR: {len(recovery_times)} production bugs analyzed, "
-        f"median={median:.1f}h, mean={mean:.1f}h, p95={p95:.1f}h"
+        f"[DORA] MTTR: {len(recovery_times)} bugs, median={median:.1f}h, mean={mean:.1f}h, p95={p95:.1f}h"
     )
 
     return {
@@ -2218,7 +2194,7 @@ def aggregate_deployment_frequency_weekly(
     from data.time_period_calculator import get_year_week_label
     from datetime import datetime
 
-    logger.info(f"Aggregating deployment frequency for {len(week_labels)} weeks")
+    logger.info(f"[DORA] Aggregating deployment frequency for {len(week_labels)} weeks")
 
     # Initialize result with zero counts
     weekly_counts = {
@@ -2227,7 +2203,7 @@ def aggregate_deployment_frequency_weekly(
 
     if not operational_tasks or not completion_statuses:
         logger.warning(
-            "aggregate_deployment_frequency_weekly: No operational tasks or completion statuses provided"
+            "[DORA] Deployment aggregation: No operational tasks or completion statuses"
         )
         return weekly_counts
 
@@ -2318,7 +2294,7 @@ def aggregate_deployment_frequency_weekly(
                 if isinstance(task, dict)
                 else getattr(task, "key", "unknown")
             )
-            logger.debug(f"Error processing task {task_key}: {e}")
+            logger.debug(f"[DORA] Error processing task {task_key}: {e}")
             continue
 
     # Convert sets to counts for return value
@@ -2336,7 +2312,7 @@ def aggregate_deployment_frequency_weekly(
         for w, r in result.items()
         if r["deployments"] > 0
     ]
-    logger.info(f"Weekly deployment counts: {summary}")
+    logger.info(f"[DORA] Weekly deployment counts: {summary}")
     return result
 
 
@@ -2366,7 +2342,7 @@ def aggregate_lead_time_weekly(
     from datetime import datetime
     import statistics
 
-    logger.info(f"Aggregating lead time for {len(week_labels)} weeks")
+    logger.info(f"[DORA] Aggregating lead time for {len(week_labels)} weeks")
 
     # Initialize result
     weekly_stats = {
@@ -2381,7 +2357,7 @@ def aggregate_lead_time_weekly(
     }
 
     if not lead_times:
-        logger.warning("aggregate_lead_time_weekly: No lead times provided")
+        logger.warning("[DORA] Lead time aggregation: No lead times provided")
         return weekly_stats
 
     # Group by week
@@ -2428,7 +2404,7 @@ def aggregate_lead_time_weekly(
             )
 
     logger.info(
-        f"Weekly lead time aggregated for {sum(1 for s in weekly_stats.values() if s['count'] > 0)} weeks"
+        f"[DORA] Weekly lead time aggregated for {sum(1 for s in weekly_stats.values() if s['count'] > 0)} weeks"
     )
     return weekly_stats
 
@@ -2469,7 +2445,7 @@ def aggregate_change_failure_rate_weekly(
     from datetime import datetime, date
     from collections import defaultdict
 
-    logger.info(f"Aggregating change failure rate for {len(week_labels)} weeks")
+    logger.info(f"[DORA] Aggregating change failure rate for {len(week_labels)} weeks")
 
     # Initialize result
     weekly_stats = {
@@ -2488,7 +2464,7 @@ def aggregate_change_failure_rate_weekly(
 
     if not operational_tasks or not completion_statuses:
         logger.warning(
-            "aggregate_change_failure_rate_weekly: No operational tasks or completion statuses provided"
+            "[DORA] CFR aggregation: No operational tasks or completion statuses"
         )
         return weekly_stats
 
@@ -2618,7 +2594,7 @@ def aggregate_change_failure_rate_weekly(
             )
 
     logger.info(
-        f"Weekly change failure rate aggregated for {len([s for s in weekly_stats.values() if s['total_deployments'] > 0])} weeks"
+        f"[DORA] Weekly CFR aggregated for {len([s for s in weekly_stats.values() if s['total_deployments'] > 0])} weeks"
     )
     return weekly_stats
 
@@ -2649,7 +2625,7 @@ def aggregate_mttr_weekly(
     from datetime import datetime
     import statistics
 
-    logger.info(f"Aggregating MTTR for {len(week_labels)} weeks")
+    logger.info(f"[DORA] Aggregating MTTR for {len(week_labels)} weeks")
 
     # Initialize result
     weekly_stats = {
@@ -2664,7 +2640,7 @@ def aggregate_mttr_weekly(
     }
 
     if not mttr_data:
-        logger.warning("aggregate_mttr_weekly: No MTTR data provided")
+        logger.warning("[DORA] MTTR aggregation: No MTTR data provided")
         return weekly_stats
 
     # Group by week
@@ -2709,7 +2685,7 @@ def aggregate_mttr_weekly(
             )
 
     logger.info(
-        f"Weekly MTTR aggregated for {sum(1 for s in weekly_stats.values() if s['count'] > 0)} weeks"
+        f"[DORA] Weekly MTTR aggregated for {sum(1 for s in weekly_stats.values() if s['count'] > 0)} weeks"
     )
     return weekly_stats
 
@@ -2822,13 +2798,10 @@ def filter_issues_by_dora_fields(
             stats["development_issues_count"] += 1
 
     logger.info(
-        f"Field-based DORA detection results: {stats['operational_tasks_count']} operational tasks, "
-        f"{stats['production_bugs_count']} production bugs, {stats['development_issues_count']} development issues "
-        f"(scanned {stats['total_scanned']} issues)"
+        f"[DORA] Field-based detection: {stats['operational_tasks_count']} op tasks, {stats['production_bugs_count']} prod bugs, {stats['development_issues_count']} dev issues ({stats['total_scanned']} scanned)"
     )
     logger.info(
-        f"Detection breakdown: {stats['has_deployment_date']} with deployment_date, "
-        f"{stats['has_fixversions']} with fixVersions, {stats['has_incident_data']} with incident data"
+        f"[DORA] Detection breakdown: {stats['has_deployment_date']} deployment_date, {stats['has_fixversions']} fixVersions, {stats['has_incident_data']} incident data"
     )
 
     return {

@@ -168,8 +168,8 @@ def save_app_settings(
     # Preserve DORA/Flow configuration and other settings if they exist
     try:
         existing_settings = load_app_settings()
-        logger.info(
-            f"save_app_settings: Loading existing settings. Keys present: {list(existing_settings.keys())}"
+        logger.debug(
+            f"[Config] Loading existing settings. Keys: {list(existing_settings.keys())}"
         )
 
         # Keys to preserve from existing settings (if not explicitly provided)
@@ -196,18 +196,18 @@ def save_app_settings(
         for key in preserve_keys:
             if key in existing_settings and key not in settings:
                 settings[key] = existing_settings[key]
-                logger.debug(f"Preserved existing {key} during save")
+                logger.debug(f"[Config] Preserved existing {key}")
                 # Extra logging for field_mappings to debug config reversion issue
                 if key == "field_mappings":
-                    logger.info(
-                        f"Preserving field_mappings from existing settings: {existing_settings[key]}"
+                    logger.debug(
+                        f"[Config] Preserving field_mappings: {existing_settings[key]}"
                     )
 
-        logger.info(
-            f"save_app_settings: Final settings keys before write: {list(settings.keys())}"
+        logger.debug(
+            f"[Config] Final settings keys before write: {list(settings.keys())}"
         )
     except Exception as e:
-        logger.error(f"Could not load existing settings to preserve configuration: {e}")
+        logger.error(f"[Config] Could not load existing settings: {e}")
 
     try:
         # Write to a temporary file first
@@ -221,10 +221,10 @@ def save_app_settings(
         os.rename(temp_file, APP_SETTINGS_FILE)
 
         logger.info(
-            f"App settings saved to {APP_SETTINGS_FILE}. Keys written: {list(settings.keys())}"
+            f"[Config] Settings saved to {APP_SETTINGS_FILE}. Keys: {list(settings.keys())}"
         )
     except Exception as e:
-        logger.error(f"Error saving app settings: {e}")
+        logger.error(f"[Config] Error saving app settings: {e}")
 
 
 def load_app_settings():
@@ -256,7 +256,7 @@ def load_app_settings():
         if os.path.exists(APP_SETTINGS_FILE):
             with open(APP_SETTINGS_FILE, "r") as f:
                 settings = json.load(f)
-            logger.info(f"App settings loaded from {APP_SETTINGS_FILE}")
+            logger.info(f"[Config] Settings loaded from {APP_SETTINGS_FILE}")
 
             # Add default values for new fields if they don't exist
             for key, default_value in default_settings.items():
@@ -267,9 +267,7 @@ def load_app_settings():
 
         # Check if legacy forecast_settings.json exists and migrate
         elif os.path.exists(SETTINGS_FILE):
-            logger.info(
-                f"Migrating legacy settings from {SETTINGS_FILE} to new file structure"
-            )
+            logger.info(f"[Config] Migrating legacy settings from {SETTINGS_FILE}")
             with open(SETTINGS_FILE, "r") as f:
                 legacy_settings = json.load(f)
 
@@ -322,15 +320,15 @@ def load_app_settings():
                 },
             )
 
-            logger.info("Legacy settings migration completed successfully")
+            logger.info("[Config] Legacy settings migration completed")
             return migrated_settings
 
         else:
-            logger.info("No existing settings files found, using defaults")
+            logger.info("[Config] No existing settings files, using defaults")
             return default_settings
 
     except Exception as e:
-        logger.error(f"Error loading app settings: {e}")
+        logger.error(f"[Config] Error loading app settings: {e}")
         return default_settings
 
 
@@ -374,9 +372,9 @@ def save_project_data(
             os.remove(PROJECT_DATA_FILE)
         os.rename(temp_file, PROJECT_DATA_FILE)
 
-        logger.info(f"Project data saved to {PROJECT_DATA_FILE}")
+        logger.info(f"[Cache] Project data saved to {PROJECT_DATA_FILE}")
     except Exception as e:
-        logger.error(f"Error saving project data: {e}")
+        logger.error(f"[Cache] Error saving project data: {e}")
 
 
 def load_project_data():
@@ -398,7 +396,7 @@ def load_project_data():
         if os.path.exists(PROJECT_DATA_FILE):
             with open(PROJECT_DATA_FILE, "r") as f:
                 project_data = json.load(f)
-            logger.info(f"Project data loaded from {PROJECT_DATA_FILE}")
+            logger.info(f"[Cache] Project data loaded from {PROJECT_DATA_FILE}")
 
             # Add default values for new fields if they don't exist
             for key, default_value in default_data.items():
@@ -407,10 +405,10 @@ def load_project_data():
 
             return project_data
         else:
-            logger.info("Project data file not found, using defaults")
+            logger.info("[Cache] Project data file not found, using defaults")
             return default_data
     except Exception as e:
-        logger.error(f"Error loading project data: {e}")
+        logger.error(f"[Cache] Error loading project data: {e}")
         return default_data
 
 
@@ -471,9 +469,9 @@ def save_settings(
             os.remove(SETTINGS_FILE)
         os.rename(temp_file, SETTINGS_FILE)
 
-        logger.info(f"Settings saved to {SETTINGS_FILE}")
+        logger.info(f"[Config] Settings saved to {SETTINGS_FILE}")
     except Exception as e:
-        logger.error(f"Error saving settings: {e}")
+        logger.error(f"[Config] Error saving settings: {e}")
 
 
 def load_settings():
@@ -499,7 +497,7 @@ def load_settings():
         if os.path.exists(SETTINGS_FILE):
             with open(SETTINGS_FILE, "r") as f:
                 settings = json.load(f)
-            logger.info(f"Settings loaded from {SETTINGS_FILE}")
+            logger.info(f"[Config] Settings loaded from {SETTINGS_FILE}")
 
             # Add default values for new fields if they don't exist
             if "estimated_items" not in settings:
@@ -519,10 +517,10 @@ def load_settings():
 
             return settings
         else:
-            logger.info("Settings file not found, using defaults")
+            logger.info("[Config] Settings file not found, using defaults")
             return default_settings
     except Exception as e:
-        logger.error(f"Error loading settings: {e}")
+        logger.error(f"[Config] Error loading settings: {e}")
         return default_settings
 
 
@@ -564,9 +562,9 @@ def save_statistics(data):
         # Save the unified data
         save_unified_project_data(unified_data)
 
-        logger.info(f"Statistics saved to {PROJECT_DATA_FILE}")
+        logger.info(f"[Cache] Statistics saved to {PROJECT_DATA_FILE}")
     except Exception as e:
-        logger.error(f"Error saving statistics: {e}")
+        logger.error(f"[Cache] Error saving statistics: {e}")
 
 
 def save_statistics_from_csv_import(data):
@@ -610,9 +608,9 @@ def save_statistics_from_csv_import(data):
         # Save the unified data
         save_unified_project_data(unified_data)
 
-        logger.info(f"Statistics from CSV import saved to {PROJECT_DATA_FILE}")
+        logger.info(f"[Cache] Statistics from CSV import saved to {PROJECT_DATA_FILE}")
     except Exception as e:
-        logger.error(f"Error saving CSV import statistics: {e}")
+        logger.error(f"[Cache] Error saving CSV import statistics: {e}")
 
 
 def load_statistics():
@@ -641,10 +639,10 @@ def load_statistics():
             statistics_df["date"] = statistics_df["date"].dt.strftime("%Y-%m-%d")
 
             data = statistics_df.to_dict("records")
-            logger.info(f"Statistics loaded from {PROJECT_DATA_FILE}")
+            logger.info(f"[Cache] Statistics loaded from {PROJECT_DATA_FILE}")
             return data, False  # Return data and flag that it's not sample data
         else:
-            logger.info("No statistics found in project data, using sample data")
+            logger.info("[Cache] No statistics found, using sample data")
 
             # Make sure sample data is also sorted by date
             sample_df = generate_realistic_sample_data()
@@ -654,7 +652,7 @@ def load_statistics():
 
             return sample_df.to_dict("records"), True  # Return sample data with flag
     except Exception as e:
-        logger.error(f"Error loading statistics: {e}")
+        logger.error(f"[Cache] Error loading statistics: {e}")
 
         # Make sure sample data is also sorted by date
         sample_df = generate_realistic_sample_data()
@@ -856,13 +854,13 @@ def load_unified_project_data():
 
         # Validate structure
         if not validate_project_data_structure(data):
-            logger.warning("⚠️ Invalid unified data structure, using defaults")
+            logger.warning("[Cache] Invalid unified data structure, using defaults")
             return get_default_unified_data()
 
         return data
 
     except Exception as e:
-        logger.error(f"❌ Error loading unified project data: {e}")
+        logger.error(f"[Cache] Error loading unified project data: {e}")
         return get_default_unified_data()
 
 
@@ -876,9 +874,9 @@ def save_unified_project_data(data):
     try:
         with open(PROJECT_DATA_FILE, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
-        logger.info("✅ Saved unified project data")
+        logger.info("[Cache] Saved unified project data")
     except Exception as e:
-        logger.error(f"❌ Error saving unified project data: {e}")
+        logger.error(f"[Cache] Error saving unified project data: {e}")
         raise
 
 
@@ -987,7 +985,7 @@ def update_project_scope_from_jira(
         return True, f"Project scope updated from JIRA: {message}"
 
     except Exception as e:
-        logger.error(f"Error updating project scope from JIRA: {e}")
+        logger.error(f"[JIRA] Error updating project scope: {e}")
         return False, f"Failed to update scope from JIRA: {e}"
 
 
@@ -1043,7 +1041,7 @@ def calculate_project_scope_from_jira(
         return True, "Project scope calculated successfully", scope_data
 
     except Exception as e:
-        logger.error(f"Error calculating project scope from JIRA: {e}")
+        logger.error(f"[JIRA] Error calculating project scope: {e}")
         return False, f"Failed to calculate scope from JIRA: {e}", {}
 
 
@@ -1090,7 +1088,7 @@ def load_statistics_legacy():
                 )
             return legacy_data, False
     except Exception as e:
-        logger.warning(f"Could not load from unified format: {e}")
+        logger.warning(f"[Cache] Could not load from unified format: {e}")
 
     # Fall back to original CSV loading
     return load_statistics()
@@ -1114,7 +1112,7 @@ def load_project_data_legacy():
                 "estimated_points": scope.get("estimated_points", 0),
             }
     except Exception as e:
-        logger.warning(f"Could not load from unified format: {e}")
+        logger.warning(f"[Cache] Could not load from unified format: {e}")
 
     # Fall back to original project data loading
     return load_project_data()
@@ -1160,11 +1158,11 @@ def save_jira_data_unified(statistics_data, project_scope_data, jira_config=None
         # Save the unified data
         save_unified_project_data(unified_data)
 
-        logger.info("✅ JIRA data saved to unified project data structure")
+        logger.info("[Cache] JIRA data saved to unified project data structure")
         return True
 
     except Exception as e:
-        logger.error(f"❌ Error saving JIRA data to unified structure: {e}")
+        logger.error(f"[Cache] Error saving JIRA data to unified structure: {e}")
         return False
 
 
@@ -1334,7 +1332,7 @@ def migrate_jira_config(app_settings: Dict[str, Any]) -> Dict[str, Any]:
     # Add jira_config to settings
     app_settings["jira_config"] = jira_config
 
-    logger.info("Migrated legacy JIRA settings to new jira_config structure")
+    logger.info("[Config] Migrated legacy JIRA settings to jira_config structure")
 
     return app_settings
 
@@ -1371,7 +1369,7 @@ def cleanup_legacy_jira_fields(app_settings: Dict[str, Any]) -> Dict[str, Any]:
             removed_fields.append(field)
 
     if removed_fields:
-        logger.info(f"Removed legacy JIRA fields: {', '.join(removed_fields)}")
+        logger.info(f"[Config] Removed legacy JIRA fields: {', '.join(removed_fields)}")
 
     return app_settings
 
@@ -1401,9 +1399,9 @@ def load_jira_configuration() -> Dict[str, Any]:
         try:
             with open(APP_SETTINGS_FILE, "w") as f:
                 json.dump(app_settings, f, indent=2)
-            logger.info("Saved migrated JIRA configuration to app_settings.json")
+            logger.info("[Config] Saved migrated JIRA configuration")
         except Exception as e:
-            logger.error(f"Error saving migrated JIRA configuration: {e}")
+            logger.error(f"[Config] Error saving migrated JIRA configuration: {e}")
 
     # Cleanup legacy fields after migration if they still exist
     if any(
@@ -1429,9 +1427,9 @@ def load_jira_configuration() -> Dict[str, Any]:
         try:
             with open(APP_SETTINGS_FILE, "w") as f:
                 json.dump(app_settings, f, indent=2)
-            logger.info("Removed legacy JIRA fields from app_settings.json")
+            logger.info("[Config] Removed legacy JIRA fields")
         except Exception as e:
-            logger.error(f"Error saving cleaned JIRA configuration: {e}")
+            logger.error(f"[Config] Error saving cleaned JIRA configuration: {e}")
 
     return app_settings.get("jira_config", get_default_jira_config())
 
@@ -1526,7 +1524,7 @@ def save_jira_configuration(config: Dict[str, Any]) -> bool:
         # Validate configuration first
         is_valid, error_msg = validate_jira_config(config)
         if not is_valid:
-            logger.error(f"Invalid JIRA configuration: {error_msg}")
+            logger.error(f"[Config] Invalid JIRA configuration: {error_msg}")
             return False
 
         # Load current settings
@@ -1539,11 +1537,11 @@ def save_jira_configuration(config: Dict[str, Any]) -> bool:
         with open(APP_SETTINGS_FILE, "w") as f:
             json.dump(app_settings, f, indent=2)
 
-        logger.info("JIRA configuration saved successfully")
+        logger.info("[Config] JIRA configuration saved successfully")
         return True
 
     except Exception as e:
-        logger.error(f"Error saving JIRA configuration: {e}")
+        logger.error(f"[Config] Error saving JIRA configuration: {e}")
         return False
 
 
@@ -1590,7 +1588,7 @@ def load_metrics_history() -> Dict[str, List[Dict[str, Any]]]:
         )
 
     except Exception as e:
-        logger.error(f"Error loading metrics history: {e}")
+        logger.error(f"[Metrics] Error loading metrics history: {e}")
         return {"dora_metrics": [], "flow_metrics": []}
 
 
@@ -1621,7 +1619,7 @@ def save_metrics_snapshot(
     """
     try:
         if metric_type not in ["dora_metrics", "flow_metrics"]:
-            logger.error(f"Invalid metric type: {metric_type}")
+            logger.error(f"[Metrics] Invalid metric type: {metric_type}")
             return False
 
         # Load current unified data
@@ -1656,14 +1654,14 @@ def save_metrics_snapshot(
         if existing_today:
             # Replace existing snapshot from today with same time period
             history[existing_today[0]] = snapshot
-            logger.info(
-                f"Updated today's {metric_type} snapshot for {time_period_days}d period"
+            logger.debug(
+                f"[Metrics] Updated {metric_type} snapshot for {time_period_days}d period"
             )
         else:
             # Add new snapshot
             history.append(snapshot)
-            logger.info(
-                f"Added new {metric_type} snapshot for {time_period_days}d period"
+            logger.debug(
+                f"[Metrics] Added {metric_type} snapshot for {time_period_days}d period"
             )
 
         # Limit history to last 90 days to prevent file bloat
@@ -1678,11 +1676,11 @@ def save_metrics_snapshot(
         unified_data["metadata"]["last_updated"] = datetime.now().isoformat()
         save_unified_project_data(unified_data)
 
-        logger.info(f"Metrics history saved: {len(history)} {metric_type} snapshots")
+        logger.info(f"[Metrics] History saved: {len(history)} {metric_type} snapshots")
         return True
 
     except Exception as e:
-        logger.error(f"Error saving metrics snapshot: {e}")
+        logger.error(f"[Metrics] Error saving snapshot: {e}")
         return False
 
 
@@ -1741,7 +1739,7 @@ def get_metric_trend_data(
         return trend_data
 
     except Exception as e:
-        logger.error(f"Error getting metric trend data: {e}")
+        logger.error(f"[Metrics] Error getting trend data: {e}")
         return []
 
 
@@ -1786,7 +1784,7 @@ def load_parameter_panel_state() -> dict:
         return dict(get_default_parameter_panel_state())
 
     except Exception as e:
-        logger.warning(f"Error loading parameter panel state: {e}")
+        logger.warning(f"[Config] Error loading parameter panel state: {e}")
         return dict(get_default_parameter_panel_state())
 
 
@@ -1826,9 +1824,9 @@ def save_parameter_panel_state(is_open: bool, user_preference: bool = True) -> b
         with open(APP_SETTINGS_FILE, "w") as f:
             json.dump(app_settings, f, indent=2)
 
-        logger.debug(f"Parameter panel state saved: is_open={is_open}")
+        logger.debug(f"[Config] Parameter panel state saved: is_open={is_open}")
         return True
 
     except Exception as e:
-        logger.error(f"Error saving parameter panel state: {e}")
+        logger.error(f"[Config] Error saving parameter panel state: {e}")
         return False

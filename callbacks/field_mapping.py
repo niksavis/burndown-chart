@@ -155,7 +155,7 @@ def toggle_field_mapping_modal(
 
     # Debug logging
     logger.info(
-        f"Field mapping modal toggle - trigger_id: {trigger_id}, value: {trigger_value}"
+        f"[FieldMapping] Modal toggle - trigger_id: {trigger_id}, value: {trigger_value}"
     )
 
     # Close on cancel
@@ -173,15 +173,15 @@ def toggle_field_mapping_modal(
     ):
         # Only open if there was an actual click (not None, not 0, not empty list)
         if trigger_value and trigger_value != 0:
-            logger.info(f"Opening field mapping modal from trigger: {trigger_id}")
+            logger.info(f"[FieldMapping] Opening modal from trigger: {trigger_id}")
             return True
         else:
             logger.info(
-                f"Ignoring button render/initial state - trigger: {trigger_id}, value: {trigger_value}"
+                f"[FieldMapping] Ignoring button render/initial state - trigger: {trigger_id}, value: {trigger_value}"
             )
             return is_open
 
-    logger.warning(f"Field mapping modal toggle - unhandled trigger: {trigger_id}")
+    logger.warning(f"[FieldMapping] Modal toggle - unhandled trigger: {trigger_id}")
     return is_open
 
 
@@ -250,36 +250,44 @@ def validate_field_selection_real_time(
     """
     from data.field_mapper import INTERNAL_FIELD_TYPES, validate_field_mapping
 
-    logger.info(f"Validation callback triggered with {len(field_values)} field values")
+    logger.info(
+        f"[FieldMapping] [FieldMapping] Validation callback triggered with {len(field_values)} field values"
+    )
 
     # Get triggered dropdown context
     ctx = callback_context
     if not ctx.triggered:
-        logger.warning("Validation callback - no trigger context")
+        logger.warning("[FieldMapping] Validation callback - no trigger context")
         return [html.Div() for _ in field_values]
 
-    logger.info(f"Validation callback - triggered by: {ctx.triggered[0]['prop_id']}")
+    logger.info(
+        f"[FieldMapping] Validation callback - triggered by: {ctx.triggered[0]['prop_id']}"
+    )
 
     # Fetch available fields using the same function as the form
     # This ensures consistent field metadata structure
     try:
         available_fields = fetch_available_jira_fields()
         logger.info(
-            f"Validation callback - fetched {len(available_fields)} fields from JIRA"
+            f"[FieldMapping] [FieldMapping] Validation callback - fetched {len(available_fields)} fields from JIRA"
         )
     except Exception as e:
-        logger.error(f"Error fetching fields for validation: {e}")
+        logger.error(f"[FieldMapping] Error fetching fields for validation: {e}")
         return [html.Div() for _ in field_values]
 
     # Build field metadata lookup from available fields
     field_metadata = {}
-    logger.debug(f"Building field metadata from {len(available_fields)} fields")
+    logger.debug(
+        f"[FieldMapping] Building field metadata from {len(available_fields)} fields"
+    )
     for field in available_fields:
         field_id = field.get("field_id")
         field_type = field.get("field_type", "text")
         if field_id:
             field_metadata[field_id] = {"field_type": field_type}
-    logger.info(f"Field metadata built with {len(field_metadata)} entries")
+    logger.info(
+        f"[FieldMapping] [FieldMapping] Field metadata built with {len(field_metadata)} entries"
+    )
 
     # Get all dropdown IDs from callback context
     # For pattern-matching callbacks with ALL, ctx.inputs_list contains the component IDs
@@ -293,9 +301,9 @@ def validate_field_selection_real_time(
             if isinstance(input_item, dict) and "id" in input_item:
                 dropdown_ids.append(input_item["id"])
 
-    logger.info(f"Found {len(dropdown_ids)} dropdown IDs")
+    logger.info(f"[FieldMapping] Found {len(dropdown_ids)} dropdown IDs")
     if len(dropdown_ids) > 0:
-        logger.info(f"First dropdown ID structure: {dropdown_ids[0]}")
+        logger.info(f"[FieldMapping] First dropdown ID structure: {dropdown_ids[0]}")
 
     # Validate each field selection
     results = []
@@ -304,7 +312,7 @@ def validate_field_selection_real_time(
         internal_field = dropdown_id.get("field", "")
 
         logger.info(
-            f"Validating dropdown {i}: internal_field='{internal_field}', value_list={value_list}"
+            f"[FieldMapping] Validating dropdown {i}: internal_field='{internal_field}', value_list={value_list}"
         )
 
         # Get selected field ID (first item in list due to multi=True)
@@ -314,7 +322,7 @@ def validate_field_selection_real_time(
 
         if not selected_field_id:
             # No field selected - show empty
-            logger.debug(f"Dropdown {i}: No field selected")
+            logger.debug(f"[FieldMapping] Dropdown {i}: No field selected")
             results.append(html.Div())
             continue
 
@@ -322,7 +330,7 @@ def validate_field_selection_real_time(
         required_type = INTERNAL_FIELD_TYPES.get(internal_field, "unknown")
 
         logger.info(
-            f"Dropdown {i}: selected_field_id='{selected_field_id}', required_type='{required_type}'"
+            f"[FieldMapping] Dropdown {i}: selected_field_id='{selected_field_id}', required_type='{required_type}'"
         )
 
         # Get actual field type from metadata
@@ -330,11 +338,11 @@ def validate_field_selection_real_time(
         if selected_field_id in field_metadata:
             actual_type = field_metadata[selected_field_id].get("field_type", "unknown")
             logger.info(
-                f"Dropdown {i}: Found field type: actual_type={actual_type}, required_type={required_type}"
+                f"[FieldMapping] Dropdown {i}: Found field type: actual_type={actual_type}, required_type={required_type}"
             )
         else:
             logger.warning(
-                f"Dropdown {i}: Field {selected_field_id} not found in metadata. Sample available fields: {list(field_metadata.keys())[:10]}"
+                f"[FieldMapping] Dropdown {i}: Field {selected_field_id} not found in metadata. Sample available fields: {list(field_metadata.keys())[:10]}"
             )
 
         # Validate compatibility
@@ -527,7 +535,7 @@ def render_tab_content(active_tab: str, metadata: dict, is_open: bool):
             current_mappings = load_field_mappings()
             return create_field_mapping_form(available_fields, current_mappings)
         except Exception as e:
-            logger.error(f"Error loading field mappings: {e}")
+            logger.error(f"[FieldMapping] Error loading field mappings: {e}")
             return create_field_mapping_error_alert(str(e))
 
     elif active_tab == "tab-projects":
@@ -631,7 +639,7 @@ def fetch_metadata(n_clicks: int, is_open: bool, current_metadata: dict):
         jira_config = settings.get("jira_config", {})
 
         if not jira_config.get("configured"):
-            logger.warning("JIRA not configured, cannot fetch metadata")
+            logger.warning("[FieldMapping] JIRA not configured, cannot fetch metadata")
             error_alert = dbc.Alert(
                 html.Div(
                     [
@@ -661,16 +669,20 @@ def fetch_metadata(n_clicks: int, is_open: bool, current_metadata: dict):
             api_version=jira_config.get("api_version", "v2"),
         )
 
-        logger.info("Fetching JIRA metadata...")
+        logger.info("[FieldMapping] Fetching JIRA metadata...")
 
         # Fetch all metadata types
         fields = fetcher.fetch_fields()
 
         # Log all custom fields to help find the correct field ID
         custom_fields = [f for f in fields if f.get("custom", False)]
-        logger.info(f"Found {len(custom_fields)} custom fields in JIRA:")
+        logger.info(
+            f"[FieldMapping] [FieldMapping] Found {len(custom_fields)} custom fields in JIRA:"
+        )
         for field in custom_fields:
-            logger.info(f"  - {field['id']}: {field['name']} (type: {field['type']})")
+            logger.info(
+                f"[FieldMapping] [FieldMapping]   - {field['id']}: {field['name']} (type: {field['type']})"
+            )
 
         projects = fetcher.fetch_projects()
         issue_types = fetcher.fetch_issue_types()
@@ -687,15 +699,19 @@ def fetch_metadata(n_clicks: int, is_open: bool, current_metadata: dict):
         env_options = []
         if affected_env_field:
             logger.info(
-                f"Fetching field options for affected_environment field: {affected_env_field}"
+                f"[FieldMapping] Fetching field options for affected_environment field: {affected_env_field}"
             )
             env_options = fetcher.fetch_field_options(affected_env_field)
-            logger.info(f"Found {len(env_options)} environment values: {env_options}")
+            logger.info(
+                f"[FieldMapping] Found {len(env_options)} environment values: {env_options}"
+            )
             auto_detected_prod = fetcher.auto_detect_production_identifiers(env_options)
-            logger.info(f"Auto-detected production identifiers: {auto_detected_prod}")
+            logger.info(
+                f"[FieldMapping] Auto-detected production identifiers: {auto_detected_prod}"
+            )
         else:
             logger.warning(
-                "affected_environment field not mapped, cannot fetch environment values"
+                "[FieldMapping] affected_environment field not mapped, cannot fetch environment values"
             )
             auto_detected_prod = []
 
@@ -706,15 +722,15 @@ def fetch_metadata(n_clicks: int, is_open: bool, current_metadata: dict):
         effort_category_options = []
         if effort_category_field:
             logger.info(
-                f"Fetching field options for effort_category field: {effort_category_field}"
+                f"[FieldMapping] Fetching field options for effort_category field: {effort_category_field}"
             )
             effort_category_options = fetcher.fetch_field_options(effort_category_field)
             logger.info(
-                f"Found {len(effort_category_options)} effort category values: {effort_category_options}"
+                f"[FieldMapping] Found {len(effort_category_options)} effort category values: {effort_category_options}"
             )
         else:
             logger.warning(
-                "effort_category field not mapped, cannot fetch effort category values"
+                "[FieldMapping] effort_category field not mapped, cannot fetch effort category values"
             )
 
         # Build field_options dictionary with all fetched fields
@@ -978,7 +994,7 @@ def save_comprehensive_mappings(n_clicks, active_tab, content_children):
 
         # DEBUG: Log received values
         logger.info(
-            f"Save mappings callback - received completion_statuses: {completion_statuses}, type: {type(completion_statuses)}"
+            f"[FieldMapping] Save mappings callback - received completion_statuses: {completion_statuses}, type: {type(completion_statuses)}"
         )
         logger.info(f"Save mappings callback - active tab: {active_tab}")
 
@@ -1127,7 +1143,7 @@ def save_comprehensive_mappings(n_clicks, active_tab, content_children):
 
         # DEBUG: Log updated settings
         logger.info(
-            f"Save mappings - updated completion_statuses in settings: {settings.get('completion_statuses')}"
+            f"[FieldMapping] Save mappings - updated completion_statuses in settings: {settings.get('completion_statuses')}"
         )
 
         # Validate comprehensive configuration
@@ -1198,9 +1214,13 @@ def save_comprehensive_mappings(n_clicks, active_tab, content_children):
         invalidate_metrics_cache_only()  # Invalidates metrics_snapshots.json only
         invalidate_dora_flow_cache()  # Invalidates metrics_cache.json (DORA/Flow)
 
-        logger.info("✓ Metrics cache invalidated (JIRA data cache preserved for reuse)")
+        logger.info(
+            "[FieldMapping] Metrics cache invalidated (JIRA data cache preserved for reuse)"
+        )
 
-        logger.info(f"Comprehensive mappings saved successfully from tab: {active_tab}")
+        logger.info(
+            f"[FieldMapping] Comprehensive mappings saved successfully from tab: {active_tab}"
+        )
 
         # Show success with warnings if any
         if validation_result["warnings"]:
