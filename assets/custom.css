@@ -3175,6 +3175,18 @@ label.fw-medium {
   }
 }
 
+/* Reduce excessive white space below plotly graphs in metric cards */
+.metric-card .plotly-graph-div,
+.metric-trend-section .plotly-graph-div {
+  margin-bottom: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+/* Ensure collapsed detail charts don't add excessive spacing */
+.metric-trend-section .card-body {
+  padding-bottom: 0.5rem !important; /* Minimal bottom padding */
+}
+
 /* Chart loading states - mobile optimized */
 @media (max-width: 767px) {
   .skeleton-loader {
@@ -3423,6 +3435,34 @@ label.fw-medium {
   display: flex;
   flex-direction: column;
   height: 100%;
+  border: 1px solid rgba(0, 0, 0, 0.125);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08); /* Increased from 0.05 for better visibility */
+  background-color: #ffffff;
+  border-radius: 0.375rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+/* Hover effect for all metric cards (including Work Distribution) - More specific to override .card:hover */
+.metric-card:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15) !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+  z-index: 10 !important; /* Ensure card appears above siblings */
+}
+
+/* Ensure all wrapper divs and containers allow overflow */
+#flow-overview-wrapper,
+#dora-overview-wrapper,
+#flow-metrics-overview,
+#dora-metrics-overview {
+  overflow: visible !important;
+}
+
+/* Ensure rows and columns containing metric cards allow overflow for hover effects */
+.row:has(.metric-card),
+.col:has(.metric-card),
+[class*="col-"]:has(.metric-card) {
+  overflow: visible !important;
 }
 
 /* Card body takes available space, pushing footer to bottom */
@@ -3454,10 +3494,19 @@ label.fw-medium {
   background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
   transition: box-shadow 0.3s ease;
+  overflow: visible !important; /* Allow cards to lift without clipping */
+  padding-top: 8px !important; /* Extra space at top for hover lift */
+  padding-bottom: 8px !important; /* Extra space at bottom for shadow */
 }
 
 .overview-section:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Ensure CardBody inside overview section allows overflow */
+.overview-section .card-body {
+  overflow: visible !important;
+  padding-top: 1rem !important; /* Maintain spacing but allow overflow */
 }
 
 /* Ensure compact cards inside overview section have proper spacing */
@@ -3493,11 +3542,16 @@ label.fw-medium {
   border-radius: 4px;
 }
 
-/* Skeleton container - start hidden, only show if content takes time to load */
+/* Skeleton container - show immediately to prevent flash of empty content */
 .metric-cards-skeleton {
-  opacity: 0;
-  animation: delayedFadeIn 0.3s ease-in forwards;
-  animation-delay: 0.1s; /* Only appear if content takes longer than 100ms */
+  opacity: 1; /* Start visible immediately */
+  /* Remove animation - skeleton should be visible right away */
+  margin-top: 0.75rem; /* 12px spacing at top - MUST match .metric-cards-grid */
+  padding-top: 0.25rem; /* Minimal padding for animation buffer - MUST match .metric-cards-grid */
+  padding-left: 0.5rem; /* Horizontal padding for shadow clearance - MUST match .metric-cards-grid */
+  padding-right: 0.5rem; /* Horizontal padding for shadow clearance - MUST match .metric-cards-grid */
+  margin-left: -0.25rem; /* Compensate for added padding - MUST match .metric-cards-grid */
+  margin-right: -0.25rem; /* Compensate for added padding - MUST match .metric-cards-grid */
 }
 
 /* Content that replaces skeleton - smooth fade-in to prevent flicker */
@@ -3506,11 +3560,32 @@ label.fw-medium {
   animation: smoothFadeIn 0.15s ease-out;
 }
 
+/* Add top spacing so cards don't get cut off when they "fly up" */
+.metric-cards-grid {
+  margin-top: 0.75rem; /* 12px spacing at top - reduced from 1.5rem */
+  padding-top: 0.25rem; /* Minimal padding for animation buffer */
+  padding-left: 0.5rem; /* Horizontal padding to prevent shadow clipping on outer edges */
+  padding-right: 0.5rem; /* Horizontal padding to prevent shadow clipping on outer edges */
+  margin-left: -0.25rem; /* Compensate for added padding to maintain grid alignment */
+  margin-right: -0.25rem; /* Compensate for added padding to maintain grid alignment */
+}
+
 /* Container for metric cards - prevent layout shift during updates */
 #dora-metrics-cards-container,
-#flow-metrics-cards-container {
+#flow-metrics-cards-container,
+#flow-distribution-chart-container {
   min-height: 400px; /* Reserve space to prevent layout shift */
   transition: min-height 0.2s ease-out;
+  overflow: visible !important; /* Allow cards to fly up without clipping */
+}
+
+/* Force text-style rendering for arrow characters to prevent emoji blue box backgrounds */
+.metric-card .small span:first-child,
+.metric-trend-arrow {
+  font-family: inherit;
+  font-variant-emoji: text; /* Force text presentation, not emoji */
+  -webkit-font-variant-emoji: text;
+  -moz-font-variant-emoji: text;
 }
 
 @keyframes smoothFadeIn {

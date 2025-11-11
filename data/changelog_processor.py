@@ -379,6 +379,19 @@ def calculate_flow_time(
                     active_time_hours / total_flow_time_hours
                 ) * 100
 
+                # Cap at 100% - efficiency cannot exceed 100% by definition
+                # This handles cases where:
+                # - Issue moves backward in workflow (Done → In Progress → Done)
+                # - Multiple transitions through active statuses cause time overlap
+                # - Changelog data anomalies create impossible time calculations
+                if flow_efficiency_percent > 100:
+                    logger.warning(
+                        f"Issue {issue.get('key', 'UNKNOWN')}: Flow Efficiency capped at 100% "
+                        f"(calculated {flow_efficiency_percent:.1f}% from {active_time_hours:.2f}h active / "
+                        f"{total_flow_time_hours:.2f}h total). This indicates workflow backtracking or data anomalies."
+                    )
+                    flow_efficiency_percent = 100.0
+
         logger.debug(
             f"Issue {issue.get('key', 'UNKNOWN')}: Flow Time = {total_flow_time_hours:.2f}h, "
             f"Active Time = {active_time_hours:.2f}h, "

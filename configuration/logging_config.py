@@ -39,7 +39,8 @@ class SensitiveDataFilter(logging.Filter):
     - API tokens (in JSON: "token": "...")
     - Passwords (in JSON: "password": "...")
     - API keys (in JSON: "api_key": "sk-...")
-    - Email addresses (optional - currently disabled)
+    - Production URLs (replaces real domains with example.com)
+    - Email addresses (user@domain → ***@domain)
 
     The filter is applied to all log handlers to ensure no sensitive
     data appears in log files.
@@ -48,18 +49,33 @@ class SensitiveDataFilter(logging.Filter):
     # Sensitive patterns to redact (pattern, replacement)
     # Patterns are applied in order, so more specific patterns should come first
     SENSITIVE_PATTERNS = [
-        # Bearer tokens (OAuth/JWT) - matches "Bearer " followed by base64-like characters
-        # Captures: Bearer eyJhbGciOiJIUzI1NiIs... → Bearer [REDACTED]
-        # Character class [A-Za-z0-9\-._~+/]+ matches RFC 6750 bearer token characters
-        (r"Bearer\s+[A-Za-z0-9\-._~+/]+=*", "Bearer [REDACTED]"),
+        # Production URLs - replace real domains with example.com
+        # Matches: https://jira.company.com/... → https://jira.example.com/...
+        # Must come FIRST to avoid conflicts with Authorization header patterns
+        # Preserves protocol and path for debugging context
+        (
+            r"https?://(?!(?:localhost|127\.0\.0\.1|example\.com|test\.))[a-zA-Z0-9][-a-zA-Z0-9.]*\.[a-zA-Z]{2,}",
+            "https://jira.example.com",
+        ),
+        # Authorization header with Bearer token - matches the entire header
+        # Captures: Authorization: Bearer abc123... → Authorization: Bearer [REDACTED]
+        # This must come BEFORE the generic Authorization pattern to preserve "Bearer" keyword
+        (
+            r"Authorization:\s+Bearer\s+[A-Za-z0-9\-._~+/]+=*",
+            "Authorization: Bearer [REDACTED]",
+        ),
         # Generic token in Authorization header - matches any value after "Authorization:"
+        # BUT excludes Bearer tokens (handled by pattern above)
         # Captures: Authorization: Basic abc123... → Authorization: [REDACTED]
-        # [^\s]+ matches any non-whitespace characters until space/newline
-        (r"Authorization:\s*[^\s]+", "Authorization: [REDACTED]"),
+        # Negative lookahead (?!Bearer) ensures we don't match "Authorization: Bearer" again
+        (r"Authorization:\s+(?!Bearer)[^\s]+", "Authorization: [REDACTED]"),
         # JSON-style token field - matches "token": "value" in JSON objects
         # Captures: "token": "abc123xyz" → "token": "[REDACTED]"
         # [^"]* matches any character except quotes (until closing quote)
         (r'"token":\s*"[^"]*"', '"token": "[REDACTED]"'),
+        # Standalone token in text - matches "token abc123" or "with token xyz789"
+        # Captures: with token abc123 → with token [REDACTED]
+        (r"\btoken\s+[A-Za-z0-9\-._~+/]+=*", "token [REDACTED]"),
         # JSON-style password field - matches "password": "value" in JSON objects
         # Captures: "password": "myP@ssw0rd" → "password": "[REDACTED]"
         (r'"password":\s*"[^"]*"', '"password": "[REDACTED]"'),
@@ -75,10 +91,12 @@ class SensitiveDataFilter(logging.Filter):
             r'api[_\-\s]?key["\']?\s*[:=]\s*["\']?[A-Za-z0-9\-._~+/]+=*',
             "api_key: [REDACTED]",
         ),
-        # Email addresses (optional - currently disabled to avoid false positives)
-        # Uncomment if you need to redact email addresses from logs
-        # Pattern: matches standard email format user@domain.tld
-        # (r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', '[EMAIL_REDACTED]'),
+        # Email addresses - redact username but keep domain for debugging
+        # Matches: john.doe@company.com → ***@company.com
+        (
+            r"\b[A-Za-z0-9._%+-]+@([A-Za-z0-9.-]+\.[A-Z|a-z]{2,})\b",
+            r"***@\1",
+        ),
     ]
 
     def filter(self, record):

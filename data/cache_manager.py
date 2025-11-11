@@ -56,6 +56,9 @@ def generate_cache_key(
     """
     Generate deterministic cache key from configuration parameters.
 
+    DEPRECATED: Use generate_jira_data_cache_key() for JIRA data caching.
+    This function is kept for backward compatibility only.
+
     The cache key is an MD5 hash of the normalized configuration:
     - JQL query
     - Field mappings (sorted for consistency)
@@ -100,6 +103,75 @@ def generate_cache_key(
     # MD5 chosen for speed (not security) - provides 32-character unique identifier
     # encode("utf-8") converts string to bytes for hashing
     # hexdigest() returns lowercase hexadecimal string (e.g., "a3c7f8e9...")
+    return hashlib.md5(config_str.encode("utf-8")).hexdigest()
+
+
+def generate_jira_data_cache_key(jql_query: str, time_period_days: int) -> str:
+    """
+    Generate cache key for JIRA raw data (independent of field mappings).
+
+    This key is ONLY based on what data we fetch from JIRA:
+    - JQL query (which issues to fetch)
+    - Time period (how far back to look)
+
+    Field mappings DO NOT affect this key because they only control how we
+    PROCESS the data, not what data we fetch. This allows field mapping changes
+    to reuse existing cached JIRA data without requiring re-download.
+
+    Args:
+        jql_query: JIRA JQL query string
+        time_period_days: Time period for data fetch (30, 60, 90 days)
+
+    Returns:
+        32-character hexadecimal string (MD5 hash)
+
+    Example:
+        >>> cache_key = generate_jira_data_cache_key(
+        ...     jql_query="project = ACME AND status = Done",
+        ...     time_period_days=30
+        ... )
+        >>> len(cache_key)
+        32
+    """
+    config_data = {
+        "jql": jql_query,
+        "period": time_period_days,
+    }
+
+    config_str = json.dumps(config_data, sort_keys=True)
+    return hashlib.md5(config_str.encode("utf-8")).hexdigest()
+
+
+def generate_processing_config_hash(field_mappings: Dict[str, str]) -> str:
+    """
+    Generate hash for processing configuration (field mappings, WIP states, etc.).
+
+    This hash changes when we modify HOW we process JIRA data:
+    - Field mappings (which JIRA fields map to which metrics)
+    - WIP states (which statuses count as "in progress")
+    - Completion statuses (which statuses count as "done")
+
+    This hash is stored WITH cached metrics to detect when metrics need
+    recalculation, but does NOT affect JIRA data cache keys.
+
+    Args:
+        field_mappings: Mapping of logical names to JIRA custom fields
+
+    Returns:
+        32-character hexadecimal string (MD5 hash)
+
+    Example:
+        >>> config_hash = generate_processing_config_hash(
+        ...     {"deployment_date": "customfield_10001"}
+        ... )
+        >>> len(config_hash)
+        32
+    """
+    config_data = {
+        "fields": sorted(field_mappings.items()),
+    }
+
+    config_str = json.dumps(config_data, sort_keys=True)
     return hashlib.md5(config_str.encode("utf-8")).hexdigest()
 
 
@@ -270,6 +342,88 @@ def invalidate_cache(cache_key: str, cache_dir: str = "cache") -> None:
             logger.error(f"Cache deletion error: {e} ({cache_key})", exc_info=True)
     else:
         logger.debug(f"Cache file not found for invalidation: {cache_key}")
+
+
+def invalidate_metrics_cache_only() -> None:
+    """
+    Invalidate ONLY metrics cache (snapshots and calculated metrics).
+
+    This preserves JIRA raw data cache files in cache/*.json, allowing
+    metrics to be recalculated from existing JIRA data when only field
+    mappings change.
+
+    Use this when:
+    - Field mappings change (WIP states, completion statuses, etc.)
+    - Metric calculation logic changes
+    - You want to recalculate metrics without re-downloading JIRA data
+
+    Files invalidated:
+    - metrics_snapshots.json
+    - metrics_cache.json (DORA/Flow metrics cache)
+
+    Files preserved:
+    - cache/*.json (JIRA raw issue data)
+    """
+    try:
+        # Remove metrics snapshots
+        if os.path.exists("metrics_snapshots.json"):
+            os.remove("metrics_snapshots.json")
+            logger.info("✓ Invalidated metrics_snapshots.json")
+
+        # Remove DORA/Flow metrics cache
+        from data.metrics_cache import invalidate_cache as invalidate_metrics_cache_file
+
+        invalidate_metrics_cache_file()  # Removes metrics_cache.json
+        logger.info("✓ Invalidated metrics_cache.json (DORA/Flow)")
+
+        logger.info("✓ Metrics cache invalidated - JIRA data cache preserved for reuse")
+
+    except Exception as e:
+        logger.error(f"Error invalidating metrics cache: {e}", exc_info=True)
+
+
+def invalidate_all_cache() -> None:
+    """
+    Invalidate ALL cache files (JIRA data + metrics).
+
+    This forces a complete re-download of JIRA data and recalculation of metrics.
+
+    Use this when:
+    - JQL query changes
+    - Time period changes
+    - JIRA configuration changes (base URL, token, etc.)
+    - You suspect cache corruption
+
+    Files invalidated:
+    - cache/*.json (JIRA raw issue data)
+    - metrics_snapshots.json
+    - metrics_cache.json
+    - jira_cache.json (legacy)
+    """
+    try:
+        # Remove JIRA data cache files
+        import glob
+
+        cache_files = glob.glob("cache/*.json")
+        for cache_file in cache_files:
+            try:
+                os.remove(cache_file)
+            except Exception as e:
+                logger.debug(f"Could not remove cache file {cache_file}: {e}")
+        logger.info(f"✓ Invalidated {len(cache_files)} JIRA cache files")
+
+        # Remove legacy jira_cache.json
+        if os.path.exists("jira_cache.json"):
+            os.remove("jira_cache.json")
+            logger.info("✓ Invalidated jira_cache.json (legacy)")
+
+        # Remove metrics cache
+        invalidate_metrics_cache_only()
+
+        logger.info("✓ All cache invalidated - full JIRA re-download required")
+
+    except Exception as e:
+        logger.error(f"Error invalidating all cache: {e}", exc_info=True)
 
 
 class CacheInvalidationTrigger:

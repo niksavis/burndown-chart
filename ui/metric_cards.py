@@ -100,6 +100,135 @@ def _create_mini_bar_sparkline(
     )
 
 
+def create_forecast_section(
+    forecast_data: Optional[Dict[str, Any]],
+    trend_vs_forecast: Optional[Dict[str, Any]],
+    metric_name: str,
+    unit: str,
+) -> html.Div:
+    """Create forecast display section for metric card (Feature 009).
+
+    Displays 4-week weighted forecast benchmark with trend indicator showing
+    current performance vs forecast.
+
+    Args:
+        forecast_data: Forecast calculation results from calculate_forecast():
+            {
+                "forecast_value": float,
+                "confidence": "established" | "building",
+                "weeks_available": int,
+                "weights_applied": List[float],
+                "historical_values": List[float],
+                "forecast_range": Optional[Dict] (for Flow Load only)
+            }
+        trend_vs_forecast: Trend analysis from calculate_trend_vs_forecast():
+            {
+                "direction": "↗" | "→" | "↘",
+                "deviation_percent": float,
+                "status_text": str,
+                "color_class": str,
+                "is_good": bool
+            }
+        metric_name: Metric identifier (e.g., "flow_velocity", "dora_lead_time")
+        unit: Metric unit for display
+
+    Returns:
+        Div containing forecast display, or empty div if no forecast data
+
+    Example:
+        >>> forecast_section = create_forecast_section(
+        ...     forecast_data={"forecast_value": 11.9, "confidence": "established", ...},
+        ...     trend_vs_forecast={"direction": "↗", "deviation_percent": 26.1, ...},
+        ...     metric_name="flow_velocity",
+        ...     unit="items/week"
+        ... )
+    """
+    # No forecast data - return empty div
+    if not forecast_data:
+        return html.Div()
+
+    forecast_value = forecast_data.get("forecast_value")
+    confidence = forecast_data.get("confidence", "building")
+
+    # Format forecast value - standard formatting for all metrics
+    if forecast_value is not None:
+        forecast_display = (
+            f"{forecast_value:.1f}" if forecast_value >= 10 else f"{forecast_value:.2f}"
+        )
+    else:
+        forecast_display = "N/A"
+
+    # Build forecast section children
+    forecast_children = []
+
+    # Confidence badge (building baseline vs established)
+    if confidence == "building":
+        confidence_badge = dbc.Badge(
+            "Building baseline",
+            color="secondary",
+            className="ms-2",
+            style={"fontSize": "0.65rem", "fontWeight": "500"},
+        )
+    else:
+        confidence_badge = None
+
+    # Forecast value line
+    forecast_children.append(
+        html.Div(
+            [
+                html.Span(
+                    "Forecast: ",
+                    className="text-muted",
+                    style={"fontSize": "0.85rem"},
+                ),
+                html.Span(
+                    forecast_display,
+                    className="fw-bold",
+                    style={"fontSize": "0.85rem"},
+                ),
+                html.Span(
+                    f" {unit}",
+                    className="text-muted",
+                    style={"fontSize": "0.75rem"},
+                ),
+                confidence_badge if confidence_badge else html.Span(),
+            ],
+            className="text-center mb-1",
+        )
+    )
+
+    # Trend vs forecast (if available)
+    if trend_vs_forecast:
+        direction = trend_vs_forecast.get("direction", "→")
+        status_text = trend_vs_forecast.get("status_text", "On track")
+        color_class = trend_vs_forecast.get("color_class", "text-secondary")
+
+        forecast_children.append(
+            html.Div(
+                [
+                    html.Span(
+                        direction,
+                        className="me-1",
+                        style={"fontFamily": "inherit", "fontVariantEmoji": "text"},
+                    ),
+                    html.Span(status_text, className=f"{color_class}"),
+                ],
+                className="text-center small",
+                style={"fontSize": "0.8rem", "fontWeight": "500"},
+            )
+        )
+
+    # Wrap in container with subtle styling
+    return html.Div(
+        forecast_children,
+        className="mt-2 mb-2",
+        style={
+            "borderTop": "1px solid #dee2e6",
+            "paddingTop": "0.5rem",
+        },
+    )
+
+
 def _get_metric_explanation(metric_name: str) -> str:
     """Get explanation text for what a metric measures.
 
@@ -131,6 +260,10 @@ def _get_metric_relationship_hint(
 ) -> Optional[str]:
     """Get relationship hint showing how this metric affects others.
 
+    These hints explain universal relationships between metrics and are shown
+    regardless of current metric state to provide educational context and
+    maintain consistent card layouts.
+
     Args:
         metric_name: Internal metric name
         value: Current metric value
@@ -142,31 +275,35 @@ def _get_metric_relationship_hint(
     if value is None:
         return None
 
-    # Only show hints when metrics are in concerning states
+    # Show hints for all metrics - they explain universal relationships
 
     # Flow Load (WIP) - affects everything
     if metric_name == "flow_load":
-        wip_thresholds = metric_data.get("wip_thresholds", {})
-        high_threshold = wip_thresholds.get("high", 30)
-
-        if value >= high_threshold:
-            return "💡 High WIP typically increases Lead Time and Flow Time"
+        return "💡 High WIP typically increases Lead Time and Flow Time"
 
     # Change Failure Rate - affects MTTR
     elif metric_name == "change_failure_rate":
-        if value > 30:
-            return "💡 High failure rate often increases MTTR and slows delivery"
+        return "💡 High failure rate often increases MTTR and slows delivery"
+
+    # Mean Time To Recovery - affected by CFR and process maturity
+    elif metric_name == "mean_time_to_recovery":
+        return "💡 Long MTTR may indicate insufficient monitoring or unclear rollback procedures"
+
+    # Deployment Frequency - foundation for other DORA metrics
+    elif metric_name == "deployment_frequency":
+        return "💡 Low deployment frequency can increase batch size and Lead Time"
 
     # Lead Time - affected by WIP
     elif metric_name == "lead_time_for_changes":
-        unit = metric_data.get("unit", "")
-        if "day" in unit.lower() and value > 7:
-            return "💡 Long lead time may indicate high WIP or process bottlenecks"
+        return "💡 Long lead time may indicate high WIP or process bottlenecks"
 
     # Flow Time - affected by WIP
     elif metric_name == "flow_time":
-        if value > 14:  # More than 2 weeks
-            return "💡 Long cycle time may indicate high WIP or too much waiting"
+        return "💡 Long cycle time may indicate high WIP or too much waiting"
+
+    # Flow Velocity - core throughput metric
+    elif metric_name == "flow_velocity":
+        return "💡 Low velocity may indicate bottlenecks, high WIP, or process inefficiency"
 
     # Flow Efficiency - related to waiting
     elif metric_name == "flow_efficiency":
@@ -329,24 +466,8 @@ def _create_detailed_chart(
             chart_title="Change Failure Rate",  # Explicit title
         )
 
-        # Customize the chart for CFR context with a note
-        cfr_note = html.Div(
-            [
-                html.Hr(className="my-2"),
-                html.Small(
-                    [
-                        html.I(className="fas fa-info-circle me-1 text-info"),
-                        "Blue line shows deployment-based CFR (operational tasks), ",
-                        "Green line shows release-based CFR (unique fixVersions). ",
-                        "Release-based CFR avoids double-counting failures for the same release.",
-                    ],
-                    className="text-muted",
-                ),
-            ],
-            className="text-center",
-        )
-
-        return html.Div([chart, cfr_note])
+        # Return chart without extra explanatory text for consistent layout
+        return chart
 
     # Standard single-line chart for other metrics
     # Use full trend chart with performance zones for DORA metrics
@@ -409,7 +530,7 @@ def _create_detailed_chart(
             },
         )
     elif metric_name == "flow_load":
-        # Use specialized Flow Load chart with dynamic WIP thresholds
+        # Use specialized Flow Load chart with dynamic WIP thresholds and tier-based color
         from visualization.flow_charts import create_flow_load_trend_chart
         from dash import dcc
 
@@ -422,7 +543,28 @@ def _create_detailed_chart(
         # Extract WIP thresholds from metric_data (if calculated)
         wip_thresholds = metric_data.get("wip_thresholds", None)
 
-        figure = create_flow_load_trend_chart(trend_data, wip_thresholds=wip_thresholds)
+        # Calculate performance tier color based on most recent value
+        # Note: Uses dynamic wip_thresholds from metric_data if available
+        latest_value = weekly_values[-1] if weekly_values else 0
+
+        # Determine tier color using same logic as badge (lines 776-828)
+        if wip_thresholds and "healthy" in wip_thresholds:
+            # Use dynamic thresholds
+            if latest_value < wip_thresholds["healthy"]:
+                tier_color = "#198754"  # Green - Healthy
+            elif latest_value < wip_thresholds["warning"]:
+                tier_color = "#ffc107"  # Yellow - Warning
+            elif latest_value < wip_thresholds["high"]:
+                tier_color = "#fd7e14"  # Orange - High
+            else:
+                tier_color = "#dc3545"  # Red - Critical
+        else:
+            # Fallback to standard tier color calculation
+            tier_color = _get_flow_performance_tier_color_hex("flow_load", latest_value)
+
+        figure = create_flow_load_trend_chart(
+            trend_data, wip_thresholds=wip_thresholds, line_color=tier_color
+        )
 
         # CRITICAL: Remove plotly toolbar completely
         return dcc.Graph(
@@ -569,7 +711,12 @@ def _create_deployment_details_table(
     return html.Div([summary, table_content])
 
 
-def create_metric_card(metric_data: dict, card_id: Optional[str] = None) -> dbc.Card:
+def create_metric_card(
+    metric_data: dict,
+    card_id: Optional[str] = None,
+    forecast_data: Optional[Dict[str, Any]] = None,
+    trend_vs_forecast: Optional[Dict[str, Any]] = None,
+) -> dbc.Card:
     """Create a metric display card.
 
     Args:
@@ -587,6 +734,8 @@ def create_metric_card(metric_data: dict, card_id: Optional[str] = None) -> dbc.
                 "details": dict
             }
         card_id: Optional HTML ID for the card
+        forecast_data: Optional forecast calculation results (Feature 009)
+        trend_vs_forecast: Optional trend vs forecast analysis (Feature 009)
 
     Returns:
         Dash Bootstrap Card component
@@ -609,16 +758,23 @@ def create_metric_card(metric_data: dict, card_id: Optional[str] = None) -> dbc.
     if error_state != "success":
         return _create_error_card(metric_data, card_id)
 
-    return _create_success_card(metric_data, card_id)
+    return _create_success_card(metric_data, card_id, forecast_data, trend_vs_forecast)
 
 
-def _create_success_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
+def _create_success_card(
+    metric_data: dict,
+    card_id: Optional[str],
+    forecast_data: Optional[Dict[str, Any]] = None,
+    trend_vs_forecast: Optional[Dict[str, Any]] = None,
+) -> dbc.Card:
     """Create card for successful metric calculation.
 
     Now includes inline trend sparkline (always visible) below the metric value.
     Trend data should be provided in metric_data as:
     - weekly_labels: List of week labels (e.g., ["2025-W40", "2025-W41", ...])
     - weekly_values: List of metric values for each week
+
+    Feature 009: Also includes forecast display section when forecast_data is provided.
     """
     # Map performance tier colors to Bootstrap/custom colors
     # Use custom 'tier-orange' class for proper visual distinction
@@ -923,130 +1079,14 @@ def _create_success_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
             )
         )
 
-    # Add trend indicator with percentage change
+    # DRY/KISS FIX: Removed duplicate trend calculation (lines 1059-1145)
+    # Trend data is now ONLY calculated in _calculate_dynamic_forecast() callback
+    # and displayed via create_forecast_section() below (lines 1209-1217)
+    # This eliminates the "100% vs prev avg" bug caused by duplicate logic.
+
+    # Get weekly data for sparkline display (not for trend calculation)
     weekly_labels = metric_data.get("weekly_labels", [])
     weekly_values = metric_data.get("weekly_values", [])
-
-    trend_added = False  # Track if we added a trend indicator
-
-    if weekly_values and len(weekly_values) >= 2:
-        # Calculate trend: compare most recent value to median of previous values
-        current_value = weekly_values[-1]
-        previous_values = weekly_values[:-1]
-        if previous_values:
-            previous_avg = sum(previous_values) / len(previous_values)
-            # Handle case where average is 0 (but we still want to show trend)
-            if previous_avg > 0:
-                percent_change = ((current_value - previous_avg) / previous_avg) * 100
-            elif current_value > 0:
-                # If previous was 0 but current is non-zero, show large increase
-                percent_change = 100.0
-            elif current_value == 0 and previous_avg == 0:
-                # Both zero - show neutral/no change
-                percent_change = 0.0
-            else:
-                # Current is 0 but previous was non-zero (shouldn't happen if previous_avg > 0 check failed)
-                percent_change = -100.0
-
-            # Determine if trend is good based on metric type
-            # For deployment_frequency, flow_velocity: higher is better (green up, red down)
-            # For lead_time, mttr, cfr, flow_time, flow_load: lower is better (green down, red up)
-            is_higher_better = metric_name in ["deployment_frequency", "flow_velocity"]
-
-            # Show neutral/stable indicator for no change (exactly 0.0%)
-            if percent_change == 0.0:
-                trend_color = "secondary"
-                trend_icon = "fas fa-arrow-right"
-                trend_text = "0.0% vs prev avg"
-            elif is_higher_better:
-                # Higher is better metrics
-                if percent_change > 0:
-                    trend_color = "success"
-                    trend_icon = "fas fa-arrow-up"
-                else:
-                    trend_color = "danger"
-                    trend_icon = "fas fa-arrow-down"
-                trend_text = f"{abs(percent_change):.1f}% vs prev avg"
-            else:
-                # Lower is better metrics
-                if percent_change < 0:
-                    trend_color = "success"
-                    trend_icon = "fas fa-arrow-down"
-                else:
-                    trend_color = "danger"
-                    trend_icon = "fas fa-arrow-up"
-                trend_text = f"{abs(percent_change):.1f}% vs prev avg"
-
-            # Show neutral color for very small changes (< 5% but not exactly 0)
-            if abs(percent_change) < 5 and percent_change != 0.0:
-                trend_color = "secondary"
-                trend_icon = "fas fa-minus"
-
-            # Create context-aware tooltip explaining if trend is good or bad
-            if percent_change == 0.0:
-                trend_tooltip = "No change from recent average - stable performance"
-            elif is_higher_better:
-                # Higher is better (Deployment Frequency, Flow Velocity)
-                if percent_change > 0:
-                    trend_tooltip = (
-                        "Trending better ↑ - Higher than recent average. Keep it up!"
-                    )
-                else:
-                    trend_tooltip = "Trending worse ↓ - Lower than recent average. Review bottlenecks."
-            else:
-                # Lower is better (Lead Time, MTTR, CFR, Flow Time, Flow Load)
-                if percent_change < 0:
-                    trend_tooltip = (
-                        "Trending better ↓ - Lower than recent average. Great progress!"
-                    )
-                else:
-                    trend_tooltip = "Trending worse ↑ - Higher than recent average. Needs attention."
-
-            # Small changes are neutral
-            if abs(percent_change) < 5 and percent_change != 0.0:
-                trend_tooltip = "Minor change - performance is relatively stable"
-
-            # Create trend indicator with tooltip
-            trend_indicator = html.Div(
-                [
-                    html.I(className=f"{trend_icon} me-1"),
-                    html.Span(trend_text),
-                ],
-                className=f"text-center text-{trend_color} small mb-2",
-                style={"fontWeight": "500"},
-                id=f"trend-{card_id}" if card_id else f"trend-{metric_name}",
-            )
-
-            # Wrap trend indicator with tooltip
-            card_body_children.append(
-                html.Div(
-                    [
-                        trend_indicator,
-                        dbc.Tooltip(
-                            trend_tooltip,
-                            target=f"trend-{card_id}"
-                            if card_id
-                            else f"trend-{metric_name}",
-                            placement="top",
-                        ),
-                    ],
-                    className="d-inline-block w-100",
-                )
-            )
-            trend_added = True
-
-    # Add placeholder if no trend was added (maintains consistent card height)
-    if not trend_added:
-        card_body_children.append(
-            html.Div(
-                [
-                    html.I(className="fas fa-minus me-1"),
-                    html.Span("No trend data yet"),
-                ],
-                className="text-center text-muted small mb-2",
-                style={"fontWeight": "500"},
-            )
-        )
 
     # Add release count for deployment_frequency and change_failure_rate metrics
     # Add P95 for lead_time_for_changes and mean_time_to_recovery metrics
@@ -1106,6 +1146,17 @@ def _create_success_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
                     className="text-center text-muted small mb-2",
                 )
             )
+
+    # Add forecast section (Feature 009)
+    if forecast_data or trend_vs_forecast:
+        forecast_section = create_forecast_section(
+            forecast_data=forecast_data,
+            trend_vs_forecast=trend_vs_forecast,
+            metric_name=metric_name,
+            unit=metric_data.get("unit", ""),
+        )
+        if forecast_section.children:  # Only add if forecast section has content
+            card_body_children.append(forecast_section)
 
     # Add inline trend sparkline if weekly data is provided
     # Note: weekly_labels and weekly_values already fetched above for trend indicator
@@ -1424,7 +1475,16 @@ def create_metric_cards_grid(
         if tooltips and metric_name in tooltips:
             metric_info = {**metric_info, "tooltip": tooltips[metric_name]}
 
-        card = create_metric_card(metric_info, card_id=f"{metric_name}-card")
+        # Extract forecast data (Feature 009)
+        forecast_data = metric_info.get("forecast_data")
+        trend_vs_forecast = metric_info.get("trend_vs_forecast")
+
+        card = create_metric_card(
+            metric_info,
+            card_id=f"{metric_name}-card",
+            forecast_data=forecast_data,
+            trend_vs_forecast=trend_vs_forecast,
+        )
         # 2 cards per row on desktop (lg=6), 1 card per row on mobile (xs=12)
         col = dbc.Col(card, xs=12, lg=6, className="mb-3")
         cards.append(col)

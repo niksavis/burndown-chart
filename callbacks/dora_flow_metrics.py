@@ -11,7 +11,7 @@ from dash import callback, Output, Input, State, html
 from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
 from datetime import datetime, timedelta
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 import logging
 
 from data.persistence import load_app_settings
@@ -20,6 +20,65 @@ from ui.work_distribution_card import create_work_distribution_card
 from configuration.help_content import FLOW_METRICS_TOOLTIPS, DORA_METRICS_TOOLTIPS
 
 logger = logging.getLogger(__name__)
+
+
+#######################################################################
+# HELPER FUNCTIONS (Feature 009)
+#######################################################################
+
+
+def _calculate_dynamic_forecast(
+    weekly_values: List[float],
+    current_value: Optional[float],
+    metric_type: str,
+    metric_name: str = "",
+) -> tuple:
+    """Calculate forecast dynamically based on filtered weekly values (Feature 009).
+
+    This function recalculates the forecast whenever the data_points slider changes,
+    ensuring the forecast reflects the selected time window (e.g., 12w, 26w, 52w).
+
+    Args:
+        weekly_values: Historical weekly values (already filtered by data_points slider)
+        current_value: Current week's value for trend calculation
+        metric_type: "higher_better" or "lower_better"
+        metric_name: Optional metric name for logging
+
+    Returns:
+        Tuple of (forecast_data, trend_vs_forecast) or (None, None) if insufficient data
+    """
+    from data.metrics_calculator import calculate_forecast, calculate_trend_vs_forecast
+
+    # Need at least 4 weeks for meaningful forecast
+    if not weekly_values or len(weekly_values) < 4:
+        logger.debug(
+            f"Insufficient data for forecast: {metric_name} has {len(weekly_values) if weekly_values else 0} weeks"
+        )
+        return None, None
+
+    # Calculate forecast using filtered historical data
+    try:
+        forecast_data = calculate_forecast(weekly_values)
+        if not forecast_data:
+            return None, None
+
+        # Calculate trend vs forecast
+        trend_vs_forecast = None
+        if current_value is not None:
+            try:
+                trend_vs_forecast = calculate_trend_vs_forecast(
+                    current_value=float(current_value),
+                    forecast_value=forecast_data["forecast_value"],
+                    metric_type=metric_type,
+                )
+            except (ValueError, TypeError) as e:
+                logger.warning(f"Failed to calculate trend for {metric_name}: {e}")
+
+        return forecast_data, trend_vs_forecast
+
+    except Exception as e:
+        logger.warning(f"Failed to calculate forecast for {metric_name}: {e}")
+        return None, None
 
 
 #######################################################################
@@ -61,10 +120,6 @@ def load_and_display_dora_metrics(
         Metrics cards HTML (no toast messages, consistent with Flow Metrics)
     """
     try:
-        # Only process if DORA tab is active (optimization)
-        if active_tab != "tab-dora-metrics":
-            raise PreventUpdate
-
         # Check if JIRA data is loaded FIRST (before checking for metrics)
         if not jira_data_store or not jira_data_store.get("issues"):
             from ui.empty_states import create_no_data_state
@@ -257,6 +312,41 @@ def load_and_display_dora_metrics(
             },
         }
 
+        # Calculate forecast dynamically based on filtered data (Feature 009)
+        # This ensures forecast updates when user changes data_points slider
+        logger.info(
+            f"DORA: Calculating dynamic forecasts for {data_points} weeks of data"
+        )
+
+        # Define metric types for trend calculation
+        metric_type_mapping = {
+            "deployment_frequency": "higher_better",
+            "lead_time_for_changes": "lower_better",
+            "change_failure_rate": "lower_better",
+            "mean_time_to_recovery": "lower_better",
+        }
+
+        for metric_name in metrics_data.keys():
+            weekly_values = metrics_data[metric_name].get("weekly_values", [])
+            current_value = metrics_data[metric_name].get("value")
+            metric_type = metric_type_mapping.get(metric_name, "higher_better")
+
+            # Calculate dynamic forecast based on filtered weekly data
+            forecast_data, trend_vs_forecast = _calculate_dynamic_forecast(
+                weekly_values=weekly_values,
+                current_value=current_value,
+                metric_type=metric_type,
+                metric_name=metric_name,
+            )
+
+            if forecast_data:
+                metrics_data[metric_name]["forecast_data"] = forecast_data
+                logger.info(
+                    f"[Feature 009] Calculated forecast for {metric_name}: {forecast_data.get('forecast_value')}"
+                )
+            if trend_vs_forecast:
+                metrics_data[metric_name]["trend_vs_forecast"] = trend_vs_forecast
+
         return create_metric_cards_grid(metrics_data)
 
     except PreventUpdate:
@@ -297,10 +387,7 @@ def load_and_display_dora_metrics(
 
 
 @callback(
-    [
-        Output("flow-metrics-cards-container", "children"),
-        Output("flow-distribution-chart-container", "children"),
-    ],
+    Output("flow-metrics-cards-container", "children"),
     [
         Input("jira-issues-store", "data"),
         Input("data-points-input", "value"),
@@ -340,11 +427,8 @@ def calculate_and_display_flow_metrics(
         if not jira_data_store or not jira_data_store.get("issues"):
             from ui.empty_states import create_no_data_state
 
-            # Return no_data state for metrics + HIDE Work Distribution card (like other cards)
-            return (
-                create_no_data_state(),
-                html.Div(),  # Empty div - hide Work Distribution when no data
-            )
+            # Return no_data state for all metrics (Work Distribution included in same container)
+            return create_no_data_state()
 
         if not app_settings:
             logger.warning("No app settings available, loading from disk")
@@ -354,10 +438,7 @@ def calculate_and_display_flow_metrics(
         if not app_settings:
             error_msg = "Failed to load app settings"
             logger.error(error_msg)
-            return (
-                html.Div(error_msg, className="alert alert-danger p-4"),
-                html.Div("Error", className="text-muted p-4"),
-            )
+            return html.Div(error_msg, className="alert alert-danger p-4")
 
         # Get number of weeks to display (default 12 if not set)
         n_weeks = data_points if data_points and data_points > 0 else 12
@@ -594,9 +675,6 @@ def calculate_and_display_flow_metrics(
             card_id="work-distribution-card",
         )
 
-        # Wrap in Row/Col for full-width layout (spans 12 columns = 2x normal metric card width)
-        dist_html = dbc.Row([dbc.Col([dist_card], width=12)])
-
         # Load velocity historicalalues
         velocity_values = get_metric_weekly_values(
             week_labels, "flow_velocity", "completed_count"
@@ -682,7 +760,7 @@ def calculate_and_display_flow_metrics(
             "flow_load": {
                 "metric_name": "flow_load",
                 "value": wip_count if wip_count is not None else 0,
-                "unit": "items (current WIP)",
+                "unit": "items",  # Consistent with other count metrics
                 "error_state": "success" if flow_load_snapshot else "no_data",
                 "performance_tier": _get_flow_performance_tier(
                     "flow_load", wip_count if wip_count is not None else 0
@@ -696,20 +774,75 @@ def calculate_and_display_flow_metrics(
             },
         }
 
+        # Calculate forecast dynamically based on filtered data (Feature 009)
+        # This ensures forecast updates when user changes data_points slider
+        logger.info(
+            f"FLOW: Calculating dynamic forecasts for {data_points} weeks of data"
+        )
+
+        # Define metric types for trend calculation
+        flow_metric_types = {
+            "flow_velocity": "higher_better",
+            "flow_time": "lower_better",
+            "flow_efficiency": "higher_better",  # Note: 25-40% is ideal, but higher generally better
+            "flow_load": "lower_better",
+        }
+
+        for metric_name in [
+            "flow_velocity",
+            "flow_time",
+            "flow_efficiency",
+            "flow_load",
+        ]:
+            weekly_values = metrics_data[metric_name].get("weekly_values", [])
+            current_value = metrics_data[metric_name].get("value")
+            metric_type = flow_metric_types.get(metric_name, "higher_better")
+
+            # Calculate dynamic forecast based on filtered weekly data
+            forecast_data, trend_vs_forecast = _calculate_dynamic_forecast(
+                weekly_values=weekly_values,
+                current_value=current_value,
+                metric_type=metric_type,
+                metric_name=metric_name,
+            )
+
+            if forecast_data:
+                metrics_data[metric_name]["forecast_data"] = forecast_data
+
+                # Special handling for Flow Load range
+                if metric_name == "flow_load":
+                    try:
+                        from data.metrics_calculator import calculate_flow_load_range
+
+                        FLOW_LOAD_RANGE_PERCENT = 0.20  # ±20% range
+                        range_data = calculate_flow_load_range(
+                            forecast_value=forecast_data["forecast_value"],
+                            range_percent=FLOW_LOAD_RANGE_PERCENT,
+                        )
+                        forecast_data["forecast_range"] = range_data
+                    except (ValueError, TypeError) as e:
+                        logger.warning(f"Failed to calculate Flow Load range: {e}")
+
+            if trend_vs_forecast:
+                metrics_data[metric_name]["trend_vs_forecast"] = trend_vs_forecast
+
         # Pass Flow metrics tooltips to grid function
         metrics_html = create_metric_cards_grid(
             metrics_data, tooltips=FLOW_METRICS_TOOLTIPS
         )
 
-        return metrics_html, dist_html
+        # Append Work Distribution card to the same grid (spans full width = 12 columns)
+        # This ensures it has the same metric-cards-grid styling and shadow behavior
+        dist_col = dbc.Col(dist_card, xs=12, lg=12, className="mb-3")
+        if metrics_html and metrics_html.children:
+            metrics_html.children.append(dist_col)
+
+        return metrics_html
 
     except Exception as e:
         logger.error(f"Error calculating Flow metrics: {e}", exc_info=True)
 
-        return (
-            html.Div("Error loading metrics", className="alert alert-danger p-4"),
-            html.Div("Error loading chart", className="text-muted p-4"),
-        )
+        return html.Div("Error loading metrics", className="alert alert-danger p-4")
 
 
 #######################################################################
@@ -890,6 +1023,26 @@ def calculate_metrics_from_settings(
         else:
             # Fallback to calculating last N weeks from today
             success, message = calculate_metrics_for_last_n_weeks(n_weeks=n_weeks)
+
+        # Add forecasts to current week after metrics calculation (Feature 009)
+        if success:
+            from data.metrics_snapshots import add_forecasts_to_week
+            from data.iso_week_bucketing import get_week_label
+
+            current_week_label = get_week_label(datetime.now())
+            logger.info(
+                f"[Feature 009] Adding forecasts to week {current_week_label} after metrics calculation"
+            )
+
+            forecast_success = add_forecasts_to_week(current_week_label)
+            if forecast_success:
+                logger.info(
+                    f"[Feature 009] Successfully added forecasts to {current_week_label}"
+                )
+            else:
+                logger.warning(
+                    f"[Feature 009] Failed to add forecasts to {current_week_label}"
+                )
 
         # Mark task as completed
         TaskProgress.complete_task("calculate_metrics")

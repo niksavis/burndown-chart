@@ -213,15 +213,30 @@ def create_flow_efficiency_trend_chart(
 
     fig = go.Figure()
 
-    # Add healthy range zone (25-40%) - the "sweet spot" for flow efficiency
-    # This range indicates good balance between active work and wait time
+    # Add "Excellent" range zone (60%+) - minimal waiting, highly efficient
     fig.add_shape(
         type="rect",
         x0=dates[0] if dates else 0,
         x1=dates[-1] if dates else 1,
-        y0=25,
-        y1=40,
-        fillcolor="rgba(25, 135, 84, 0.1)",  # Light green with transparency
+        y0=60,
+        y1=100,
+        fillcolor="rgba(25, 135, 84, 0.20)",  # Darker green for excellent zone
+        line=dict(
+            color="rgba(25, 135, 84, 0.5)",
+            width=1,
+            dash="dot",
+        ),
+        layer="below",
+    )
+
+    # Add "Good" range zone (40-60%) - balanced flow with acceptable waiting
+    fig.add_shape(
+        type="rect",
+        x0=dates[0] if dates else 0,
+        x1=dates[-1] if dates else 1,
+        y0=40,
+        y1=60,
+        fillcolor="rgba(25, 135, 84, 0.10)",  # Light green for good zone
         line=dict(
             color="rgba(25, 135, 84, 0.3)",
             width=1,
@@ -230,15 +245,53 @@ def create_flow_efficiency_trend_chart(
         layer="below",
     )
 
-    # Add annotation explaining the healthy range
+    # Add "Fair" range zone (25-40%) - acceptable but high wait time
+    fig.add_shape(
+        type="rect",
+        x0=dates[0] if dates else 0,
+        x1=dates[-1] if dates else 1,
+        y0=25,
+        y1=40,
+        fillcolor="rgba(255, 193, 7, 0.10)",  # Yellow for fair zone
+        line=dict(
+            color="rgba(255, 193, 7, 0.3)",
+            width=1,
+            dash="dot",
+        ),
+        layer="below",
+    )
+
+    # Add annotation explaining the excellent range
     fig.add_annotation(
         x=dates[len(dates) // 2] if dates else 0.5,  # Middle of chart
-        y=32.5,  # Middle of 25-40% range
-        text="Healthy Range (25-40%)",
+        y=75,  # Middle of 60-100% range
+        text="Excellent (60%+)",
         showarrow=False,
-        font=dict(size=10, color="rgba(25, 135, 84, 0.7)"),
-        bgcolor="rgba(255, 255, 255, 0.8)",
+        font=dict(size=10, color="rgba(25, 135, 84, 0.9)"),
+        bgcolor="rgba(255, 255, 255, 0.9)",
         borderpad=4,
+    )
+
+    # Add annotation for good range
+    fig.add_annotation(
+        x=dates[len(dates) // 3] if dates else 0.33,  # Left third of chart
+        y=50,  # Middle of 40-60% range
+        text="Good (40-60%)",
+        showarrow=False,
+        font=dict(size=9, color="rgba(25, 135, 84, 0.7)"),
+        bgcolor="rgba(255, 255, 255, 0.9)",
+        borderpad=3,
+    )
+
+    # Add annotation for fair range
+    fig.add_annotation(
+        x=dates[2 * len(dates) // 3] if dates else 0.67,  # Right third of chart
+        y=32,  # Middle of 25-40% range
+        text="Fair (25-40%)",
+        showarrow=False,
+        font=dict(size=9, color="rgba(255, 193, 7, 0.8)"),
+        bgcolor="rgba(255, 255, 255, 0.9)",
+        borderpad=3,
     )
 
     # REMOVED: Performance zones create visual noise
@@ -319,7 +372,9 @@ def create_flow_time_trend_chart(trend_data: List[Dict[str, Any]]) -> go.Figure:
 
 
 def create_flow_load_trend_chart(
-    trend_data: List[Dict[str, Any]], wip_thresholds: Optional[Dict[str, Any]] = None
+    trend_data: List[Dict[str, Any]],
+    wip_thresholds: Optional[Dict[str, Any]] = None,
+    line_color: str = "#6f42c1",  # Default purple, but accept dynamic color
 ) -> go.Figure:
     """Create line chart for Flow Load (WIP) trend over time with threshold lines.
 
@@ -333,6 +388,7 @@ def create_flow_load_trend_chart(
                 "critical": float,
                 "method": str
             }
+        line_color: Color for the main trend line (dynamic based on performance tier)
 
     Returns:
         Plotly Figure with line chart and threshold lines
@@ -342,19 +398,18 @@ def create_flow_load_trend_chart(
 
     dates = [item["date"] for item in trend_data]
     values = [item["value"] for item in trend_data]
-    colors = get_consistent_colors()
 
     fig = go.Figure()
 
-    # Add main WIP trend line
+    # Add main WIP trend line with dynamic color
     fig.add_trace(
         go.Scatter(
             x=dates,
             y=values,
             mode="lines+markers",
             name="Flow Load (WIP)",
-            line=dict(color=colors["flow_load"], width=3),  # Use consistent styling
-            marker=dict(size=6, color=colors["flow_load"]),
+            line=dict(color=line_color, width=3),  # Use dynamic tier-based color
+            marker=dict(size=6, color=line_color),
             hovertemplate="<b>%{x}</b><br>WIP Count: %{y} items<extra></extra>",
         )
     )

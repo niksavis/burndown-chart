@@ -251,7 +251,7 @@ def create_metric_trend_sparkline(
         "margin": {
             "t": 10,
             "r": 10,
-            "b": 60 if show_axes else 5,  # Extra space for angled labels
+            "b": 40 if show_axes else 5,  # Consistent with chart_config.py (was 60)
             "l": 45 if show_axes else 5,
         },
         "xaxis": {
@@ -682,8 +682,8 @@ def create_dual_line_trend(
         "showlegend": True,
         "legend": {
             "orientation": "h",
-            "yanchor": "top",
-            "y": -0.15,  # Below chart, consistent position
+            "yanchor": "bottom",
+            "y": 1.02,  # Above chart to avoid overlap with x-axis dates
             "xanchor": "center",
             "x": 0.5,
             "font": {"size": 10},

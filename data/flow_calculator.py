@@ -136,7 +136,7 @@ def calculate_flow_velocity(
     """
     # Input validation
     if not issues or not isinstance(issues, list):
-        logger.warning("calculate_flow_velocity: Empty or invalid issues list")
+        logger.warning("[Flow] Velocity: No issues provided")
         return _create_error_response(
             "flow_velocity",
             "no_data",
@@ -145,7 +145,7 @@ def calculate_flow_velocity(
         )
 
     if not isinstance(field_mappings, dict):
-        logger.error("calculate_flow_velocity: Invalid field_mappings")
+        logger.error("[Flow] Velocity: Invalid field mappings")
         return _create_error_response(
             "flow_velocity",
             "calculation_error",
@@ -154,7 +154,7 @@ def calculate_flow_velocity(
         )
 
     if not isinstance(start_date, datetime) or not isinstance(end_date, datetime):
-        logger.error("calculate_flow_velocity: Invalid date parameters")
+        logger.error("[Flow] Velocity: Invalid date parameters")
         return _create_error_response(
             "flow_velocity",
             "calculation_error",
@@ -163,9 +163,7 @@ def calculate_flow_velocity(
         )
 
     if start_date >= end_date:
-        logger.error(
-            f"calculate_flow_velocity: Invalid date range: {start_date} to {end_date}"
-        )
+        logger.error(f"[Flow] Velocity: Invalid date range: {start_date} to {end_date}")
         return _create_error_response(
             "flow_velocity",
             "calculation_error",
@@ -253,7 +251,7 @@ def calculate_flow_velocity(
         }
 
     except Exception as e:
-        logger.error(f"Error calculating flow velocity: {e}", exc_info=True)
+        logger.error(f"[Flow] Error calculating velocity: {e}", exc_info=True)
         return _create_error_response("flow_velocity", "calculation_error", str(e))
 
 
@@ -283,7 +281,7 @@ def calculate_flow_time(
     """
     # Input validation
     if not issues or not isinstance(issues, list):
-        logger.warning("calculate_flow_time: Empty or invalid issues list")
+        logger.warning("[Flow] Flow time: No issues provided")
         return _create_error_response(
             "flow_time",
             "no_data",
@@ -292,7 +290,7 @@ def calculate_flow_time(
         )
 
     if not isinstance(field_mappings, dict):
-        logger.error("calculate_flow_time: Invalid field_mappings")
+        logger.error("[Flow] Flow time: Invalid field mappings")
         return _create_error_response(
             "flow_time",
             "calculation_error",
@@ -405,7 +403,7 @@ def calculate_flow_time(
         }
 
     except Exception as e:
-        logger.error(f"Error calculating flow time: {e}", exc_info=True)
+        logger.error(f"[Flow] Error calculating flow time: {e}", exc_info=True)
         return _create_error_response("flow_time", "calculation_error", str(e))
 
 
@@ -439,7 +437,7 @@ def calculate_flow_efficiency(
     """
     # Input validation
     if not issues or not isinstance(issues, list):
-        logger.warning("calculate_flow_efficiency: Empty or invalid issues list")
+        logger.warning("[Flow] Efficiency: No issues provided")
         return _create_error_response(
             "flow_efficiency",
             "no_data",
@@ -448,7 +446,7 @@ def calculate_flow_efficiency(
         )
 
     if not isinstance(field_mappings, dict):
-        logger.error("calculate_flow_efficiency: Invalid field_mappings")
+        logger.error("[Flow] Efficiency: Invalid field mappings")
         return _create_error_response(
             "flow_efficiency",
             "calculation_error",
@@ -546,7 +544,7 @@ def calculate_flow_efficiency(
         }
 
     except Exception as e:
-        logger.error(f"Error calculating flow efficiency: {e}", exc_info=True)
+        logger.error(f"[Flow] Error calculating efficiency: {e}", exc_info=True)
         return _create_error_response("flow_efficiency", "calculation_error", str(e))
 
 
@@ -568,7 +566,7 @@ def calculate_flow_load(
     """
     # Input validation
     if not issues or not isinstance(issues, list):
-        logger.warning("calculate_flow_load: Empty or invalid issues list")
+        logger.warning("[Flow] Load: No issues provided")
         return _create_error_response(
             "flow_load",
             "no_data",
@@ -577,7 +575,7 @@ def calculate_flow_load(
         )
 
     if not isinstance(field_mappings, dict):
-        logger.error("calculate_flow_load: Invalid field_mappings")
+        logger.error("[Flow] Load: Invalid field mappings")
         return _create_error_response(
             "flow_load",
             "calculation_error",
@@ -650,7 +648,7 @@ def calculate_flow_load(
         }
 
     except Exception as e:
-        logger.error(f"Error calculating flow load: {e}", exc_info=True)
+        logger.error(f"[Flow] Error calculating load: {e}", exc_info=True)
         return _create_error_response("flow_load", "calculation_error", str(e))
 
 
@@ -676,7 +674,7 @@ def calculate_flow_distribution(
     """
     # Input validation
     if not issues or not isinstance(issues, list):
-        logger.warning("calculate_flow_distribution: Empty or invalid issues list")
+        logger.warning("[Flow] Distribution: No issues provided")
         return _create_error_response(
             "flow_distribution",
             "no_data",
@@ -685,7 +683,7 @@ def calculate_flow_distribution(
         )
 
     if not isinstance(field_mappings, dict):
-        logger.error("calculate_flow_distribution: Invalid field_mappings")
+        logger.error("[Flow] Distribution: Invalid field mappings")
         return _create_error_response(
             "flow_distribution",
             "calculation_error",
@@ -694,7 +692,7 @@ def calculate_flow_distribution(
         )
 
     if not isinstance(start_date, datetime) or not isinstance(end_date, datetime):
-        logger.error("calculate_flow_distribution: Invalid date parameters")
+        logger.error("[Flow] Distribution: Invalid date parameters")
         return _create_error_response(
             "flow_distribution",
             "calculation_error",
@@ -704,7 +702,7 @@ def calculate_flow_distribution(
 
     if start_date >= end_date:
         logger.error(
-            f"calculate_flow_distribution: Invalid date range: {start_date} to {end_date}"
+            f"[Flow] Distribution: Invalid date range: {start_date} to {end_date}"
         )
         return _create_error_response(
             "flow_distribution",
@@ -811,7 +809,7 @@ def calculate_flow_distribution(
         }
 
     except Exception as e:
-        logger.error(f"Error calculating flow distribution: {e}", exc_info=True)
+        logger.error(f"[Flow] Error calculating distribution: {e}", exc_info=True)
         return _create_error_response("flow_distribution", "calculation_error", str(e))
 
 
@@ -845,7 +843,7 @@ def calculate_all_flow_metrics(
 
     period_days = (end_date - start_date).days
     logger.info(
-        f"Starting Flow metrics calculation: {len(issues)} issues, {period_days}d period"
+        f"[Flow] Starting calculation: {len(issues)} issues, {period_days}d period"
     )
 
     results = {
@@ -861,7 +859,7 @@ def calculate_all_flow_metrics(
     }
 
     elapsed_time = time.time() - calc_start
-    logger.info(f"✓ Flow metrics calculated in {elapsed_time:.2f}s")
+    logger.info(f"[Flow] Calculated 5 metrics in {elapsed_time:.2f}s")
     return results
 
 
@@ -987,7 +985,7 @@ def calculate_flow_velocity_v2(
     )
 
     logger.info(
-        f"Calculating Flow Velocity v2 for {len(issues)} issues between {start_date.date()} and {end_date.date()}"
+        f"[Flow] Velocity v2: {len(issues)} issues between {start_date.date()} and {end_date.date()}"
     )
 
     # Exclusion tracking
@@ -1025,7 +1023,7 @@ def calculate_flow_velocity_v2(
             exclusion_reasons["missing_completion_date"] += 1
             issue_key = issue.get("key", "unknown")
             logger.debug(
-                f"Issue {issue_key} in completion status but missing resolutiondate"
+                f"[Flow] {issue_key}: No resolutiondate despite completion status"
             )
             continue
 
@@ -1039,7 +1037,7 @@ def calculate_flow_velocity_v2(
             exclusion_reasons["missing_completion_date"] += 1
             issue_key = issue.get("key", "unknown")
             logger.warning(
-                f"Issue {issue_key} has invalid resolutiondate format: {completion_date_str} - {e}"
+                f"[Flow] {issue_key}: Invalid resolutiondate format: {completion_date_str} - {e}"
             )
             continue
 
@@ -1052,13 +1050,13 @@ def calculate_flow_velocity_v2(
         completed_issues.append(issue)
 
     logger.info(
-        f"Found {len(completed_issues)} completed issues in period (excluded {sum(exclusion_reasons.values())})"
+        f"[Flow] {len(completed_issues)} completed issues in period (excluded {sum(exclusion_reasons.values())})"
     )
 
     # No completed issues
     if len(completed_issues) == 0:
         logger.warning(
-            f"No completed issues found between {start_date.date()} and {end_date.date()}"
+            f"[Flow] No completed issues between {start_date.date()} and {end_date.date()}"
         )
         return {
             "metric_name": "flow_velocity",
@@ -1086,11 +1084,7 @@ def calculate_flow_velocity_v2(
     unit = "items/week" if period_days <= 14 else "items/month"
 
     logger.info(
-        f"Flow Velocity: {total_completed} items completed - "
-        f"Feature={flow_type_counts[FLOW_TYPE_FEATURE]}, "
-        f"Defect={flow_type_counts[FLOW_TYPE_DEFECT]}, "
-        f"Technical Debt={flow_type_counts[FLOW_TYPE_TECHNICAL_DEBT]}, "
-        f"Risk={flow_type_counts[FLOW_TYPE_RISK]}"
+        f"[Flow] Velocity: {total_completed} items - Feature={flow_type_counts[FLOW_TYPE_FEATURE]}, Defect={flow_type_counts[FLOW_TYPE_DEFECT]}, Tech Debt={flow_type_counts[FLOW_TYPE_TECHNICAL_DEBT]}, Risk={flow_type_counts[FLOW_TYPE_RISK]}"
     )
 
     return {
@@ -1187,7 +1181,7 @@ def calculate_flow_time_v2(
     from data.changelog_processor import calculate_flow_time
     import statistics
 
-    logger.info(f"Calculating Flow Time v2 for {len(issues)} issues")
+    logger.info(f"[Flow] Flow time v2: {len(issues)} issues")
 
     # Exclusion tracking
     exclusion_reasons = {
@@ -1216,7 +1210,7 @@ def calculate_flow_time_v2(
         # Check if issue has changelog
         if not issue_dict["changelog"]:
             exclusion_reasons["missing_changelog"] += 1
-            logger.debug(f"Issue {issue_key} missing changelog data")
+            logger.debug(f"[Flow] {issue_key}: Missing changelog data")
             continue
 
         # Calculate flow time using changelog_processor
@@ -1249,13 +1243,12 @@ def calculate_flow_time_v2(
             flow_efficiencies.append(flow_time_result["flow_efficiency_percent"])
 
     logger.info(
-        f"Calculated Flow Time for {len(total_flow_times)} issues "
-        f"(excluded {sum(exclusion_reasons.values())})"
+        f"[Flow] Flow time calculated for {len(total_flow_times)} issues (excluded {sum(exclusion_reasons.values())})"
     )
 
     # No flow time data
     if len(total_flow_times) == 0:
-        logger.warning("No flow time data available")
+        logger.warning("[Flow] No flow time data available")
         return {
             "metric_name": "flow_time",
             "total_flow_time": {
@@ -1340,12 +1333,9 @@ def calculate_flow_time_v2(
         }
 
     logger.info(
-        f"Flow Time statistics: "
-        f"Median Total={total_flow_time_stats['median_hours']:.1f}h, "
-        f"Median Active={active_time_stats['median_hours']:.1f}h, "
-        f"Median Efficiency={flow_efficiency_stats['median_percent']:.1f}%"
+        f"[Flow] Time stats: Median Total={total_flow_time_stats['median_hours']:.1f}h, Active={active_time_stats['median_hours']:.1f}h, Efficiency={flow_efficiency_stats['median_percent']:.1f}%"
         if active_time_stats["median_hours"] and flow_efficiency_stats["median_percent"]
-        else f"Flow Time statistics: Median Total={total_flow_time_stats['median_hours']:.1f}h"
+        else f"[Flow] Time stats: Median Total={total_flow_time_stats['median_hours']:.1f}h"
     )
 
     return {
@@ -1426,7 +1416,7 @@ def calculate_flow_load_v2(
         >>> print(f"Current WIP: {result['wip_count']} items")
         >>> print(f"In Progress: {result['by_status']['In Progress']}")
     """
-    logger.info(f"Calculating Flow Load v2 (WIP) for {len(issues)} issues")
+    logger.info(f"[Flow] Load v2 (WIP): {len(issues)} issues")
 
     # Normalize WIP statuses for matching
     wip_statuses_normalized = [s if case_sensitive else s.lower() for s in wip_statuses]
@@ -1502,12 +1492,11 @@ def calculate_flow_load_v2(
     wip_count = len(wip_issues)
 
     logger.info(
-        f"Flow Load (WIP): {wip_count} items in active work "
-        f"(excluded {sum(exclusion_reasons.values())})"
+        f"[Flow] Load (WIP): {wip_count} items in active work (excluded {sum(exclusion_reasons.values())})"
     )
 
     if wip_count == 0:
-        logger.warning("No WIP issues found")
+        logger.warning("[Flow] No WIP issues found")
         return {
             "metric_name": "flow_load",
             "wip_count": 0,
@@ -1521,8 +1510,8 @@ def calculate_flow_load_v2(
             "exclusion_reasons": exclusion_reasons,
         }
 
-    logger.info(f"WIP breakdown by status: {by_status}")
-    logger.info(f"WIP breakdown by issue type: {by_issue_type}")
+    logger.info(f"[Flow] WIP by status: {by_status}")
+    logger.info(f"[Flow] WIP by issue type: {by_issue_type}")
 
     return {
         "metric_name": "flow_load",
@@ -1605,7 +1594,7 @@ def calculate_flow_efficiency_v2(
     from data.changelog_processor import calculate_flow_time
     import statistics
 
-    logger.info(f"Calculating Flow Efficiency v2 for {len(issues)} issues")
+    logger.info(f"[Flow] Efficiency v2: {len(issues)} issues")
 
     # Exclusion tracking
     exclusion_reasons = {
@@ -1636,7 +1625,7 @@ def calculate_flow_efficiency_v2(
         # Check if issue has changelog
         if not issue_dict["changelog"]:
             exclusion_reasons["missing_changelog"] += 1
-            logger.debug(f"Issue {issue_key} missing changelog data")
+            logger.debug(f"[Flow] {issue_key}: Missing changelog data")
             continue
 
         # Calculate flow time (includes efficiency)
@@ -1670,13 +1659,12 @@ def calculate_flow_efficiency_v2(
                 below_target_count += 1
 
     logger.info(
-        f"Calculated Flow Efficiency for {len(flow_efficiencies)} issues "
-        f"(excluded {sum(exclusion_reasons.values())})"
+        f"[Flow] Efficiency calculated for {len(flow_efficiencies)} issues (excluded {sum(exclusion_reasons.values())})"
     )
 
     # No flow efficiency data
     if len(flow_efficiencies) == 0:
-        logger.warning("No flow efficiency data available")
+        logger.warning("[Flow] No efficiency data available")
         return {
             "metric_name": "flow_efficiency",
             "median_percent": None,
@@ -1710,9 +1698,7 @@ def calculate_flow_efficiency_v2(
     )
 
     logger.info(
-        f"Flow Efficiency: Median={median_efficiency:.1f}%, Mean={mean_efficiency:.1f}%, "
-        f"Target={TARGET_EFFICIENCY}% "
-        f"(Meets: {meets_target_count}, Below: {below_target_count})"
+        f"[Flow] Efficiency: Median={median_efficiency:.1f}%, Mean={mean_efficiency:.1f}%, Target={TARGET_EFFICIENCY}% (Meets: {meets_target_count}, Below: {below_target_count})"
     )
 
     return {
@@ -1834,7 +1820,7 @@ def calculate_flow_distribution_v2(
     )
 
     logger.info(
-        f"Calculating Flow Distribution v2 for {len(issues)} issues between {start_date.date()} and {end_date.date()}"
+        f"[Flow] Distribution v2: {len(issues)} issues between {start_date.date()} and {end_date.date()}"
     )
 
     # Default recommended ranges (from Flow Framework)
@@ -1889,7 +1875,7 @@ def calculate_flow_distribution_v2(
         except (ValueError, AttributeError):
             exclusion_reasons["missing_completion_date"] += 1
             logger.warning(
-                f"Issue {issue_key} has invalid resolutiondate: {completion_date_str}"
+                f"[Flow] {issue_key}: Invalid resolutiondate: {completion_date_str}"
             )
             continue
 
@@ -1900,11 +1886,11 @@ def calculate_flow_distribution_v2(
 
         completed_issues.append(issue)
 
-    logger.info(f"Found {len(completed_issues)} completed issues in period")
+    logger.info(f"[Flow] {len(completed_issues)} completed issues in period")
 
     # No completed issues
     if len(completed_issues) == 0:
-        logger.warning("No completed issues for flow distribution")
+        logger.warning("[Flow] No completed issues for distribution")
         return {
             "metric_name": "flow_distribution",
             "total_count": 0,
@@ -1980,11 +1966,7 @@ def calculate_flow_distribution_v2(
         }
 
     logger.info(
-        f"Flow Distribution: "
-        f"Feature={distribution[FLOW_TYPE_FEATURE]['percent']:.1f}% (range: {distribution[FLOW_TYPE_FEATURE]['in_range']}), "
-        f"Defect={distribution[FLOW_TYPE_DEFECT]['percent']:.1f}% (range: {distribution[FLOW_TYPE_DEFECT]['in_range']}), "
-        f"Technical Debt={distribution[FLOW_TYPE_TECHNICAL_DEBT]['percent']:.1f}% (range: {distribution[FLOW_TYPE_TECHNICAL_DEBT]['in_range']}), "
-        f"Risk={distribution[FLOW_TYPE_RISK]['percent']:.1f}% (range: {distribution[FLOW_TYPE_RISK]['in_range']})"
+        f"[Flow] Distribution: Feature={distribution[FLOW_TYPE_FEATURE]['percent']:.1f}% ({distribution[FLOW_TYPE_FEATURE]['in_range']}), Defect={distribution[FLOW_TYPE_DEFECT]['percent']:.1f}% ({distribution[FLOW_TYPE_DEFECT]['in_range']}), Tech Debt={distribution[FLOW_TYPE_TECHNICAL_DEBT]['percent']:.1f}% ({distribution[FLOW_TYPE_TECHNICAL_DEBT]['in_range']}), Risk={distribution[FLOW_TYPE_RISK]['percent']:.1f}% ({distribution[FLOW_TYPE_RISK]['in_range']})"
     )
 
     return {
@@ -2044,7 +2026,7 @@ def aggregate_flow_velocity_weekly(
     from datetime import datetime
     from collections import defaultdict
 
-    logger.info(f"Aggregating Flow Velocity for {len(week_labels)} weeks")
+    logger.info(f"[Flow] Aggregating velocity for {len(week_labels)} weeks")
 
     # Initialize result
     weekly_counts = {
@@ -2053,9 +2035,7 @@ def aggregate_flow_velocity_weekly(
     }
 
     if not issues or not completion_statuses:
-        logger.warning(
-            "aggregate_flow_velocity_weekly: No issues or completion statuses provided"
-        )
+        logger.warning("[Flow] Velocity aggregation: No issues or completion statuses")
         return weekly_counts
 
     # Convert statuses for case-insensitive matching
@@ -2120,7 +2100,7 @@ def aggregate_flow_velocity_weekly(
         weekly_counts[week_label]["total"] = sum(flow_counts.values())
 
     logger.info(
-        f"Weekly Flow Velocity aggregated for {sum(1 for c in weekly_counts.values() if c['total'] > 0)} weeks"
+        f"[Flow] Weekly velocity aggregated for {sum(1 for c in weekly_counts.values() if c['total'] > 0)} weeks"
     )
     return weekly_counts
 
@@ -2157,7 +2137,7 @@ def aggregate_flow_time_weekly(
     import statistics
     from collections import defaultdict
 
-    logger.info(f"Aggregating Flow Time for {len(week_labels)} weeks")
+    logger.info(f"[Flow] Aggregating flow time for {len(week_labels)} weeks")
 
     # Initialize result
     weekly_stats = {
@@ -2174,7 +2154,7 @@ def aggregate_flow_time_weekly(
     }
 
     if not flow_times:
-        logger.warning("aggregate_flow_time_weekly: No flow times provided")
+        logger.warning("[Flow] Time aggregation: No flow times provided")
         return weekly_stats
 
     # Group by week (use completion date)
@@ -2237,7 +2217,7 @@ def aggregate_flow_time_weekly(
         )
 
     logger.info(
-        f"Weekly Flow Time aggregated for {sum(1 for s in weekly_stats.values() if s['count'] > 0)} weeks"
+        f"[Flow] Weekly flow time aggregated for {sum(1 for s in weekly_stats.values() if s['count'] > 0)} weeks"
     )
     return weekly_stats
 
@@ -2281,7 +2261,7 @@ def aggregate_flow_distribution_weekly(
     from datetime import datetime
     from collections import defaultdict
 
-    logger.info(f"Aggregating Flow Distribution for {len(week_labels)} weeks")
+    logger.info(f"[Flow] Aggregating distribution for {len(week_labels)} weeks")
 
     # Initialize result
     weekly_distribution = {
@@ -2297,7 +2277,7 @@ def aggregate_flow_distribution_weekly(
 
     if not issues or not completion_statuses:
         logger.warning(
-            "aggregate_flow_distribution_weekly: No issues or completion statuses provided"
+            "[Flow] Distribution aggregation: No issues or completion statuses"
         )
         return weekly_distribution
 
@@ -2363,7 +2343,7 @@ def aggregate_flow_distribution_weekly(
         weekly_distribution[week_label]["Risk"] = distribution.get("Risk", 0.0)
 
     logger.info(
-        f"Weekly Flow Distribution aggregated for {sum(1 for d in weekly_distribution.values() if d['total_count'] > 0)} weeks"
+        f"[Flow] Weekly distribution aggregated for {sum(1 for d in weekly_distribution.values() if d['total_count'] > 0)} weeks"
     )
     return weekly_distribution
 
@@ -2409,7 +2389,7 @@ def calculate_wip_thresholds_from_history(
     try:
         import numpy as np
     except ImportError:
-        logger.warning("NumPy not available, falling back to hardcoded WIP thresholds")
+        logger.warning("[Flow] NumPy not available, using hardcoded WIP thresholds")
         return {
             "healthy": 10,
             "warning": 20,
@@ -2434,7 +2414,7 @@ def calculate_wip_thresholds_from_history(
     if len(optimal_wips) < 4:
         # Need at least 4 data points for meaningful percentiles
         logger.warning(
-            f"Insufficient historical data ({len(optimal_wips)} weeks), using hardcoded WIP thresholds"
+            f"[Flow] Insufficient WIP data ({len(optimal_wips)} weeks), using hardcoded thresholds"
         )
         return {
             "healthy": 10,
@@ -2466,11 +2446,7 @@ def calculate_wip_thresholds_from_history(
     }
 
     logger.info(
-        f"Calculated WIP thresholds from {len(optimal_wips)} weeks: "
-        f"Healthy<{thresholds['healthy']}, "
-        f"Warning<{thresholds['warning']}, "
-        f"High<{thresholds['high']}, "
-        f"Critical≥{thresholds['critical']}"
+        f"[Flow] WIP thresholds from {len(optimal_wips)} weeks: Healthy<{thresholds['healthy']}, Warning<{thresholds['warning']}, High<{thresholds['high']}, Critical≥{thresholds['critical']}"
     )
 
     return thresholds

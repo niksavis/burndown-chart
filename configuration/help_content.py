@@ -727,6 +727,249 @@ FLOW_METRICS_TOOLTIPS = {
     "flow_distribution": "Breakdown of completed work by type: Features (new value), Defects (quality issues), Risk (security/compliance), and Tech Debt (maintenance). Balanced distribution indicates healthy development practices.",
 }
 
+# 4-WEEK FORECAST HELP CONTENT - Tooltips and detailed help for forecasting feature (Feature 009)
+FORECAST_HELP_CONTENT = {
+    "forecast_overview": "4-week weighted forecast predicting next week's performance based on historical trends. Uses exponential weighting (1.0, 0.8, 0.6, 0.4) to emphasize recent data while considering longer patterns. Helps teams proactively address performance issues before they impact delivery.",
+    "forecast_value": "Predicted metric value for next week calculated using weighted average of last 4 weeks. Recent weeks contribute more weight than older weeks (Week 0: 100%, Week -1: 80%, Week -2: 60%, Week -3: 40%). Normalized by total weight for accurate prediction.",
+    "forecast_confidence": "Forecast reliability based on available historical data. High: 4 weeks (full weighting), Medium: 3 weeks (reduced accuracy), Low: 2 weeks (limited reliability). Forecasts require minimum 2 weeks of data; insufficient data shows 'Gathering data...'",
+    "trend_vs_forecast": "Compares current week's actual performance against forecast to show if team is on track. Positive deviation (↗) indicates exceeding forecast; negative (↘) below forecast; stable (→) on track within ±5%. Color coding: Green (favorable trend), Yellow (moderate deviation 5-15%), Red (significant deviation >15%).",
+    "monday_morning": "Special handling for week start when current value is zero. Shows 'Week starting...' message with neutral indicator instead of '-100% vs forecast'. Prevents false alarms at beginning of work week when no completions have occurred yet.",
+    "deviation_thresholds": "Performance deviation bands: On track (±5%), Moderate (5-15%), Significant (>15%). Direction interpretation depends on metric type: higher is better for velocity/efficiency, lower is better for lead time/MTTR. Bands help identify when intervention may be needed.",
+    "metric_snapshots": "Weekly historical data stored for forecast calculations. Automatically captured when metrics update. Includes metric value, ISO week number, and timestamp. Used for weighted average calculation and trend analysis. Stored in metrics_snapshots.json.",
+    "weighting_strategy": "Exponential decay weighting: Most recent week (1.0) → 3 weeks ago (0.4). Formula: weighted_sum = Σ(value × weight) / Σ(weights). Balances responsiveness to recent changes with stability from historical patterns. Configurable via FORECAST_CONFIG in metrics_config.py.",
+}
+
+# FORECAST DETAILED HELP - Comprehensive explanations for help modal
+FORECAST_HELP_DETAILED = {
+    "forecast_algorithm": """
+        4-Week Weighted Forecast provides actionable predictions for next week's performance.
+        
+        📊 **Weighting Strategy:**
+        Recent weeks are weighted more heavily using exponential decay:
+        • Week 0 (current): 1.0 (100% weight)
+        • Week -1 (last week): 0.8 (80% weight)
+        • Week -2 (2 weeks ago): 0.6 (60% weight)
+        • Week -3 (3 weeks ago): 0.4 (40% weight)
+        
+        🔢 **Calculation Formula:**
+        ```python
+        weights = [1.0, 0.8, 0.6, 0.4]  # Week 0 → Week -3
+        weighted_sum = sum(value × weight for value, weight in zip(values, weights))
+        forecast = weighted_sum / sum(weights)  # Normalize by total weight
+        ```
+        
+        📈 **Interactive Example:**
+        Your team's Flow Velocity over last 4 weeks: [15, 12, 18, 10] items/week
+        
+        **Step-by-Step Calculation:**
+        ```
+        Weighted sum = (15 × 1.0) + (12 × 0.8) + (18 × 0.6) + (10 × 0.4)
+                     = 15 + 9.6 + 10.8 + 4.0
+                     = 39.4
+        
+        Total weights = 1.0 + 0.8 + 0.6 + 0.4 = 2.8
+        
+        Forecast = 39.4 / 2.8 = 14.07 items/week (predicted next week)
+        ```
+        
+        🎯 **Why Weighted Average?**
+        • Recent performance matters more than old data (recency bias)
+        • Smooths out weekly volatility without ignoring trends
+        • Balances responsiveness with stability
+        • Proven effective in time series forecasting
+        
+        📊 **Confidence Levels:**
+        • **High (4 weeks)**: Full weighting, most reliable forecast
+        • **Medium (3 weeks)**: Reduced accuracy, still useful guidance
+        • **Low (2 weeks)**: Limited data, use with caution
+        • **Insufficient (<2 weeks)**: "Gathering data..." message shown
+        
+        💡 **Practical Application:**
+        Use forecasts to:
+        • Proactively identify performance issues before they impact delivery
+        • Plan capacity and resource allocation for next sprint
+        • Communicate expected performance to stakeholders
+        • Detect early warning signs of velocity degradation
+    """,
+    "trend_vs_forecast_explained": """
+        Trend vs Forecast Indicator compares actual performance against predictions.
+        
+        🎯 **Purpose:**
+        Shows if your team is exceeding, meeting, or falling short of forecast expectations.
+        
+        🔢 **Calculation:**
+        ```python
+        deviation_percent = ((current_value - forecast_value) / forecast_value) × 100%
+        ```
+        
+        📊 **Interpretation:**
+        
+        **Deviation Thresholds:**
+        • **On Track (→)**: ±5% deviation - performing as expected
+        • **Moderate (↗/↘)**: 5-15% deviation - minor variation, monitor
+        • **Significant (↗/↘)**: >15% deviation - investigate cause
+        
+        **Direction Meanings:**
+        • **↗ (Up Arrow)**: Above forecast
+          - For "higher is better" metrics (velocity, efficiency): ✅ Good (green)
+          - For "lower is better" metrics (lead time, MTTR): ⚠️ Warning (yellow/red)
+        
+        • **↘ (Down Arrow)**: Below forecast
+          - For "higher is better" metrics: ⚠️ Warning (yellow/red)
+          - For "lower is better" metrics: ✅ Good (green)
+        
+        • **→ (Stable)**: Within ±5% of forecast - on track (neutral)
+        
+        📈 **Real-World Examples:**
+        
+        **Example 1: Flow Velocity (higher is better)**
+        • Forecast: 12 items/week
+        • Actual: 15 items/week
+        • Calculation: ((15 - 12) / 12) × 100% = +25%
+        • Result: ↗ "25% above forecast" (green - excellent)
+        
+        **Example 2: Lead Time for Changes (lower is better)**
+        • Forecast: 5 days
+        • Actual: 7 days
+        • Calculation: ((7 - 5) / 5) × 100% = +40%
+        • Result: ↗ "40% above forecast" (red - needs attention)
+        
+        **Example 3: Deployment Frequency (higher is better)**
+        • Forecast: 8 deployments/month
+        • Actual: 8.3 deployments/month
+        • Calculation: ((8.3 - 8) / 8) × 100% = +3.75%
+        • Result: → "On track" (neutral - stable performance)
+        
+        🚨 **Special Case - Monday Morning:**
+        When current_value = 0 and deviation = -100%:
+        • Message: "Week starting..." (instead of "-100% vs forecast")
+        • Color: Secondary (neutral, not danger)
+        • Interpretation: Week just started, no completions yet (not a failure)
+        
+        💡 **Action Insights:**
+        • **Consistent ↗ (good direction)**: Celebrate success, document what's working
+        • **Consistent ↘ (bad direction)**: Investigate blockers, address issues
+        • **Volatile trends**: Examine team stability, process consistency
+        • **Stable (→)**: Predictable performance, reliable planning
+    """,
+    "metric_snapshots_explained": """
+        Metric Snapshots store weekly historical data for forecast calculations.
+        
+        📁 **Storage Location:**
+        `metrics_snapshots.json` → `{metric_name: [{date, value, iso_week}, ...]}`
+        
+        🔢 **Data Structure:**
+        ```python
+        {
+            "flow_velocity": [
+                {"date": "2025-11-03", "value": 15.0, "iso_week": "2025-W45"},
+                {"date": "2025-11-10", "value": 12.0, "iso_week": "2025-W46"},
+                // ... up to 4 weeks of historical data
+            ],
+            "deployment_frequency": [...],
+            // ... other metrics
+        }
+        ```
+        
+        ⚙️ **Automatic Capture:**
+        Snapshots are automatically saved when metrics are calculated via:
+        • `callbacks/dora_flow_metrics.py` - DORA & Flow metrics
+        • `callbacks/scope_metrics.py` - Scope metrics (velocity, throughput)
+        
+        📊 **Retention Policy:**
+        • Keeps last 4 weeks of data per metric (for weighted forecast)
+        • Older data automatically pruned to prevent file bloat
+        • One snapshot per ISO week (no duplicates)
+        
+        🔄 **Usage Flow:**
+        1. Metric calculated (e.g., Flow Velocity = 15 items/week)
+        2. `save_weekly_snapshot(metric_name, value, current_week)` called
+        3. Snapshot stored with ISO week number and timestamp
+        4. `get_historical_values(metric_name, weeks=4)` retrieves for forecast
+        5. Forecast calculated using weighted average algorithm
+        
+        🛠️ **Maintenance:**
+        • **File Size**: Minimal (~10KB with 9 metrics × 4 weeks × 50 bytes/entry)
+        • **Corruption Recovery**: File recreated automatically if invalid JSON
+        • **Manual Reset**: Delete `metrics_snapshots.json` to clear all history
+        
+        💡 **Troubleshooting:**
+        • **"Gathering data..." message**: <2 weeks of snapshots available
+        • **Stale forecasts**: Check snapshot timestamps, verify weekly updates
+        • **Missing metrics**: Confirm metric is being calculated and saved
+    """,
+    "configuration_options": """
+        Forecast Configuration controls weighting strategy and deviation thresholds.
+        
+        📁 **Configuration File:**
+        `configuration/metrics_config.py` → `FORECAST_CONFIG` dictionary
+        
+        🔧 **Configurable Parameters:**
+        
+        ```python
+        FORECAST_CONFIG = {
+            # Weighting strategy for historical data
+            "weights": [1.0, 0.8, 0.6, 0.4],  # Week 0 → Week -3 (exponential decay)
+            
+            # Minimum weeks required for forecast
+            "min_weeks": 2,  # At least 2 weeks needed (low confidence)
+            
+            # Deviation thresholds for trend indicators
+            "deviation_threshold_on_track": 5.0,   # ±5% = on track (→)
+            "deviation_threshold_moderate": 15.0   # >15% = significant (↗/↘)
+        }
+        ```
+        
+        📊 **Metric Direction Mapping:**
+        
+        ```python
+        METRIC_DIRECTIONS = {
+            # Higher is better
+            "deployment_frequency": "higher_better",
+            "flow_velocity": "higher_better",
+            "flow_efficiency": "higher_better",
+            
+            # Lower is better
+            "lead_time_for_changes": "lower_better",
+            "mean_time_to_recovery": "lower_better",
+            "change_failure_rate": "lower_better",
+            "flow_time": "lower_better",
+            
+            # Context-dependent
+            "flow_load": "stable_better"  # WIP should be stable
+        }
+        ```
+        
+        ⚙️ **Customization Examples:**
+        
+        **More Responsive Forecasts (favor recent data):**
+        ```python
+        "weights": [1.0, 0.7, 0.4, 0.1]  # Steeper decay
+        ```
+        
+        **More Stable Forecasts (balance recent vs historical):**
+        ```python
+        "weights": [1.0, 0.9, 0.8, 0.7]  # Gentler decay
+        ```
+        
+        **Stricter "On Track" Definition:**
+        ```python
+        "deviation_threshold_on_track": 3.0  # Only ±3% considered on track
+        ```
+        
+        **Require More Historical Data:**
+        ```python
+        "min_weeks": 3  # Need 3+ weeks before showing forecast
+        ```
+        
+        💡 **Best Practices:**
+        • **Default weights (1.0, 0.8, 0.6, 0.4)**: Proven effective for most teams
+        • **Adjust weights**: Only if forecasts consistently lag or overshoot reality
+        • **Test changes**: Compare forecast accuracy before/after adjustments
+        • **Document rationale**: Explain why custom weights fit your team's patterns
+    """,
+}
+
 # DORA METRICS HELP CONTENT - Tooltips for DORA metrics
 DORA_METRICS_TOOLTIPS = {
     "deployment_frequency": "How often code is deployed to production. Measures release cadence and automation maturity. Elite performers deploy multiple times per day, high performers deploy weekly. More frequent deployments enable faster feedback and lower change risk.",
@@ -764,4 +1007,5 @@ COMPREHENSIVE_HELP_CONTENT = {
     "flow_metrics": FLOW_METRICS_TOOLTIPS,
     "dora_metrics": DORA_METRICS_TOOLTIPS,
     "settings": SETTINGS_PANEL_TOOLTIPS,
+    "forecast_feature": FORECAST_HELP_CONTENT,  # Feature 009 - 4-week weighted forecasts
 }

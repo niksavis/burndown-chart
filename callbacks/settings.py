@@ -258,7 +258,7 @@ def register(app):
         )
         if old_jql != new_jql:
             jql_changed = True
-            logger.info(f"JQL query changed: '{old_jql}' → '{new_jql}'")
+            logger.info(f"[Settings] JQL query changed: '{old_jql}' → '{new_jql}'")
 
         save_app_settings(
             pert_factor,
@@ -298,7 +298,7 @@ def register(app):
             # CRITICAL FIX: If data is from JIRA, DO NOT override any JIRA-calculated values
             # The estimation fields should only be updated through JIRA scope calculation, not UI inputs
             logger.info(
-                "Preserving JIRA project scope data - UI input changes do not override JIRA calculations"
+                "[Settings] Preserving JIRA project scope data - UI input changes do not override JIRA calculations"
             )
             # JIRA project scope should ONLY be updated by JIRA operations, never by UI inputs
 
@@ -313,14 +313,16 @@ def register(app):
                     try:
                         os.remove(cache_file)
                     except Exception as e:
-                        logger.debug(f"Could not remove cache file {cache_file}: {e}")
+                        logger.debug(
+                            f"[Settings] Could not remove cache file {cache_file}: {e}"
+                        )
                 logger.info(
-                    f"✓ Invalidated {len(cache_files)} cache files due to JQL change"
+                    f"[Settings] Invalidated {len(cache_files)} cache files due to JQL change"
                 )
             except Exception as e:
-                logger.warning(f"Cache invalidation failed: {e}")
+                logger.warning(f"[Settings] Cache invalidation failed: {e}")
 
-        logger.info(f"Settings updated and saved: {settings}")
+        logger.info(f"[Settings] Updated and saved: {settings}")
         return settings, int(datetime.now().timestamp() * 1000)
 
     # REMOVED: Legacy data points constraints callback - not needed with new parameter panel
@@ -439,7 +441,7 @@ def register(app):
 
             # CRITICAL DEBUG: Log what we receive from the Store
             logger.info(
-                f"[UPDATE DATA] Received jql_query from Store: '{jql_query}' (type: {type(jql_query)})"
+                f"[Settings] Received jql_query from Store: '{jql_query}' (type: {type(jql_query)})"
             )
 
             # Load JIRA configuration from jira_config
@@ -475,7 +477,9 @@ def register(app):
                     ],
                     className="text-warning small mt-2",
                 )
-                logger.warning("Attempted to update data without JIRA configuration")
+                logger.warning(
+                    "[Settings] Attempted to update data without JIRA configuration"
+                )
                 # Clear task progress
                 TaskProgress.complete_task("update_data")
                 return (
@@ -502,7 +506,7 @@ def register(app):
             )
 
             logger.info(
-                f"JQL Query - Input: '{jql_query}', Settings: '{app_settings.get('jql_query', 'N/A')}', Final: '{settings_jql}'"
+                f"[Settings] JQL Query - Input: '{jql_query}', Settings: '{app_settings.get('jql_query', 'N/A')}', Final: '{settings_jql}'"
             )
 
             # Load JIRA configuration values from jira_config and construct endpoint
@@ -535,7 +539,9 @@ def register(app):
                     app_settings.get("last_used_data_source"),  # Preserve data source
                     app_settings.get("active_jql_profile_id"),  # Preserve profile ID
                 )
-                logger.info(f"JQL query updated and saved: JQL='{settings_jql}'")
+                logger.info(
+                    f"[Settings] JQL query updated and saved: JQL='{settings_jql}'"
+                )
 
             # Create JIRA config for sync_jira_data (using loaded values)
             jira_config_for_sync = {
@@ -574,7 +580,7 @@ def register(app):
                     className="text-danger small mt-2",
                 )
                 logger.error(
-                    f"JIRA configuration validation failed: {validation_message}"
+                    f"[Settings] JIRA configuration validation failed: {validation_message}"
                 )
                 # Clear task progress
                 TaskProgress.complete_task("update_data")
@@ -601,14 +607,16 @@ def register(app):
 
             # DEBUG: Log what we received from the store
             logger.info(
-                f"🔍 DEBUG: force_refresh value = {force_refresh}, bool = {force_refresh_bool}"
+                f"[Settings] force_refresh value = {force_refresh}, bool = {force_refresh_bool}"
             )
 
             if force_refresh_bool:
                 logger.info("=" * 60)
-                logger.info("🔄 FORCE REFRESH ENABLED BY USER (long-press detected)")
                 logger.info(
-                    "Cache will be invalidated and fresh data fetched from JIRA"
+                    "[Settings] FORCE REFRESH ENABLED BY USER (long-press detected)"
+                )
+                logger.info(
+                    "[Settings] Cache will be invalidated and fresh data fetched from JIRA"
                 )
                 logger.info("=" * 60)
 
@@ -627,11 +635,11 @@ def register(app):
             if force_refresh_bool:
                 files_to_clear.append("jira_changelog_cache.json")
                 logger.info(
-                    "🗑️ Force refresh: Will clear changelog cache and re-fetch from JIRA"
+                    "[Settings] Force refresh: Will clear changelog cache and re-fetch from JIRA"
                 )
             else:
                 logger.info(
-                    "♻️ Normal refresh: Keeping changelog cache for reuse (saves 1-2 minutes)"
+                    "[Settings] Normal refresh: Keeping changelog cache for reuse (saves 1-2 minutes)"
                 )
 
             for file_path in files_to_clear:
@@ -639,10 +647,10 @@ def register(app):
                     try:
                         os.remove(file_path)
                         logger.info(
-                            f"✓ Cleared {file_path} to prevent data contamination"
+                            f"[Settings] Cleared {file_path} to prevent data contamination"
                         )
                     except Exception as e:
-                        logger.warning(f"Could not remove {file_path}: {e}")
+                        logger.warning(f"[Settings] Could not remove {file_path}: {e}")
 
             success, message, scope_data = sync_jira_scope_and_data(
                 settings_jql, jira_config_for_sync, force_refresh=force_refresh_bool
@@ -679,7 +687,7 @@ def register(app):
                     className="text-success small text-center mt-2",
                 )
                 logger.info(
-                    f"JIRA data import successful: {issues_count} issues loaded, {weekly_count} weekly data points created"
+                    f"[JIRA] Data import successful: {issues_count} issues loaded, {weekly_count} weekly data points created"
                 )
 
                 # Extract scope values from scope_data to update input fields
@@ -728,10 +736,10 @@ def register(app):
                     )
 
                     logger.info(
-                        f"Scope from JIRA (current): {total_items} items, {total_points:.1f} points"
+                        f"[Settings] Scope from JIRA (current): {total_items} items, {total_points:.1f} points"
                     )
                     logger.info(
-                        f"Adjusted for {data_points_count}-week window: {total_items_window_based} items, {total_points_window_based:.1f} points"
+                        f"[Settings] Adjusted for {data_points_count}-week window: {total_items_window_based} items, {total_points_window_based:.1f} points"
                     )
 
                     # Use window-based values for UI
@@ -742,9 +750,7 @@ def register(app):
                 total_points_display = f"{total_points:.0f}"
 
                 logger.info(
-                    f"Final scope for UI: total_items={total_items}, "
-                    f"estimated_items={estimated_items}, total_points={total_points:.1f}, "
-                    f"estimated_points={estimated_points}"
+                    f"[Settings] Final scope for UI: total_items={total_items}, estimated_items={estimated_items}, total_points={total_points:.1f}, estimated_points={estimated_points}"
                 )
 
                 # Update the settings store with new values to trigger dashboard refresh
@@ -762,10 +768,10 @@ def register(app):
                 )
 
                 logger.info(
-                    f"✅ Updating Store with window-based values: {total_items} items, {total_points:.1f} points"
+                    f"[Settings] Updating Store with window-based values: {total_items} items, {total_points:.1f} points"
                 )
                 logger.info(
-                    f"✅ Settings before: total_items={current_settings.get('total_items')}, after: {updated_settings.get('total_items')}"
+                    f"[Settings] Before: total_items={current_settings.get('total_items')}, after: {updated_settings.get('total_items')}"
                 )
 
                 # Clear task progress
@@ -799,7 +805,7 @@ def register(app):
                     ],
                     className="text-danger small text-center mt-2",
                 )
-                logger.error(f"JIRA data import failed: {message}")
+                logger.error(f"[JIRA] Data import failed: {message}")
                 # Clear task progress
                 TaskProgress.complete_task("update_data")
                 # Return no table update on failure, keep scope values unchanged
@@ -819,7 +825,7 @@ def register(app):
                 )
 
         except ImportError:
-            logger.error("JIRA integration not available")
+            logger.error("[Settings] JIRA integration not available")
             cache_status_message = html.Div(
                 [
                     html.I(className="fas fa-exclamation-triangle me-2 text-danger"),
@@ -856,7 +862,7 @@ def register(app):
                 button_normal,  # Reset button text
             )
         except Exception as e:
-            logger.error(f"Error in unified data update: {e}")
+            logger.error(f"[Settings] Error in unified data update: {e}")
             cache_status_message = html.Div(
                 [
                     html.I(className="fas fa-exclamation-triangle me-2 text-danger"),
@@ -1068,7 +1074,7 @@ def register(app):
                     estimated_points = estimated_points + completed_in_window_points
 
                     logger.info(
-                        f"Adjusted scope for {data_points_count}-week window: {total_items} items, {estimated_points:.1f} points"
+                        f"[Settings] Adjusted scope for {data_points_count}-week window: {total_items} items, {estimated_points:.1f} points"
                     )
 
                 return (
@@ -1102,7 +1108,7 @@ def register(app):
                 )
 
         except Exception as e:
-            logger.error(f"Error in JIRA scope calculation callback: {e}")
+            logger.error(f"[Settings] Error in JIRA scope calculation callback: {e}")
             error_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
             status_content = html.Div(
@@ -1263,7 +1269,7 @@ def register(app):
             )
 
         except Exception as e:
-            logger.error(f"Error saving query profile: {e}")
+            logger.error(f"[Settings] Error saving query profile: {e}")
             return (
                 no_update,
                 no_update,
@@ -1316,7 +1322,9 @@ def register(app):
                 selected_profile_id = desktop_profile_id
             else:
                 # Unknown trigger, don't sync
-                logger.info(f"DEBUG: Unknown trigger: {trigger_id}, skipping sync")
+                logger.info(
+                    f"[Settings] DEBUG: Unknown trigger: {trigger_id}, skipping sync"
+                )
                 return (
                     no_update,
                     no_update,
@@ -1347,7 +1355,9 @@ def register(app):
                     profile = get_query_profile_by_id(selected_profile_id)
                     if profile:
                         jql_to_save = profile.get("jql", jql_to_save)
-                        logger.info(f"Saving JQL from profile: {profile.get('name')}")
+                        logger.info(
+                            f"[Settings] Saving JQL from profile: {profile.get('name')}"
+                        )
 
                 save_app_settings(
                     pert_factor=app_settings["pert_factor"],
@@ -1364,7 +1374,7 @@ def register(app):
                     f"Persisted profile ID: {selected_profile_id} with JQL: {jql_to_save[:50]}..."
                 )
         except Exception as e:
-            logger.error(f"Error persisting profile selection: {e}")
+            logger.error(f"[Settings] Error persisting profile selection: {e}")
             # Continue with button visibility logic even if persistence fails
 
         # Base button styles
@@ -1381,7 +1391,9 @@ def register(app):
             )
 
             if not selected_profile_id:
-                logger.info("DEBUG: No profile selected, hiding management buttons")
+                logger.info(
+                    "[Settings] DEBUG: No profile selected, hiding management buttons"
+                )
                 return (
                     selected_profile_id,  # desktop dropdown
                     selected_profile_id,  # mobile dropdown
@@ -1426,7 +1438,7 @@ def register(app):
                 )
             else:
                 # Profile not found - hide action buttons
-                logger.info("DEBUG: Profile not found, hiding buttons")
+                logger.info("[Settings] DEBUG: Profile not found, hiding buttons")
 
                 # Show load default button if there's a default query
                 load_default_style = visible_style if default_query else hidden_style
@@ -1445,7 +1457,7 @@ def register(app):
                 )
 
         except Exception as e:
-            logger.error(f"Error in sync_dropdowns_and_show_buttons: {e}")
+            logger.error(f"[Settings] Error in sync_dropdowns_and_show_buttons: {e}")
             return (
                 selected_profile_id,
                 selected_profile_id,
@@ -1527,7 +1539,7 @@ def register(app):
             return updated_options, default_value
 
         except Exception as e:
-            logger.error(f"Error deleting query profile: {e}")
+            logger.error(f"[Settings] Error deleting query profile: {e}")
             raise PreventUpdate
 
     @app.callback(
@@ -1553,7 +1565,7 @@ def register(app):
                 raise PreventUpdate
 
         except Exception as e:
-            logger.error(f"Error loading profile JQL: {e}")
+            logger.error(f"[Settings] Error loading profile JQL: {e}")
             raise PreventUpdate
 
     @app.callback(
@@ -1585,7 +1597,7 @@ def register(app):
                 return ""
 
         except Exception as e:
-            logger.error(f"Error getting profile status: {e}")
+            logger.error(f"[Settings] Error getting profile status: {e}")
             return ""
 
     @app.callback(
@@ -1634,7 +1646,7 @@ def register(app):
                     raise PreventUpdate
 
             except Exception as e:
-                logger.error(f"Error loading profile for edit: {e}")
+                logger.error(f"[Settings] Error loading profile for edit: {e}")
                 raise PreventUpdate
 
         # Close modal when cancel or confirm clicked
@@ -1752,7 +1764,7 @@ def register(app):
                 )
 
         except Exception as e:
-            logger.error(f"Error updating query profile: {e}")
+            logger.error(f"[Settings] Error updating query profile: {e}")
             return (
                 no_update,
                 no_update,
