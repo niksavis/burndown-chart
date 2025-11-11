@@ -3546,6 +3546,8 @@ label.fw-medium {
 .metric-cards-skeleton {
   opacity: 1; /* Start visible immediately */
   /* Remove animation - skeleton should be visible right away */
+  margin-top: 0.75rem; /* 12px spacing at top - MUST match .metric-cards-grid */
+  padding-top: 0.25rem; /* Minimal padding for animation buffer - MUST match .metric-cards-grid */
 }
 
 /* Content that replaces skeleton - smooth fade-in to prevent flicker */
