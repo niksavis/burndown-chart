@@ -97,7 +97,7 @@ Sync Impact Report:
 6. Commit incrementally with clear messages
 7. Final validation: full test suite + manual smoke testing
 
-See `.github/copilot-instructions.md` → "Defensive Refactoring Guide" for detailed procedures, PowerShell commands, and safety protocols.
+See `docs/defensive_refactoring_guide.md` for detailed PowerShell procedures and safety protocols. Developers may optionally create `.github/copilot-instructions.md` as a personal workspace guide.
 
 ## Data Architecture
 
@@ -127,6 +127,6 @@ This constitution supersedes conflicting guidance. All code changes MUST comply 
 
 Amendments MUST increment version per semantic versioning: MAJOR (principle removal/redefinition), MINOR (new principle), PATCH (clarifications).
 
-Reference `.github/copilot-instructions.md` for detailed implementation patterns, environment setup, tool choices, and troubleshooting.
+Reference `docs/` folder for operational guides and standards. Developers may optionally create `.github/copilot-instructions.md` as a personal workspace file with project-specific patterns and AI agent context.
 
 **Version**: 1.4.0 | **Ratified**: 2025-10-27 | **Last Amended**: 2025-11-12
