@@ -139,9 +139,29 @@ def _get_health_status(score):
 
 
 def _create_metric_card(
-    title, value, subtitle, icon, color, trend=None, sparkline_data=None
+    title,
+    value,
+    subtitle,
+    icon,
+    color,
+    trend=None,
+    sparkline_data=None,
+    tooltip_text=None,
+    tooltip_id=None,
 ):
-    """Create a standardized metric card."""
+    """Create a standardized metric card.
+
+    Args:
+        title: Card title text
+        value: Primary metric value to display
+        subtitle: Descriptive text below the value
+        icon: Font Awesome icon class
+        color: Color for icon and value
+        trend: Optional trend data dict with 'direction' and 'percent'
+        sparkline_data: Optional data for sparkline visualization
+        tooltip_text: Optional help text for info tooltip
+        tooltip_id: Optional unique ID suffix for tooltip (required if tooltip_text provided)
+    """
     trend_element = html.Div()
     if trend:
         trend_color = (
@@ -177,6 +197,18 @@ def _create_metric_card(
     if sparkline_data and len(sparkline_data) > 1:
         sparkline_element = _create_mini_sparkline(sparkline_data, color, height=40)
 
+    # Create title with optional tooltip
+    title_content = title
+    if tooltip_text and tooltip_id:
+        title_content = html.Span(
+            [
+                title,
+                html.Span(" ", style={"marginRight": "4px"}),
+                create_info_tooltip(tooltip_text, tooltip_id),
+            ],
+            style={"display": "flex", "alignItems": "center", "gap": "4px"},
+        )
+
     return dbc.Card(
         [
             dbc.CardBody(
@@ -188,7 +220,7 @@ def _create_metric_card(
                                 style={"color": color, "fontSize": "1.2rem"},
                             ),
                             html.H6(
-                                title,
+                                title_content,
                                 className="mb-1 mt-2",
                                 style={"fontSize": "0.9rem", "fontWeight": "600"},
                             ),
@@ -606,11 +638,13 @@ def _create_throughput_section(statistics_df, forecast_data):
                                 COLOR_PALETTE["items"],
                                 trend=items_trend,
                                 sparkline_data=list(statistics_df["completed_items"]),
+                                tooltip_text="Average number of work items completed per week. Calculated using the corrected velocity method that counts actual weeks with data (not date range spans).",
+                                tooltip_id="throughput-items-per-week",
                             )
                         ],
                         width=12,
                         md=6,
-                        lg=3,
+                        lg=4,
                         className="mb-3",
                     ),
                     dbc.Col(
@@ -623,11 +657,13 @@ def _create_throughput_section(statistics_df, forecast_data):
                                 COLOR_PALETTE["points"],
                                 trend=points_trend,
                                 sparkline_data=list(statistics_df["completed_points"]),
+                                tooltip_text="Average story points completed per week. Story points represent work complexity and effort. Higher values indicate faster delivery of larger work items.",
+                                tooltip_id="throughput-points-per-week",
                             )
                         ],
                         width=12,
                         md=6,
-                        lg=3,
+                        lg=4,
                         className="mb-3",
                     ),
                     dbc.Col(
@@ -639,27 +675,13 @@ def _create_throughput_section(statistics_df, forecast_data):
                                 "fa-clock",
                                 "#17a2b8",
                                 sparkline_data=None,
+                                tooltip_text="Average time to complete one work item. Calculated as 7 days ÷ items per week. Lower values indicate faster throughput and shorter feedback cycles.",
+                                tooltip_id="throughput-cycle-time",
                             )
                         ],
                         width=12,
                         md=6,
-                        lg=3,
-                        className="mb-3",
-                    ),
-                    dbc.Col(
-                        [
-                            _create_metric_card(
-                                "Predictability",
-                                f"{max(0, 100 - (forecast_data.get('velocity_cv', 0))):.0f}%",
-                                "Velocity consistency",
-                                "fa-bullseye",
-                                "#6f42c1",
-                                sparkline_data=None,
-                            )
-                        ],
-                        width=12,
-                        md=6,
-                        lg=3,
+                        lg=4,
                         className="mb-3",
                     ),
                 ]
@@ -1164,7 +1186,7 @@ def _create_quality_scope_section(statistics_df, settings):
     if statistics_df.empty:
         return html.Div()
 
-    # Calculate scope metrics
+    # Calculate scope metrics with time frame context
     scope_metrics = []
 
     if "created_items" in statistics_df.columns:
@@ -1172,17 +1194,31 @@ def _create_quality_scope_section(statistics_df, settings):
         total_completed = statistics_df["completed_items"].sum()
         scope_growth_rate = _safe_divide(total_created, total_completed) * 100
 
+        # Get date range for context
+        if "date" in statistics_df.columns and not statistics_df.empty:
+            start_date = statistics_df["date"].min()
+            end_date = statistics_df["date"].max()
+            date_range = f"{pd.to_datetime(start_date).strftime('%b %d, %Y')} - {pd.to_datetime(end_date).strftime('%b %d, %Y')}"
+            weeks_count = len(statistics_df)
+        else:
+            date_range = "tracked period"
+            weeks_count = len(statistics_df)
+
         scope_metrics.extend(
             [
                 {
                     "label": "New Items Added",
                     "value": f"{total_created:,}",
                     "color": "#fd7e14",
+                    "icon": "fa-plus-circle",
+                    "tooltip": f"Total new work items added to project backlog during {date_range} ({weeks_count} weeks). This represents scope expansion - new features, bugs, or tasks discovered after project start. Monitor this to identify uncontrolled scope growth.",
                 },
                 {
                     "label": "Scope Growth Rate",
                     "value": f"{scope_growth_rate:.1f}%",
                     "color": "#6610f2",
+                    "icon": "fa-chart-line",
+                    "tooltip": f"Ratio of new items added vs items completed during {date_range}. Shows {total_created:,} new items added while {total_completed:,} completed. Healthy projects: <20% (balanced scope). Warning: 20-50% (scope creep). Critical: >50% (uncontrolled growth). Your value: {scope_growth_rate:.1f}%",
                 },
             ]
         )
@@ -1247,7 +1283,18 @@ def _create_quality_scope_section(statistics_df, settings):
                                                 className="fas fa-expand-arrows-alt me-2"
                                             ),
                                             "Scope Management",
-                                        ]
+                                            html.Span(
+                                                " ", style={"marginRight": "8px"}
+                                            ),
+                                            create_info_tooltip(
+                                                "Track scope changes and backlog growth. Shows ratio of new items added vs completed, helping identify scope creep early. Healthy projects maintain balance between scope growth and completion rate.",
+                                                "scope-management-card",
+                                            ),
+                                        ],
+                                        style={
+                                            "display": "flex",
+                                            "alignItems": "center",
+                                        },
                                     ),
                                     dbc.CardBody(
                                         [
@@ -1256,10 +1303,41 @@ def _create_quality_scope_section(statistics_df, settings):
                                                     html.Div(
                                                         [
                                                             html.Div(
-                                                                metric["label"],
+                                                                [
+                                                                    html.I(
+                                                                        className=f"fas {metric.get('icon', 'fa-info-circle')} me-2",
+                                                                        style={
+                                                                            "color": metric[
+                                                                                "color"
+                                                                            ],
+                                                                            "fontSize": "1.2rem",
+                                                                        },
+                                                                    ),
+                                                                    metric["label"],
+                                                                    html.Span(
+                                                                        " ",
+                                                                        style={
+                                                                            "marginRight": "4px"
+                                                                        },
+                                                                    ),
+                                                                    create_info_tooltip(
+                                                                        metric.get(
+                                                                            "tooltip",
+                                                                            "",
+                                                                        ),
+                                                                        f"scope-{metric['label'].lower().replace(' ', '-')}",
+                                                                    )
+                                                                    if metric.get(
+                                                                        "tooltip"
+                                                                    )
+                                                                    else None,
+                                                                ],
                                                                 className="text-muted",
                                                                 style={
-                                                                    "fontSize": "0.85rem"
+                                                                    "fontSize": "0.85rem",
+                                                                    "display": "flex",
+                                                                    "alignItems": "center",
+                                                                    "justifyContent": "center",
                                                                 },
                                                             ),
                                                             html.H5(
@@ -1302,7 +1380,18 @@ def _create_quality_scope_section(statistics_df, settings):
                                                 className="fas fa-check-circle me-2"
                                             ),
                                             "Quality Indicators",
-                                        ]
+                                            html.Span(
+                                                " ", style={"marginRight": "8px"}
+                                            ),
+                                            create_info_tooltip(
+                                                "Measures delivery predictability and consistency. High values (80%+) indicate stable, reliable team performance. Use these metrics to assess forecast accuracy and process maturity.",
+                                                "quality-indicators-card",
+                                            ),
+                                        ],
+                                        style={
+                                            "display": "flex",
+                                            "alignItems": "center",
+                                        },
                                     ),
                                     dbc.CardBody(
                                         [
@@ -1311,10 +1400,34 @@ def _create_quality_scope_section(statistics_df, settings):
                                                     html.Div(
                                                         [
                                                             html.Div(
-                                                                metric["label"],
+                                                                [
+                                                                    metric["label"],
+                                                                    html.Span(
+                                                                        " ",
+                                                                        style={
+                                                                            "marginRight": "4px"
+                                                                        },
+                                                                    ),
+                                                                    create_info_tooltip(
+                                                                        "Measures how consistent velocity is week-over-week. Calculated as 100% - coefficient of variation. Higher values (80%+) indicate predictable delivery pace, making forecasts more reliable.",
+                                                                        "quality-velocity-consistency",
+                                                                    )
+                                                                    if metric["label"]
+                                                                    == "Velocity Consistency"
+                                                                    else create_info_tooltip(
+                                                                        "Measures velocity change between recent and historical periods. High values (80%+) indicate stable trends. Low values suggest significant velocity shifts requiring investigation.",
+                                                                        "quality-trend-stability",
+                                                                    )
+                                                                    if metric["label"]
+                                                                    == "Trend Stability"
+                                                                    else None,
+                                                                ],
                                                                 className="text-muted",
                                                                 style={
-                                                                    "fontSize": "0.85rem"
+                                                                    "fontSize": "0.85rem",
+                                                                    "display": "flex",
+                                                                    "alignItems": "center",
+                                                                    "justifyContent": "center",
                                                                 },
                                                             ),
                                                             html.H5(
