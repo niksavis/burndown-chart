@@ -1,12 +1,12 @@
 <!--
 Sync Impact Report:
-- Version: 1.2.1 → 1.3.0 (Added Core Principle V: Data Privacy & Security)
-- Principles: 4 → 5 core architectural principles
-- Updated: Added comprehensive data privacy requirements
-- Updated: Added verification criteria for sensitive data
-- Rationale: Formalize data protection practices to prevent customer data exposure
+- Version: 1.3.0 → 1.4.0 (Added Core Principle VI: Defensive Refactoring)
+- Principles: 5 → 6 core architectural principles
+- Updated: Added refactoring governance for code maintenance
+- Updated: Added verification criteria for safe code removal
+- Rationale: Formalize defensive refactoring practices to prevent technical debt accumulation
 - Templates requiring updates: None
-- Follow-up: Review all existing code for compliance with new privacy principle
+- Follow-up: Apply refactoring guide from copilot-instructions.md for initial cleanup
 -->
 
 # Burndown Chart Generator Constitution
@@ -66,6 +66,39 @@ Sync Impact Report:
 - Document patterns, not specific customer configurations
 - Review git history before pushing to ensure no sensitive data exposure
 
+### VI. Defensive Refactoring (NON-NEGOTIABLE)
+
+**Rule**: Unused code MUST be removed systematically. Obsolete comments and dead dependencies MUST be eliminated. All refactoring MUST follow defensive practices with verification at each step.
+
+**Rationale**: Dead code increases maintenance burden, confuses developers, and creates false positives in code searches. Accumulation of technical debt slows development and increases bug surface area.
+
+**Verification**: Before removing any function:
+1. MUST verify zero references across entire codebase (excluding its own definition)
+2. MUST confirm no callback decorators (`@callback`, `@app.callback`)
+3. MUST check no unit tests reference it
+4. MUST ensure not exported in `__init__.py` files
+5. MUST run full test suite before AND after removal
+6. MUST create backup branch before starting refactoring work
+7. MUST commit changes incrementally with descriptive messages
+
+**Protected Code** (NEVER remove without explicit justification):
+- Functions with callback decorators
+- Functions registered in `callbacks/__init__.py`
+- Public API exports in `__init__.py` files
+- Functions with unit tests in `tests/unit/`
+- Entry point functions in `app.py`, `server.py`
+
+**Refactoring Workflow**:
+1. Create dedicated refactor branch: `refactor/remove-unused-<description>-<date>`
+2. Use automated tools (Vulture, Ruff) to identify candidates
+3. Manually verify each candidate has no dependencies
+4. Remove function, related imports, and obsolete comments
+5. Run tests after each removal
+6. Commit incrementally with clear messages
+7. Final validation: full test suite + manual smoke testing
+
+See `.github/copilot-instructions.md` → "Defensive Refactoring Guide" for detailed procedures, PowerShell commands, and safety protocols.
+
 ## Data Architecture
 
 **Persistence**: Application state persists to JSON files:
@@ -90,10 +123,10 @@ Unit tests MUST be written during implementation. Integration and performance te
 
 ## Governance
 
-This constitution supersedes conflicting guidance. All code changes MUST comply with Core Principles I-V.
+This constitution supersedes conflicting guidance. All code changes MUST comply with Core Principles I-VI.
 
 Amendments MUST increment version per semantic versioning: MAJOR (principle removal/redefinition), MINOR (new principle), PATCH (clarifications).
 
 Reference `.github/copilot-instructions.md` for detailed implementation patterns, environment setup, tool choices, and troubleshooting.
 
-**Version**: 1.3.0 | **Ratified**: 2025-10-27 | **Last Amended**: 2025-11-09
+**Version**: 1.4.0 | **Ratified**: 2025-10-27 | **Last Amended**: 2025-11-12
