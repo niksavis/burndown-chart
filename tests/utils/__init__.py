@@ -1,3 +1,1 @@
-"""
-Init file for tests utilities package.
-"""
+# Test utilities package

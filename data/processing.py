@@ -148,6 +148,69 @@ def compute_cumulative_values(
     return df
 
 
+def calculate_velocity_from_dataframe(
+    df: pd.DataFrame, column: str = "completed_items"
+) -> float:
+    """Calculate velocity as items per week using actual number of weeks with data.
+
+    This method counts the actual number of distinct weeks present in the data,
+    rather than calculating the date range span. This produces accurate velocity
+    when data is sparse or has gaps.
+
+    **Why This Matters:**
+    - Date range method: 2 weeks of data across 10-week span = items/10 (WRONG - deflates velocity)
+    - Actual weeks method: 2 weeks of data = items/2 (CORRECT - accurate velocity)
+
+    **Example:**
+    ```
+    Week 1: 10 items
+    Week 10: 10 items
+    Total: 20 items
+
+    Date range method: 20 items / 9 weeks = 2.2 items/week ❌
+    Actual weeks method: 20 items / 2 weeks = 10 items/week ✅
+    ```
+
+    Args:
+        df: DataFrame with 'date' column (datetime type) and data column
+        column: Name of column to calculate velocity for (default: "completed_items")
+
+    Returns:
+        Velocity as items per week (rounded to 1 decimal place)
+
+    Raises:
+        KeyError: If df doesn't have 'date' or specified column
+
+    Examples:
+        >>> df = pd.DataFrame({
+        ...     "date": pd.to_datetime(["2025-01-01", "2025-01-08", "2025-03-15"]),
+        ...     "completed_items": [10, 15, 12]
+        ... })
+        >>> calculate_velocity_from_dataframe(df)
+        12.3  # 37 items / 3 weeks
+    """
+    if df.empty or len(df) == 0:
+        return 0.0
+
+    # Validate required columns
+    if "date" not in df.columns:
+        raise KeyError("DataFrame must have 'date' column")
+    if column not in df.columns:
+        raise KeyError(f"DataFrame must have '{column}' column")
+
+    # Count actual number of distinct weeks with data
+    df_with_week = df.copy()
+    # Use ISO week format: YYYY-WW (Monday-based weeks)
+    df_with_week["week_year"] = df_with_week["date"].dt.strftime("%Y-%U")
+    unique_weeks = df_with_week["week_year"].nunique()
+
+    if unique_weeks == 0:
+        return 0.0
+
+    total = df[column].sum()
+    return round(total / unique_weeks, 1)
+
+
 def compute_weekly_throughput(df: pd.DataFrame) -> pd.DataFrame:
     """
     Aggregate daily data to weekly throughput for more stable calculations.
@@ -1254,16 +1317,15 @@ def calculate_dashboard_metrics(statistics: list, settings: dict) -> dict:
     data_points_count = min(len(df), int(settings.get("data_points_count", 10)))
     recent_data = df.tail(data_points_count)
 
-    # Calculate weeks spanned by recent data
-    if len(recent_data) > 1:
-        date_range = (recent_data["date"].max() - recent_data["date"].min()).days
-        weeks = max(1, date_range / 7.0)
-
-        recent_items = recent_data["completed_items"].sum()
-        recent_points = recent_data["completed_points"].sum()
-
-        metrics["current_velocity_items"] = round(recent_items / weeks, 1)
-        metrics["current_velocity_points"] = round(recent_points / weeks, 1)
+    # Calculate velocity using actual number of weeks (not date range)
+    # This fixes the bug where sparse data would deflate velocity
+    if len(recent_data) > 0:
+        metrics["current_velocity_items"] = calculate_velocity_from_dataframe(
+            recent_data, "completed_items"
+        )
+        metrics["current_velocity_points"] = calculate_velocity_from_dataframe(
+            recent_data, "completed_points"
+        )
 
     # Calculate velocity trend (compare recent vs. older data)
     if len(df) >= 6:  # Need at least 6 data points for trend
@@ -1271,20 +1333,18 @@ def calculate_dashboard_metrics(statistics: list, settings: dict) -> dict:
         older_half = df.iloc[:mid_point]
         recent_half = df.iloc[mid_point:]
 
-        # Calculate velocity for each half
-        older_days = (older_half["date"].max() - older_half["date"].min()).days
-        recent_days = (recent_half["date"].max() - recent_half["date"].min()).days
+        # Calculate velocity for each half using actual weeks (not date range)
+        # This ensures trend comparison is reliable even with sparse data
+        older_velocity = calculate_velocity_from_dataframe(
+            older_half, "completed_items"
+        )
+        recent_velocity = calculate_velocity_from_dataframe(
+            recent_half, "completed_items"
+        )
 
-        if older_days > 0 and recent_days > 0:
-            older_velocity = older_half["completed_items"].sum() / (older_days / 7.0)
-            recent_velocity = recent_half["completed_items"].sum() / (recent_days / 7.0)
-
-            # Determine trend (>10% change is significant)
-            velocity_change = (
-                (recent_velocity - older_velocity) / older_velocity
-                if older_velocity > 0
-                else 0
-            )
+        # Determine trend (>10% change is significant)
+        if older_velocity > 0:
+            velocity_change = (recent_velocity - older_velocity) / older_velocity
 
             if velocity_change > 0.1:
                 metrics["velocity_trend"] = "increasing"

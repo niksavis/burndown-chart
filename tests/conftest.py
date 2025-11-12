@@ -176,3 +176,7 @@ def temp_cache_dir():
     with tempfile.TemporaryDirectory() as tmp_dir:
         yield tmp_dir
         # Cleanup is automatic when context exits
+
+
+# Import dashboard test fixtures to make them available to all tests
+pytest_plugins = ["tests.utils.dashboard_test_fixtures"]
