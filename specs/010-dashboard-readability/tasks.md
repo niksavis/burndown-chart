@@ -26,12 +26,12 @@
 
 **Purpose**: Test utilities and fixtures for all dashboard tests
 
-- [ ] T001 Create shared test fixtures file at `tests/utils/dashboard_test_fixtures.py`
-- [ ] T002 Add `sample_statistics_data()` fixture with 10 weeks of realistic project data
-- [ ] T003 Add `sample_settings()` fixture with standard PERT/deadline configuration
-- [ ] T004 [P] Add `empty_statistics_data()` fixture for new project edge case
-- [ ] T005 [P] Add `minimal_statistics_data()` fixture for single data point edge case
-- [ ] T006 [P] Add `extreme_velocity_data()` fixture for very low velocity scenarios
+- [X] T001 Create shared test fixtures file at `tests/utils/dashboard_test_fixtures.py`
+- [X] T002 Add `sample_statistics_data()` fixture with 10 weeks of realistic project data
+- [X] T003 Add `sample_settings()` fixture with standard PERT/deadline configuration
+- [X] T004 [P] Add `empty_statistics_data()` fixture for new project edge case
+- [X] T005 [P] Add `minimal_statistics_data()` fixture for single data point edge case
+- [X] T006 [P] Add `extreme_velocity_data()` fixture for very low velocity scenarios
 
 **Checkpoint**: Test fixtures ready - all test files can import shared data
 
@@ -47,74 +47,74 @@
 
 **Module**: `tests/unit/data/test_dashboard_metrics.py`
 
-- [ ] T007 Create test file `tests/unit/data/test_dashboard_metrics.py` with imports and test class structure
-- [ ] T008 [P] [US1] Test `calculate_dashboard_metrics()` with normal 10-week data (validates all 11 metric fields)
-- [ ] T009 [P] [US1] Test `calculate_dashboard_metrics()` completion percentage calculation (68/100 = 68.0%)
-- [ ] T010 [P] [US1] Test `calculate_dashboard_metrics()` velocity calculation (items/week, points/week from last N weeks)
-- [ ] T011 [P] [US1] Test `calculate_dashboard_metrics()` forecast date calculation (velocity * PERT factor formula)
-- [ ] T012 [P] [US1] Test `calculate_dashboard_metrics()` with empty statistics array (returns safe defaults: zeros, None dates)
-- [ ] T013 [P] [US1] Test `calculate_dashboard_metrics()` with single data point (minimal data handling)
-- [ ] T014 [P] [US1] Test `calculate_dashboard_metrics()` with zero velocity (forecast dates should be None)
-- [ ] T015 [P] [US1] Test `calculate_dashboard_metrics()` with no deadline (days_to_deadline should be None)
-- [ ] T016 [P] [US1] Test `calculate_dashboard_metrics()` with completion >100% (scope decreased scenario)
-- [ ] T017 [P] [US1] Test `calculate_dashboard_metrics()` with negative days to deadline (past deadline edge case)
-- [ ] T018 [P] [US1] Test `calculate_dashboard_metrics()` velocity trend "increasing" (recent >10% higher than older)
-- [ ] T019 [P] [US1] Test `calculate_dashboard_metrics()` velocity trend "stable" (within ±10% threshold)
-- [ ] T020 [P] [US1] Test `calculate_pert_timeline()` with normal data (validates all 8 PERTTimelineData fields)
-- [ ] T021 [P] [US1] Test `calculate_pert_timeline()` PERT formula: (optimistic + 4*likely + pessimistic) / 6
-- [ ] T022 [P] [US1] Test `calculate_pert_timeline()` confidence range calculation (pessimistic - optimistic days)
-- [ ] T023 [P] [US1] Test `calculate_pert_timeline()` with empty statistics (all dates None, days zero)
-- [ ] T024 [P] [US1] Test `calculate_pert_timeline()` with zero velocity (cannot forecast, returns None)
-- [ ] T025 [P] [US1] Test `calculate_pert_timeline()` with zero remaining work (project complete edge case)
-- [ ] T026 [P] [US1] Test `calculate_pert_timeline()` with extreme PERT factor (10.0 wide window handling)
-- [ ] T027 [P] [US1] Test `calculate_pert_timeline()` date ordering invariant (optimistic < likely < pessimistic)
+- [X] T007 Create test file `tests/unit/data/test_dashboard_metrics.py` with imports and test class structure
+- [X] T008 [P] [US1] Test `calculate_dashboard_metrics()` with normal 10-week data (validates all 11 metric fields)
+- [X] T009 [P] [US1] Test `calculate_dashboard_metrics()` completion percentage calculation (68/100 = 68.0%)
+- [X] T010 [P] [US1] Test `calculate_dashboard_metrics()` velocity calculation (items/week, points/week from last N weeks)
+- [X] T011 [P] [US1] Test `calculate_dashboard_metrics()` forecast date calculation (velocity * PERT factor formula)
+- [X] T012 [P] [US1] Test `calculate_dashboard_metrics()` with empty statistics array (returns safe defaults: zeros, None dates)
+- [X] T013 [P] [US1] Test `calculate_dashboard_metrics()` with single data point (minimal data handling)
+- [X] T014 [P] [US1] Test `calculate_dashboard_metrics()` with zero velocity (forecast dates should be None)
+- [X] T015 [P] [US1] Test `calculate_dashboard_metrics()` with no deadline (days_to_deadline should be None)
+- [X] T016 [P] [US1] Test `calculate_dashboard_metrics()` with completion >100% (scope decreased scenario)
+- [X] T017 [P] [US1] Test `calculate_dashboard_metrics()` with negative days to deadline (past deadline edge case)
+- [X] T018 [P] [US1] Test `calculate_dashboard_metrics()` velocity trend "increasing" (recent >10% higher than older)
+- [X] T019 [P] [US1] Test `calculate_dashboard_metrics()` velocity trend "stable" (within ±10% threshold)
+- [X] T020 [P] [US1] Test `calculate_pert_timeline()` with normal data (validates all 8 PERTTimelineData fields)
+- [X] T021 [P] [US1] Test `calculate_pert_timeline()` PERT formula: (optimistic + 4*likely + pessimistic) / 6
+- [X] T022 [P] [US1] Test `calculate_pert_timeline()` confidence range calculation (pessimistic - optimistic days)
+- [X] T023 [P] [US1] Test `calculate_pert_timeline()` with empty statistics (all dates None, days zero)
+- [X] T024 [P] [US1] Test `calculate_pert_timeline()` with zero velocity (cannot forecast, returns None)
+- [X] T025 [P] [US1] Test `calculate_pert_timeline()` with zero remaining work (project complete edge case)
+- [X] T026 [P] [US1] Test `calculate_pert_timeline()` with extreme PERT factor (10.0 wide window handling)
+- [X] T027 [P] [US1] Test `calculate_pert_timeline()` date ordering invariant (optimistic < likely < pessimistic)
 
 ### Health Score & Card Tests (41 tests total)
 
 **Module**: `tests/unit/ui/test_dashboard_cards.py`
 
-- [ ] T028 Create test file `tests/unit/ui/test_dashboard_cards.py` with imports and test class structure
-- [ ] T029 [P] [US1] Test `_calculate_health_score()` progress component (0-25 points based on completion %)
-- [ ] T030 [P] [US1] Test `_calculate_health_score()` schedule component (0-30 points based on timeline ratio)
-- [ ] T031 [P] [US1] Test `_calculate_health_score()` velocity component (0-25 points based on trend)
-- [ ] T032 [P] [US1] Test `_calculate_health_score()` confidence component (0-20 points based on confidence %)
-- [ ] T033 [P] [US1] Test `_calculate_health_score()` excellent tier (≥80 total score)
-- [ ] T034 [P] [US1] Test `_calculate_health_score()` good tier (60-79 total score)
-- [ ] T035 [P] [US1] Test `_calculate_health_score()` fair tier (40-59 total score)
-- [ ] T036 [P] [US1] Test `_calculate_health_score()` with missing deadline (uses neutral schedule score 15)
-- [ ] T037 [P] [US1] Test `_calculate_health_score()` with zero velocity (uses neutral defaults, no crash)
-- [ ] T038 [P] [US1] Test `_calculate_health_score()` capped at 100 (prevents score overflow)
-- [ ] T039 [P] [US1] Test `_get_health_color_and_label()` excellent tier (score 85 → "#198754", "Excellent")
-- [ ] T040 [P] [US1] Test `_get_health_color_and_label()` good tier (score 70 → "#0dcaf0", "Good")
-- [ ] T041 [P] [US1] Test `_get_health_color_and_label()` fair tier (score 50 → "#ffc107", "Fair")
-- [ ] T042 [P] [US1] Test `_get_health_color_and_label()` needs attention tier (score 30 → "#fd7e14", "Needs Attention")
-- [ ] T043 [P] [US1] Test `_create_key_insights()` ahead of schedule (days_to_deadline 100, days_to_completion 80)
-- [ ] T044 [P] [US1] Test `_create_key_insights()` behind schedule (days_to_deadline 80, days_to_completion 100)
-- [ ] T045 [P] [US1] Test `_create_key_insights()` on track (days equal, displays "On track to meet deadline")
-- [ ] T046 [P] [US1] Test `_create_key_insights()` velocity increasing (displays acceleration message with success color)
-- [ ] T047 [P] [US1] Test `_create_key_insights()` velocity decreasing (displays blocker warning with warning color)
-- [ ] T048 [P] [US1] Test `_create_key_insights()` final stretch (completion ≥80%, displays congratulatory message)
-- [ ] T049 [P] [US1] Test `create_dashboard_forecast_card()` returns dbc.Card instance
-- [ ] T050 [P] [US1] Test `create_dashboard_forecast_card()` MetricCardData structure (all required fields)
-- [ ] T051 [P] [US1] Test `create_dashboard_forecast_card()` performance tier classification logic
-- [ ] T052 [P] [US1] Test `create_dashboard_forecast_card()` tooltip content (user guidance)
-- [ ] T053 [P] [US1] Test `create_dashboard_velocity_card()` returns dbc.Card instance
-- [ ] T054 [P] [US1] Test `create_dashboard_velocity_card()` MetricCardData structure
-- [ ] T055 [P] [US1] Test `create_dashboard_velocity_card()` performance tier classification
-- [ ] T056 [P] [US1] Test `create_dashboard_velocity_card()` tooltip content
-- [ ] T057 [P] [US1] Test `create_dashboard_remaining_card()` returns dbc.Card instance
-- [ ] T058 [P] [US1] Test `create_dashboard_remaining_card()` MetricCardData structure
-- [ ] T059 [P] [US1] Test `create_dashboard_remaining_card()` performance tier classification
-- [ ] T060 [P] [US1] Test `create_dashboard_remaining_card()` tooltip content
-- [ ] T061 [P] [US1] Test `create_dashboard_pert_card()` returns dbc.Card instance
-- [ ] T062 [P] [US1] Test `create_dashboard_pert_card()` MetricCardData structure
-- [ ] T063 [P] [US1] Test `create_dashboard_pert_card()` performance tier classification
-- [ ] T064 [P] [US1] Test `create_dashboard_pert_card()` tooltip content
-- [ ] T065 [P] [US1] Test `create_dashboard_overview_content()` returns html.Div instance
-- [ ] T066 [P] [US1] Test `create_dashboard_overview_content()` health score display (3.5rem font, correct color/badge)
-- [ ] T067 [P] [US1] Test `create_dashboard_overview_content()` metrics grid (4 metrics with icons)
-- [ ] T068 [P] [US1] Test `create_dashboard_overview_content()` progress bar (68.5% with correct color)
-- [ ] T069 [P] [US1] Test `create_dashboard_overview_content()` includes insights section (badges rendered)
+- [X] T028 Create test file `tests/unit/ui/test_dashboard_cards.py` with imports and test class structure
+- [X] T029 [P] [US1] Test `_calculate_health_score()` progress component (0-25 points based on completion %)
+- [X] T030 [P] [US1] Test `_calculate_health_score()` schedule component (0-30 points based on timeline ratio)
+- [X] T031 [P] [US1] Test `_calculate_health_score()` velocity component (0-25 points based on trend)
+- [X] T032 [P] [US1] Test `_calculate_health_score()` confidence component (0-20 points based on confidence %)
+- [X] T033 [P] [US1] Test `_calculate_health_score()` excellent tier (≥80 total score)
+- [X] T034 [P] [US1] Test `_calculate_health_score()` good tier (60-79 total score)
+- [X] T035 [P] [US1] Test `_calculate_health_score()` fair tier (40-59 total score)
+- [X] T036 [P] [US1] Test `_calculate_health_score()` with missing deadline (uses neutral schedule score 15)
+- [X] T037 [P] [US1] Test `_calculate_health_score()` with zero velocity (uses neutral defaults, no crash)
+- [X] T038 [P] [US1] Test `_calculate_health_score()` capped at 100 (prevents score overflow)
+- [X] T039 [P] [US1] Test `_get_health_color_and_label()` excellent tier (score 85 → "#198754", "Excellent")
+- [X] T040 [P] [US1] Test `_get_health_color_and_label()` good tier (score 70 → "#0dcaf0", "Good")
+- [X] T041 [P] [US1] Test `_get_health_color_and_label()` fair tier (score 50 → "#ffc107", "Fair")
+- [X] T042 [P] [US1] Test `_get_health_color_and_label()` needs attention tier (score 30 → "#fd7e14", "Needs Attention")
+- [X] T043 [P] [US1] Test `_create_key_insights()` ahead of schedule (days_to_deadline 100, days_to_completion 80)
+- [X] T044 [P] [US1] Test `_create_key_insights()` behind schedule (days_to_deadline 80, days_to_completion 100)
+- [X] T045 [P] [US1] Test `_create_key_insights()` on track (days equal, displays "On track to meet deadline")
+- [X] T046 [P] [US1] Test `_create_key_insights()` velocity increasing (displays acceleration message with success color)
+- [X] T047 [P] [US1] Test `_create_key_insights()` velocity decreasing (displays blocker warning with warning color)
+- [X] T048 [P] [US1] Test `_create_key_insights()` final stretch (completion ≥80%, displays congratulatory message)
+- [X] T049 [P] [US1] Test `create_dashboard_forecast_card()` returns dbc.Card instance
+- [X] T050 [P] [US1] Test `create_dashboard_forecast_card()` MetricCardData structure (all required fields)
+- [X] T051 [P] [US1] Test `create_dashboard_forecast_card()` performance tier classification logic
+- [X] T052 [P] [US1] Test `create_dashboard_forecast_card()` tooltip content (user guidance)
+- [X] T053 [P] [US1] Test `create_dashboard_velocity_card()` returns dbc.Card instance
+- [X] T054 [P] [US1] Test `create_dashboard_velocity_card()` MetricCardData structure
+- [X] T055 [P] [US1] Test `create_dashboard_velocity_card()` performance tier classification
+- [X] T056 [P] [US1] Test `create_dashboard_velocity_card()` tooltip content
+- [X] T057 [P] [US1] Test `create_dashboard_remaining_card()` returns dbc.Card instance
+- [X] T058 [P] [US1] Test `create_dashboard_remaining_card()` MetricCardData structure
+- [X] T059 [P] [US1] Test `create_dashboard_remaining_card()` performance tier classification
+- [X] T060 [P] [US1] Test `create_dashboard_remaining_card()` tooltip content
+- [X] T061 [P] [US1] Test `create_dashboard_pert_card()` returns dbc.Card instance
+- [X] T062 [P] [US1] Test `create_dashboard_pert_card()` MetricCardData structure
+- [X] T063 [P] [US1] Test `create_dashboard_pert_card()` performance tier classification
+- [X] T064 [P] [US1] Test `create_dashboard_pert_card()` tooltip content
+- [X] T065 [P] [US1] Test `create_dashboard_overview_content()` returns html.Div instance
+- [X] T066 [P] [US1] Test `create_dashboard_overview_content()` health score display (3.5rem font, correct color/badge)
+- [X] T067 [P] [US1] Test `create_dashboard_overview_content()` metrics grid (4 metrics with icons)
+- [X] T068 [P] [US1] Test `create_dashboard_overview_content()` progress bar (68.5% with correct color)
+- [X] T069 [P] [US1] Test `create_dashboard_overview_content()` includes insights section (badges rendered)
 
 ### Coverage Verification
 
