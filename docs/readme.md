@@ -10,11 +10,17 @@ This folder contains operational guides, standards, and explanations for the Bur
 
 - **[Logging Standards](logging_standards.md)** - Logging conventions and best practices for the project.
 
-### Feature Documentation
+### Metrics Documentation
 
-- **[Dashboard Enhancements](dashboard_enhancements.md)** - UI/UX enhancements and dashboard improvements.
+- **[Metrics Index](metrics_index.md)** - Start here: Navigation hub with quick start guide and progressive learning path
 
-- **[Metrics Explanation](metrics_explanation.md)** - Detailed explanation of DORA and Flow metrics calculated by the application.
+- **[Dashboard Metrics](dashboard_metrics.md)** - Project health score, velocity, forecasting, and completion prediction
+
+- **[DORA Metrics](dora_metrics.md)** - Deployment frequency, lead time, change failure rate, and MTTR
+
+- **[Flow Metrics](flow_metrics.md)** - Velocity, time, efficiency, load (WIP), and work type distribution
+
+- **[METRICS_EXPLANATION.md](METRICS_EXPLANATION.md)** - Legacy redirect file (documentation now split into focused guides above)
 
 ## 🏗️ Architecture References
 

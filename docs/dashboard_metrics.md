@@ -594,7 +594,7 @@ Pessimistic = Base × pert_factor # e.g., Base × 1.2
 
 ---
 
-### 3. Dashboard Confidence Calculation (⚠️ HEURISTIC ONLY)
+### 3. Dashboard Confidence Calculation (⚠️ HEURISTIC, NOT STATISTICAL CI)
 
 **Issue**: "Confidence" percentage is NOT a statistical confidence interval  
 **What it actually is**: Heuristic based on coefficient of variation (CoV)
@@ -688,16 +688,18 @@ health_score = (
 **Current Mitigations**:
 - ✅ Edge case handling: Empty dataframes, single data points return safe defaults (0 or None)
 - ✅ Test coverage: 29 tests validate edge cases (empty data, single point, zero velocity)
-- ⚠️ UI warnings: No explicit "insufficient data" warnings shown to users
+- ✅ UI badges: "Building baseline" badge shown when <4 weeks data (via `data/metrics_calculator.py::calculate_forecast()`)
+- ✅ Confidence levels: "building" (2-3 weeks) vs "established" (4 weeks) displayed on metric cards
 
-**Recommended Fix**:
-- Add UI badges: "Baseline Building (week 2/4)" for metrics with <4 weeks data
-- Hide unreliable metrics until minimum sample size reached
-- Display confidence intervals that widen with small sample sizes
+**Implementation Details**:
+- Forecast calculation requires minimum 2 weeks (`min_weeks=2` parameter)
+- Confidence badge appears on metric cards when `confidence == "building"`
+- Full confidence after 4 weeks of historical data
+- Code location: `data/metrics_calculator.py::calculate_forecast()` and `ui/metric_cards.py::create_forecast_section()`
 
-**Workaround**: Treat first 4 weeks as "baseline building" - metrics unreliable until then
+**Workaround**: First 2 weeks show no forecasts (insufficient data), weeks 2-4 show "Building baseline" badge
 
-**Status**: ⚠️ **PARTIAL MITIGATION** - Edge cases handled in code, UI warnings future enhancement
+**Status**: ✅ **MITIGATED** - UI warnings implemented, edge cases handled, minimum sample requirements enforced
 
 ---
 
@@ -727,16 +729,16 @@ health_score = (
 
 ### Summary of Current Status
 
-| Issue                              | Severity   | Status                 | Fix Available      |
-| ---------------------------------- | ---------- | ---------------------- | ------------------ |
-| **Dashboard Velocity Calculation** | 🔴 Critical | ✅ FIXED (Nov 12, 2025) | Yes - deployed     |
-| **PERT Timeline Misnomer**         | 🟡 Medium   | ⚠️ Active               | Rename/disclaimer  |
-| **Confidence Heuristic**           | 🟡 Medium   | ⚠️ Active               | Rename/disclaimer  |
-| **Health Score Weights**           | 🟡 Medium   | ⚠️ Documented           | Disclaimer added   |
-| **Small Sample Effects**           | 🟢 Low      | ⚠️ Partial              | Edge cases handled |
-| **Normality Assumption**           | 🟢 Low      | ⚠️ Known                | Manual inspection  |
+| Issue                              | Severity   | Status                  | Fix Available             |
+| ---------------------------------- | ---------- | ----------------------- | ------------------------- |
+| **Dashboard Velocity Calculation** | 🔴 Critical | ✅ FIXED (Nov 12, 2025)  | Yes - deployed            |
+| **PERT Timeline Misnomer**         | 🟡 Medium   | ⚠️ Active                | Rename/disclaimer         |
+| **Confidence Heuristic**           | 🟡 Medium   | ⚠️ Active                | Rename/disclaimer         |
+| **Health Score Weights**           | 🟡 Medium   | ✅ TESTED (Nov 12, 2025) | 29 unit tests             |
+| **Small Sample Effects**           | 🟢 Low      | ✅ MITIGATED             | UI badges + edge handling |
+| **Normality Assumption**           | 🟢 Low      | ⚠️ Known                 | Manual inspection         |
 
-**Overall Assessment**: Dashboard metrics are now **statistically sound** after velocity fix. Remaining limitations are **clearly documented heuristics** (PERT, confidence, health score) and **inherent statistical challenges** (small samples, distribution assumptions) common to all forecasting tools.
+**Overall Assessment**: Dashboard metrics are now **statistically sound** after velocity fix. Health score calculation has comprehensive test coverage (29 tests validating all 4 components and edge cases). Small sample issues now have UI indicators ("Building baseline" badges when <4 weeks data). Remaining limitations are **clearly documented heuristics** (PERT, confidence) and **inherent statistical challenges** (distribution assumptions) common to all forecasting tools.
 
 ---
 

@@ -75,23 +75,27 @@ date;completed_items;completed_points;created_items;created_points
 }
 ```
 
-## DORA & Flow Metrics
+## Metrics Overview
 
-Track software delivery performance with industry-standard metrics.
+Track project health, delivery performance, and process efficiency.
 
-### Key Metrics
+### Key Metrics by Category
 
-| Category | Metric                | What It Measures          | Elite Target      |
-| -------- | --------------------- | ------------------------- | ----------------- |
-| **DORA** | Deployment Frequency  | How often you deploy      | Multiple/day      |
-|          | Lead Time for Changes | Code commit to production | <1 day            |
-|          | Change Failure Rate   | % of failed deployments   | 0-15%             |
-|          | Mean Time to Recovery | Time to restore service   | <1 hour           |
-| **Flow** | Velocity              | Items completed per week  | Team throughput   |
-|          | Time                  | Start to completion       | Cycle efficiency  |
-|          | Efficiency            | Active work vs. waiting   | 25-40%            |
-|          | Load (WIP)            | Work in progress          | Uses Little's Law |
-|          | Distribution          | Work type balance         | 40-60% features   |
+| Category           | Metric                | What It Measures          | Target/Tier        |
+| ------------------ | --------------------- | ------------------------- | ------------------ |
+| **Project Health** | Health Score          | Overall project status    | 80-100 (Excellent) |
+|                    | Completion Forecast   | Days to completion        | On/ahead schedule  |
+|                    | Current Velocity      | Items/points per week     | Stable trend       |
+|                    | Remaining Work        | Items/points to complete  | Decreasing         |
+| **DORA**           | Deployment Frequency  | How often you deploy      | ≥7/week (Elite)    |
+|                    | Lead Time for Changes | Code commit to production | <1 day (Elite)     |
+|                    | Change Failure Rate   | % of failed deployments   | 0-15% (Elite)      |
+|                    | Mean Time to Recovery | Time to restore service   | <1 hour (Elite)    |
+| **Flow**           | Flow Velocity         | Items completed per week  | Stable throughput  |
+|                    | Flow Time             | Start to completion       | Consistent cycle   |
+|                    | Flow Efficiency       | Active work vs. waiting   | 25-40%             |
+|                    | Flow Load (WIP)       | Work in progress          | <P25 threshold     |
+|                    | Flow Distribution     | Work type balance         | 40-50% features    |
 
 **Configuration**: Click "Configure Field Mappings" on dashboard to map JIRA custom fields (deployment date, environment, work type).
 
@@ -103,11 +107,14 @@ Track software delivery performance with industry-standard metrics.
 - **Port in use?** Run with `python app.py --port 8060`
 - **JIRA connection failed?** Verify URL and token in Data Import Configuration
 - **No data?** Check field mappings and JIRA data contains required fields
-- **Reset**: Delete `project_data.json`, `app_settings.json`, and `jira_cache.json`
+- **Full reset**: Delete `project_data.json`, `app_settings.json`, `jira_cache.json`, and `metrics_snapshots.json`
 
 ## Documentation
 
-- **[Complete Metrics Guide](docs/metrics/METRICS_EXPLANATION.md)** - Definitions, calculations, quick start, common pitfalls
+- **[Metrics Index](docs/metrics_index.md)** - Quick start guide to all metrics (Dashboard, DORA, Flow)
+- **[Project Dashboard Metrics](docs/dashboard_metrics.md)** - Health score, velocity, forecasting
+- **[DORA Metrics](docs/dora_metrics.md)** - Deployment frequency, lead time, CFR, MTTR
+- **[Flow Metrics](docs/flow_metrics.md)** - Velocity, time, efficiency, load, distribution
 - **[License](LICENSE)** - MIT License
 
 ---

@@ -28,7 +28,7 @@ While DORA metrics tell you **WHAT** happened (deployment outcomes), Flow metric
 | **Flow Time**         | days       | Average of weekly medians | Consistent cycle time         | `data/flow_calculator.py::calculate_flow_time_v2()`             |
 | **Flow Efficiency**   | percentage | Current week aggregate    | 25-40%                        | `data/flow_calculator.py::calculate_flow_efficiency_v2()`       |
 | **Flow Load (WIP)**   | items      | Current week snapshot     | <P25 threshold (green)        | `data/flow_calculator.py::calculate_flow_load_v2()`             |
-| **Flow Distribution** | percentage | Current week breakdown    | Feature 40-60%, Defect 20-40% | `data/flow_calculator.py::aggregate_flow_distribution_weekly()` |
+| **Flow Distribution** | percentage | Current week breakdown    | Feature 40-50%, Defect 15-25% | `data/flow_calculator.py::aggregate_flow_distribution_weekly()` |
 
 ---
 
@@ -361,10 +361,10 @@ Percentage breakdown of work by type (Feature/Defect/Tech Debt/Risk).
 ### Recommended Ranges (Flow Framework Standards)
 
 ```
-Feature:   40-60%  │██████████████░░░░░░│ - New business value
-Defect:    20-40%  │████████░░░░░░░░░░░░│ - Quality maintenance
-Tech Debt: 10-20%  │████░░░░░░░░░░░░░░░░│ - Infrastructure health
-Risk:       0-10%  │██░░░░░░░░░░░░░░░░░░│ - Security, compliance
+Feature:   40-50%  │██████████████░░░░░░│ - New business value
+Defect:    15-25%  │████████░░░░░░░░░░░░│ - Quality maintenance
+Tech Debt: 20-25%  │████░░░░░░░░░░░░░░░░│ - Infrastructure health
+Risk:      10-15%  │██░░░░░░░░░░░░░░░░░░│ - Security, compliance
 ```
 
 ### Distribution Patterns & Actions
@@ -463,7 +463,7 @@ Quality crisis manifests
 
 ### Month 2+: Balance
 7. Once WIP stable, check Flow Distribution
-8. Adjust work mix to hit target ranges (40-60% Feature, 20-40% Defect)
+8. Adjust work mix to hit target ranges (40-50% Feature, 15-25% Defect, 10-15% Risk, 20-25% Tech Debt)
 9. Monitor Flow Efficiency - aim for 25-40%
 
 **Progressive Approach**: WIP first, distribution second, efficiency third.
