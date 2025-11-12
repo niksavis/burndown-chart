@@ -165,17 +165,19 @@
 
 ### Insights Verification Tests
 
-- [ ] T086 [US3] Create integration test file `tests/integration/test_dashboard_insights.py`
-- [ ] T087 [P] [US3] Integration test: Verify schedule variance insight appears when days_to_completion and days_to_deadline both available
-- [ ] T088 [P] [US3] Integration test: Verify ahead-of-schedule insight displays with success color and day count
-- [ ] T089 [P] [US3] Integration test: Verify behind-schedule insight displays with warning color and day count
-- [ ] T090 [P] [US3] Integration test: Verify on-track insight displays when completion and deadline days equal
-- [ ] T091 [P] [US3] Integration test: Verify velocity increasing insight with acceleration messaging
-- [ ] T092 [P] [US3] Integration test: Verify velocity decreasing insight with blocker warning
-- [ ] T093 [P] [US3] Integration test: Verify progress milestone insight when completion ≥75%
-- [ ] T094 [US3] End-to-end test: Load dashboard with realistic project data, verify all applicable insights display
+- [X] T086 [US3] Create integration test file `tests/integration/test_dashboard_insights.py` - ✅ Created with 4 test classes, 10 tests total
+- [X] T087 [P] [US3] Integration test: Verify schedule variance insight appears when days_to_completion and days_to_deadline both available - ✅ PASS
+- [X] T088 [P] [US3] Integration test: Verify ahead-of-schedule insight displays with success color and day count - ✅ PASS (30 days ahead, text-success)
+- [X] T089 [P] [US3] Integration test: Verify behind-schedule insight displays with warning color and day count - ✅ PASS (20 days behind, text-warning)
+- [X] T090 [P] [US3] Integration test: Verify on-track insight displays when completion and deadline days equal - ✅ PASS ("On track", text-primary)
+- [X] T091 [P] [US3] Integration test: Verify velocity increasing insight with acceleration messaging - ✅ PASS ("accelerating", fa-arrow-up, text-success)
+- [X] T092 [P] [US3] Integration test: Verify velocity decreasing insight with blocker warning - ✅ PASS ("declining", "blockers", fa-arrow-down, text-warning)
+- [X] T093 [P] [US3] Integration test: Verify progress milestone insight when completion ≥75% - ✅ PASS ("final stretch", fa-star, text-success)
+- [X] T094 [US3] End-to-end test: Load dashboard with realistic project data, verify all applicable insights display - ✅ PASS (3 scenarios: realistic, no insights, multiple positive)
 
-**Checkpoint**: User Story 3 (P3) complete - All insights scenarios validated. Dashboard now provides data accuracy (US1), clear visuals (US2), and actionable intelligence (US3).
+**Test Results**: 10/10 tests passing in 0.28s. All insights scenarios validated including edge cases (no insights, multiple positive insights).
+
+**Checkpoint**: User Story 3 (P3) complete - All insights scenarios validated. Dashboard now provides data accuracy (US1), clear visuals (US2), and actionable intelligence (US3). ✅
 
 ---
 
