@@ -203,7 +203,9 @@ class TestEndToEndInsightsDisplay:
         assert "final stretch" in dashboard_str.lower()
 
         # Verify styling elements
-        assert "backgroundColor" in dashboard_str or "background" in dashboard_str.lower()
+        assert (
+            "backgroundColor" in dashboard_str or "background" in dashboard_str.lower()
+        )
         assert "Light blue background" in str(dashboard) or "#e7f3ff" in dashboard_str
 
     def test_dashboard_without_insights_returns_empty_div(self):
