@@ -55,18 +55,18 @@ class TestDashboardIntegration:
         except Exception as e:
             pytest.fail(f"Dashboard creation raised exception: {e}")
 
-    def test_dashboard_includes_distribution_chart_container(self):
-        """Test that dashboard includes a container for the distribution chart.
+    def test_dashboard_includes_metrics_cards_container(self):
+        """Test that dashboard includes the unified metrics cards container.
 
-        The distribution chart is a key visualization for Flow metrics,
-        showing breakdown of work types (Feature, Defect, Risk, Debt).
+        After UI refactoring, Flow metrics (including distribution) are now
+        rendered in the same container as other metric cards.
         """
         dashboard = create_flow_dashboard()
 
-        # Convert dashboard to string to search for distribution chart container ID
+        # Convert dashboard to string to search for metrics container ID
         dashboard_str = str(dashboard)
 
-        # Should contain the distribution chart container ID
-        assert "flow-distribution-chart-container" in dashboard_str, (
-            "Dashboard should include distribution chart container"
+        # Should contain the unified metrics cards container ID
+        assert "flow-metrics-cards-container" in dashboard_str, (
+            "Dashboard should include flow-metrics-cards-container"
         )
