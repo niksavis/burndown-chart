@@ -21,15 +21,16 @@ logger = logging.getLogger(__name__)
         Output("query-selector", "options"),
         Output("query-selector", "value"),
         Output("query-empty-state", "className"),
+        Output("jira-jql-query", "value", allow_duplicate=True),
     ],
     Input("url", "pathname"),  # Trigger on page load
-    prevent_initial_call=False,
+    prevent_initial_call="initial_duplicate",
 )
 def populate_query_dropdown(_pathname):
-    """Populate query dropdown with queries from active profile.
+    """Populate query dropdown with queries from active profile and set JQL.
 
     Returns:
-        Tuple of (options, value, empty_state_class)
+        Tuple of (options, value, empty_state_class, jql_query)
     """
     try:
         from data.query_manager import get_active_profile_id, list_queries_for_profile
@@ -42,11 +43,12 @@ def populate_query_dropdown(_pathname):
 
         if not queries:
             # Show empty state
-            return [], "", "mb-0"
+            return [], "", "mb-0", ""
 
         # Build dropdown options
         options = []
         active_value = ""
+        active_jql = ""
 
         for query in queries:
             label = query.get("name", "Unnamed Query")
@@ -56,16 +58,21 @@ def populate_query_dropdown(_pathname):
             if query.get("is_active", False):
                 label += " ★"
                 active_value = value
+                active_jql = query.get("jql", "")
 
             options.append({"label": label, "value": value})
 
-        # Hide empty state
-        return options, active_value, "mb-0 d-none"
+        logger.info(
+            f"Populated query dropdown: {len(options)} queries. Active: {active_value}, JQL length: {len(active_jql)}"
+        )
+
+        # Hide empty state and set JQL
+        return options, active_value, "mb-0 d-none", active_jql
 
     except Exception as e:
         logger.error(f"Failed to populate query dropdown: {e}")
         # Return safe defaults
-        return [], "", "mb-0 d-none"
+        return [], "", "mb-0 d-none", ""
 
 
 # ============================================================================
@@ -75,31 +82,37 @@ def populate_query_dropdown(_pathname):
 
 @callback(
     [
-        Output("url", "pathname", allow_duplicate=True),
-        Output("query-loading-output", "children"),
+        Output("query-selector", "options", allow_duplicate=True),
+        Output("query-selector", "value", allow_duplicate=True),
+        Output("jira-jql-query", "value", allow_duplicate=True),
     ],
     Input("query-selector", "value"),
     State("query-selector", "options"),
     prevent_initial_call=True,
 )
-def switch_query_callback(selected_query_id, options):
-    """Switch to selected query and reload dashboard.
+def switch_query_callback(selected_query_id, current_options):
+    """Switch to selected query and update dropdown and JQL editor.
 
     Performance target: <50ms for switch operation.
 
     Args:
         selected_query_id: Query ID selected from dropdown
-        options: Current dropdown options (for validation)
+        current_options: Current dropdown options (for validation)
 
     Returns:
-        Tuple of (pathname, loading_message)
+        Tuple of (updated_options, updated_value, jql_query)
     """
     if not selected_query_id:
         raise PreventUpdate
 
     try:
         import time
-        from data.query_manager import switch_query, get_active_query_id
+        from data.query_manager import (
+            switch_query,
+            get_active_query_id,
+            get_active_profile_id,
+            list_queries_for_profile,
+        )
 
         # Check if already on this query
         current_query_id = get_active_query_id()
@@ -116,17 +129,105 @@ def switch_query_callback(selected_query_id, options):
 
         logger.info(f"Query switched to '{selected_query_id}' in {elapsed_ms:.2f}ms")
 
-        # Trigger page reload by changing pathname (force dashboard refresh)
-        # Return to root path to trigger full data reload
-        return "/", ""
+        # Refresh dropdown to update active indicator and get JQL
+        profile_id = get_active_profile_id()
+        queries = list_queries_for_profile(profile_id)
+
+        options = []
+        active_value = ""
+        active_jql = ""
+        for query in queries:
+            label = query.get("name", "Unnamed Query")
+            value = query.get("id", "")
+            if query.get("is_active", False):
+                label += " ★"
+                active_value = value
+                active_jql = query.get("jql", "")
+            options.append({"label": label, "value": value})
+
+        logger.info(f"Query switched successfully, JQL updated")
+        return options, active_value, active_jql
 
     except ValueError as e:
         logger.error(f"Query switch validation error: {e}")
-        return no_update, f"Error: {e}"
+        return no_update, no_update, no_update
 
     except Exception as e:
         logger.error(f"Failed to switch query: {e}")
-        return no_update, f"Error switching query: {e}"
+        return no_update, no_update, no_update
+
+
+# ============================================================================
+# Query Edit Modal
+# ============================================================================
+
+
+@callback(
+    [
+        Output("edit-query-modal", "is_open"),
+        Output("edit-query-name-input", "value"),
+        Output("edit-query-description-input", "value"),
+        Output("edit-query-jql-input", "value"),
+    ],
+    [
+        Input("edit-query-btn", "n_clicks"),
+        Input("cancel-edit-query-button", "n_clicks"),
+        Input("confirm-edit-query-button", "n_clicks"),
+    ],
+    State("query-selector", "value"),
+    prevent_initial_call=True,
+)
+def toggle_edit_query_modal(
+    edit_clicks, cancel_clicks, confirm_clicks, selected_query_id
+):
+    """Toggle edit query modal and populate fields.
+
+    Args:
+        edit_clicks: Edit button clicks
+        cancel_clicks: Cancel button clicks
+        confirm_clicks: Confirm button clicks
+        selected_query_id: Currently selected query ID
+
+    Returns:
+        Tuple of (is_open, name, description, jql)
+    """
+    triggered = ctx.triggered_id
+
+    if triggered == "edit-query-btn":
+        if not selected_query_id:
+            raise PreventUpdate
+
+        try:
+            from data.query_manager import (
+                get_active_profile_id,
+                list_queries_for_profile,
+            )
+
+            profile_id = get_active_profile_id()
+            queries = list_queries_for_profile(profile_id)
+
+            # Find the selected query
+            query = next((q for q in queries if q.get("id") == selected_query_id), None)
+
+            if not query:
+                logger.error(f"Query '{selected_query_id}' not found")
+                raise PreventUpdate
+
+            return (
+                True,
+                query.get("name", ""),
+                query.get("description", ""),
+                query.get("jql", ""),
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to load query for editing: {e}")
+            raise PreventUpdate
+
+    elif triggered in ("cancel-edit-query-button", "confirm-edit-query-button"):
+        return False, "", "", ""
+
+    raise PreventUpdate
 
 
 # ============================================================================
@@ -137,7 +238,7 @@ def switch_query_callback(selected_query_id, options):
 @callback(
     Output("workspace-create-query-modal", "is_open"),
     [
-        Input("query-create-button", "n_clicks"),
+        Input("create-query-btn", "n_clicks"),
         Input("workspace-save-create-query-button", "n_clicks"),
         Input("workspace-cancel-create-query-button", "n_clicks"),
     ],
@@ -158,7 +259,7 @@ def toggle_create_query_modal(create_clicks, save_clicks, cancel_clicks, is_open
     """
     triggered = ctx.triggered_id
 
-    if triggered == "query-create-button":
+    if triggered == "create-query-btn":
         return not is_open
     elif triggered in (
         "workspace-save-create-query-button",
@@ -174,8 +275,8 @@ def toggle_create_query_modal(create_clicks, save_clicks, cancel_clicks, is_open
         Output("workspace-query-name-input", "value"),
         Output("workspace-query-jql-input", "value"),
         Output("workspace-query-creation-feedback", "children"),
-        Output("query-dropdown", "options"),
-        Output("query-dropdown", "value"),
+        Output("query-selector", "options", allow_duplicate=True),
+        Output("query-selector", "value", allow_duplicate=True),
     ],
     Input("workspace-save-create-query-button", "n_clicks"),
     [
@@ -255,44 +356,91 @@ def create_new_query_callback(save_clicks, query_name, query_jql):
 
 
 @callback(
-    Output("delete-query-feedback", "children"),
-    Input("confirm-delete-query-btn", "n_clicks"),
+    [
+        Output("query-selector", "options", allow_duplicate=True),
+        Output("query-selector", "value", allow_duplicate=True),
+    ],
+    Input("delete-query-btn", "n_clicks"),
     State("query-selector", "value"),
     prevent_initial_call=True,
 )
-def delete_query_callback(confirm_clicks, selected_query_id):
+def delete_query_callback(delete_clicks, selected_query_id):
     """Delete selected query from profile.
 
     Args:
-        confirm_clicks: Confirm delete button clicks
+        delete_clicks: Delete button clicks
         selected_query_id: Currently selected query ID
 
     Returns:
-        Feedback message
+        Tuple of (updated_options, updated_value)
     """
-    if not confirm_clicks or not selected_query_id:
+    # Only proceed if delete button was actually clicked
+    if ctx.triggered_id != "delete-query-btn":
+        raise PreventUpdate
+
+    if not delete_clicks or not selected_query_id:
         raise PreventUpdate
 
     try:
-        from data.query_manager import get_active_profile_id, delete_query
+        from data.query_manager import (
+            get_active_profile_id,
+            delete_query,
+            list_queries_for_profile,
+            get_active_query_id,
+            switch_query,
+        )
 
         profile_id = get_active_profile_id()
+        active_query_id = get_active_query_id()
+
+        # If trying to delete the active query, switch to a different query first
+        if selected_query_id == active_query_id:
+            # Get all queries to find another one to switch to
+            queries = list_queries_for_profile(profile_id)
+            other_queries = [q for q in queries if q.get("id") != selected_query_id]
+
+            if not other_queries:
+                logger.error("Cannot delete last query in profile")
+                return no_update, no_update
+
+            # Switch to the first available query
+            new_active_query_id = other_queries[0].get("id")
+            switch_query(new_active_query_id)
+            logger.info(
+                f"Auto-switched from '{selected_query_id}' to '{new_active_query_id}' before deletion"
+            )
 
         # Delete query
         delete_query(profile_id, selected_query_id)
 
         logger.info(f"Deleted query '{selected_query_id}' from profile '{profile_id}'")
 
-        return "Query deleted successfully!"
+        # Refresh dropdown
+        queries = list_queries_for_profile(profile_id)
+        options = []
+        active_value = ""
+        for query in queries:
+            label = query.get("name", "Unnamed Query")
+            value = query.get("id", "")
+            if query.get("is_active", False):
+                label += " ★"
+                active_value = value
+            options.append({"label": label, "value": value})
+
+        logger.info(f"Query deleted successfully from profile '{profile_id}'")
+        return options, active_value
 
     except PermissionError as e:
         logger.warning(f"Query deletion prevented: {e}")
-        return str(e)
+        return no_update, no_update
 
     except ValueError as e:
         logger.warning(f"Query deletion validation failed: {e}")
-        return str(e)
+        return no_update, no_update
 
     except Exception as e:
         logger.error(f"Failed to delete query: {e}")
-        return f"Error deleting query: {e}"
+        error_msg = html.Div(
+            f"Error deleting query: {e}", className="text-danger small mt-2"
+        )
+        return error_msg, no_update, no_update

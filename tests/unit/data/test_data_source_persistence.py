@@ -31,6 +31,9 @@ class TestDataSourcePersistence:
 
     def test_load_app_settings_preserves_existing_settings(self):
         """Test that existing settings are loaded correctly"""
+        import tempfile
+        from pathlib import Path
+
         mock_settings = {
             "jql_query": "project = TEST",
             "jira_api_endpoint": "https://test.jira.com/rest/api/2/search",
@@ -39,18 +42,24 @@ class TestDataSourcePersistence:
             "active_jql_profile_id": "test-profile-id",
         }
 
-        with (
-            patch("data.persistence.os.path.exists", return_value=True),
-            patch("builtins.open", mock_open(read_data=json.dumps(mock_settings))),
-        ):
-            settings = load_app_settings()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            settings_file = Path(tmpdir) / "app_settings.json"
+            settings_file.write_text(json.dumps(mock_settings))
 
-            assert settings["last_used_data_source"] == "CSV"
-            assert settings["active_jql_profile_id"] == "test-profile-id"
-            assert settings["jql_query"] == "project = TEST"
+            with patch(
+                "data.persistence.get_active_query_workspace", return_value=Path(tmpdir)
+            ):
+                settings = load_app_settings()
+
+                assert settings["last_used_data_source"] == "CSV"
+                assert settings["active_jql_profile_id"] == "test-profile-id"
+                assert settings["jql_query"] == "project = TEST"
 
     def test_load_app_settings_handles_missing_new_fields(self):
         """Test backward compatibility when new fields are missing"""
+        import tempfile
+        from pathlib import Path
+
         # Simulate old settings file without new fields
         old_settings = {
             "jql_query": "project = OLD",
@@ -58,67 +67,69 @@ class TestDataSourcePersistence:
             "jira_token": "old-token",
         }
 
-        with (
-            patch("data.persistence.os.path.exists", return_value=True),
-            patch("builtins.open", mock_open(read_data=json.dumps(old_settings))),
-        ):
-            settings = load_app_settings()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            settings_file = Path(tmpdir) / "app_settings.json"
+            settings_file.write_text(json.dumps(old_settings))
 
-            # Should provide defaults for missing fields
-            assert settings["last_used_data_source"] == "JIRA"
-            assert settings["active_jql_profile_id"] == ""
+            with patch(
+                "data.persistence.get_active_query_workspace", return_value=Path(tmpdir)
+            ):
+                settings = load_app_settings()
 
-            # Should preserve existing fields
-            assert settings["jql_query"] == "project = OLD"
+                # Should provide defaults for missing fields
+                assert settings["last_used_data_source"] == "JIRA"
+                assert settings["active_jql_profile_id"] == ""
+
+                # Should preserve existing fields
+                assert settings["jql_query"] == "project = OLD"
 
     def test_save_app_settings_includes_new_fields(self):
         """Test that saving settings includes new data source fields"""
-        with (
-            patch("builtins.open", mock_open()) as mock_file,
-            patch("data.persistence.os.makedirs"),
-        ):
-            save_app_settings(
-                pert_factor=1.2,
-                deadline="2025-12-31",
-                # Note: JIRA config moved to modal (Feature 003)
-                # jql_query, jira_api_endpoint, jira_token, etc. no longer in app_settings
-                last_used_data_source="CSV",
-                active_jql_profile_id="profile-123",
-            )
+        import tempfile
+        from pathlib import Path
 
-            # Verify file was opened for writing
-            mock_file.assert_called()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with patch(
+                "data.persistence.get_active_query_workspace", return_value=Path(tmpdir)
+            ):
+                save_app_settings(
+                    pert_factor=1.2,
+                    deadline="2025-12-31",
+                    # Note: JIRA config moved to modal (Feature 003)
+                    # jql_query, jira_api_endpoint, jira_token, etc. no longer in app_settings
+                    last_used_data_source="CSV",
+                    active_jql_profile_id="profile-123",
+                )
 
-            # Get the written content
-            written_calls = [call for call in mock_file().write.call_args_list]
-            written_content = "".join([call[0][0] for call in written_calls])
+                # Read the written file
+                settings_file = Path(tmpdir) / "app_settings.json"
+                assert settings_file.exists()
 
-            # Parse and verify content
-            saved_data = json.loads(written_content)
-            assert saved_data["last_used_data_source"] == "CSV"
-            assert saved_data["active_jql_profile_id"] == "profile-123"
+                saved_data = json.loads(settings_file.read_text())
+                assert saved_data["last_used_data_source"] == "CSV"
+                assert saved_data["active_jql_profile_id"] == "profile-123"
 
     def test_save_app_settings_defaults_for_new_fields(self):
         """Test that new fields get defaults when not provided"""
-        with (
-            patch("builtins.open", mock_open()) as mock_file,
-            patch("data.persistence.os.makedirs"),
-        ):
-            save_app_settings(
-                pert_factor=1.0,
-                deadline="2025-11-30",
-                # Note: JIRA config moved to modal (Feature 003)
-                # Not providing new fields - should get defaults
-            )
+        import tempfile
+        from pathlib import Path
 
-            # Get the written content
-            written_calls = [call for call in mock_file().write.call_args_list]
-            written_content = "".join([call[0][0] for call in written_calls])
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with patch(
+                "data.persistence.get_active_query_workspace", return_value=Path(tmpdir)
+            ):
+                save_app_settings(
+                    pert_factor=1.0,
+                    deadline="2025-11-30",
+                    # Note: JIRA config moved to modal (Feature 003)
+                    # Not providing new fields - should get defaults
+                )
 
-            # Parse and verify defaults
-            saved_data = json.loads(written_content)
-            assert saved_data["last_used_data_source"] == "JIRA"
-            assert saved_data["active_jql_profile_id"] == ""
+                # Read the written file
+                settings_file = Path(tmpdir) / "app_settings.json"
+                saved_data = json.loads(settings_file.read_text())
+                assert saved_data["last_used_data_source"] == "JIRA"
+                assert saved_data["active_jql_profile_id"] == ""
 
     def test_load_app_settings_handles_corrupted_json(self):
         """Test graceful handling of corrupted settings file"""
@@ -151,8 +162,8 @@ class TestSettingsFileOperations:
 
     def test_round_trip_settings_persistence(self, temp_settings_file):
         """Integration test for save and load operations"""
-        # Test basic functionality without file path mocking
-        # This tests the core logic without complex file system interactions
+        import tempfile
+        from pathlib import Path
 
         test_settings = {
             "pert_factor": 1.5,
@@ -162,51 +173,47 @@ class TestSettingsFileOperations:
             "active_jql_profile_id": "roundtrip-profile-id",
         }
 
-        # Mock both save and load operations
-        with (
-            patch("builtins.open", mock_open()) as mock_file,
-            patch("data.persistence.os.makedirs"),
-            patch("data.persistence.os.path.exists", return_value=True),
-            patch("json.load", return_value=test_settings),
-        ):
-            from data.persistence import save_app_settings, load_app_settings
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with patch(
+                "data.persistence.get_active_query_workspace", return_value=Path(tmpdir)
+            ):
+                from data.persistence import save_app_settings, load_app_settings
 
-            # Save settings
-            save_app_settings(**test_settings)
+                # Save settings
+                save_app_settings(**test_settings)
 
-            # Verify save was called
-            mock_file.assert_called()
+                # Load settings back
+                loaded_settings = load_app_settings()
 
-            # Load settings back
-            loaded_settings = load_app_settings()
-
-            # Verify persistence worked
-            assert loaded_settings["jql_query"] == "project = ROUNDTRIP"
-            assert loaded_settings["last_used_data_source"] == "CSV"
-            assert loaded_settings["active_jql_profile_id"] == "roundtrip-profile-id"
+                # Verify persistence worked
+                assert loaded_settings["jql_query"] == "project = ROUNDTRIP"
+                assert loaded_settings["last_used_data_source"] == "CSV"
+                assert (
+                    loaded_settings["active_jql_profile_id"] == "roundtrip-profile-id"
+                )
 
     def test_settings_directory_creation(self, temp_settings_file):
         """Test that settings save operation completes successfully"""
-        # Test that the save operation works without directory creation issues
-        # Since APP_SETTINGS_FILE is just a filename in the current directory,
-        # no directory creation is needed
+        import tempfile
+        from pathlib import Path
 
-        with (
-            patch("builtins.open", mock_open()) as mock_file,
-            patch("data.persistence.os.path.exists", return_value=False),
-            patch("data.persistence.os.rename") as mock_rename,
-        ):
-            from data.persistence import save_app_settings
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with patch(
+                "data.persistence.get_active_query_workspace", return_value=Path(tmpdir)
+            ):
+                from data.persistence import save_app_settings
 
-            save_app_settings(
-                pert_factor=1.0,
-                deadline="2025-12-01",
-                jql_query="project = MKDIR",
-                last_used_data_source="JIRA",
-            )
+                save_app_settings(
+                    pert_factor=1.0,
+                    deadline="2025-12-01",
+                    jql_query="project = MKDIR",
+                    last_used_data_source="JIRA",
+                )
 
-            # Verify file writing was attempted
-            mock_file.assert_called()
+                # Verify file was created
+                settings_file = Path(tmpdir) / "app_settings.json"
+                assert settings_file.exists()
 
-            # Verify rename operation was attempted (atomic file save)
-            mock_rename.assert_called()
+                # Verify content is valid JSON
+                saved_data = json.loads(settings_file.read_text())
+                assert saved_data["jql_query"] == "project = MKDIR"

@@ -293,6 +293,23 @@ def create_query(profile_id: str, name: str, jql: str) -> str:
     with open(query_file, "w", encoding="utf-8") as f:
         json.dump(query_data, f, indent=2)
 
+    # Update profiles.json to add query to profile's queries list
+    if PROFILES_FILE.exists():
+        with open(PROFILES_FILE, "r", encoding="utf-8") as f:
+            profiles_data = json.load(f)
+
+        if profile_id in profiles_data.get("profiles", {}):
+            if "queries" not in profiles_data["profiles"][profile_id]:
+                profiles_data["profiles"][profile_id]["queries"] = []
+            if query_id not in profiles_data["profiles"][profile_id]["queries"]:
+                profiles_data["profiles"][profile_id]["queries"].append(query_id)
+
+        # Atomic write
+        temp_file = PROFILES_FILE.with_suffix(".tmp")
+        with open(temp_file, "w", encoding="utf-8") as f:
+            json.dump(profiles_data, f, indent=2)
+        temp_file.replace(PROFILES_FILE)
+
     logger.info(f"Created query '{query_id}' in profile '{profile_id}'")
 
     return query_id
@@ -351,5 +368,21 @@ def delete_query(profile_id: str, query_id: str) -> None:
 
     # Delete directory and all contents
     shutil.rmtree(query_dir)
+
+    # Update profiles.json to remove query from profile's queries list
+    if PROFILES_FILE.exists():
+        with open(PROFILES_FILE, "r", encoding="utf-8") as f:
+            profiles_data = json.load(f)
+
+        if profile_id in profiles_data.get("profiles", {}):
+            if "queries" in profiles_data["profiles"][profile_id]:
+                if query_id in profiles_data["profiles"][profile_id]["queries"]:
+                    profiles_data["profiles"][profile_id]["queries"].remove(query_id)
+
+        # Atomic write
+        temp_file = PROFILES_FILE.with_suffix(".tmp")
+        with open(temp_file, "w", encoding="utf-8") as f:
+            json.dump(profiles_data, f, indent=2)
+        temp_file.replace(PROFILES_FILE)
 
     logger.info(f"Deleted query '{query_id}' from profile '{profile_id}'")

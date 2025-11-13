@@ -206,25 +206,42 @@ class TestSaveAndLoadFieldMappings:
 
     def test_save_preserves_existing_settings(self, temp_settings_file):
         """Test that saving mappings preserves other settings."""
-        # Patch APP_SETTINGS_FILE
-        with (
-            patch("data.field_mapper.APP_SETTINGS_FILE", temp_settings_file),
-            patch("data.persistence.APP_SETTINGS_FILE", temp_settings_file),
-        ):
-            # Save mappings
-            mappings = {
-                "field_mappings": {"dora": {"deployment_date": "customfield_10100"}}
+        from pathlib import Path
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create initial settings file
+            settings_file = Path(tmpdir) / "app_settings.json"
+            initial_settings = {
+                "pert_factor": 1.5,
+                "deadline": "2025-12-31",
             }
-            save_field_mappings(mappings)
+            settings_file.write_text(json.dumps(initial_settings))
 
-            # Verify existing settings are preserved
-            with open(temp_settings_file, "r") as f:
-                settings = json.load(f)
+            # Patch both persistence and field_mapper
+            with (
+                patch(
+                    "data.persistence.get_active_query_workspace",
+                    return_value=Path(tmpdir),
+                ),
+                patch(
+                    "data.field_mapper.get_active_query_workspace",
+                    return_value=Path(tmpdir),
+                ),
+            ):
+                # Save mappings
+                mappings = {
+                    "field_mappings": {"dora": {"deployment_date": "customfield_10100"}}
+                }
+                save_field_mappings(mappings)
 
-            assert settings["pert_factor"] == 1.5
-            assert settings["deadline"] == "2025-12-31"
-            # field_mappings should be saved in flat structure
-            assert "field_mappings" in settings
+                # Verify existing settings are preserved
+                settings = json.loads(settings_file.read_text())
+
+                assert settings["pert_factor"] == 1.5
+                assert settings["deadline"] == "2025-12-31"
+                # field_mappings should be saved in flat structure
+                assert "field_mappings" in settings
 
 
 class TestFieldMappingsHash:
@@ -252,24 +269,37 @@ class TestFieldMappingsHash:
 
     def test_hash_changes_on_mapping_change(self, temp_settings_file):
         """Test hash changes when mappings change."""
-        with (
-            patch("data.field_mapper.APP_SETTINGS_FILE", temp_settings_file),
-            patch("data.persistence.APP_SETTINGS_FILE", temp_settings_file),
-        ):
-            # Save first mapping
-            mappings1 = {
-                "field_mappings": {"dora": {"deployment_date": "customfield_10100"}}
-            }
-            save_field_mappings(mappings1)
-            hash1 = get_field_mappings_hash()
+        from pathlib import Path
+        import tempfile
 
-            # Save different mapping
-            mappings2 = {
-                "field_mappings": {
-                    "dora": {"deployment_date": "customfield_10101"}  # Different field
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Patch both persistence and field_mapper
+            with (
+                patch(
+                    "data.persistence.get_active_query_workspace",
+                    return_value=Path(tmpdir),
+                ),
+                patch(
+                    "data.field_mapper.get_active_query_workspace",
+                    return_value=Path(tmpdir),
+                ),
+            ):
+                # Save first mapping
+                mappings1 = {
+                    "field_mappings": {"dora": {"deployment_date": "customfield_10100"}}
                 }
-            }
-            save_field_mappings(mappings2)
-            hash2 = get_field_mappings_hash()
+                save_field_mappings(mappings1)
+                hash1 = get_field_mappings_hash()
 
-            assert hash1 != hash2
+                # Save different mapping
+                mappings2 = {
+                    "field_mappings": {
+                        "dora": {
+                            "deployment_date": "customfield_10101"
+                        }  # Different field
+                    }
+                }
+                save_field_mappings(mappings2)
+                hash2 = get_field_mappings_hash()
+
+                assert hash1 != hash2

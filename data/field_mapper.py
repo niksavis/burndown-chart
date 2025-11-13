@@ -9,6 +9,7 @@ Reference: DORA_Flow_Jira_Mapping.md
 import hashlib
 import json
 import logging
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import requests
@@ -16,6 +17,10 @@ import requests
 from configuration.settings import APP_SETTINGS_FILE
 from data.persistence import load_app_settings, load_jira_configuration
 from data.performance_utils import FieldMappingIndex
+from data.profile_manager import (
+    get_active_profile_workspace,
+    get_active_query_workspace,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -260,8 +265,11 @@ def save_field_mappings(mappings: Dict) -> bool:
         if "field_metadata" in mappings:
             settings["field_metadata"] = mappings["field_metadata"]
 
-        # Write directly to JSON file
-        with open(APP_SETTINGS_FILE, "w") as f:
+        # Get profile-level path (field mappings shared across all queries)
+        workspace = get_active_profile_workspace()
+        settings_file = workspace / "app_settings.json"
+
+        with open(str(settings_file), "w") as f:
             json.dump(settings, f, indent=2)
 
         logger.info("Successfully saved field mappings to app_settings.json")

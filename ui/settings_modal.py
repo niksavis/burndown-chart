@@ -444,13 +444,6 @@ def create_save_query_modal():
                         rows=3,
                         className="mb-3",
                     ),
-                    # Set as Default Checkbox
-                    dbc.Checkbox(
-                        id="save-query-set-default-checkbox",
-                        label="Set as default query",
-                        value=False,
-                        className="mb-2",
-                    ),
                 ]
             ),
             dbc.ModalFooter(
@@ -586,13 +579,6 @@ def create_edit_query_modal():
                         placeholder="project = MYPROJECT",
                         rows=4,
                         className="mb-3",
-                    ),
-                    # Set as Default Checkbox
-                    dbc.Checkbox(
-                        id="edit-query-set-default-checkbox",
-                        label="Set as default query",
-                        value=False,
-                        className="mb-2",
                     ),
                 ]
             ),

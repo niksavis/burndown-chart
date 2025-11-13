@@ -31,6 +31,10 @@ from configuration import (
     SETTINGS_FILE,
     logger,
 )
+from data.profile_manager import (
+    get_active_profile_workspace,
+    get_active_query_workspace,
+)
 
 #######################################################################
 # DATA PERSISTENCE FUNCTIONS
@@ -210,18 +214,22 @@ def save_app_settings(
         logger.error(f"[Config] Could not load existing settings: {e}")
 
     try:
+        # Get profile-level path (settings shared across all queries)
+        workspace = get_active_profile_workspace()
+        settings_file = workspace / "app_settings.json"
+
         # Write to a temporary file first
-        temp_file = f"{APP_SETTINGS_FILE}.tmp"
+        temp_file = str(settings_file) + ".tmp"
         with open(temp_file, "w") as f:
             json.dump(settings, f, indent=2)
 
         # Rename to final file (atomic operation)
-        if os.path.exists(APP_SETTINGS_FILE):
-            os.remove(APP_SETTINGS_FILE)
-        os.rename(temp_file, APP_SETTINGS_FILE)
+        if settings_file.exists():
+            os.remove(str(settings_file))
+        os.rename(temp_file, str(settings_file))
 
         logger.info(
-            f"[Config] Settings saved to {APP_SETTINGS_FILE}. Keys: {list(settings.keys())}"
+            f"[Config] Settings saved to {settings_file}. Keys: {list(settings.keys())}"
         )
     except Exception as e:
         logger.error(f"[Config] Error saving app settings: {e}")
@@ -252,11 +260,15 @@ def load_app_settings():
     }
 
     try:
+        # Get profile-level path (settings shared across all queries)
+        workspace = get_active_profile_workspace()
+        settings_file = workspace / "app_settings.json"
+
         # Check if new app_settings.json exists
-        if os.path.exists(APP_SETTINGS_FILE):
-            with open(APP_SETTINGS_FILE, "r") as f:
+        if settings_file.exists():
+            with open(str(settings_file), "r") as f:
                 settings = json.load(f)
-            logger.info(f"[Config] Settings loaded from {APP_SETTINGS_FILE}")
+            logger.info(f"[Config] Settings loaded from {settings_file}")
 
             # Add default values for new fields if they don't exist
             for key, default_value in default_settings.items():
@@ -362,17 +374,21 @@ def save_project_data(
     }
 
     try:
+        # Get profile-aware path
+        workspace = get_active_query_workspace()
+        project_file = workspace / "project_data.json"
+
         # Write to a temporary file first
-        temp_file = f"{PROJECT_DATA_FILE}.tmp"
+        temp_file = str(project_file) + ".tmp"
         with open(temp_file, "w") as f:
             json.dump(project_data, f, indent=2)
 
         # Rename to final file (atomic operation)
-        if os.path.exists(PROJECT_DATA_FILE):
-            os.remove(PROJECT_DATA_FILE)
-        os.rename(temp_file, PROJECT_DATA_FILE)
+        if project_file.exists():
+            os.remove(str(project_file))
+        os.rename(temp_file, str(project_file))
 
-        logger.info(f"[Cache] Project data saved to {PROJECT_DATA_FILE}")
+        logger.info(f"[Cache] Project data saved to {project_file}")
     except Exception as e:
         logger.error(f"[Cache] Error saving project data: {e}")
 
@@ -393,10 +409,14 @@ def load_project_data():
     }
 
     try:
-        if os.path.exists(PROJECT_DATA_FILE):
-            with open(PROJECT_DATA_FILE, "r") as f:
+        # Get profile-aware path
+        workspace = get_active_query_workspace()
+        project_file = workspace / "project_data.json"
+
+        if project_file.exists():
+            with open(str(project_file), "r") as f:
                 project_data = json.load(f)
-            logger.info(f"[Cache] Project data loaded from {PROJECT_DATA_FILE}")
+            logger.info(f"[Cache] Project data loaded from {project_file}")
 
             # Add default values for new fields if they don't exist
             for key, default_value in default_data.items():
@@ -1397,9 +1417,13 @@ def load_jira_configuration() -> Dict[str, Any]:
 
         # Save migrated settings back to file
         try:
-            with open(APP_SETTINGS_FILE, "w") as f:
+            workspace = get_active_profile_workspace()
+            settings_file = workspace / "app_settings.json"
+            with open(str(settings_file), "w") as f:
                 json.dump(app_settings, f, indent=2)
-            logger.info("[Config] Saved migrated JIRA configuration")
+            logger.info(
+                f"[Config] Saved migrated JIRA configuration to {settings_file}"
+            )
         except Exception as e:
             logger.error(f"[Config] Error saving migrated JIRA configuration: {e}")
 
@@ -1425,9 +1449,11 @@ def load_jira_configuration() -> Dict[str, Any]:
 
         # Save cleaned settings
         try:
-            with open(APP_SETTINGS_FILE, "w") as f:
+            workspace = get_active_profile_workspace()
+            settings_file = workspace / "app_settings.json"
+            with open(str(settings_file), "w") as f:
                 json.dump(app_settings, f, indent=2)
-            logger.info("[Config] Removed legacy JIRA fields")
+            logger.info(f"[Config] Removed legacy JIRA fields from {settings_file}")
         except Exception as e:
             logger.error(f"[Config] Error saving cleaned JIRA configuration: {e}")
 
@@ -1512,7 +1538,7 @@ def validate_jira_config(config: Dict[str, Any]) -> tuple[bool, str]:
 
 def save_jira_configuration(config: Dict[str, Any]) -> bool:
     """
-    Save JIRA configuration to app_settings.json.
+    Save JIRA configuration to app_settings.json in active query workspace.
 
     Args:
         config: Configuration dictionary with JIRA settings
@@ -1533,11 +1559,14 @@ def save_jira_configuration(config: Dict[str, Any]) -> bool:
         # Update jira_config section
         app_settings["jira_config"] = config
 
-        # Save back to file
-        with open(APP_SETTINGS_FILE, "w") as f:
+        # Get profile-level path (JIRA config shared across all queries)
+        workspace = get_active_profile_workspace()
+        settings_file = workspace / "app_settings.json"
+
+        with open(str(settings_file), "w") as f:
             json.dump(app_settings, f, indent=2)
 
-        logger.info("[Config] JIRA configuration saved successfully")
+        logger.info(f"[Config] JIRA configuration saved to {settings_file}")
         return True
 
     except Exception as e:
@@ -1820,11 +1849,15 @@ def save_parameter_panel_state(is_open: bool, user_preference: bool = True) -> b
         # Update app settings
         app_settings["parameter_panel_state"] = panel_state
 
-        # Save to file
-        with open(APP_SETTINGS_FILE, "w") as f:
+        # Save to file using profile-level path
+        workspace = get_active_profile_workspace()
+        settings_file = workspace / "app_settings.json"
+        with open(str(settings_file), "w") as f:
             json.dump(app_settings, f, indent=2)
 
-        logger.debug(f"[Config] Parameter panel state saved: is_open={is_open}")
+        logger.debug(
+            f"[Config] Parameter panel state saved to {settings_file}: is_open={is_open}"
+        )
         return True
 
     except Exception as e:

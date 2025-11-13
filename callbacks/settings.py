@@ -1600,60 +1600,9 @@ def register(app):
             logger.error(f"[Settings] Error getting profile status: {e}")
             return ""
 
-    @app.callback(
-        [
-            Output("edit-query-modal", "is_open"),
-            Output("edit-query-name-input", "value"),
-            Output("edit-query-description-input", "value"),
-            Output("edit-query-jql-input", "value"),
-            Output("edit-query-set-default-checkbox", "value"),
-        ],
-        [
-            Input("edit-jql-query-button", "n_clicks"),
-            Input("cancel-edit-query-button", "n_clicks"),
-            Input("confirm-edit-query-button", "n_clicks"),
-        ],
-        [State("jira-query-profile-selector", "value")],
-        prevent_initial_call=True,
-    )
-    def handle_edit_query_modal(
-        edit_clicks, cancel_clicks, confirm_clicks, current_profile_id
-    ):
-        """Handle opening/closing edit query modal and populate fields."""
-        ctx = callback_context
-        if not ctx.triggered:
-            raise PreventUpdate
-
-        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
-
-        if trigger_id == "edit-jql-query-button":
-            if not current_profile_id or current_profile_id == "custom":
-                raise PreventUpdate
-
-            try:
-                from data.jira_query_manager import get_query_profile_by_id
-
-                profile = get_query_profile_by_id(current_profile_id)
-                if profile:
-                    return (
-                        True,
-                        profile["name"],
-                        profile.get("description", ""),
-                        profile["jql"],
-                        profile.get("is_default", False),
-                    )
-                else:
-                    raise PreventUpdate
-
-            except Exception as e:
-                logger.error(f"[Settings] Error loading profile for edit: {e}")
-                raise PreventUpdate
-
-        # Close modal when cancel or confirm clicked
-        elif trigger_id in ["cancel-edit-query-button", "confirm-edit-query-button"]:
-            return False, no_update, no_update, no_update, no_update
-
-        raise PreventUpdate
+    # NOTE: Old edit query modal callback removed - replaced by query_switching.py callback
+    # Old callback used edit-jql-query-button which doesn't exist in Phase 4 UI
+    # New callback in query_switching.py uses edit-query-btn and query_manager functions
 
     @app.callback(
         [
@@ -1671,7 +1620,6 @@ def register(app):
             State("edit-query-description-input", "value"),
             State("edit-query-jql-input", "value"),
             State("jira-query-profile-selector", "value"),
-            State("edit-query-set-default-checkbox", "value"),
         ],
         prevent_initial_call=True,
     )
@@ -1681,7 +1629,6 @@ def register(app):
         description,
         jql_value,
         current_profile_id,
-        set_as_default,
     ):
         """Update existing JQL query profile and refresh the editor."""
         if not edit_clicks or not current_profile_id or current_profile_id == "custom":
@@ -1709,9 +1656,7 @@ def register(app):
         try:
             from data.jira_query_manager import (
                 load_query_profiles,
-                remove_default_query,
                 save_query_profile,
-                set_default_query,
             )
 
             # Update the profile
@@ -1724,18 +1669,6 @@ def register(app):
 
             if updated_profile:
                 logger.info(f"Updated query profile: {updated_profile['name']}")
-
-                # Handle default setting
-                if set_as_default:
-                    set_default_query(current_profile_id)
-                else:
-                    # If profile was default but checkbox is unchecked, remove default
-                    profiles = load_query_profiles()
-                    current_profile = next(
-                        (p for p in profiles if p["id"] == current_profile_id), None
-                    )
-                    if current_profile and current_profile.get("is_default"):
-                        remove_default_query()
 
                 # Reload options
                 updated_options = []

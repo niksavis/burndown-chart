@@ -194,6 +194,8 @@ def create_app_layout(settings, statistics, is_sample_data):
             create_query_creation_modal(),
             # Help System (Phase 9.2 Progressive Disclosure)
             create_help_system_layout(),
+            # URL location for triggering page load callbacks
+            dcc.Location(id="url", refresh=False),
             # Page initialization complete flag (hidden)
             dcc.Store(id="app-init-complete", data=False),
             # Persistent storage for the current data
