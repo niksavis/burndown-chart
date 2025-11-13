@@ -119,6 +119,65 @@ As an existing user with saved JIRA cache and project data, I want the system to
 
 - **What happens when user switches profiles while JIRA data is loading?** System cancels the in-progress JIRA fetch operation, switches profiles, and starts fresh fetch for the new profile's active query.
 
+## UI Design Decisions *(approved 2025-11-13)*
+
+### Visual Design Choices
+
+#### Profile & Query Selector Layout
+- **Visual Hierarchy**: Equal visual weight for profile and query selectors (Option 1A)
+  - Both use same dropdown size and button styling
+  - Clear separation with labels ("Profile" vs "Query")
+- **Layout Pattern**: Side-by-side on desktop (8-col dropdown + 4-col buttons), responsive stack on mobile <768px (Option 4A+B)
+  - Desktop: `[Profile Dropdown (8 cols)] [Buttons (4 cols)]`
+  - Mobile: Full-width dropdown, buttons below
+- **Profile Metadata**: Tooltip on profile name showing JIRA URL, PERT factor, query count (Option 2A)
+  - Hover/tap profile name → tooltip with details
+  - Upgrade to inline display in Phase 8 polish
+- **Loading States**: Reuse existing skeleton screen from `ui/empty_states.py` (Option 3A)
+  - Shows placeholder cards during profile/query switch
+  - Consistent with existing app loading patterns
+- **Modal Style**: Centered Bootstrap modals with dimmed background (Option 5A)
+  - Matches existing JIRA config modal style
+  - Consistent user experience
+- **Empty State**: Inline message with CTA button when profile has no queries (Option 6A)
+  - Shows in query selector area: "🔍 No queries in this profile yet. [Create Your First Query →]"
+  - Reuses existing empty state patterns
+- **Name Validation**: Real-time validation in modal forms (Option 7A)
+  - Live feedback as user types: "✓ Name available" or "✗ Name already exists"
+  - Prevents form submission errors
+- **Mobile Navigation**: Vertical stack using Bootstrap responsive classes (Option 8A)
+  - Profile selector full-width, query selector below, buttons stack
+  - Leverages existing responsive patterns
+
+### Component Structure
+
+```
+Settings Panel (Collapsible)
+├── JIRA Integration Header (unchanged)
+├── Profile Selector (NEW)
+│   ├── Label: "Profile"
+│   ├── Dropdown: Shows all profiles with tooltip on hover
+│   └── Button Group: [Create] [Duplicate] [Delete]
+├── Query Selector (REPLACES "Saved Queries")
+│   ├── Label: "Query"
+│   ├── Dropdown: Shows queries in active profile
+│   └── Button Group: [Create] [Duplicate] [Delete]
+├── JQL Query Editor (unchanged - populated from selected query)
+└── Action Buttons (unchanged)
+```
+
+### Responsive Behavior
+
+**Desktop (≥768px)**:
+- Profile: `[Dropdown (8 cols)] [Buttons (4 cols)]`
+- Query: `[Dropdown (8 cols)] [Buttons (4 cols)]`
+
+**Mobile (<768px)**:
+- Profile: `[Dropdown (12 cols)]`
+           `[Buttons (12 cols, centered)]`
+- Query: `[Dropdown (12 cols)]`
+         `[Buttons (12 cols, centered)]`
+
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
@@ -174,23 +233,30 @@ As an existing user with saved JIRA cache and project data, I want the system to
 
 #### UI Integration
 
-- **FR-032**: System MUST display profile selector dropdown in settings panel showing all profiles
-- **FR-033**: System MUST display query selector dropdown showing all queries in active profile
-- **FR-034**: System MUST provide "Create Profile" button that opens modal dialog for profile creation
-- **FR-035**: System MUST provide "Create Query" button that opens modal dialog for query creation
+- **FR-032**: System MUST display profile selector dropdown in settings panel showing all profiles with equal visual weight to query selector
+- **FR-033**: System MUST display query selector dropdown showing all queries in active profile (replaces current "Saved Queries" section)
+- **FR-034**: System MUST provide "Create Profile" button that opens centered Bootstrap modal dialog for profile creation
+- **FR-035**: System MUST provide "Create Query" button that opens centered Bootstrap modal dialog for query creation
 - **FR-036**: System MUST provide "Duplicate Profile" button that clones active profile
 - **FR-037**: System MUST provide "Delete Profile" button (disabled when active or only one profile)
 - **FR-038**: System MUST provide "Duplicate Query" button that clones active query
 - **FR-039**: System MUST provide "Delete Query" button (disabled when active or only one query in profile)
+- **FR-040**: System MUST display profile metadata (JIRA URL, PERT factor, query count) in tooltip on profile name hover/tap
+- **FR-041**: System MUST use existing skeleton screen loading pattern during profile/query switches
+- **FR-042**: System MUST show inline empty state message with "Create Your First Query" CTA when profile has no queries
+- **FR-043**: System MUST provide real-time name validation in creation modals showing "✓ Name available" or "✗ Name already exists"
+- **FR-044**: System MUST use responsive layout: side-by-side (8-col dropdown + 4-col buttons) on desktop, vertical stack on mobile <768px
+- **FR-045**: System MUST position profile selector above query selector in settings panel
+- **FR-046**: System MUST populate JQL editor with selected query's JQL string automatically on query switch
 
 #### Validation & Safety
 
-- **FR-040**: System MUST validate profile names are unique (case-insensitive) before creation
-- **FR-041**: System MUST validate query names are unique within profile (case-insensitive) before creation
-- **FR-042**: System MUST validate JQL syntax before creating query (basic syntax check)
-- **FR-043**: System MUST validate PERT factor is between 1.0 and 3.0
-- **FR-044**: System MUST show confirmation dialog before deleting profile (requiring user to type profile name)
-- **FR-045**: System MUST show confirmation dialog before deleting query (requiring user to type query name)
+- **FR-047**: System MUST validate profile names are unique (case-insensitive) with real-time feedback in creation modal
+- **FR-048**: System MUST validate query names are unique within profile (case-insensitive) with real-time feedback in creation modal
+- **FR-049**: System MUST validate JQL syntax before creating query (basic syntax check)
+- **FR-050**: System MUST validate PERT factor is between 1.0 and 3.0
+- **FR-051**: System MUST show confirmation dialog before deleting profile (requiring user to type profile name)
+- **FR-052**: System MUST show confirmation dialog before deleting query (requiring user to type query name)
 
 ### Key Entities
 

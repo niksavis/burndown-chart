@@ -112,17 +112,18 @@ This project uses Python Dash PWA structure at repository root:
 - [ ] T037 [US1] Implement `data/query_manager.py::delete_query()` - validate safety checks (not active, not last query), remove directory
 - [ ] T038 [US1] Implement `data/query_manager.py::duplicate_query()` - copy query workspace, reset timestamps, create new query ID
 - [ ] T039 [US1] Implement `data/query_manager.py::get_queries_for_profile()` - load queries list from profile.json
-- [ ] T040 [US1] Create `ui/query_selector.py` component - query dropdown with current selection highlighting
-- [ ] T041 [US1] Add query management buttons to `ui/query_selector.py` - "Create Query", "Duplicate Query", "Delete Query" buttons
-- [ ] T042 [US1] Create `ui/query_create_modal.py` component - modal dialog with name, JQL, description fields
-- [ ] T043 [US1] Create `ui/query_delete_modal.py` component - type-to-confirm deletion modal
-- [ ] T044 [US1] Create `callbacks/query_management.py::handle_query_switch()` callback - switch query, trigger page reload
-- [ ] T045 [US1] Create `callbacks/query_management.py::handle_create_query()` callback - validate form, call create_query(), update dropdown
-- [ ] T046 [US1] Create `callbacks/query_management.py::handle_delete_query()` callback - validate confirmation, call delete_query(), update dropdown
-- [ ] T047 [US1] Create `callbacks/query_management.py::handle_duplicate_query()` callback - call duplicate_query(), update dropdown
-- [ ] T048 [US1] Integrate query selector into `ui/layout.py` or settings panel - position above JQL editor
-- [ ] T049 [US1] Add "Last Updated" timestamp display to query selector in `ui/query_selector.py`
-- [ ] T050 [US1] Add JQL syntax validation to query creation modal in `ui/query_create_modal.py`
+- [ ] T040 [US1] Create `ui/query_selector.py` component - query dropdown (8 cols) with button group (4 cols), responsive stack on mobile, includes empty state for no queries
+- [ ] T041 [US1] Add query management buttons to `ui/query_selector.py` - button group with [Create] [Duplicate] [Delete] buttons, disabled states for delete
+- [ ] T042 [US1] Create `ui/query_create_modal.py` component - centered Bootstrap modal with name, JQL, description fields, real-time name validation ("✓ available" or "✗ exists")
+- [ ] T043 [US1] Create `ui/query_delete_modal.py` component - centered Bootstrap modal with type-to-confirm deletion pattern
+- [ ] T044 [US1] Create `callbacks/query_management.py::handle_query_switch()` callback - switch query, show skeleton screen, trigger page reload, populate JQL editor with query's JQL
+- [ ] T045 [US1] Create `callbacks/query_management.py::handle_create_query()` callback - validate form with real-time name check, call create_query(), update dropdown, show success message
+- [ ] T046 [US1] Create `callbacks/query_management.py::handle_delete_query()` callback - validate confirmation text matches query name, call delete_query(), update dropdown
+- [ ] T047 [US1] Create `callbacks/query_management.py::handle_duplicate_query()` callback - call duplicate_query(), update dropdown, switch to new query
+- [ ] T047a [US1] Create `callbacks/query_management.py::validate_query_name_realtime()` callback - check name uniqueness while user types in creation modal
+- [ ] T048 [US1] Integrate query selector into `ui/settings_panel.py` - replace "Saved Queries" section, position below profile selector, above JQL editor
+- [ ] T049 [US1] Add "Last Updated" timestamp display to query selector tooltip in `ui/query_selector.py`
+- [ ] T050 [US1] Add real-time JQL syntax validation to query creation modal in `ui/query_create_modal.py` - show error message for invalid syntax
 
 **Checkpoint**: Users can create multiple queries and switch between them in <50ms with cache preservation
 
@@ -175,16 +176,17 @@ This project uses Python Dash PWA structure at repository root:
 - [ ] T069 [US3] Implement `data/profile_manager.py::switch_profile()` - update active_profile_id, update last_used timestamp, set active_query_id to most recent
 - [ ] T070 [US3] Implement `data/profile_manager.py::delete_profile()` - validate safety checks (not active, not last), remove directory
 - [ ] T071 [US3] Implement `data/profile_manager.py::duplicate_profile()` - copy profile workspace, reset timestamps, create new profile ID
-- [ ] T072 [US3] Create `ui/profile_selector.py` component - profile dropdown with current selection highlighting
-- [ ] T073 [US3] Add profile management buttons to `ui/profile_selector.py` - "Create Profile", "Duplicate Profile", "Delete Profile" buttons
-- [ ] T074 [US3] Create `ui/profile_create_modal.py` component - modal with name, description, clone_from_active toggle
-- [ ] T075 [US3] Create `ui/profile_delete_modal.py` component - type-to-confirm deletion modal
-- [ ] T076 [US3] Create `callbacks/profile_management.py::handle_profile_switch()` callback - switch profile, trigger page reload
-- [ ] T077 [US3] Create `callbacks/profile_management.py::handle_create_profile()` callback - validate form, call create_profile(), update dropdown
-- [ ] T078 [US3] Create `callbacks/profile_management.py::handle_delete_profile()` callback - validate confirmation, call delete_profile(), update dropdown
-- [ ] T079 [US3] Create `callbacks/profile_management.py::handle_duplicate_profile()` callback - call duplicate_profile(), update dropdown
-- [ ] T080 [US3] Integrate profile selector into `ui/layout.py` or settings panel - position above query selector
-- [ ] T081 [US3] Add profile metadata display to `ui/profile_selector.py` - show JIRA URL, PERT factor, query count
+- [ ] T072 [US3] Create `ui/profile_selector.py` component - profile dropdown (8 cols) with button group (4 cols), responsive stack on mobile, tooltip showing JIRA URL/PERT/query count on profile name hover
+- [ ] T073 [US3] Add profile management buttons to `ui/profile_selector.py` - button group with [Create] [Duplicate] [Delete] buttons, disabled states for delete
+- [ ] T074 [US3] Create `ui/profile_create_modal.py` component - centered Bootstrap modal with name, description, clone_from_active toggle, real-time name validation ("✓ available" or "✗ exists")
+- [ ] T075 [US3] Create `ui/profile_delete_modal.py` component - centered Bootstrap modal with type-to-confirm deletion pattern
+- [ ] T076 [US3] Create `callbacks/profile_management.py::handle_profile_switch()` callback - switch profile, show skeleton screen, trigger page reload, load most recent query from profile
+- [ ] T077 [US3] Create `callbacks/profile_management.py::handle_create_profile()` callback - validate form with real-time name check, call create_profile(), update dropdown, show success message
+- [ ] T078 [US3] Create `callbacks/profile_management.py::handle_delete_profile()` callback - validate confirmation text matches profile name, call delete_profile(), update dropdown
+- [ ] T079 [US3] Create `callbacks/profile_management.py::handle_duplicate_profile()` callback - call duplicate_profile(), update dropdown, switch to new profile
+- [ ] T079a [US3] Create `callbacks/profile_management.py::validate_profile_name_realtime()` callback - check name uniqueness while user types in creation modal
+- [ ] T080 [US3] Integrate profile selector into `ui/settings_panel.py` - position at top of JIRA Integration section, above query selector
+- [ ] T081 [US3] Add profile metadata tooltip to `ui/profile_selector.py` - show JIRA URL, PERT factor, query count on profile name hover/tap
 
 **Checkpoint**: Users can manage multiple profiles with different JIRA instances and switch between them in <100ms
 
@@ -215,8 +217,8 @@ This project uses Python Dash PWA structure at repository root:
 - [ ] T087 [P] Add profile/query validation schema to `data/schema.py` - JSON schema for profile.json and query.json
 - [ ] T088 [P] Add error recovery for corrupted profile workspace in `data/profile_manager.py::detect_corrupted_profile()` - auto-switch to default
 - [ ] T089 [P] Add profile switching cancellation logic in `callbacks/profile_management.py` - cancel in-progress JIRA fetch when switching
-- [ ] T090 [P] Add helpful tooltips to `ui/profile_selector.py` and `ui/query_selector.py` - explain Profile vs Query difference
-- [ ] T091 [P] Add onboarding tutorial for first-time profile users in `ui/profile_onboarding_modal.py` - show on first profile creation
+- [ ] T090 [P] Add helpful tooltips to profile/query labels in `ui/profile_selector.py` and `ui/query_selector.py` - explain Profile vs Query difference (using existing help_system.py pattern)
+- [ ] T091 [P] Add onboarding tutorial for first-time profile users in `ui/profile_onboarding_modal.py` - show centered Bootstrap modal on first profile creation explaining profile/query hierarchy
 - [ ] T092 [P] Update README.md with profile/query management section - user guide with screenshots
 - [ ] T093 [P] Create troubleshooting guide in docs/troubleshooting-profiles.md - common issues and solutions
 - [ ] T094 [P] Add profile analytics to `data/profile_manager.py::get_profile_statistics()` - track profile usage, cache sizes
