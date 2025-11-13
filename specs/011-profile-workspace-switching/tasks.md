@@ -26,10 +26,10 @@ This project uses Python Dash PWA structure at repository root:
 
 **Purpose**: Project initialization and test fixtures for profile/query isolation
 
-- [ ] T001 Create `tests/fixtures/temp_profiles_dir.py` fixture with tempfile.TemporaryDirectory() for test isolation
-- [ ] T002 Create `tests/fixtures/sample_profile_data.py` fixture with realistic profile/query test data
-- [ ] T003 [P] Create `tests/fixtures/sample_jira_cache.py` fixture with mock JIRA response data
-- [ ] T004 [P] Update pytest.ini to include profile management test markers (profile_tests, migration_tests, performance_tests)
+- [x] T001 Create `tests/fixtures/temp_profiles_dir.py` fixture with tempfile.TemporaryDirectory() for test isolation
+- [x] T002 Create `tests/fixtures/sample_profile_data.py` fixture with realistic profile/query test data
+- [x] T003 [P] Create `tests/fixtures/sample_jira_cache.py` fixture with mock JIRA response data
+- [x] T004 [P] Update pytest.ini to include profile management test markers (profile_tests, migration_tests, performance_tests)
 
 ---
 
@@ -39,13 +39,13 @@ This project uses Python Dash PWA structure at repository root:
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete - all existing code depends on this
 
-- [ ] T005 Add path abstraction functions to `data/persistence.py`: get_active_profile_workspace(), get_active_query_workspace(), get_profile_file_path(filename)
-- [ ] T006 Update `data/persistence.py::load_app_settings()` to use get_profile_file_path("app_settings.json")
-- [ ] T007 Update `data/persistence.py::save_app_settings()` to use get_profile_file_path("app_settings.json") with atomic write pattern
-- [ ] T008 Update `data/persistence.py::load_project_data()` to use get_profile_file_path("project_data.json")
-- [ ] T009 Update `data/persistence.py::save_project_data()` to use get_profile_file_path("project_data.json") with atomic write pattern
-- [ ] T010 [P] Create `tests/unit/data/test_persistence_path_abstraction.py` with tests for backward compatibility (profiles.json missing = legacy mode)
-- [ ] T011 [P] Run full existing test suite to verify path abstraction doesn't break existing features
+- [x] T005 Add path abstraction functions to `data/persistence.py`: get_active_profile_workspace(), get_active_query_workspace(), get_profile_file_path(filename)
+- [x] T006 Update `data/persistence.py::load_app_settings()` to use get_profile_file_path("app_settings.json")
+- [x] T007 Update `data/persistence.py::save_app_settings()` to use get_profile_file_path("app_settings.json") with atomic write pattern
+- [x] T008 Update `data/persistence.py::load_project_data()` to use get_profile_file_path("project_data.json")
+- [x] T009 Update `data/persistence.py::save_project_data()` to use get_profile_file_path("project_data.json") with atomic write pattern
+- [x] T010 [P] Create `tests/unit/data/test_persistence_path_abstraction.py` with tests for backward compatibility (profiles.json missing = legacy mode)
+- [x] T011 [P] Run full existing test suite to verify path abstraction doesn't break existing features
 
 **Checkpoint**: Path abstraction layer complete - existing code works transparently with or without profiles
 
@@ -63,23 +63,23 @@ This project uses Python Dash PWA structure at repository root:
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T012 [P] [US5] Create `tests/integration/test_migration.py::test_migrate_to_profiles_moves_all_files()` - verify app_settings.json, jira_cache.json, project_data.json, metrics_snapshots.json, cache/ all move to profiles/default/queries/default/
-- [ ] T013 [P] [US5] Create `tests/integration/test_migration.py::test_migration_creates_backup()` - verify .backup copies created before migration
-- [ ] T014 [P] [US5] Create `tests/integration/test_migration.py::test_migration_idempotent()` - run migration twice, verify second run does nothing
-- [ ] T015 [P] [US5] Create `tests/integration/test_migration.py::test_migration_data_preservation()` - compare checksums before/after migration
-- [ ] T016 [P] [US5] Create `tests/integration/test_migration.py::test_migration_rollback_on_failure()` - simulate disk error, verify rollback from backup
-- [ ] T017 [P] [US5] Create `tests/integration/test_migration.py::test_migration_completes_under_5_seconds()` - test with 50MB cache data
+- [x] T012 [P] [US5] Create `tests/integration/test_migration.py::test_migrate_to_profiles_moves_all_files()` - verify app_settings.json, jira_cache.json, project_data.json, metrics_snapshots.json, cache/ all move to profiles/default/queries/default/
+- [x] T013 [P] [US5] Create `tests/integration/test_migration.py::test_migration_creates_backup()` - verify .backup copies created before migration
+- [x] T014 [P] [US5] Create `tests/integration/test_migration.py::test_migration_idempotent()` - run migration twice, verify second run does nothing
+- [x] T015 [P] [US5] Create `tests/integration/test_migration.py::test_migration_data_preservation()` - compare checksums before/after migration
+- [x] T016 [P] [US5] Create `tests/integration/test_migration.py::test_migration_rollback_on_failure()` - simulate disk error, verify rollback from backup
+- [x] T017 [P] [US5] Create `tests/integration/test_migration.py::test_migration_completes_under_5_seconds()` - test with 50MB cache data
 
 ### Implementation for User Story 5
 
-- [ ] T018 [US5] Create `data/migration.py::migrate_to_profiles()` function - detect profiles.json missing, create profiles/default/ directory structure
-- [ ] T019 [US5] Implement backup creation in `data/migration.py::create_migration_backup()` - copy root files to *.backup before moving
-- [ ] T020 [US5] Implement file move logic in `data/migration.py::move_root_files_to_default_profile()` - move app_settings.json, jira_cache.json, project_data.json, metrics_snapshots.json, cache/ directory
-- [ ] T021 [US5] Implement profiles.json creation in `data/migration.py::initialize_profiles_registry()` - create profiles.json with default profile as active
-- [ ] T022 [US5] Implement rollback function in `data/migration.py::rollback_migration()` - restore from .backup files if migration fails
-- [ ] T023 [US5] Add migration hook to `app.py` startup - call migrate_to_profiles() before app initialization with error handling
-- [ ] T024 [US5] Add migration status logging in `data/migration.py` - log migration start, completion, failure, rollback
-- [ ] T025 [US5] Implement `data/migration.py::cleanup_migration_artifacts()` - archive obsolete jira_query_profiles.json to _migrated_backup/
+- [x] T018 [US5] Create `data/migration.py::migrate_to_profiles()` function - detect profiles.json missing, create profiles/default/ directory structure
+- [x] T019 [US5] Implement backup creation in `data/migration.py::create_migration_backup()` - copy root files to *.backup before moving
+- [x] T020 [US5] Implement file move logic in `data/migration.py::move_root_files_to_default_profile()` - move app_settings.json, jira_cache.json, project_data.json, metrics_snapshots.json, cache/ directory
+- [x] T021 [US5] Implement profiles.json creation in `data/migration.py::initialize_profiles_registry()` - create profiles.json with default profile as active
+- [x] T022 [US5] Implement rollback function in `data/migration.py::rollback_migration()` - restore from .backup files if migration fails
+- [x] T023 [US5] Add migration hook to `app.py` startup - call migrate_to_profiles() before app initialization with error handling
+- [x] T024 [US5] Add migration status logging in `data/migration.py` - log migration start, completion, failure, rollback
+- [x] T025 [US5] Implement `data/migration.py::cleanup_migration_artifacts()` - archive obsolete jira_query_profiles.json to _migrated_backup/
 
 **Checkpoint**: Existing users can upgrade without data loss - migration tested with 50MB cache in <5 seconds
 
@@ -95,33 +95,33 @@ This project uses Python Dash PWA structure at repository root:
 
 ### Tests for User Story 1 ⚠️
 
-- [ ] T026 [P] [US1] Create `tests/unit/data/test_query_manager.py::test_create_query_validates_name_unique_within_profile()` - ensure query names unique per profile (case-insensitive)
-- [ ] T027 [P] [US1] Create `tests/unit/data/test_query_manager.py::test_create_query_creates_dedicated_cache_directory()` - verify profiles/{profile_id}/queries/{query_id}/ created
-- [ ] T028 [P] [US1] Create `tests/unit/data/test_query_manager.py::test_switch_query_updates_active_query_id()` - verify profiles.json updated with new active_query_id
-- [ ] T029 [P] [US1] Create `tests/unit/data/test_query_manager.py::test_delete_query_prevents_deleting_last_query()` - verify error when trying to delete only query
-- [ ] T030 [P] [US1] Create `tests/unit/data/test_query_manager.py::test_delete_query_prevents_deleting_active_query()` - verify error when trying to delete active query
+- [x] T026 [P] [US1] Create `tests/unit/data/test_query_manager.py::test_create_query_validates_name_unique_within_profile()` - ensure query names unique per profile (case-insensitive)
+- [x] T027 [P] [US1] Create `tests/unit/data/test_query_manager.py::test_create_query_creates_dedicated_cache_directory()` - verify profiles/{profile_id}/queries/{query_id}/ created
+- [x] T028 [P] [US1] Create `tests/unit/data/test_query_manager.py::test_switch_query_updates_active_query_id()` - verify profiles.json updated with new active_query_id
+- [x] T029 [P] [US1] Create `tests/unit/data/test_query_manager.py::test_delete_query_prevents_deleting_last_query()` - verify error when trying to delete only query
+- [x] T030 [P] [US1] Create `tests/unit/data/test_query_manager.py::test_delete_query_prevents_deleting_active_query()` - verify error when trying to delete active query
 - [ ] T031 [P] [US1] Create `tests/integration/test_cache_isolation.py::test_query_cache_isolation()` - create 2 queries, verify cache files don't overlap
-- [ ] T032 [P] [US1] Create `tests/integration/test_profile_switching_workflow.py::test_query_switch_latency_under_50ms()` - measure time from switch to dashboard reload
+- [x] T032 [P] [US1] Create `tests/integration/test_profile_switching_workflow.py::test_query_switch_latency_under_50ms()` - measure time from switch to dashboard reload
 - [ ] T033 [P] [US1] Create `tests/integration/test_profile_switching_workflow.py::test_query_switch_preserves_cache()` - switch away and back, verify no JIRA API calls
 
 ### Implementation for User Story 1
 
-- [ ] T034 [P] [US1] Create `data/query_manager.py` module with Query class (to_dict, from_dict methods)
-- [ ] T035 [US1] Implement `data/query_manager.py::create_query()` - validate name unique within profile, create directory structure, initialize query.json
-- [ ] T036 [US1] Implement `data/query_manager.py::switch_query()` - update active_query_id in profiles.json and profile.json with atomic write
-- [ ] T037 [US1] Implement `data/query_manager.py::delete_query()` - validate safety checks (not active, not last query), remove directory
+- [x] T034 [P] [US1] Create `data/query_manager.py` module with Query class (to_dict, from_dict methods)
+- [x] T035 [US1] Implement `data/query_manager.py::create_query()` - validate name unique within profile, create directory structure, initialize query.json
+- [x] T036 [US1] Implement `data/query_manager.py::switch_query()` - update active_query_id in profiles.json and profile.json with atomic write
+- [x] T037 [US1] Implement `data/query_manager.py::delete_query()` - validate safety checks (not active, not last query), remove directory
 - [ ] T038 [US1] Implement `data/query_manager.py::duplicate_query()` - copy query workspace, reset timestamps, create new query ID
-- [ ] T039 [US1] Implement `data/query_manager.py::get_queries_for_profile()` - load queries list from profile.json
-- [ ] T040 [US1] Create `ui/query_selector.py` component - query dropdown (8 cols) with button group (4 cols), responsive stack on mobile, includes empty state for no queries
-- [ ] T041 [US1] Add query management buttons to `ui/query_selector.py` - button group with [Create] [Duplicate] [Delete] buttons, disabled states for delete
-- [ ] T042 [US1] Create `ui/query_create_modal.py` component - centered Bootstrap modal with name, JQL, description fields, real-time name validation ("✓ available" or "✗ exists")
+- [x] T039 [US1] Implement `data/query_manager.py::get_queries_for_profile()` - load queries list from profile.json
+- [x] T040 [US1] Create `ui/query_selector.py` component - query dropdown (8 cols) with button group (4 cols), responsive stack on mobile, includes empty state for no queries
+- [x] T041 [US1] Add query management buttons to `ui/query_selector.py` - button group with [Create] [Duplicate] [Delete] buttons, disabled states for delete
+- [x] T042 [US1] Create `ui/query_create_modal.py` component - centered Bootstrap modal with name, JQL, description fields, real-time name validation ("✓ available" or "✗ exists")
 - [ ] T043 [US1] Create `ui/query_delete_modal.py` component - centered Bootstrap modal with type-to-confirm deletion pattern
-- [ ] T044 [US1] Create `callbacks/query_management.py::handle_query_switch()` callback - switch query, show skeleton screen, trigger page reload, populate JQL editor with query's JQL
-- [ ] T045 [US1] Create `callbacks/query_management.py::handle_create_query()` callback - validate form with real-time name check, call create_query(), update dropdown, show success message
-- [ ] T046 [US1] Create `callbacks/query_management.py::handle_delete_query()` callback - validate confirmation text matches query name, call delete_query(), update dropdown
+- [x] T044 [US1] Create `callbacks/query_management.py::handle_query_switch()` callback - switch query, show skeleton screen, trigger page reload, populate JQL editor with query's JQL
+- [x] T045 [US1] Create `callbacks/query_management.py::handle_create_query()` callback - validate form with real-time name check, call create_query(), update dropdown, show success message
+- [x] T046 [US1] Create `callbacks/query_management.py::handle_delete_query()` callback - validate confirmation text matches query name, call delete_query(), update dropdown
 - [ ] T047 [US1] Create `callbacks/query_management.py::handle_duplicate_query()` callback - call duplicate_query(), update dropdown, switch to new query
 - [ ] T047a [US1] Create `callbacks/query_management.py::validate_query_name_realtime()` callback - check name uniqueness while user types in creation modal
-- [ ] T048 [US1] Integrate query selector into `ui/settings_panel.py` - replace "Saved Queries" section, position below profile selector, above JQL editor
+- [x] T048 [US1] Integrate query selector into `ui/settings_panel.py` - replace "Saved Queries" section, position below profile selector, above JQL editor
 - [ ] T049 [US1] Add "Last Updated" timestamp display to query selector tooltip in `ui/query_selector.py`
 - [ ] T050 [US1] Add real-time JQL syntax validation to query creation modal in `ui/query_create_modal.py` - show error message for invalid syntax
 
