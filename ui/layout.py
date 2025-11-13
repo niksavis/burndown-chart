@@ -31,6 +31,7 @@ from ui.components import (
 from ui.grid_utils import create_full_width_layout
 from ui.tabs import create_tabs
 from ui.jira_config_modal import create_jira_config_modal
+from ui.query_creation_modal import create_query_creation_modal
 from ui.field_mapping_modal import create_field_mapping_modal
 from ui.settings_modal import (
     create_save_query_modal,
@@ -189,6 +190,8 @@ def create_app_layout(settings, statistics, is_sample_data):
             create_save_query_modal(),
             create_delete_query_modal(),
             create_edit_query_modal(),
+            # Query Creation Modal (Feature 011-profile-workspace-switching Phase 4)
+            create_query_creation_modal(),
             # Help System (Phase 9.2 Progressive Disclosure)
             create_help_system_layout(),
             # Page initialization complete flag (hidden)

@@ -18,6 +18,7 @@ from ui.components import create_character_count_display, should_show_character_
 from ui.jql_editor import create_jql_editor
 from ui.jira_config_modal import create_jira_config_button
 from ui.help_system import create_settings_tooltip
+from ui.query_selector import create_query_selector_panel
 
 
 #######################################################################
@@ -224,73 +225,32 @@ def create_settings_panel_expanded(id_suffix: str = "") -> html.Div:
                                                 ],
                                                 className="mb-3",
                                             ),
-                                            # Saved Queries - full width
+                                            # Query Selector - replaces old "Saved Queries"
+                                            create_query_selector_panel(),
+                                            # Hidden compatibility components for old JQL profile callbacks
+                                            # TODO: Remove these after migrating all old JQL profile callbacks
                                             html.Div(
                                                 [
-                                                    html.Label(
-                                                        [
-                                                            "Saved Queries",
-                                                            html.Span(
-                                                                create_settings_tooltip(
-                                                                    "saved_queries",
-                                                                    "saved-queries-help",
-                                                                ),
-                                                                style={
-                                                                    "marginLeft": "0.25rem"
-                                                                },
-                                                            ),
-                                                        ],
-                                                        className="form-label small text-muted mb-1",
-                                                    ),
                                                     dcc.Dropdown(
                                                         id="jira-query-profile-selector",
-                                                        options=_get_query_profile_options(),
-                                                        value=_get_default_jql_profile_id(),
-                                                        placeholder="Select...",
-                                                        clearable=True,
-                                                        searchable=True,
-                                                        className="mb-2",
+                                                        options=[],
+                                                        value="",
+                                                        style={"display": "none"},
                                                     ),
-                                                    dbc.ButtonGroup(
-                                                        [
-                                                            dbc.Button(
-                                                                html.I(
-                                                                    className="fas fa-save"
-                                                                ),
-                                                                id="save-jql-query-button",
-                                                                color="primary",
-                                                                size="sm",
-                                                                title="Save current query",
-                                                            ),
-                                                            dbc.Button(
-                                                                html.I(
-                                                                    className="fas fa-edit"
-                                                                ),
-                                                                id="edit-jql-query-button",
-                                                                color="secondary",
-                                                                outline=True,
-                                                                size="sm",
-                                                                title="Edit selected query",
-                                                            ),
-                                                            dbc.Button(
-                                                                html.I(
-                                                                    className="fas fa-trash"
-                                                                ),
-                                                                id="delete-jql-query-button",
-                                                                color="danger",
-                                                                outline=True,
-                                                                size="sm",
-                                                                title="Delete selected query",
-                                                            ),
-                                                        ],
-                                                        size="sm",
+                                                    dbc.Button(
+                                                        id="save-jql-query-button",
+                                                        style={"display": "none"},
                                                     ),
-                                                    html.Div(
-                                                        id="jira-jql-query-save-status",
-                                                        className="small mt-1 mb-3",
-                                                        children=[],
+                                                    dbc.Button(
+                                                        id="edit-jql-query-button",
+                                                        style={"display": "none"},
+                                                    ),
+                                                    dbc.Button(
+                                                        id="delete-jql-query-button",
+                                                        style={"display": "none"},
                                                     ),
                                                 ],
+                                                style={"display": "none"},
                                             ),
                                             # Action Buttons - side by side below Saved Queries
                                             dbc.Row(

@@ -9,6 +9,7 @@ and serves as the main entry point for running the server.
 # IMPORTS
 #######################################################################
 # Standard library imports
+import logging
 
 # Third-party library imports
 import dash
@@ -19,13 +20,48 @@ import diskcache
 
 from callbacks import register_all_callbacks
 from configuration.server import get_server_config
+from configuration.logging_config import setup_logging, cleanup_old_logs
 
 # Application imports
 from ui import serve_layout
+from data.migration import migrate_to_profiles
 
 #######################################################################
 # APPLICATION SETUP
 #######################################################################
+
+# Initialize logging first (before any other operations)
+setup_logging(log_level="INFO")
+cleanup_old_logs(max_age_days=30)
+
+# Get logger for this module
+logger = logging.getLogger(__name__)
+logger.info("Starting Burndown Chart application")
+
+# Run one-time migration to profiles structure (if needed)
+# This protects existing users by automatically migrating their data
+# to the new profiles/default/queries/main/ structure on first startup.
+# Migration is idempotent - safe to run multiple times.
+try:
+    logger.info("Checking for migration requirements...")
+    migration_performed = migrate_to_profiles()
+
+    if migration_performed:
+        logger.info(
+            "Migration completed successfully - data moved to profiles/default/queries/main/"
+        )
+    else:
+        logger.info("No migration needed - profiles structure already exists")
+
+except Exception as e:
+    # Log error but don't crash - allow app to continue
+    # Users can manually migrate or continue in legacy mode
+    logger.error(
+        f"Migration failed: {e}. Application will continue in legacy mode. "
+        "You can manually run migration or continue with root-level data files.",
+        exc_info=True,
+    )
+    print(f"WARNING: Migration failed - {e}. See logs/app.log for details.")
 
 # Configure background callback manager for long-running tasks
 cache = diskcache.Cache("./cache")
@@ -132,11 +168,17 @@ if __name__ == "__main__":
     server_config = get_server_config()
 
     if server_config["debug"]:
+        logger.info(
+            f"Starting development server in DEBUG mode on {server_config['host']}:{server_config['port']}"
+        )
         print(
             f"Starting development server in DEBUG mode on {server_config['host']}:{server_config['port']}..."
         )
         app.run(debug=True, host=server_config["host"], port=server_config["port"])
     else:
+        logger.info(
+            f"Starting Waitress production server on {server_config['host']}:{server_config['port']}"
+        )
         print(
             f"Starting Waitress production server on {server_config['host']}:{server_config['port']}..."
         )

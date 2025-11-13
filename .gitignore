@@ -182,6 +182,13 @@ jira_changelog_cache.json
 jira_query_profiles.json
 metrics_snapshots.json
 
+# Profile & Query workspace data (Feature 011 - contains customer data)
+# Directory created automatically by migration/profile manager on first run
+profiles/
+
+# Migration backup directory (contains pre-migration customer data)
+_migrated_backup/
+
 # Customer-specific documentation (contains real project keys, field IDs)
 docs/metrics/IMPLEMENTATION_GUIDE.md
 

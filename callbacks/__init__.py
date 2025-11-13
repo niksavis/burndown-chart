@@ -106,6 +106,7 @@ from callbacks import (
     jira_data_store,  # JIRA issues store population (Feature 007, auto-registers via @callback)  # noqa: F401
     jql_editor,  # JQL editor textarea-to-store sync
     mobile_navigation,  # Add mobile navigation callbacks
+    query_switching,  # Query switching callbacks (Feature 011, auto-registers via @callback)  # noqa: F401
     settings_panel,  # Settings panel callbacks (auto-registers via @callback)  # noqa: F401
     # The 'export' module doesn't seem to exist and is causing an error
     # export,
@@ -129,4 +130,4 @@ def register_all_callbacks(app):
     jql_editor.register_jql_editor_callbacks(app)  # Register JQL editor sync
     bug_analysis.register(app)  # Register bug analysis callbacks (Feature 004)
     dashboard.register(app)  # Register dashboard callbacks (Feature 006, User Story 2)
-    # Note: jira_config, settings_panel, jira_data_store, dora_flow_metrics, and field_mapping callbacks auto-register via @callback decorator when imported
+    # Note: jira_config, settings_panel, jira_data_store, dora_flow_metrics, field_mapping, and query_switching callbacks auto-register via @callback decorator when imported
