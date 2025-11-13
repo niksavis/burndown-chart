@@ -104,6 +104,7 @@ def create_query_actions(id_suffix: str = "") -> dbc.Col:
                 ),
             ],
             className="w-100",
+            style={"marginTop": "2rem"},  # Push buttons down to align with dropdown
         ),
         xs=12,
         lg=6,
