@@ -88,6 +88,7 @@ def create_field_mapping_modal() -> dbc.Modal:
         size="xl",
         is_open=False,
         backdrop="static",  # Prevent closing by clicking outside
+        centered=True,
     )
 
     return modal

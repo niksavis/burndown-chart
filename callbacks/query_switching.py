@@ -105,6 +105,11 @@ def switch_query_callback(selected_query_id, current_options):
     if not selected_query_id:
         raise PreventUpdate
 
+    # Type guard to ensure selected_query_id is a string
+    if not isinstance(selected_query_id, str):
+        logger.warning(f"Invalid query ID type: {type(selected_query_id)}")
+        raise PreventUpdate
+
     try:
         import time
         from data.query_manager import (
@@ -350,97 +355,58 @@ def create_new_query_callback(save_clicks, query_name, query_jql):
         return no_update, no_update, feedback, no_update, no_update
 
 
+# Query deletion moved to settings.py to use modal confirmation system
+# This prevents accidental deletion by requiring user confirmation
+
+
 # ============================================================================
-# Query Deletion
+# Query Deletion Modal Trigger
 # ============================================================================
 
 
 @callback(
     [
-        Output("query-selector", "options", allow_duplicate=True),
-        Output("query-selector", "value", allow_duplicate=True),
+        Output("delete-jql-query-modal", "is_open", allow_duplicate=True),
+        Output("delete-query-name", "children", allow_duplicate=True),
     ],
     Input("delete-query-btn", "n_clicks"),
     State("query-selector", "value"),
     prevent_initial_call=True,
 )
-def delete_query_callback(delete_clicks, selected_query_id):
-    """Delete selected query from profile.
+def trigger_delete_query_modal_from_selector(delete_clicks, selected_query_id):
+    """Trigger delete query modal when delete button is clicked in query selector.
 
     Args:
         delete_clicks: Delete button clicks
         selected_query_id: Currently selected query ID
 
     Returns:
-        Tuple of (updated_options, updated_value)
+        Tuple of (modal_open, query_name)
     """
-    # Only proceed if delete button was actually clicked
-    if ctx.triggered_id != "delete-query-btn":
-        raise PreventUpdate
-
     if not delete_clicks or not selected_query_id:
         raise PreventUpdate
 
     try:
         from data.query_manager import (
             get_active_profile_id,
-            delete_query,
             list_queries_for_profile,
-            get_active_query_id,
-            switch_query,
         )
 
+        # Get the query name for the modal
         profile_id = get_active_profile_id()
-        active_query_id = get_active_query_id()
-
-        # If trying to delete the active query, switch to a different query first
-        if selected_query_id == active_query_id:
-            # Get all queries to find another one to switch to
-            queries = list_queries_for_profile(profile_id)
-            other_queries = [q for q in queries if q.get("id") != selected_query_id]
-
-            if not other_queries:
-                logger.error("Cannot delete last query in profile")
-                return no_update, no_update
-
-            # Switch to the first available query
-            new_active_query_id = other_queries[0].get("id")
-            switch_query(new_active_query_id)
-            logger.info(
-                f"Auto-switched from '{selected_query_id}' to '{new_active_query_id}' before deletion"
-            )
-
-        # Delete query
-        delete_query(profile_id, selected_query_id)
-
-        logger.info(f"Deleted query '{selected_query_id}' from profile '{profile_id}'")
-
-        # Refresh dropdown
         queries = list_queries_for_profile(profile_id)
-        options = []
-        active_value = ""
-        for query in queries:
-            label = query.get("name", "Unnamed Query")
-            value = query.get("id", "")
-            if query.get("is_active", False):
-                label += " ★"
-                active_value = value
-            options.append({"label": label, "value": value})
 
-        logger.info(f"Query deleted successfully from profile '{profile_id}'")
-        return options, active_value
+        query = next((q for q in queries if q.get("id") == selected_query_id), None)
+        if not query:
+            raise PreventUpdate
 
-    except PermissionError as e:
-        logger.warning(f"Query deletion prevented: {e}")
-        return no_update, no_update
+        query_name = query.get("name", "")
 
-    except ValueError as e:
-        logger.warning(f"Query deletion validation failed: {e}")
-        return no_update, no_update
+        logger.info(f"Opening delete modal for query: {query_name}")
+
+        # Open modal and set query name
+        return True, query_name
 
     except Exception as e:
-        logger.error(f"Failed to delete query: {e}")
-        error_msg = html.Div(
-            f"Error deleting query: {e}", className="text-danger small mt-2"
-        )
-        return error_msg, no_update, no_update
+        logger.error(f"Failed to trigger delete modal: {e}")
+        raise PreventUpdate

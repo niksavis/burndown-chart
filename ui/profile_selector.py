@@ -1,0 +1,191 @@
+"""
+Profile selector UI component.
+
+Provides dropdown for profile selection and management buttons.
+Follows the same pattern as query_selector.py for consistency.
+"""
+
+from typing import Dict
+from dash import html, dcc
+import dash_bootstrap_components as dbc
+
+from data.profile_manager import list_profiles, get_active_profile
+
+
+def create_profile_dropdown(id_suffix: str = "") -> dbc.Col:
+    """Create profile dropdown selector.
+
+    Args:
+        id_suffix: Optional suffix for component IDs
+
+    Returns:
+        Bootstrap column containing profile dropdown
+    """
+    # Load profiles
+    profiles = list_profiles()
+    active_profile = get_active_profile()
+
+    # Build dropdown options
+    options = []
+    for profile in profiles:
+        # Create label with metadata tooltip info
+        jira_info = ""
+        if profile.get("jira_url"):
+            jira_info = f" • {profile['jira_url']}"
+
+        label = f"{profile['name']}{jira_info}"
+        if profile["id"] == (active_profile.id if active_profile else None):
+            label += " ★"
+
+        options.append({"label": label, "value": profile["id"]})
+
+    # Determine initial value
+    value = (
+        active_profile.id if active_profile else (profiles[0]["id"] if profiles else "")
+    )
+
+    return dbc.Col(
+        [
+            html.Label(
+                "Profile",
+                htmlFor=f"profile-selector{id_suffix}",
+                className="form-label fw-bold mb-1",
+            ),
+            dcc.Dropdown(
+                id=f"profile-selector{id_suffix}",
+                options=options,
+                value=value,
+                placeholder="Select a profile...",
+                clearable=False,
+                className="mb-2",
+                style={"minWidth": "200px"},
+            ),
+        ],
+        xs=12,
+        lg=6,
+        className="mb-3",
+    )
+
+
+def create_profile_actions(id_suffix: str = "") -> dbc.Col:
+    """Create profile action buttons (create, duplicate, delete).
+
+    Args:
+        id_suffix: Optional suffix for component IDs
+
+    Returns:
+        Bootstrap column containing action buttons
+    """
+    return dbc.Col(
+        dbc.ButtonGroup(
+            [
+                dbc.Button(
+                    [html.I(className="fas fa-plus me-1"), "New"],
+                    id=f"create-profile-btn{id_suffix}",
+                    color="primary",
+                    size="sm",
+                    className="me-1",
+                ),
+                dbc.Button(
+                    [html.I(className="fas fa-copy me-1"), "Duplicate"],
+                    id=f"duplicate-profile-btn{id_suffix}",
+                    color="secondary",
+                    size="sm",
+                    className="me-1",
+                ),
+                dbc.Button(
+                    [html.I(className="fas fa-trash me-1"), "Delete"],
+                    id=f"delete-profile-btn{id_suffix}",
+                    color="danger",
+                    size="sm",
+                    outline=True,
+                ),
+            ],
+            className="w-100",
+            style={"marginTop": "2rem"},  # Push buttons down to align with dropdown
+        ),
+        xs=12,
+        lg=6,
+        className="mb-3",
+    )
+
+
+def create_profile_selector_panel(id_suffix: str = "") -> dbc.Card:
+    """Create complete profile selector panel with dropdown and actions.
+
+    Args:
+        id_suffix: Optional suffix for component IDs
+
+    Returns:
+        Bootstrap card containing profile management UI
+    """
+    profiles = list_profiles()
+
+    if not profiles:
+        # Empty state - no profiles exist
+        return dbc.Card(
+            dbc.CardBody(
+                [
+                    html.H6("🏢 No Profiles", className="mb-2"),
+                    html.P(
+                        "Create your first profile to get started.",
+                        className="text-muted mb-3",
+                    ),
+                    dbc.Button(
+                        [
+                            html.I(className="fas fa-plus me-2"),
+                            "Create Your First Profile",
+                        ],
+                        id="create-first-profile-btn",
+                        color="primary",
+                        size="sm",
+                    ),
+                ]
+            ),
+            className="mb-3",
+        )
+
+    return dbc.Card(
+        dbc.CardBody(
+            [
+                html.H6("Profile Management", className="card-title mb-3"),
+                dbc.Row(
+                    [
+                        create_profile_dropdown(id_suffix),
+                        create_profile_actions(id_suffix),
+                    ],
+                    className="g-2",
+                ),
+            ]
+        ),
+        className="mb-3",
+    )
+
+
+def create_profile_tooltip_content(profile: Dict) -> str:
+    """Create tooltip content for profile hover.
+
+    Args:
+        profile: Profile data dict
+
+    Returns:
+        HTML string for tooltip
+    """
+    parts = []
+
+    if profile.get("description"):
+        parts.append(f"📝 {profile['description']}")
+
+    if profile.get("jira_url"):
+        parts.append(f"🔗 {profile['jira_url']}")
+
+    pert_factor = profile.get("pert_factor", 1.2)
+    parts.append(f"📊 PERT Factor: {pert_factor}")
+
+    query_count = profile.get("query_count", 0)
+    parts.append(f"📋 {query_count} queries")
+
+    if profile.get("created_at"):
+        parts.append(f"📅 Created: {profile['created_at'][:10]}")
+
+    return "<br>".join(parts)

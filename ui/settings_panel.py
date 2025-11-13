@@ -19,6 +19,13 @@ from ui.jql_editor import create_jql_editor
 from ui.jira_config_modal import create_jira_config_button
 from ui.help_system import create_settings_tooltip
 from ui.query_selector import create_query_selector_panel
+from ui.profile_selector import create_profile_selector_panel
+from ui.profile_modals import (
+    create_profile_creation_modal,
+    create_profile_duplication_modal,
+    create_profile_deletion_modal,
+)
+from ui.import_export_panel import create_import_export_panel
 
 
 #######################################################################
@@ -225,6 +232,8 @@ def create_settings_panel_expanded(id_suffix: str = "") -> html.Div:
                                                 ],
                                                 className="mb-3",
                                             ),
+                                            # Profile Management - above Query Management
+                                            create_profile_selector_panel(),
                                             # Query Selector - replaces old "Saved Queries"
                                             create_query_selector_panel(),
                                             # Hidden compatibility components for old JQL profile callbacks
@@ -506,6 +515,10 @@ def create_settings_panel(is_open: bool = False, id_suffix: str = "") -> html.Di
                 is_open=is_open,
                 style={"marginTop": "-1rem"},
             ),
+            # Profile management modals
+            create_profile_creation_modal(),
+            create_profile_duplication_modal(),
+            create_profile_deletion_modal(),
         ],
         id=panel_id,
         className="settings-panel-container",

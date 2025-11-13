@@ -60,10 +60,15 @@ Test Support:
     PROFILES_DIR is a module-level constant that can be patched in tests
 """
 
-import json  # noqa: F401 - Used in future implementations
-import os  # noqa: F401 - Used in future implementations
+import json
+import shutil
+import re
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, List, Optional  # noqa: F401 - Used in future implementations
+from typing import Dict, List, Optional
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Module-level constants (patchable in tests via unittest.mock.patch)
 # Note: PROFILES_DIR must be absolute Path for correct patching behavior
@@ -71,6 +76,109 @@ PROFILES_DIR = Path("profiles").absolute()
 PROFILES_FILE = PROFILES_DIR / "profiles.json"
 DEFAULT_PROFILE_ID = "default"
 DEFAULT_QUERY_ID = "main"
+
+# Profile limits
+MAX_PROFILES = 50
+MAX_QUERIES_PER_PROFILE = 100
+
+
+# ============================================================================
+# Profile Data Model (T064)
+# ============================================================================
+
+
+class Profile:
+    """Profile workspace metadata and settings."""
+
+    def __init__(
+        self,
+        id: str,
+        name: str,
+        description: str = "",
+        created_at: str = "",
+        last_used: str = "",
+        jira_config: Optional[Dict] = None,
+        field_mappings: Optional[Dict] = None,
+        forecast_settings: Optional[Dict] = None,
+    ):
+        self.id = id
+        self.name = name
+        self.description = description
+        self.created_at = created_at or datetime.now(timezone.utc).isoformat()
+        self.last_used = last_used or datetime.now(timezone.utc).isoformat()
+        self.jira_config = jira_config or {}
+        self.field_mappings = field_mappings or {}
+        self.forecast_settings = forecast_settings or {
+            "pert_factor": 1.2,
+            "deadline": None,
+            "data_points_count": 12,
+        }
+
+    def to_dict(self) -> Dict:
+        """Convert profile to dictionary for JSON serialization."""
+        return {
+            "id": self.id,
+            "name": self.name,
+            "description": self.description,
+            "created_at": self.created_at,
+            "last_used": self.last_used,
+            "jira_config": self.jira_config,
+            "field_mappings": self.field_mappings,
+            "forecast_settings": self.forecast_settings,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict) -> "Profile":
+        """Create profile from dictionary loaded from JSON."""
+        return cls(
+            id=data["id"],
+            name=data["name"],
+            description=data.get("description", ""),
+            created_at=data.get("created_at", ""),
+            last_used=data.get("last_used", ""),
+            jira_config=data.get("jira_config", {}),
+            field_mappings=data.get("field_mappings", {}),
+            forecast_settings=data.get("forecast_settings", {}),
+        )
+
+
+def _slugify_name(name: str) -> str:
+    """Convert name to filesystem-safe slug."""
+    # Remove special characters, convert to lowercase, replace spaces with hyphens
+    slug = re.sub(r"[^a-zA-Z0-9\s-]", "", name).strip().lower()
+    slug = re.sub(r"\s+", "-", slug)
+    slug = re.sub(r"-+", "-", slug)  # Collapse multiple hyphens
+    return slug.strip("-")
+
+
+def _ensure_unique_profile_id(name: str) -> str:
+    """Generate unique profile ID from name."""
+    base_id = _slugify_name(name)
+    if not base_id:
+        base_id = "profile"
+
+    # Check if base ID already exists
+    if not PROFILES_FILE.exists():
+        return base_id
+
+    try:
+        with open(PROFILES_FILE, "r", encoding="utf-8") as f:
+            profiles_meta = json.load(f)
+
+        existing_ids = list(profiles_meta.get("profiles", {}).keys())
+
+        if base_id not in existing_ids:
+            return base_id
+
+        # Generate numbered variant
+        counter = 2
+        while f"{base_id}-{counter}" in existing_ids:
+            counter += 1
+
+        return f"{base_id}-{counter}"
+
+    except (json.JSONDecodeError, FileNotFoundError):
+        return base_id
 
 
 # ============================================================================
@@ -224,8 +332,127 @@ def get_jira_cache_path(profile_id: str, query_id: str) -> Path:
 
 
 # ============================================================================
-# Backward Compatibility Helpers (T005 - Legacy Mode Support)
+# Profiles Metadata Management (T065, T066)
 # ============================================================================
+
+
+def load_profiles_metadata() -> Dict:
+    """
+    Load profiles registry with schema validation.
+
+    Returns:
+        Dict: Profiles metadata with active_profile_id, active_query_id, profiles list
+
+    Example:
+        >>> meta = load_profiles_metadata()
+        >>> print(meta["active_profile_id"])  # "default"
+        >>> print(len(meta["profiles"]))      # Number of profiles
+    """
+    if not PROFILES_FILE.exists():
+        # Return default structure for new installations
+        return {
+            "version": "3.0",
+            "active_profile_id": DEFAULT_PROFILE_ID,
+            "active_query_id": DEFAULT_QUERY_ID,
+            "profiles": {},
+        }
+
+    try:
+        with open(PROFILES_FILE, "r", encoding="utf-8") as f:
+            metadata = json.load(f)
+
+        # Validate structure
+        if not isinstance(metadata, dict):
+            raise ValueError("profiles.json must contain a JSON object")
+
+        # Ensure required fields
+        metadata.setdefault("version", "3.0")
+        metadata.setdefault("active_profile_id", DEFAULT_PROFILE_ID)
+        metadata.setdefault("active_query_id", DEFAULT_QUERY_ID)
+        metadata.setdefault("profiles", {})
+
+        return metadata
+
+    except (json.JSONDecodeError, ValueError) as e:
+        logger.error(f"[Profiles] Corrupted profiles.json: {e}")
+        # Return safe default - don't overwrite corrupted file
+        return {
+            "version": "3.0",
+            "active_profile_id": DEFAULT_PROFILE_ID,
+            "active_query_id": DEFAULT_QUERY_ID,
+            "profiles": [],
+            "_error": f"Corrupted profiles.json: {e}",
+        }
+
+
+def save_profiles_metadata(metadata: Dict) -> bool:
+    """
+    Atomic write to profiles.json using temp file + rename pattern.
+
+    Args:
+        metadata: Profiles registry to save
+
+    Returns:
+        bool: True if successful, False on error
+
+    Example:
+        >>> meta = load_profiles_metadata()
+        >>> meta["active_profile_id"] = "new-profile"
+        >>> save_profiles_metadata(meta)
+    """
+    try:
+        # Ensure profiles directory exists
+        PROFILES_DIR.mkdir(exist_ok=True)
+
+        # Atomic write pattern: write to temp file, then rename
+        temp_file = PROFILES_FILE.with_suffix(".tmp")
+
+        with open(temp_file, "w", encoding="utf-8") as f:
+            json.dump(metadata, f, indent=2, ensure_ascii=False)
+
+        # Atomic rename (Windows requires removing existing file first)
+        if PROFILES_FILE.exists():
+            PROFILES_FILE.unlink()
+        temp_file.rename(PROFILES_FILE)
+
+        logger.debug(f"[Profiles] Metadata saved to {PROFILES_FILE}")
+        return True
+
+    except Exception as e:
+        logger.error(f"[Profiles] Error saving metadata: {e}")
+        # Clean up temp file if it exists
+        temp_file = PROFILES_FILE.with_suffix(".tmp")
+        if temp_file.exists():
+            temp_file.unlink()
+        return False
+
+
+def get_active_profile() -> Optional[Profile]:
+    """
+    Get currently active profile object.
+
+    Returns:
+        Profile object if found, None if active profile doesn't exist
+
+    Example:
+        >>> profile = get_active_profile()
+        >>> if profile:
+        ...     print(f"Active: {profile.name}")
+    """
+    metadata = load_profiles_metadata()
+    active_id = metadata.get("active_profile_id")
+
+    if not active_id:
+        return None
+
+    profiles_dict = metadata.get("profiles", {})
+    if active_id in profiles_dict:
+        profile_data = profiles_dict[active_id]
+        profile_data["id"] = active_id  # Ensure id is included
+        return Profile.from_dict(profile_data)
+
+    logger.warning(f"[Profiles] Active profile '{active_id}' not found in registry")
+    return None
 
 
 def is_profiles_mode_enabled() -> bool:
@@ -310,6 +537,10 @@ def create_profile(name: str, settings: Dict) -> str:
     Returns:
         str: Generated profile_id (slugified name)
 
+    Raises:
+        ValueError: If name invalid, duplicate, or max profiles reached
+        OSError: If directory creation fails
+
     Example:
         >>> profile_id = create_profile("Apache Kafka", {
         ...     "pert_factor": 1.2,
@@ -318,7 +549,225 @@ def create_profile(name: str, settings: Dict) -> str:
         ... })
         >>> assert profile_id == "apache-kafka"
     """
-    raise NotImplementedError("T008 - to be implemented")
+    # Validate inputs
+    if not name or not name.strip():
+        raise ValueError("Profile name cannot be empty")
+
+    name = name.strip()
+    if len(name) > 100:
+        raise ValueError("Profile name cannot exceed 100 characters")
+
+    # Load current metadata
+    metadata = load_profiles_metadata()
+
+    # Check for duplicate names (case-insensitive)
+    profiles_dict = metadata.get("profiles", {})
+    existing_names = [p["name"].lower() for p in profiles_dict.values()]
+    if name.lower() in existing_names:
+        raise ValueError(f"Profile name '{name}' already exists")
+
+    # Check max profiles limit
+    if len(profiles_dict) >= MAX_PROFILES:
+        raise ValueError(f"Maximum {MAX_PROFILES} profiles allowed")
+
+    # Generate unique profile ID
+    profile_id = _ensure_unique_profile_id(name)
+
+    # Create profile directory structure
+    profile_dir = PROFILES_DIR / profile_id
+    queries_dir = profile_dir / "queries"
+
+    try:
+        profile_dir.mkdir(parents=True, exist_ok=True)
+        queries_dir.mkdir(exist_ok=True)
+
+        # Create profile object
+        profile = Profile(
+            id=profile_id,
+            name=name,
+            description="",
+            jira_config=settings.get("jira_config", {}),
+            field_mappings=settings.get("field_mappings", {}),
+            forecast_settings={
+                "pert_factor": settings.get("pert_factor", 1.2),
+                "deadline": settings.get("deadline"),
+                "data_points_count": settings.get("data_points_count", 12),
+            },
+        )
+
+        # Save profile.json
+        profile_config_file = profile_dir / "profile.json"
+        with open(profile_config_file, "w", encoding="utf-8") as f:
+            json.dump(profile.to_dict(), f, indent=2, ensure_ascii=False)
+
+        # Add to profiles registry
+        metadata["profiles"][profile_id] = profile.to_dict()
+
+        # Save updated metadata
+        if not save_profiles_metadata(metadata):
+            raise OSError("Failed to update profiles registry")
+
+        logger.info(f"[Profiles] Created profile: {name} ({profile_id})")
+        return profile_id
+
+    except Exception as e:
+        # Cleanup on failure
+        if profile_dir.exists():
+            shutil.rmtree(profile_dir, ignore_errors=True)
+        logger.error(f"[Profiles] Error creating profile '{name}': {e}")
+        raise OSError(f"Failed to create profile: {e}") from e
+
+
+def switch_profile(profile_id: str) -> None:
+    """
+    Switch to a different profile.
+
+    Args:
+        profile_id: Target profile identifier
+
+    Raises:
+        ValueError: If profile doesn't exist
+
+    Example:
+        >>> switch_profile("kafka")
+        >>> # App now uses kafka profile settings and queries
+    """
+    # Load metadata
+    metadata = load_profiles_metadata()
+
+    # Validate profile exists
+    profile_found = False
+    for profile_data in metadata.get("profiles", []):
+        if profile_data["id"] == profile_id:
+            profile_found = True
+            # Update last_used timestamp
+            profile_data["last_used"] = datetime.now(timezone.utc).isoformat()
+            break
+
+    if not profile_found:
+        raise ValueError(f"Profile '{profile_id}' does not exist")
+
+    # Update active profile
+    old_profile_id = metadata.get("active_profile_id")
+    metadata["active_profile_id"] = profile_id
+
+    # Load most recent query from target profile
+    try:
+        profile_dir = PROFILES_DIR / profile_id
+        profile_config_file = profile_dir / "profile.json"
+
+        if profile_config_file.exists():
+            with open(profile_config_file, "r", encoding="utf-8") as f:
+                _ = json.load(f)  # Load to validate file, but don't need the content
+
+            # Set active query to most recent query in the profile
+            queries_dir = profile_dir / "queries"
+            if queries_dir.exists():
+                query_dirs = [d for d in queries_dir.iterdir() if d.is_dir()]
+                if query_dirs:
+                    # Find most recently used query
+                    most_recent_query = None
+                    most_recent_time = None
+
+                    for query_dir in query_dirs:
+                        query_file = query_dir / "query.json"
+                        if query_file.exists():
+                            try:
+                                with open(query_file, "r", encoding="utf-8") as qf:
+                                    query_data = json.load(qf)
+                                last_used = query_data.get(
+                                    "last_used", query_data.get("created_at", "")
+                                )
+                                if not most_recent_time or last_used > most_recent_time:
+                                    most_recent_time = last_used
+                                    most_recent_query = query_dir.name
+                            except (json.JSONDecodeError, FileNotFoundError):
+                                continue
+
+                    if most_recent_query:
+                        metadata["active_query_id"] = most_recent_query
+                    else:
+                        metadata["active_query_id"] = DEFAULT_QUERY_ID
+                else:
+                    metadata["active_query_id"] = DEFAULT_QUERY_ID
+            else:
+                metadata["active_query_id"] = DEFAULT_QUERY_ID
+
+    except Exception as e:
+        logger.warning(
+            f"[Profiles] Could not determine most recent query for profile '{profile_id}': {e}"
+        )
+        metadata["active_query_id"] = DEFAULT_QUERY_ID
+
+    # Save updated metadata
+    if not save_profiles_metadata(metadata):
+        raise OSError("Failed to update profiles registry")
+
+    logger.info(
+        f"[Profiles] Switched from '{old_profile_id}' to '{profile_id}', active query: '{metadata['active_query_id']}'"
+    )
+
+
+def delete_profile(profile_id: str) -> None:
+    """
+    Delete a profile and all its queries.
+
+    Args:
+        profile_id: Profile to delete
+
+    Raises:
+        ValueError: If trying to delete active profile or default profile
+
+    Example:
+        >>> delete_profile("old-project")
+        >>> # Removes profiles/old-project/ directory entirely
+    """
+    # Load metadata
+    metadata = load_profiles_metadata()
+
+    # Safety checks
+    if profile_id == metadata.get("active_profile_id"):
+        raise ValueError(
+            "Cannot delete active profile. Switch to another profile first."
+        )
+
+    if profile_id == DEFAULT_PROFILE_ID:
+        raise ValueError("Cannot delete the default profile.")
+
+    if len(metadata.get("profiles", [])) <= 1:
+        raise ValueError("Cannot delete the only remaining profile.")
+
+    # Find profile in registry
+    profile_index = None
+    profile_name = profile_id
+
+    for i, profile_data in enumerate(metadata.get("profiles", [])):
+        if profile_data["id"] == profile_id:
+            profile_index = i
+            profile_name = profile_data["name"]
+            break
+
+    if profile_index is None:
+        raise ValueError(f"Profile '{profile_id}' does not exist")
+
+    try:
+        # Remove directory
+        profile_dir = PROFILES_DIR / profile_id
+        if profile_dir.exists():
+            shutil.rmtree(profile_dir)
+
+        # Remove from registry
+        metadata["profiles"].pop(profile_index)
+
+        # Save updated metadata
+        if not save_profiles_metadata(metadata):
+            raise OSError("Failed to update profiles registry")
+
+        logger.info(f"[Profiles] Deleted profile: {profile_name} ({profile_id})")
+
+    except Exception as e:
+        logger.error(f"[Profiles] Error deleting profile '{profile_id}': {e}")
+        raise OSError(f"Failed to delete profile: {e}") from e
 
 
 def list_profiles() -> List[Dict]:
@@ -333,7 +782,35 @@ def list_profiles() -> List[Dict]:
         >>> for p in profiles:
         ...     print(f"{p['name']} ({p['query_count']} queries)")
     """
-    raise NotImplementedError("T008 - to be implemented")
+    metadata = load_profiles_metadata()
+    profiles = []
+
+    # Iterate over profiles dictionary - key is profile_id, value is profile_data
+    for profile_id, profile_data in metadata.get("profiles", {}).items():
+        # Count queries in this profile
+        query_count = 0
+        queries_dir = PROFILES_DIR / profile_id / "queries"
+        if queries_dir.exists():
+            query_count = len([d for d in queries_dir.iterdir() if d.is_dir()])
+
+        profiles.append(
+            {
+                "id": profile_id,
+                "name": profile_data["name"],
+                "description": profile_data.get("description", ""),
+                "query_count": query_count,
+                "created_at": profile_data.get("created_at", ""),
+                "last_used": profile_data.get("last_used", ""),
+                "jira_url": profile_data.get("jira_config", {}).get("base_url", ""),
+                "pert_factor": profile_data.get("forecast_settings", {}).get(
+                    "pert_factor", 1.2
+                ),
+            }
+        )
+
+    # Sort by last_used (most recent first)
+    profiles.sort(key=lambda p: p["last_used"], reverse=True)
+    return profiles
 
 
 def get_profile(profile_id: str) -> Dict:
@@ -353,41 +830,20 @@ def get_profile(profile_id: str) -> Dict:
         >>> config = get_profile("kafka")
         >>> print(config["forecast_settings"]["pert_factor"])
     """
-    raise NotImplementedError("T008 - to be implemented")
+    metadata = load_profiles_metadata()
+
+    # Find profile in registry
+    for profile_data in metadata.get("profiles", []):
+        if profile_data["id"] == profile_id:
+            return profile_data
+
+    raise FileNotFoundError(f"Profile '{profile_id}' does not exist")
 
 
-def switch_profile(profile_id: str) -> None:
-    """
-    Switch to a different profile.
-
-    Args:
-        profile_id: Target profile identifier
-
-    Raises:
-        ValueError: If profile doesn't exist
-
-    Example:
-        >>> switch_profile("kafka")
-        >>> # App now uses kafka profile settings and queries
-    """
-    raise NotImplementedError("T009 - to be implemented")
+# switch_profile function implemented above - removed duplicate definition
 
 
-def delete_profile(profile_id: str) -> None:
-    """
-    Delete a profile and all its queries.
-
-    Args:
-        profile_id: Profile to delete
-
-    Raises:
-        ValueError: If trying to delete active profile or default profile
-
-    Example:
-        >>> delete_profile("old-project")
-        >>> # Removes profiles/old-project/ directory entirely
-    """
-    raise NotImplementedError("T009 - to be implemented")
+# delete_profile function implemented above - removed duplicate definition
 
 
 # ============================================================================

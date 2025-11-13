@@ -106,6 +106,7 @@ from callbacks import (
     jira_data_store,  # JIRA issues store population (Feature 007, auto-registers via @callback)  # noqa: F401
     jql_editor,  # JQL editor textarea-to-store sync
     mobile_navigation,  # Add mobile navigation callbacks
+    profile_management,  # Profile management callbacks (Feature 011, auto-registers via @callback)  # noqa: F401
     query_switching,  # Query switching callbacks (Feature 011, auto-registers via @callback)  # noqa: F401
     settings_panel,  # Settings panel callbacks (auto-registers via @callback)  # noqa: F401
     # The 'export' module doesn't seem to exist and is causing an error

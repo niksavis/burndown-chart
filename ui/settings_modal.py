@@ -505,7 +505,26 @@ def create_delete_query_modal():
                             "This action cannot be undone.",
                         ],
                         color="warning",
-                        className="mt-3 mb-0",
+                        className="mt-3 mb-3",
+                    ),
+                    dbc.Row(
+                        [
+                            dbc.Col(
+                                [
+                                    dbc.Label(
+                                        "Type the query name to confirm:",
+                                        html_for="delete-query-confirmation-input",
+                                    ),
+                                    dbc.Input(
+                                        id="delete-query-confirmation-input",
+                                        type="text",
+                                        placeholder="Type query name here...",
+                                        className="mb-3",
+                                    ),
+                                ],
+                                width=12,
+                            ),
+                        ]
                     ),
                 ]
             ),
@@ -521,6 +540,7 @@ def create_delete_query_modal():
                         [html.I(className="fas fa-trash me-2"), "Delete Query"],
                         id="confirm-delete-query-button",
                         color="danger",
+                        disabled=True,  # Disabled until confirmation typed
                     ),
                 ]
             ),

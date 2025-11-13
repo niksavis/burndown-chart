@@ -38,7 +38,8 @@ from ui.settings_modal import (
     create_delete_query_modal,
     create_edit_query_modal,
 )
-from ui.settings_panel import create_settings_panel
+from ui.improved_settings_panel import create_improved_settings_panel
+from ui.import_export_panel import create_import_export_flyout
 
 #######################################################################
 # LAYOUT FUNCTION
@@ -253,7 +254,9 @@ def create_app_layout(settings, statistics, is_sample_data):
                     create_parameter_panel(
                         settings, is_open=False, statistics=statistics
                     ),
-                    create_settings_panel(is_open=False),
+                    create_improved_settings_panel(),
+                    # Import/Export flyout panel
+                    create_import_export_flyout(),
                 ],
                 className="param-panel-sticky",
             ),

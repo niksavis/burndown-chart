@@ -244,7 +244,7 @@ def handle_quick_navigation(burndown_clicks, bugs_clicks):
 )
 def handle_quick_settings(n_clicks):
     """
-    Handle quick action to open settings panel.
+    Handle quick action to open settings panel from dashboard.
 
     Args:
         n_clicks: Number of clicks on Settings button

@@ -247,3 +247,17 @@ task_progress.json
 # Log files (application logging output - Feature 008)
 logs/*.log
 logs/*.log.*
+
+# Playwright browser automation files and screenshots
+.playwright-mcp/
+playwright-screenshots/
+*.png
+!assets/*.png
+!docs/**/*.png
+
+# Additional JSON data files that may be generated during development
+*.json
+!package.json
+!tsconfig.json
+!*.example.json
+!spec-kit.json

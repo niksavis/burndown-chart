@@ -2401,9 +2401,9 @@ def create_parameter_bar_collapsed(
                             ),
                         ],
                         xs=12,
-                        md=9,
+                        md=8,
                     ),
-                    # Expand Button and Settings Button (right side)
+                    # Expand Button, Settings Button, and Import/Export Button (right side)
                     dbc.Col(
                         [
                             html.Div(
@@ -2411,7 +2411,7 @@ def create_parameter_bar_collapsed(
                                     dbc.Button(
                                         [
                                             html.I(
-                                                className="fas fa-chevron-down",
+                                                className="fas fa-sliders-h",
                                                 style={
                                                     "minWidth": "14px",
                                                     "textAlign": "center",
@@ -2419,14 +2419,16 @@ def create_parameter_bar_collapsed(
                                             ),
                                             html.Span(
                                                 "Parameters",
-                                                className="d-none d-lg-inline ms-2",
+                                                className="d-none d-xl-inline ms-2",
                                             ),
                                         ],
                                         id=expand_btn_id,
                                         color="primary",
                                         outline=True,
                                         size="sm",
-                                        className="me-2",
+                                        className="me-1",
+                                        style={"minWidth": "38px"},
+                                        title="Adjust project parameters",
                                     ),
                                     dbc.Button(
                                         [
@@ -2439,21 +2441,44 @@ def create_parameter_bar_collapsed(
                                             ),
                                             html.Span(
                                                 "Settings",
-                                                className="d-none d-lg-inline ms-2",
+                                                className="d-none d-xl-inline ms-2",
                                             ),
                                         ],
                                         id="settings-button",
                                         color="primary",
                                         outline=True,
                                         size="sm",
-                                        title="Configure data sources, import/export, and JQL queries",
+                                        className="me-1",
+                                        style={"minWidth": "38px"},
+                                        title="Configure JIRA and queries",
+                                    ),
+                                    dbc.Button(
+                                        [
+                                            html.I(
+                                                className="fas fa-exchange-alt",
+                                                style={
+                                                    "minWidth": "14px",
+                                                    "textAlign": "center",
+                                                },
+                                            ),
+                                            html.Span(
+                                                "Data",
+                                                className="d-none d-xl-inline ms-2",
+                                            ),
+                                        ],
+                                        id="toggle-import-export-panel",
+                                        color="info",
+                                        outline=True,
+                                        size="sm",
+                                        style={"minWidth": "38px"},
+                                        title="Import or export data",
                                     ),
                                 ],
-                                className="d-flex justify-content-end align-items-center",
+                                className="d-flex justify-content-end align-items-center flex-nowrap",
                             ),
                         ],
                         xs=12,
-                        md=3,
+                        md=4,
                         className="d-flex align-items-center justify-content-end mt-2 mt-md-0",
                     ),
                 ],

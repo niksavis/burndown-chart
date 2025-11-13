@@ -338,6 +338,18 @@
   overflow: visible !important;
 }
 
+/* Expanded import/export panel styling */
+.import-export-panel-expanded {
+  animation: slideDown var(--transition-base) var(--easing-default);
+  background-color: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  margin-top: 0;
+  box-shadow: none;
+  overflow: visible !important;
+}
+
 /* Remove spacing from Card inside settings panel */
 .settings-panel-expanded .card {
   margin-top: 0 !important;

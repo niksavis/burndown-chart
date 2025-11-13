@@ -117,4 +117,5 @@ def create_query_creation_modal():
         size="lg",
         is_open=False,
         backdrop="static",  # Prevent closing by clicking outside
+        centered=True,
     )

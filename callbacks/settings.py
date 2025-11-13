@@ -1469,6 +1469,7 @@ def register(app):
 
     @app.callback(
         Output("delete-jql-query-modal", "is_open"),
+        Output("delete-query-confirmation-input", "value"),
         [
             Input("delete-jql-query-button", "n_clicks"),
             Input("cancel-delete-query-button", "n_clicks"),
@@ -1488,29 +1489,55 @@ def register(app):
 
         trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
-        # Open modal when delete button clicked
+        # Open modal when delete button clicked and reset confirmation input
         if trigger_id == "delete-jql-query-button" and delete_clicks:
-            return True
+            return True, ""
 
         # Close modal when cancel or confirm clicked
         elif trigger_id in [
             "cancel-delete-query-button",
             "confirm-delete-query-button",
         ]:
-            return False
+            return False, ""
 
         raise PreventUpdate
+
+    @app.callback(
+        Output("confirm-delete-query-button", "disabled"),
+        [Input("delete-query-confirmation-input", "value")],
+        [State("delete-query-name", "children")],
+        prevent_initial_call=True,
+    )
+    def enable_delete_query_button(confirmation_text, query_name):
+        """Enable delete button only when confirmation text matches query name."""
+        if not confirmation_text or not query_name:
+            return True
+
+        return confirmation_text.strip() != query_name.strip()
 
     @app.callback(
         Output("jira-query-profile-selector", "options", allow_duplicate=True),
         Output("jira-query-profile-selector", "value"),
         [Input("confirm-delete-query-button", "n_clicks")],
-        [State("jira-query-profile-selector", "value")],
+        [
+            State("jira-query-profile-selector", "value"),
+            State("delete-query-confirmation-input", "value"),
+            State("delete-query-name", "children"),
+        ],
         prevent_initial_call=True,
     )
-    def delete_query_profile(delete_clicks, current_profile_id):
-        """Delete the selected query profile."""
+    def delete_query_profile(
+        delete_clicks, current_profile_id, confirmation_text, query_name
+    ):
+        """Delete the selected query profile with confirmation validation."""
         if not delete_clicks or not current_profile_id:
+            raise PreventUpdate
+
+        # Validate confirmation text matches query name
+        if not confirmation_text or not query_name:
+            raise PreventUpdate
+
+        if confirmation_text.strip() != query_name.strip():
             raise PreventUpdate
 
         try:
@@ -1540,6 +1567,84 @@ def register(app):
 
         except Exception as e:
             logger.error(f"[Settings] Error deleting query profile: {e}")
+            raise PreventUpdate
+
+    @app.callback(
+        Output("query-selector", "options", allow_duplicate=True),
+        Output("query-selector", "value", allow_duplicate=True),
+        [Input("confirm-delete-query-button", "n_clicks")],
+        [
+            State("query-selector", "value"),
+            State("delete-query-confirmation-input", "value"),
+            State("delete-query-name", "children"),
+        ],
+        prevent_initial_call=True,
+    )
+    def delete_query_from_selector(
+        delete_clicks, current_query_id, confirmation_text, query_name
+    ):
+        """Delete the selected query from query selector with confirmation validation."""
+        if not delete_clicks or not current_query_id:
+            raise PreventUpdate
+
+        # Validate confirmation text matches query name
+        if not confirmation_text or not query_name:
+            raise PreventUpdate
+
+        if confirmation_text.strip() != query_name.strip():
+            raise PreventUpdate
+
+        try:
+            from data.query_manager import (
+                delete_query,
+                list_queries_for_profile,
+                get_active_profile_id,
+                get_active_query_id,
+                switch_query,
+            )
+
+            profile_id = get_active_profile_id()
+            active_query_id = get_active_query_id()
+
+            # If trying to delete the active query, switch to a different query first
+            if current_query_id == active_query_id:
+                queries = list_queries_for_profile(profile_id)
+                other_queries = [q for q in queries if q.get("id") != current_query_id]
+
+                if not other_queries:
+                    logger.error("Cannot delete last query in profile")
+                    raise PreventUpdate
+
+                # Switch to the first available query
+                new_active_query_id = other_queries[0].get("id")
+                if not new_active_query_id:
+                    logger.error("Invalid query ID in available queries")
+                    raise PreventUpdate
+                switch_query(new_active_query_id)
+
+            # Delete the query
+            delete_query(profile_id, current_query_id)
+
+            logger.info(
+                f"Deleted query '{current_query_id}' from profile '{profile_id}' via modal"
+            )
+
+            # Reload query selector options
+            updated_queries = list_queries_for_profile(profile_id)
+            options = []
+            active_value = ""
+            for query in updated_queries:
+                label = query.get("name", "Unnamed Query")
+                value = query.get("id", "")
+                if query.get("is_active", False):
+                    label += " ★"
+                    active_value = value
+                options.append({"label": label, "value": value})
+
+            return options, active_value
+
+        except Exception as e:
+            logger.error(f"[Settings] Error deleting query from selector: {e}")
             raise PreventUpdate
 
     @app.callback(
@@ -2057,16 +2162,20 @@ def register(app):
             Output("parameter-collapse", "is_open"),
             Output("parameter-panel-state", "data"),
             Output("settings-collapse", "is_open", allow_duplicate=True),
+            Output("import-export-collapse", "is_open", allow_duplicate=True),
         ],
         Input("btn-expand-parameters", "n_clicks"),
         [
             State("parameter-collapse", "is_open"),
             State("parameter-panel-state", "data"),
             State("settings-collapse", "is_open"),
+            State("import-export-collapse", "is_open"),
         ],
         prevent_initial_call=True,
     )
-    def toggle_parameter_panel(n_clicks, is_open, panel_state, settings_is_open):
+    def toggle_parameter_panel(
+        n_clicks, is_open, panel_state, settings_is_open, import_export_is_open
+    ):
         """
         Toggle parameter panel expand/collapse and persist state to localStorage.
 
@@ -2074,7 +2183,7 @@ def register(app):
         It toggles the collapse state and persists the user preference to localStorage
         so the panel state is maintained across sessions.
 
-        Also ensures only one flyout panel is open at a time by closing settings panel
+        Also ensures only one flyout panel is open at a time by closing other panels
         when parameter panel opens.
 
         Args:
@@ -2082,9 +2191,10 @@ def register(app):
             is_open: Current state of the collapse component
             panel_state: Current parameter panel state from dcc.Store
             settings_is_open: Current settings panel state
+            import_export_is_open: Current import/export panel state
 
         Returns:
-            tuple: (new_is_open, updated_panel_state, new_settings_state)
+            tuple: (new_is_open, updated_panel_state, new_settings_state, new_import_export_state)
         """
         from datetime import datetime
 
@@ -2097,13 +2207,24 @@ def register(app):
                 "user_preference": True,
             }
 
-            # If opening parameter panel and settings panel is open, close settings
-            if new_is_open and settings_is_open:
-                return new_is_open, updated_state, False
+            # If opening parameter panel, close other panels
+            new_settings_state = no_update
+            new_import_export_state = no_update
 
-            return new_is_open, updated_state, no_update
+            if new_is_open:
+                if settings_is_open:
+                    new_settings_state = False
+                if import_export_is_open:
+                    new_import_export_state = False
 
-        return is_open, panel_state, no_update
+            return (
+                new_is_open,
+                updated_state,
+                new_settings_state,
+                new_import_export_state,
+            )
+
+        return is_open, panel_state, no_update, no_update
 
     @app.callback(
         Output("parameter-bar-collapsed", "children"),
