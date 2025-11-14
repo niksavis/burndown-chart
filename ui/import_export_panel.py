@@ -103,7 +103,7 @@ def create_import_export_flyout(is_open: bool = False):
     """
     return html.Div(
         [
-            # Collapsible import/export panel
+            # Collapsible import/export panel content only (no banner - drops down from main banner)
             dbc.Collapse(
                 dbc.Card(
                     dbc.CardBody(
@@ -117,7 +117,7 @@ def create_import_export_flyout(is_open: bool = False):
                                     ),
                                     "Data Management",
                                 ],
-                                className="mb-4 text-info",
+                                className="mb-4 mt-3 text-info",
                                 style={"fontSize": "1.1rem", "fontWeight": "600"},
                             ),
                             # Section 1: Import Data
@@ -243,17 +243,17 @@ def create_import_export_flyout(is_open: bool = False):
                                 ],
                             ),
                         ],
+                        className="import-export-panel-expanded",
                         style={
                             "paddingTop": "1rem",
                             "paddingLeft": "1.25rem",
                             "paddingRight": "1.25rem",
                         },
                     ),
-                    className="mb-4 import-export-panel-expanded",
+                    className="mb-4",
                 ),
                 id="import-export-collapse",
                 is_open=is_open,
-                style={"marginTop": "1rem"},
             ),
         ],
         id="import-export-panel",

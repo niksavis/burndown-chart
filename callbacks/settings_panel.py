@@ -35,9 +35,10 @@ def toggle_settings_panel(
     When opening, load the default saved query or last used query into JQL textarea.
 
     This ensures only one flyout panel is open at a time for better UX.
+    Responds to the main settings button in the parameter bar.
 
     Args:
-        settings_clicks: Number of clicks on settings button
+        settings_clicks: Number of clicks on main settings button
         settings_is_open: Current settings panel state
         parameter_is_open: Current parameter panel state
         import_export_is_open: Current import/export panel state
@@ -113,14 +114,13 @@ def toggle_import_export_panel(
     Toggle import/export panel open/close and close other panels if open.
 
     This ensures only one flyout panel is open at a time for better UX.
+    Responds to the main import/export button in the parameter bar.
 
     Args:
-        import_export_clicks: Number of clicks on import/export button
+        import_export_clicks: Number of clicks on main import/export button
         import_export_is_open: Current import/export panel state
         settings_is_open: Current settings panel state
-        parameter_is_open: Current parameter panel state
-
-    Returns:
+        parameter_is_open: Current parameter panel state    Returns:
         tuple: (new_import_export_state, new_settings_state, new_parameter_state)
     """
     # Check which button triggered the callback

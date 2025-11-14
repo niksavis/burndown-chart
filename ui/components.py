@@ -2467,9 +2467,10 @@ def create_parameter_bar_collapsed(
                                             ),
                                         ],
                                         id="toggle-import-export-panel",
-                                        color="info",
+                                        color="primary",
                                         outline=True,
                                         size="sm",
+                                        className="me-1",
                                         style={"minWidth": "38px"},
                                         title="Import or export data",
                                     ),
@@ -2491,7 +2492,7 @@ def create_parameter_bar_collapsed(
             "padding": DESIGN_TOKENS["spacing"]["md"],
             "backgroundColor": DESIGN_TOKENS["colors"]["gray-100"],
             "borderRadius": DESIGN_TOKENS["layout"]["borderRadius"]["md"],
-            "marginBottom": DESIGN_TOKENS["spacing"]["sm"],
+            "marginBottom": DESIGN_TOKENS["spacing"]["xs"],
         },
     )
 
@@ -2825,6 +2826,18 @@ def create_parameter_panel_expanded(
 
     return html.Div(
         [
+            # Header with icon (matching other panels style)
+            html.H5(
+                [
+                    html.I(
+                        className="fas fa-sliders-h me-2",
+                        style={"color": "#0d6efd"},
+                    ),
+                    "Parameters",
+                ],
+                className="mb-4 text-primary",
+                style={"fontSize": "1.1rem", "fontWeight": "600"},
+            ),
             # Section 1: Project Timeline
             html.Div(
                 [

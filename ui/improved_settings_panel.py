@@ -61,12 +61,11 @@ def create_improved_settings_panel(is_open: bool = False):
     """
     return html.Div(
         [
-            # Collapsible settings panel
+            # Collapsible settings panel content only (no banner - drops down from main banner)
             dbc.Collapse(
                 create_settings_panel_content(),
                 id="settings-collapse",
                 is_open=is_open,
-                style={"marginTop": "1rem"},
             ),
             # Modals
             create_profile_creation_modal(),
@@ -93,19 +92,16 @@ def create_settings_panel_content():
         dbc.CardBody(
             [
                 # Header with icon
-                html.Div(
+                html.H5(
                     [
-                        html.H5(
-                            [
-                                html.I(
-                                    className="fas fa-cog me-2",
-                                    style={"color": "#6c757d"},
-                                ),
-                                "Configuration Settings",
-                            ],
-                            className="mb-4 text-secondary",
+                        html.I(
+                            className="fas fa-cog me-2",
+                            style={"color": "#6c757d"},
                         ),
+                        "Configuration Settings",
                     ],
+                    className="mb-4 mt-3 text-secondary",
+                    style={"fontSize": "1.1rem", "fontWeight": "600"},
                 ),
                 # Section 1: JIRA Connection
                 html.Div(
@@ -397,9 +393,10 @@ def create_settings_panel_content():
                     style={"display": "none"},
                 ),
             ],
+            className="settings-panel-expanded",
             style={"paddingTop": "0px", "marginTop": "0px"},
         ),
-        className="mb-4 settings-panel-expanded",
+        className="mb-4",
     )
 
 

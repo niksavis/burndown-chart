@@ -190,12 +190,12 @@
   z-index: var(--z-index-sticky);
   background-color: var(--color-white);
   box-shadow: var(--shadow-sm);
-  margin-bottom: var(--spacing-md);
+  margin-bottom: var(--spacing-xs);
 }
 
 /* Parameter panel container spacing */
 .parameter-panel-container {
-  margin-bottom: var(--spacing-lg);
+  margin-bottom: var(--spacing-xs);
 }
 
 /* Collapsed bar styling */
@@ -222,9 +222,10 @@
   opacity: 0.8;
 }
 
-/* Parameter and Settings button styling */
+/* Parameter, Settings, and Data button styling */
 #btn-expand-parameters,
-#settings-button {
+#settings-button,
+#toggle-import-export-panel {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -233,7 +234,8 @@
 
 /* Icon centering within buttons */
 #btn-expand-parameters i,
-#settings-button i {
+#settings-button i,
+#toggle-import-export-panel i {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -244,7 +246,8 @@
 /* On larger screens, add margin to icon when text is visible */
 @media (min-width: 992px) {
   #btn-expand-parameters i,
-  #settings-button i {
+  #settings-button i,
+  #toggle-import-export-panel i {
     margin-right: 0.5rem;
   }
 }
@@ -303,10 +306,12 @@
 /* Settings panel container spacing */
 /* Settings panel container - positioned below parameter panel */
 .settings-panel-container {
-  margin-bottom: var(--spacing-lg);
-  margin-top: var(
-    --spacing-sm
-  ) !important; /* 0.5rem to match parameter bar margin */
+  margin-bottom: var(--spacing-xs);
+}
+
+/* Import/Export panel container - positioned below other panels */
+.import-export-panel-container {
+  margin-bottom: var(--spacing-xs);
 }
 
 /* Allow dropdown menus to overflow the collapse container */
@@ -326,7 +331,7 @@
   overflow: visible !important;
 }
 
-/* Expanded settings panel styling */
+/* Expanded settings panel styling - animation applied to CardBody content like parameter panel */
 .settings-panel-expanded {
   animation: slideDown var(--transition-base) var(--easing-default);
   background-color: transparent;
@@ -338,7 +343,7 @@
   overflow: visible !important;
 }
 
-/* Expanded import/export panel styling */
+/* Expanded import/export panel styling - animation applied to CardBody content like parameter panel */
 .import-export-panel-expanded {
   animation: slideDown var(--transition-base) var(--easing-default);
   background-color: transparent;
