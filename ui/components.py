@@ -2320,176 +2320,172 @@ def create_parameter_bar_collapsed(
 
     return html.Div(
         [
-            dbc.Row(
+            # Single row with all items on the same level
+            html.Div(
                 [
-                    # Parameter Summary (left side)
-                    dbc.Col(
+                    # Summary items (left side)
+                    html.Div(
                         [
-                            html.Div(
+                            html.Span(
                                 [
+                                    html.I(className="fas fa-sliders-h me-1"),
                                     html.Span(
-                                        [
-                                            html.I(className="fas fa-sliders-h me-1"),
-                                            html.Span(
-                                                "Window: ",
-                                                className="d-none d-sm-inline",
-                                            ),
-                                            f"{pert_factor}w",
-                                        ],
-                                        className="param-summary-item me-2 me-sm-3",
-                                        title=f"Confidence Window: {pert_factor} weeks (samples best/worst case from your velocity history)",
+                                        "Window: ",
+                                        className="d-none d-sm-inline",
                                     ),
-                                    html.Span(
-                                        [
-                                            html.I(className="fas fa-chart-line me-1"),
-                                            html.Span(
-                                                "Data: ",
-                                                className="d-none d-sm-inline",
-                                            ),
-                                            f"{data_points}w",
-                                        ],
-                                        className="param-summary-item me-2 me-sm-3",
-                                        title=f"Data Points: {data_points} weeks of historical data used for forecasting",
-                                        style={
-                                            "display": "inline"
-                                            if data_points
-                                            else "none"
-                                        },
-                                    )
-                                    if data_points
-                                    else html.Span(),
-                                    html.Span(
-                                        [
-                                            html.I(className="fas fa-calendar me-1"),
-                                            html.Span(
-                                                "Deadline: ",
-                                                className="text-muted d-none d-lg-inline",
-                                                style={"fontSize": "0.85em"},
-                                            ),
-                                            html.Span(
-                                                f"{deadline}",
-                                                className="d-none d-sm-inline",
-                                            ),
-                                            html.Span(
-                                                f"{deadline[5:]}",  # Show only MM-DD on mobile
-                                                className="d-inline d-sm-none",
-                                            ),
-                                        ],
-                                        className="param-summary-item me-2 me-md-3",
-                                        title=f"Project deadline: {deadline}",
-                                    ),
-                                    html.Span(
-                                        [
-                                            html.I(className="fas fa-tasks me-1"),
-                                            html.Span(
-                                                f"{items_label}: ",
-                                                className="text-muted d-none d-sm-inline",
-                                                style={"fontSize": "0.85em"},
-                                            ),
-                                            f"{display_items:,}",
-                                            html.Span(
-                                                " items",  # Space is inside the span
-                                                className="d-none d-sm-inline",  # Hide on smallest screens
-                                            ),
-                                        ],
-                                        className="param-summary-item me-2 me-sm-3",
-                                        title=f"{items_label}: {display_items:,} items",
-                                    ),
-                                ]
-                                + points_display,
-                                className="d-flex align-items-center flex-wrap",
+                                    f"{pert_factor}w",
+                                ],
+                                className="param-summary-item me-2 me-sm-3",
+                                title=f"Confidence Window: {pert_factor} weeks (samples best/worst case from your velocity history)",
                             ),
-                        ],
-                        xs=12,
-                        md=8,
-                    ),
-                    # Expand Button, Settings Button, and Import/Export Button (right side)
-                    dbc.Col(
-                        [
-                            html.Div(
+                            html.Span(
                                 [
-                                    dbc.Button(
-                                        [
-                                            html.I(
-                                                className="fas fa-sliders-h",
-                                                style={
-                                                    "minWidth": "14px",
-                                                    "textAlign": "center",
-                                                },
-                                            ),
-                                            html.Span(
-                                                "Parameters",
-                                                className="d-none d-xl-inline ms-2",
-                                            ),
-                                        ],
-                                        id=expand_btn_id,
-                                        color="primary",
-                                        outline=True,
-                                        size="sm",
-                                        className="me-1",
-                                        style={"minWidth": "38px"},
-                                        title="Adjust project parameters",
+                                    html.I(className="fas fa-chart-line me-1"),
+                                    html.Span(
+                                        "Data: ",
+                                        className="d-none d-sm-inline",
                                     ),
-                                    dbc.Button(
-                                        [
-                                            html.I(
-                                                className="fas fa-cog",
-                                                style={
-                                                    "minWidth": "14px",
-                                                    "textAlign": "center",
-                                                },
-                                            ),
-                                            html.Span(
-                                                "Settings",
-                                                className="d-none d-xl-inline ms-2",
-                                            ),
-                                        ],
-                                        id="settings-button",
-                                        color="primary",
-                                        outline=True,
-                                        size="sm",
-                                        className="me-1",
-                                        style={"minWidth": "38px"},
-                                        title="Configure JIRA and queries",
+                                    f"{data_points}w",
+                                ],
+                                className="param-summary-item me-2 me-sm-3",
+                                title=f"Data Points: {data_points} weeks of historical data used for forecasting",
+                                style={"display": "inline" if data_points else "none"},
+                            )
+                            if data_points
+                            else html.Span(),
+                            html.Span(
+                                [
+                                    html.I(className="fas fa-calendar me-1"),
+                                    html.Span(
+                                        "Deadline: ",
+                                        className="text-muted d-none d-lg-inline",
+                                        style={"fontSize": "0.85em"},
                                     ),
-                                    dbc.Button(
-                                        [
-                                            html.I(
-                                                className="fas fa-exchange-alt",
-                                                style={
-                                                    "minWidth": "14px",
-                                                    "textAlign": "center",
-                                                },
-                                            ),
-                                            html.Span(
-                                                "Data",
-                                                className="d-none d-xl-inline ms-2",
-                                            ),
-                                        ],
-                                        id="toggle-import-export-panel",
-                                        color="primary",
-                                        outline=True,
-                                        size="sm",
-                                        className="me-1",
-                                        style={"minWidth": "38px"},
-                                        title="Import or export data",
+                                    html.Span(
+                                        f"{deadline}",
+                                        className="d-none d-sm-inline",
+                                    ),
+                                    html.Span(
+                                        f"{deadline[5:]}",  # Show only MM-DD on mobile
+                                        className="d-inline d-sm-none",
                                     ),
                                 ],
-                                className="d-flex justify-content-end align-items-center flex-nowrap",
+                                className="param-summary-item me-2 me-md-3",
+                                title=f"Project deadline: {deadline}",
+                            ),
+                            html.Span(
+                                [
+                                    html.I(className="fas fa-tasks me-1"),
+                                    html.Span(
+                                        f"{items_label}: ",
+                                        className="text-muted d-none d-sm-inline",
+                                        style={"fontSize": "0.85em"},
+                                    ),
+                                    f"{display_items:,}",
+                                    html.Span(
+                                        " items",  # Space is inside the span
+                                        className="d-none d-sm-inline",  # Hide on smallest screens
+                                    ),
+                                ],
+                                className="param-summary-item me-2 me-sm-3",
+                                title=f"{items_label}: {display_items:,} items",
+                            ),
+                        ]
+                        + points_display,
+                        className="d-flex align-items-center flex-wrap flex-grow-1",
+                    ),
+                    # Buttons (right side)
+                    html.Div(
+                        [
+                            dbc.Button(
+                                [
+                                    html.I(
+                                        className="fas fa-sliders-h",
+                                    ),
+                                    html.Span(
+                                        "Parameters",
+                                        className="d-none d-xl-inline",
+                                        style={"marginLeft": "0.5rem"},
+                                    ),
+                                ],
+                                id=expand_btn_id,
+                                color="primary",
+                                outline=True,
+                                size="sm",
+                                className="me-1",
+                                style={
+                                    "minWidth": "38px",
+                                    "height": "38px",
+                                    "padding": "0 8px",
+                                    "display": "flex",
+                                    "alignItems": "center",
+                                    "justifyContent": "center",
+                                },
+                                title="Adjust project parameters",
+                            ),
+                            dbc.Button(
+                                [
+                                    html.I(
+                                        className="fas fa-cog",
+                                    ),
+                                    html.Span(
+                                        "Settings",
+                                        className="d-none d-xl-inline",
+                                        style={"marginLeft": "0.5rem"},
+                                    ),
+                                ],
+                                id="settings-button",
+                                color="primary",
+                                outline=True,
+                                size="sm",
+                                className="me-1",
+                                style={
+                                    "minWidth": "38px",
+                                    "height": "38px",
+                                    "padding": "0 8px",
+                                    "display": "flex",
+                                    "alignItems": "center",
+                                    "justifyContent": "center",
+                                },
+                                title="Configure JIRA and queries",
+                            ),
+                            dbc.Button(
+                                [
+                                    html.I(
+                                        className="fas fa-exchange-alt",
+                                    ),
+                                    html.Span(
+                                        "Data",
+                                        className="d-none d-xl-inline",
+                                        style={"marginLeft": "0.5rem"},
+                                    ),
+                                ],
+                                id="toggle-import-export-panel",
+                                color="primary",
+                                outline=True,
+                                size="sm",
+                                className="me-1",
+                                style={
+                                    "minWidth": "38px",
+                                    "height": "38px",
+                                    "padding": "0 8px",
+                                    "display": "flex",
+                                    "alignItems": "center",
+                                    "justifyContent": "center",
+                                },
+                                title="Import or export data",
                             ),
                         ],
-                        xs=12,
-                        md=4,
-                        className="d-flex align-items-center justify-content-end mt-2 mt-md-0",
+                        className="d-flex justify-content-end align-items-center flex-nowrap flex-shrink-0",
                     ),
                 ],
-                className="g-2",
+                className="d-flex align-items-center justify-content-between flex-wrap",
             ),
         ],
         className="parameter-bar-collapsed",
         id=bar_id,
         style={
-            "padding": DESIGN_TOKENS["spacing"]["md"],
+            "padding": DESIGN_TOKENS["spacing"]["sm"],
             "backgroundColor": DESIGN_TOKENS["colors"]["gray-100"],
             "borderRadius": DESIGN_TOKENS["layout"]["borderRadius"]["md"],
             "marginBottom": DESIGN_TOKENS["spacing"]["xs"],

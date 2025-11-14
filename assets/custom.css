@@ -226,31 +226,34 @@
 #btn-expand-parameters,
 #settings-button,
 #toggle-import-export-panel {
-  display: inline-flex !important;
+  display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 0; /* Remove gap to control spacing manually */
+  height: 38px !important;
+  min-width: 38px !important;
 }
 
-/* Icon centering within buttons */
+/* Ensure consistent button height on mobile and tablet (up to 768px) */
+@media (max-width: 768px) {
+  #btn-expand-parameters,
+  #settings-button,
+  #toggle-import-export-panel {
+    height: 38px !important;
+    min-height: 38px !important;
+    max-height: 38px !important;
+    padding: 0 8px !important;
+    line-height: 1 !important;
+  }
+}
+
+/* Remove any icon-specific styling that conflicts with flexbox centering */
 #btn-expand-parameters i,
 #settings-button i,
 #toggle-import-export-panel i {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 14px; /* Fixed width for consistent alignment */
-  text-align: center;
+  /* Let flexbox handle centering - no fixed widths or margins */
 }
 
-/* On larger screens, add margin to icon when text is visible */
-@media (min-width: 992px) {
-  #btn-expand-parameters i,
-  #settings-button i,
-  #toggle-import-export-panel i {
-    margin-right: 0.5rem;
-  }
-}
+/* Remove media query that adds conflicting margins */
 
 /* Expanded panel styling */
 .parameter-panel-expanded {
@@ -278,10 +281,6 @@
   .param-summary-item {
     font-size: var(--font-size-xs);
     margin-right: var(--spacing-xs) !important;
-  }
-
-  .parameter-bar-collapsed {
-    padding: var(--spacing-sm) !important;
   }
 
   /* Constrain expanded panel height on mobile to prevent overlap with bottom nav */
