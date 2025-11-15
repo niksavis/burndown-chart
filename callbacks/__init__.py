@@ -97,7 +97,11 @@ Example - Correct callback pattern:
         return new_settings
 """
 
+# Import feature flag to determine which UI is active
+from ui.layout import USE_ACCORDION_SETTINGS
+
 from callbacks import (
+    accordion_settings,  # Accordion settings panel callbacks (Feature 011, auto-registers via @callback)  # noqa: F401
     bug_analysis,  # Bug analysis metrics callbacks (Feature 004)
     dashboard,  # Dashboard metrics and PERT timeline callbacks (Feature 006, User Story 2)
     dora_flow_metrics,  # DORA/Flow metrics callbacks (Feature 007, auto-registers via @callback)  # noqa: F401
@@ -108,7 +112,6 @@ from callbacks import (
     mobile_navigation,  # Add mobile navigation callbacks
     profile_management,  # Profile management callbacks (Feature 011, auto-registers via @callback)  # noqa: F401
     query_switching,  # Query switching callbacks (Feature 011, auto-registers via @callback)  # noqa: F401
-    settings_panel,  # Settings panel callbacks (auto-registers via @callback)  # noqa: F401
     # The 'export' module doesn't seem to exist and is causing an error
     # export,
     # scope_metrics,  # REMOVED: Orphaned callback with non-existent forecast-data-store
@@ -117,12 +120,19 @@ from callbacks import (
     visualization,
 )
 
+# Always import settings_panel for flyout toggle functionality
+# (needed for both accordion and legacy UI to open the Settings flyout)
+from callbacks import settings_panel  # noqa: F401
+
 
 def register_all_callbacks(app):
     """Register all callbacks for the application."""
     statistics.register(app)
     visualization.register(app)
+
+    # Always register settings callbacks (needed for Parameters panel toggle)
     settings.register(app)
+
     # Remove this line since 'export' module doesn't exist
     # export.register(app)
     # REMOVED: scope_metrics.register(app) - orphaned callback causing scope tab bug

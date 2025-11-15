@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
         Output("query-selector", "options"),
         Output("query-selector", "value"),
         Output("query-empty-state", "className"),
-        Output("jira-jql-query", "value", allow_duplicate=True),
+        Output("query-jql-editor", "value", allow_duplicate=True),
     ],
     Input("url", "pathname"),  # Trigger on page load
     prevent_initial_call="initial_duplicate",
@@ -84,7 +84,7 @@ def populate_query_dropdown(_pathname):
     [
         Output("query-selector", "options", allow_duplicate=True),
         Output("query-selector", "value", allow_duplicate=True),
-        Output("jira-jql-query", "value", allow_duplicate=True),
+        Output("query-jql-editor", "value", allow_duplicate=True),
     ],
     Input("query-selector", "value"),
     State("query-selector", "options"),

@@ -556,14 +556,20 @@
   /**
    * Watch for settings panel collapse events and sync CodeMirror.
    * This ensures the JQL editor shows the correct value when panel opens.
+   *
+   * Note: Only applies to legacy settings panel. Accordion UI doesn't need this
+   * as accordion sections manage their own visibility.
    */
   function watchSettingsPanelCollapse() {
     const settingsCollapse = document.getElementById("settings-collapse");
 
-    console.log("[JQL Editor] Looking for settings-collapse...");
+    // Legacy UI only - skip silently if using accordion UI
+    if (!settingsCollapse) {
+      return;
+    }
+
     console.log(
-      "[JQL Editor] Found settings-collapse:",
-      settingsCollapse ? "YES" : "NO"
+      "[JQL Editor] Found legacy settings-collapse, setting up watcher"
     );
 
     if (settingsCollapse) {
