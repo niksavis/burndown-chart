@@ -15,7 +15,6 @@ logger = logging.getLogger(__name__)
         Output("settings-collapse", "is_open", allow_duplicate=True),
         Output("parameter-collapse", "is_open", allow_duplicate=True),
         Output("import-export-collapse", "is_open", allow_duplicate=True),
-        Output("jira-jql-query", "value", allow_duplicate=True),
     ],
     [
         Input("settings-button", "n_clicks"),
@@ -32,10 +31,11 @@ def toggle_settings_panel(
 ):
     """
     Toggle settings panel open/close and close other panels if open.
-    When opening, load the default saved query or last used query into JQL textarea.
 
     This ensures only one flyout panel is open at a time for better UX.
     Responds to the main settings button in the parameter bar.
+
+    Works with both accordion UI (inside flyout) and legacy UI.
 
     Args:
         settings_clicks: Number of clicks on main settings button
@@ -44,32 +44,28 @@ def toggle_settings_panel(
         import_export_is_open: Current import/export panel state
 
     Returns:
-        tuple: (new_settings_state, new_parameter_state, new_import_export_state, jql_query_value)
+        tuple: (new_settings_state, new_parameter_state, new_import_export_state)
     """
     # Check which button triggered the callback
     if not ctx.triggered_id:
         logger.warning("No trigger ID - preventing panel state change")
-        return no_update, no_update, no_update, no_update
+        return no_update, no_update, no_update
 
     # CRITICAL FIX: Prevent firing on initial button render
     if settings_clicks is None:
         logger.warning(
             "Settings button clicks is None - this is initial render, returning no_update"
         )
-        return no_update, no_update, no_update, no_update
+        return no_update, no_update, no_update
 
     if settings_clicks == 0:
         logger.warning(
             "Settings button clicks is 0 - this is initial state, returning no_update"
         )
-        return no_update, no_update, no_update, no_update
+        return no_update, no_update, no_update
 
     new_settings_state = not settings_is_open
     logger.info(f"Toggling settings panel to: {new_settings_state}")
-
-    # When opening settings panel, DO NOT modify JQL editor
-    # The JQL editor already has the correct value from its initial_value
-    jql_query_value = no_update
 
     # If opening settings panel, close other panels
     new_parameter_state = no_update
@@ -83,12 +79,7 @@ def toggle_settings_panel(
             logger.info("Closing import/export panel because settings panel is opening")
             new_import_export_state = False
 
-    return (
-        new_settings_state,
-        new_parameter_state,
-        new_import_export_state,
-        jql_query_value,
-    )
+    return new_settings_state, new_parameter_state, new_import_export_state
 
 
 @callback(
@@ -113,44 +104,37 @@ def toggle_import_export_panel(
     """
     Toggle import/export panel open/close and close other panels if open.
 
-    This ensures only one flyout panel is open at a time for better UX.
-    Responds to the main import/export button in the parameter bar.
+    For accordion UI, this is a no-op since import/export is built into
+    Data Operations section. But we keep the callback to prevent errors.
 
     Args:
-        import_export_clicks: Number of clicks on main import/export button
+        import_export_clicks: Number of clicks on Data button
         import_export_is_open: Current import/export panel state
         settings_is_open: Current settings panel state
-        parameter_is_open: Current parameter panel state    Returns:
+        parameter_is_open: Current parameter panel state
+
+    Returns:
         tuple: (new_import_export_state, new_settings_state, new_parameter_state)
     """
-    # Check which button triggered the callback
     if not ctx.triggered_id:
         logger.warning("No trigger ID for import/export panel")
         return no_update, no_update, no_update
 
-    # CRITICAL FIX: Prevent firing on initial button render
     if import_export_clicks is None or import_export_clicks == 0:
         logger.warning(
             "Import/export button clicks is initial state, returning no_update"
         )
         return no_update, no_update, no_update
 
-    new_import_export_state = not import_export_is_open
-    logger.info(f"Toggling import/export panel to: {new_import_export_state}")
+    # Data button opens dedicated import/export flyout panel
+    # This is PURE data operations - no JIRA dependencies
+    new_import_export_state = not import_export_is_open  # Toggle import/export panel
+    new_settings_state = False if settings_is_open else no_update  # Close Settings
+    new_parameter_state = False if parameter_is_open else no_update  # Close Parameters
 
-    # If opening import/export panel, close other panels
-    new_settings_state = no_update
-    new_parameter_state = no_update
-
-    if new_import_export_state:
-        if settings_is_open:
-            logger.info("Closing settings panel because import/export panel is opening")
-            new_settings_state = False
-        if parameter_is_open:
-            logger.info(
-                "Closing parameter panel because import/export panel is opening"
-            )
-            new_parameter_state = False
+    logger.info(
+        f"Data button clicked - toggling import/export panel to: {new_import_export_state}"
+    )
 
     return new_import_export_state, new_settings_state, new_parameter_state
 

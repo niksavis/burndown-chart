@@ -39,7 +39,11 @@ from ui.settings_modal import (
     create_edit_query_modal,
 )
 from ui.improved_settings_panel import create_improved_settings_panel
+from ui.accordion_settings_panel import create_accordion_settings_panel
 from ui.import_export_panel import create_import_export_flyout
+
+# Feature flag for new accordion-based settings panel (Feature 011)
+USE_ACCORDION_SETTINGS = True  # Set to True to use new accordion UI
 
 #######################################################################
 # LAYOUT FUNCTION
@@ -254,8 +258,9 @@ def create_app_layout(settings, statistics, is_sample_data):
                     create_parameter_panel(
                         settings, is_open=False, statistics=statistics
                     ),
+                    # Settings panel - always use improved panel, which now contains accordion
                     create_improved_settings_panel(),
-                    # Import/Export flyout panel
+                    # Import/Export flyout panel - separate from Settings (pure data operations)
                     create_import_export_flyout(),
                 ],
                 className="param-panel-sticky",

@@ -120,127 +120,66 @@ def create_import_export_flyout(is_open: bool = False):
                                 className="mb-4 mt-3 text-info",
                                 style={"fontSize": "1.1rem", "fontWeight": "600"},
                             ),
-                            # Section 1: Import Data
+                            # Import section - compact, no redundant heading
                             html.Div(
                                 [
-                                    html.H6(
-                                        [
-                                            html.I(
-                                                className="fas fa-upload me-2",
-                                                style={"color": "#198754"},
-                                            ),
-                                            "1. Import Data",
-                                        ],
-                                        className="mb-3 text-success",
-                                        style={
-                                            "fontSize": "0.9rem",
-                                            "fontWeight": "600",
-                                        },
-                                    ),
-                                    html.Div(
-                                        [
-                                            html.Label(
-                                                [
-                                                    "Upload File",
-                                                    html.Span(
-                                                        " (JSON or CSV)",
-                                                        className="text-muted",
-                                                        style={"fontSize": "0.8rem"},
-                                                    ),
-                                                ],
-                                                className="form-label fw-medium mb-2",
-                                                style={"fontSize": "0.875rem"},
-                                            ),
-                                            dcc.Upload(
-                                                id="upload-data",
-                                                children=html.Div(
-                                                    [
-                                                        html.I(
-                                                            className="fas fa-cloud-upload-alt fa-2x mb-2 text-primary"
-                                                        ),
-                                                        html.P(
-                                                            "Drop files here or click to browse",
-                                                            className="mb-1 fw-medium",
-                                                            style={
-                                                                "fontSize": "0.9rem"
-                                                            },
-                                                        ),
-                                                        html.Small(
-                                                            "Supports JSON and CSV files",
-                                                            className="text-muted",
-                                                            style={
-                                                                "fontSize": "0.75rem"
-                                                            },
-                                                        ),
-                                                    ],
-                                                    className="text-center py-4",
+                                    dcc.Upload(
+                                        id="upload-data",
+                                        children=html.Div(
+                                            [
+                                                html.I(
+                                                    className="fas fa-cloud-upload-alt fa-2x mb-2 text-primary"
                                                 ),
-                                                style={
-                                                    "width": "100%",
-                                                    "borderWidth": "2px",
-                                                    "borderStyle": "dashed",
-                                                    "borderRadius": "8px",
-                                                    "borderColor": "#dee2e6",
-                                                    "backgroundColor": "#f8f9fa",
-                                                    "cursor": "pointer",
-                                                    "transition": "all 0.2s ease",
-                                                },
-                                                multiple=False,
-                                                accept="application/json,.json,.csv",
-                                            ),
-                                        ],
-                                        className="mb-3",
+                                                html.P(
+                                                    "Drop files here or click to browse",
+                                                    className="mb-1 fw-medium",
+                                                    style={"fontSize": "0.9rem"},
+                                                ),
+                                                html.Small(
+                                                    "Supports JSON and CSV files",
+                                                    className="text-muted",
+                                                    style={"fontSize": "0.75rem"},
+                                                ),
+                                            ],
+                                            className="text-center py-4",
+                                        ),
+                                        style={
+                                            "width": "100%",
+                                            "borderWidth": "2px",
+                                            "borderStyle": "dashed",
+                                            "borderRadius": "8px",
+                                            "borderColor": "#dee2e6",
+                                            "backgroundColor": "#f8f9fa",
+                                            "cursor": "pointer",
+                                            "transition": "all 0.2s ease",
+                                        },
+                                        multiple=False,
+                                        accept="application/json,.json,.csv",
                                     ),
                                 ],
                                 className="mb-4 pb-3 border-bottom",
                             ),
-                            # Section 2: Export Data
+                            # Export section - compact, no redundant heading
                             html.Div(
                                 [
-                                    html.H6(
+                                    dbc.Button(
                                         [
-                                            html.I(
-                                                className="fas fa-download me-2",
-                                                style={"color": "#6f42c1"},
-                                            ),
-                                            "2. Export Data",
+                                            html.I(className="fas fa-file-export me-2"),
+                                            "Export Project Data",
                                         ],
-                                        className="mb-3",
-                                        style={
-                                            "fontSize": "0.9rem",
-                                            "fontWeight": "600",
-                                            "color": "#6f42c1",
-                                        },
+                                        id="export-project-data-button",
+                                        color="secondary",
+                                        className="w-100 mb-2",
+                                        size="md",
                                     ),
-                                    html.Div(
-                                        [
-                                            html.Label(
-                                                "Project Data Export",
-                                                className="form-label fw-medium mb-2",
-                                                style={"fontSize": "0.875rem"},
-                                            ),
-                                            dbc.Button(
-                                                [
-                                                    html.I(
-                                                        className="fas fa-file-export me-2"
-                                                    ),
-                                                    "Export Project Data",
-                                                ],
-                                                id="export-project-data-button",
-                                                color="secondary",
-                                                className="w-100 mb-2",
-                                                size="md",
-                                            ),
-                                            html.Small(
-                                                "Downloads complete project data as JSON file",
-                                                className="text-muted d-block text-center",
-                                                style={"fontSize": "0.75rem"},
-                                            ),
-                                            dcc.Download(id="download-data"),
-                                        ],
-                                        className="mb-3",
+                                    html.Small(
+                                        "Downloads complete project data as JSON file",
+                                        className="text-muted d-block text-center",
+                                        style={"fontSize": "0.75rem"},
                                     ),
+                                    dcc.Download(id="download-data"),
                                 ],
+                                className="mb-3",
                             ),
                         ],
                         className="import-export-panel-expanded",

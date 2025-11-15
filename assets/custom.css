@@ -313,19 +313,22 @@
   margin-bottom: var(--spacing-xs);
 }
 
-/* Allow dropdown menus to overflow the collapse container */
+/* Allow specific collapse containers to show dropdown menus */
+/* Only apply to settings collapse wrapper, not accordion items */
 #settings-collapse,
-#settings-collapse-mobile {
+#settings-collapse-mobile,
+#import-export-collapse {
   overflow: visible !important;
 }
 
-/* Prevent Bootstrap collapse from hiding overflow during animation */
-.collapse,
-.collapsing {
-  overflow: visible !important;
+/* CRITICAL FIX: Accordion collapse sections should hide overflow during animation */
+/* This prevents content overlap when switching between accordion sections */
+#settings-accordion .accordion-collapse,
+#settings-accordion .accordion-collapse.collapsing {
+  overflow: hidden !important;
 }
 
-/* Ensure settings panel card body also allows overflow */
+/* Ensure settings panel card body allows overflow for dropdowns */
 .settings-panel-expanded .card-body {
   overflow: visible !important;
 }
@@ -354,6 +357,27 @@
   overflow: visible !important;
 }
 
+/* CRITICAL FIX: Ensure cards inside flyout panels have solid white backgrounds */
+/* This prevents transparency issues when interacting with accordion components */
+#settings-collapse .card,
+#import-export-collapse .card,
+.settings-panel-expanded .card,
+.import-export-panel-expanded .card {
+  background-color: var(--color-white) !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  overflow: visible !important;
+}
+
+/* Ensure accordion and collapse components maintain white backgrounds */
+#settings-accordion,
+#settings-accordion .accordion-item,
+#settings-accordion .accordion-button,
+#settings-accordion .accordion-collapse,
+#settings-accordion .accordion-body {
+  background-color: var(--color-white) !important;
+}
+
 /* Remove spacing from Card inside settings panel */
 .settings-panel-expanded .card {
   margin-top: 0 !important;
@@ -362,9 +386,11 @@
 }
 
 /* Remove top padding from CardBody inside settings panel */
-.settings-panel-expanded .card-body {
+.settings-panel-expanded .card-body,
+.import-export-panel-expanded .card-body {
   padding-top: 0 !important;
   overflow: visible !important;
+  background-color: var(--color-white) !important;
 }
 
 /* Settings panel column spacing */
