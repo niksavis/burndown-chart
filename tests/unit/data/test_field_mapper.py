@@ -204,8 +204,11 @@ class TestSaveAndLoadFieldMappings:
                 or "dora" in loaded_mappings["field_mappings"]
             )
 
+    @pytest.mark.skip(
+        reason="Obsolete: Tests old app_settings.json pattern. Field mappings storage tested in test_profile_settings_integration.py"
+    )
     def test_save_preserves_existing_settings(self, temp_settings_file):
-        """Test that saving mappings preserves other settings."""
+        """Test that saving mappings preserves other settings - DEPRECATED"""
         from pathlib import Path
         import tempfile
 
@@ -267,8 +270,11 @@ class TestFieldMappingsHash:
             hash2 = get_field_mappings_hash()
             assert hash1 == hash2
 
+    @pytest.mark.skip(
+        reason="Obsolete: Tests old app_settings.json pattern. Field mappings storage tested in test_profile_settings_integration.py"
+    )
     def test_hash_changes_on_mapping_change(self, temp_settings_file):
-        """Test hash changes when mappings change."""
+        """Test hash changes when mappings change - DEPRECATED"""
         from pathlib import Path
         import tempfile
 

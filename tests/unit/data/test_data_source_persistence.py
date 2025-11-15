@@ -1,8 +1,15 @@
 """
-Unit Tests for Data Source Persistence
+Unit Tests for Data Source Persistence - DEPRECATED
 
-Tests the persistence functionality for data source selection and JQL profile settings.
-Covers the recently implemented settings persistence for multiple data sources feature.
+⚠️ DEPRECATION NOTICE:
+These tests verified the old app_settings.json storage pattern that was replaced
+by the profile-based architecture (profiles/{profile_id}/profile.json).
+
+New tests for profile-based storage are in test_profile_settings_integration.py,
+which all pass successfully.
+
+Keeping these tests marked as skipped for historical reference and potential
+migration validation if needed.
 """
 
 import json
@@ -14,8 +21,11 @@ import pytest
 from data.persistence import save_app_settings, load_app_settings
 
 
+@pytest.mark.skip(
+    reason="Obsolete: Tests old app_settings.json pattern. Profile-based storage tested in test_profile_settings_integration.py"
+)
 class TestDataSourcePersistence:
-    """Test data source selection persistence functionality"""
+    """Test data source selection persistence functionality - DEPRECATED"""
 
     def test_load_app_settings_returns_defaults_when_no_file(self):
         """Test that default settings are returned when no settings file exists"""
@@ -146,7 +156,7 @@ class TestDataSourcePersistence:
 
 @pytest.fixture
 def temp_settings_file():
-    """Create a temporary file for settings testing"""
+    """Create a temporary file for settings testing - DEPRECATED"""
     with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".json") as f:
         temp_file = f.name
 
@@ -157,8 +167,11 @@ def temp_settings_file():
         os.unlink(temp_file)
 
 
+@pytest.mark.skip(
+    reason="Obsolete: Tests old app_settings.json pattern. Profile-based storage tested in test_profile_settings_integration.py"
+)
 class TestSettingsFileOperations:
-    """Test actual file I/O operations for settings"""
+    """Test actual file I/O operations for settings - DEPRECATED"""
 
     def test_round_trip_settings_persistence(self, temp_settings_file):
         """Integration test for save and load operations"""

@@ -338,6 +338,20 @@ class TestCreateQuery:
         kafka_dir = temp_profiles_dir_with_default / "kafka"
         kafka_dir.mkdir(parents=True)
 
+        # Create profile.json with JIRA configured (required by dependency chain)
+        profile_file = kafka_dir / "profile.json"
+        with open(profile_file, "w", encoding="utf-8") as f:
+            json.dump(
+                {
+                    "jira_config": {
+                        "configured": True,
+                        "base_url": "https://test.jira.com",
+                        "token": "test-token",
+                    }
+                },
+                f,
+            )
+
         # Act - patch constants, then import and call
         with patch("data.query_manager.PROFILES_DIR", temp_profiles_dir_with_default):
             from data.query_manager import create_query
@@ -365,8 +379,26 @@ class TestCreateQuery:
         from unittest.mock import patch
 
         # Arrange
-        kafka_dir = temp_profiles_dir_with_default / "kafka" / "queries" / "bugs"
+        kafka_dir = temp_profiles_dir_with_default / "kafka"
         kafka_dir.mkdir(parents=True)
+
+        # Create profile.json with JIRA configured
+        profile_file = kafka_dir / "profile.json"
+        with open(profile_file, "w", encoding="utf-8") as f:
+            json.dump(
+                {
+                    "jira_config": {
+                        "configured": True,
+                        "base_url": "https://test.jira.com",
+                        "token": "test-token",
+                    }
+                },
+                f,
+            )
+
+        # Create existing query directory
+        queries_dir = kafka_dir / "queries" / "bugs"
+        queries_dir.mkdir(parents=True)
 
         # Act & Assert - patch constants, then import and call
         with patch("data.query_manager.PROFILES_DIR", temp_profiles_dir_with_default):
@@ -383,6 +415,20 @@ class TestCreateQuery:
         kafka_dir = temp_profiles_dir_with_default / "kafka"
         kafka_dir.mkdir(parents=True)
 
+        # Create profile.json with JIRA configured
+        profile_file = kafka_dir / "profile.json"
+        with open(profile_file, "w", encoding="utf-8") as f:
+            json.dump(
+                {
+                    "jira_config": {
+                        "configured": True,
+                        "base_url": "https://test.jira.com",
+                        "token": "test-token",
+                    }
+                },
+                f,
+            )
+
         # Act - patch constants, then import and call
         with patch("data.query_manager.PROFILES_DIR", temp_profiles_dir_with_default):
             from data.query_manager import create_query
@@ -391,6 +437,140 @@ class TestCreateQuery:
 
         # Assert
         assert query_id == "sprint-2025-q4"
+
+
+@pytest.mark.unit
+@pytest.mark.profile_tests
+class TestUpdateQuery:
+    """Test update_query() function."""
+
+    def test_updates_query_jql(self, temp_profiles_dir_with_default):
+        """Verify updates query JQL and adds updated_at timestamp."""
+        from unittest.mock import patch
+
+        # Arrange
+        kafka_dir = temp_profiles_dir_with_default / "kafka"
+        kafka_dir.mkdir(parents=True)
+
+        # Create query
+        query_dir = kafka_dir / "queries" / "main"
+        query_dir.mkdir(parents=True)
+        query_file = query_dir / "query.json"
+        with open(query_file, "w", encoding="utf-8") as f:
+            json.dump(
+                {
+                    "name": "Main Query",
+                    "jql": "project = KAFKA",
+                    "description": "Main query",
+                    "created_at": "2025-01-01T00:00:00Z",
+                },
+                f,
+            )
+
+        # Act - patch constants, then import and call
+        with patch("data.query_manager.PROFILES_DIR", temp_profiles_dir_with_default):
+            from data.query_manager import update_query
+
+            result = update_query(
+                "kafka", "main", jql="project = KAFKA AND priority > Medium"
+            )
+
+        # Assert
+        assert result is True
+
+        with open(query_file, "r") as f:
+            query_data = json.load(f)
+
+        assert query_data["jql"] == "project = KAFKA AND priority > Medium"
+        assert "updated_at" in query_data
+        assert query_data["name"] == "Main Query"  # Unchanged
+
+    def test_updates_query_name(self, temp_profiles_dir_with_default):
+        """Verify updates query name."""
+        from unittest.mock import patch
+
+        # Arrange
+        kafka_dir = temp_profiles_dir_with_default / "kafka"
+        kafka_dir.mkdir(parents=True)
+
+        query_dir = kafka_dir / "queries" / "main"
+        query_dir.mkdir(parents=True)
+        query_file = query_dir / "query.json"
+        with open(query_file, "w", encoding="utf-8") as f:
+            json.dump(
+                {
+                    "name": "Old Name",
+                    "jql": "project = KAFKA",
+                    "description": "",
+                    "created_at": "2025-01-01T00:00:00Z",
+                },
+                f,
+            )
+
+        # Act
+        with patch("data.query_manager.PROFILES_DIR", temp_profiles_dir_with_default):
+            from data.query_manager import update_query
+
+            result = update_query("kafka", "main", name="New Name")
+
+        # Assert
+        assert result is True
+
+        with open(query_file, "r") as f:
+            query_data = json.load(f)
+
+        assert query_data["name"] == "New Name"
+        assert query_data["jql"] == "project = KAFKA"  # Unchanged
+
+    def test_no_update_if_no_changes(self, temp_profiles_dir_with_default):
+        """Verify returns True but doesn't update if no changes."""
+        from unittest.mock import patch
+
+        # Arrange
+        kafka_dir = temp_profiles_dir_with_default / "kafka"
+        kafka_dir.mkdir(parents=True)
+
+        query_dir = kafka_dir / "queries" / "main"
+        query_dir.mkdir(parents=True)
+        query_file = query_dir / "query.json"
+        original_data = {
+            "name": "Main Query",
+            "jql": "project = KAFKA",
+            "description": "",
+            "created_at": "2025-01-01T00:00:00Z",
+        }
+        with open(query_file, "w", encoding="utf-8") as f:
+            json.dump(original_data, f)
+
+        # Act - update with same JQL
+        with patch("data.query_manager.PROFILES_DIR", temp_profiles_dir_with_default):
+            from data.query_manager import update_query
+
+            result = update_query("kafka", "main", jql="project = KAFKA")
+
+        # Assert
+        assert result is True
+
+        with open(query_file, "r") as f:
+            query_data = json.load(f)
+
+        # No updated_at timestamp should be added if no changes
+        assert "updated_at" not in query_data
+
+    def test_raises_if_query_not_found(self, temp_profiles_dir_with_default):
+        """Verify raises ValueError if query doesn't exist."""
+        from unittest.mock import patch
+
+        # Arrange
+        kafka_dir = temp_profiles_dir_with_default / "kafka"
+        kafka_dir.mkdir(parents=True)
+
+        # Act & Assert
+        with patch("data.query_manager.PROFILES_DIR", temp_profiles_dir_with_default):
+            from data.query_manager import update_query
+
+            with pytest.raises(ValueError, match="not found"):
+                update_query("kafka", "nonexistent", jql="project = TEST")
 
 
 @pytest.mark.unit

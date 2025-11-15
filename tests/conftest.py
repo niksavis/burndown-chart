@@ -20,7 +20,7 @@ if str(project_root) not in sys.path:
 @pytest.fixture(scope="function", autouse=True)
 def backup_configs():
     """
-    Backup configuration files before test and restore after test.
+    Backup configuration files and profiles directory before test and restore after test.
 
     This ensures tests that modify configs don't affect other tests.
     Restoration happens even if test fails.
@@ -28,6 +28,8 @@ def backup_configs():
     **autouse=True** ensures this runs for EVERY test automatically,
     even if the test doesn't explicitly request this fixture.
     """
+    import shutil
+
     config_files = [
         "app_settings.json",
         "jira_query_profiles.json",
@@ -39,8 +41,10 @@ def backup_configs():
 
     backups = {}
     file_states = {}  # Track which files existed before test
+    profiles_backup = None
+    profiles_existed = False
 
-    # Create backups and track file states
+    # Create backups and track file states for config files
     for config_file in config_files:
         config_path = project_root / config_file
         file_states[config_file] = config_path.exists()
@@ -50,9 +54,34 @@ def backup_configs():
             with open(config_path, "r", encoding="utf-8") as f:
                 backups[config_file] = f.read()
 
+    # Backup profiles directory if it exists
+    profiles_dir = project_root / "profiles"
+    if profiles_dir.exists():
+        profiles_existed = True
+        profiles_backup = tempfile.mkdtemp(prefix="profiles_backup_")
+        shutil.copytree(
+            profiles_dir, Path(profiles_backup) / "profiles", dirs_exist_ok=True
+        )
+
     yield backups
 
-    # Restore backups (happens even if test fails)
+    # Restore profiles directory first (happens even if test fails)
+    if profiles_existed and profiles_backup:
+        # Remove current profiles directory
+        if profiles_dir.exists():
+            shutil.rmtree(profiles_dir, ignore_errors=True)
+        # Restore from backup
+        shutil.copytree(
+            Path(profiles_backup) / "profiles", profiles_dir, dirs_exist_ok=True
+        )
+        # Cleanup backup
+        shutil.rmtree(profiles_backup, ignore_errors=True)
+    else:
+        # Profiles didn't exist before test - remove if created
+        if profiles_dir.exists():
+            shutil.rmtree(profiles_dir, ignore_errors=True)
+
+    # Restore config file backups
     for config_file in config_files:
         config_path = project_root / config_file
 
