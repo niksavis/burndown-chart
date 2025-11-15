@@ -216,20 +216,130 @@ def save_app_settings(
     try:
         # Get profile-level path (settings shared across all queries)
         workspace = get_active_profile_workspace()
-        settings_file = workspace / "app_settings.json"
+        profile_file = workspace / "profile.json"
+
+        # Load existing profile data to preserve profile metadata
+        existing_profile = {}
+        if profile_file.exists():
+            with open(profile_file, "r") as f:
+                existing_profile = json.load(f)
+
+        # Build complete profile structure
+        profile_data = {
+            # Profile metadata (preserve existing values)
+            "id": existing_profile.get("id", workspace.name),
+            "name": existing_profile.get("name", "Default"),
+            "description": existing_profile.get("description", ""),
+            "created_at": existing_profile.get(
+                "created_at", datetime.now().isoformat()
+            ),
+            "last_used": datetime.now().isoformat(),  # Always update last_used
+            # Settings (merged from function parameters)
+            "jira_config": settings.get(
+                "jira_config", existing_profile.get("jira_config", {})
+            ),
+            "field_mappings": settings.get(
+                "field_mappings", existing_profile.get("field_mappings", {})
+            ),
+            "forecast_settings": {
+                "pert_factor": settings.get(
+                    "pert_factor",
+                    existing_profile.get("forecast_settings", {}).get(
+                        "pert_factor", DEFAULT_PERT_FACTOR
+                    ),
+                ),
+                "deadline": settings.get(
+                    "deadline",
+                    existing_profile.get("forecast_settings", {}).get("deadline"),
+                ),
+                "data_points_count": settings.get(
+                    "data_points_count",
+                    existing_profile.get("forecast_settings", {}).get(
+                        "data_points_count", DEFAULT_DATA_POINTS_COUNT
+                    ),
+                ),
+            },
+            "project_classification": {
+                "devops_projects": settings.get(
+                    "devops_projects",
+                    existing_profile.get("project_classification", {}).get(
+                        "devops_projects", []
+                    ),
+                ),
+                "development_projects": settings.get(
+                    "development_projects",
+                    existing_profile.get("project_classification", {}).get(
+                        "development_projects", []
+                    ),
+                ),
+                "devops_task_types": settings.get(
+                    "devops_task_types",
+                    existing_profile.get("project_classification", {}).get(
+                        "devops_task_types", ["Task", "Sub-task"]
+                    ),
+                ),
+                "bug_types": settings.get(
+                    "bug_types",
+                    existing_profile.get("project_classification", {}).get(
+                        "bug_types", ["Bug"]
+                    ),
+                ),
+                "production_environment_values": settings.get(
+                    "production_environment_values",
+                    existing_profile.get("project_classification", {}).get(
+                        "production_environment_values", []
+                    ),
+                ),
+                "completion_statuses": settings.get(
+                    "completion_statuses",
+                    existing_profile.get("project_classification", {}).get(
+                        "completion_statuses", ["Resolved", "Closed"]
+                    ),
+                ),
+                "active_statuses": settings.get(
+                    "active_statuses",
+                    existing_profile.get("project_classification", {}).get(
+                        "active_statuses", ["In Progress", "In Review"]
+                    ),
+                ),
+                "flow_start_statuses": settings.get(
+                    "flow_start_statuses",
+                    existing_profile.get("project_classification", {}).get(
+                        "flow_start_statuses", ["In Progress"]
+                    ),
+                ),
+                "wip_statuses": settings.get(
+                    "wip_statuses",
+                    existing_profile.get("project_classification", {}).get(
+                        "wip_statuses", ["In Progress", "In Review", "Testing"]
+                    ),
+                ),
+            },
+            "flow_type_mappings": settings.get(
+                "flow_type_mappings", existing_profile.get("flow_type_mappings", {})
+            ),
+            "queries": existing_profile.get("queries", []),
+            "active_query_id": existing_profile.get("active_query_id"),
+            "show_milestone": settings.get(
+                "show_milestone", existing_profile.get("show_milestone", False)
+            ),
+            "show_points": settings.get(
+                "show_points", existing_profile.get("show_points", False)
+            ),
+        }
 
         # Write to a temporary file first
-        temp_file = str(settings_file) + ".tmp"
+        temp_file = str(profile_file) + ".tmp"
         with open(temp_file, "w") as f:
-            json.dump(settings, f, indent=2)
+            json.dump(profile_data, f, indent=2)
 
         # Rename to final file (atomic operation)
-        if settings_file.exists():
-            os.remove(str(settings_file))
-        os.rename(temp_file, str(settings_file))
+        if profile_file.exists():
+            os.remove(str(profile_file))
+        os.rename(temp_file, str(profile_file))
 
         logger.info(
-            f"[Config] Settings saved to {settings_file}. Keys: {list(settings.keys())}"
+            f"[Config] Settings saved to {profile_file}. Profile: {profile_data['name']}"
         )
     except Exception as e:
         logger.error(f"[Config] Error saving app settings: {e}")
@@ -262,13 +372,85 @@ def load_app_settings():
     try:
         # Get profile-level path (settings shared across all queries)
         workspace = get_active_profile_workspace()
-        settings_file = workspace / "app_settings.json"
+        profile_file = workspace / "profile.json"
 
-        # Check if new app_settings.json exists
-        if settings_file.exists():
-            with open(str(settings_file), "r") as f:
+        # Check if new profile.json exists
+        if profile_file.exists():
+            with open(str(profile_file), "r") as f:
+                profile_data = json.load(f)
+            logger.info(f"[Config] Settings loaded from {profile_file}")
+
+            # Flatten profile structure to legacy app_settings format for backward compatibility
+            settings = {
+                "pert_factor": profile_data.get("forecast_settings", {}).get(
+                    "pert_factor", DEFAULT_PERT_FACTOR
+                ),
+                "deadline": profile_data.get("forecast_settings", {}).get(
+                    "deadline", DEFAULT_DEADLINE
+                ),
+                "data_points_count": profile_data.get("forecast_settings", {}).get(
+                    "data_points_count", DEFAULT_DATA_POINTS_COUNT
+                ),
+                "show_milestone": profile_data.get("show_milestone", False),
+                "milestone": None,  # Milestone is separate from deadline
+                "show_points": profile_data.get("show_points", False),
+                "jql_query": "project = JRASERVER",  # Placeholder, actual JQL is in query.json
+                "last_used_data_source": "JIRA",
+                "active_jql_profile_id": "",
+                "cache_metadata": {
+                    "last_cache_key": None,
+                    "last_cache_timestamp": None,
+                    "cache_config_hash": None,
+                },
+                # JIRA configuration
+                "jira_config": profile_data.get("jira_config", {}),
+                # Field mappings
+                "field_mappings": profile_data.get("field_mappings", {}),
+                # Project classification (flatten to root level for backward compatibility)
+                "devops_projects": profile_data.get("project_classification", {}).get(
+                    "devops_projects", []
+                ),
+                "development_projects": profile_data.get(
+                    "project_classification", {}
+                ).get("development_projects", []),
+                "devops_task_types": profile_data.get("project_classification", {}).get(
+                    "devops_task_types", ["Task", "Sub-task"]
+                ),
+                "bug_types": profile_data.get("project_classification", {}).get(
+                    "bug_types", ["Bug"]
+                ),
+                "production_environment_values": profile_data.get(
+                    "project_classification", {}
+                ).get("production_environment_values", []),
+                "completion_statuses": profile_data.get(
+                    "project_classification", {}
+                ).get("completion_statuses", ["Resolved", "Closed"]),
+                "active_statuses": profile_data.get("project_classification", {}).get(
+                    "active_statuses", ["In Progress", "In Review"]
+                ),
+                "flow_start_statuses": profile_data.get(
+                    "project_classification", {}
+                ).get("flow_start_statuses", ["In Progress"]),
+                "wip_statuses": profile_data.get("project_classification", {}).get(
+                    "wip_statuses", ["In Progress", "In Review", "Testing"]
+                ),
+                # Flow type mappings
+                "flow_type_mappings": profile_data.get("flow_type_mappings", {}),
+            }
+
+            # Add default values for any missing fields
+            for key, default_value in default_settings.items():
+                if key not in settings:
+                    settings[key] = default_value
+
+            return settings
+
+        # Fallback to legacy app_settings.json at profile level
+        elif (workspace / "app_settings.json").exists():
+            legacy_settings_file = workspace / "app_settings.json"
+            with open(str(legacy_settings_file), "r") as f:
                 settings = json.load(f)
-            logger.info(f"[Config] Settings loaded from {settings_file}")
+            logger.info(f"[Config] Settings loaded from legacy {legacy_settings_file}")
 
             # Add default values for new fields if they don't exist
             for key, default_value in default_settings.items():
@@ -277,7 +459,7 @@ def load_app_settings():
 
             return settings
 
-        # Check if legacy forecast_settings.json exists and migrate
+        # Check if legacy forecast_settings.json exists at root and migrate
         elif os.path.exists(SETTINGS_FILE):
             logger.info(f"[Config] Migrating legacy settings from {SETTINGS_FILE}")
             with open(SETTINGS_FILE, "r") as f:
@@ -296,7 +478,7 @@ def load_app_settings():
                 "jql_query": "project = JRASERVER",  # Default JQL for migration
             }
 
-            # Save migrated app settings
+            # Save migrated app settings (this will create profile.json)
             save_app_settings(
                 migrated_settings["pert_factor"],
                 migrated_settings["deadline"],

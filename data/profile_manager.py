@@ -88,7 +88,24 @@ MAX_QUERIES_PER_PROFILE = 100
 
 
 class Profile:
-    """Profile workspace metadata and settings."""
+    """Profile workspace metadata and settings.
+
+    Attributes:
+        id: Unique identifier (slugified name)
+        name: Human-readable profile name
+        description: Optional description
+        created_at: ISO 8601 timestamp of creation
+        last_used: ISO 8601 timestamp of last access
+        jira_config: JIRA connection settings (base_url, token, points_field, etc.)
+        field_mappings: DORA/Flow field mappings
+        forecast_settings: PERT factor, deadline, data_points_count
+        project_classification: DevOps/development project classification
+        flow_type_mappings: Flow Framework type mappings
+        queries: List of query IDs in this profile
+        active_query_id: Currently active query (None if no queries)
+        show_milestone: Toggle milestone display on charts
+        show_points: Toggle between points/items display
+    """
 
     def __init__(
         self,
@@ -100,6 +117,12 @@ class Profile:
         jira_config: Optional[Dict] = None,
         field_mappings: Optional[Dict] = None,
         forecast_settings: Optional[Dict] = None,
+        project_classification: Optional[Dict] = None,
+        flow_type_mappings: Optional[Dict] = None,
+        queries: Optional[list] = None,
+        active_query_id: Optional[str] = None,
+        show_milestone: bool = False,
+        show_points: bool = False,
     ):
         self.id = id
         self.name = name
@@ -113,6 +136,12 @@ class Profile:
             "deadline": None,
             "data_points_count": 12,
         }
+        self.project_classification = project_classification or {}
+        self.flow_type_mappings = flow_type_mappings or {}
+        self.queries = queries or []
+        self.active_query_id = active_query_id
+        self.show_milestone = show_milestone
+        self.show_points = show_points
 
     def to_dict(self) -> Dict:
         """Convert profile to dictionary for JSON serialization."""
@@ -125,6 +154,12 @@ class Profile:
             "jira_config": self.jira_config,
             "field_mappings": self.field_mappings,
             "forecast_settings": self.forecast_settings,
+            "project_classification": self.project_classification,
+            "flow_type_mappings": self.flow_type_mappings,
+            "queries": self.queries,
+            "active_query_id": self.active_query_id,
+            "show_milestone": self.show_milestone,
+            "show_points": self.show_points,
         }
 
     @classmethod
@@ -139,6 +174,12 @@ class Profile:
             jira_config=data.get("jira_config", {}),
             field_mappings=data.get("field_mappings", {}),
             forecast_settings=data.get("forecast_settings", {}),
+            project_classification=data.get("project_classification", {}),
+            flow_type_mappings=data.get("flow_type_mappings", {}),
+            queries=data.get("queries", []),
+            active_query_id=data.get("active_query_id"),
+            show_milestone=data.get("show_milestone", False),
+            show_points=data.get("show_points", False),
         )
 
 
@@ -581,11 +622,11 @@ def create_profile(name: str, settings: Dict) -> str:
         profile_dir.mkdir(parents=True, exist_ok=True)
         queries_dir.mkdir(exist_ok=True)
 
-        # Create profile object
+        # Create profile object with all settings
         profile = Profile(
             id=profile_id,
             name=name,
-            description="",
+            description=settings.get("description", ""),
             jira_config=settings.get("jira_config", {}),
             field_mappings=settings.get("field_mappings", {}),
             forecast_settings={
@@ -593,6 +634,12 @@ def create_profile(name: str, settings: Dict) -> str:
                 "deadline": settings.get("deadline"),
                 "data_points_count": settings.get("data_points_count", 12),
             },
+            project_classification=settings.get("project_classification", {}),
+            flow_type_mappings=settings.get("flow_type_mappings", {}),
+            queries=settings.get("queries", []),
+            active_query_id=settings.get("active_query_id"),
+            show_milestone=settings.get("show_milestone", False),
+            show_points=settings.get("show_points", False),
         )
 
         # Save profile.json
@@ -636,16 +683,12 @@ def switch_profile(profile_id: str) -> None:
     metadata = load_profiles_metadata()
 
     # Validate profile exists
-    profile_found = False
-    for profile_data in metadata.get("profiles", []):
-        if profile_data["id"] == profile_id:
-            profile_found = True
-            # Update last_used timestamp
-            profile_data["last_used"] = datetime.now(timezone.utc).isoformat()
-            break
-
-    if not profile_found:
+    profiles_dict = metadata.get("profiles", {})
+    if profile_id not in profiles_dict:
         raise ValueError(f"Profile '{profile_id}' does not exist")
+
+    # Update last_used timestamp for the profile
+    profiles_dict[profile_id]["last_used"] = datetime.now(timezone.utc).isoformat()
 
     # Update active profile
     old_profile_id = metadata.get("active_profile_id")
@@ -710,54 +753,75 @@ def switch_profile(profile_id: str) -> None:
 
 def delete_profile(profile_id: str) -> None:
     """
-    Delete a profile and all its queries.
+    Delete a profile and all its queries with cascade deletion.
+
+    This performs cascade deletion:
+    1. Deletes all queries in the profile (using allow_cascade=True)
+    2. Deletes profile directory and all remaining files
+    3. Removes profile from profiles.json registry
 
     Args:
         profile_id: Profile to delete
 
     Raises:
-        ValueError: If trying to delete active profile or default profile
+        ValueError: If trying to delete active profile or last remaining profile
+        OSError: If deletion fails
 
     Example:
         >>> delete_profile("old-project")
         >>> # Removes profiles/old-project/ directory entirely
     """
+    from data.query_manager import delete_query, list_queries_for_profile
+
     # Load metadata
     metadata = load_profiles_metadata()
 
-    # Safety checks
+    # Safety check: Cannot delete active profile
     if profile_id == metadata.get("active_profile_id"):
         raise ValueError(
             "Cannot delete active profile. Switch to another profile first."
         )
 
-    if profile_id == DEFAULT_PROFILE_ID:
-        raise ValueError("Cannot delete the default profile.")
+    # Safety check: Cannot delete last remaining profile
+    profiles_dict = metadata.get("profiles", {})
+    if len(profiles_dict) <= 1:
+        raise ValueError(
+            "Cannot delete the only remaining profile. Create another profile first."
+        )
 
-    if len(metadata.get("profiles", [])) <= 1:
-        raise ValueError("Cannot delete the only remaining profile.")
-
-    # Find profile in registry
-    profile_index = None
-    profile_name = profile_id
-
-    for i, profile_data in enumerate(metadata.get("profiles", [])):
-        if profile_data["id"] == profile_id:
-            profile_index = i
-            profile_name = profile_data["name"]
-            break
-
-    if profile_index is None:
+    # Validate profile exists
+    if profile_id not in profiles_dict:
         raise ValueError(f"Profile '{profile_id}' does not exist")
 
+    profile_name = profiles_dict[profile_id].get("name", profile_id)
+
     try:
-        # Remove directory
+        # Step 1: CASCADE DELETE all queries (best-effort - continue on errors)
+        logger.info(f"[Profiles] Cascade deleting queries for profile '{profile_id}'")
+        try:
+            queries = list_queries_for_profile(profile_id)
+            for query in queries:
+                try:
+                    # Use allow_cascade=True to bypass safety checks
+                    delete_query(profile_id, query["id"], allow_cascade=True)
+                    logger.debug(f"[Profiles] Deleted query '{query['id']}'")
+                except Exception as e:
+                    # Log error but continue deleting other queries
+                    logger.error(
+                        f"[Profiles] Error deleting query '{query['id']}': {e}"
+                    )
+        except Exception as e:
+            logger.error(f"[Profiles] Error listing queries for deletion: {e}")
+            # Continue with profile deletion even if query deletion fails
+
+        # Step 2: Delete profile directory (removes profile.json and any remaining files)
         profile_dir = PROFILES_DIR / profile_id
         if profile_dir.exists():
             shutil.rmtree(profile_dir)
+            logger.info(f"[Profiles] Deleted profile directory: {profile_dir}")
 
-        # Remove from registry
-        metadata["profiles"].pop(profile_index)
+        # Step 3: Remove from profiles registry
+        del metadata["profiles"][profile_id]
 
         # Save updated metadata
         if not save_profiles_metadata(metadata):
@@ -979,3 +1043,125 @@ def migrate_root_to_default_profile() -> None:
         >>> # Root files still exist, but app now uses profiles/ structure
     """
     raise NotImplementedError("T011 - to be implemented")
+
+
+# ============================================================================
+# Initialization and Defaults (T064)
+# ============================================================================
+
+
+def ensure_default_profile_exists() -> str:
+    """
+    Ensure default profile exists with hardcoded defaults.
+
+    Creates "Default" profile if no profiles exist. This function is called
+    during app startup to guarantee a valid workspace exists.
+
+    Returns:
+        str: Profile ID ("default")
+
+    Raises:
+        OSError: If profile creation fails
+
+    Example:
+        >>> profile_id = ensure_default_profile_exists()
+        >>> assert profile_id == "default"
+    """
+    from configuration.settings import (
+        DEFAULT_PERT_FACTOR,
+        DEFAULT_DEADLINE,
+        DEFAULT_DATA_POINTS_COUNT,
+    )
+
+    # Check if any profiles exist
+    metadata = load_profiles_metadata()
+    profiles_dict = metadata.get("profiles", {})
+
+    if len(profiles_dict) > 0:
+        # Profiles already exist, nothing to do
+        logger.debug("[Profiles] Profiles already exist, skipping default creation")
+        return metadata.get("active_profile_id", DEFAULT_PROFILE_ID)
+
+    # No profiles exist - create default profile with hardcoded defaults
+    logger.info("[Profiles] No profiles found, creating default profile")
+
+    default_settings = {
+        "pert_factor": DEFAULT_PERT_FACTOR,
+        "deadline": DEFAULT_DEADLINE,
+        "data_points_count": DEFAULT_DATA_POINTS_COUNT,
+        "show_milestone": False,
+        "show_points": False,
+        "jira_config": {
+            "base_url": "",
+            "api_version": "v2",
+            "token": "",
+            "cache_size_mb": 100,
+            "max_results_per_call": 100,
+            "points_field": "customfield_10016",
+            "configured": False,
+            "last_test_timestamp": None,
+            "last_test_success": None,
+        },
+        "field_mappings": {
+            # DORA metrics fields
+            "deployment_date": "resolutiondate",
+            "target_environment": "environment",
+            "code_commit_date": "resolutiondate",
+            "deployed_to_production_date": "resolutiondate",
+            "incident_detected_at": "created",
+            "incident_resolved_at": "resolutiondate",
+            "severity_level": "priority",
+            # Flow metrics fields
+            "flow_item_type": "issuetype",
+            "effort_category": "",
+            "work_started_date": "created",
+            "work_completed_date": "resolutiondate",
+            "completed_date": "resolutiondate",
+            "status": "status",
+        },
+        "project_classification": {
+            "devops_projects": [],
+            "development_projects": [],
+            "devops_task_types": ["Task", "Sub-task"],
+            "bug_types": ["Bug"],
+            "production_environment_values": [],
+            "completion_statuses": ["Resolved", "Closed"],
+            "active_statuses": ["In Progress", "In Review"],
+            "flow_start_statuses": ["In Progress"],
+            "wip_statuses": ["In Progress", "In Review", "Testing"],
+        },
+        "flow_type_mappings": {
+            "Feature": {
+                "issue_types": ["Story", "Epic", "New Feature", "Improvement"],
+                "effort_categories": [],
+            },
+            "Defect": {
+                "issue_types": ["Bug"],
+                "effort_categories": [],
+            },
+            "Technical_Debt": {
+                "issue_types": ["Task", "Sub-task"],
+                "effort_categories": [],
+            },
+            "Risk": {
+                "issue_types": ["Test", "Security", "Spike"],
+                "effort_categories": [],
+            },
+        },
+    }
+
+    try:
+        profile_id = create_profile("Default", default_settings)
+
+        # Update metadata to set this as active profile
+        metadata = load_profiles_metadata()
+        metadata["active_profile_id"] = profile_id
+        metadata["active_query_id"] = None  # No queries yet
+        save_profiles_metadata(metadata)
+
+        logger.info(f"[Profiles] Created default profile with ID: {profile_id}")
+        return profile_id
+
+    except Exception as e:
+        logger.error(f"[Profiles] Failed to create default profile: {e}")
+        raise OSError(f"Failed to create default profile: {e}") from e

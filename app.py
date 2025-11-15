@@ -25,6 +25,13 @@ from configuration.logging_config import setup_logging, cleanup_old_logs
 # Application imports
 from ui import serve_layout
 from data.migration import migrate_to_profiles
+from data.profile_manager import (
+    ensure_default_profile_exists,
+    get_active_profile,
+    switch_profile,
+    list_profiles,
+)
+from data.query_manager import list_queries_for_profile, get_active_query_id
 
 #######################################################################
 # APPLICATION SETUP
@@ -62,6 +69,78 @@ except Exception as e:
         exc_info=True,
     )
     print(f"WARNING: Migration failed - {e}. See logs/app.log for details.")
+
+
+#######################################################################
+# WORKSPACE VALIDATION
+#######################################################################
+
+
+def ensure_valid_workspace() -> None:
+    """
+    Ensure application has valid profile + query foundation.
+
+    This function validates the workspace on startup and ensures:
+    1. Default profile exists (if no profiles found)
+    2. Active profile is set (switches to default if missing)
+    3. Profile has at least one query (creates placeholder if empty)
+    4. Active query is set (switches to first query if missing)
+
+    This prevents the app from starting in an invalid state where
+    dependency chain requirements cannot be satisfied.
+
+    Called during app initialization (after migration).
+    """
+    try:
+        logger.info("[Workspace] Starting workspace validation...")
+
+        # Step 1: Ensure default profile exists (creates if none found)
+        profile_id = ensure_default_profile_exists()
+        logger.info(f"[Workspace] Default profile verified: {profile_id}")
+
+        # Step 2: Ensure active profile is set
+        active_profile = get_active_profile()
+        if not active_profile:
+            logger.warning("[Workspace] No active profile found, switching to default")
+            switch_profile("default")
+            active_profile = get_active_profile()
+
+        logger.info(
+            f"[Workspace] Active profile: {active_profile.name if active_profile else 'None'}"
+        )
+
+        # Step 3: Ensure profile has at least one query
+        if active_profile:
+            queries = list_queries_for_profile(active_profile.id)
+            if not queries:
+                logger.info(
+                    f"[Workspace] No queries in profile '{active_profile.name}' - "
+                    "User will need to create a query before using JIRA integration"
+                )
+                # Note: We don't auto-create queries here because they require
+                # JIRA configuration. The UI will enforce creating queries
+                # after JIRA config is complete.
+
+            # Step 4: Ensure active query is set (if queries exist)
+            active_query_id = get_active_query_id()
+            if queries and not active_query_id:
+                logger.info("[Workspace] No active query, switching to first query")
+                from data.profile_manager import switch_query
+
+                switch_query(active_profile.id, queries[0]["id"])
+
+        logger.info("[Workspace] Workspace validation complete ✅")
+
+    except Exception as e:
+        # Log error but don't crash - allow app to continue
+        logger.error(f"[Workspace] Validation failed: {e}", exc_info=True)
+        print(
+            f"WARNING: Workspace validation failed - {e}. See logs/app.log for details."
+        )
+
+
+# Validate workspace before app initialization
+ensure_valid_workspace()
 
 # Configure background callback manager for long-running tasks
 cache = diskcache.Cache("./cache")
