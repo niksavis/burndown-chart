@@ -58,11 +58,11 @@ def create_jql_editor(
     exactly as before, while CodeMirror provides syntax highlighting as a visual enhancement.
 
     Args:
-        editor_id: Unique identifier for textarea (e.g., "jira-jql-query")
+        editor_id: Unique identifier for the editor (e.g., "jira-jql-query")
         initial_value: Initial JQL query to display
         placeholder: Placeholder text when empty
         class_name: Additional CSS classes for wrapper
-        rows: Number of textarea rows (default: 3)
+        rows: Number of rows for the editor (default: 3)
 
     Returns:
         html.Div containing:
@@ -97,19 +97,32 @@ def create_jql_editor(
     """
     import dash_bootstrap_components as dbc
 
-    from ui.styles import create_input_style
-
     return html.Div(
         className=f"jql-editor-wrapper {class_name}".strip(),
         children=[
-            # Source of truth: regular Dash textarea that callbacks can read
+            # Native CodeMirror container (JavaScript will initialize here)
+            html.Div(
+                id=f"{editor_id}-container",
+                className="jql-codemirror-container",
+                style={
+                    "border": "1px solid #ced4da",
+                    "borderRadius": "0.375rem",
+                },
+                **{  # type: ignore[arg-type]
+                    "data-editor-id": editor_id,
+                    "data-initial-value": initial_value,
+                    "data-placeholder": placeholder,
+                },
+            ),
+            # Textarea for Dash callbacks (CodeMirror syncs to this)
+            # CRITICAL: NOT hidden - Dash callbacks need visible inputs to detect changes
             dbc.Textarea(
-                id=editor_id,  # Callbacks read from Input("jira-jql-query", "value")
-                value=initial_value,  # Use "value" property for dbc.Textarea
+                id=editor_id,
+                value=initial_value,
                 placeholder=placeholder,
                 rows=rows,
-                className="jql-editor-textarea",  # JavaScript finds by this class
-                style=create_input_style(size="md"),
+                className="form-control",
+                style={"display": "none"},  # Hidden visually, but not type="hidden"
             ),
         ],
     )

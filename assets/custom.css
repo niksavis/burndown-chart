@@ -255,8 +255,10 @@
 
 /* Remove media query that adds conflicting margins */
 
-/* Expanded panel styling */
-.parameter-panel-expanded {
+/* Expanded panel animation */
+.parameter-panel-expanded,
+.settings-panel-expanded,
+.import-export-panel-expanded {
   animation: slideDown var(--transition-base) var(--easing-default);
 }
 
@@ -333,40 +335,20 @@
   overflow: visible !important;
 }
 
-/* Expanded settings panel styling - animation applied to CardBody content like parameter panel */
-.settings-panel-expanded {
-  animation: slideDown var(--transition-base) var(--easing-default);
-  background-color: transparent;
-  border: none;
-  border-radius: 0;
-  padding: 0;
-  margin-top: 0;
-  box-shadow: none;
-  overflow: visible !important;
-}
+/* Note: Unified panel styling moved to tabbed settings section */
 
-/* Expanded import/export panel styling - animation applied to CardBody content like parameter panel */
-.import-export-panel-expanded {
-  animation: slideDown var(--transition-base) var(--easing-default);
-  background-color: transparent;
-  border: none;
-  border-radius: 0;
-  padding: 0;
-  margin-top: 0;
-  box-shadow: none;
-  overflow: visible !important;
-}
-
-/* CRITICAL FIX: Ensure cards inside flyout panels have solid white backgrounds */
-/* This prevents transparency issues when interacting with accordion components */
+/* CRITICAL FIX: Cards inside flyout panels inherit panel background */
+/* This prevents white cards from hiding the pale blue panel background */
 #settings-collapse .card,
 #import-export-collapse .card,
 .settings-panel-expanded .card,
-.import-export-panel-expanded .card {
-  background-color: var(--color-white) !important;
+.import-export-panel-expanded .card,
+.parameter-panel-expanded .card {
+  background-color: transparent !important; /* Inherit panel background */
   margin-top: 0 !important;
   margin-bottom: 0 !important;
   overflow: visible !important;
+  border: none !important; /* Remove card borders inside panels */
 }
 
 /* Ensure accordion and collapse components maintain white backgrounds */
@@ -385,12 +367,13 @@
   overflow: visible !important;
 }
 
-/* Remove top padding from CardBody inside settings panel */
+/* Remove top padding from CardBody inside panels and make background transparent */
 .settings-panel-expanded .card-body,
-.import-export-panel-expanded .card-body {
+.import-export-panel-expanded .card-body,
+.parameter-panel-expanded .card-body {
   padding-top: 0 !important;
   overflow: visible !important;
-  background-color: var(--color-white) !important;
+  background-color: transparent !important; /* Inherit panel background */
 }
 
 /* Settings panel column spacing */
@@ -2538,6 +2521,217 @@ div[class*="__menu"] {
   overflow: visible !important;
 }
 
+/* ===== TABBED SETTINGS PANEL (REPLACES ACCORDION) ===== */
+/* Simple horizontal tabs layout - NO CUSTOM OVERFLOW FIXES */
+
+/* Unified panel styling for all flyouts */
+.tabbed-settings-panel,
+.parameter-panel-expanded,
+.import-export-panel-expanded {
+  background: #f8f9fb; /* Very pale blue background */
+  border-radius: 8px;
+  padding: 1rem;
+  border: 2px solid #dee2e6;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.tabbed-settings-panel {
+  padding: 0; /* Tabs have their own padding */
+}
+
+.settings-tabs {
+  border-bottom: 2px solid #dee2e6;
+}
+
+.settings-tabs .nav-link {
+  text-align: center;
+  padding: 8px 12px;
+  border-bottom: 3px solid transparent;
+  border-radius: 0;
+  color: #495057;
+  font-weight: 500;
+  white-space: nowrap;
+  font-size: 0.9rem;
+}
+
+.settings-tabs .nav-link:hover {
+  background-color: #f8f9fa;
+  border-bottom-color: #0d6efd;
+}
+
+.settings-tabs .nav-link.active {
+  background-color: #e7f1ff;
+  border-bottom-color: #0d6efd;
+  color: #0d6efd;
+}
+
+.settings-tab-content {
+  min-height: 200px; /* Reduced from 400px for more compact layout */
+  padding: 0.5rem;
+  overflow: visible !important; /* CRITICAL: Allow dropdown to overflow */
+}
+
+/* CRITICAL: Bootstrap tab-pane must allow overflow */
+.tab-pane,
+.tab-content,
+#settings-tabs .tab-pane,
+#settings-tabs .tab-content,
+.tabbed-settings-panel .tab-pane,
+.tabbed-settings-panel .tab-content {
+  overflow: visible !important;
+}
+
+/* Mobile optimizations */
+@media (max-width: 576px) {
+  .settings-tabs .nav-link {
+    font-size: 0.85rem;
+    padding: 8px 10px;
+  }
+
+  .settings-tab-content {
+    min-height: 200px;
+  }
+}
+
+/* Dropdown menu styling */
+.Select-menu-outer {
+  background-color: white !important;
+  border: 1px solid #ccc !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  z-index: 9999 !important; /* CRITICAL: Above everything */
+  position: absolute !important;
+}
+
+.Select-menu {
+  background-color: white !important;
+  max-height: 300px !important;
+  overflow-y: auto !important;
+}
+
+.Select-option {
+  background-color: white !important;
+  color: black !important;
+  padding: 10px !important;
+  border-bottom: 1px solid #ccc !important;
+}
+
+.Select-option:hover {
+  background-color: #f0f0f0 !important;
+}
+
+/* Ensure profile selector container doesn't clip */
+#profile-selector-container,
+#profile-selector-container .dash-dropdown,
+#query-selector-container,
+#query-selector-container .dash-dropdown {
+  overflow: visible !important;
+  position: relative !important;
+  z-index: 100 !important; /* Higher z-index to appear above other content */
+}
+
+/* Force parent containers to allow dropdown overflow */
+.tabbed-settings-panel,
+#settings-panel,
+#settings-collapse,
+.settings-panel-container {
+  overflow: visible !important;
+}
+
+/* Bootstrap grid must allow overflow */
+.tabbed-settings-panel .row,
+.tabbed-settings-panel .col,
+.tabbed-settings-panel [class*="col-"],
+#settings-collapse .row,
+#settings-collapse .col,
+#settings-collapse [class*="col-"],
+.settings-tab-content .row,
+.settings-tab-content .col,
+.settings-tab-content [class*="col-"] {
+  overflow: visible !important;
+}
+
+/* Force all card wrappers to overflow visible */
+.settings-tab-content > div,
+.p-2,
+.card,
+.card-body,
+#settings-panel .card,
+#settings-panel .card-body,
+.tabbed-settings-panel .card,
+.tabbed-settings-panel .card-body,
+#settings-collapse .card,
+#settings-collapse .card-body {
+  overflow: visible !important;
+}
+
+/* Compact card styling - reduce padding to match Connect tab */
+.settings-tab-content .card-body,
+.tabbed-settings-panel .card-body {
+  padding: 0.5rem !important; /* Reduced from default 1rem */
+}
+
+/* Remove bottom margin from cards inside settings panels */
+.settings-tab-content .card,
+.tabbed-settings-panel .card {
+  margin-bottom: 0.5rem !important; /* Reduced from 1rem (mb-3) */
+}
+
+/* ===== ACCORDION SETTINGS PANEL DROPDOWN FIX ===== */
+/* CRITICAL FIX: Accordion collapse sections should hide overflow during animation */
+/* This prevents content overlap when switching between accordion sections */
+#settings-accordion .accordion-collapse,
+#settings-accordion .accordion-collapse.collapsing {
+  overflow: hidden !important;
+}
+
+/* CRITICAL: Allow accordion items AND body to overflow so dropdowns appear above next item */
+#settings-accordion .accordion-item,
+#settings-accordion .accordion-body,
+#profile-section-accordion,
+#jira-section-accordion,
+#field-mapping-section-accordion,
+#query-section-accordion {
+  overflow: visible !important;
+}
+
+/* Remove any overflow clipping from accordion headers that might interfere */
+#settings-accordion .accordion-header,
+#settings-accordion .accordion-button {
+  overflow: visible !important;
+}
+
+/* Allow parent containers and card bodies to overflow for dropdowns */
+.accordion-settings-panel,
+.accordion-settings-panel .card,
+.accordion-settings-panel .card-body,
+.accordion-settings-panel .row,
+.accordion-settings-panel [class*="col-"],
+.settings-panel-expanded {
+  overflow: visible !important;
+}
+
+/* CRITICAL FIX: Profile section accordion needs extra height for dropdown */
+/* When profile dropdown opens with 3+ items, it needs ~200px of space */
+#profile-section-accordion .accordion-body {
+  min-height: 250px !important; /* Ensure enough room for dropdown to expand */
+}
+
+/* CRITICAL FIX: Profile selector column needs higher stacking context than next accordion item */
+#profile-selector-container {
+  position: relative !important;
+  z-index: 1050 !important; /* Higher than accordion items (default ~1) */
+}
+
+/* CRITICAL: ONLY the profile dropdown menu gets fixed positioning (via JavaScript) */
+/* Other dropdowns in accordion should use normal absolute positioning */
+.accordion div[class*="__menu"]:not(.profile-dropdown-fixed),
+.accordion .Select-menu-outer:not(.profile-dropdown-fixed),
+#settings-accordion div[class*="__menu"]:not(.profile-dropdown-fixed),
+#settings-accordion .Select-menu-outer:not(.profile-dropdown-fixed) {
+  z-index: 1080 !important; /* High but not extreme */
+  position: absolute !important; /* Normal absolute for other dropdowns */
+}
+
 /* Responsive Toggle Switch ===== */
 
 /* Force both flex containers in timeline to have the same height */
@@ -3337,12 +3531,28 @@ label.fw-medium {
   box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
 }
 
+/* Native CodeMirror container - match initialized size */
+.jql-codemirror-container {
+  min-height: 32px; /* Match single line height */
+  padding: 0; /* CodeMirror adds its own padding */
+  overflow: hidden; /* Prevent scroll bars before init */
+}
+
+.jql-codemirror-container .CodeMirror {
+  border: none; /* Container already has border */
+  border-radius: 0; /* Container already has border-radius */
+}
+
 /* Mobile responsiveness for JQL editor */
 @media (max-width: 767px) {
   .jql-editor-container {
     font-size: 13px;
     padding: 6px;
     min-height: 32px;
+  }
+
+  .jql-codemirror-container {
+    min-height: 28px;
   }
 }
 

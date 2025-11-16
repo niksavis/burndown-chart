@@ -2924,17 +2924,28 @@ def _calculate_forecast_completion_dates(pert_time_items, pert_time_points):
     Returns:
         Tuple of (items_completion_enhanced, points_completion_enhanced) strings
     """
-    current_date = datetime.now()
+    import math
 
-    # Generate the enhanced formatted strings
-    items_completion_date = current_date + timedelta(days=pert_time_items)
-    points_completion_date = current_date + timedelta(days=pert_time_points)
+    # Handle NaN, None, or invalid values
+    if pert_time_items is None or (
+        isinstance(pert_time_items, float) and math.isnan(pert_time_items)
+    ):
+        items_completion_enhanced = "N/A (insufficient data)"
+    else:
+        current_date = datetime.now()
+        items_completion_date = current_date + timedelta(days=pert_time_items)
+        items_completion_str = items_completion_date.strftime("%Y-%m-%d")
+        items_completion_enhanced = f"{items_completion_str} ({pert_time_items:.1f} days, {pert_time_items / 7:.1f} weeks)"
 
-    items_completion_str = items_completion_date.strftime("%Y-%m-%d")
-    points_completion_str = points_completion_date.strftime("%Y-%m-%d")
-
-    items_completion_enhanced = f"{items_completion_str} ({pert_time_items:.1f} days, {pert_time_items / 7:.1f} weeks)"
-    points_completion_enhanced = f"{points_completion_str} ({pert_time_points:.1f} days, {pert_time_points / 7:.1f} weeks)"
+    if pert_time_points is None or (
+        isinstance(pert_time_points, float) and math.isnan(pert_time_points)
+    ):
+        points_completion_enhanced = "N/A (insufficient data)"
+    else:
+        current_date = datetime.now()
+        points_completion_date = current_date + timedelta(days=pert_time_points)
+        points_completion_str = points_completion_date.strftime("%Y-%m-%d")
+        points_completion_enhanced = f"{points_completion_str} ({pert_time_points:.1f} days, {pert_time_points / 7:.1f} weeks)"
 
     return items_completion_enhanced, points_completion_enhanced
 
@@ -2977,7 +2988,14 @@ def _prepare_metrics_data(
     """
     # Calculate days to deadline
     current_date = datetime.now()
-    days_to_deadline = max(0, (deadline - pd.Timestamp(current_date)).days)
+
+    # Handle NaT deadline safely
+    if pd.isna(deadline):
+        days_to_deadline = 0
+        deadline_str = "No deadline set"
+    else:
+        days_to_deadline = max(0, (deadline - pd.Timestamp(current_date)).days)
+        deadline_str = deadline.strftime("%Y-%m-%d")
 
     # Calculate completed work from the dataframe
     completed_items = 0
@@ -3019,7 +3037,7 @@ def _prepare_metrics_data(
         "completed_points": completed_points,
         "items_percent_complete": items_percent_complete,
         "points_percent_complete": points_percent_complete,
-        "deadline": deadline.strftime("%Y-%m-%d"),
+        "deadline": deadline_str,
         "days_to_deadline": days_to_deadline,
         "pert_time_items": pert_time_items,
         "pert_time_points": pert_time_points,

@@ -516,7 +516,11 @@ def register(app):
             api_version = jira_config.get("api_version", "v2")
             final_jira_api_endpoint = construct_jira_endpoint(base_url, api_version)
             final_jira_token = jira_config.get("token", "")
-            final_story_points_field = jira_config.get("points_field", "")
+            # Defensive: Ensure points_field is a string (not dict from field_mappings)
+            points_field_raw = jira_config.get("points_field", "")
+            final_story_points_field = (
+                points_field_raw if isinstance(points_field_raw, str) else ""
+            )
             final_cache_max_size = jira_config.get("cache_size_mb", 100)
             final_max_results = jira_config.get("max_results_per_call", 1000)
 
@@ -627,13 +631,14 @@ def register(app):
             # Changelog is issue-specific (keyed by issue key), not query-specific
             # Reusing changelog saves 1-2 minutes on subsequent "Calculate Metrics" clicks
             import os
+            from data.profile_manager import get_data_file_path
 
             # Always clear metrics (query-specific, will be recalculated)
-            files_to_clear = ["metrics_snapshots.json"]
+            files_to_clear = [get_data_file_path("metrics_snapshots.json")]
 
             # Only clear changelog on FORCE REFRESH (expensive to re-fetch)
             if force_refresh_bool:
-                files_to_clear.append("jira_changelog_cache.json")
+                files_to_clear.append(get_data_file_path("jira_changelog_cache.json"))
                 logger.info(
                     "[Settings] Force refresh: Will clear changelog cache and re-fetch from JIRA"
                 )
@@ -689,6 +694,56 @@ def register(app):
                 logger.info(
                     f"[JIRA] Data import successful: {issues_count} issues loaded, {weekly_count} weekly data points created"
                 )
+
+                # AUTOMATIC METRICS CALCULATION
+                # After fetching JIRA data and changelog, automatically calculate DORA/Flow metrics
+                logger.info(
+                    "[Settings] Auto-calculating DORA/Flow metrics after data update..."
+                )
+                try:
+                    from data.metrics_calculator import (
+                        calculate_metrics_for_last_n_weeks,
+                    )
+                    from data.iso_week_bucketing import get_weeks_from_date_range
+                    from datetime import datetime
+
+                    # Calculate metrics for the actual data range (not just last N weeks from today)
+                    # This ensures we calculate metrics for all the data we just fetched
+                    if updated_statistics and len(updated_statistics) > 0:
+                        # Extract date range from statistics
+                        dates = [
+                            datetime.fromisoformat(stat["date"])
+                            for stat in updated_statistics
+                        ]
+                        start_date = min(dates)
+                        end_date = max(dates)
+
+                        # Get weeks covering the actual data range
+                        custom_weeks = get_weeks_from_date_range(start_date, end_date)
+
+                        metrics_success, metrics_message = (
+                            calculate_metrics_for_last_n_weeks(
+                                custom_weeks=custom_weeks,
+                                progress_callback=None,  # No progress updates during auto-calc
+                            )
+                        )
+                        if metrics_success:
+                            logger.info(
+                                f"[Settings] Auto-calculated metrics: {metrics_message}"
+                            )
+                        else:
+                            logger.warning(
+                                f"[Settings] Metrics calculation had issues: {metrics_message}"
+                            )
+                    else:
+                        logger.info(
+                            "[Settings] No statistics data to calculate metrics from"
+                        )
+                except Exception as e:
+                    # Don't fail the entire Update Data if metrics calculation fails
+                    logger.warning(
+                        f"[Settings] Auto-metrics calculation failed (non-critical): {e}"
+                    )
 
                 # Extract scope values from scope_data to update input fields
                 # CRITICAL: Use "remaining_*" fields, NOT "total_*" fields
@@ -1169,10 +1224,10 @@ def register(app):
             ),
             Output("jira-query-profile-selector", "value", allow_duplicate=True),
             Output("jira-query-profile-selector-mobile", "value", allow_duplicate=True),
-            Output("query-name-input", "value"),
-            Output("query-description-input", "value"),
-            Output("query-name-validation", "children"),
-            Output("query-name-validation", "style"),
+            Output("query-name-input", "value", allow_duplicate=True),
+            Output("query-description-input", "value", allow_duplicate=True),
+            Output("query-name-validation", "children", allow_duplicate=True),
+            Output("query-name-validation", "style", allow_duplicate=True),
         ],
         [Input("confirm-save-query-button", "n_clicks")],
         [
@@ -1468,52 +1523,18 @@ def register(app):
             )
 
     @app.callback(
-        Output("delete-jql-query-modal", "is_open"),
-        Output("delete-query-confirmation-input", "value"),
-        [
-            Input("delete-jql-query-button", "n_clicks"),
-            Input("cancel-delete-query-button", "n_clicks"),
-            Input("confirm-delete-query-button", "n_clicks"),
-        ],
-        [State("delete-jql-query-modal", "is_open")],
+        Output("delete-jql-query-modal", "is_open", allow_duplicate=True),
+        [Input("cancel-delete-query-button", "n_clicks")],
         prevent_initial_call=True,
     )
-    def handle_delete_query_modal(
-        delete_clicks, cancel_clicks, confirm_clicks, is_open
-    ):
-        """Handle opening and closing of the delete query modal."""
-        ctx = callback_context
-
-        if not ctx.triggered:
+    def handle_delete_query_modal_cancel(cancel_clicks):
+        """Close modal when cancel button clicked."""
+        if not cancel_clicks:
             raise PreventUpdate
+        # Close modal
+        return False
 
-        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
-
-        # Open modal when delete button clicked and reset confirmation input
-        if trigger_id == "delete-jql-query-button" and delete_clicks:
-            return True, ""
-
-        # Close modal when cancel or confirm clicked
-        elif trigger_id in [
-            "cancel-delete-query-button",
-            "confirm-delete-query-button",
-        ]:
-            return False, ""
-
-        raise PreventUpdate
-
-    @app.callback(
-        Output("confirm-delete-query-button", "disabled"),
-        [Input("delete-query-confirmation-input", "value")],
-        [State("delete-query-name", "children")],
-        prevent_initial_call=True,
-    )
-    def enable_delete_query_button(confirmation_text, query_name):
-        """Enable delete button only when confirmation text matches query name."""
-        if not confirmation_text or not query_name:
-            return True
-
-        return confirmation_text.strip() != query_name.strip()
+    # REMOVED: Confirmation text validation - users can now delete with just a button click
 
     @app.callback(
         Output("jira-query-profile-selector", "options", allow_duplicate=True),
@@ -1521,23 +1542,13 @@ def register(app):
         [Input("confirm-delete-query-button", "n_clicks")],
         [
             State("jira-query-profile-selector", "value"),
-            State("delete-query-confirmation-input", "value"),
             State("delete-query-name", "children"),
         ],
         prevent_initial_call=True,
     )
-    def delete_query_profile(
-        delete_clicks, current_profile_id, confirmation_text, query_name
-    ):
-        """Delete the selected query profile with confirmation validation."""
+    def delete_query_profile(delete_clicks, current_profile_id, query_name):
+        """Delete the selected query profile."""
         if not delete_clicks or not current_profile_id:
-            raise PreventUpdate
-
-        # Validate confirmation text matches query name
-        if not confirmation_text or not query_name:
-            raise PreventUpdate
-
-        if confirmation_text.strip() != query_name.strip():
             raise PreventUpdate
 
         try:
@@ -1570,28 +1581,24 @@ def register(app):
             raise PreventUpdate
 
     @app.callback(
-        Output("query-selector", "options", allow_duplicate=True),
-        Output("query-selector", "value", allow_duplicate=True),
+        [
+            Output("query-selector", "options", allow_duplicate=True),
+            Output("query-selector", "value", allow_duplicate=True),
+            Output("query-jql-editor", "value", allow_duplicate=True),
+            Output("query-name-input", "value", allow_duplicate=True),
+            Output("jira-jql-query", "value", allow_duplicate=True),
+            Output("delete-jql-query-modal", "is_open", allow_duplicate=True),
+        ],
         [Input("confirm-delete-query-button", "n_clicks")],
         [
             State("query-selector", "value"),
-            State("delete-query-confirmation-input", "value"),
             State("delete-query-name", "children"),
         ],
         prevent_initial_call=True,
     )
-    def delete_query_from_selector(
-        delete_clicks, current_query_id, confirmation_text, query_name
-    ):
-        """Delete the selected query from query selector with confirmation validation."""
+    def delete_query_from_selector(delete_clicks, current_query_id, query_name):
+        """Delete the selected query from query selector."""
         if not delete_clicks or not current_query_id:
-            raise PreventUpdate
-
-        # Validate confirmation text matches query name
-        if not confirmation_text or not query_name:
-            raise PreventUpdate
-
-        if confirmation_text.strip() != query_name.strip():
             raise PreventUpdate
 
         try:
@@ -1606,42 +1613,44 @@ def register(app):
             profile_id = get_active_profile_id()
             active_query_id = get_active_query_id()
 
-            # If trying to delete the active query, switch to a different query first
+            # If trying to delete the active query, switch to a different query first (if available)
             if current_query_id == active_query_id:
                 queries = list_queries_for_profile(profile_id)
                 other_queries = [q for q in queries if q.get("id") != current_query_id]
 
-                if not other_queries:
-                    logger.error("Cannot delete last query in profile")
-                    raise PreventUpdate
+                if other_queries:
+                    # Switch to the first available query
+                    new_active_query_id = other_queries[0].get("id")
+                    if new_active_query_id:
+                        switch_query(new_active_query_id)
+                # If no other queries, we'll end up with no active query (empty state)
 
-                # Switch to the first available query
-                new_active_query_id = other_queries[0].get("id")
-                if not new_active_query_id:
-                    logger.error("Invalid query ID in available queries")
-                    raise PreventUpdate
-                switch_query(new_active_query_id)
-
-            # Delete the query
-            delete_query(profile_id, current_query_id)
+            # Delete the query (allow deletion of last query)
+            delete_query(profile_id, current_query_id, allow_cascade=True)
 
             logger.info(
                 f"Deleted query '{current_query_id}' from profile '{profile_id}' via modal"
             )
 
-            # Reload query selector options
+            # Reload query selector options and get active query data
             updated_queries = list_queries_for_profile(profile_id)
-            options = []
+            options = [{"label": "→ Create New Query", "value": "__create_new__"}]
             active_value = ""
+            active_jql = ""
+            active_name = ""
+
             for query in updated_queries:
                 label = query.get("name", "Unnamed Query")
                 value = query.get("id", "")
                 if query.get("is_active", False):
                     label += " ★"
                     active_value = value
+                    active_jql = query.get("jql", "")
+                    active_name = query.get("name", "")
                 options.append({"label": label, "value": value})
 
-            return options, active_value
+            # Return: options, value, jql_editor, name_input, legacy_jql, modal_closed
+            return options, active_value, active_jql, active_name, active_jql, False
 
         except Exception as e:
             logger.error(f"[Settings] Error deleting query from selector: {e}")

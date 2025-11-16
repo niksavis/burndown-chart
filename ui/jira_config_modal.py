@@ -263,6 +263,6 @@ def create_jira_config_button(compact: bool = False):
             id="jira-config-button",
             color="primary",
             outline=False,
-            className="mt-3 mb-3 w-100",  # Top and bottom margin, full width
+            className="w-100",  # Full width, no margin
             size="md",  # Standard size to match overall UI
         )

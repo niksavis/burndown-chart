@@ -81,17 +81,17 @@ def create_settings_panel_content():
     """
     Create the content for the settings panel flyout.
 
-    Uses accordion-based progressive disclosure to show hierarchical structure:
-    1. Profile Settings - workspace context
-    2. JIRA Configuration - connection setup
-    3. Field Mappings - DORA/Flow field configuration
-    4. Query Management - define queries for data fetch
-    5. Data Operations - execute fetch and import/export
+    Uses tabbed layout instead of accordion to fix dropdown clipping issues:
+    1. Profile - workspace context
+    2. JIRA - connection setup
+    3. Fields - DORA/Flow field configuration
+    4. Queries - define queries for data fetch
+    5. Data - execute fetch and import/export
     """
-    from ui.accordion_settings_panel import create_accordion_settings_panel
+    from ui.tabbed_settings_panel import create_tabbed_settings_panel
 
-    # Return the accordion directly - it already has all the sections
-    return create_accordion_settings_panel()
+    # Return the tabbed panel - cleaner UI without overflow issues
+    return create_tabbed_settings_panel()
 
 
 # Keep the old function for backward compatibility but redirect to new one

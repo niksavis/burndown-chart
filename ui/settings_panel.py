@@ -26,6 +26,10 @@ from ui.profile_modals import (
     create_profile_deletion_modal,
 )
 from ui.import_export_panel import create_import_export_panel
+from ui.integrated_query_management import create_integrated_query_management
+from ui.save_query_modal import create_save_query_modal
+from ui.unsaved_changes_modal import create_unsaved_changes_modal
+from ui.delete_query_modal import create_delete_query_modal
 
 
 #######################################################################
@@ -190,52 +194,9 @@ def create_settings_panel_expanded(id_suffix: str = "") -> html.Div:
                                                 ],
                                                 className="d-flex align-items-center mb-3",
                                             ),
-                                            # JQL Query Editor - starts immediately after header
-                                            html.Div(
-                                                [
-                                                    html.Label(
-                                                        [
-                                                            "JQL Query",
-                                                            html.Span(
-                                                                create_settings_tooltip(
-                                                                    "jql_query",
-                                                                    "jql-query-help",
-                                                                ),
-                                                                style={
-                                                                    "marginLeft": "0.25rem"
-                                                                },
-                                                            ),
-                                                        ],
-                                                        className="form-label small text-muted mb-1",
-                                                    ),
-                                                    create_jql_editor(
-                                                        editor_id="jira-jql-query",
-                                                        initial_value=_get_default_jql_query(),
-                                                        placeholder="project = MYPROJECT AND created >= startOfYear()",
-                                                        rows=3,
-                                                    ),
-                                                    html.Div(
-                                                        id="jira-jql-character-count-container",
-                                                        children=[
-                                                            create_character_count_display(
-                                                                count=len(
-                                                                    _get_default_jql_query()
-                                                                    or ""
-                                                                ),
-                                                                warning=should_show_character_warning(
-                                                                    _get_default_jql_query()
-                                                                ),
-                                                            )
-                                                        ],
-                                                        className="mt-1 mb-2",
-                                                    ),
-                                                ],
-                                                className="mb-3",
-                                            ),
-                                            # Profile Management - above Query Management
-                                            create_profile_selector_panel(),
-                                            # Query Selector - replaces old "Saved Queries"
-                                            create_query_selector_panel(),
+                                            # Integrated Query Management - JQL-first workflow
+                                            # Replaces: JQL editor + Profile selector + Query selector
+                                            create_integrated_query_management(),
                                             # Hidden compatibility components for old JQL profile callbacks
                                             # TODO: Remove these after migrating all old JQL profile callbacks
                                             html.Div(
@@ -519,6 +480,10 @@ def create_settings_panel(is_open: bool = False, id_suffix: str = "") -> html.Di
             create_profile_creation_modal(),
             create_profile_duplication_modal(),
             create_profile_deletion_modal(),
+            # Integrated query management modals
+            create_save_query_modal(),
+            create_unsaved_changes_modal(),
+            create_delete_query_modal(),
         ],
         id=panel_id,
         className="settings-panel-container",

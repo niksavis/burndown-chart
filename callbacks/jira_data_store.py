@@ -34,7 +34,9 @@ def populate_jira_issues_store(jira_status, statistics_data):
     """
     try:
         # Load JIRA cache which contains raw issues
-        cache_file = "jira_cache.json"
+        from data.profile_manager import get_data_file_path
+
+        cache_file = get_data_file_path("jira_cache.json")
 
         if not os.path.exists(cache_file):
             logger.warning(f"{cache_file} not found - no JIRA data available")
@@ -55,7 +57,7 @@ def populate_jira_issues_store(jira_status, statistics_data):
             return None
 
         # Load changelog data from separate cache file
-        changelog_cache_file = "jira_changelog_cache.json"
+        changelog_cache_file = get_data_file_path("jira_changelog_cache.json")
         changelog_data = {}
 
         if os.path.exists(changelog_cache_file):

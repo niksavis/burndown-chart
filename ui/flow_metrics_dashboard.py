@@ -26,23 +26,24 @@ def create_flow_dashboard() -> dbc.Container:
         dbc.Container with Flow metrics dashboard components
     """
     # Check if JIRA data exists AND if metrics are calculated
-    from data.jira_simple import load_jira_cache, get_jira_config
-    from data.persistence import load_app_settings
+    from data.profile_manager import get_data_file_path
     from data.metrics_snapshots import has_metric_snapshot
     from data.time_period_calculator import get_iso_week, format_year_week
     from datetime import datetime
+    import json
+    import os
 
     has_jira_data = False
     has_metrics = False
 
     try:
-        settings = load_app_settings()
-        jql_query = settings.get("jql_query", "")
-        config = get_jira_config(jql_query)
-        cache_loaded, cached_issues = load_jira_cache(
-            current_jql_query=jql_query, current_fields="", config=config
-        )
-        has_jira_data = cache_loaded and cached_issues and len(cached_issues) > 0
+        # Load JIRA cache from query workspace
+        cache_file = get_data_file_path("jira_cache.json")
+        if os.path.exists(cache_file):
+            with open(cache_file, "r", encoding="utf-8") as f:
+                cache_data = json.load(f)
+                cached_issues = cache_data.get("issues", [])
+                has_jira_data = len(cached_issues) > 0
 
         # Check if metrics are calculated (check current week)
         if has_jira_data:

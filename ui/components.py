@@ -2822,407 +2822,484 @@ def create_parameter_panel_expanded(
 
     return html.Div(
         [
-            # Header with icon (matching other panels style)
-            html.H5(
-                [
-                    html.I(
-                        className="fas fa-sliders-h me-2",
-                        style={"color": "#0d6efd"},
-                    ),
-                    "Parameters",
-                ],
-                className="mb-4 text-primary",
-                style={"fontSize": "1.1rem", "fontWeight": "600"},
-            ),
-            # Section 1: Project Timeline
             html.Div(
                 [
-                    html.H6(
+                    # Tabbed interface matching Settings panel
+                    dbc.Tabs(
                         [
-                            html.I(
-                                className="fas fa-calendar-alt me-2",
-                                style={"color": "#0d6efd"},
-                            ),
-                            "Project Timeline",
-                        ],
-                        className="mb-3 text-primary",
-                        style={"fontSize": "0.9rem", "fontWeight": "600"},
-                    ),
-                    dbc.Row(
-                        [
-                            # Deadline Date Picker
-                            dbc.Col(
-                                [
-                                    html.Label(
-                                        [
-                                            "Deadline",
-                                            html.Span(" *", className="text-danger"),
-                                            html.Span(
-                                                create_parameter_tooltip(
-                                                    "deadline", "deadline-help"
-                                                ),
-                                                style={"marginLeft": "0.25rem"},
-                                            ),
-                                        ],
-                                        className="form-label fw-medium",
-                                        style={"fontSize": "0.875rem"},
-                                    ),
-                                    dcc.DatePickerSingle(
-                                        id="deadline-picker",
-                                        date=deadline,
-                                        display_format="YYYY-MM-DD",
-                                        first_day_of_week=1,
-                                        placeholder="Select deadline",
-                                        min_date_allowed=datetime.now().strftime(
-                                            "%Y-%m-%d"
-                                        ),
-                                        className="w-100",
-                                        style={"fontSize": "0.875rem"},
-                                    ),
+                            dbc.Tab(
+                                label="⚙️ Parameters",
+                                tab_id="parameters-tab",
+                                label_style={"width": "100%"},
+                                children=[
                                     html.Div(
-                                        id="deadline-feedback",
-                                        className="invalid-feedback",
-                                    ),
-                                ],
-                                xs=12,
-                                md=6,
-                                lg=3,
-                                className="mb-3",
-                            ),
-                            # Milestone Date Picker (optional - activated when date is entered)
-                            dbc.Col(
-                                [
-                                    html.Label(
-                                        "Milestone (optional)",
-                                        className="form-label fw-medium",
-                                        style={"fontSize": "0.875rem"},
-                                    ),
-                                    dcc.DatePickerSingle(
-                                        id="milestone-picker",
-                                        date=milestone,
-                                        display_format="YYYY-MM-DD",
-                                        first_day_of_week=1,
-                                        placeholder="Select milestone",
-                                        min_date_allowed=datetime.now().strftime(
-                                            "%Y-%m-%d"
-                                        ),
-                                        className="w-100",
-                                        style={"fontSize": "0.875rem"},
-                                    ),
-                                    html.Div(
-                                        id="milestone-feedback",
-                                        className="invalid-feedback",
-                                    ),
-                                ],
-                                xs=12,
-                                md=6,
-                                lg=3,
-                                className="mb-3",
-                            ),
-                            # Confidence Window Slider (formerly PERT Factor)
-                            dbc.Col(
-                                [
-                                    html.Label(
                                         [
-                                            "Confidence Window",
-                                            html.Span(
-                                                create_parameter_tooltip(
-                                                    "pert_factor", "pert-factor-help"
-                                                ),
-                                                style={"marginLeft": "0.25rem"},
+                                            # No header - tab label serves as title
+                                            # Section 1: Project Timeline
+                                            html.Div(
+                                                [
+                                                    html.H6(
+                                                        [
+                                                            html.I(
+                                                                className="fas fa-calendar-alt me-2",
+                                                                style={
+                                                                    "color": "#0d6efd"
+                                                                },
+                                                            ),
+                                                            "Project Timeline",
+                                                        ],
+                                                        className="mb-3 text-primary",
+                                                        style={
+                                                            "fontSize": "0.9rem",
+                                                            "fontWeight": "600",
+                                                        },
+                                                    ),
+                                                    dbc.Row(
+                                                        [
+                                                            # Deadline Date Picker
+                                                            dbc.Col(
+                                                                [
+                                                                    html.Label(
+                                                                        [
+                                                                            "Deadline",
+                                                                            html.Span(
+                                                                                " *",
+                                                                                className="text-danger",
+                                                                            ),
+                                                                            html.Span(
+                                                                                create_parameter_tooltip(
+                                                                                    "deadline",
+                                                                                    "deadline-help",
+                                                                                ),
+                                                                                style={
+                                                                                    "marginLeft": "0.25rem"
+                                                                                },
+                                                                            ),
+                                                                        ],
+                                                                        className="form-label fw-medium",
+                                                                        style={
+                                                                            "fontSize": "0.875rem"
+                                                                        },
+                                                                    ),
+                                                                    dcc.DatePickerSingle(
+                                                                        id="deadline-picker",
+                                                                        date=deadline,
+                                                                        display_format="YYYY-MM-DD",
+                                                                        first_day_of_week=1,
+                                                                        placeholder="Select deadline",
+                                                                        min_date_allowed=datetime.now().strftime(
+                                                                            "%Y-%m-%d"
+                                                                        ),
+                                                                        className="w-100",
+                                                                        style={
+                                                                            "fontSize": "0.875rem"
+                                                                        },
+                                                                    ),
+                                                                    html.Div(
+                                                                        id="deadline-feedback",
+                                                                        className="invalid-feedback",
+                                                                    ),
+                                                                ],
+                                                                xs=12,
+                                                                md=6,
+                                                                lg=3,
+                                                                className="mb-3",
+                                                            ),
+                                                            # Milestone Date Picker (optional - activated when date is entered)
+                                                            dbc.Col(
+                                                                [
+                                                                    html.Label(
+                                                                        "Milestone (optional)",
+                                                                        className="form-label fw-medium",
+                                                                        style={
+                                                                            "fontSize": "0.875rem"
+                                                                        },
+                                                                    ),
+                                                                    dcc.DatePickerSingle(
+                                                                        id="milestone-picker",
+                                                                        date=milestone,
+                                                                        display_format="YYYY-MM-DD",
+                                                                        first_day_of_week=1,
+                                                                        placeholder="Select milestone",
+                                                                        min_date_allowed=datetime.now().strftime(
+                                                                            "%Y-%m-%d"
+                                                                        ),
+                                                                        className="w-100",
+                                                                        style={
+                                                                            "fontSize": "0.875rem"
+                                                                        },
+                                                                    ),
+                                                                    html.Div(
+                                                                        id="milestone-feedback",
+                                                                        className="invalid-feedback",
+                                                                    ),
+                                                                ],
+                                                                xs=12,
+                                                                md=6,
+                                                                lg=3,
+                                                                className="mb-3",
+                                                            ),
+                                                            # Confidence Window Slider (formerly PERT Factor)
+                                                            dbc.Col(
+                                                                [
+                                                                    html.Label(
+                                                                        [
+                                                                            "Confidence Window",
+                                                                            html.Span(
+                                                                                create_parameter_tooltip(
+                                                                                    "pert_factor",
+                                                                                    "pert-factor-help",
+                                                                                ),
+                                                                                style={
+                                                                                    "marginLeft": "0.25rem"
+                                                                                },
+                                                                            ),
+                                                                        ],
+                                                                        className="form-label fw-medium",
+                                                                        style={
+                                                                            "fontSize": "0.875rem"
+                                                                        },
+                                                                    ),
+                                                                    dcc.Slider(
+                                                                        id="pert-factor-slider",
+                                                                        min=3,
+                                                                        max=12,
+                                                                        value=pert_factor,
+                                                                        marks={
+                                                                            3: {
+                                                                                "label": "3",
+                                                                                "style": {
+                                                                                    "color": "#ff6b6b"
+                                                                                },
+                                                                            },
+                                                                            6: {
+                                                                                "label": "6 (rec)",
+                                                                                "style": {
+                                                                                    "color": "#51cf66"
+                                                                                },
+                                                                            },
+                                                                            9: {
+                                                                                "label": "9"
+                                                                            },
+                                                                            12: {
+                                                                                "label": "12",
+                                                                                "style": {
+                                                                                    "color": "#339af0"
+                                                                                },
+                                                                            },
+                                                                        },
+                                                                        step=1,
+                                                                        tooltip={
+                                                                            "placement": "bottom",
+                                                                            "always_visible": False,
+                                                                        },
+                                                                        className="mt-2",
+                                                                    ),
+                                                                ],
+                                                                xs=12,
+                                                                md=6,
+                                                                lg=3,
+                                                                className="mb-3",
+                                                            ),
+                                                            # Data Points Slider
+                                                            dbc.Col(
+                                                                [
+                                                                    html.Label(
+                                                                        [
+                                                                            "Data Points",
+                                                                            html.Span(
+                                                                                create_parameter_tooltip(
+                                                                                    "data_points",
+                                                                                    "data-points-help",
+                                                                                ),
+                                                                                style={
+                                                                                    "marginLeft": "0.25rem"
+                                                                                },
+                                                                            ),
+                                                                        ],
+                                                                        className="form-label fw-medium",
+                                                                        style={
+                                                                            "fontSize": "0.875rem"
+                                                                        },
+                                                                    ),
+                                                                    dcc.Slider(
+                                                                        id="data-points-input",
+                                                                        min=4,  # Fixed minimum of 4 weeks for meaningful trend analysis
+                                                                        max=max_data_points,
+                                                                        value=data_points_count,
+                                                                        marks=data_points_marks,  # type: ignore[arg-type]
+                                                                        step=1,
+                                                                        tooltip={
+                                                                            "placement": "bottom",
+                                                                            "always_visible": False,
+                                                                        },
+                                                                        className="mt-2",
+                                                                    ),
+                                                                ],
+                                                                xs=12,
+                                                                md=6,
+                                                                lg=3,
+                                                                className="mb-3",
+                                                            ),
+                                                        ],
+                                                        className="g-3",
+                                                    ),
+                                                ],
+                                                className="mb-4 pb-3 border-bottom",
+                                            ),
+                                            # Section 2: Work Scope
+                                            html.Div(
+                                                [
+                                                    # Section header with inline Points Tracking toggle
+                                                    html.Div(
+                                                        [
+                                                            html.H6(
+                                                                [
+                                                                    html.I(
+                                                                        className="fas fa-tasks me-2",
+                                                                        style={
+                                                                            "color": "#20c997"
+                                                                        },
+                                                                    ),
+                                                                    "Remaining Work Scope",
+                                                                ],
+                                                                className="mb-0 text-success",
+                                                                style={
+                                                                    "fontSize": "0.9rem",
+                                                                    "fontWeight": "600",
+                                                                },
+                                                            ),
+                                                            html.Div(
+                                                                [
+                                                                    dcc.Checklist(
+                                                                        id="points-toggle",
+                                                                        options=[
+                                                                            {
+                                                                                "label": "Points Tracking",
+                                                                                "value": "show",
+                                                                            }
+                                                                        ],
+                                                                        value=["show"]
+                                                                        if show_points
+                                                                        else [],
+                                                                        className="m-0",
+                                                                        labelStyle={
+                                                                            "display": "flex",
+                                                                            "alignItems": "center",
+                                                                            "fontSize": "0.8rem",
+                                                                            "color": "#6c757d",
+                                                                            "margin": "0",
+                                                                        },
+                                                                        inputStyle={
+                                                                            "marginRight": "8px",
+                                                                            "marginTop": "0",
+                                                                        },
+                                                                        style={
+                                                                            "fontSize": "0.8rem"
+                                                                        },
+                                                                    ),
+                                                                ],
+                                                                className="d-flex align-items-center",
+                                                            ),
+                                                        ],
+                                                        className="d-flex justify-content-between align-items-center mb-3",
+                                                    ),
+                                                    # Single Row: All 4 fields with equal width
+                                                    dbc.Row(
+                                                        [
+                                                            # Estimated Items
+                                                            dbc.Col(
+                                                                [
+                                                                    html.Label(
+                                                                        [
+                                                                            "Estimated Items",
+                                                                            html.Span(
+                                                                                " (optional)",
+                                                                                className="text-muted small",
+                                                                            ),
+                                                                            html.Span(
+                                                                                create_parameter_tooltip(
+                                                                                    "completed_items",
+                                                                                    "estimated-items-help",
+                                                                                ),
+                                                                                style={
+                                                                                    "marginLeft": "0.25rem"
+                                                                                },
+                                                                            ),
+                                                                        ],
+                                                                        className="form-label fw-medium",
+                                                                        style={
+                                                                            "fontSize": "0.875rem"
+                                                                        },
+                                                                    ),
+                                                                    dbc.Input(
+                                                                        id="estimated-items-input",
+                                                                        type="number",
+                                                                        value=estimated_items,
+                                                                        min=0,
+                                                                        step=1,
+                                                                        placeholder="0 if unknown",
+                                                                        className="form-control-sm",
+                                                                    ),
+                                                                    html.Small(
+                                                                        "Items with effort estimates. Leave 0 if unavailable.",
+                                                                        className="text-muted d-block mt-1",
+                                                                        style={
+                                                                            "fontSize": "0.75rem"
+                                                                        },
+                                                                    ),
+                                                                ],
+                                                                xs=12,
+                                                                md=6,
+                                                                lg=3,
+                                                                className="mb-3",
+                                                            ),
+                                                            # Remaining Items
+                                                            dbc.Col(
+                                                                [
+                                                                    html.Label(
+                                                                        [
+                                                                            "Remaining Items",
+                                                                            html.Span(
+                                                                                create_parameter_tooltip(
+                                                                                    "total_items",
+                                                                                    "remaining-items-help",
+                                                                                ),
+                                                                                style={
+                                                                                    "marginLeft": "0.25rem"
+                                                                                },
+                                                                            ),
+                                                                        ],
+                                                                        className="form-label fw-medium",
+                                                                        style={
+                                                                            "fontSize": "0.875rem"
+                                                                        },
+                                                                    ),
+                                                                    dbc.Input(
+                                                                        id="total-items-input",
+                                                                        type="number",
+                                                                        value=total_items,
+                                                                        min=0,
+                                                                        step=1,
+                                                                        className="form-control-sm",
+                                                                    ),
+                                                                    html.Div(
+                                                                        id="total-items-feedback",
+                                                                        className="invalid-feedback",
+                                                                    ),
+                                                                ],
+                                                                xs=12,
+                                                                md=6,
+                                                                lg=3,
+                                                                className="mb-3",
+                                                            ),
+                                                            # Estimated Points
+                                                            dbc.Col(
+                                                                [
+                                                                    html.Label(
+                                                                        [
+                                                                            "Estimated Points",
+                                                                            html.Span(
+                                                                                " (optional)",
+                                                                                className="text-muted small",
+                                                                            ),
+                                                                            html.Span(
+                                                                                create_parameter_tooltip(
+                                                                                    "completed_points",
+                                                                                    "estimated-points-help",
+                                                                                ),
+                                                                                style={
+                                                                                    "marginLeft": "0.25rem"
+                                                                                },
+                                                                            ),
+                                                                        ],
+                                                                        className="form-label fw-medium",
+                                                                        style={
+                                                                            "fontSize": "0.875rem"
+                                                                        },
+                                                                    ),
+                                                                    dbc.Input(
+                                                                        id="estimated-points-input",
+                                                                        type="number",
+                                                                        value=estimated_points,
+                                                                        min=0,
+                                                                        step=1,
+                                                                        placeholder="0 if unknown",
+                                                                        disabled=not show_points,
+                                                                        className="form-control-sm",
+                                                                    ),
+                                                                    html.Small(
+                                                                        "Items with story point estimates. Leave 0 if unavailable.",
+                                                                        className="text-muted d-block mt-1",
+                                                                        style={
+                                                                            "fontSize": "0.75rem"
+                                                                        },
+                                                                    ),
+                                                                ],
+                                                                xs=12,
+                                                                md=6,
+                                                                lg=3,
+                                                                className="mb-3",
+                                                                id="estimated-points-col",
+                                                            ),
+                                                            # Remaining Points (auto-calculated)
+                                                            dbc.Col(
+                                                                [
+                                                                    html.Label(
+                                                                        [
+                                                                            "Remaining Points ",
+                                                                            html.Span(
+                                                                                "(auto)",
+                                                                                className="badge bg-secondary",
+                                                                                style={
+                                                                                    "fontSize": "0.65rem"
+                                                                                },
+                                                                            ),
+                                                                        ],
+                                                                        className="form-label fw-medium",
+                                                                        style={
+                                                                            "fontSize": "0.875rem"
+                                                                        },
+                                                                    ),
+                                                                    dbc.Input(
+                                                                        id="total-points-display",
+                                                                        type="text",
+                                                                        value=f"{total_points:.0f}",
+                                                                        disabled=True,
+                                                                        className="form-control-sm",
+                                                                        style={
+                                                                            "backgroundColor": "#e9ecef"
+                                                                        },
+                                                                    ),
+                                                                ],
+                                                                xs=12,
+                                                                md=6,
+                                                                lg=3,
+                                                                className="mb-3",
+                                                                id="total-points-col",
+                                                            ),
+                                                        ],
+                                                        className="g-3",
+                                                    ),
+                                                ],
                                             ),
                                         ],
-                                        className="form-label fw-medium",
-                                        style={"fontSize": "0.875rem"},
-                                    ),
-                                    dcc.Slider(
-                                        id="pert-factor-slider",
-                                        min=3,
-                                        max=12,
-                                        value=pert_factor,
-                                        marks={
-                                            3: {
-                                                "label": "3",
-                                                "style": {"color": "#ff6b6b"},
-                                            },
-                                            6: {
-                                                "label": "6 (rec)",
-                                                "style": {"color": "#51cf66"},
-                                            },
-                                            9: {"label": "9"},
-                                            12: {
-                                                "label": "12",
-                                                "style": {"color": "#339af0"},
-                                            },
-                                        },
-                                        step=1,
-                                        tooltip={
-                                            "placement": "bottom",
-                                            "always_visible": False,
-                                        },
-                                        className="mt-2",
-                                    ),
+                                        className="settings-tab-content",
+                                    )
                                 ],
-                                xs=12,
-                                md=6,
-                                lg=3,
-                                className="mb-3",
-                            ),
-                            # Data Points Slider
-                            dbc.Col(
-                                [
-                                    html.Label(
-                                        [
-                                            "Data Points",
-                                            html.Span(
-                                                create_parameter_tooltip(
-                                                    "data_points", "data-points-help"
-                                                ),
-                                                style={"marginLeft": "0.25rem"},
-                                            ),
-                                        ],
-                                        className="form-label fw-medium",
-                                        style={"fontSize": "0.875rem"},
-                                    ),
-                                    dcc.Slider(
-                                        id="data-points-input",
-                                        min=4,  # Fixed minimum of 4 weeks for meaningful trend analysis
-                                        max=max_data_points,
-                                        value=data_points_count,
-                                        marks=data_points_marks,  # type: ignore[arg-type]
-                                        step=1,
-                                        tooltip={
-                                            "placement": "bottom",
-                                            "always_visible": False,
-                                        },
-                                        className="mt-2",
-                                    ),
-                                ],
-                                xs=12,
-                                md=6,
-                                lg=3,
-                                className="mb-3",
                             ),
                         ],
-                        className="g-3",
+                        id="parameter-tabs",
+                        active_tab="parameters-tab",
+                        className="settings-tabs",
                     ),
                 ],
-                className="mb-4 pb-3 border-bottom",
-            ),
-            # Section 2: Work Scope
-            html.Div(
-                [
-                    # Section header with inline Points Tracking toggle
-                    html.Div(
-                        [
-                            html.H6(
-                                [
-                                    html.I(
-                                        className="fas fa-tasks me-2",
-                                        style={"color": "#20c997"},
-                                    ),
-                                    "Remaining Work Scope",
-                                ],
-                                className="mb-0 text-success",
-                                style={"fontSize": "0.9rem", "fontWeight": "600"},
-                            ),
-                            html.Div(
-                                [
-                                    dcc.Checklist(
-                                        id="points-toggle",
-                                        options=[
-                                            {
-                                                "label": "Points Tracking",
-                                                "value": "show",
-                                            }
-                                        ],
-                                        value=["show"] if show_points else [],
-                                        className="m-0",
-                                        labelStyle={
-                                            "display": "flex",
-                                            "alignItems": "center",
-                                            "fontSize": "0.8rem",
-                                            "color": "#6c757d",
-                                            "margin": "0",
-                                        },
-                                        inputStyle={
-                                            "marginRight": "8px",
-                                            "marginTop": "0",
-                                        },
-                                        style={"fontSize": "0.8rem"},
-                                    ),
-                                ],
-                                className="d-flex align-items-center",
-                            ),
-                        ],
-                        className="d-flex justify-content-between align-items-center mb-3",
-                    ),
-                    # Single Row: All 4 fields with equal width
-                    dbc.Row(
-                        [
-                            # Estimated Items
-                            dbc.Col(
-                                [
-                                    html.Label(
-                                        [
-                                            "Estimated Items",
-                                            html.Span(
-                                                " (optional)",
-                                                className="text-muted small",
-                                            ),
-                                            html.Span(
-                                                create_parameter_tooltip(
-                                                    "completed_items",
-                                                    "estimated-items-help",
-                                                ),
-                                                style={"marginLeft": "0.25rem"},
-                                            ),
-                                        ],
-                                        className="form-label fw-medium",
-                                        style={"fontSize": "0.875rem"},
-                                    ),
-                                    dbc.Input(
-                                        id="estimated-items-input",
-                                        type="number",
-                                        value=estimated_items,
-                                        min=0,
-                                        step=1,
-                                        placeholder="0 if unknown",
-                                        className="form-control-sm",
-                                    ),
-                                    html.Small(
-                                        "Items with effort estimates. Leave 0 if unavailable.",
-                                        className="text-muted d-block mt-1",
-                                        style={"fontSize": "0.75rem"},
-                                    ),
-                                ],
-                                xs=12,
-                                md=6,
-                                lg=3,
-                                className="mb-3",
-                            ),
-                            # Remaining Items
-                            dbc.Col(
-                                [
-                                    html.Label(
-                                        [
-                                            "Remaining Items",
-                                            html.Span(
-                                                create_parameter_tooltip(
-                                                    "total_items",
-                                                    "remaining-items-help",
-                                                ),
-                                                style={"marginLeft": "0.25rem"},
-                                            ),
-                                        ],
-                                        className="form-label fw-medium",
-                                        style={"fontSize": "0.875rem"},
-                                    ),
-                                    dbc.Input(
-                                        id="total-items-input",
-                                        type="number",
-                                        value=total_items,
-                                        min=0,
-                                        step=1,
-                                        className="form-control-sm",
-                                    ),
-                                    html.Div(
-                                        id="total-items-feedback",
-                                        className="invalid-feedback",
-                                    ),
-                                ],
-                                xs=12,
-                                md=6,
-                                lg=3,
-                                className="mb-3",
-                            ),
-                            # Estimated Points
-                            dbc.Col(
-                                [
-                                    html.Label(
-                                        [
-                                            "Estimated Points",
-                                            html.Span(
-                                                " (optional)",
-                                                className="text-muted small",
-                                            ),
-                                            html.Span(
-                                                create_parameter_tooltip(
-                                                    "completed_points",
-                                                    "estimated-points-help",
-                                                ),
-                                                style={"marginLeft": "0.25rem"},
-                                            ),
-                                        ],
-                                        className="form-label fw-medium",
-                                        style={"fontSize": "0.875rem"},
-                                    ),
-                                    dbc.Input(
-                                        id="estimated-points-input",
-                                        type="number",
-                                        value=estimated_points,
-                                        min=0,
-                                        step=1,
-                                        placeholder="0 if unknown",
-                                        disabled=not show_points,
-                                        className="form-control-sm",
-                                    ),
-                                    html.Small(
-                                        "Items with story point estimates. Leave 0 if unavailable.",
-                                        className="text-muted d-block mt-1",
-                                        style={"fontSize": "0.75rem"},
-                                    ),
-                                ],
-                                xs=12,
-                                md=6,
-                                lg=3,
-                                className="mb-3",
-                                id="estimated-points-col",
-                            ),
-                            # Remaining Points (auto-calculated)
-                            dbc.Col(
-                                [
-                                    html.Label(
-                                        [
-                                            "Remaining Points ",
-                                            html.Span(
-                                                "(auto)",
-                                                className="badge bg-secondary",
-                                                style={"fontSize": "0.65rem"},
-                                            ),
-                                        ],
-                                        className="form-label fw-medium",
-                                        style={"fontSize": "0.875rem"},
-                                    ),
-                                    dbc.Input(
-                                        id="total-points-display",
-                                        type="text",
-                                        value=f"{total_points:.0f}",
-                                        disabled=True,
-                                        className="form-control-sm",
-                                        style={"backgroundColor": "#e9ecef"},
-                                    ),
-                                ],
-                                xs=12,
-                                md=6,
-                                lg=3,
-                                className="mb-3",
-                                id="total-points-col",
-                            ),
-                        ],
-                        className="g-3",
-                    ),
-                ],
+                className="tabbed-settings-panel",
             ),
         ],
         id=panel_id,
-        className="parameter-panel-expanded",
-        style={
-            "padding": DESIGN_TOKENS["spacing"]["md"],
-            "backgroundColor": DESIGN_TOKENS["colors"]["white"],
-            "borderRadius": DESIGN_TOKENS["layout"]["borderRadius"]["md"],
-            "border": f"{DESIGN_TOKENS['layout']['borderWidth']['thin']} solid {DESIGN_TOKENS['colors']['gray-300']}",
-        },
+        className="parameter-panel-container",
+        # All styling via CSS for consistency (DRY principle)
     )
 
 

@@ -33,17 +33,17 @@ from ui.tabs import create_tabs
 from ui.jira_config_modal import create_jira_config_modal
 from ui.query_creation_modal import create_query_creation_modal
 from ui.field_mapping_modal import create_field_mapping_modal
-from ui.settings_modal import (
-    create_save_query_modal,
-    create_delete_query_modal,
-    create_edit_query_modal,
-)
+
+# Integrated query management modals (Feature 011 - replaces legacy settings_modal query functions)
+from ui.save_query_modal import create_save_query_modal
+from ui.unsaved_changes_modal import create_unsaved_changes_modal
+from ui.delete_query_modal import create_delete_query_modal
 from ui.improved_settings_panel import create_improved_settings_panel
 from ui.accordion_settings_panel import create_accordion_settings_panel
 from ui.import_export_panel import create_import_export_flyout
 
 # Feature flag for new accordion-based settings panel (Feature 011)
-USE_ACCORDION_SETTINGS = True  # Set to True to use new accordion UI
+USE_ACCORDION_SETTINGS = False  # Set to True to use accordion UI, False for tabbed UI
 
 #######################################################################
 # LAYOUT FUNCTION
@@ -187,14 +187,25 @@ def create_app_layout(settings, statistics, is_sample_data):
     # Modern app container with updated styling matching DORA/Flow design
     return dbc.Container(
         [
+            # Toast notification container for profile switching feedback
+            html.Div(
+                id="app-notifications",
+                style={
+                    "position": "fixed",
+                    "top": "10px",
+                    "right": "10px",
+                    "zIndex": "9999",
+                    "width": "320px",
+                },
+            ),
             # JIRA Configuration Modal (Feature 003-jira-config-separation)
             create_jira_config_modal(),
             # Field Mapping Modal (Feature 007-dora-flow-metrics Phase 4)
             create_field_mapping_modal(),
-            # Query Management Modals
+            # Integrated Query Management Modals (Feature 011)
             create_save_query_modal(),
+            create_unsaved_changes_modal(),
             create_delete_query_modal(),
-            create_edit_query_modal(),
             # Query Creation Modal (Feature 011-profile-workspace-switching Phase 4)
             create_query_creation_modal(),
             # Help System (Phase 9.2 Progressive Disclosure)

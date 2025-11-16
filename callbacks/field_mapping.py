@@ -116,6 +116,192 @@ def _create_dora_flow_mappings_display(field_mappings: Dict) -> html.Div:
     )
 
 
+# ============================================================================
+# STATE MANAGEMENT - Real-time tracking of all form changes
+# ============================================================================
+
+
+@callback(
+    Output("field-mapping-state-store", "data"),
+    Input({"type": "field-mapping-dropdown", "metric": ALL, "field": ALL}, "value"),
+    State("field-mapping-state-store", "data"),
+    prevent_initial_call=True,
+)
+def track_form_state_changes(*args):
+    """Track field mapping dropdown changes in real-time.
+
+    This callback fires whenever ANY field mapping dropdown (Fields tab) changes.
+    Tab-specific dropdowns are tracked via the render callback instead.
+
+    Args:
+        *args: All dropdown values followed by current state
+
+    Returns:
+        Updated state dict with current form values
+    """
+    from dash import ctx
+
+    # Get current state (last argument)
+    current_state = args[-1] or {}
+
+    # Get triggered input
+    triggered = ctx.triggered_id
+
+    if not triggered:
+        return no_update
+
+    # Get the new value
+    new_value = ctx.triggered[0]["value"]
+
+    # Update state based on which input was triggered
+    if isinstance(triggered, dict):
+        # Field mapping dropdown (pattern-matched ID)
+        # Structure: {"type": "field-mapping-dropdown", "metric": "dora", "field": "deployment_date"}
+        if triggered.get("type") == "field-mapping-dropdown":
+            metric = triggered.get("metric")
+            field = triggered.get("field")
+
+            # Initialize field_mappings structure if not exists
+            if "field_mappings" not in current_state:
+                current_state["field_mappings"] = {}
+            if metric not in current_state["field_mappings"]:
+                current_state["field_mappings"][metric] = {}
+
+            # Handle multi-select dropdown: extract first value or empty string
+            if isinstance(new_value, list):
+                current_state["field_mappings"][metric][field] = (
+                    new_value[0] if new_value else ""
+                )
+            else:
+                current_state["field_mappings"][metric][field] = new_value or ""
+
+    logger.info(f"[StateTracking] Updated state for {triggered}: {new_value}")
+
+    return current_state
+
+
+# ============================================================================
+# TAB-SPECIFIC STATE TRACKING
+# These callbacks track dropdowns that only exist in specific tabs
+# ============================================================================
+
+
+@callback(
+    Output("field-mapping-state-store", "data", allow_duplicate=True),
+    Input("development-projects-dropdown", "value"),
+    Input("devops-projects-dropdown", "value"),
+    State("field-mapping-state-store", "data"),
+    prevent_initial_call=True,
+)
+def track_projects_tab_changes(dev_projects, devops_projects, current_state):
+    """Track Projects tab dropdown changes."""
+    current_state = current_state or {}
+    current_state["development_projects"] = (
+        dev_projects
+        if isinstance(dev_projects, list)
+        else ([dev_projects] if dev_projects else [])
+    )
+    current_state["devops_projects"] = (
+        devops_projects
+        if isinstance(devops_projects, list)
+        else ([devops_projects] if devops_projects else [])
+    )
+    return current_state
+
+
+@callback(
+    Output("field-mapping-state-store", "data", allow_duplicate=True),
+    Input("devops-task-types-dropdown", "value"),
+    Input("bug-types-dropdown", "value"),
+    Input("flow-feature-issue-types-dropdown", "value"),
+    Input("flow-feature-effort-categories-dropdown", "value"),
+    Input("flow-defect-issue-types-dropdown", "value"),
+    Input("flow-defect-effort-categories-dropdown", "value"),
+    Input("flow-technical-debt-issue-types-dropdown", "value"),
+    Input("flow-technical-debt-effort-categories-dropdown", "value"),
+    Input("flow-risk-issue-types-dropdown", "value"),
+    Input("flow-risk-effort-categories-dropdown", "value"),
+    State("field-mapping-state-store", "data"),
+    prevent_initial_call=True,
+)
+def track_types_tab_changes(*args):
+    """Track Types tab dropdown changes."""
+    current_state = args[-1] or {}
+
+    # Map args to state keys (REMOVED story_types and task_types - deprecated)
+    state_keys = [
+        "devops_task_types",
+        "bug_types",
+        "flow_feature_issue_types",
+        "flow_feature_effort_categories",
+        "flow_defect_issue_types",
+        "flow_defect_effort_categories",
+        "flow_technical_debt_issue_types",
+        "flow_technical_debt_effort_categories",
+        "flow_risk_issue_types",
+        "flow_risk_effort_categories",
+    ]
+
+    for i, key in enumerate(state_keys):
+        value = args[i]
+        current_state[key] = (
+            value if isinstance(value, list) else ([value] if value else [])
+        )
+
+    return current_state
+
+
+@callback(
+    Output("field-mapping-state-store", "data", allow_duplicate=True),
+    Input("completion-statuses-dropdown", "value"),
+    Input("active-statuses-dropdown", "value"),
+    Input("flow-start-statuses-dropdown", "value"),
+    Input("wip-statuses-dropdown", "value"),
+    State("field-mapping-state-store", "data"),
+    prevent_initial_call=True,
+)
+def track_status_tab_changes(completion, active, flow_start, wip, current_state):
+    """Track Status tab dropdown changes."""
+    current_state = current_state or {}
+    current_state["completion_statuses"] = (
+        completion
+        if isinstance(completion, list)
+        else ([completion] if completion else [])
+    )
+    current_state["active_statuses"] = (
+        active if isinstance(active, list) else ([active] if active else [])
+    )
+    current_state["flow_start_statuses"] = (
+        flow_start
+        if isinstance(flow_start, list)
+        else ([flow_start] if flow_start else [])
+    )
+    current_state["wip_statuses"] = (
+        wip if isinstance(wip, list) else ([wip] if wip else [])
+    )
+    return current_state
+
+
+@callback(
+    Output("field-mapping-state-store", "data", allow_duplicate=True),
+    Input("production-environment-values-dropdown", "value"),
+    State("field-mapping-state-store", "data"),
+    prevent_initial_call=True,
+)
+def track_environment_tab_changes(prod_env, current_state):
+    """Track Environment tab dropdown changes."""
+    current_state = current_state or {}
+    current_state["production_environment_values"] = (
+        prod_env if isinstance(prod_env, list) else ([prod_env] if prod_env else [])
+    )
+    return current_state
+
+
+# ============================================================================
+# MODAL MANAGEMENT
+# ============================================================================
+
+
 @callback(
     Output("field-mapping-modal", "is_open"),
     Input("open-field-mapping-modal", "n_clicks"),
@@ -493,24 +679,29 @@ def _get_mock_mappings() -> Dict[str, Dict[str, str]]:
 
 @callback(
     Output("field-mapping-content", "children"),
+    Output("field-mapping-state-store", "data", allow_duplicate=True),
     Input("mappings-tabs", "active_tab"),
     Input("jira-metadata-store", "data"),
-    Input(
-        "field-mapping-modal", "is_open"
-    ),  # Changed to Input to trigger on modal open
-    prevent_initial_call=False,
+    Input("field-mapping-modal", "is_open"),
+    State("field-mapping-state-store", "data"),
+    prevent_initial_call="initial_duplicate",
 )
-def render_tab_content(active_tab: str, metadata: dict, is_open: bool):
-    """
-    Render appropriate form based on active tab.
+def render_tab_content(
+    active_tab: str, metadata: dict, is_open: bool, state_data: dict
+):
+    """Render appropriate form based on active tab.
+
+    This callback now uses the state store for all form values, ensuring
+    data is preserved across tab switches.
 
     Args:
         active_tab: ID of currently active tab
         metadata: Cached JIRA metadata from store
         is_open: Whether modal is open
+        state_data: Current form state from state store
 
     Returns:
-        Form component for the active tab
+        Tuple of (form component, updated state)
     """
     from data.persistence import load_app_settings
     from ui.project_config_form import create_project_config_form
@@ -520,36 +711,137 @@ def render_tab_content(active_tab: str, metadata: dict, is_open: bool):
 
     # Don't render if modal is closed (but allow initial empty state)
     if not is_open and callback_context.triggered:
-        # Modal closed after being open - clear content
-        return html.Div()
+        return html.Div(), no_update
 
-    # Load current settings
+    # Initialize state from saved settings on first open
     settings = load_app_settings()
     metadata = metadata or {}
 
+    # If state is empty, initialize it from saved settings
+    if not state_data:
+        # Helper to safely extract flow type mappings
+        flow_mappings = settings.get("flow_type_mappings", {}) or {}
+
+        def safe_get_flow_mapping(flow_type, key):
+            """Safely extract flow mapping, handling None values."""
+            flow_config = flow_mappings.get(flow_type, {})
+            if flow_config is None:
+                return []
+            return flow_config.get(key, []) or []
+
+        state_data = {
+            "field_mappings": settings.get("field_mappings", {}),
+            "development_projects": settings.get("development_projects", []),
+            "devops_projects": settings.get("devops_projects", []),
+            "devops_task_types": settings.get("devops_task_types", []),
+            "bug_types": settings.get("bug_types", []),
+            "story_types": settings.get("story_types", []),
+            "task_types": settings.get("task_types", []),
+            "flow_feature_issue_types": safe_get_flow_mapping("Feature", "issue_types"),
+            "flow_feature_effort_categories": safe_get_flow_mapping(
+                "Feature", "effort_categories"
+            ),
+            "flow_defect_issue_types": safe_get_flow_mapping("Defect", "issue_types"),
+            "flow_defect_effort_categories": safe_get_flow_mapping(
+                "Defect", "effort_categories"
+            ),
+            "flow_technical_debt_issue_types": safe_get_flow_mapping(
+                "Technical Debt", "issue_types"
+            ),
+            "flow_technical_debt_effort_categories": safe_get_flow_mapping(
+                "Technical Debt", "effort_categories"
+            ),
+            "flow_risk_issue_types": safe_get_flow_mapping("Risk", "issue_types"),
+            "flow_risk_effort_categories": safe_get_flow_mapping(
+                "Risk", "effort_categories"
+            ),
+            "completion_statuses": settings.get("completion_statuses", []),
+            "active_statuses": settings.get("active_statuses", []),
+            "flow_start_statuses": settings.get("flow_start_statuses", []),
+            "wip_statuses": settings.get("wip_statuses", []),
+            "production_environment_values": settings.get(
+                "production_environment_values", []
+            ),
+        }
+        logger.info("[FieldMapping] Initialized state store from saved settings")
+
+    # Use state data for rendering (preserves user changes across tabs)
+    display_settings = state_data.copy()
+
     # Render content based on active tab
     if active_tab == "tab-fields":
-        # Existing field mapping form (already implemented)
         try:
-            available_fields = fetch_available_jira_fields()
-            current_mappings = load_field_mappings()
-            return create_field_mapping_form(available_fields, current_mappings)
+            # Use cached fields from metadata store
+            cached_fields = metadata.get("fields", [])
+
+            # Transform cached metadata to expected format
+            available_fields = []
+            for field in cached_fields:
+                available_fields.append(
+                    {
+                        "field_id": field.get("id", ""),
+                        "field_name": field.get("name", ""),
+                        "field_type": field.get("type", "string"),
+                        "is_custom": field.get("custom", False),
+                    }
+                )
+
+            # If no cached fields, fetch them (first time only)
+            if not available_fields:
+                logger.warning(
+                    "[FieldMapping] No cached fields found, fetching from JIRA..."
+                )
+                available_fields = fetch_available_jira_fields()
+
+            current_mappings = {
+                "field_mappings": display_settings.get("field_mappings", {})
+            }
+            return create_field_mapping_form(
+                available_fields, current_mappings
+            ), state_data
         except Exception as e:
             logger.error(f"[FieldMapping] Error loading field mappings: {e}")
-            return create_field_mapping_error_alert(str(e))
+            return create_field_mapping_error_alert(str(e)), no_update
 
     elif active_tab == "tab-projects":
         return create_project_config_form(
-            development_projects=settings.get("development_projects", []),
-            devops_projects=settings.get("devops_projects", []),
+            development_projects=display_settings.get("development_projects", []),
+            devops_projects=display_settings.get("devops_projects", []),
             available_projects=metadata.get("projects", []),
-        )
+        ), state_data
 
     elif active_tab == "tab-types":
-        # Get flow_type_mappings from settings (new structure)
-        flow_type_mappings = settings.get("flow_type_mappings", {})
+        # Build flow_type_mappings from state
+        flow_type_mappings = {
+            "Feature": {
+                "issue_types": display_settings.get("flow_feature_issue_types", []),
+                "effort_categories": display_settings.get(
+                    "flow_feature_effort_categories", []
+                ),
+            },
+            "Defect": {
+                "issue_types": display_settings.get("flow_defect_issue_types", []),
+                "effort_categories": display_settings.get(
+                    "flow_defect_effort_categories", []
+                ),
+            },
+            "Technical Debt": {
+                "issue_types": display_settings.get(
+                    "flow_technical_debt_issue_types", []
+                ),
+                "effort_categories": display_settings.get(
+                    "flow_technical_debt_effort_categories", []
+                ),
+            },
+            "Risk": {
+                "issue_types": display_settings.get("flow_risk_issue_types", []),
+                "effort_categories": display_settings.get(
+                    "flow_risk_effort_categories", []
+                ),
+            },
+        }
 
-        # Get effort category field options if mapped (same pattern as environment)
+        # Get effort category options
         effort_category_field = settings.get("field_mappings", {}).get(
             "effort_category"
         )
@@ -560,41 +852,41 @@ def render_tab_content(active_tab: str, metadata: dict, is_open: bool):
             )
 
         return create_issue_type_config_form(
-            devops_task_types=settings.get("devops_task_types", []),
-            bug_types=settings.get("bug_types", []),
-            story_types=settings.get("story_types", []),  # DEPRECATED
-            task_types=settings.get("task_types", []),  # DEPRECATED
+            devops_task_types=display_settings.get("devops_task_types", []),
+            bug_types=display_settings.get("bug_types", []),
+            story_types=display_settings.get("story_types", []),
+            task_types=display_settings.get("task_types", []),
             available_issue_types=metadata.get("issue_types", []),
             flow_type_mappings=flow_type_mappings,
             available_effort_categories=available_effort_categories,
-        )
+        ), state_data
 
     elif active_tab == "tab-status":
         return create_status_config_form(
-            completion_statuses=settings.get("completion_statuses", []),
-            active_statuses=settings.get("active_statuses", []),
-            flow_start_statuses=settings.get("flow_start_statuses", []),
-            wip_statuses=settings.get("wip_statuses", []),
+            completion_statuses=display_settings.get("completion_statuses", []),
+            active_statuses=display_settings.get("active_statuses", []),
+            flow_start_statuses=display_settings.get("flow_start_statuses", []),
+            wip_statuses=display_settings.get("wip_statuses", []),
             available_statuses=metadata.get("statuses", []),
-        )
+        ), state_data
 
     elif active_tab == "tab-environment":
-        # Get environment field options if affected_environment is mapped
-        affected_env_field = settings.get("field_mappings", {}).get(
-            "affected_environment"
-        )
-        env_options = []
-        if affected_env_field and metadata.get("field_options"):
-            env_options = metadata.get("field_options", {}).get(affected_env_field, [])
+        # Get production environment field value options
+        prod_env_field = settings.get("field_mappings", {}).get("target_environment")
+        available_env_values = []
+        if prod_env_field and metadata.get("field_options"):
+            available_env_values = metadata.get("field_options", {}).get(
+                prod_env_field, []
+            )
 
         return create_environment_config_form(
-            production_environment_values=settings.get(
+            production_environment_values=display_settings.get(
                 "production_environment_values", []
             ),
-            available_environment_values=env_options,
-        )
+            available_environment_values=available_env_values,
+        ), state_data
 
-    return html.Div("Unknown tab")
+    return html.Div("Select a tab to configure mappings."), state_data
 
 
 @callback(
@@ -634,11 +926,16 @@ def fetch_metadata(n_clicks: int, is_open: bool, current_metadata: dict):
         return no_update, no_update
 
     try:
-        # Load JIRA configuration
-        settings = load_app_settings()
-        jira_config = settings.get("jira_config", {})
+        # Load JIRA configuration from profile.json
+        from data.persistence import load_jira_configuration
 
-        if not jira_config.get("configured"):
+        jira_config = load_jira_configuration()
+
+        # Check if JIRA is configured (base_url is required)
+        if (
+            not jira_config.get("base_url")
+            or jira_config.get("base_url", "").strip() == ""
+        ):
             logger.warning("[FieldMapping] JIRA not configured, cannot fetch metadata")
             error_alert = dbc.Alert(
                 html.Div(
@@ -649,7 +946,7 @@ def fetch_metadata(n_clicks: int, is_open: bool, current_metadata: dict):
                                 html.Strong("JIRA Not Configured"),
                                 html.Br(),
                                 html.Small(
-                                    "Please configure JIRA connection first.",
+                                    "Please configure JIRA connection first in the Connect tab.",
                                     style={"opacity": "0.85"},
                                 ),
                             ]
@@ -691,6 +988,11 @@ def fetch_metadata(n_clicks: int, is_open: bool, current_metadata: dict):
         # Auto-detect configurations
         auto_detected_types = fetcher.auto_detect_issue_types(issue_types)
         auto_detected_statuses = fetcher.auto_detect_statuses(statuses)
+
+        # Load current settings for field mappings
+        from data.persistence import load_app_settings
+
+        settings = load_app_settings()
 
         # Fetch environment field options if mapped
         affected_env_field = settings.get("field_mappings", {}).get(
@@ -811,373 +1113,100 @@ def fetch_metadata(n_clicks: int, is_open: bool, current_metadata: dict):
 @callback(
     Output("field-mapping-save-success", "data", allow_duplicate=True),
     Output("field-mapping-status", "children", allow_duplicate=True),
+    Output("field-mapping-state-store", "data", allow_duplicate=True),
     Input("field-mapping-save-button", "n_clicks"),
-    State("mappings-tabs", "active_tab"),
-    State("field-mapping-content", "children"),
+    State("field-mapping-state-store", "data"),
     prevent_initial_call=True,
 )
-def save_comprehensive_mappings(n_clicks, active_tab, content_children):
-    """
-    Save comprehensive mappings configuration to app_settings.json.
+def save_comprehensive_mappings(n_clicks, state_data):
+    """Save comprehensive configuration from state store.
 
-    This callback handles ALL tabs: Fields, Projects, Types, Status, and Environment.
-    It extracts values from the rendered content dynamically.
+    This simplified callback reads directly from the state store,
+    eliminating the need for DOM parsing and complex extraction logic.
 
-    Validates configuration and provides feedback on errors/warnings.
+    Args:
+        n_clicks: Number of times save button clicked
+        state_data: Current form state from state store
+
+    Returns:
+        Tuple of (save_success, status_message, updated_state)
     """
     from data.persistence import save_app_settings, load_app_settings
-    from data.config_validation import (
-        validate_comprehensive_config,
-        format_validation_messages,
-    )
 
     if not n_clicks:
-        return no_update, no_update
-
-    # Note: This callback now handles ALL tabs including Fields tab
-    # The old save_field_mappings_callback is deprecated
-
-    # Extract dropdown values from the content children
-    # This requires parsing the component tree to find dropdown values
-    def extract_dropdown_value(component_id, children):
-        """Recursively extract dropdown value from component tree."""
-        if children is None:
-            return None
-
-        # Handle dict (component)
-        if isinstance(children, dict):
-            # Check if this is the dropdown we're looking for
-            props = children.get("props", {})
-            if props.get("id") == component_id:
-                return props.get("value")
-            # Recursively search children
-            for key in ["children", "content"]:
-                if key in props:
-                    result = extract_dropdown_value(component_id, props[key])
-                    if result is not None:
-                        return result
-        # Handle list
-        elif isinstance(children, list):
-            for child in children:
-                result = extract_dropdown_value(component_id, child)
-                if result is not None:
-                    return result
-
-        return None
-
-    # Extract values based on active tab
-    dev_projects = None
-    devops_projects = None
-    devops_task_types = None
-    bug_types = None
-    story_types = None
-    task_types = None
-    completion_statuses = None
-    active_statuses = None
-    flow_start_statuses = None
-    wip_statuses = None
-    production_env_values = None
-    field_mappings = None  # NEW: For Fields tab
-
-    # Flow type mapping variables
-    flow_feature_types = None
-    flow_feature_categories = None
-    flow_defect_types = None
-    flow_defect_categories = None
-    flow_tech_debt_types = None
-    flow_tech_debt_categories = None
-    flow_risk_types = None
-    flow_risk_categories = None
-
-    if active_tab == "tab-fields":
-        # Extract field mappings from dropdown values
-        # Field mappings use pattern-matched IDs: {"type": "field-mapping-dropdown", "metric": "dora|flow", "field": "field_name"}
-        def extract_field_mappings_from_children(children):
-            """Extract all field mapping dropdown values from component tree."""
-            mappings = {}
-
-            def traverse(node):
-                if isinstance(node, dict):
-                    props = node.get("props", {})
-                    component_id = props.get("id")
-
-                    # Check if this is a field mapping dropdown
-                    if (
-                        isinstance(component_id, dict)
-                        and component_id.get("type") == "field-mapping-dropdown"
-                    ):
-                        field_name = component_id.get("field")
-                        value = props.get("value")
-                        # Multi-select dropdowns return lists, extract first value
-                        if isinstance(value, list) and len(value) > 0:
-                            mappings[field_name] = value[0]
-                        elif value:
-                            mappings[field_name] = value
-
-                    # Recursively search children
-                    for key in ["children", "content"]:
-                        if key in props:
-                            traverse(props[key])
-                elif isinstance(node, list):
-                    for child in node:
-                        traverse(child)
-
-            traverse(children)
-            return mappings
-
-        field_mappings = extract_field_mappings_from_children(content_children)
-        logger.info(f"Extracted field mappings from Fields tab: {field_mappings}")
-
-    elif active_tab == "tab-projects":
-        dev_projects = extract_dropdown_value(
-            "development-projects-dropdown", content_children
-        )
-        devops_projects = extract_dropdown_value(
-            "devops-projects-dropdown", content_children
-        )
-    elif active_tab == "tab-types":
-        devops_task_types = extract_dropdown_value(
-            "devops-task-types-dropdown", content_children
-        )
-        bug_types = extract_dropdown_value("bug-types-dropdown", content_children)
-        story_types = extract_dropdown_value(
-            "story-types-dropdown", content_children
-        )  # DEPRECATED
-        task_types = extract_dropdown_value(
-            "task-types-dropdown", content_children
-        )  # DEPRECATED
-
-        # Extract Flow type mappings (new structure)
-        flow_feature_types = extract_dropdown_value(
-            "flow-feature-issue-types-dropdown", content_children
-        )
-        flow_feature_categories = extract_dropdown_value(
-            "flow-feature-effort-categories-dropdown", content_children
-        )
-        flow_defect_types = extract_dropdown_value(
-            "flow-defect-issue-types-dropdown", content_children
-        )
-        flow_defect_categories = extract_dropdown_value(
-            "flow-defect-effort-categories-dropdown", content_children
-        )
-        flow_tech_debt_types = extract_dropdown_value(
-            "flow-technical-debt-issue-types-dropdown", content_children
-        )
-        flow_tech_debt_categories = extract_dropdown_value(
-            "flow-technical-debt-effort-categories-dropdown", content_children
-        )
-        flow_risk_types = extract_dropdown_value(
-            "flow-risk-issue-types-dropdown", content_children
-        )
-        flow_risk_categories = extract_dropdown_value(
-            "flow-risk-effort-categories-dropdown", content_children
-        )
-    elif active_tab == "tab-status":
-        completion_statuses = extract_dropdown_value(
-            "completion-statuses-dropdown", content_children
-        )
-        active_statuses = extract_dropdown_value(
-            "active-statuses-dropdown", content_children
-        )
-        flow_start_statuses = extract_dropdown_value(
-            "flow-start-statuses-dropdown", content_children
-        )
-        wip_statuses = extract_dropdown_value("wip-statuses-dropdown", content_children)
-    elif active_tab == "tab-environment":
-        production_env_values = extract_dropdown_value(
-            "production-environment-values-dropdown", content_children
-        )
+        return no_update, no_update, no_update
 
     try:
         # Load current settings
         settings = load_app_settings()
 
-        # DEBUG: Log received values
-        logger.info(
-            f"[FieldMapping] Save mappings callback - received completion_statuses: {completion_statuses}, type: {type(completion_statuses)}"
-        )
-        logger.info(f"Save mappings callback - active tab: {active_tab}")
+        # Update settings from state store
+        # Field mappings
+        if "field_mappings" in state_data:
+            settings["field_mappings"] = state_data["field_mappings"]
 
-        # Update field_mappings if from Fields tab
-        if field_mappings is not None:
-            settings["field_mappings"] = field_mappings
-            logger.info(f"Updated field_mappings from Fields tab: {field_mappings}")
+        # Projects
+        if "development_projects" in state_data:
+            settings["development_projects"] = state_data["development_projects"]
+        if "devops_projects" in state_data:
+            settings["devops_projects"] = state_data["devops_projects"]
 
-        # Update with new values (only update non-None values)
-        if dev_projects is not None:
-            settings["development_projects"] = (
-                dev_projects
-                if isinstance(dev_projects, list)
-                else [dev_projects]
-                if dev_projects
-                else []
-            )
+        # Issue Types
+        if "devops_task_types" in state_data:
+            settings["devops_task_types"] = state_data["devops_task_types"]
+        if "bug_types" in state_data:
+            settings["bug_types"] = state_data["bug_types"]
+        if "story_types" in state_data:
+            settings["story_types"] = state_data["story_types"]
+        if "task_types" in state_data:
+            settings["task_types"] = state_data["task_types"]
 
-        if devops_projects is not None:
-            settings["devops_projects"] = (
-                devops_projects
-                if isinstance(devops_projects, list)
-                else [devops_projects]
-                if devops_projects
-                else []
-            )
-
-        if devops_task_types is not None:
-            settings["devops_task_types"] = (
-                devops_task_types
-                if isinstance(devops_task_types, list)
-                else [devops_task_types]
-                if devops_task_types
-                else []
-            )
-
-        if bug_types is not None:
-            settings["bug_types"] = (
-                bug_types
-                if isinstance(bug_types, list)
-                else [bug_types]
-                if bug_types
-                else []
-            )
-
-        if story_types is not None:
-            settings["story_types"] = (
-                story_types
-                if isinstance(story_types, list)
-                else [story_types]
-                if story_types
-                else []
-            )
-
-        if task_types is not None:
-            settings["task_types"] = (
-                task_types
-                if isinstance(task_types, list)
-                else [task_types]
-                if task_types
-                else []
-            )
-
-        # Save Flow type mappings (new structure)
-        if active_tab == "tab-types":
-            # Build flow_type_mappings structure
-            flow_type_mappings = {}
-
-            # Helper function to normalize to list
-            def to_list(value):
-                if value is None:
-                    return []
-                return value if isinstance(value, list) else [value] if value else []
-
-            # Feature mapping
-            flow_type_mappings["Feature"] = {
-                "issue_types": to_list(flow_feature_types),
-                "effort_categories": to_list(flow_feature_categories),
-            }
-
-            # Defect mapping
-            flow_type_mappings["Defect"] = {
-                "issue_types": to_list(flow_defect_types),
-                "effort_categories": to_list(flow_defect_categories),
-            }
-
-            # Technical Debt mapping
-            flow_type_mappings["Technical_Debt"] = {
-                "issue_types": to_list(flow_tech_debt_types),
-                "effort_categories": to_list(flow_tech_debt_categories),
-            }
-
-            # Risk mapping
-            flow_type_mappings["Risk"] = {
-                "issue_types": to_list(flow_risk_types),
-                "effort_categories": to_list(flow_risk_categories),
-            }
-
-            settings["flow_type_mappings"] = flow_type_mappings
-            logger.info(f"Updated flow_type_mappings: {flow_type_mappings}")
-
-        if completion_statuses is not None:
-            settings["completion_statuses"] = (
-                completion_statuses
-                if isinstance(completion_statuses, list)
-                else [completion_statuses]
-                if completion_statuses
-                else []
-            )
-
-        if active_statuses is not None:
-            settings["active_statuses"] = (
-                active_statuses
-                if isinstance(active_statuses, list)
-                else [active_statuses]
-                if active_statuses
-                else []
-            )
-
-        if flow_start_statuses is not None:
-            settings["flow_start_statuses"] = (
-                flow_start_statuses
-                if isinstance(flow_start_statuses, list)
-                else [flow_start_statuses]
-                if flow_start_statuses
-                else []
-            )
-
-        if wip_statuses is not None:
-            settings["wip_statuses"] = (
-                wip_statuses
-                if isinstance(wip_statuses, list)
-                else [wip_statuses]
-                if wip_statuses
-                else []
-            )
-
-        if production_env_values is not None:
-            settings["production_environment_values"] = (
-                production_env_values
-                if isinstance(production_env_values, list)
-                else [production_env_values]
-                if production_env_values
-                else []
-            )
-
-        # DEBUG: Log updated settings
-        logger.info(
-            f"[FieldMapping] Save mappings - updated completion_statuses in settings: {settings.get('completion_statuses')}"
-        )
-
-        # Validate comprehensive configuration
-        validation_result = validate_comprehensive_config(settings)
-
-        # Check for errors (block save)
-        if validation_result["errors"]:
-            error_message = format_validation_messages(validation_result)
-            error_alert = dbc.Alert(
-                html.Div(
-                    [
-                        html.I(className="fas fa-exclamation-circle me-2"),
-                        html.Span(
-                            [
-                                html.Strong("Validation Errors"),
-                                html.Br(),
-                                html.Small(
-                                    "Configuration has errors:",
-                                    style={"opacity": "0.85"},
-                                ),
-                                html.Pre(error_message, className="mt-2 mb-0"),
-                            ]
-                        ),
-                    ],
-                    className="d-flex align-items-start",
+        # Flow type mappings
+        flow_type_mappings = {
+            "Feature": {
+                "issue_types": state_data.get("flow_feature_issue_types", []),
+                "effort_categories": state_data.get(
+                    "flow_feature_effort_categories", []
                 ),
-                color="danger",
-                dismissable=True,
-            )
-            return no_update, error_alert
+            },
+            "Defect": {
+                "issue_types": state_data.get("flow_defect_issue_types", []),
+                "effort_categories": state_data.get(
+                    "flow_defect_effort_categories", []
+                ),
+            },
+            "Technical Debt": {
+                "issue_types": state_data.get("flow_technical_debt_issue_types", []),
+                "effort_categories": state_data.get(
+                    "flow_technical_debt_effort_categories", []
+                ),
+            },
+            "Risk": {
+                "issue_types": state_data.get("flow_risk_issue_types", []),
+                "effort_categories": state_data.get("flow_risk_effort_categories", []),
+            },
+        }
+        settings["flow_type_mappings"] = flow_type_mappings
 
-        # Save settings (now includes field_mappings for Fields tab)
+        # Statuses
+        if "completion_statuses" in state_data:
+            settings["completion_statuses"] = state_data["completion_statuses"]
+        if "active_statuses" in state_data:
+            settings["active_statuses"] = state_data["active_statuses"]
+        if "flow_start_statuses" in state_data:
+            settings["flow_start_statuses"] = state_data["flow_start_statuses"]
+        if "wip_statuses" in state_data:
+            settings["wip_statuses"] = state_data["wip_statuses"]
+
+        # Environment
+        if "production_environment_values" in state_data:
+            settings["production_environment_values"] = state_data[
+                "production_environment_values"
+            ]
+
+        # Save to disk - extract individual parameters from settings dict
         save_app_settings(
-            pert_factor=settings.get("pert_factor"),
+            pert_factor=settings.get("pert_factor", 1.2),
             deadline=settings.get("deadline"),
             data_points_count=settings.get("data_points_count"),
             show_milestone=settings.get("show_milestone"),
@@ -1187,11 +1216,9 @@ def save_comprehensive_mappings(n_clicks, active_tab, content_children):
             last_used_data_source=settings.get("last_used_data_source"),
             active_jql_profile_id=settings.get("active_jql_profile_id"),
             jira_config=settings.get("jira_config"),
-            field_mappings=settings.get(
-                "field_mappings"
-            ),  # Now saved for Fields tab too
-            devops_projects=settings.get("devops_projects"),
+            field_mappings=settings.get("field_mappings"),
             development_projects=settings.get("development_projects"),
+            devops_projects=settings.get("devops_projects"),
             devops_task_types=settings.get("devops_task_types"),
             bug_types=settings.get("bug_types"),
             story_types=settings.get("story_types"),
@@ -1202,78 +1229,39 @@ def save_comprehensive_mappings(n_clicks, active_tab, content_children):
             flow_start_statuses=settings.get("flow_start_statuses"),
             wip_statuses=settings.get("wip_statuses"),
             flow_type_mappings=settings.get("flow_type_mappings"),
+            cache_metadata=settings.get("cache_metadata"),
         )
 
-        # Invalidate metrics cache since configuration changed
-        # CRITICAL: Only invalidate metrics cache, NOT JIRA data cache
-        # This allows metrics to be recalculated from existing JIRA data when
-        # only field mappings (like WIP states) change, avoiding expensive re-download
-        from data.cache_manager import invalidate_metrics_cache_only
-        from data.metrics_cache import invalidate_cache as invalidate_dora_flow_cache
+        logger.info("[FieldMapping] Mappings saved successfully from state store")
 
-        invalidate_metrics_cache_only()  # Invalidates metrics_snapshots.json only
-        invalidate_dora_flow_cache()  # Invalidates metrics_cache.json (DORA/Flow)
-
-        logger.info(
-            "[FieldMapping] Metrics cache invalidated (JIRA data cache preserved for reuse)"
+        # Success alert
+        success_alert = dbc.Alert(
+            html.Div(
+                [
+                    html.I(className="fas fa-check-circle me-2"),
+                    html.Span(
+                        [
+                            html.Strong("Configuration Saved Successfully!"),
+                            html.Br(),
+                            html.Small(
+                                "Your field mappings and configurations have been saved.",
+                                style={"opacity": "0.85"},
+                            ),
+                        ]
+                    ),
+                ],
+                className="d-flex align-items-start",
+            ),
+            color="success",
+            dismissable=True,
+            duration=4000,
         )
 
-        logger.info(
-            f"[FieldMapping] Comprehensive mappings saved successfully from tab: {active_tab}"
-        )
-
-        # Show success with warnings if any
-        if validation_result["warnings"]:
-            warning_message = format_validation_messages(validation_result)
-            success_alert = dbc.Alert(
-                html.Div(
-                    [
-                        html.I(className="fas fa-check-circle me-2"),
-                        html.Span(
-                            [
-                                html.Strong("Configuration Saved"),
-                                html.Br(),
-                                html.Small(
-                                    "Configuration saved with warnings:",
-                                    style={"opacity": "0.85"},
-                                ),
-                                html.Pre(warning_message, className="mt-2 mb-0"),
-                            ]
-                        ),
-                    ],
-                    className="d-flex align-items-start",
-                ),
-                color="warning",
-                dismissable=True,
-            )
-        else:
-            success_alert = dbc.Alert(
-                html.Div(
-                    [
-                        html.I(className="fas fa-check-circle me-2"),
-                        html.Span(
-                            [
-                                html.Strong("Configuration Saved"),
-                                html.Br(),
-                                html.Small(
-                                    f"Configuration for {active_tab.replace('tab-', '').title()} saved successfully.",
-                                    style={"opacity": "0.85"},
-                                ),
-                            ]
-                        ),
-                    ],
-                    className="d-flex align-items-start",
-                ),
-                color="success",
-                dismissable=True,
-                duration=4000,  # Auto-dismiss after 4 seconds
-            )
-
-        # Keep modal open - return no_update for save success store
-        return no_update, success_alert
+        # Clear state store after successful save
+        return True, success_alert, {}
 
     except Exception as e:
-        logger.error(f"Error saving comprehensive mappings: {e}")
+        logger.error(f"[FieldMapping] Error saving mappings: {e}")
         error_alert = dbc.Alert(
             html.Div(
                 [
@@ -1283,7 +1271,7 @@ def save_comprehensive_mappings(n_clicks, active_tab, content_children):
                             html.Strong("Save Failed"),
                             html.Br(),
                             html.Small(
-                                f"Failed to save configuration: {str(e)}",
+                                f"Error saving mappings: {str(e)}",
                                 style={"opacity": "0.85"},
                             ),
                         ]
@@ -1294,5 +1282,31 @@ def save_comprehensive_mappings(n_clicks, active_tab, content_children):
             color="danger",
             dismissable=True,
         )
-        # Keep modal open
-        return no_update, error_alert
+        return False, error_alert, no_update
+
+
+@callback(
+    Output("field-mapping-state-store", "data", allow_duplicate=True),
+    Input("profile-selector", "value"),
+    prevent_initial_call=True,
+)
+def clear_field_mapping_state_on_profile_switch(profile_id):
+    """Clear field mapping state store when switching profiles.
+
+    This prevents old field mappings from persisting in browser memory
+    after deleting and recreating profiles with the same name.
+
+    Bug Fix: When user deletes profile "Apache" and creates new profile "Apache",
+    the old field mappings were still shown in Configure JIRA Mappings modal
+    because the state store (storage_type="memory") persisted across profile changes.
+
+    Args:
+        profile_id: ID of newly selected profile
+
+    Returns:
+        Empty dict to clear the state store
+    """
+    logger.info(
+        f"[FieldMapping] Clearing state store due to profile switch to: {profile_id}"
+    )
+    return {}

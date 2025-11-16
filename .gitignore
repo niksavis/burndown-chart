@@ -244,6 +244,9 @@ cache/
 # Task progress tracking (runtime state file)
 task_progress.json
 
+# Process ID tracking (runtime artifact)
+app_pid.txt
+
 # Log files (application logging output - Feature 008)
 logs/*.log
 logs/*.log.*

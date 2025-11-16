@@ -101,16 +101,17 @@ Example - Correct callback pattern:
 from ui.layout import USE_ACCORDION_SETTINGS
 
 from callbacks import (
-    accordion_settings,  # Accordion settings panel callbacks (Feature 011, auto-registers via @callback)  # noqa: F401
     bug_analysis,  # Bug analysis metrics callbacks (Feature 004)
     dashboard,  # Dashboard metrics and PERT timeline callbacks (Feature 006, User Story 2)
     dora_flow_metrics,  # DORA/Flow metrics callbacks (Feature 007, auto-registers via @callback)  # noqa: F401
     field_mapping,  # Field mapping callbacks (Feature 007, auto-registers via @callback)  # noqa: F401
+    integrated_query_management,  # Integrated query management callbacks (Feature 011, auto-registers via @callback)  # noqa: F401
     jira_config,  # JIRA config modal callbacks (auto-registers via @callback)  # noqa: F401
     jira_data_store,  # JIRA issues store population (Feature 007, auto-registers via @callback)  # noqa: F401
     jql_editor,  # JQL editor textarea-to-store sync
     mobile_navigation,  # Add mobile navigation callbacks
     profile_management,  # Profile management callbacks (Feature 011, auto-registers via @callback)  # noqa: F401
+    query_management,  # Query management callbacks (Feature 011 Phase 3, auto-registers via @callback)  # noqa: F401
     query_switching,  # Query switching callbacks (Feature 011, auto-registers via @callback)  # noqa: F401
     # The 'export' module doesn't seem to exist and is causing an error
     # export,
@@ -119,6 +120,12 @@ from callbacks import (
     statistics,
     visualization,
 )
+
+# Conditionally import settings UI callbacks based on feature flag
+if USE_ACCORDION_SETTINGS:
+    from callbacks import accordion_settings  # noqa: F401
+else:
+    from callbacks import tabbed_settings  # noqa: F401
 
 # Always import settings_panel for flyout toggle functionality
 # (needed for both accordion and legacy UI to open the Settings flyout)
@@ -141,4 +148,6 @@ def register_all_callbacks(app):
     jql_editor.register_jql_editor_callbacks(app)  # Register JQL editor sync
     bug_analysis.register(app)  # Register bug analysis callbacks (Feature 004)
     dashboard.register(app)  # Register dashboard callbacks (Feature 006, User Story 2)
-    # Note: jira_config, settings_panel, jira_data_store, dora_flow_metrics, field_mapping, and query_switching callbacks auto-register via @callback decorator when imported
+    # Note: jira_config, settings_panel, jira_data_store, dora_flow_metrics, field_mapping,
+    # integrated_query_management, query_management, profile_management, and query_switching
+    # callbacks auto-register via @callback decorator when imported

@@ -32,11 +32,15 @@ from typing import Dict, Any, List, Optional
 
 logger = logging.getLogger(__name__)
 
-# Storage file path
-SNAPSHOTS_FILE = "metrics_snapshots.json"
-
 # Thread lock for file access
 _snapshots_lock = threading.Lock()
+
+
+def _get_snapshots_file_path() -> Path:
+    """Get the path to metrics_snapshots.json in the active query workspace."""
+    from data.profile_manager import get_data_file_path
+
+    return get_data_file_path("metrics_snapshots.json")
 
 
 def load_snapshots() -> Dict[str, Dict[str, Any]]:
@@ -47,24 +51,24 @@ def load_snapshots() -> Dict[str, Dict[str, Any]]:
         Dictionary mapping week labels to metric snapshots
         Example: {"2025-44": {"flow_load": {...}, "custom_metric": {...}}}
     """
-    snapshot_path = Path(SNAPSHOTS_FILE)
+    snapshot_path = _get_snapshots_file_path()
 
     if not snapshot_path.exists():
-        logger.info(f"No snapshot file found at {SNAPSHOTS_FILE}, starting fresh")
+        logger.info(f"No snapshot file found at {snapshot_path}, starting fresh")
         return {}
 
     try:
         with open(snapshot_path, "r", encoding="utf-8") as f:
             snapshots = json.load(f)
         logger.info(
-            f"Loaded {len(snapshots)} weeks of metric snapshots from {SNAPSHOTS_FILE}"
+            f"Loaded {len(snapshots)} weeks of metric snapshots from {snapshot_path}"
         )
         return snapshots
     except json.JSONDecodeError as e:
-        logger.error(f"Failed to parse {SNAPSHOTS_FILE}: {e}")
+        logger.error(f"Failed to parse {snapshot_path}: {e}")
         return {}
     except Exception as e:
-        logger.error(f"Failed to load snapshots from {SNAPSHOTS_FILE}: {e}")
+        logger.error(f"Failed to load snapshots from {snapshot_path}: {e}")
         return {}
 
 
@@ -83,7 +87,7 @@ def save_snapshots(snapshots: Dict[str, Dict[str, Any]]) -> bool:
     import tempfile
     import os
 
-    snapshot_path = Path(SNAPSHOTS_FILE)
+    snapshot_path = _get_snapshots_file_path()
 
     try:
         # Write to temporary file first (atomic operation)
@@ -105,7 +109,7 @@ def save_snapshots(snapshots: Dict[str, Dict[str, Any]]) -> bool:
             os.rename(temp_path, snapshot_path)
 
             logger.info(
-                f"Saved {len(snapshots)} weeks of metric snapshots to {SNAPSHOTS_FILE}"
+                f"Saved {len(snapshots)} weeks of metric snapshots to {snapshot_path}"
             )
             return True
         except Exception as e:
@@ -115,7 +119,7 @@ def save_snapshots(snapshots: Dict[str, Dict[str, Any]]) -> bool:
             raise
 
     except Exception as e:
-        logger.error(f"Failed to save snapshots to {SNAPSHOTS_FILE}: {e}")
+        logger.error(f"Failed to save snapshots to {snapshot_path}: {e}")
         return False
 
 

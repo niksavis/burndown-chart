@@ -79,7 +79,11 @@ def toggle_settings_panel(
             logger.info("Closing import/export panel because settings panel is opening")
             new_import_export_state = False
 
-    return new_settings_state, new_parameter_state, new_import_export_state
+    return (
+        new_settings_state,
+        new_parameter_state,
+        new_import_export_state,
+    )
 
 
 @callback(
@@ -104,9 +108,6 @@ def toggle_import_export_panel(
     """
     Toggle import/export panel open/close and close other panels if open.
 
-    For accordion UI, this is a no-op since import/export is built into
-    Data Operations section. But we keep the callback to prevent errors.
-
     Args:
         import_export_clicks: Number of clicks on Data button
         import_export_is_open: Current import/export panel state
@@ -126,14 +127,12 @@ def toggle_import_export_panel(
         )
         return no_update, no_update, no_update
 
-    # Data button opens dedicated import/export flyout panel
-    # This is PURE data operations - no JIRA dependencies
-    new_import_export_state = not import_export_is_open  # Toggle import/export panel
-    new_settings_state = False if settings_is_open else no_update  # Close Settings
-    new_parameter_state = False if parameter_is_open else no_update  # Close Parameters
+    new_import_export_state = not import_export_is_open
+    new_settings_state = False if settings_is_open else no_update
+    new_parameter_state = False if parameter_is_open else no_update
 
     logger.info(
-        f"Data button clicked - toggling import/export panel to: {new_import_export_state}"
+        f"Toggling import/export panel to: {new_import_export_state}, closing other panels"
     )
 
     return new_import_export_state, new_settings_state, new_parameter_state

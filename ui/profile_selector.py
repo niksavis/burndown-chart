@@ -57,13 +57,12 @@ def create_profile_dropdown(id_suffix: str = "") -> dbc.Col:
                 value=value,
                 placeholder="Select a profile...",
                 clearable=False,
-                className="mb-2",
-                style={"minWidth": "200px"},
             ),
         ],
         xs=12,
         lg=6,
         className="mb-3",
+        id="profile-selector-container",  # ID for CSS z-index stacking context
     )
 
 
@@ -148,7 +147,6 @@ def create_profile_selector_panel(id_suffix: str = "") -> dbc.Card:
     return dbc.Card(
         dbc.CardBody(
             [
-                html.H6("Profile Management", className="card-title mb-3"),
                 dbc.Row(
                     [
                         create_profile_dropdown(id_suffix),

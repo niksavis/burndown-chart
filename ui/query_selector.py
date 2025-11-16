@@ -59,8 +59,6 @@ def create_query_dropdown(
                 value=value,
                 placeholder="Select a query...",
                 clearable=False,
-                className="mb-2",
-                style={"minWidth": "200px"},
             ),
         ],
         xs=12,
@@ -124,7 +122,6 @@ def create_query_selector_panel(id_suffix: str = "") -> dbc.Card:
     return dbc.Card(
         dbc.CardBody(
             [
-                html.H6("Query Management", className="card-title mb-3"),
                 dbc.Row(
                     [
                         create_query_dropdown(id_suffix=id_suffix),

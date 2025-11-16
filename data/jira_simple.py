@@ -313,12 +313,21 @@ def fetch_jira_issues(
             additional_fields.append(config["story_points_field"])
 
         # Add field mappings for DORA and Flow metrics
+        # field_mappings has structure: {"dora": {"field_name": "field_id"}, "flow": {...}}
         field_mappings = config.get("field_mappings", {})
-        for field_name, field_id in field_mappings.items():
-            if field_id and field_id.strip() and field_id not in base_fields:
-                # Add both custom fields (customfield_*) and standard fields
-                # Skip if already in base_fields to avoid duplicates
-                additional_fields.append(field_id)
+        for category, mappings in field_mappings.items():
+            if isinstance(mappings, dict):
+                for field_name, field_id in mappings.items():
+                    # Defensive: field_id must be a string (not dict)
+                    if (
+                        field_id
+                        and isinstance(field_id, str)
+                        and field_id.strip()
+                        and field_id not in base_fields
+                    ):
+                        # Add both custom fields (customfield_*) and standard fields
+                        # Skip if already in base_fields to avoid duplicates
+                        additional_fields.append(field_id)
 
         # Combine base fields with additional fields
         # Sort additional fields to ensure consistent ordering for cache validation
@@ -627,15 +636,25 @@ def fetch_jira_issues_with_changelog(
 
         # Add story points field if specified
         additional_fields = []
-        if config.get("story_points_field") and config["story_points_field"].strip():
-            additional_fields.append(config["story_points_field"])
+        points_field = config.get("story_points_field", "")
+        if points_field and isinstance(points_field, str) and points_field.strip():
+            additional_fields.append(points_field)
 
         # Add field mappings for DORA and Flow metrics
+        # field_mappings has structure: {"dora": {"field_name": "field_id"}, "flow": {...}}
         field_mappings = config.get("field_mappings", {})
-        for field_name, field_id in field_mappings.items():
-            if field_id and field_id.strip() and field_id not in base_fields:
-                # Add both custom fields and standard fields (no filtering)
-                additional_fields.append(field_id)
+        for category, mappings in field_mappings.items():
+            if isinstance(mappings, dict):
+                for field_name, field_id in mappings.items():
+                    # Defensive: field_id must be a string (not dict)
+                    if (
+                        field_id
+                        and isinstance(field_id, str)
+                        and field_id.strip()
+                        and field_id not in base_fields
+                    ):
+                        # Add both custom fields and standard fields (no filtering)
+                        additional_fields.append(field_id)
 
         # Combine base fields with additional fields
         # Sort additional fields to ensure consistent ordering for cache validation
@@ -1401,14 +1420,24 @@ def sync_jira_scope_and_data(
         additional_fields = []
 
         # Add story points field
-        if config.get("story_points_field") and config["story_points_field"].strip():
-            additional_fields.append(config["story_points_field"])
+        points_field = config.get("story_points_field", "")
+        if points_field and isinstance(points_field, str) and points_field.strip():
+            additional_fields.append(points_field)
 
         # Add field mappings for DORA and Flow metrics
+        # field_mappings has structure: {"dora": {"field_name": "field_id"}, "flow": {...}}
         field_mappings = config.get("field_mappings", {})
-        for field_name, field_id in field_mappings.items():
-            if field_id and field_id.strip() and field_id not in base_fields:
-                additional_fields.append(field_id)
+        for category, mappings in field_mappings.items():
+            if isinstance(mappings, dict):
+                for field_name, field_id in mappings.items():
+                    # Defensive: field_id must be a string (not dict)
+                    if (
+                        field_id
+                        and isinstance(field_id, str)
+                        and field_id.strip()
+                        and field_id not in base_fields
+                    ):
+                        additional_fields.append(field_id)
 
         # Build final fields string (must match fetch_jira_issues exactly)
         # Sort additional fields to ensure consistent ordering for cache validation
@@ -1428,12 +1457,18 @@ def sync_jira_scope_and_data(
             cache_loaded = False
             issues = []
         else:
+            # Get query-specific cache file path
+            from data.profile_manager import get_active_query_workspace
+
+            query_workspace = get_active_query_workspace()
+            jira_cache_file = str(query_workspace / "jira_cache.json")
+
             # Step 2: Try to load from cache (checks version, age, JQL, fields)
             logger.debug("[JIRA] Attempting cache load")
             cache_loaded, issues = load_jira_cache(
                 config["jql_query"],
                 current_fields,
-                JIRA_CACHE_FILE,
+                jira_cache_file,
                 config,  # Pass config for new cache system
             )
             logger.debug(
@@ -1468,12 +1503,18 @@ def sync_jira_scope_and_data(
             if not fetch_success:
                 return False, "Failed to fetch JIRA data", {}
 
+            # Get query-specific cache file path
+            from data.profile_manager import get_active_query_workspace
+
+            query_workspace = get_active_query_workspace()
+            jira_cache_file = str(query_workspace / "jira_cache.json")
+
             # Cache the response with the JQL query and fields used
             if not cache_jira_response(
                 issues,
                 config["jql_query"],
                 current_fields,
-                JIRA_CACHE_FILE,
+                jira_cache_file,
                 config,  # Pass config for new cache system
             ):
                 logger.warning("[Cache] Failed to save response")
@@ -1484,10 +1525,17 @@ def sync_jira_scope_and_data(
         else:
             logger.info("[Cache] Using cached issues, changelog remains valid")
 
-        # PHASE 2: Changelog data fetch (OPTIONAL - don't block app)
-        # Changelog is only needed for Flow Time and DORA metrics
-        # Skip it for now - it will be fetched in background if needed
-        logger.debug("[JIRA] Skipping changelog for fast startup, will load on-demand")
+        # PHASE 2: Changelog data fetch
+        # Changelog is needed for Flow Time and DORA metrics
+        # Fetch it now so Calculate Metrics has the data it needs
+        logger.info("[JIRA] Fetching changelog data for Flow/DORA metrics...")
+        changelog_success, changelog_message = fetch_changelog_on_demand(config)
+        if changelog_success:
+            logger.info(f"[JIRA] Changelog fetch successful: {changelog_message}")
+        else:
+            logger.warning(
+                f"[JIRA] Changelog fetch failed (non-critical): {changelog_message}"
+            )
 
         # CRITICAL: Filter out DevOps project issues for burndown/velocity/statistics
         # DevOps issues are ONLY used for DORA metrics metadata extraction
@@ -1509,7 +1557,21 @@ def sync_jira_scope_and_data(
 
         # Calculate JIRA-based project scope (using ONLY development project issues)
         # Only use story_points_field if it's configured and not empty
-        points_field = config.get("story_points_field", "").strip()
+        points_field_raw = config.get("story_points_field", "")
+        # Defensive: Ensure points_field is a string, not a dict
+        if isinstance(points_field_raw, dict):
+            logger.warning(
+                f"[JIRA] story_points_field is a dict, using empty string: {points_field_raw}"
+            )
+            points_field = ""
+        elif isinstance(points_field_raw, str):
+            points_field = points_field_raw.strip()
+        else:
+            logger.warning(
+                f"[JIRA] story_points_field has unexpected type {type(points_field_raw)}, using empty string"
+            )
+            points_field = ""
+
         if not points_field:
             # When no points field is configured, pass empty string instead of defaulting to "votes"
             points_field = ""
@@ -1581,8 +1643,14 @@ def fetch_changelog_on_demand(config: Dict, progress_callback=None) -> Tuple[boo
         if progress_callback:
             progress_callback("📊 Starting changelog download...")
 
+        # Get query-specific cache file paths
+        from data.profile_manager import get_active_query_workspace
+
+        query_workspace = get_active_query_workspace()
+        changelog_cache_file = str(query_workspace / "jira_changelog_cache.json")
+        jira_cache_file = str(query_workspace / "jira_cache.json")
+
         # Load existing cache to merge with new data (resume capability)
-        changelog_cache_file = "jira_changelog_cache.json"
         changelog_cache = {}
         cached_issue_keys = set()
 
@@ -1601,7 +1669,6 @@ def fetch_changelog_on_demand(config: Dict, progress_callback=None) -> Tuple[boo
 
         # OPTIMIZATION: Determine which issues need changelog fetching
         # Only fetch issues that are NOT already in the cache
-        jira_cache_file = "jira_cache.json"
         issues_needing_changelog = []
 
         if os.path.exists(jira_cache_file):

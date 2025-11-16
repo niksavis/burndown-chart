@@ -72,8 +72,10 @@ def calculate_and_save_weekly_metrics(
         # Load JIRA issues from cache file
         import json
         import os
+        from data.profile_manager import get_active_query_workspace
 
-        cache_file = "jira_cache.json"
+        query_workspace = get_active_query_workspace()
+        cache_file = str(query_workspace / "jira_cache.json")
         if not os.path.exists(cache_file):
             return False, "No JIRA data available. Please update data first."
 
@@ -148,7 +150,7 @@ def calculate_and_save_weekly_metrics(
         # Check if changelog cache exists
         # NOTE: Changelog is OPTIONAL - only needed for Flow Time and Flow Efficiency
         # All other metrics (Flow Velocity, Load, Distribution, ALL DORA metrics) work without it
-        changelog_cache_file = "jira_changelog_cache.json"
+        changelog_cache_file = str(query_workspace / "jira_changelog_cache.json")
         changelog_available = os.path.exists(changelog_cache_file)
 
         if not changelog_available:

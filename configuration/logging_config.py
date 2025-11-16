@@ -157,13 +157,20 @@ class JSONFormatter(logging.Formatter):
         Returns:
             str: JSON-formatted log entry
         """
+        # Get message safely (handle Waitress type formatting errors in Python 3.13)
+        try:
+            message = record.getMessage()
+        except (TypeError, ValueError) as e:
+            # Fallback: Use raw message without formatting if args don't match format string
+            message = f"{record.msg} (formatting error: {e})"
+
         log_data = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "level": record.levelname,
             "module": record.module,
             "function": record.funcName,
             "line": record.lineno,
-            "message": record.getMessage(),
+            "message": message,
         }
 
         # Add exception info if present

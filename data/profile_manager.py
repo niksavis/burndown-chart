@@ -183,43 +183,21 @@ class Profile:
         )
 
 
-def _slugify_name(name: str) -> str:
-    """Convert name to filesystem-safe slug."""
-    # Remove special characters, convert to lowercase, replace spaces with hyphens
-    slug = re.sub(r"[^a-zA-Z0-9\s-]", "", name).strip().lower()
-    slug = re.sub(r"\s+", "-", slug)
-    slug = re.sub(r"-+", "-", slug)  # Collapse multiple hyphens
-    return slug.strip("-")
+def _generate_unique_profile_id() -> str:
+    """Generate unique profile ID using UUID.
 
+    Format: p_{12-char-hex} (e.g., p_a1b2c3d4e5f6)
 
-def _ensure_unique_profile_id(name: str) -> str:
-    """Generate unique profile ID from name."""
-    base_id = _slugify_name(name)
-    if not base_id:
-        base_id = "profile"
+    Returns:
+        str: Unique profile ID guaranteed to not collide
 
-    # Check if base ID already exists
-    if not PROFILES_FILE.exists():
-        return base_id
+    Examples:
+        >>> _generate_unique_profile_id()
+        'p_a1b2c3d4e5f6'
+    """
+    import uuid
 
-    try:
-        with open(PROFILES_FILE, "r", encoding="utf-8") as f:
-            profiles_meta = json.load(f)
-
-        existing_ids = list(profiles_meta.get("profiles", {}).keys())
-
-        if base_id not in existing_ids:
-            return base_id
-
-        # Generate numbered variant
-        counter = 2
-        while f"{base_id}-{counter}" in existing_ids:
-            counter += 1
-
-        return f"{base_id}-{counter}"
-
-    except (json.JSONDecodeError, FileNotFoundError):
-        return base_id
+    return f"p_{uuid.uuid4().hex[:12]}"
 
 
 # ============================================================================
@@ -576,7 +554,7 @@ def create_profile(name: str, settings: Dict) -> str:
         settings: Profile configuration (pert_factor, deadline, data_points_count, etc.)
 
     Returns:
-        str: Generated profile_id (slugified name)
+        str: Generated profile_id (UUID format: p_a1b2c3d4e5f6)
 
     Raises:
         ValueError: If name invalid, duplicate, or max profiles reached
@@ -588,7 +566,7 @@ def create_profile(name: str, settings: Dict) -> str:
         ...     "deadline": "2025-12-31",
         ...     "data_points_count": 20
         ... })
-        >>> assert profile_id == "apache-kafka"
+        >>> assert profile_id.startswith("p_") and len(profile_id) == 14
     """
     # Validate inputs
     if not name or not name.strip():
@@ -611,8 +589,8 @@ def create_profile(name: str, settings: Dict) -> str:
     if len(profiles_dict) >= MAX_PROFILES:
         raise ValueError(f"Maximum {MAX_PROFILES} profiles allowed")
 
-    # Generate unique profile ID
-    profile_id = _ensure_unique_profile_id(name)
+    # Generate unique profile ID using UUID
+    profile_id = _generate_unique_profile_id()
 
     # Create profile directory structure
     profile_dir = PROFILES_DIR / profile_id
@@ -776,12 +754,6 @@ def delete_profile(profile_id: str) -> None:
     # Load metadata
     metadata = load_profiles_metadata()
 
-    # Safety check: Cannot delete active profile
-    if profile_id == metadata.get("active_profile_id"):
-        raise ValueError(
-            "Cannot delete active profile. Switch to another profile first."
-        )
-
     # Safety check: Cannot delete last remaining profile
     profiles_dict = metadata.get("profiles", {})
     if len(profiles_dict) <= 1:
@@ -794,6 +766,22 @@ def delete_profile(profile_id: str) -> None:
         raise ValueError(f"Profile '{profile_id}' does not exist")
 
     profile_name = profiles_dict[profile_id].get("name", profile_id)
+
+    # If deleting active profile, switch to another one first
+    if profile_id == metadata.get("active_profile_id"):
+        # Find another profile to switch to
+        other_profile_id = next(
+            (pid for pid in profiles_dict.keys() if pid != profile_id), None
+        )
+        if other_profile_id:
+            logger.info(
+                f"[Profiles] Auto-switching from '{profile_id}' to '{other_profile_id}' before deletion"
+            )
+            switch_profile(other_profile_id)
+        else:
+            raise ValueError(
+                "Cannot delete the only remaining profile. Create another profile first."
+            )
 
     try:
         # Step 1: CASCADE DELETE all queries (best-effort - continue on errors)

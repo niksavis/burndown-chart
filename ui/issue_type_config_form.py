@@ -60,6 +60,9 @@ def create_issue_type_config_form(
 
     # Add flow type issue types to options
     for flow_type, config in flow_type_mappings.items():
+        # Skip if config is None (can happen with incomplete mappings)
+        if config is None:
+            continue
         for issue_type in config.get("issue_types", []):
             if issue_type and issue_type not in existing_types:
                 issue_type_options.append({"label": issue_type, "value": issue_type})
@@ -73,6 +76,9 @@ def create_issue_type_config_form(
     # Add current effort categories to options if not present
     existing_categories = set(available_effort_categories)
     for flow_type, config in flow_type_mappings.items():
+        # Skip if config is None (can happen with incomplete mappings)
+        if config is None:
+            continue
         for category in config.get("effort_categories", []):
             if category and category not in existing_categories:
                 effort_category_options.append({"label": category, "value": category})

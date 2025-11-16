@@ -70,26 +70,24 @@ def _render_bug_analysis_content(data_points_count: int):
         cache_loaded = False  # Track if cache was successfully loaded
 
         try:
-            from data.jira_simple import load_jira_cache, get_jira_config
-            from data.persistence import load_app_settings
+            from data.jira_simple import load_jira_cache
+            from data.persistence import get_active_query_workspace
+            import json
 
-            settings = load_app_settings()
-            jql_query = settings.get("jql_query", "")
+            # Load from query workspace cache
+            query_workspace = get_active_query_workspace()
+            cache_file = query_workspace / "jira_cache.json"
 
-            # Get JIRA configuration for cache validation (T051 requires config parameter)
-            config = get_jira_config(jql_query)
-
-            # Load cache WITH config for new cache system (cache/ directory)
-            cache_loaded, cached_issues = load_jira_cache(
-                current_jql_query=jql_query,
-                current_fields="",  # Empty string accepts any fields
-                config=config,  # Required for new cache system
-            )
-            if cache_loaded and cached_issues:
-                all_issues = cached_issues
-                logger.debug(
-                    f"Loaded {len(all_issues)} issues from JIRA cache with all fields"
-                )
+            if cache_file.exists():
+                with open(cache_file, "r", encoding="utf-8") as f:
+                    cache_data = json.load(f)
+                    all_issues = cache_data.get("issues", [])
+                    cache_loaded = True
+                    logger.debug(
+                        f"Loaded {len(all_issues)} issues from query workspace cache: {cache_file}"
+                    )
+            else:
+                logger.warning(f"No cache file found at {cache_file}")
         except Exception as e:
             logger.warning(f"Could not load from JIRA cache: {e}")
 

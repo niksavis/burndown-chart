@@ -56,6 +56,11 @@ def create_field_mapping_modal() -> dbc.Modal:
                     # Hidden stores
                     dcc.Store(id="field-mapping-save-success", data=None),
                     dcc.Store(id="jira-metadata-store", data=None),  # Cache metadata
+                    dcc.Store(
+                        id="field-mapping-state-store",
+                        storage_type="memory",
+                        data={},
+                    ),  # Real-time state tracking - survives tab switches
                 ],
             ),
             dbc.ModalFooter(

@@ -33,29 +33,15 @@ def create_profile_settings_card() -> html.Div:
     """
     return html.Div(
         [
+            # Section header matching Connect tab style
             html.Div(
                 [
-                    html.I(className="fas fa-user-circle me-2 text-primary"),
+                    html.I(className="fas fa-user me-2 text-primary"),
                     html.Span("Profile Management", className="fw-bold"),
                 ],
-                className="d-flex align-items-center mb-3",
+                className="d-flex align-items-center mb-2",
             ),
             # Profile selector (existing component with create/switch/delete)
             create_profile_selector_panel(),
-            # Info text about forecast settings location
-            html.Div(
-                [
-                    html.Small(
-                        [
-                            html.I(className="fas fa-info-circle me-1"),
-                            "Forecast settings (PERT factor, deadline, data points) are in the ",
-                            html.Strong("Parameters"),
-                            " panel.",
-                        ],
-                        className="text-muted",
-                    )
-                ],
-                className="mt-3 p-2 bg-light rounded",
-            ),
         ]
     )

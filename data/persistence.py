@@ -407,6 +407,8 @@ def load_app_settings():
                 # Field mappings
                 "field_mappings": profile_data.get("field_mappings", {}),
                 # Project classification (flatten to root level for backward compatibility)
+                # NOTE: New profiles should have empty lists, not hardcoded defaults
+                # Users configure these values via field mapping modal
                 "devops_projects": profile_data.get("project_classification", {}).get(
                     "devops_projects", []
                 ),
@@ -414,25 +416,25 @@ def load_app_settings():
                     "project_classification", {}
                 ).get("development_projects", []),
                 "devops_task_types": profile_data.get("project_classification", {}).get(
-                    "devops_task_types", ["Task", "Sub-task"]
+                    "devops_task_types", []
                 ),
                 "bug_types": profile_data.get("project_classification", {}).get(
-                    "bug_types", ["Bug"]
+                    "bug_types", []
                 ),
                 "production_environment_values": profile_data.get(
                     "project_classification", {}
                 ).get("production_environment_values", []),
                 "completion_statuses": profile_data.get(
                     "project_classification", {}
-                ).get("completion_statuses", ["Resolved", "Closed"]),
+                ).get("completion_statuses", []),
                 "active_statuses": profile_data.get("project_classification", {}).get(
-                    "active_statuses", ["In Progress", "In Review"]
+                    "active_statuses", []
                 ),
                 "flow_start_statuses": profile_data.get(
                     "project_classification", {}
-                ).get("flow_start_statuses", ["In Progress"]),
+                ).get("flow_start_statuses", []),
                 "wip_statuses": profile_data.get("project_classification", {}).get(
-                    "wip_statuses", ["In Progress", "In Review", "Testing"]
+                    "wip_statuses", []
                 ),
                 # Flow type mappings
                 "flow_type_mappings": profile_data.get("flow_type_mappings", {}),
@@ -1035,6 +1037,9 @@ def load_unified_project_data():
     """
     Load unified project data (Phase 3).
 
+    QUERY-LEVEL DATA: Statistics and project scope are query-specific.
+    Each query has its own project_data.json in its workspace.
+
     Returns:
         Dict: Unified project data structure
     """
@@ -1044,10 +1049,15 @@ def load_unified_project_data():
     )
 
     try:
-        if not os.path.exists(PROJECT_DATA_FILE):
+        # Use QUERY-specific path (not profile)
+        workspace = get_active_query_workspace()
+        project_data_file = workspace / "project_data.json"
+
+        if not os.path.exists(project_data_file):
+            logger.info("[Cache] Project data file not found, using defaults")
             return get_default_unified_data()
 
-        with open(PROJECT_DATA_FILE, "r", encoding="utf-8") as f:
+        with open(project_data_file, "r", encoding="utf-8") as f:
             data = json.load(f)
 
         # Validate and migrate if necessary
@@ -1070,11 +1080,18 @@ def save_unified_project_data(data):
     """
     Save unified project data (Phase 3).
 
+    QUERY-LEVEL DATA: Statistics and project scope are query-specific.
+    Each query has its own project_data.json in its workspace.
+
     Args:
         data: Unified project data dictionary
     """
     try:
-        with open(PROJECT_DATA_FILE, "w", encoding="utf-8") as f:
+        # Use QUERY-specific path (not profile)
+        workspace = get_active_query_workspace()
+        project_data_file = workspace / "project_data.json"
+
+        with open(project_data_file, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
         logger.info("[Cache] Saved unified project data")
     except Exception as e:
@@ -1720,7 +1737,7 @@ def validate_jira_config(config: Dict[str, Any]) -> tuple[bool, str]:
 
 def save_jira_configuration(config: Dict[str, Any]) -> bool:
     """
-    Save JIRA configuration to app_settings.json in active query workspace.
+    Save JIRA configuration to profile.json (shared across all queries in profile).
 
     Args:
         config: Configuration dictionary with JIRA settings
@@ -1735,24 +1752,52 @@ def save_jira_configuration(config: Dict[str, Any]) -> bool:
             logger.error(f"[Config] Invalid JIRA configuration: {error_msg}")
             return False
 
-        # Load current settings
-        app_settings = load_app_settings()
-
-        # Update jira_config section
-        app_settings["jira_config"] = config
-
         # Get profile-level path (JIRA config shared across all queries)
         workspace = get_active_profile_workspace()
-        settings_file = workspace / "app_settings.json"
+        profile_file = workspace / "profile.json"
 
-        with open(str(settings_file), "w") as f:
-            json.dump(app_settings, f, indent=2)
+        # Load current profile data
+        if profile_file.exists():
+            with open(str(profile_file), "r") as f:
+                profile_data = json.load(f)
+        else:
+            # Initialize empty profile structure
+            profile_data = {
+                "forecast_settings": {},
+                "show_milestone": False,
+                "show_points": False,
+                "jira_config": {},
+                "field_mappings": {},
+                "project_classification": {},
+                "flow_type_mappings": {},
+            }
 
-        logger.info(f"[Config] JIRA configuration saved to {settings_file}")
+        # Update jira_config section
+        profile_data["jira_config"] = config
+
+        # Atomic write using temp file
+        temp_file = profile_file.with_suffix(".tmp")
+        with open(str(temp_file), "w") as f:
+            json.dump(profile_data, f, indent=2)
+
+        # Rename temp file to final file (atomic on POSIX, near-atomic on Windows)
+        if profile_file.exists():
+            profile_file.unlink()
+        temp_file.rename(profile_file)
+
+        logger.info(f"[Config] JIRA configuration saved to {profile_file}")
         return True
 
     except Exception as e:
         logger.error(f"[Config] Error saving JIRA configuration: {e}")
+        # Clean up temp file if it exists
+        try:
+            workspace = get_active_profile_workspace()
+            temp_file = (workspace / "profile.json").with_suffix(".tmp")
+            if temp_file.exists():
+                temp_file.unlink()
+        except Exception:
+            pass
         return False
 
 

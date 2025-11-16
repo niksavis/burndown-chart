@@ -39,12 +39,30 @@ class DependencyError(Exception):
     pass
 
 
+def _generate_unique_query_id() -> str:
+    """
+    Generate unique query ID using UUID.
+
+    Format: q_{12-char-hex} (e.g., q_a1b2c3d4e5f6)
+
+    Returns:
+        str: Unique query ID guaranteed to not collide
+
+    Examples:
+        >>> _generate_unique_query_id()
+        'q_a1b2c3d4e5f6'
+    """
+    import uuid
+
+    return f"q_{uuid.uuid4().hex[:12]}"
+
+
 def get_active_query_id() -> str:
     """
     Get the currently active query ID.
 
     Returns:
-        str: Active query ID (e.g., "main", "bugs", "12w")
+        str: Active query ID (e.g., "main", "bugs", "12w") or None if no active query
 
     Raises:
         ValueError: If profiles.json not found or malformed
@@ -52,6 +70,8 @@ def get_active_query_id() -> str:
     Example:
         >>> get_active_query_id()
         'main'
+        >>> get_active_query_id()  # No active query in profile
+        None
     """
     if not PROFILES_FILE.exists():
         raise ValueError(f"profiles.json not found at {PROFILES_FILE}")
@@ -61,9 +81,7 @@ def get_active_query_id() -> str:
             profiles_data = json.load(f)
 
         active_query_id = profiles_data.get("active_query_id")
-        if not active_query_id:
-            raise ValueError("active_query_id not found in profiles.json")
-
+        # Return None if no active query (valid state for empty profile)
         return active_query_id
 
     except json.JSONDecodeError as e:
@@ -252,15 +270,15 @@ def create_query(profile_id: str, name: str, jql: str, description: str = "") ->
 
     Args:
         profile_id: Profile to create query in
-        name: Display name for query
+        name: Display name for query (can contain ANY characters)
         jql: JQL query string
         description: Optional description for the query
 
     Returns:
-        str: Generated query ID (slugified name)
+        str: Generated query ID (UUID format: q_a1b2c3d4e5f6)
 
     Raises:
-        ValueError: If profile doesn't exist or query ID conflicts
+        ValueError: If profile doesn't exist
         DependencyError: If JIRA not configured (dependency chain violation)
 
     Side Effects:
@@ -268,8 +286,8 @@ def create_query(profile_id: str, name: str, jql: str, description: str = "") ->
         - Creates query.json with metadata
 
     Example:
-        >>> create_query("kafka", "High Priority Bugs", "project = KAFKA AND priority = High")
-        'high-priority-bugs'
+        >>> query_id = create_query("p_abc123", "High Priority Bugs!", "project = KAFKA AND priority = High")
+        >>> assert query_id.startswith("q_") and len(query_id) == 14
     """
     profile_dir = PROFILES_DIR / profile_id
     if not profile_dir.exists():
@@ -298,18 +316,11 @@ def create_query(profile_id: str, name: str, jql: str, description: str = "") ->
     else:
         raise ValueError(f"Profile configuration not found at {profile_file}")
 
-    # Generate query ID from name (slugify)
-    query_id = name.lower().replace(" ", "-")
-    query_id = "".join(c for c in query_id if c.isalnum() or c == "-")
-    query_id = query_id.strip("-")
+    # Generate unique query ID using UUID
+    query_id = _generate_unique_query_id()
 
-    if not query_id:
-        raise ValueError(f"Cannot generate valid query ID from name '{name}'")
-
-    # Check for conflicts
+    # Create query directory (UUID guarantees no collision)
     query_dir = profile_dir / "queries" / query_id
-    if query_dir.exists():
-        raise ValueError(f"Query '{query_id}' already exists in profile '{profile_id}'")
 
     # Create directory
     query_dir.mkdir(parents=True, exist_ok=True)
@@ -483,17 +494,8 @@ def delete_query(profile_id: str, query_id: str, allow_cascade: bool = False) ->
             f"Query '{query_id}' not found in profile '{profile_id}' at {query_dir}"
         )
 
-    # Ensure at least one query remains (unless cascading)
-    if not allow_cascade:
-        queries_dir = profile_dir / "queries"
-        remaining_queries = [
-            d for d in queries_dir.iterdir() if d.is_dir() and d != query_dir
-        ]
-        if not remaining_queries:
-            raise ValueError(
-                f"Cannot delete last query '{query_id}' in profile '{profile_id}'. "
-                "Create another query first."
-            )
+    # Allow deletion of last query when allow_cascade=True
+    # (No restriction - users can delete the last query)
 
     # Delete directory and all contents
     shutil.rmtree(query_dir)

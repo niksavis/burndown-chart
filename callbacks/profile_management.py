@@ -129,7 +129,13 @@ def handle_create_profile(n_clicks, name, description):
             "field_mappings": {},
         }
         profile_id = create_profile(name, settings)
-        logger.info(f"Created new profile: {name} (ID: {profile_id})")
+
+        # Switch to newly created profile automatically
+        switch_profile(profile_id)
+
+        logger.info(
+            f"Created new profile: {name} (ID: {profile_id}) and switched to it"
+        )
         return "", "alert alert-danger d-none", True, False, ""
     except Exception as e:
         error_msg = str(e)
@@ -264,9 +270,14 @@ def handle_duplicate_profile(n_clicks, name, description, source_profile_id):
         Input("cancel-delete-profile", "n_clicks"),
         Input("confirm-delete-profile", "n_clicks"),
     ],
-    [State("delete-profile-modal", "is_open")],
+    [
+        State("delete-profile-modal", "is_open"),
+        State("delete-profile-error", "children"),
+    ],
 )
-def toggle_delete_profile_modal(delete_btn, cancel_btn, confirm_btn, is_open):
+def toggle_delete_profile_modal(
+    delete_btn, cancel_btn, confirm_btn, is_open, error_message
+):
     """Toggle delete profile modal open/close."""
     if not ctx.triggered:
         return is_open
@@ -275,20 +286,29 @@ def toggle_delete_profile_modal(delete_btn, cancel_btn, confirm_btn, is_open):
 
     if triggered_id == "delete-profile-btn":
         return True
-    elif triggered_id in ["cancel-delete-profile", "confirm-delete-profile"]:
+    elif triggered_id == "cancel-delete-profile":
         return False
+    elif triggered_id == "confirm-delete-profile":
+        # Keep modal open if there's an error message
+        if error_message and error_message.strip():
+            return True  # Keep open to show error
+        return False  # Close on successful delete
     return is_open
 
 
 @callback(
-    Output("delete-profile-warning", "children"),
+    [
+        Output("delete-profile-warning", "children"),
+        Output("delete-profile-error", "children", allow_duplicate=True),
+    ],
     [Input("delete-profile-modal", "is_open")],
     [State("profile-selector", "value")],
+    prevent_initial_call=True,
 )
 def populate_delete_modal(is_open, selected_profile_id):
-    """Populate delete modal with profile warning."""
+    """Populate delete modal with profile warning and clear previous error."""
     if not is_open or not selected_profile_id:
-        return ""
+        return "", ""
 
     profiles = list_profiles()
     current_profile = next(
@@ -306,7 +326,7 @@ def populate_delete_modal(is_open, selected_profile_id):
     else:
         warning += "."
 
-    return warning
+    return warning, ""
 
 
 @callback(
@@ -322,56 +342,194 @@ def enable_delete_button(confirmation_text):
     [
         Output("delete-profile-error", "children"),
         Output("delete-profile-error", "className"),
+        Output("profile-selector", "options", allow_duplicate=True),
+        Output("profile-selector", "value", allow_duplicate=True),
+        Output("app-notifications", "children", allow_duplicate=True),
     ],
     [Input("confirm-delete-profile", "n_clicks")],
     [State("profile-selector", "value"), State("delete-confirmation-input", "value")],
+    prevent_initial_call=True,
 )
 def handle_delete_profile(n_clicks, profile_id, confirmation):
     """Handle profile deletion."""
     if not n_clicks or confirmation != "DELETE":
-        return "", "alert alert-danger d-none"
+        return "", "alert alert-danger d-none", no_update, no_update, no_update
 
     if not profile_id:
-        return "No profile selected.", "alert alert-danger"
+        return (
+            "No profile selected.",
+            "alert alert-danger",
+            no_update,
+            no_update,
+            no_update,
+        )
 
     try:
+        from dash import html
+        import dash_bootstrap_components as dbc
+
         profiles = list_profiles()
         if len(profiles) <= 1:
-            return "Cannot delete the last remaining profile.", "alert alert-danger"
+            error_notification = dbc.Toast(
+                html.Div(
+                    [
+                        html.I(className="fas fa-exclamation-triangle me-2"),
+                        "Cannot delete the last remaining profile.",
+                    ]
+                ),
+                header="Delete Failed",
+                icon="danger",
+                is_open=True,
+                dismissable=True,
+                duration=4000,
+            )
+            # No modal error - just toast and let modal close
+            return (
+                "",
+                "alert alert-danger d-none",
+                no_update,
+                no_update,
+                error_notification,
+            )
 
         profile_to_delete = next((p for p in profiles if p["id"] == profile_id), None)
         if not profile_to_delete:
-            return "Profile not found.", "alert alert-danger"
+            error_notification = dbc.Toast(
+                html.Div(
+                    [
+                        html.I(className="fas fa-exclamation-triangle me-2"),
+                        "Profile not found.",
+                    ]
+                ),
+                header="Delete Failed",
+                icon="danger",
+                is_open=True,
+                dismissable=True,
+                duration=4000,
+            )
+            # No modal error - just toast and let modal close
+            return (
+                "",
+                "alert alert-danger d-none",
+                no_update,
+                no_update,
+                error_notification,
+            )
 
         delete_profile(profile_id)
         logger.info(f"Deleted profile: {profile_to_delete['name']} (ID: {profile_id})")
-        return "", "alert alert-danger d-none"
+
+        updated_profiles = list_profiles()
+        new_active_profile = get_active_profile()
+        new_active_id = (
+            new_active_profile.id
+            if new_active_profile
+            else (updated_profiles[0]["id"] if updated_profiles else "")
+        )
+
+        profile_options = [
+            {
+                "label": f"{p['name']} ★" if p["id"] == new_active_id else p["name"],
+                "value": p["id"],
+            }
+            for p in updated_profiles
+        ]
+
+        # Return success with no error message
+        # The modal will close (no error to keep it open)
+        # Show toast notification for successful deletion
+        from dash import html
+        import dash_bootstrap_components as dbc
+
+        notification = dbc.Toast(
+            html.Div(
+                [
+                    html.I(className="fas fa-trash me-2"),
+                    f"Deleted profile: {profile_to_delete['name']}",
+                ]
+            ),
+            header="Profile Deleted",
+            icon="success",
+            is_open=True,
+            dismissable=True,
+            duration=3000,
+        )
+
+        return (
+            "",
+            "alert alert-danger d-none",
+            profile_options,
+            new_active_id,
+            notification,
+        )
     except Exception as e:
         error_msg = str(e)
         logger.error(f"Failed to delete profile: {error_msg}")
-        return error_msg, "alert alert-danger"
+        return error_msg, "alert alert-danger", no_update, no_update, no_update
 
 
 @callback(
-    Output("profile-selector", "value", allow_duplicate=True),
+    [
+        Output("app-notifications", "children", allow_duplicate=True),
+        Output("query-selector", "options", allow_duplicate=True),
+        Output("query-selector", "value", allow_duplicate=True),
+        Output("profile-selector", "options", allow_duplicate=True),
+    ],
     [Input("profile-selector", "value")],
     prevent_initial_call=True,
 )
 def handle_profile_switch(selected_profile_id):
-    """Handle profile switching."""
+    """Handle profile switching and refresh query dropdown."""
     if not selected_profile_id:
-        return no_update
+        return no_update, no_update, no_update, no_update
 
     try:
         active_profile = get_active_profile()
         if active_profile and active_profile.id == selected_profile_id:
-            return no_update  # Already active
+            return no_update, no_update, no_update, no_update  # Already active
 
         switch_profile(selected_profile_id)
         logger.info(f"Switched to profile: {selected_profile_id}")
-        return selected_profile_id
+
+        # Import here to avoid circular dependency
+        from data.query_manager import list_queries_for_profile
+
+        # Refresh query dropdown for new profile
+        queries = list_queries_for_profile(selected_profile_id)
+        query_options = [{"label": q["name"], "value": q["id"]} for q in queries]
+        query_value = queries[0]["id"] if queries else None
+
+        # Refresh profile dropdown to show star marker on newly active profile
+        all_profiles = list_profiles()
+        profile_options = [
+            {
+                "label": f"{p['name']} ★"
+                if p["id"] == selected_profile_id
+                else p["name"],
+                "value": p["id"],
+            }
+            for p in all_profiles
+        ]
+
+        # Show success notification
+        from dash import html
+        import dash_bootstrap_components as dbc
+
+        notification = dbc.Toast(
+            html.Div(
+                [
+                    html.I(className="fas fa-check-circle me-2"),
+                    f"Switched to profile: {selected_profile_id}",
+                ]
+            ),
+            header="Profile Switched",
+            icon="success",
+            is_open=True,
+            dismissable=True,
+            duration=3000,
+        )
+
+        return notification, query_options, query_value, profile_options
     except Exception as e:
         logger.error(f"Failed to switch profile: {e}")
-        # Return to previous value on error
-        active_profile = get_active_profile()
-        return active_profile.id if active_profile else no_update
+        return no_update, no_update, no_update, no_update

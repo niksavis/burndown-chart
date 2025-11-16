@@ -471,16 +471,18 @@ def cancel_jira_config(n_clicks):
     [
         Input("jira-config-modal", "is_open"),
         Input("jira-config-save-button", "n_clicks"),
+        Input("profile-selector", "value"),
     ],
     prevent_initial_call=False,  # Run on page load to show initial status
 )
-def update_jira_config_status(modal_is_open, save_clicks):
+def update_jira_config_status(modal_is_open, save_clicks, profile_id):
     """
     Update the JIRA configuration status indicator to show whether JIRA is configured.
 
     Args:
         modal_is_open: Whether the modal is currently open
         save_clicks: Number of times save button has been clicked (triggers refresh)
+        profile_id: Active profile ID (triggers refresh on profile switch)
 
     Returns:
         Status indicator component showing configuration state

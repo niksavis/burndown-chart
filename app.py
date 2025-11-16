@@ -166,7 +166,7 @@ app = dash.Dash(
         "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js",
         "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/sql/sql.min.js",  # Base for query language
         "/assets/jql_language_mode.js",  # JQL tokenizer for syntax highlighting
-        "/assets/jql_editor_init.js",  # Editor initialization - progressive enhancement
+        "/assets/jql_editor_native.js",  # Native CodeMirror editors (no textarea transformation)
         "/assets/mobile_navigation.js",  # Mobile navigation JavaScript for swipe gestures
     ],
     suppress_callback_exceptions=True,  # Suppress exceptions for components created by callbacks
