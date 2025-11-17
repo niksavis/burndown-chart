@@ -174,12 +174,14 @@ class TestAppStartupInitialization:
         # Create default profile
         profile_id = ensure_default_profile_exists()
 
-        assert profile_id == "default"
+        # Assert - hash-based profile ID
+        assert profile_id.startswith("p_")
+        assert len(profile_id) == 14
 
         # Verify profile exists
         active_profile = get_active_profile()
         assert active_profile is not None
-        assert active_profile.id == "default"
+        assert active_profile.id == profile_id
         assert active_profile.name == "Default"
 
     def test_ensure_valid_workspace_sets_active_profile(
@@ -314,5 +316,7 @@ class TestWorkspaceValidationEdgeCases:
         profile_id_2 = ensure_default_profile_exists()
         profile_id_3 = ensure_default_profile_exists()
 
-        # Should return same profile each time
-        assert profile_id_1 == profile_id_2 == profile_id_3 == "default"
+        # Should return same profile each time (hash-based ID)
+        assert profile_id_1 == profile_id_2 == profile_id_3
+        assert profile_id_1.startswith("p_")
+        assert len(profile_id_1) == 14

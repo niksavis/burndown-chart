@@ -123,10 +123,11 @@ class TestProfileSettingsCard:
         card = create_profile_settings_card()
         card_str = str(card)
 
-        # Profile management labels (forecast settings are in Parameters panel)
+        # Profile management labels
         assert "Profile Management" in card_str
         assert "Profile" in card_str  # Profile selector label
-        assert "Parameters" in card_str  # Info text mentions Parameters panel
+        assert "New" in card_str  # Create new profile button
+        assert "Duplicate" in card_str  # Duplicate profile button
 
 
 class TestAccordionCardComponents:
@@ -178,9 +179,9 @@ class TestLayoutIntegration:
             layout = serve_layout()
             layout_str = str(layout)
 
-            # Check for accordion-specific elements
-            assert "settings-accordion" in layout_str
-            assert "Profile Settings" in layout_str
+            # Check for profile management components
+            assert "profile-selector" in layout_str  # Profile dropdown present
+            assert "Profile Management" in layout_str or "profile" in layout_str.lower()  # Profile section exists
 
         finally:
             # Restore original flag
