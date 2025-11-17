@@ -402,7 +402,9 @@ class TestCreateQuery:
             from data.query_manager import create_query
 
             query_id1 = create_query("kafka", "Bugs", "type = Bug")
-            query_id2 = create_query("kafka", "Bugs", "type = Bug")  # Same name, different ID
+            query_id2 = create_query(
+                "kafka", "Bugs", "type = Bug"
+            )  # Same name, different ID
 
         # Assert - both queries created successfully with different IDs
         assert query_id1 != query_id2  # Different hash-based IDs
