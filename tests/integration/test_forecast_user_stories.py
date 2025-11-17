@@ -60,16 +60,14 @@ def test_user_story_3_historical_review():
 
         # Test: US3 requirement - forecasts persist and load correctly
         assert forecast["forecast_value"] > 0, "Forecast value should be positive"
-        assert (
-            forecast["weeks_available"] >= 2
-        ), "Should have at least 2 weeks of history"
+        assert forecast["weeks_available"] >= 2, (
+            "Should have at least 2 weeks of history"
+        )
         assert trend is not None, "Trend vs forecast should be calculated"
 
         print("\n✅ US3 PASS: Historical forecast data persists and loads correctly")
-        return True
     else:
-        print("\n❌ US3 FAIL: No forecast data found in historical snapshot")
-        return False
+        pytest.fail("No forecast data found in historical snapshot")
 
 
 def test_user_story_4_wip_health_ranges():
@@ -119,7 +117,6 @@ def test_user_story_4_wip_health_ranges():
         assert status == expected_status, f"WIP={wip} should be {expected_status}"
 
     print("\n✅ US4 PASS: Flow Load range and bidirectional health working")
-    return True
 
 
 def test_user_story_5_baseline_building():
@@ -131,9 +128,7 @@ def test_user_story_5_baseline_building():
     forecast_2w = calculate_forecast([10.0, 12.0])
 
     assert forecast_2w is not None, "Should calculate forecast with 2 weeks"
-    assert (
-        forecast_2w["confidence"] == "building"
-    ), "Should show 'building' confidence"
+    assert forecast_2w["confidence"] == "building", "Should show 'building' confidence"
     assert forecast_2w["weeks_available"] == 2, "Should report 2 weeks used"
 
     print(f"  ✓ Forecast: {forecast_2w['forecast_value']:.1f} items/week")
@@ -145,9 +140,9 @@ def test_user_story_5_baseline_building():
     forecast_3w = calculate_forecast([10.0, 11.0, 12.0])
 
     assert forecast_3w is not None, "Should calculate forecast with 3 weeks"
-    assert (
-        forecast_3w["confidence"] == "building"
-    ), "Should still show 'building' confidence"
+    assert forecast_3w["confidence"] == "building", (
+        "Should still show 'building' confidence"
+    )
     assert forecast_3w["weeks_available"] == 3, "Should report 3 weeks used"
 
     print(f"  ✓ Forecast: {forecast_3w['forecast_value']:.1f} items/week")
@@ -159,9 +154,9 @@ def test_user_story_5_baseline_building():
     forecast_4w = calculate_forecast([10.0, 12.0, 11.0, 13.0])
 
     assert forecast_4w is not None, "Should calculate forecast with 4 weeks"
-    assert (
-        forecast_4w["confidence"] == "established"
-    ), "Should show 'established' confidence"
+    assert forecast_4w["confidence"] == "established", (
+        "Should show 'established' confidence"
+    )
     assert forecast_4w["weeks_available"] == 4, "Should report 4 weeks used"
 
     print(f"  ✓ Forecast: {forecast_4w['forecast_value']:.1f} items/week")
@@ -181,34 +176,43 @@ def test_user_story_5_baseline_building():
     # Test "Building baseline" badge
     forecast_section_building = create_forecast_section(
         forecast_data=forecast_2w,
-        trend_vs_forecast={"direction": "→", "status_text": "On track", "color_class": "text-secondary", "is_good": True},
+        trend_vs_forecast={
+            "direction": "→",
+            "status_text": "On track",
+            "color_class": "text-secondary",
+            "is_good": True,
+        },
         metric_name="flow_velocity",
         unit="items/week",
     )
 
     # Verify "Building baseline" badge appears
     section_html = str(forecast_section_building)
-    assert (
-        "Building baseline" in section_html
-    ), "Should display 'Building baseline' badge"
+    assert "Building baseline" in section_html, (
+        "Should display 'Building baseline' badge"
+    )
     print("  ✓ 'Building baseline' badge displays correctly")
 
     # Test established baseline (no badge)
     forecast_section_established = create_forecast_section(
         forecast_data=forecast_4w,
-        trend_vs_forecast={"direction": "↗", "status_text": "+23% above forecast", "color_class": "text-success", "is_good": True},
+        trend_vs_forecast={
+            "direction": "↗",
+            "status_text": "+23% above forecast",
+            "color_class": "text-success",
+            "is_good": True,
+        },
         metric_name="flow_velocity",
         unit="items/week",
     )
 
     section_html_est = str(forecast_section_established)
-    assert (
-        "Building baseline" not in section_html_est
-    ), "Should NOT display 'Building baseline' badge for established"
+    assert "Building baseline" not in section_html_est, (
+        "Should NOT display 'Building baseline' badge for established"
+    )
     print("  ✓ Established baseline (no badge) displays correctly")
 
     print("\n✅ US5 PASS: Baseline building with appropriate messaging working")
-    return True
 
 
 if __name__ == "__main__":

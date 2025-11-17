@@ -26,7 +26,6 @@ from configuration.logging_config import setup_logging, cleanup_old_logs
 from ui import serve_layout
 from data.migration import migrate_to_profiles
 from data.profile_manager import (
-    ensure_default_profile_exists,
     get_active_profile,
     switch_profile,
     list_profiles,
@@ -78,31 +77,39 @@ except Exception as e:
 
 def ensure_valid_workspace() -> None:
     """
-    Ensure application has valid profile + query foundation.
+    Validate application workspace on startup.
 
-    This function validates the workspace on startup and ensures:
-    1. Default profile exists (if no profiles found)
-    2. Active profile is set (switches to default if missing)
-    3. Profile has at least one query (creates placeholder if empty)
-    4. Active query is set (switches to first query if missing)
+    This function checks the workspace state and ensures:
+    1. If profiles exist, active profile is set
+    2. If active profile exists, it has at least one query
+    3. If queries exist, active query is set
 
-    This prevents the app from starting in an invalid state where
-    dependency chain requirements cannot be satisfied.
+    Unlike previous versions, this does NOT create a default profile.
+    The app starts with a clean slate - users create their first profile via UI.
 
     Called during app initialization (after migration).
     """
     try:
         logger.info("[Workspace] Starting workspace validation...")
 
-        # Step 1: Ensure default profile exists (creates if none found)
-        profile_id = ensure_default_profile_exists()
-        logger.info(f"[Workspace] Default profile verified: {profile_id}")
+        # Step 1: Check if any profiles exist
+        all_profiles = list_profiles()
+        if not all_profiles:
+            logger.info(
+                "[Workspace] No profiles found - fresh installation. "
+                "User will create first profile via UI."
+            )
+            logger.info("[Workspace] Workspace validation complete ✅")
+            return
 
-        # Step 2: Ensure active profile is set
+        # Step 2: Ensure active profile is set (if profiles exist)
         active_profile = get_active_profile()
         if not active_profile:
-            logger.warning("[Workspace] No active profile found, switching to default")
-            switch_profile("default")
+            logger.warning(
+                "[Workspace] Profiles exist but no active profile set. "
+                f"Switching to first profile: {all_profiles[0]['name']}"
+            )
+            switch_profile(all_profiles[0]["id"])
             active_profile = get_active_profile()
 
         logger.info(

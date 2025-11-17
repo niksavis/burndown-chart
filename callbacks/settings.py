@@ -506,16 +506,62 @@ def register(app):
                     cache_status_message,  # Show error in status area
                 )
 
-            # Use JQL query from input or fall back to settings
+            # Use JQL query from input or fall back to active query's JQL
             app_settings = load_app_settings()
-            settings_jql = (
-                jql_query.strip()
-                if jql_query and jql_query.strip()
-                else app_settings.get("jql_query", "project = JRASERVER")
-            )
+
+            # Get JQL from active query if input is empty
+            if not jql_query or not jql_query.strip():
+                try:
+                    from data.profile_manager import (
+                        load_profiles_metadata,
+                        PROFILES_DIR,
+                    )
+                    import json
+
+                    metadata = load_profiles_metadata()
+                    active_query_id = metadata.get("active_query_id")
+                    active_profile_id = metadata.get("active_profile_id")
+
+                    if active_query_id and active_profile_id:
+                        query_file = (
+                            PROFILES_DIR
+                            / active_profile_id
+                            / "queries"
+                            / active_query_id
+                            / "query.json"
+                        )
+                        if query_file.exists():
+                            with open(query_file, "r", encoding="utf-8") as f:
+                                query_data = json.load(f)
+                            settings_jql = query_data.get("jql", "")
+                            logger.info(
+                                f"[Settings] Using JQL from active query '{active_query_id}': '{settings_jql}'"
+                            )
+                        else:
+                            settings_jql = app_settings.get(
+                                "jql_query", "project = JRASERVER"
+                            )
+                            logger.warning(
+                                f"[Settings] Query file not found: {query_file}, using fallback JQL"
+                            )
+                    else:
+                        # No active query, use default
+                        settings_jql = app_settings.get(
+                            "jql_query", "project = JRASERVER"
+                        )
+                        logger.warning(
+                            f"[Settings] No active query, using fallback JQL: '{settings_jql}'"
+                        )
+                except Exception as e:
+                    logger.error(
+                        f"[Settings] Failed to load JQL from active query: {e}"
+                    )
+                    settings_jql = app_settings.get("jql_query", "project = JRASERVER")
+            else:
+                settings_jql = jql_query.strip()
 
             logger.info(
-                f"[Settings] JQL Query - Input: '{jql_query}', Settings: '{app_settings.get('jql_query', 'N/A')}', Final: '{settings_jql}'"
+                f"[Settings] JQL Query - Input: '{jql_query}', Final: '{settings_jql}'"
             )
 
             # Load JIRA configuration values from jira_config and construct endpoint

@@ -118,32 +118,7 @@ def create_profile_selector_panel(id_suffix: str = "") -> dbc.Card:
     Returns:
         Bootstrap card containing profile management UI
     """
-    profiles = list_profiles()
-
-    if not profiles:
-        # Empty state - no profiles exist
-        return dbc.Card(
-            dbc.CardBody(
-                [
-                    html.H6("🏢 No Profiles", className="mb-2"),
-                    html.P(
-                        "Create your first profile to get started.",
-                        className="text-muted mb-3",
-                    ),
-                    dbc.Button(
-                        [
-                            html.I(className="fas fa-plus me-2"),
-                            "Create Your First Profile",
-                        ],
-                        id="create-first-profile-btn",
-                        color="primary",
-                        size="sm",
-                    ),
-                ]
-            ),
-            className="mb-3",
-        )
-
+    # Use same UI regardless of profile count - simpler and consistent
     return dbc.Card(
         dbc.CardBody(
             [

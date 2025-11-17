@@ -12,6 +12,32 @@ logger = logging.getLogger(__name__)
 
 
 # ============================================================================
+# Query Button State Management
+# ============================================================================
+
+
+@callback(
+    [
+        Output("load-query-data-btn", "disabled"),
+        Output("delete-query-btn", "disabled"),
+    ],
+    [Input("query-selector", "value")],
+)
+def manage_query_button_states(selected_query):
+    """Disable load/delete buttons when no query selected or Create New selected.
+
+    Args:
+        selected_query: Currently selected query ID
+
+    Returns:
+        Tuple of (load_disabled, delete_disabled)
+    """
+    # Disable if no selection or if "Create New Query" is selected
+    disabled = not selected_query or selected_query == "__create_new__"
+    return disabled, disabled
+
+
+# ============================================================================
 # Query Dropdown Population
 # ============================================================================
 

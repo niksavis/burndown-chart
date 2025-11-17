@@ -29,7 +29,7 @@ MIGRATION_FILES = [
 ]
 
 # Directories to migrate
-MIGRATION_DIRS = ["cache"]
+MIGRATION_DIRS = []  # Empty - cache/ is for Dash background callbacks, not user data
 
 # Legacy files to archive (obsolete with profile system)
 LEGACY_FILES_TO_ARCHIVE = ["jira_query_profiles.json"]
@@ -71,10 +71,22 @@ def migrate_to_profiles() -> bool:
     dirs_to_migrate = [d for d in MIGRATION_DIRS if Path(d).exists()]
 
     if not files_to_migrate and not dirs_to_migrate:
-        logger.info("No root-level files to migrate - initializing empty profile")
-        # Create empty default profile structure
-        initialize_profiles_registry()
-        return True
+        logger.info(
+            "No root-level files to migrate - clean installation. "
+            "User will create first profile via UI."
+        )
+        # Don't create any profiles for fresh installation
+        # Just create empty profiles.json registry
+        PROFILES_DIR.mkdir(parents=True, exist_ok=True)
+        profiles_data = {
+            "active_profile_id": None,
+            "active_query_id": None,
+            "profiles": {},
+        }
+        with open(PROFILES_FILE, "w", encoding="utf-8") as f:
+            json.dump(profiles_data, f, indent=2)
+        logger.info(f"Created empty {PROFILES_FILE} - zero profiles")
+        return False  # No migration needed
 
     try:
         logger.info("Starting migration to profiles structure...")

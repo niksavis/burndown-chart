@@ -846,25 +846,11 @@ def load_statistics():
             logger.info(f"[Cache] Statistics loaded from {PROJECT_DATA_FILE}")
             return data, False  # Return data and flag that it's not sample data
         else:
-            logger.info("[Cache] No statistics found, using sample data")
-
-            # Make sure sample data is also sorted by date
-            sample_df = generate_realistic_sample_data()
-            sample_df["date"] = pd.to_datetime(sample_df["date"], errors="coerce")
-            sample_df = sample_df.sort_values("date", ascending=True)
-            sample_df["date"] = sample_df["date"].dt.strftime("%Y-%m-%d")
-
-            return sample_df.to_dict("records"), True  # Return sample data with flag
+            logger.info("[Cache] No statistics found - returning empty data")
+            return [], False  # Return empty data (no sample data)
     except Exception as e:
         logger.error(f"[Cache] Error loading statistics: {e}")
-
-        # Make sure sample data is also sorted by date
-        sample_df = generate_realistic_sample_data()
-        sample_df["date"] = pd.to_datetime(sample_df["date"], errors="coerce")
-        sample_df = sample_df.sort_values("date", ascending=True)
-        sample_df["date"] = sample_df["date"].dt.strftime("%Y-%m-%d")
-
-        return sample_df.to_dict("records"), True  # Return sample data with flag
+        return [], False  # Return empty data on error
 
 
 def generate_realistic_sample_data():

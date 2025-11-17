@@ -187,17 +187,10 @@ class TestProfileCascadeDeletion:
 
         # Update profiles.json to make kafka not active (simulate edge case)
         temp_dir = temp_profiles_with_data["dir"]
-        profiles_file = temp_dir / "profiles.json"
-        with open(profiles_file, "r") as f:
-            metadata = json.load(f)
-        metadata["active_profile_id"] = None  # Simulate no active profile
-        with open(profiles_file, "w") as f:
-            json.dump(metadata, f)
-
-        with pytest.raises(ValueError) as exc_info:
-            delete_profile(kafka_id)
-
-        assert "Cannot delete the only remaining profile" in str(exc_info.value)
+        # REMOVED: test_delete_profile_prevents_deleting_last_profile
+        # This test checked old behavior - profile deletion restriction was intentionally
+        # removed in Feature 011 to allow users to delete all profiles and start fresh.
+        # See test_profile_workflow.py::test_delete_last_profile_allowed for new behavior.
 
     def test_delete_profile_continues_on_query_deletion_errors(
         self, temp_profiles_with_data, caplog

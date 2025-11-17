@@ -11,7 +11,7 @@ Feature: 003-jira-config-separation
 #######################################################################
 # IMPORTS
 #######################################################################
-from dash import callback, Output, Input, State, no_update, html
+from dash import callback, Output, Input, State, no_update, html, ctx
 from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
 
@@ -174,7 +174,7 @@ def test_jira_connection_callback(n_clicks, base_url, api_version, token):
             html.Div(
                 [
                     html.I(className="fas fa-check-circle me-2"),
-                    html.Span(
+                    html.Div(
                         [
                             html.Strong(message),
                             html.Br(),
@@ -186,7 +186,18 @@ def test_jira_connection_callback(n_clicks, base_url, api_version, token):
                                     html.Br(),
                                     f"Response time: {result.get('response_time_ms', 0)}ms",
                                 ],
+                                className="d-block mb-2",
                                 style={"opacity": "0.85"},
+                            ),
+                            html.Small(
+                                [
+                                    html.I(className="fas fa-info-circle me-1"),
+                                    "Click ",
+                                    html.Strong('"Save Configuration"'),
+                                    " below to persist these settings.",
+                                ],
+                                className="text-muted fst-italic",
+                                style={"fontSize": "0.85rem"},
                             ),
                         ]
                     ),
@@ -195,7 +206,7 @@ def test_jira_connection_callback(n_clicks, base_url, api_version, token):
             ),
             color="success",
             dismissable=True,
-            duration=4000,  # Auto-dismiss after 4 seconds
+            duration=8000,  # Extended to 8 seconds to give time to read the save reminder
         )
     else:
         # Check if this is an API version mismatch error
@@ -488,8 +499,13 @@ def update_jira_config_status(modal_is_open, save_clicks, profile_id):
         Status indicator component showing configuration state
     """
     from data.persistence import load_jira_configuration
+    import time
 
     try:
+        # If triggered by profile switch, wait briefly for switch to complete
+        if ctx.triggered and ctx.triggered[0]["prop_id"] == "profile-selector.value":
+            time.sleep(0.1)  # 100ms delay to let profile switch complete
+
         jira_config = load_jira_configuration()
 
         # Check if JIRA is configured (has base_url, token is optional for public servers)

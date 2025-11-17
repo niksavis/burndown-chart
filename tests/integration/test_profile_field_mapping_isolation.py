@@ -217,7 +217,7 @@ class TestProfileFieldMappingIsolation:
         """Verify the callback clears state store on profile switch.
 
         This tests the fix directly: clear_field_mapping_state_on_profile_switch()
-        callback should return empty dict when profile selector changes.
+        callback should return empty dicts when profile selector changes.
         """
         from callbacks.field_mapping import (
             clear_field_mapping_state_on_profile_switch,
@@ -234,14 +234,18 @@ class TestProfileFieldMappingIsolation:
         # Simulate profile switch by calling the callback directly
         result = clear_field_mapping_state_on_profile_switch(profile_b_id)
 
-        # Verify callback returns empty dict (clears state)
-        assert result == {}, "Callback should return empty dict to clear state store"
-        print("✓ Callback clear_field_mapping_state_on_profile_switch() returns {}")
+        # Verify callback returns tuple of empty dicts (clears both stores)
+        assert result == ({}, {}), (
+            "Callback should return ({}, {}) to clear both state and metadata stores"
+        )
+        print(
+            "✓ Callback clear_field_mapping_state_on_profile_switch() returns ({}, {})"
+        )
 
         # Test with different profile ID
         result_a = clear_field_mapping_state_on_profile_switch(profile_a_id)
-        assert result_a == {}, (
-            "Callback should always return empty dict regardless of profile"
+        assert result_a == ({}, {}), (
+            "Callback should always return ({}, {}) regardless of profile"
         )
 
         print(

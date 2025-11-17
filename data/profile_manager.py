@@ -754,20 +754,14 @@ def delete_profile(profile_id: str) -> None:
     # Load metadata
     metadata = load_profiles_metadata()
 
-    # Safety check: Cannot delete last remaining profile
-    profiles_dict = metadata.get("profiles", {})
-    if len(profiles_dict) <= 1:
-        raise ValueError(
-            "Cannot delete the only remaining profile. Create another profile first."
-        )
-
     # Validate profile exists
+    profiles_dict = metadata.get("profiles", {})
     if profile_id not in profiles_dict:
         raise ValueError(f"Profile '{profile_id}' does not exist")
 
     profile_name = profiles_dict[profile_id].get("name", profile_id)
 
-    # If deleting active profile, switch to another one first
+    # If deleting active profile, switch to another one first (or set to None if last profile)
     if profile_id == metadata.get("active_profile_id"):
         # Find another profile to switch to
         other_profile_id = next(
@@ -779,9 +773,12 @@ def delete_profile(profile_id: str) -> None:
             )
             switch_profile(other_profile_id)
         else:
-            raise ValueError(
-                "Cannot delete the only remaining profile. Create another profile first."
+            # Last profile - set active to None
+            logger.info(
+                f"[Profiles] Deleting last profile '{profile_id}' - setting active_profile_id to None"
             )
+            metadata["active_profile_id"] = None
+            save_profiles_metadata(metadata)
 
     try:
         # Step 1: CASCADE DELETE all queries (best-effort - continue on errors)
@@ -1036,120 +1033,3 @@ def migrate_root_to_default_profile() -> None:
 # ============================================================================
 # Initialization and Defaults (T064)
 # ============================================================================
-
-
-def ensure_default_profile_exists() -> str:
-    """
-    Ensure default profile exists with hardcoded defaults.
-
-    Creates "Default" profile if no profiles exist. This function is called
-    during app startup to guarantee a valid workspace exists.
-
-    Returns:
-        str: Profile ID ("default")
-
-    Raises:
-        OSError: If profile creation fails
-
-    Example:
-        >>> profile_id = ensure_default_profile_exists()
-        >>> assert profile_id == "default"
-    """
-    from configuration.settings import (
-        DEFAULT_PERT_FACTOR,
-        DEFAULT_DEADLINE,
-        DEFAULT_DATA_POINTS_COUNT,
-    )
-
-    # Check if any profiles exist
-    metadata = load_profiles_metadata()
-    profiles_dict = metadata.get("profiles", {})
-
-    if len(profiles_dict) > 0:
-        # Profiles already exist, nothing to do
-        logger.debug("[Profiles] Profiles already exist, skipping default creation")
-        return metadata.get("active_profile_id", DEFAULT_PROFILE_ID)
-
-    # No profiles exist - create default profile with hardcoded defaults
-    logger.info("[Profiles] No profiles found, creating default profile")
-
-    default_settings = {
-        "pert_factor": DEFAULT_PERT_FACTOR,
-        "deadline": DEFAULT_DEADLINE,
-        "data_points_count": DEFAULT_DATA_POINTS_COUNT,
-        "show_milestone": False,
-        "show_points": False,
-        "jira_config": {
-            "base_url": "",
-            "api_version": "v2",
-            "token": "",
-            "cache_size_mb": 100,
-            "max_results_per_call": 100,
-            "points_field": "customfield_10016",
-            "configured": False,
-            "last_test_timestamp": None,
-            "last_test_success": None,
-        },
-        "field_mappings": {
-            # DORA metrics fields
-            "deployment_date": "resolutiondate",
-            "target_environment": "environment",
-            "code_commit_date": "resolutiondate",
-            "deployed_to_production_date": "resolutiondate",
-            "incident_detected_at": "created",
-            "incident_resolved_at": "resolutiondate",
-            "severity_level": "priority",
-            # Flow metrics fields
-            "flow_item_type": "issuetype",
-            "effort_category": "",
-            "work_started_date": "created",
-            "work_completed_date": "resolutiondate",
-            "completed_date": "resolutiondate",
-            "status": "status",
-        },
-        "project_classification": {
-            "devops_projects": [],
-            "development_projects": [],
-            "devops_task_types": ["Task", "Sub-task"],
-            "bug_types": ["Bug"],
-            "production_environment_values": [],
-            "completion_statuses": ["Resolved", "Closed"],
-            "active_statuses": ["In Progress", "In Review"],
-            "flow_start_statuses": ["In Progress"],
-            "wip_statuses": ["In Progress", "In Review", "Testing"],
-        },
-        "flow_type_mappings": {
-            "Feature": {
-                "issue_types": ["Story", "Epic", "New Feature", "Improvement"],
-                "effort_categories": [],
-            },
-            "Defect": {
-                "issue_types": ["Bug"],
-                "effort_categories": [],
-            },
-            "Technical_Debt": {
-                "issue_types": ["Task", "Sub-task"],
-                "effort_categories": [],
-            },
-            "Risk": {
-                "issue_types": ["Test", "Security", "Spike"],
-                "effort_categories": [],
-            },
-        },
-    }
-
-    try:
-        profile_id = create_profile("Default", default_settings)
-
-        # Update metadata to set this as active profile
-        metadata = load_profiles_metadata()
-        metadata["active_profile_id"] = profile_id
-        metadata["active_query_id"] = None  # No queries yet
-        save_profiles_metadata(metadata)
-
-        logger.info(f"[Profiles] Created default profile with ID: {profile_id}")
-        return profile_id
-
-    except Exception as e:
-        logger.error(f"[Profiles] Failed to create default profile: {e}")
-        raise OSError(f"Failed to create default profile: {e}") from e
