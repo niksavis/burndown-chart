@@ -1286,27 +1286,34 @@ def save_comprehensive_mappings(n_clicks, state_data):
 
 
 @callback(
-    Output("field-mapping-state-store", "data", allow_duplicate=True),
+    [
+        Output("field-mapping-state-store", "data", allow_duplicate=True),
+        Output("jira-metadata-store", "data", allow_duplicate=True),
+    ],
     Input("profile-selector", "value"),
     prevent_initial_call=True,
 )
 def clear_field_mapping_state_on_profile_switch(profile_id):
-    """Clear field mapping state store when switching profiles.
+    """Clear field mapping state store AND metadata cache when switching profiles.
 
-    This prevents old field mappings from persisting in browser memory
-    after deleting and recreating profiles with the same name.
+    This prevents old field mappings and JIRA metadata from persisting in browser memory
+    after switching profiles. Critical for data isolation between profiles.
 
-    Bug Fix: When user deletes profile "Apache" and creates new profile "Apache",
+    Bug Fix 1: When user deletes profile "Apache" and creates new profile "Apache",
     the old field mappings were still shown in Configure JIRA Mappings modal
     because the state store (storage_type="memory") persisted across profile changes.
+
+    Bug Fix 2: When switching from Profile 1 (Atlassian JIRA) to Profile 2 (Spring JIRA),
+    the field fetching was still using Profile 1's cached metadata and JIRA connection,
+    causing data leakage between profiles.
 
     Args:
         profile_id: ID of newly selected profile
 
     Returns:
-        Empty dict to clear the state store
+        Tuple of (empty state dict, empty metadata dict) to clear both stores
     """
     logger.info(
-        f"[FieldMapping] Clearing state store due to profile switch to: {profile_id}"
+        f"[FieldMapping] Clearing state store AND metadata cache due to profile switch to: {profile_id}"
     )
-    return {}
+    return {}, {}  # Clear both state store and metadata cache

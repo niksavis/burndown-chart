@@ -284,16 +284,20 @@ def register(app):
 
         # Only update project scope if it's NOT from JIRA (to avoid overriding JIRA data)
         if data_source != "jira_calculated":
-            update_project_scope(
-                {
-                    "total_items": total_items,
-                    "total_points": total_points,
-                    "estimated_items": estimated_items,
-                    "estimated_points": estimated_points,
-                    "remaining_items": total_items,  # Default assumption for manual data
-                    "remaining_points": total_points,
-                }
-            )
+            try:
+                update_project_scope(
+                    {
+                        "total_items": total_items,
+                        "total_points": total_points,
+                        "estimated_items": estimated_items,
+                        "estimated_points": estimated_points,
+                        "remaining_items": total_items,  # Default assumption for manual data
+                        "remaining_points": total_points,
+                    }
+                )
+            except ValueError as e:
+                # Handle case where no active query exists yet (e.g., new profile with no queries)
+                logger.warning(f"[Settings] Cannot update project scope: {e}")
         else:
             # CRITICAL FIX: If data is from JIRA, DO NOT override any JIRA-calculated values
             # The estimation fields should only be updated through JIRA scope calculation, not UI inputs
@@ -373,6 +377,9 @@ def register(app):
             ),  # Reset store after use
             Output("update-data-unified", "disabled", allow_duplicate=True),
             Output("update-data-unified", "children", allow_duplicate=True),
+            Output(
+                "update-data-status", "children", allow_duplicate=True
+            ),  # Loading spinner + status
         ],
         [Input("update-data-unified", "n_clicks")],
         [
@@ -428,6 +435,7 @@ def register(app):
                 False,  # force refresh
                 False,  # button disabled
                 button_normal,  # button children with icon
+                "",  # update-data-status (empty)
             )
 
         try:
@@ -495,6 +503,7 @@ def register(app):
                     False,  # Reset force refresh
                     False,  # Enable button
                     button_normal,  # Reset button text
+                    cache_status_message,  # Show error in status area
                 )
 
             # Use JQL query from input or fall back to settings
@@ -691,6 +700,13 @@ def register(app):
                     ],
                     className="text-success small text-center mt-2",
                 )
+                status_message = html.Div(
+                    [
+                        html.I(className="fas fa-check-circle me-2 text-success"),
+                        html.Span(success_details, className="fw-medium"),
+                    ],
+                    className="text-success small mt-2",
+                )
                 logger.info(
                     f"[JIRA] Data import successful: {issues_count} issues loaded, {weekly_count} weekly data points created"
                 )
@@ -846,6 +862,7 @@ def register(app):
                     False,  # Reset force refresh store
                     False,  # Enable button
                     button_normal,  # Reset button text
+                    status_message,  # Show success in status area
                 )
             else:
                 # Create detailed error message
@@ -859,6 +876,15 @@ def register(app):
                         html.Span(error_details, className="fw-medium"),
                     ],
                     className="text-danger small text-center mt-2",
+                )
+                error_status_message = html.Div(
+                    [
+                        html.I(
+                            className="fas fa-exclamation-triangle me-2 text-danger"
+                        ),
+                        html.Span(error_details, className="fw-medium"),
+                    ],
+                    className="text-danger small mt-2",
                 )
                 logger.error(f"[JIRA] Data import failed: {message}")
                 # Clear task progress
@@ -877,6 +903,7 @@ def register(app):
                     False,  # Reset force refresh store
                     False,  # Enable button
                     button_normal,  # Reset button text
+                    error_status_message,  # Show error in status area
                 )
 
         except ImportError:
@@ -949,6 +976,7 @@ def register(app):
                 False,  # Reset force refresh store
                 False,  # Enable button
                 button_normal,  # Reset button text
+                cache_status_message,  # Show error in status area
             )
 
     #######################################################################

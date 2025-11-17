@@ -57,6 +57,10 @@ def manage_button_states(
     - Discard: Enabled when name OR JQL changed
     - Alert: Show when changes detected (prevents Update Data)
 
+    Note: When switching queries, there's a brief moment where the dropdown value
+    changes but the JQL/name haven't updated yet. We detect this and suppress the
+    alert to avoid showing "unsaved changes" during legitimate query switches.
+
     Args:
         current_name: Current query name from input
         current_jql: Current JQL from editor
@@ -66,10 +70,23 @@ def manage_button_states(
     Returns:
         Tuple of (save_disabled, save_as_disabled, discard_disabled, show_alert)
     """
+    from dash import callback_context
+
     logger.info(
         f"[QueryManagement] CALLBACK FIRED - selected_query_id='{selected_query_id}', "
         f"current_name='{current_name}', current_jql='{current_jql[:60] if current_jql else '(empty)'}...'"
     )
+
+    # Detect if query-selector triggered this callback (query switch in progress)
+    ctx = callback_context
+    triggered_by_selector = False
+    if ctx.triggered:
+        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+        triggered_by_selector = trigger_id == "query-selector"
+        if triggered_by_selector:
+            logger.info(
+                "[QueryManagement] Query switch in progress - suppressing alert to avoid race condition"
+            )
 
     try:
         # Handle "Create New Query" mode
@@ -96,7 +113,10 @@ def manage_button_states(
                 f"discard_disabled={discard_disabled}, alert={has_any_content}"
             )
 
-            return save_disabled, save_as_disabled, discard_disabled, has_any_content
+            # Suppress alert if triggered by query selector (race condition during switch)
+            show_alert = has_any_content and not triggered_by_selector
+
+            return save_disabled, save_as_disabled, discard_disabled, show_alert
 
         # Handle no query selected (empty dropdown)
         if not selected_query_id:
@@ -124,7 +144,10 @@ def manage_button_states(
                 f"discard_disabled={discard_disabled}, alert={has_any_content}"
             )
 
-            return save_disabled, save_as_disabled, discard_disabled, has_any_content
+            # Suppress alert if triggered by query selector (race condition during switch)
+            show_alert = has_any_content and not triggered_by_selector
+
+            return save_disabled, save_as_disabled, discard_disabled, show_alert
 
         # Get original query data from dropdown options
         from data.query_manager import get_active_profile_id, list_queries_for_profile
@@ -149,11 +172,14 @@ def manage_button_states(
         save_disabled = not jql_changed  # Save only enabled when JQL changed
         save_as_disabled = not any_changes  # Save As enabled when anything changed
         discard_disabled = not any_changes  # Discard enabled when anything changed
-        show_alert = any_changes  # Show alert when changes exist
+
+        # Suppress alert if triggered by query selector (race condition during switch)
+        # When switching queries, the selector changes first, then JQL/name update async
+        show_alert = any_changes and not triggered_by_selector
 
         logger.debug(
             f"Button states - Save: {not save_disabled}, Save As: {not save_as_disabled}, "
-            f"Discard: {not discard_disabled}, Alert: {show_alert}"
+            f"Discard: {not discard_disabled}, Alert: {show_alert} (triggered_by_selector: {triggered_by_selector})"
         )
 
         return save_disabled, save_as_disabled, discard_disabled, show_alert

@@ -471,33 +471,27 @@ def handle_delete_profile(n_clicks, profile_id, confirmation):
 @callback(
     [
         Output("app-notifications", "children", allow_duplicate=True),
-        Output("query-selector", "options", allow_duplicate=True),
-        Output("query-selector", "value", allow_duplicate=True),
         Output("profile-selector", "options", allow_duplicate=True),
     ],
     [Input("profile-selector", "value")],
     prevent_initial_call=True,
 )
 def handle_profile_switch(selected_profile_id):
-    """Handle profile switching and refresh query dropdown."""
+    """Handle profile switching and refresh profile dropdown to show star marker.
+
+    Note: Query dropdown is updated by populate_query_dropdown callback in query_switching.py
+    which triggers on profile-selector value changes.
+    """
     if not selected_profile_id:
-        return no_update, no_update, no_update, no_update
+        return no_update, no_update
 
     try:
         active_profile = get_active_profile()
         if active_profile and active_profile.id == selected_profile_id:
-            return no_update, no_update, no_update, no_update  # Already active
+            return no_update, no_update  # Already active
 
         switch_profile(selected_profile_id)
         logger.info(f"Switched to profile: {selected_profile_id}")
-
-        # Import here to avoid circular dependency
-        from data.query_manager import list_queries_for_profile
-
-        # Refresh query dropdown for new profile
-        queries = list_queries_for_profile(selected_profile_id)
-        query_options = [{"label": q["name"], "value": q["id"]} for q in queries]
-        query_value = queries[0]["id"] if queries else None
 
         # Refresh profile dropdown to show star marker on newly active profile
         all_profiles = list_profiles()
@@ -529,7 +523,7 @@ def handle_profile_switch(selected_profile_id):
             duration=3000,
         )
 
-        return notification, query_options, query_value, profile_options
+        return notification, profile_options
     except Exception as e:
         logger.error(f"Failed to switch profile: {e}")
-        return no_update, no_update, no_update, no_update
+        return no_update, no_update

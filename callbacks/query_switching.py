@@ -18,21 +18,28 @@ logger = logging.getLogger(__name__)
 
 @callback(
     [
-        Output("query-selector", "options"),
-        Output("query-selector", "value"),
+        Output("query-selector", "options", allow_duplicate=True),
+        Output("query-selector", "value", allow_duplicate=True),
         Output("query-jql-editor", "value", allow_duplicate=True),
         Output("query-name-input", "value", allow_duplicate=True),
         Output(
             "jira-jql-query", "value", allow_duplicate=True
         ),  # Sync legacy component on page load
     ],
-    Input("url", "pathname"),  # Trigger on page load
+    [
+        Input("url", "pathname"),  # Trigger on page load
+        Input("profile-selector", "value"),  # Trigger when profile changes
+    ],
     prevent_initial_call="initial_duplicate",
 )
-def populate_query_dropdown(_pathname):
+def populate_query_dropdown(_pathname, profile_id):
     """Populate query dropdown with queries from active profile and set JQL.
 
     Includes special '→ Create New Query' option at the top for inline query creation.
+
+    Args:
+        _pathname: URL pathname (triggers on page load)
+        profile_id: Selected profile ID from dropdown (triggers on profile change)
 
     Returns:
         Tuple of (options, value, jql_query, query_name, legacy_jql)
@@ -40,8 +47,10 @@ def populate_query_dropdown(_pathname):
     try:
         from data.query_manager import get_active_profile_id, list_queries_for_profile
 
-        # Get active profile
-        profile_id = get_active_profile_id()
+        # Use provided profile_id if available (from profile-selector change),
+        # otherwise get active profile from file system (on page load)
+        if profile_id is None or profile_id == "":
+            profile_id = get_active_profile_id()
 
         # List queries for this profile
         queries = list_queries_for_profile(profile_id)
@@ -53,8 +62,8 @@ def populate_query_dropdown(_pathname):
         active_name = ""
 
         if not queries:
-            # Only show "Create New" option
-            return options, "", "", "", ""
+            # Only show "Create New" option - select it by default
+            return options, "__create_new__", "", "", ""
 
         for query in queries:
             label = query.get("name", "Unnamed Query")
@@ -169,6 +178,9 @@ def switch_query_callback(selected_query_id, current_options):
         active_value = ""
         active_jql = ""
         active_name = ""
+
+        # Find the query we just switched to
+        switched_query = None
         for query in queries:
             label = query.get("name", "Unnamed Query")
             value = query.get("id", "")
@@ -177,10 +189,33 @@ def switch_query_callback(selected_query_id, current_options):
                 active_value = value
                 active_jql = query.get("jql", "")
                 active_name = query.get("name", "")
+                switched_query = query
             options.append({"label": label, "value": value})
 
+        # Validate that we found the switched query
+        if not switched_query:
+            logger.error(
+                f"Query switch failed: {selected_query_id} not found as active after switch_query()"
+            )
+            # Fallback: Find the query by ID directly
+            fallback_query = next(
+                (q for q in queries if q.get("id") == selected_query_id), None
+            )
+            if fallback_query:
+                logger.warning(
+                    f"Using fallback: found query {selected_query_id} but it's not marked active"
+                )
+                active_value = selected_query_id
+                active_jql = fallback_query.get("jql", "")
+                active_name = fallback_query.get("name", "")
+            else:
+                logger.error(
+                    f"Critical error: Query {selected_query_id} not found at all in profile"
+                )
+                raise ValueError(f"Query {selected_query_id} not found after switch")
+
         logger.info(
-            f"Query switched successfully, JQL and name updated (including legacy component)"
+            f"Query switched successfully - Name: '{active_name}', JQL length: {len(active_jql)} chars"
         )
         return (
             options,
@@ -486,3 +521,127 @@ def trigger_delete_query_modal_from_selector(delete_clicks, selected_query_id):
     except Exception as e:
         logger.error(f"Failed to trigger delete modal: {e}")
         raise PreventUpdate
+
+
+# ============================================================================
+# Load Query Data
+# ============================================================================
+
+
+@callback(
+    [
+        Output("statistics-table", "data", allow_duplicate=True),
+        Output("total-items-input", "value", allow_duplicate=True),
+        Output("estimated-items-input", "value", allow_duplicate=True),
+        Output("total-points-display", "value", allow_duplicate=True),
+        Output("estimated-points-input", "value", allow_duplicate=True),
+        Output("current-settings", "data", allow_duplicate=True),
+        Output("update-data-status", "children", allow_duplicate=True),
+    ],
+    Input("load-query-data-btn", "n_clicks"),
+    State("query-selector", "value"),
+    prevent_initial_call=True,
+)
+def load_query_cached_data(n_clicks, selected_query_id):
+    """Load cached data for the selected query without fetching from JIRA.
+
+    This switches the active query and loads its cached project_data.json.
+    No JIRA API calls are made - only loads existing cached data.
+
+    Args:
+        n_clicks: Button click count
+        selected_query_id: Selected query ID from dropdown
+
+    Returns:
+        Tuple of (statistics, total_items, estimated_items, total_points,
+                  estimated_points, settings, status_message)
+    """
+    if not n_clicks or not selected_query_id:
+        raise PreventUpdate
+
+    if selected_query_id == "__create_new__":
+        logger.warning("Cannot load data for 'Create New Query' placeholder")
+        status_message = html.Div(
+            [
+                html.I(className="fas fa-exclamation-triangle me-2 text-warning"),
+                "Please select an existing query to load data.",
+            ],
+            className="text-warning small mt-2",
+        )
+        raise PreventUpdate
+
+    try:
+        from data.query_manager import switch_query
+        from data.persistence import load_unified_project_data, load_app_settings
+
+        # Switch to the selected query
+        switch_query(selected_query_id)
+        logger.info(
+            f"Switched to query: {selected_query_id}"
+        )  # Load cached data for this query
+        unified_data = load_unified_project_data()
+
+        # Extract statistics
+        statistics = unified_data.get("statistics", [])
+
+        # Extract scope
+        scope = unified_data.get("project_scope", {})
+        total_items = scope.get("total_items", 0)
+        estimated_items = scope.get("estimated_items", 0)
+        total_points = scope.get("total_points", 0)
+        estimated_points = scope.get("estimated_points", 0)
+
+        # Format total_points for display field
+        total_points_display = f"{total_points:.0f}"
+
+        # Load settings
+        settings = load_app_settings()
+
+        # Create success message
+        data_points_count = len(statistics)
+        status_message = html.Div(
+            [
+                html.I(className="fas fa-check-circle me-2 text-success"),
+                html.Span(
+                    f"Loaded cached data: {data_points_count} weekly data point{'s' if data_points_count != 1 else ''}",
+                    className="fw-medium",
+                ),
+            ],
+            className="text-success small mt-2",
+        )
+
+        logger.info(
+            f"Loaded cached data for query {selected_query_id}: "
+            f"{data_points_count} data points, {total_items} items"
+        )
+
+        return (
+            statistics,
+            total_items,
+            estimated_items,
+            total_points_display,
+            estimated_points,
+            settings,
+            status_message,
+        )
+
+    except Exception as e:
+        logger.error(f"Failed to load query data: {e}")
+        error_message = html.Div(
+            [
+                html.I(className="fas fa-exclamation-triangle me-2 text-danger"),
+                html.Span(
+                    f"Failed to load cached data: {str(e)}", className="fw-medium"
+                ),
+            ],
+            className="text-danger small mt-2",
+        )
+        return (
+            no_update,
+            no_update,
+            no_update,
+            no_update,
+            no_update,
+            no_update,
+            error_message,
+        )

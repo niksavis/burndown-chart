@@ -137,7 +137,7 @@ def create_queries_and_data_tab_content() -> html.Div:
                 ],
                 className="d-flex align-items-center mb-3",
             ),
-            # Query selector row with inline delete button
+            # Query selector row with Load Data and Delete Query buttons
             dbc.Row(
                 [
                     dbc.Col(
@@ -150,28 +150,50 @@ def create_queries_and_data_tab_content() -> html.Div:
                                 className="mb-2",
                             ),
                         ],
-                        width=10,
+                        xs=12,
+                        lg=6,
+                        className="mb-3",
                     ),
                     dbc.Col(
-                        [
-                            html.Label(
-                                html.Span(style={"visibility": "hidden"}, children="X"),
-                                className="form-label mb-1",
-                            ),  # Spacer to align with dropdown
-                            dbc.Button(
-                                html.I(className="fas fa-trash-alt"),
-                                id="delete-query-btn",
-                                color="danger",
-                                outline=True,
-                                size="md",
-                                className="w-100",
-                                title="Delete query",
-                            ),
-                        ],
-                        width=2,
+                        dbc.ButtonGroup(
+                            [
+                                dbc.Button(
+                                    [
+                                        html.I(className="fas fa-folder-open me-1"),
+                                        html.Span(
+                                            "Load", className="d-none d-md-inline"
+                                        ),
+                                    ],
+                                    id="load-query-data-btn",
+                                    color="primary",
+                                    outline=True,
+                                    size="sm",
+                                    className="me-1",
+                                    title="Load cached data for selected query",
+                                ),
+                                dbc.Button(
+                                    [
+                                        html.I(className="fas fa-trash-alt me-1"),
+                                        html.Span(
+                                            "Delete", className="d-none d-md-inline"
+                                        ),
+                                    ],
+                                    id="delete-query-btn",
+                                    color="danger",
+                                    outline=True,
+                                    size="sm",
+                                    title="Delete query",
+                                ),
+                            ],
+                            className="w-100",
+                            style={"marginTop": "2rem"},  # Align with dropdown
+                        ),
+                        xs=12,
+                        lg=6,
+                        className="mb-3",
                     ),
                 ],
-                className="mb-3",
+                className="g-2",
             ),
             # Query name input
             html.Div(
@@ -258,24 +280,17 @@ def create_queries_and_data_tab_content() -> html.Div:
             ),
             # Hidden store for force refresh functionality (long-press)
             dcc.Store(id="force-refresh-store", data=False),
-            html.Div(id="update-data-status", className="mb-3"),
-            # Info text
-            html.Div(
-                [
-                    html.Small(
-                        [
-                            html.I(className="fas fa-info-circle me-1"),
-                            "Use the ",
-                            html.Strong("Data"),
-                            " button in the top bar to import/export project data.",
-                        ],
-                        className="text-muted",
-                    )
-                ],
-                className="mt-3 p-2 bg-light rounded",
+            # Loading spinner + status message
+            dcc.Loading(
+                id="update-data-loading",
+                type="default",
+                children=html.Div(id="update-data-status", className="mb-3"),
             ),
         ],
         className="settings-tab-content",
+        style={
+            "minHeight": "512px"
+        },  # Match exact height when message is displayed to prevent spinner overflow
     )
 
 

@@ -1071,6 +1071,10 @@ def load_unified_project_data():
 
         return data
 
+    except ValueError as e:
+        # Handle case where no active query exists (e.g., new profile with no queries)
+        logger.info(f"[Cache] No active query workspace: {e} - using defaults")
+        return get_default_unified_data()
     except Exception as e:
         logger.error(f"[Cache] Error loading unified project data: {e}")
         return get_default_unified_data()
@@ -1094,6 +1098,10 @@ def save_unified_project_data(data):
         with open(project_data_file, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
         logger.info("[Cache] Saved unified project data")
+    except ValueError as e:
+        # Handle case where no active query exists (e.g., new profile with no queries)
+        logger.warning(f"[Cache] Cannot save unified project data: {e}")
+        # Don't raise - allow operation to continue gracefully
     except Exception as e:
         logger.error(f"[Cache] Error saving unified project data: {e}")
         raise
