@@ -15,10 +15,11 @@ from datetime import datetime
 from pathlib import Path
 from unittest.mock import patch
 
-from data.profile_manager import (
-    Profile,
-    ensure_default_profile_exists,
-)
+# DO NOT import ensure_default_profile_exists at module level!
+# It must be imported inside the patch context to use patched PROFILES_DIR/PROFILES_FILE.
+# See: https://github.com/testing-cabal/mock/issues/139
+
+from data.profile_manager import Profile
 from data.persistence import save_app_settings, load_app_settings
 
 
@@ -299,6 +300,10 @@ class TestDefaultProfileCreation:
 
     def test_ensure_default_profile_creates_when_none_exist(self, temp_profiles_dir):
         """Verify ensure_default_profile_exists creates default profile."""
+        from data.profile_manager import (
+            ensure_default_profile_exists,
+        )  # Import inside patch context
+
         profile_id = ensure_default_profile_exists()
 
         # Should return hash-based profile ID (e.g., "p_0ffed6eb03d4")
@@ -334,6 +339,10 @@ class TestDefaultProfileCreation:
 
     def test_ensure_default_profile_skips_when_profiles_exist(self, temp_profiles_dir):
         """Verify ensure_default_profile_exists does nothing when profiles exist."""
+        from data.profile_manager import (
+            ensure_default_profile_exists,
+        )  # Import inside patch context
+
         # Create existing profile
         profiles_file = temp_profiles_dir / "profiles.json"
         existing_data = {

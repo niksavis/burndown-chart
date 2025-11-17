@@ -14,7 +14,9 @@ import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
-from data.profile_manager import delete_profile
+# DO NOT import delete_profile at module level!
+# It must be imported inside the patch context to use patched PROFILES_DIR/PROFILES_FILE.
+# See: https://github.com/testing-cabal/mock/issues/139
 
 
 class TestProfileCascadeDeletion:
@@ -108,6 +110,8 @@ class TestProfileCascadeDeletion:
         self, temp_profiles_with_data
     ):
         """Verify delete_profile removes profile, all queries, and all data files."""
+        from data.profile_manager import delete_profile  # Import inside patch context
+
         temp_dir = temp_profiles_with_data["dir"]
         spark_id = temp_profiles_with_data["spark_id"]
 
@@ -139,6 +143,8 @@ class TestProfileCascadeDeletion:
         self, temp_profiles_with_data
     ):
         """Verify deleting active profile auto-switches to another profile first."""
+        from data.profile_manager import delete_profile  # Import inside patch context
+
         kafka_id = temp_profiles_with_data["kafka_id"]
         spark_id = temp_profiles_with_data["spark_id"]
         temp_dir = temp_profiles_with_data["dir"]
@@ -167,6 +173,8 @@ class TestProfileCascadeDeletion:
         self, temp_profiles_with_data
     ):
         """Verify cannot delete last remaining profile."""
+        from data.profile_manager import delete_profile  # Import inside patch context
+
         spark_id = temp_profiles_with_data["spark_id"]
         kafka_id = temp_profiles_with_data["kafka_id"]
 
@@ -195,6 +203,7 @@ class TestProfileCascadeDeletion:
         self, temp_profiles_with_data, caplog
     ):
         """Verify delete_profile continues deleting even if some queries fail."""
+        from data.profile_manager import delete_profile  # Import inside patch context
         import logging
         from unittest.mock import patch
 
@@ -260,6 +269,8 @@ class TestProfileCascadeDeletion:
         self, temp_profiles_with_data
     ):
         """Verify all files and directories removed after cascade deletion."""
+        from data.profile_manager import delete_profile  # Import inside patch context
+
         spark_id = temp_profiles_with_data["spark_id"]
         temp_dir = temp_profiles_with_data["dir"]
         spark_dir = temp_dir / spark_id
@@ -281,6 +292,8 @@ class TestProfileCascadeDeletion:
 
     def test_delete_profile_validates_profile_exists(self, temp_profiles_with_data):
         """Verify error raised when trying to delete non-existent profile."""
+        from data.profile_manager import delete_profile  # Import inside patch context
+
         with pytest.raises(ValueError) as exc_info:
             delete_profile("nonexistent-profile")
 
@@ -290,6 +303,8 @@ class TestProfileCascadeDeletion:
         self, temp_profiles_with_data
     ):
         """Verify profiles.json updated correctly after deletion."""
+        from data.profile_manager import delete_profile  # Import inside patch context
+
         spark_id = temp_profiles_with_data["spark_id"]
         kafka_id = temp_profiles_with_data["kafka_id"]
         temp_dir = temp_profiles_with_data["dir"]
@@ -370,6 +385,8 @@ class TestCascadeDeletionEdgeCases:
 
     def test_delete_profile_handles_many_queries(self, temp_profile_with_many_queries):
         """Verify cascade deletion handles profiles with many queries efficiently."""
+        from data.profile_manager import delete_profile  # Import inside patch context
+
         bulk_test_id = temp_profile_with_many_queries["bulk_test_id"]
         temp_dir = temp_profile_with_many_queries["dir"]
 
