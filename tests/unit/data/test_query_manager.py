@@ -50,7 +50,7 @@ class TestGetActiveQueryId:
                 get_active_query_id()
 
     def test_raises_if_active_query_id_missing(self, temp_profiles_dir_with_default):
-        """Verify raises ValueError if active_query_id key missing."""
+        """Verify returns None when active_query_id is missing (valid state for empty profile)."""
         from unittest.mock import patch
 
         # Arrange
@@ -66,8 +66,8 @@ class TestGetActiveQueryId:
         with patch("data.query_manager.PROFILES_FILE", profiles_file):
             from data.query_manager import get_active_query_id
 
-            with pytest.raises(ValueError, match="active_query_id not found"):
-                get_active_query_id()
+            result = get_active_query_id()
+            assert result is None  # No active query is a valid state
 
 
 @pytest.mark.unit

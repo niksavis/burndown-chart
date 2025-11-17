@@ -301,7 +301,9 @@ class TestDefaultProfileCreation:
         """Verify ensure_default_profile_exists creates default profile."""
         profile_id = ensure_default_profile_exists()
 
-        assert profile_id == "default"
+        # Should return hash-based profile ID (e.g., "p_0ffed6eb03d4")
+        assert profile_id.startswith("p_")
+        assert len(profile_id) == 14  # "p_" + 12 hex chars
 
         # Verify profiles.json created
         profiles_file = temp_profiles_dir / "profiles.json"
@@ -310,17 +312,17 @@ class TestDefaultProfileCreation:
         with open(profiles_file, "r") as f:
             metadata = json.load(f)
 
-        assert metadata["active_profile_id"] == "default"
-        assert "default" in metadata["profiles"]
+        assert metadata["active_profile_id"] == profile_id
+        assert profile_id in metadata["profiles"]
 
         # Verify profile.json created with correct defaults
-        profile_file = temp_profiles_dir / "default" / "profile.json"
+        profile_file = temp_profiles_dir / profile_id / "profile.json"
         assert profile_file.exists()
 
         with open(profile_file, "r") as f:
             profile_data = json.load(f)
 
-        assert profile_data["id"] == "default"
+        assert profile_data["id"] == profile_id  # Use generated ID
         assert profile_data["name"] == "Default"
         assert (
             profile_data["forecast_settings"]["pert_factor"] == 6
