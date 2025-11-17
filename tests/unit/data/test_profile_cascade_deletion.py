@@ -30,6 +30,7 @@ class TestProfileCascadeDeletion:
 
             # Generate hash-based profile IDs
             from data.profile_manager import _generate_unique_profile_id
+
             kafka_id = _generate_unique_profile_id()
             spark_id = _generate_unique_profile_id()
 
@@ -97,7 +98,11 @@ class TestProfileCascadeDeletion:
                     with patch("data.query_manager.PROFILES_DIR", temp_profiles_dir):
                         with patch("data.query_manager.PROFILES_FILE", profiles_file):
                             # Yield a dict with profile IDs so tests can access them
-                            yield {"dir": temp_profiles_dir, "kafka_id": kafka_id, "spark_id": spark_id}
+                            yield {
+                                "dir": temp_profiles_dir,
+                                "kafka_id": kafka_id,
+                                "spark_id": spark_id,
+                            }
 
     def test_delete_profile_cascades_to_all_queries_and_data(
         self, temp_profiles_with_data
@@ -105,7 +110,7 @@ class TestProfileCascadeDeletion:
         """Verify delete_profile removes profile, all queries, and all data files."""
         temp_dir = temp_profiles_with_data["dir"]
         spark_id = temp_profiles_with_data["spark_id"]
-        
+
         # Delete spark profile (not active)
         delete_profile(spark_id)
 
@@ -137,20 +142,20 @@ class TestProfileCascadeDeletion:
         kafka_id = temp_profiles_with_data["kafka_id"]
         spark_id = temp_profiles_with_data["spark_id"]
         temp_dir = temp_profiles_with_data["dir"]
-        
+
         # Verify kafka is active
         profiles_file = temp_dir / "profiles.json"
         with open(profiles_file, "r") as f:
             metadata_before = json.load(f)
         assert metadata_before["active_profile_id"] == kafka_id
-        
+
         # Delete active profile (kafka) - should auto-switch to spark first
         delete_profile(kafka_id)
 
         # Verify deletion succeeded
         kafka_dir = temp_dir / kafka_id
         assert not kafka_dir.exists()
-        
+
         # Verify profile was deleted from registry
         with open(profiles_file, "r") as f:
             metadata_after = json.load(f)
@@ -164,7 +169,7 @@ class TestProfileCascadeDeletion:
         """Verify cannot delete last remaining profile."""
         spark_id = temp_profiles_with_data["spark_id"]
         kafka_id = temp_profiles_with_data["kafka_id"]
-        
+
         # Delete spark first
         delete_profile(spark_id)
 
@@ -208,7 +213,7 @@ class TestProfileCascadeDeletion:
         kafka_id = temp_profiles_with_data["kafka_id"]
         spark_id = temp_profiles_with_data["spark_id"]
         temp_dir = temp_profiles_with_data["dir"]
-        
+
         # Mock list_queries to return the kafka queries
         def mock_list_queries(profile_id):
             if profile_id == kafka_id:
@@ -288,7 +293,7 @@ class TestProfileCascadeDeletion:
         spark_id = temp_profiles_with_data["spark_id"]
         kafka_id = temp_profiles_with_data["kafka_id"]
         temp_dir = temp_profiles_with_data["dir"]
-        
+
         # Get initial state
         profiles_file = temp_dir / "profiles.json"
         with open(profiles_file, "r") as f:
@@ -322,6 +327,7 @@ class TestCascadeDeletionEdgeCases:
 
             # Generate hash-based profile IDs
             from data.profile_manager import _generate_unique_profile_id
+
             default_id = _generate_unique_profile_id()
             bulk_test_id = _generate_unique_profile_id()
 
@@ -357,13 +363,16 @@ class TestCascadeDeletionEdgeCases:
                 with patch("data.profile_manager.PROFILES_FILE", profiles_file):
                     with patch("data.query_manager.PROFILES_DIR", temp_profiles_dir):
                         with patch("data.query_manager.PROFILES_FILE", profiles_file):
-                            yield {"dir": temp_profiles_dir, "bulk_test_id": bulk_test_id}
+                            yield {
+                                "dir": temp_profiles_dir,
+                                "bulk_test_id": bulk_test_id,
+                            }
 
     def test_delete_profile_handles_many_queries(self, temp_profile_with_many_queries):
         """Verify cascade deletion handles profiles with many queries efficiently."""
         bulk_test_id = temp_profile_with_many_queries["bulk_test_id"]
         temp_dir = temp_profile_with_many_queries["dir"]
-        
+
         # Delete profile with 20 queries
         delete_profile(bulk_test_id)
 

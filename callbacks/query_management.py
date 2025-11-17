@@ -312,9 +312,9 @@ def save_query_overwrite(
 
             # Auto-generate name if empty
             if not query_name or not query_name.strip():
-                from data.jql_parser import generate_query_name_from_jql
+                from data.query_name_generator import generate_query_name
 
-                query_name = generate_query_name_from_jql(query_jql.strip())
+                query_name = generate_query_name(query_jql.strip())
                 logger.info(
                     f"[QueryManagement] Auto-generated name for first query: '{query_name}'"
                 )
@@ -366,9 +366,9 @@ def save_query_overwrite(
 
             # Auto-generate name if empty
             if not query_name or not query_name.strip():
-                from data.jql_parser import generate_query_name_from_jql
+                from data.query_name_generator import generate_query_name
 
-                query_name = generate_query_name_from_jql(query_jql.strip())
+                query_name = generate_query_name(query_jql.strip())
                 logger.info(
                     f"[QueryManagement] Auto-generated name for new query: '{query_name}'"
                 )

@@ -12,6 +12,7 @@ import os
 import json
 import tempfile
 import pytest
+from pathlib import Path
 from unittest.mock import patch
 
 
@@ -75,9 +76,10 @@ class TestSaveMetricSnapshotWithForecast:
         """Test saving Flow Velocity metric with automatic forecast calculation."""
         from data.metrics_snapshots import save_metric_snapshot_with_forecast
 
-        # Mock the SNAPSHOTS_FILE path to use our temp file
+        # Mock the _get_snapshots_file_path to use our temp file
         with patch(
-            "data.metrics_snapshots.SNAPSHOTS_FILE", mock_snapshots_with_history
+            "data.metrics_snapshots._get_snapshots_file_path",
+            return_value=Path(mock_snapshots_with_history),
         ):
             # Save new week's data
             success = save_metric_snapshot_with_forecast(
@@ -136,7 +138,8 @@ class TestSaveMetricSnapshotWithForecast:
             json.dump(snapshots, f)
 
         with patch(
-            "data.metrics_snapshots.SNAPSHOTS_FILE", mock_snapshots_with_history
+            "data.metrics_snapshots._get_snapshots_file_path",
+            return_value=Path(mock_snapshots_with_history),
         ):
             success = save_metric_snapshot_with_forecast(
                 week_label="2025-44",
@@ -181,7 +184,10 @@ class TestSaveMetricSnapshotWithForecast:
                 f,
             )
 
-        with patch("data.metrics_snapshots.SNAPSHOTS_FILE", temp_snapshots_file):
+        with patch(
+            "data.metrics_snapshots._get_snapshots_file_path",
+            return_value=Path(temp_snapshots_file),
+        ):
             success = save_metric_snapshot_with_forecast(
                 week_label="2025-44",
                 metric_name="flow_velocity",
@@ -222,7 +228,8 @@ class TestSaveMetricSnapshotWithForecast:
             json.dump(snapshots, f)
 
         with patch(
-            "data.metrics_snapshots.SNAPSHOTS_FILE", mock_snapshots_with_history
+            "data.metrics_snapshots._get_snapshots_file_path",
+            return_value=Path(mock_snapshots_with_history),
         ):
             # Don't provide metric_type - should auto-detect
             success = save_metric_snapshot_with_forecast(
@@ -278,7 +285,10 @@ class TestGetLastNWeeksValues:
         with open(temp_snapshots_file, "w") as f:
             json.dump(historical_data, f)
 
-        with patch("data.metrics_snapshots.SNAPSHOTS_FILE", temp_snapshots_file):
+        with patch(
+            "data.metrics_snapshots._get_snapshots_file_path",
+            return_value=Path(temp_snapshots_file),
+        ):
             # Get last 4 weeks (should be weeks 42, 43, 44, 45 → values 30, 40, 50, 60)
             values = get_last_n_weeks_values(
                 metric_key="flow_velocity", value_key="completed_count", n_weeks=4
@@ -297,7 +307,10 @@ class TestGetLastNWeeksValues:
         with open(temp_snapshots_file, "w") as f:
             json.dump(historical_data, f)
 
-        with patch("data.metrics_snapshots.SNAPSHOTS_FILE", temp_snapshots_file):
+        with patch(
+            "data.metrics_snapshots._get_snapshots_file_path",
+            return_value=Path(temp_snapshots_file),
+        ):
             # Get last 4 weeks but exclude current week (2025-44)
             values = get_last_n_weeks_values(
                 metric_key="flow_velocity",

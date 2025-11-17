@@ -97,10 +97,10 @@ class TestFirstQueryCreation:
         assert show_alert is False, "Alert should NOT show when no content"
 
     @patch("data.query_manager.create_query")
-    @patch("data.query_manager.set_active_query")
+    @patch("data.query_manager.switch_query")
     @patch("data.query_manager.get_active_profile_id")
     @patch("data.query_manager.list_queries_for_profile")
-    @patch("data.jql_parser.generate_query_name_from_jql")
+    @patch("data.query_name_generator.generate_query_name")
     def test_save_first_query_auto_generated_name(
         self,
         mock_generate_name,
@@ -133,12 +133,12 @@ class TestFirstQueryCreation:
         mock_create_query.assert_called_once_with(
             "p_test123", "KAFKA Last 4 Weeks", "project = KAFKA AND created >= -4w"
         )
-        mock_set_active.assert_called_once_with("p_test123", "q_new123")
+        mock_set_active.assert_called_once_with("q_new123")
         assert value == "q_new123", "Should select newly created query"
         assert len(options) == 2, "Should have Create New + 1 query in dropdown"
 
     @patch("data.query_manager.create_query")
-    @patch("data.query_manager.set_active_query")
+    @patch("data.query_manager.switch_query")
     @patch("data.query_manager.get_active_profile_id")
     @patch("data.query_manager.list_queries_for_profile")
     def test_save_first_query_custom_name(
@@ -170,7 +170,7 @@ class TestFirstQueryCreation:
         mock_create_query.assert_called_once_with(
             "p_test123", "My Custom Query", "project = KAFKA"
         )
-        mock_set_active.assert_called_once_with("p_test123", "q_new123")
+        mock_set_active.assert_called_once_with("q_new123")
         assert value == "q_new123"
 
     def test_button_states_create_new_with_jql(self):
