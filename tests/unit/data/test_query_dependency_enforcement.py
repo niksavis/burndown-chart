@@ -98,12 +98,12 @@ class TestQueryDependencyEnforcement:
             "default", "Test Query", "project = TEST", "Test description"
         )
 
-        assert query_id == "test-query"
+        # Assert - hash-based ID returned
+        assert query_id.startswith("q_")
+        assert len(query_id) == 14
 
         # Verify query directory created
-        query_dir = (
-            temp_profile_with_configured_jira / "default" / "queries" / "test-query"
-        )
+        query_dir = temp_profile_with_configured_jira / "default" / "queries" / query_id
         assert query_dir.exists()
 
         # Verify query.json created with correct data
@@ -138,7 +138,9 @@ class TestQueryDependencyEnforcement:
         with caplog.at_level(logging.WARNING):
             query_id = create_query("default", "Test Query", "project = TEST")
 
-        assert query_id == "test-query"
+        # Assert - hash-based ID returned, warning logged
+        assert query_id.startswith("q_")
+        assert len(query_id) == 14
         assert "Field mappings not configured" in caplog.text
         assert "metrics may be limited" in caplog.text
 
