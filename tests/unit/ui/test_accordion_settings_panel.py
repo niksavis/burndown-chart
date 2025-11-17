@@ -181,7 +181,9 @@ class TestLayoutIntegration:
 
             # Check for profile management components
             assert "profile-selector" in layout_str  # Profile dropdown present
-            assert "Profile Management" in layout_str or "profile" in layout_str.lower()  # Profile section exists
+            assert (
+                "Profile Management" in layout_str or "profile" in layout_str.lower()
+            )  # Profile section exists
 
         finally:
             # Restore original flag
