@@ -358,10 +358,11 @@ class TestCreateQuery:
 
             query_id = create_query("kafka", "High Priority Bugs", "priority = High")
 
-        # Assert
-        assert query_id == "high-priority-bugs"
+        # Assert - should return hash-based ID (e.g., "q_9e86e25134dd")
+        assert query_id.startswith("q_")
+        assert len(query_id) == 14  # "q_" + 12 hex chars
 
-        query_dir = kafka_dir / "queries" / "high-priority-bugs"
+        query_dir = kafka_dir / "queries" / query_id
         assert query_dir.exists()
 
         query_file = query_dir / "query.json"
@@ -375,7 +376,7 @@ class TestCreateQuery:
         assert "created_at" in query_data
 
     def test_raises_if_query_id_conflicts(self, temp_profiles_dir_with_default):
-        """Verify raises ValueError if query ID already exists."""
+        """Verify hash-based IDs make collisions statistically impossible (no explicit check needed)."""
         from unittest.mock import patch
 
         # Arrange
@@ -396,19 +397,20 @@ class TestCreateQuery:
                 f,
             )
 
-        # Create existing query directory
-        queries_dir = kafka_dir / "queries" / "bugs"
-        queries_dir.mkdir(parents=True)
-
-        # Act & Assert - patch constants, then import and call
+        # Act - Create multiple queries with same name
         with patch("data.query_manager.PROFILES_DIR", temp_profiles_dir_with_default):
             from data.query_manager import create_query
 
-            with pytest.raises(ValueError, match="already exists"):
-                create_query("kafka", "Bugs", "type = Bug")
+            query_id1 = create_query("kafka", "Bugs", "type = Bug")
+            query_id2 = create_query("kafka", "Bugs", "type = Bug")  # Same name, different ID
+
+        # Assert - both queries created successfully with different IDs
+        assert query_id1 != query_id2  # Different hash-based IDs
+        assert (kafka_dir / "queries" / query_id1).exists()
+        assert (kafka_dir / "queries" / query_id2).exists()
 
     def test_slugifies_query_name(self, temp_profiles_dir_with_default):
-        """Verify converts name to valid query ID."""
+        """Verify generates hash-based query ID regardless of name format."""
         from unittest.mock import patch
 
         # Arrange
@@ -435,8 +437,9 @@ class TestCreateQuery:
 
             query_id = create_query("kafka", "Sprint 2025-Q4", "sprint = 2025-Q4")
 
-        # Assert
-        assert query_id == "sprint-2025-q4"
+        # Assert - generates hash-based ID, not slugified name
+        assert query_id.startswith("q_")
+        assert len(query_id) == 14  # "q_" + 12 hex chars
 
 
 @pytest.mark.unit
@@ -638,7 +641,7 @@ class TestDeleteQuery:
                 delete_query("kafka", "main")
 
     def test_raises_if_deleting_last_query(self, temp_profiles_dir_with_default):
-        """Verify raises ValueError if trying to delete only query."""
+        """Verify allows deleting last query (profile can exist with no queries)."""
         from unittest.mock import patch
 
         # Arrange
@@ -653,12 +656,15 @@ class TestDeleteQuery:
         kafka_dir = temp_profiles_dir_with_default / "kafka" / "queries"
         (kafka_dir / "main").mkdir(parents=True)
 
-        # Act & Assert - patch constants, then import and call
+        # Act - patch constants, then import and call
         with (
             patch("data.query_manager.PROFILES_FILE", profiles_file),
             patch("data.query_manager.PROFILES_DIR", temp_profiles_dir_with_default),
         ):
             from data.query_manager import delete_query
 
-            with pytest.raises(ValueError, match="Cannot delete last query"):
-                delete_query("kafka", "main")
+            # Should succeed - profiles can have 0 queries
+            delete_query("kafka", "main")
+
+        # Assert - query directory removed
+        assert not (kafka_dir / "main").exists()
