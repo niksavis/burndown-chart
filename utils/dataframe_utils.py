@@ -11,7 +11,7 @@ across the application.
 # Standard library imports
 import hashlib
 import logging
-from typing import Any, Dict, List, Union, Literal, Hashable, Callable
+from typing import Any, Callable, Literal
 
 # Third-party library imports
 import pandas as pd
@@ -31,7 +31,7 @@ def df_to_dict(
     orient: Literal[
         "dict", "list", "series", "split", "records", "index", "tight"
     ] = "records",
-) -> Union[Dict[Hashable, Any], List[Dict[Hashable, Any]]]:
+) -> Any:
     """
     Convert a DataFrame to a dictionary with proper error handling.
 
@@ -89,7 +89,7 @@ def df_to_hashable(df: pd.DataFrame) -> str:
 
 
 def ensure_dataframe(
-    data: Union[pd.DataFrame, List[Dict[str, Any]], Dict[str, Any]],
+    data: pd.DataFrame | list[dict[str, Any]] | dict[str, Any],
 ) -> pd.DataFrame:
     """
     Ensure data is a DataFrame, converting from list or dict if necessary.
