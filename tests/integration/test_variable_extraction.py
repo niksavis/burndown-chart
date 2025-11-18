@@ -139,7 +139,9 @@ class TestDORAVariableExtraction:
     ):
         """Test deployment_timestamp extraction from changelog."""
         extractor = VariableExtractor(DEFAULT_VARIABLE_COLLECTION)
-        changelog = deployment_issue_matching_defaults.get("changelog", {}).get("histories", [])
+        changelog = deployment_issue_matching_defaults.get("changelog", {}).get(
+            "histories", []
+        )
         result = extractor.extract_variable(
             "deployment_timestamp", deployment_issue_matching_defaults, changelog
         )
@@ -327,7 +329,9 @@ class TestPriorityFallback:
     ):
         """Test deployment_timestamp prefers changelog over fixVersion."""
         extractor = VariableExtractor(DEFAULT_VARIABLE_COLLECTION)
-        changelog = deployment_issue_matching_defaults.get("changelog", {}).get("histories", [])
+        changelog = deployment_issue_matching_defaults.get("changelog", {}).get(
+            "histories", []
+        )
         result = extractor.extract_variable(
             "deployment_timestamp", deployment_issue_matching_defaults, changelog
         )
