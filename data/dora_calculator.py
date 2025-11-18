@@ -7,6 +7,7 @@ Calculates the four DORA metrics from Jira issue data:
 - Mean Time to Recovery
 
 This module contains pure business logic with no UI dependencies.
+Supports both legacy field_mappings and new variable extraction system.
 """
 
 from datetime import datetime, timedelta, timezone
@@ -16,6 +17,8 @@ import re
 
 from data.project_filter import filter_deployment_issues, filter_incident_issues
 from data.performance_utils import log_performance
+from data.variable_mapping.extractor import VariableExtractor
+from configuration.metric_variables import DEFAULT_VARIABLE_COLLECTION
 
 logger = logging.getLogger(__name__)
 
@@ -372,6 +375,36 @@ def _determine_performance_tier(
 
     # Default to Low tier if no match
     return {"tier": "Low", "color": "red"}
+
+
+def _extract_variables_from_issue(
+    issue: Dict[str, Any],
+    variable_names: List[str],
+    extractor: Optional[VariableExtractor] = None,
+) -> Dict[str, Any]:
+    """Extract variables from a JIRA issue using VariableExtractor.
+
+    Args:
+        issue: JIRA issue dictionary
+        variable_names: List of variable names to extract
+        extractor: Optional VariableExtractor instance (creates default if None)
+
+    Returns:
+        Dictionary mapping variable names to extracted values
+    """
+    if extractor is None:
+        extractor = VariableExtractor(DEFAULT_VARIABLE_COLLECTION)
+
+    # Extract changelog if present in issue
+    changelog = issue.get("changelog", {}).get("histories", [])
+
+    results = {}
+    for var_name in variable_names:
+        extraction_result = extractor.extract_variable(var_name, issue, changelog)
+        if extraction_result["found"]:
+            results[var_name] = extraction_result["value"]
+
+    return results
 
 
 @log_performance
