@@ -748,15 +748,21 @@ def calculate_flow_efficiency(
 @log_performance
 def calculate_flow_load(
     issues: List[Dict],
-    field_mappings: Dict[str, str],
+    field_mappings: Optional[Dict[str, str]] = None,
     previous_period_value: Optional[float] = None,
+    use_variable_extraction: bool = False,
+    variable_extractor: Optional[VariableExtractor] = None,
 ) -> Dict[str, Any]:
     """Calculate Flow Load - current work-in-progress count.
 
+    Supports both legacy field_mappings and new variable extraction modes.
+
     Args:
         issues: List of Jira issues
-        field_mappings: Field mappings for status and flow_item_type
+        field_mappings: (Legacy) Field mappings for status and flow_item_type
         previous_period_value: Previous period's metric value for trend calculation
+        use_variable_extraction: If True, use VariableExtractor instead of field_mappings
+        variable_extractor: Optional VariableExtractor instance (uses DEFAULT if None)
 
     Returns:
         Metric dictionary with WIP count, trend data, and breakdown by type
@@ -771,60 +777,98 @@ def calculate_flow_load(
             total_issue_count=0,
         )
 
-    if not isinstance(field_mappings, dict):
-        logger.error("[Flow] Load: Invalid field mappings")
-        return _create_error_response(
-            "flow_load",
-            "calculation_error",
-            "Invalid field mappings configuration",
-            total_issue_count=len(issues),
-        )
-
-    try:
-        # Check required mappings
-        if "status" not in field_mappings:
+    # Validate configuration based on mode
+    if not use_variable_extraction:
+        # Legacy mode: require field_mappings
+        if not isinstance(field_mappings, dict):
+            logger.error("[Flow] Load: Invalid field mappings")
             return _create_error_response(
                 "flow_load",
-                "missing_mapping",
-                "Missing required field mapping: status",
+                "calculation_error",
+                "Invalid field mappings configuration",
+                total_issue_count=len(issues),
             )
+    else:
+        # Variable extraction mode: create extractor if not provided
+        if variable_extractor is None:
+            variable_extractor = VariableExtractor(DEFAULT_VARIABLE_COLLECTION)
 
-        status_field = field_mappings["status"]
-        type_field = field_mappings.get("flow_item_type")
-        effort_category_field = field_mappings.get("effort_category")  # Optional
+    try:
+        # Initialize field variables for legacy mode
+        status_field: Optional[str] = None
+        type_field: Optional[str] = None
+        effort_category_field: Optional[str] = None
+
+        # Check required configuration based on mode
+        if not use_variable_extraction:
+            # Legacy mode: Check for required field mappings
+            if field_mappings is None or "status" not in field_mappings:
+                return _create_error_response(
+                    "flow_load",
+                    "missing_mapping",
+                    "Missing required field mapping: status",
+                )
+
+            status_field = field_mappings["status"]
+            type_field = field_mappings.get("flow_item_type")
+            effort_category_field = field_mappings.get("effort_category")  # Optional
 
         # Count in-progress items by type
         type_counts = {"Feature": 0, "Defect": 0, "Risk": 0, "Technical_Debt": 0}
         wip_count = 0
 
         for issue in issues:
-            fields = issue.get("fields", {})
+            if use_variable_extraction:
+                # NEW: Variable extraction mode
+                variables = _extract_variables_from_issue(
+                    issue,
+                    ["is_in_progress", "work_type_category"],
+                    variable_extractor,
+                )
 
-            # Get status
-            status_value = fields.get(status_field)
-            if isinstance(status_value, dict):
-                status_name = status_value.get("name", "")
-            else:
-                status_name = status_value or ""
+                # Check if issue is in progress
+                is_wip = variables.get("is_in_progress")
+                if not is_wip:
+                    continue
 
-            # Consider "In Progress" statuses (not Done, not To Do)
-            if status_name.lower() not in [
-                "done",
-                "closed",
-                "resolved",
-                "to do",
-                "open",
-            ]:
                 wip_count += 1
 
-                # Classify work type if available
-                if type_field:
-                    work_type = _map_issue_to_flow_type(
-                        issue, type_field, effort_category_field
-                    )
+                # Get work type from variable
+                work_type = variables.get("work_type_category")
+                if work_type and work_type in type_counts:
+                    type_counts[work_type] += 1
 
-                    if work_type and work_type in type_counts:
-                        type_counts[work_type] += 1
+            else:
+                # LEGACY: Field mappings mode
+                assert status_field is not None
+
+                fields = issue.get("fields", {})
+
+                # Get status
+                status_value = fields.get(status_field)
+                if isinstance(status_value, dict):
+                    status_name = status_value.get("name", "")
+                else:
+                    status_name = status_value or ""
+
+                # Consider "In Progress" statuses (not Done, not To Do)
+                if status_name.lower() not in [
+                    "done",
+                    "closed",
+                    "resolved",
+                    "to do",
+                    "open",
+                ]:
+                    wip_count += 1
+
+                    # Classify work type if available
+                    if type_field:
+                        work_type = _map_issue_to_flow_type(
+                            issue, type_field, effort_category_field
+                        )
+
+                        if work_type and work_type in type_counts:
+                            type_counts[work_type] += 1
 
         # Calculate trend if previous period value is provided
         trend_data = _calculate_trend(float(wip_count), previous_period_value)
@@ -852,19 +896,25 @@ def calculate_flow_load(
 @log_performance
 def calculate_flow_distribution(
     issues: List[Dict],
-    field_mappings: Dict[str, str],
-    start_date: datetime,
-    end_date: datetime,
+    field_mappings: Optional[Dict[str, str]] = None,
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None,
     previous_period_value: Optional[float] = None,
+    use_variable_extraction: bool = False,
+    variable_extractor: Optional[VariableExtractor] = None,
 ) -> Dict[str, Any]:
     """Calculate Flow Distribution - percentage breakdown by work type.
 
+    Supports both legacy field_mappings and new variable extraction modes.
+
     Args:
         issues: List of Jira issues
-        field_mappings: Field mappings for flow_item_type and completed_date
-        start_date: Start of measurement period
-        end_date: End of measurement period
+        field_mappings: (Legacy) Field mappings for flow_item_type and completed_date
+        start_date: Start of measurement period (optional in variable extraction mode)
+        end_date: End of measurement period (optional in variable extraction mode)
         previous_period_value: Previous period's metric value for trend calculation
+        use_variable_extraction: If True, use VariableExtractor instead of field_mappings
+        variable_extractor: Optional VariableExtractor instance (uses DEFAULT if None)
 
     Returns:
         Metric dictionary with distribution breakdown, trend data, and recommended range validation
@@ -879,78 +929,131 @@ def calculate_flow_distribution(
             total_issue_count=0,
         )
 
-    if not isinstance(field_mappings, dict):
-        logger.error("[Flow] Distribution: Invalid field mappings")
-        return _create_error_response(
-            "flow_distribution",
-            "calculation_error",
-            "Invalid field mappings configuration",
-            total_issue_count=len(issues),
-        )
-
-    if not isinstance(start_date, datetime) or not isinstance(end_date, datetime):
-        logger.error("[Flow] Distribution: Invalid date parameters")
-        return _create_error_response(
-            "flow_distribution",
-            "calculation_error",
-            "Invalid date parameters",
-            total_issue_count=len(issues),
-        )
-
-    if start_date >= end_date:
-        logger.error(
-            f"[Flow] Distribution: Invalid date range: {start_date} to {end_date}"
-        )
-        return _create_error_response(
-            "flow_distribution",
-            "calculation_error",
-            "Start date must be before end date",
-            total_issue_count=len(issues),
-        )
-
-    try:
-        # Check required mappings
-        if (
-            "flow_item_type" not in field_mappings
-            or "completed_date" not in field_mappings
-        ):
+    # Validate configuration based on mode
+    if not use_variable_extraction:
+        # Legacy mode: require field_mappings
+        if not isinstance(field_mappings, dict):
+            logger.error("[Flow] Distribution: Invalid field mappings")
             return _create_error_response(
                 "flow_distribution",
-                "missing_mapping",
-                "Missing required field mappings: flow_item_type or completed_date",
+                "calculation_error",
+                "Invalid field mappings configuration",
+                total_issue_count=len(issues),
+            )
+    else:
+        # Variable extraction mode: create extractor if not provided
+        if variable_extractor is None:
+            variable_extractor = VariableExtractor(DEFAULT_VARIABLE_COLLECTION)
+
+    # Validate date parameters (only if provided)
+    if start_date is not None and end_date is not None:
+        if not isinstance(start_date, datetime) or not isinstance(end_date, datetime):
+            logger.error("[Flow] Distribution: Invalid date parameters")
+            return _create_error_response(
+                "flow_distribution",
+                "calculation_error",
+                "Invalid date parameters",
+                total_issue_count=len(issues),
             )
 
-        flow_type_field = field_mappings["flow_item_type"]
-        completed_field = field_mappings["completed_date"]
-        effort_category_field = field_mappings.get("effort_category")  # Optional
+        if start_date >= end_date:
+            logger.error(
+                f"[Flow] Distribution: Invalid date range: {start_date} to {end_date}"
+            )
+            return _create_error_response(
+                "flow_distribution",
+                "calculation_error",
+                "Start date must be before end date",
+                total_issue_count=len(issues),
+            )
+
+    try:
+        # Initialize field variables for legacy mode
+        flow_type_field: Optional[str] = None
+        completed_field: Optional[str] = None
+        effort_category_field: Optional[str] = None
+
+        # Check required configuration based on mode
+        if not use_variable_extraction:
+            # Legacy mode: Check for required field mappings
+            if (
+                field_mappings is None
+                or "flow_item_type" not in field_mappings
+                or "completed_date" not in field_mappings
+            ):
+                return _create_error_response(
+                    "flow_distribution",
+                    "missing_mapping",
+                    "Missing required field mappings: flow_item_type or completed_date",
+                )
+
+            flow_type_field = field_mappings["flow_item_type"]
+            completed_field = field_mappings["completed_date"]
+            effort_category_field = field_mappings.get("effort_category")  # Optional
 
         # Count items by type
         type_counts = {"Feature": 0, "Defect": 0, "Risk": 0, "Technical_Debt": 0}
 
         for issue in issues:
-            fields = issue.get("fields", {})
-
-            # Get completion date
-            completed_date_str = fields.get(completed_field)
-            if not completed_date_str:
-                continue
-
-            # Parse completion date
-            try:
-                completed_date = datetime.fromisoformat(
-                    completed_date_str.replace("Z", "+00:00")
+            if use_variable_extraction:
+                # NEW: Variable extraction mode
+                variables = _extract_variables_from_issue(
+                    issue,
+                    ["work_completed_timestamp", "work_type_category"],
+                    variable_extractor,
                 )
-            except (ValueError, AttributeError):
-                continue
 
-            # Check if in period
-            if not (start_date <= completed_date <= end_date):
-                continue
+                # Get completion timestamp
+                completed_date_str = variables.get("work_completed_timestamp")
+                if not completed_date_str:
+                    continue
 
-            # Classify issue to Flow type using configured mappings
-            work_type = _map_issue_to_flow_type(
-                issue, flow_type_field, effort_category_field
-            )
+                # Parse completion date
+                try:
+                    completed_date = datetime.fromisoformat(
+                        completed_date_str.replace("Z", "+00:00")
+                    )
+                except (ValueError, AttributeError):
+                    continue
+
+                # Check if in period (only if dates provided)
+                if start_date and end_date:
+                    if not (start_date <= completed_date <= end_date):
+                        continue
+
+                # Get work type from variable
+                work_type = variables.get("work_type_category")
+
+            else:
+                # LEGACY: Field mappings mode
+                assert completed_field is not None
+                assert flow_type_field is not None
+                assert start_date is not None
+                assert end_date is not None
+
+                fields = issue.get("fields", {})
+
+                # Get completion date
+                completed_date_str = fields.get(completed_field)
+                if not completed_date_str:
+                    continue
+
+                # Parse completion date
+                try:
+                    completed_date = datetime.fromisoformat(
+                        completed_date_str.replace("Z", "+00:00")
+                    )
+                except (ValueError, AttributeError):
+                    continue
+
+                # Check if in period
+                if not (start_date <= completed_date <= end_date):
+                    continue
+
+                # Classify issue to Flow type using configured mappings
+                work_type = _map_issue_to_flow_type(
+                    issue, flow_type_field, effort_category_field
+                )
 
             if work_type and work_type in type_counts:
                 type_counts[work_type] += 1
@@ -958,10 +1061,13 @@ def calculate_flow_distribution(
         total_count = sum(type_counts.values())
 
         if total_count == 0:
+            date_range_msg = ""
+            if start_date and end_date:
+                date_range_msg = f" between {start_date.date()} and {end_date.date()}"
             return _create_error_response(
                 "flow_distribution",
                 "no_data",
-                f"No completed items found between {start_date.date()} and {end_date.date()}",
+                f"No completed items found{date_range_msg}",
                 total_issue_count=len(issues),
             )
 

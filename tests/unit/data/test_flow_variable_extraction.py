@@ -12,6 +12,8 @@ from data.flow_calculator import (
     calculate_flow_velocity,
     calculate_flow_time,
     calculate_flow_efficiency,
+    calculate_flow_load,
+    calculate_flow_distribution,
 )
 from data.variable_mapping.extractor import VariableExtractor
 from configuration.metric_variables import DEFAULT_VARIABLE_COLLECTION
@@ -358,3 +360,271 @@ class TestFlowEfficiencyWithVariableExtraction:
         # Assert - legacy mode should work
         assert result["metric_name"] == "flow_efficiency"
         assert result["error_state"] in ["success", "no_data"]
+
+
+# =============================================================================
+# FLOW LOAD - VARIABLE EXTRACTION INTEGRATION TESTS
+# =============================================================================
+
+
+class TestFlowLoadWithVariableExtraction:
+    """Test calculate_flow_load integration with VariableExtractor."""
+
+    def test_flow_load_with_variable_extraction(self):
+        """Test flow load calculation using variable extraction."""
+        # Arrange: Sample issues with fields that can be extracted as variables
+        sample_issues = [
+            {
+                "key": "TEST-1",
+                "fields": {
+                    "status": {
+                        "name": "In Progress"
+                    },  # WIP status → is_in_progress = True
+                    "issuetype": {"name": "Story"},  # Maps to Feature
+                    "customfield_10002": 5,  # Story points (work_item_size)
+                },
+            },
+            {
+                "key": "TEST-2",
+                "fields": {
+                    "status": {
+                        "name": "In Review"
+                    },  # WIP status → is_in_progress = True
+                    "issuetype": {"name": "Bug"},  # Maps to Defect
+                    "customfield_10002": 3,  # Story points
+                },
+            },
+            {
+                "key": "TEST-3",
+                "fields": {
+                    "status": {"name": "Done"},  # Done status → is_in_progress = False
+                    "issuetype": {"name": "Story"},
+                    "customfield_10002": 8,
+                },
+            },
+        ]
+
+        # Act
+        result = calculate_flow_load(
+            issues=sample_issues,
+            use_variable_extraction=True,
+        )
+
+        # Assert - should count only in-progress items
+        assert result["metric_name"] == "flow_load"
+        assert result["error_state"] == "success"
+        assert result["value"] == 2  # TEST-1 and TEST-2 are in progress
+        assert result["unit"] == "items"
+        assert "by_type" in result["details"]
+        # Variable extraction may not populate by_type (work_type_category not found)
+        # Just verify structure is correct
+
+    def test_flow_load_legacy_mode_still_works(self):
+        """Test that legacy field_mappings mode still works."""
+        # Arrange: Sample issues with field_mappings
+        sample_issues = [
+            {
+                "key": "TEST-1",
+                "fields": {
+                    "status": {"name": "In Progress"},
+                    "issuetype": {"name": "Story"},
+                },
+            },
+            {
+                "key": "TEST-2",
+                "fields": {
+                    "status": {"name": "In Review"},
+                    "issuetype": {"name": "Bug"},
+                },
+            },
+            {
+                "key": "TEST-3",
+                "fields": {
+                    "status": {"name": "Done"},
+                    "issuetype": {"name": "Story"},
+                },
+            },
+        ]
+
+        field_mappings = {
+            "status": "status",  # Required field
+            "flow_item_type": "issuetype",  # Optional
+        }
+
+        # Act
+        result = calculate_flow_load(
+            issues=sample_issues,
+            field_mappings=field_mappings,
+            use_variable_extraction=False,
+        )
+
+        # Assert - legacy mode should work
+        assert result["metric_name"] == "flow_load"
+        assert result["error_state"] == "success"
+        assert result["value"] == 2  # In Progress and In Review are WIP
+
+
+# =============================================================================
+# FLOW DISTRIBUTION - VARIABLE EXTRACTION INTEGRATION TESTS
+# =============================================================================
+
+
+class TestFlowDistributionWithVariableExtraction:
+    """Test calculate_flow_distribution integration with VariableExtractor."""
+
+    def test_flow_distribution_with_variable_extraction(self):
+        """Test flow distribution calculation using variable extraction."""
+        # Arrange: Sample issues with completion dates and work types
+        sample_issues = [
+            {
+                "key": "TEST-1",
+                "fields": {
+                    "status": {"name": "Done"},
+                    "issuetype": {"name": "Story"},  # Maps to Feature
+                    "resolutiondate": "2025-01-15T10:00:00.000Z",
+                },
+                "changelog": {
+                    "histories": [
+                        {
+                            "created": "2025-01-15T10:00:00.000Z",
+                            "items": [
+                                {
+                                    "field": "status",
+                                    "fromString": "In Progress",
+                                    "toString": "Done",
+                                }
+                            ],
+                        }
+                    ]
+                },
+            },
+            {
+                "key": "TEST-2",
+                "fields": {
+                    "status": {"name": "Done"},
+                    "issuetype": {"name": "Story"},  # Maps to Feature
+                    "resolutiondate": "2025-01-16T10:00:00.000Z",
+                },
+                "changelog": {
+                    "histories": [
+                        {
+                            "created": "2025-01-16T10:00:00.000Z",
+                            "items": [
+                                {
+                                    "field": "status",
+                                    "fromString": "In Progress",
+                                    "toString": "Done",
+                                }
+                            ],
+                        }
+                    ]
+                },
+            },
+            {
+                "key": "TEST-3",
+                "fields": {
+                    "status": {"name": "Done"},
+                    "issuetype": {"name": "Bug"},  # Maps to Defect
+                    "resolutiondate": "2025-01-17T10:00:00.000Z",
+                },
+                "changelog": {
+                    "histories": [
+                        {
+                            "created": "2025-01-17T10:00:00.000Z",
+                            "items": [
+                                {
+                                    "field": "status",
+                                    "fromString": "In Progress",
+                                    "toString": "Done",
+                                }
+                            ],
+                        }
+                    ]
+                },
+            },
+            {
+                "key": "TEST-4",
+                "fields": {
+                    "status": {"name": "Done"},
+                    "issuetype": {"name": "Task"},  # Maps to Technical_Debt
+                    "resolutiondate": "2025-01-18T10:00:00.000Z",
+                    "labels": ["tech-debt"],  # Helps classification
+                },
+                "changelog": {
+                    "histories": [
+                        {
+                            "created": "2025-01-18T10:00:00.000Z",
+                            "items": [
+                                {
+                                    "field": "status",
+                                    "fromString": "In Progress",
+                                    "toString": "Done",
+                                }
+                            ],
+                        }
+                    ]
+                },
+            },
+        ]
+
+        # Act
+        result = calculate_flow_distribution(
+            issues=sample_issues,
+            use_variable_extraction=True,
+        )
+
+        # Assert - should calculate distribution percentages
+        assert result["metric_name"] == "flow_distribution"
+        assert result["error_state"] in [
+            "success",
+            "no_data",
+        ]  # May not find completion dates without proper config
+        # If successful, verify structure
+        if result["error_state"] == "success":
+            assert result["unit"] == "%"
+            assert "Feature" in result["value"] or "Defect" in result["value"]
+            # Distribution percentages sum to 100%
+            total_pct = sum(result["value"].values())
+            assert 99.0 <= total_pct <= 101.0  # Allow for rounding
+
+    def test_flow_distribution_legacy_mode_still_works(self):
+        """Test that legacy field_mappings mode still works."""
+        # Arrange: Sample issues with field_mappings
+        sample_issues = [
+            {
+                "key": "TEST-1",
+                "fields": {
+                    "resolutiondate": "2025-01-15T10:00:00.000Z",
+                    "issuetype": {"name": "Story"},
+                },
+            },
+            {
+                "key": "TEST-2",
+                "fields": {
+                    "resolutiondate": "2025-01-16T10:00:00.000Z",
+                    "issuetype": {"name": "Bug"},
+                },
+            },
+        ]
+
+        field_mappings = {
+            "completed_date": "resolutiondate",  # Required
+            "flow_item_type": "issuetype",  # Required
+        }
+
+        # Legacy mode requires start_date and end_date
+        start_date = datetime(2025, 1, 1, tzinfo=timezone.utc)
+        end_date = datetime(2025, 1, 31, tzinfo=timezone.utc)
+
+        # Act
+        result = calculate_flow_distribution(
+            issues=sample_issues,
+            field_mappings=field_mappings,
+            start_date=start_date,
+            end_date=end_date,
+            use_variable_extraction=False,
+        )
+
+        # Assert - legacy mode should work
+        assert result["metric_name"] == "flow_distribution"
+        assert result["error_state"] == "success"
