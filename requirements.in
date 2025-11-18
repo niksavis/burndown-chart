@@ -7,6 +7,9 @@ plotly==6.0.1
 pandas==2.2.3
 numpy==2.2.5
 
+# Data validation and modeling
+pydantic>=2.0.0
+
 # Scientific computing (for statistical calculations)
 scipy>=1.11.0
 
