@@ -589,7 +589,11 @@ def calculate_flow_efficiency(
 
     Flow Efficiency = (time in active_statuses / time in wip_statuses) × 100
 
-    Uses changelog to calculate:
+    Variable extraction mode uses CalculatedSource for:
+    - Active time: Total time spent in active statuses (from changelog)
+    - Total time: Cycle time from work start to completion (from changelog)
+
+    Legacy mode uses changelog_processor to calculate:
     - Active time: Total time spent in active_statuses (actual work)
     - WIP time: Total time spent in wip_statuses (includes waiting)
 
@@ -606,11 +610,6 @@ def calculate_flow_efficiency(
 
     Returns:
         Metric dictionary with efficiency percentage and trend data
-
-    Note:
-        Variable extraction mode requires T009 (changelog analysis support) for
-        active_time and total_time CalculatedSource variables. Currently returns
-        error_state='not_implemented' in variable extraction mode.
     """
     # Input validation
     if not issues or not isinstance(issues, list):
@@ -638,19 +637,71 @@ def calculate_flow_efficiency(
         if variable_extractor is None:
             variable_extractor = VariableExtractor(DEFAULT_VARIABLE_COLLECTION)
 
-        # NOTE: Flow efficiency requires CalculatedSource support (T009)
-        # active_time and total_time need changelog duration calculations
-        logger.warning(
-            "[Flow] Efficiency: Variable extraction mode requires T009 (changelog analysis)"
-        )
-        return _create_error_response(
-            "flow_efficiency",
-            "not_implemented",
-            "Variable extraction mode requires changelog analysis support (T009)",
-            total_issue_count=len(issues),
-        )
-
     try:
+        # Calculate efficiency based on mode
+        if use_variable_extraction:
+            # NEW: Variable extraction mode using CalculatedSource
+            total_active_time = 0
+            total_wip_time = 0
+            issue_count = 0
+
+            for issue in issues:
+                variables = _extract_variables_from_issue(
+                    issue,
+                    ["active_time", "total_time"],
+                    variable_extractor,
+                )
+
+                active_time = variables.get("active_time")
+                total_time = variables.get("total_time")
+
+                # Both times must be present and valid
+                if active_time is None or total_time is None:
+                    continue
+
+                if not isinstance(active_time, (int, float)) or not isinstance(
+                    total_time, (int, float)
+                ):
+                    continue
+
+                if active_time < 0 or total_time <= 0:
+                    continue
+
+                total_active_time += active_time
+                total_wip_time += total_time
+                issue_count += 1
+
+            if issue_count == 0 or total_wip_time == 0:
+                return _create_error_response(
+                    "flow_efficiency",
+                    "no_data",
+                    "No valid time data found for efficiency calculation",
+                    total_issue_count=len(issues),
+                )
+
+            efficiency_percentage = (total_active_time / total_wip_time) * 100
+
+            # Calculate trend
+            trend_data = _calculate_trend(efficiency_percentage, previous_period_value)
+
+            return {
+                "metric_name": "flow_efficiency",
+                "value": round(efficiency_percentage, 1),
+                "unit": "%",
+                "error_state": "success",
+                "error_message": None,
+                "excluded_issue_count": len(issues) - issue_count,
+                "total_issue_count": len(issues),
+                "trend_direction": trend_data["trend_direction"],
+                "trend_percentage": trend_data["trend_percentage"],
+                "details": {
+                    "total_active_time_seconds": total_active_time,
+                    "total_wip_time_seconds": total_wip_time,
+                    "issue_count": issue_count,
+                },
+            }
+
+        # LEGACY: Field mappings mode with changelog processor
         # Import changelog processor
         from data.changelog_processor import calculate_time_in_status
 

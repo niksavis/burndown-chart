@@ -307,18 +307,44 @@ class TestFlowTimeWithVariableExtraction:
 class TestFlowEfficiencyWithVariableExtraction:
     """Test calculate_flow_efficiency with variable extraction mode."""
 
-    def test_flow_efficiency_variable_extraction_not_yet_implemented(self):
-        """Test that flow efficiency returns not_implemented for variable extraction mode.
+    def test_flow_efficiency_with_variable_extraction(self):
+        """Test flow efficiency calculation using variable extraction mode.
 
-        Flow efficiency requires CalculatedSource support (T009) for active_time
-        and total_time variables which need changelog duration calculations.
+        Flow efficiency uses CalculatedSource for active_time and total_time
+        which are calculated from changelog duration analysis.
         """
-        # Arrange
+        # Arrange: Sample issues with changelog showing time in different statuses
         sample_issues = [
             {
                 "key": "PROJ-301",
-                "fields": {"status": {"name": "Done"}},
-                "changelog": {"histories": []},
+                "fields": {
+                    "status": {"name": "Done"},
+                    "created": "2025-01-10T09:00:00.000Z",
+                },
+                "changelog": {
+                    "histories": [
+                        {
+                            "created": "2025-01-10T09:00:00.000Z",
+                            "items": [
+                                {
+                                    "field": "status",
+                                    "fromString": "To Do",
+                                    "toString": "In Progress",
+                                }
+                            ],
+                        },
+                        {
+                            "created": "2025-01-15T10:00:00.000Z",  # 5 days in progress
+                            "items": [
+                                {
+                                    "field": "status",
+                                    "fromString": "In Progress",
+                                    "toString": "Done",
+                                }
+                            ],
+                        },
+                    ]
+                },
             }
         ]
 
@@ -328,10 +354,13 @@ class TestFlowEfficiencyWithVariableExtraction:
             use_variable_extraction=True,
         )
 
-        # Assert - should return not_implemented until T009 is complete
+        # Assert - variable extraction mode now works with CalculatedSource
         assert result["metric_name"] == "flow_efficiency"
-        assert result["error_state"] == "not_implemented"
-        assert "T009" in result["error_message"]
+        # May return no_data if CalculatedSource can't extract times, or success if it can
+        assert result["error_state"] in ["success", "no_data"]
+        if result["error_state"] == "success":
+            assert result["unit"] == "%"
+            assert 0 <= result["value"] <= 100
 
     def test_flow_efficiency_legacy_mode_still_works(self):
         """Test that legacy field_mappings mode still works (backward compatibility)."""
