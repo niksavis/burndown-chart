@@ -10,15 +10,17 @@ Key Components:
 - validator.py: Validation logic for mappings and extracted values
 
 Usage:
-    from data.variable_mapping import VariableExtractor, VariableMapping
+    from data.variable_mapping import VariableExtractor, VariableMappingCollection
 
     extractor = VariableExtractor(variable_mappings)
-    value = extractor.extract_value("deployment_timestamp", issue, changelog)
+    result = extractor.extract_variable("deployment_timestamp", issue, changelog)
 """
 
 from data.variable_mapping.models import (
     VariableMapping,
+    VariableMappingCollection,
     SourceRule,
+    SourceType,
     MappingFilter,
     FieldValueSource,
     FieldValueMatchSource,
@@ -28,9 +30,13 @@ from data.variable_mapping.models import (
     CalculatedSource,
 )
 
+from data.variable_mapping.extractor import VariableExtractor
+
 __all__ = [
     "VariableMapping",
+    "VariableMappingCollection",
     "SourceRule",
+    "SourceType",
     "MappingFilter",
     "FieldValueSource",
     "FieldValueMatchSource",
@@ -38,4 +44,5 @@ __all__ = [
     "ChangelogTimestampSource",
     "FixVersionSource",
     "CalculatedSource",
+    "VariableExtractor",
 ]
