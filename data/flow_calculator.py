@@ -576,12 +576,16 @@ def calculate_flow_time(
 @log_performance
 def calculate_flow_efficiency(
     issues: List[Dict],
-    field_mappings: Dict[str, str],
+    field_mappings: Optional[Dict[str, str]] = None,
     previous_period_value: Optional[float] = None,
     active_statuses: Optional[List[str]] = None,
     wip_statuses: Optional[List[str]] = None,
+    use_variable_extraction: bool = False,
+    variable_extractor: Optional[VariableExtractor] = None,
 ) -> Dict[str, Any]:
     """Calculate Flow Efficiency - ratio of active work time to total WIP time.
+
+    Supports both legacy field_mappings and new variable extraction modes.
 
     Flow Efficiency = (time in active_statuses / time in wip_statuses) × 100
 
@@ -591,15 +595,22 @@ def calculate_flow_efficiency(
 
     Args:
         issues: List of Jira issues (with changelog data)
-        field_mappings: Field mappings (not used for changelog-based calculation)
+        field_mappings: (Legacy) Field mappings (not used for changelog-based calculation)
         previous_period_value: Previous period's metric value for trend calculation
         active_statuses: List of active status names (e.g., ["In Progress", "In Review", "Testing"])
                         If None, loads from configuration
         wip_statuses: List of WIP status names (e.g., ["Selected", "In Progress", ...])
                      If None, loads from configuration
+        use_variable_extraction: If True, use VariableExtractor instead of field_mappings
+        variable_extractor: Optional VariableExtractor instance (uses DEFAULT if None)
 
     Returns:
         Metric dictionary with efficiency percentage and trend data
+
+    Note:
+        Variable extraction mode requires T009 (changelog analysis support) for
+        active_time and total_time CalculatedSource variables. Currently returns
+        error_state='not_implemented' in variable extraction mode.
     """
     # Input validation
     if not issues or not isinstance(issues, list):
@@ -611,12 +622,31 @@ def calculate_flow_efficiency(
             total_issue_count=0,
         )
 
-    if not isinstance(field_mappings, dict):
-        logger.error("[Flow] Efficiency: Invalid field mappings")
+    # Validate configuration based on mode
+    if not use_variable_extraction:
+        # Legacy mode: require field_mappings
+        if not isinstance(field_mappings, dict):
+            logger.error("[Flow] Efficiency: Invalid field mappings")
+            return _create_error_response(
+                "flow_efficiency",
+                "calculation_error",
+                "Invalid field mappings configuration",
+                total_issue_count=len(issues),
+            )
+    else:
+        # Variable extraction mode: create extractor if not provided
+        if variable_extractor is None:
+            variable_extractor = VariableExtractor(DEFAULT_VARIABLE_COLLECTION)
+
+        # NOTE: Flow efficiency requires CalculatedSource support (T009)
+        # active_time and total_time need changelog duration calculations
+        logger.warning(
+            "[Flow] Efficiency: Variable extraction mode requires T009 (changelog analysis)"
+        )
         return _create_error_response(
             "flow_efficiency",
-            "calculation_error",
-            "Invalid field mappings configuration",
+            "not_implemented",
+            "Variable extraction mode requires changelog analysis support (T009)",
             total_issue_count=len(issues),
         )
 
@@ -654,6 +684,7 @@ def calculate_flow_efficiency(
         no_changelog_count = 0
 
         for issue in issues:
+            # LEGACY: Changelog-based calculation (no variable extraction yet)
             # Calculate time in active statuses (working)
             active_hours = calculate_time_in_status(
                 issue, active_statuses, case_sensitive=False

@@ -8,7 +8,11 @@ import pytest
 from datetime import datetime, timezone
 from typing import Dict, Any, List
 
-from data.flow_calculator import calculate_flow_velocity, calculate_flow_time
+from data.flow_calculator import (
+    calculate_flow_velocity,
+    calculate_flow_time,
+    calculate_flow_efficiency,
+)
 from data.variable_mapping.extractor import VariableExtractor
 from configuration.metric_variables import DEFAULT_VARIABLE_COLLECTION
 
@@ -295,4 +299,62 @@ class TestFlowTimeWithVariableExtraction:
         assert "error_state" in result
         assert "value" in result
         # Backward compatibility maintained: function accepts field_mappings
+        assert result["error_state"] in ["success", "no_data"]
+
+
+class TestFlowEfficiencyWithVariableExtraction:
+    """Test calculate_flow_efficiency with variable extraction mode."""
+
+    def test_flow_efficiency_variable_extraction_not_yet_implemented(self):
+        """Test that flow efficiency returns not_implemented for variable extraction mode.
+
+        Flow efficiency requires CalculatedSource support (T009) for active_time
+        and total_time variables which need changelog duration calculations.
+        """
+        # Arrange
+        sample_issues = [
+            {
+                "key": "PROJ-301",
+                "fields": {"status": {"name": "Done"}},
+                "changelog": {"histories": []},
+            }
+        ]
+
+        # Act
+        result = calculate_flow_efficiency(
+            issues=sample_issues,
+            use_variable_extraction=True,
+        )
+
+        # Assert - should return not_implemented until T009 is complete
+        assert result["metric_name"] == "flow_efficiency"
+        assert result["error_state"] == "not_implemented"
+        assert "T009" in result["error_message"]
+
+    def test_flow_efficiency_legacy_mode_still_works(self):
+        """Test that legacy field_mappings mode still works (backward compatibility)."""
+        # Arrange
+        field_mappings = {}  # Not used by flow_efficiency but required in legacy mode
+        active_statuses = ["In Progress"]
+        wip_statuses = ["In Progress", "In Review"]
+
+        sample_issues = [
+            {
+                "key": "PROJ-302",
+                "fields": {"status": {"name": "Done"}},
+                "changelog": {"histories": []},
+            }
+        ]
+
+        # Act
+        result = calculate_flow_efficiency(
+            issues=sample_issues,
+            field_mappings=field_mappings,
+            active_statuses=active_statuses,
+            wip_statuses=wip_statuses,
+            use_variable_extraction=False,
+        )
+
+        # Assert - legacy mode should work
+        assert result["metric_name"] == "flow_efficiency"
         assert result["error_state"] in ["success", "no_data"]
