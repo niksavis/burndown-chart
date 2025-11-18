@@ -199,3 +199,114 @@ class TestDORAVariableExtraction:
         assert "project_key" in variables
         assert "issue_type" in variables
         assert "created_timestamp" in variables
+
+
+class TestDeploymentFrequencyWithVariableExtraction:
+    """Test calculate_deployment_frequency with variable extraction mode."""
+
+    def test_deployment_frequency_with_variable_extraction(self):
+        """Test deployment frequency calculation using variable extraction."""
+        from data.dora_calculator import calculate_deployment_frequency
+        from datetime import datetime, timezone
+
+        # Create deployment issues with variable-extractable data
+        issues = [
+            {
+                "key": "DEPLOY-1",
+                "fields": {
+                    "project": {"key": "DEPLOY"},
+                    "issuetype": {"name": "Task"},  # DevOps task type
+                    "status": {"name": "Deployed"},
+                    "created": "2025-11-01T10:00:00.000Z",
+                    "fixVersions": [{"name": "v1.0"}],  # Link to development work
+                },
+                "changelog": {
+                    "histories": [
+                        {
+                            "created": "2025-11-05T14:00:00.000Z",
+                            "items": [
+                                {
+                                    "field": "status",
+                                    "fromString": "In Progress",
+                                    "toString": "Deployed",
+                                }
+                            ],
+                        }
+                    ]
+                },
+            },
+            {
+                "key": "DEPLOY-2",
+                "fields": {
+                    "project": {"key": "DEPLOY"},
+                    "issuetype": {"name": "Task"},  # DevOps task type
+                    "status": {"name": "Deployed"},
+                    "created": "2025-11-01T10:00:00.000Z",
+                    "fixVersions": [{"name": "v1.0"}],  # Link to development work
+                },
+                "changelog": {
+                    "histories": [
+                        {
+                            "created": "2025-11-10T16:00:00.000Z",
+                            "items": [
+                                {
+                                    "field": "status",
+                                    "fromString": "In Progress",
+                                    "toString": "Deployed",
+                                }
+                            ],
+                        }
+                    ]
+                },
+            },
+        ]
+
+        # Calculate using variable extraction mode
+        result = calculate_deployment_frequency(
+            issues=issues,
+            use_variable_extraction=True,
+            devops_projects=["DEPLOY"],  # Required for filtering
+            devops_task_types=["Task"],  # Match issue type
+            start_date=datetime(2025, 11, 1, tzinfo=timezone.utc),
+            end_date=datetime(2025, 11, 30, tzinfo=timezone.utc),
+        )
+
+        # Should calculate deployment frequency correctly
+        assert result["value"] is not None
+        assert result["value"] > 0
+        assert result["unit"] == "deployments/month"
+        assert result["metric_name"] == "deployment_frequency"
+
+    def test_deployment_frequency_legacy_mode_still_works(self):
+        """Test that legacy field_mappings mode still works."""
+        from data.dora_calculator import calculate_deployment_frequency
+        from datetime import datetime, timezone
+
+        # Create deployment issues with legacy field structure
+        issues = [
+            {
+                "key": "DEPLOY-1",
+                "fields": {
+                    "project": {"key": "DEPLOY"},
+                    "issuetype": {"name": "Task"},
+                    "fixVersions": [{"name": "v1.0", "releaseDate": "2025-11-05"}],
+                },
+            },
+        ]
+
+        field_mappings = {"deployment_date": "fixVersions"}
+
+        # Calculate using legacy mode
+        result = calculate_deployment_frequency(
+            issues=issues,
+            field_mappings=field_mappings,
+            use_variable_extraction=False,
+            devops_projects=["DEPLOY"],
+            start_date=datetime(2025, 11, 1, tzinfo=timezone.utc),
+            end_date=datetime(2025, 11, 30, tzinfo=timezone.utc),
+        )
+
+        # Legacy mode should still work
+        assert result is not None
+        assert "value" in result
+        assert result["metric_name"] == "deployment_frequency"

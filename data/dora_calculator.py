@@ -410,7 +410,7 @@ def _extract_variables_from_issue(
 @log_performance
 def calculate_deployment_frequency(
     issues: List[Dict[str, Any]],
-    field_mappings: Dict[str, str],
+    field_mappings: Optional[Dict[str, str]] = None,
     time_period_days: int = 30,
     previous_period_value: Optional[float] = None,
     start_date: Optional[datetime] = None,
@@ -418,12 +418,16 @@ def calculate_deployment_frequency(
     devops_projects: Optional[List[str]] = None,
     development_projects: Optional[List[str]] = None,
     devops_task_types: Optional[List[str]] = None,
+    use_variable_extraction: bool = False,
+    variable_extractor: Optional[VariableExtractor] = None,
 ) -> Dict[str, Any]:
     """Calculate deployment frequency metric.
 
+    Supports both legacy field_mappings and new variable extraction modes.
+
     Args:
         issues: List of all issue dictionaries from Jira (mixed dev + devops)
-        field_mappings: Mapping of internal fields to Jira field IDs
+        field_mappings: (Legacy) Mapping of internal fields to Jira field IDs
         time_period_days: Time period for calculation (default 30 days)
         previous_period_value: Previous period's metric value for trend calculation
         start_date: Optional explicit start date (overrides time_period_days calculation)
@@ -431,6 +435,8 @@ def calculate_deployment_frequency(
         devops_projects: List of DevOps project keys (e.g., ["OPS"]) for filtering deployment issues
         development_projects: List of Development project keys (e.g., ["DEV"]) for fixVersion filtering
         devops_task_types: List of issue type names for DevOps tasks (backward compatible)
+        use_variable_extraction: If True, use VariableExtractor instead of field_mappings
+        variable_extractor: Optional VariableExtractor instance (uses DEFAULT if None)
 
     Returns:
         Metric data dictionary with value, unit, performance tier, trend data, and metadata
@@ -453,22 +459,29 @@ def calculate_deployment_frequency(
             "trend_percentage": 0.0,
         }
 
-    if not isinstance(field_mappings, dict):
-        logger.error("[DORA] Deployment frequency: Invalid field mappings")
-        return {
-            "metric_name": "deployment_frequency",
-            "value": None,
-            "unit": "deployments/month",
-            "error_state": "calculation_error",
-            "error_message": "Invalid field mappings configuration",
-            "performance_tier": None,
-            "performance_tier_color": None,
-            "total_issue_count": len(issues),
-            "filtered_issue_count": 0,
-            "excluded_issue_count": 0,
-            "trend_direction": "stable",
-            "trend_percentage": 0.0,
-        }
+    # Validate configuration based on mode
+    if not use_variable_extraction:
+        # Legacy mode: require field_mappings
+        if not isinstance(field_mappings, dict):
+            logger.error("[DORA] Deployment frequency: Invalid field mappings")
+            return {
+                "metric_name": "deployment_frequency",
+                "value": None,
+                "unit": "deployments/month",
+                "error_state": "calculation_error",
+                "error_message": "Invalid field mappings configuration",
+                "performance_tier": None,
+                "performance_tier_color": None,
+                "total_issue_count": len(issues),
+                "filtered_issue_count": 0,
+                "excluded_issue_count": 0,
+                "trend_direction": "stable",
+                "trend_percentage": 0.0,
+            }
+    else:
+        # Variable extraction mode: create extractor if not provided
+        if variable_extractor is None:
+            variable_extractor = VariableExtractor(DEFAULT_VARIABLE_COLLECTION)
 
     if time_period_days <= 0:
         logger.error(
@@ -536,24 +549,28 @@ def calculate_deployment_frequency(
         devops_task_types=devops_task_types,
     )
 
-    # Check for required field mapping
-    if "deployment_date" not in field_mappings:
-        return {
-            "metric_name": "deployment_frequency",
-            "value": None,
-            "unit": "deployments/month",
-            "error_state": "missing_mapping",
-            "error_message": "Configure 'Deployment Date' field mapping",
-            "performance_tier": None,
-            "performance_tier_color": None,
-            "total_issue_count": len(issues),
-            "filtered_issue_count": len(deployment_issues),
-            "excluded_issue_count": 0,
-            "trend_direction": "stable",
-            "trend_percentage": 0.0,
-        }
-
-    deployment_date_field = field_mappings["deployment_date"]
+    # Check for required configuration based on mode
+    if not use_variable_extraction:
+        # Legacy mode: Check for deployment_date field mapping
+        if field_mappings is None or "deployment_date" not in field_mappings:
+            return {
+                "metric_name": "deployment_frequency",
+                "value": None,
+                "unit": "deployments/month",
+                "error_state": "missing_mapping",
+                "error_message": "Configure 'Deployment Date' field mapping",
+                "performance_tier": None,
+                "performance_tier_color": None,
+                "total_issue_count": len(issues),
+                "filtered_issue_count": len(deployment_issues),
+                "excluded_issue_count": 0,
+                "trend_direction": "stable",
+                "trend_percentage": 0.0,
+            }
+        deployment_date_field: str = field_mappings["deployment_date"]  # type: ignore[index]
+    else:
+        # Variable extraction mode: deployment_date_field not needed
+        deployment_date_field: Optional[str] = None
 
     # Calculate time period boundaries (use provided dates if available)
     if start_date is None or end_date is None:
@@ -570,11 +587,37 @@ def calculate_deployment_frequency(
     excluded_count = 0
 
     for issue in deployment_issues:
-        fields = issue.get("fields", {})
+        if use_variable_extraction:
+            # NEW: Variable extraction mode
+            variables = _extract_variables_from_issue(
+                issue,
+                ["deployment_event", "deployment_timestamp"],
+                variable_extractor,
+            )
 
-        # Parse deployment date (handles special fields like fixVersions)
-        deployment_date_str = _get_date_field_value(fields, deployment_date_field)
-        deployment_date = _parse_datetime(deployment_date_str)
+            # Check if this is a deployment
+            if not variables.get("deployment_event"):
+                excluded_count += 1
+                continue
+
+            # Extract deployment timestamp
+            deployment_date_str = variables.get("deployment_timestamp")
+            if not deployment_date_str:
+                excluded_count += 1
+                continue
+
+            deployment_date = _parse_datetime(deployment_date_str)
+        else:
+            # LEGACY: Field mappings mode
+            fields = issue.get("fields", {})
+
+            # Parse deployment date (handles special fields like fixVersions)
+            # Type assertion: deployment_date_field is guaranteed to be str in legacy mode
+            assert deployment_date_field is not None, (
+                "deployment_date_field should be set in legacy mode"
+            )
+            deployment_date_str = _get_date_field_value(fields, deployment_date_field)
+            deployment_date = _parse_datetime(deployment_date_str)
 
         if not deployment_date:
             excluded_count += 1
