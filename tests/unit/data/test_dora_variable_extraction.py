@@ -310,3 +310,148 @@ class TestDeploymentFrequencyWithVariableExtraction:
         assert result is not None
         assert "value" in result
         assert result["metric_name"] == "deployment_frequency"
+
+
+class TestLeadTimeWithVariableExtraction:
+    """Test lead time for changes with variable extraction mode."""
+
+    def test_lead_time_with_variable_extraction(self):
+        """Test lead time calculation using variable extraction."""
+        from data.dora_calculator import calculate_lead_time_for_changes
+        from datetime import datetime, timezone
+
+        # Create work items with variable-extractable data
+        # commit_timestamp: First transition to "In Development" (priority 1) or created date (priority 2)
+        # deployment_timestamp: Transition to "Deployed" (priority 1) or fixVersion releaseDate (priority 2)
+        issues = [
+            {
+                "key": "DEV-1",
+                "fields": {
+                    "project": {"key": "DEV"},
+                    "issuetype": {"name": "Story"},
+                    "status": {"name": "Done"},
+                    "created": "2025-11-01T10:00:00.000Z",
+                },
+                "changelog": {
+                    "histories": [
+                        {
+                            "created": "2025-11-02T10:00:00.000Z",  # Commit date (transition to In Development)
+                            "items": [
+                                {
+                                    "field": "status",
+                                    "fromString": "To Do",
+                                    "toString": "In Development",
+                                }
+                            ],
+                        },
+                        {
+                            "created": "2025-11-05T14:00:00.000Z",  # Deployment date (transition to Deployed)
+                            "items": [
+                                {
+                                    "field": "status",
+                                    "fromString": "In Development",
+                                    "toString": "Deployed",
+                                }
+                            ],
+                        },
+                    ]
+                },
+            },
+            {
+                "key": "DEV-2",
+                "fields": {
+                    "project": {"key": "DEV"},
+                    "issuetype": {"name": "Story"},
+                    "status": {"name": "Done"},
+                    "created": "2025-11-01T10:00:00.000Z",
+                },
+                "changelog": {
+                    "histories": [
+                        {
+                            "created": "2025-11-03T10:00:00.000Z",  # Commit date (transition to In Development)
+                            "items": [
+                                {
+                                    "field": "status",
+                                    "fromString": "To Do",
+                                    "toString": "In Development",
+                                }
+                            ],
+                        },
+                        {
+                            "created": "2025-11-10T16:00:00.000Z",  # Deployment date (transition to Deployed)
+                            "items": [
+                                {
+                                    "field": "status",
+                                    "fromString": "In Development",
+                                    "toString": "Deployed",
+                                }
+                            ],
+                        },
+                    ]
+                },
+            },
+        ]
+
+        # Calculate using variable extraction mode
+        result = calculate_lead_time_for_changes(
+            issues=issues,
+            use_variable_extraction=True,
+        )
+
+        # Verify result
+        assert result["value"] is not None
+        assert result["value"] > 0  # Should have positive lead time
+        assert result["unit"] == "days"
+        assert result["error_state"] == "success"
+        assert result["performance_tier"] in ["Elite", "High", "Medium", "Low"]
+
+    def test_lead_time_legacy_mode_still_works(self):
+        """Test that legacy field_mappings mode still works after refactoring."""
+        from data.dora_calculator import calculate_lead_time_for_changes
+        from datetime import datetime, timezone
+
+        # Create work items with field-based data
+        issues = [
+            {
+                "key": "DEV-1",
+                "fields": {
+                    "project": {"key": "DEV"},
+                    "issuetype": {"name": "Story"},
+                    "status": {"name": "Done"},
+                    "created": "2025-11-01T10:00:00.000Z",
+                    "customfield_10001": "2025-11-05T14:00:00.000Z",  # Deployment date
+                },
+                "changelog": {
+                    "histories": [
+                        {
+                            "created": "2025-11-02T10:00:00.000Z",  # Commit date
+                            "items": [
+                                {
+                                    "field": "status",
+                                    "fromString": "To Do",
+                                    "toString": "In Progress",
+                                }
+                            ],
+                        }
+                    ]
+                },
+            },
+        ]
+
+        # Calculate using legacy field_mappings mode
+        field_mappings = {
+            "deployed_to_production_date": "customfield_10001",
+        }
+
+        result = calculate_lead_time_for_changes(
+            issues=issues,
+            field_mappings=field_mappings,
+            active_statuses=["In Progress", "In Review", "Testing"],
+            use_variable_extraction=False,
+        )
+
+        # Verify backward compatibility - result should be valid
+        assert result["value"] is not None
+        assert result["value"] > 0
+        assert result["error_state"] == "success"
+        assert result["performance_tier"] in ["Elite", "High", "Medium", "Low"]

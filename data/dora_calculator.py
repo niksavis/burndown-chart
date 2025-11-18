@@ -682,14 +682,18 @@ def calculate_deployment_frequency(
 @log_performance
 def calculate_lead_time_for_changes(
     issues: List[Dict[str, Any]],
-    field_mappings: Dict[str, str],
+    field_mappings: Optional[Dict[str, str]] = None,
     previous_period_value: Optional[float] = None,
     devops_projects: Optional[List[str]] = None,
     active_statuses: Optional[List[str]] = None,
+    use_variable_extraction: bool = False,
+    variable_extractor: Optional[VariableExtractor] = None,
 ) -> Dict[str, Any]:
     """Calculate lead time for changes metric.
 
     Lead time measures the time from code commit to production deployment.
+
+    Supports both legacy field_mappings and new variable extraction modes.
 
     Code Commit Date: First transition into ANY active_statuses (from changelog)
     Deployment Date: Extracted from fixVersion.releaseDate
@@ -699,11 +703,13 @@ def calculate_lead_time_for_changes(
 
     Args:
         issues: List of change issue dictionaries from Jira (work items with changelog)
-        field_mappings: Mapping of internal fields to Jira field IDs
+        field_mappings: (Legacy) Mapping of internal fields to Jira field IDs
         previous_period_value: Previous period's metric value for trend calculation
         devops_projects: List of DevOps project keys (used if filtering is needed)
         active_statuses: List of active status names (e.g., ["In Progress", "In Review", "Testing"])
                         If None, loads from configuration
+        use_variable_extraction: If True, use VariableExtractor instead of field_mappings
+        variable_extractor: Optional VariableExtractor instance (uses DEFAULT if None)
 
     Returns:
         Metric data dictionary with value, unit, performance tier, trend data, and metadata
@@ -730,44 +736,57 @@ def calculate_lead_time_for_changes(
             "trend_percentage": 0.0,
         }
 
-    if not isinstance(field_mappings, dict):
-        logger.error("[DORA] Lead time: Invalid field mappings")
-        return {
-            "metric_name": "lead_time_for_changes",
-            "value": None,
-            "unit": "days",
-            "error_state": "calculation_error",
-            "error_message": "Invalid field mappings configuration",
-            "performance_tier": None,
-            "performance_tier_color": None,
-            "total_issue_count": len(issues),
-            "filtered_issue_count": 0,
-            "excluded_issue_count": 0,
-            "trend_direction": "stable",
-            "trend_percentage": 0.0,
-        }
+    # Validate configuration based on mode
+    if not use_variable_extraction:
+        # Legacy mode: require field_mappings
+        if not isinstance(field_mappings, dict):
+            logger.error("[DORA] Lead time: Invalid field mappings")
+            return {
+                "metric_name": "lead_time_for_changes",
+                "value": None,
+                "unit": "days",
+                "error_state": "calculation_error",
+                "error_message": "Invalid field mappings configuration",
+                "performance_tier": None,
+                "performance_tier_color": None,
+                "total_issue_count": len(issues),
+                "filtered_issue_count": 0,
+                "excluded_issue_count": 0,
+                "trend_direction": "stable",
+                "trend_percentage": 0.0,
+            }
+    else:
+        # Variable extraction mode: create extractor if not provided
+        if variable_extractor is None:
+            variable_extractor = VariableExtractor(DEFAULT_VARIABLE_COLLECTION)
 
     # Import changelog processor for status transition detection
     from data.changelog_processor import get_first_status_transition_from_list
 
-    # Check for required field mappings
-    required_fields = ["deployed_to_production_date"]
-    missing_fields = [f for f in required_fields if f not in field_mappings]
+    # Check for required configuration based on mode
+    if not use_variable_extraction:
+        # Legacy mode: Check for required field mappings
+        required_fields = ["deployed_to_production_date"]
+        missing_fields = [
+            f
+            for f in required_fields
+            if field_mappings is None or f not in field_mappings
+        ]
 
-    if missing_fields:
-        return {
-            "metric_name": "lead_time_for_changes",
-            "value": None,
-            "unit": "days",
-            "error_state": "missing_mapping",
-            "error_message": f"Configure field mappings: {', '.join(missing_fields)}",
-            "performance_tier": None,
-            "performance_tier_color": None,
-            "total_issue_count": len(issues),
-            "excluded_issue_count": 0,
-            "trend_direction": "stable",
-            "trend_percentage": 0.0,
-        }
+        if missing_fields:
+            return {
+                "metric_name": "lead_time_for_changes",
+                "value": None,
+                "unit": "days",
+                "error_state": "missing_mapping",
+                "error_message": f"Configure field mappings: {', '.join(missing_fields)}",
+                "performance_tier": None,
+                "performance_tier_color": None,
+                "total_issue_count": len(issues),
+                "excluded_issue_count": 0,
+                "trend_direction": "stable",
+                "trend_percentage": 0.0,
+            }
 
     # Load active_statuses from configuration if not provided
     if active_statuses is None:
@@ -790,7 +809,13 @@ def calculate_lead_time_for_changes(
                 "trend_percentage": 0.0,
             }
 
-    deploy_date_field = field_mappings["deployed_to_production_date"]
+    # Set deploy_date_field based on mode
+    if not use_variable_extraction:
+        # Legacy mode: extract field ID from mappings
+        deploy_date_field: str = field_mappings["deployed_to_production_date"]  # type: ignore[index]
+    else:
+        # Variable extraction mode: deploy_date_field not needed
+        deploy_date_field: Optional[str] = None
 
     # Calculate lead times
     lead_times = []
@@ -798,23 +823,54 @@ def calculate_lead_time_for_changes(
     no_active_transition_count = 0
 
     for issue in issues:
-        fields = issue.get("fields", {})
+        if use_variable_extraction:
+            # NEW: Variable extraction mode
+            variables = _extract_variables_from_issue(
+                issue,
+                ["commit_timestamp", "deployment_timestamp"],
+                variable_extractor,
+            )
 
-        # Get commit date from CHANGELOG - first transition to any active_statuses
-        commit_result = get_first_status_transition_from_list(
-            issue, active_statuses, case_sensitive=False
-        )
+            # Extract commit timestamp
+            commit_date_str = variables.get("commit_timestamp")
+            if not commit_date_str:
+                no_active_transition_count += 1
+                excluded_count += 1
+                continue
 
-        if not commit_result:
-            # Issue never entered active statuses
-            no_active_transition_count += 1
-            excluded_count += 1
-            continue
+            commit_date = _parse_datetime(commit_date_str)
 
-        _, commit_date = commit_result  # Unpack (status_name, timestamp)
+            # Extract deployment timestamp
+            deploy_date_str = variables.get("deployment_timestamp")
+            if not deploy_date_str:
+                excluded_count += 1
+                continue
 
-        # Parse deployment date (handles special fields like fixVersions)
-        deploy_date = _parse_datetime(_get_date_field_value(fields, deploy_date_field))
+            deploy_date = _parse_datetime(deploy_date_str)
+        else:
+            # LEGACY: Field mappings mode
+            fields = issue.get("fields", {})
+
+            # Get commit date from CHANGELOG - first transition to any active_statuses
+            commit_result = get_first_status_transition_from_list(
+                issue, active_statuses, case_sensitive=False
+            )
+
+            if not commit_result:
+                # Issue never entered active statuses
+                no_active_transition_count += 1
+                excluded_count += 1
+                continue
+
+            _, commit_date = commit_result  # Unpack (status_name, timestamp)
+
+            # Parse deployment date (handles special fields like fixVersions)
+            assert deploy_date_field is not None, (
+                "deploy_date_field should be set in legacy mode"
+            )
+            deploy_date = _parse_datetime(
+                _get_date_field_value(fields, deploy_date_field)
+            )
 
         if not commit_date or not deploy_date:
             excluded_count += 1
