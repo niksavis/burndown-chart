@@ -318,7 +318,6 @@ class TestLeadTimeWithVariableExtraction:
     def test_lead_time_with_variable_extraction(self):
         """Test lead time calculation using variable extraction."""
         from data.dora_calculator import calculate_lead_time_for_changes
-        from datetime import datetime, timezone
 
         # Create work items with variable-extractable data
         # commit_timestamp: First transition to "In Development" (priority 1) or created date (priority 2)
@@ -408,7 +407,6 @@ class TestLeadTimeWithVariableExtraction:
     def test_lead_time_legacy_mode_still_works(self):
         """Test that legacy field_mappings mode still works after refactoring."""
         from data.dora_calculator import calculate_lead_time_for_changes
-        from datetime import datetime, timezone
 
         # Create work items with field-based data
         issues = [
@@ -463,7 +461,6 @@ class TestChangeFailureRateWithVariableExtraction:
     def test_change_failure_rate_with_variable_extraction(self):
         """Test CFR calculation using variable extraction."""
         from data.dora_calculator import calculate_change_failure_rate
-        from datetime import datetime, timezone
 
         # Create deployment issues - some successful, some failed
         deployment_issues = [
@@ -516,7 +513,6 @@ class TestChangeFailureRateWithVariableExtraction:
     def test_change_failure_rate_legacy_mode_still_works(self):
         """Test that legacy field_mappings mode still works after refactoring."""
         from data.dora_calculator import calculate_change_failure_rate
-        from datetime import datetime, timezone
 
         # Create deployment issues with legacy field structure
         deployment_issues = [
@@ -560,3 +556,122 @@ class TestChangeFailureRateWithVariableExtraction:
         assert result["value"] >= 0
         assert result["error_state"] == "success"
         assert result["performance_tier"] in ["Elite", "High", "Medium", "Low"]
+
+
+class TestMTTRWithVariableExtraction:
+    """Test mean_time_to_recovery calculator with variable extraction integration."""
+
+    def test_mttr_with_variable_extraction(self):
+        """Test MTTR calculation using variable extraction mode (MODE B: Bug→Bug resolution)."""
+        from data.dora_calculator import calculate_mean_time_to_recovery
+
+        # Arrange: Create incident issues with changelog showing resolution timestamps
+        incidents = [
+            {
+                "key": "BUG-1",
+                "fields": {
+                    "created": "2025-01-01T10:00:00.000Z",
+                    "project": {"key": "PROJ"},
+                    "issuetype": {"name": "Bug"},
+                    "resolutiondate": "2025-01-01T14:00:00.000Z",  # Resolved 4 hours later
+                },
+                "changelog": {
+                    "histories": [
+                        {
+                            "created": "2025-01-01T14:00:00.000Z",
+                            "items": [
+                                {
+                                    "field": "status",
+                                    "fromString": "In Progress",
+                                    "toString": "Done",
+                                }
+                            ],
+                        }
+                    ]
+                },
+            },
+            {
+                "key": "BUG-2",
+                "fields": {
+                    "created": "2025-01-02T10:00:00.000Z",
+                    "project": {"key": "PROJ"},
+                    "issuetype": {"name": "Bug"},
+                    "resolutiondate": "2025-01-02T16:00:00.000Z",  # Resolved 6 hours later
+                },
+                "changelog": {
+                    "histories": [
+                        {
+                            "created": "2025-01-02T16:00:00.000Z",
+                            "items": [
+                                {
+                                    "field": "status",
+                                    "fromString": "In Progress",
+                                    "toString": "Done",
+                                }
+                            ],
+                        }
+                    ]
+                },
+            },
+        ]
+
+        # Act: Calculate MTTR using variable extraction mode (MODE B: no devops_projects)
+        result = calculate_mean_time_to_recovery(
+            issues=incidents,
+            field_mappings=None,  # Not needed in variable extraction mode
+            devops_projects=None,  # MODE B: Bug→Bug resolution
+            use_variable_extraction=True,
+        )
+
+        # Assert: Should calculate 5.0 hours average MTTR ((4 + 6) / 2)
+        assert result["value"] == 5.0
+        assert result["unit"] == "hours"
+        assert result["error_state"] == "success"
+        assert result["calculation_mode"] == "bug_resolution"
+
+    def test_mttr_legacy_mode_still_works(self):
+        """Test that legacy field_mappings mode still works (backward compatibility)."""
+        from data.dora_calculator import calculate_mean_time_to_recovery
+
+        # Arrange: Create incident issues WITHOUT changelog
+        incidents = [
+            {
+                "key": "BUG-1",
+                "fields": {
+                    "created": "2025-01-01T10:00:00.000Z",
+                    "project": {"key": "PROJ"},
+                    "issuetype": {"name": "Bug"},
+                    "customfield_10001": "2025-01-01T10:00:00.000Z",  # incident_detected_at
+                    "customfield_10002": "2025-01-01T14:00:00.000Z",  # incident_resolved_at
+                },
+            },
+            {
+                "key": "BUG-2",
+                "fields": {
+                    "created": "2025-01-02T10:00:00.000Z",
+                    "project": {"key": "PROJ"},
+                    "issuetype": {"name": "Bug"},
+                    "customfield_10001": "2025-01-02T10:00:00.000Z",  # incident_detected_at
+                    "customfield_10002": "2025-01-02T16:00:00.000Z",  # incident_resolved_at
+                },
+            },
+        ]
+
+        field_mappings = {
+            "incident_detected_at": "customfield_10001",
+            "incident_resolved_at": "customfield_10002",
+        }
+
+        # Act: Calculate MTTR using legacy mode (MODE B)
+        result = calculate_mean_time_to_recovery(
+            issues=incidents,
+            field_mappings=field_mappings,
+            devops_projects=None,  # MODE B: Bug→Bug resolution
+            use_variable_extraction=False,
+        )
+
+        # Assert: Should calculate 5.0 hours average MTTR
+        assert result["value"] == 5.0
+        assert result["unit"] == "hours"
+        assert result["error_state"] == "success"
+        assert result["calculation_mode"] == "bug_resolution"

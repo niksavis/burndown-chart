@@ -1175,12 +1175,16 @@ def calculate_change_failure_rate(
 @log_performance
 def calculate_mean_time_to_recovery(
     issues: List[Dict[str, Any]],
-    field_mappings: Dict[str, str],
+    field_mappings: Optional[Dict[str, str]] = None,
     previous_period_value: Optional[float] = None,
     devops_projects: Optional[List[str]] = None,
     operational_tasks: Optional[List[Dict[str, Any]]] = None,
+    use_variable_extraction: bool = False,
+    variable_extractor: Optional[VariableExtractor] = None,
 ) -> Dict[str, Any]:
     """Calculate mean time to recovery (MTTR) metric with two-mode calculation.
+
+    Supports both legacy field_mappings and new variable extraction modes.
 
     MODE A: devops_projects IS configured
         - Calculate: Bug.created → Linked_Operational_Task.resolutiondate
@@ -1195,10 +1199,12 @@ def calculate_mean_time_to_recovery(
 
     Args:
         issues: List of incident issue dictionaries from Jira (Bugs from development projects)
-        field_mappings: Mapping of internal fields to Jira field IDs
+        field_mappings: (Legacy) Mapping of internal fields to Jira field IDs
         previous_period_value: Previous period's metric value for trend calculation
         devops_projects: List of DevOps project keys - determines calculation mode
         operational_tasks: List of Operational Task issues (required for MODE A)
+        use_variable_extraction: If True, use VariableExtractor instead of field_mappings
+        variable_extractor: Optional VariableExtractor instance (uses DEFAULT if None)
 
     Returns:
         Metric data dictionary with value, unit, performance tier, trend data, and metadata
@@ -1220,21 +1226,28 @@ def calculate_mean_time_to_recovery(
             "trend_percentage": 0.0,
         }
 
-    if not isinstance(field_mappings, dict):
-        logger.error("[DORA] MTTR: Invalid field mappings")
-        return {
-            "metric_name": "mean_time_to_recovery",
-            "value": None,
-            "unit": "hours",
-            "error_state": "calculation_error",
-            "error_message": "Invalid field mappings configuration",
-            "performance_tier": None,
-            "performance_tier_color": None,
-            "total_issue_count": len(issues),
-            "excluded_issue_count": 0,
-            "trend_direction": "stable",
-            "trend_percentage": 0.0,
-        }
+    # Validate configuration based on mode
+    if not use_variable_extraction:
+        # Legacy mode: require field_mappings
+        if not isinstance(field_mappings, dict):
+            logger.error("[DORA] MTTR: Invalid field mappings")
+            return {
+                "metric_name": "mean_time_to_recovery",
+                "value": None,
+                "unit": "hours",
+                "error_state": "calculation_error",
+                "error_message": "Invalid field mappings configuration",
+                "performance_tier": None,
+                "performance_tier_color": None,
+                "total_issue_count": len(issues),
+                "excluded_issue_count": 0,
+                "trend_direction": "stable",
+                "trend_percentage": 0.0,
+            }
+    else:
+        # Variable extraction mode: create extractor if not provided
+        if variable_extractor is None:
+            variable_extractor = VariableExtractor(DEFAULT_VARIABLE_COLLECTION)
 
     # Determine calculation mode based on devops_projects configuration
     use_operational_tasks = devops_projects and len(devops_projects) > 0
@@ -1246,36 +1259,52 @@ def calculate_mean_time_to_recovery(
 
     # Filter to production incidents (Bugs in development projects)
     if devops_projects:
+        production_env_field = (
+            field_mappings.get("affected_environment") if field_mappings else None
+        )
         issues = filter_incident_issues(
             issues,
             devops_projects,
-            production_environment_field=field_mappings.get("affected_environment"),
+            production_environment_field=production_env_field,
         )
 
-    # Check for required field mappings
-    required_fields = ["incident_detected_at"]
-    if not use_operational_tasks:
-        # MODE B: Need incident_resolved_at for bug resolution
-        required_fields.append("incident_resolved_at")
+    # Check for required configuration based on mode
+    if not use_variable_extraction:
+        # Legacy mode: Check for required field mappings
+        required_fields = ["incident_detected_at"]
+        if not use_operational_tasks:
+            # MODE B: Need incident_resolved_at for bug resolution
+            required_fields.append("incident_resolved_at")
 
-    missing_fields = [f for f in required_fields if f not in field_mappings]
+        missing_fields = [
+            f
+            for f in required_fields
+            if field_mappings is None or f not in field_mappings
+        ]
 
-    if missing_fields:
-        return {
-            "metric_name": "mean_time_to_recovery",
-            "value": None,
-            "unit": "hours",
-            "error_state": "missing_mapping",
-            "error_message": f"Configure field mappings: {', '.join(missing_fields)}",
-            "performance_tier": None,
-            "performance_tier_color": None,
-            "total_issue_count": len(issues),
-            "excluded_issue_count": 0,
-            "trend_direction": "stable",
-            "trend_percentage": 0.0,
-        }
+        if missing_fields:
+            return {
+                "metric_name": "mean_time_to_recovery",
+                "value": None,
+                "unit": "hours",
+                "error_state": "missing_mapping",
+                "error_message": f"Configure field mappings: {', '.join(missing_fields)}",
+                "performance_tier": None,
+                "performance_tier_color": None,
+                "total_issue_count": len(issues),
+                "excluded_issue_count": 0,
+                "trend_direction": "stable",
+                "trend_percentage": 0.0,
+            }
 
-    detected_field = field_mappings["incident_detected_at"]
+        detected_field: str = field_mappings["incident_detected_at"]  # type: ignore[index]
+        resolved_field: Optional[str] = None
+        if not use_operational_tasks and field_mappings is not None:
+            resolved_field = field_mappings.get("incident_resolved_at")
+    else:
+        # Variable extraction mode: field IDs not needed
+        detected_field = ""  # Not used in variable extraction mode
+        resolved_field = None
 
     # Calculate recovery times
     recovery_times = []
@@ -1291,10 +1320,29 @@ def calculate_mean_time_to_recovery(
             operational_tasks = []
 
         for issue in issues:
-            fields = issue.get("fields", {})
+            if use_variable_extraction:
+                # NEW: Variable extraction mode
+                variables = _extract_variables_from_issue(
+                    issue,
+                    ["incident_start_timestamp", "incident_resolved_timestamp"],
+                    variable_extractor,
+                )
 
-            # Parse bug detection date (when bug was created)
-            detected_at = _parse_datetime(_get_date_field_value(fields, detected_field))
+                # Extract incident start timestamp
+                detected_at_str = variables.get("incident_start_timestamp")
+                if not detected_at_str:
+                    excluded_count += 1
+                    continue
+
+                detected_at = _parse_datetime(detected_at_str)
+            else:
+                # LEGACY: Field mappings mode
+                fields = issue.get("fields", {})
+
+                # Parse bug detection date (when bug was created)
+                detected_at = _parse_datetime(
+                    _get_date_field_value(fields, detected_field)
+                )
 
             if not detected_at:
                 excluded_count += 1
@@ -1346,14 +1394,39 @@ def calculate_mean_time_to_recovery(
 
     else:
         # MODE B: Bug → Bug resolution
-        resolved_field = field_mappings["incident_resolved_at"]
-
         for issue in issues:
-            fields = issue.get("fields", {})
+            if use_variable_extraction:
+                # NEW: Variable extraction mode
+                variables = _extract_variables_from_issue(
+                    issue,
+                    ["incident_start_timestamp", "incident_resolved_timestamp"],
+                    variable_extractor,
+                )
 
-            # Parse dates
-            detected_at = _parse_datetime(_get_date_field_value(fields, detected_field))
-            resolved_at = _parse_datetime(_get_date_field_value(fields, resolved_field))
+                # Extract incident timestamps
+                detected_at_str = variables.get("incident_start_timestamp")
+                resolved_at_str = variables.get("incident_resolved_timestamp")
+
+                if not detected_at_str or not resolved_at_str:
+                    excluded_count += 1
+                    continue
+
+                detected_at = _parse_datetime(detected_at_str)
+                resolved_at = _parse_datetime(resolved_at_str)
+            else:
+                # LEGACY: Field mappings mode
+                fields = issue.get("fields", {})
+                assert resolved_field is not None, (
+                    "resolved_field should be set in MODE B legacy mode"
+                )
+
+                # Parse dates
+                detected_at = _parse_datetime(
+                    _get_date_field_value(fields, detected_field)
+                )
+                resolved_at = _parse_datetime(
+                    _get_date_field_value(fields, resolved_field)
+                )
 
             if not detected_at or not resolved_at:
                 excluded_count += 1
