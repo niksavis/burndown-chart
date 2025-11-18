@@ -357,23 +357,29 @@ def calculate_flow_velocity(
 @log_performance
 def calculate_flow_time(
     issues: List[Dict],
-    field_mappings: Dict[str, str],
+    field_mappings: Optional[Dict[str, str]] = None,
     previous_period_value: Optional[float] = None,
     wip_statuses: Optional[List[str]] = None,
     completion_statuses: Optional[List[str]] = None,
+    use_variable_extraction: bool = False,
+    variable_extractor: Optional[VariableExtractor] = None,
 ) -> Dict[str, Any]:
     """Calculate Flow Time - average time from WIP start to completion.
+
+    Supports both legacy field_mappings and new variable extraction modes.
 
     Work Started: First transition into ANY wip_statuses (from changelog)
     Work Completed: From work_completed_date field (resolutiondate)
 
     Args:
         issues: List of Jira issues (with changelog data)
-        field_mappings: Field mappings for work_completed_date
+        field_mappings: (Legacy) Field mappings for work_completed_date
         previous_period_value: Previous period's metric value for trend calculation
         wip_statuses: List of WIP status names (e.g., ["Selected", "In Progress", ...])
                      If None, loads from configuration
         completion_statuses: List of completion status names (optional, for validation)
+        use_variable_extraction: If True, use VariableExtractor instead of field_mappings
+        variable_extractor: Optional VariableExtractor instance (uses DEFAULT if None)
 
     Returns:
         Metric dictionary with average flow time in days and trend data
@@ -388,82 +394,143 @@ def calculate_flow_time(
             total_issue_count=0,
         )
 
-    if not isinstance(field_mappings, dict):
-        logger.error("[Flow] Flow time: Invalid field mappings")
-        return _create_error_response(
-            "flow_time",
-            "calculation_error",
-            "Invalid field mappings configuration",
-            total_issue_count=len(issues),
-        )
-
-    try:
-        # Import changelog processor
-        from data.changelog_processor import get_first_status_transition_from_list
-
-        # Check required mappings
-        if "work_completed_date" not in field_mappings:
+    # Validate configuration based on mode
+    if not use_variable_extraction:
+        # Legacy mode: require field_mappings
+        if not isinstance(field_mappings, dict):
+            logger.error("[Flow] Flow time: Invalid field mappings")
             return _create_error_response(
                 "flow_time",
-                "missing_mapping",
-                "Missing required field mapping: work_completed_date",
+                "calculation_error",
+                "Invalid field mappings configuration",
+                total_issue_count=len(issues),
             )
+    else:
+        # Variable extraction mode: create extractor if not provided
+        if variable_extractor is None:
+            variable_extractor = VariableExtractor(DEFAULT_VARIABLE_COLLECTION)
 
-        # Load wip_statuses from configuration if not provided
-        if wip_statuses is None:
-            from configuration.metrics_config import get_metrics_config
+    try:
+        # Import changelog processor (used in legacy mode)
+        from data.changelog_processor import get_first_status_transition_from_list
 
-            config = get_metrics_config()
-            wip_statuses = config.get_wip_included_statuses()
-            if not wip_statuses:
+        # Initialize field variable for legacy mode
+        complete_field: Optional[str] = None
+
+        # Check required configuration based on mode
+        if not use_variable_extraction:
+            # Legacy mode: Check for required field mappings
+            if field_mappings is None or "work_completed_date" not in field_mappings:
                 return _create_error_response(
                     "flow_time",
-                    "missing_config",
-                    "Configure 'wip_statuses' in app_settings.json",
+                    "missing_mapping",
+                    "Missing required field mapping: work_completed_date",
                 )
 
-        complete_field = field_mappings["work_completed_date"]
+            complete_field = field_mappings["work_completed_date"]
+
+            # Load wip_statuses from configuration if not provided
+            if wip_statuses is None:
+                from configuration.metrics_config import get_metrics_config
+
+                config = get_metrics_config()
+                wip_statuses = config.get_wip_included_statuses()
+                if not wip_statuses:
+                    return _create_error_response(
+                        "flow_time",
+                        "missing_config",
+                        "Configure 'wip_statuses' in app_settings.json",
+                    )
 
         flow_times = []
         excluded_count = 0
         no_wip_transition_count = 0
 
         for issue in issues:
-            fields = issue.get("fields", {})
-
-            # Get work started date from CHANGELOG - first transition to any wip_statuses
-            work_started_result = get_first_status_transition_from_list(
-                issue, wip_statuses, case_sensitive=False
-            )
-
-            if not work_started_result:
-                # Issue never entered WIP statuses
-                no_wip_transition_count += 1
-                excluded_count += 1
-                continue
-
-            _, start_date = work_started_result  # Unpack (status_name, timestamp)
-
-            # Get completion date from field
-            complete_date_str = fields.get(complete_field)
-
-            if not complete_date_str:
-                excluded_count += 1
-                continue
-
-            try:
-                complete_date = datetime.fromisoformat(
-                    complete_date_str.replace("Z", "+00:00")
+            if use_variable_extraction:
+                # NEW: Variable extraction mode
+                variables = _extract_variables_from_issue(
+                    issue,
+                    ["work_started_timestamp", "work_completed_timestamp"],
+                    variable_extractor,
                 )
 
-                flow_time_days = (complete_date - start_date).total_seconds() / 86400
-                if flow_time_days >= 0:
-                    flow_times.append(flow_time_days)
-                else:
+                # Get work started timestamp
+                start_date_str = variables.get("work_started_timestamp")
+                if not start_date_str:
+                    no_wip_transition_count += 1
                     excluded_count += 1
-            except (ValueError, AttributeError):
-                excluded_count += 1
-                continue
+                    continue
+
+                # Get work completed timestamp
+                complete_date_str = variables.get("work_completed_timestamp")
+                if not complete_date_str:
+                    excluded_count += 1
+                    continue
+
+                # Parse dates
+                try:
+                    start_date = datetime.fromisoformat(
+                        start_date_str.replace("Z", "+00:00")
+                    )
+                    complete_date = datetime.fromisoformat(
+                        complete_date_str.replace("Z", "+00:00")
+                    )
+
+                    flow_time_days = (
+                        complete_date - start_date
+                    ).total_seconds() / 86400
+                    if flow_time_days >= 0:
+                        flow_times.append(flow_time_days)
+                    else:
+                        excluded_count += 1
+                except (ValueError, AttributeError):
+                    excluded_count += 1
+                    continue
+
+            else:
+                # LEGACY: Field mappings mode
+                # complete_field is guaranteed to be set by validation above
+                assert complete_field is not None
+                assert wip_statuses is not None
+
+                fields = issue.get("fields", {})
+
+                # Get work started date from CHANGELOG - first transition to any wip_statuses
+                work_started_result = get_first_status_transition_from_list(
+                    issue, wip_statuses, case_sensitive=False
+                )
+
+                if not work_started_result:
+                    # Issue never entered WIP statuses
+                    no_wip_transition_count += 1
+                    excluded_count += 1
+                    continue
+
+                _, start_date = work_started_result  # Unpack (status_name, timestamp)
+
+                # Get completion date from field
+                complete_date_str = fields.get(complete_field)
+
+                if not complete_date_str:
+                    excluded_count += 1
+                    continue
+
+                try:
+                    complete_date = datetime.fromisoformat(
+                        complete_date_str.replace("Z", "+00:00")
+                    )
+
+                    flow_time_days = (
+                        complete_date - start_date
+                    ).total_seconds() / 86400
+                    if flow_time_days >= 0:
+                        flow_times.append(flow_time_days)
+                    else:
+                        excluded_count += 1
+                except (ValueError, AttributeError):
+                    excluded_count += 1
+                    continue
 
         if not flow_times:
             error_details = []

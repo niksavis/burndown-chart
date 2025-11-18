@@ -8,7 +8,7 @@ import pytest
 from datetime import datetime, timezone
 from typing import Dict, Any, List
 
-from data.flow_calculator import calculate_flow_velocity
+from data.flow_calculator import calculate_flow_velocity, calculate_flow_time
 from data.variable_mapping.extractor import VariableExtractor
 from configuration.metric_variables import DEFAULT_VARIABLE_COLLECTION
 
@@ -180,6 +180,118 @@ class TestFlowVelocityWithVariableExtraction:
         # Assert - legacy mode may not find issues without proper config,
         # but should return valid response structure
         assert result["metric_name"] == "flow_velocity"
+        assert "error_state" in result
+        assert "value" in result
+        # Backward compatibility maintained: function accepts field_mappings
+        assert result["error_state"] in ["success", "no_data"]
+
+
+class TestFlowTimeWithVariableExtraction:
+    """Test calculate_flow_time with variable extraction mode."""
+
+    @pytest.fixture
+    def sample_issues_with_flow_time(self) -> List[Dict[str, Any]]:
+        """Create sample issues with work_started_timestamp and work_completed_timestamp."""
+        return [
+            {
+                "key": "PROJ-201",
+                "fields": {
+                    "status": {"name": "Done"},
+                    "issuetype": {"name": "Story"},
+                    "resolutiondate": "2025-01-20T10:00:00.000Z",
+                },
+                "changelog": {
+                    "histories": [
+                        {
+                            "created": "2025-01-10T09:00:00.000Z",
+                            "items": [
+                                {
+                                    "field": "status",
+                                    "fromString": "To Do",
+                                    "toString": "In Progress",
+                                }
+                            ],
+                        },
+                        {
+                            "created": "2025-01-20T10:00:00.000Z",
+                            "items": [
+                                {
+                                    "field": "status",
+                                    "fromString": "In Progress",
+                                    "toString": "Done",
+                                }
+                            ],
+                        },
+                    ]
+                },
+            },
+            {
+                "key": "PROJ-202",
+                "fields": {
+                    "status": {"name": "Done"},
+                    "issuetype": {"name": "Bug"},
+                    "resolutiondate": "2025-01-18T14:30:00.000Z",
+                },
+                "changelog": {
+                    "histories": [
+                        {
+                            "created": "2025-01-15T09:00:00.000Z",
+                            "items": [
+                                {
+                                    "field": "status",
+                                    "fromString": "To Do",
+                                    "toString": "In Progress",
+                                }
+                            ],
+                        },
+                        {
+                            "created": "2025-01-18T14:30:00.000Z",
+                            "items": [
+                                {
+                                    "field": "status",
+                                    "fromString": "In Progress",
+                                    "toString": "Done",
+                                }
+                            ],
+                        },
+                    ]
+                },
+            },
+        ]
+
+    def test_flow_time_with_variable_extraction(self, sample_issues_with_flow_time):
+        """Test flow time calculation using variable extraction mode."""
+        # Act
+        result = calculate_flow_time(
+            issues=sample_issues_with_flow_time,
+            use_variable_extraction=True,
+        )
+
+        # Assert
+        assert result["error_state"] == "success"
+        assert result["metric_name"] == "flow_time"
+        assert result["value"] > 0  # Should calculate flow time in days
+        assert result["unit"] == "days"
+        assert result["total_issue_count"] == 2
+
+    def test_flow_time_legacy_mode_still_works(self, sample_issues_with_flow_time):
+        """Test that legacy field_mappings mode still works (backward compatibility)."""
+        # Arrange
+        field_mappings = {
+            "work_completed_date": "resolutiondate",
+        }
+        wip_statuses = ["In Progress", "In Review"]
+
+        # Act
+        result = calculate_flow_time(
+            issues=sample_issues_with_flow_time,
+            field_mappings=field_mappings,
+            wip_statuses=wip_statuses,
+            use_variable_extraction=False,  # Explicit legacy mode
+        )
+
+        # Assert - legacy mode should work with proper configuration
+        assert result["metric_name"] == "flow_time"
         assert "error_state" in result
         assert "value" in result
         # Backward compatibility maintained: function accepts field_mappings
