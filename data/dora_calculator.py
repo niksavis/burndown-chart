@@ -943,24 +943,30 @@ def calculate_lead_time_for_changes(
 def calculate_change_failure_rate(
     deployment_issues: List[Dict[str, Any]],
     incident_issues: List[Dict[str, Any]],
-    field_mappings: Dict[str, str],
+    field_mappings: Optional[Dict[str, str]] = None,
     previous_period_value: Optional[float] = None,
     devops_projects: Optional[List[str]] = None,
     devops_task_types: Optional[List[str]] = None,
     bug_types: Optional[List[str]] = None,
     production_environment_values: Optional[List[str]] = None,
+    use_variable_extraction: bool = False,
+    variable_extractor: Optional[VariableExtractor] = None,
 ) -> Dict[str, Any]:
     """Calculate change failure rate metric.
+
+    Supports both legacy field_mappings and new variable extraction modes.
 
     Args:
         deployment_issues: List of deployment issue dictionaries from Jira (pre-filtered or mixed)
         incident_issues: List of incident issue dictionaries from Jira (pre-filtered or mixed)
-        field_mappings: Mapping of internal fields to Jira field IDs
+        field_mappings: (Legacy) Mapping of internal fields to Jira field IDs
         previous_period_value: Previous period's metric value for trend calculation
         devops_projects: List of DevOps project keys for filtering (e.g., ["DEVOPS"])
         devops_task_types: List of issue type names for DevOps tasks (backward compatible)
         bug_types: List of issue type names for bugs (backward compatible)
         production_environment_values: List of production environment identifiers (backward compatible)
+        use_variable_extraction: If True, use VariableExtractor instead of field_mappings
+        variable_extractor: Optional VariableExtractor instance (uses DEFAULT if None)
 
     Returns:
         Metric data dictionary with value, unit, performance tier, trend data, and metadata
@@ -987,53 +993,66 @@ def calculate_change_failure_rate(
             "trend_percentage": 0.0,
         }
 
-    if not isinstance(field_mappings, dict):
-        logger.error("[DORA] Change failure rate: Invalid field mappings")
-        return {
-            "metric_name": "change_failure_rate",
-            "value": None,
-            "unit": "%",
-            "error_state": "calculation_error",
-            "error_message": "Invalid field mappings configuration",
-            "performance_tier": None,
-            "performance_tier_color": None,
-            "total_deployment_count": len(deployment_issues)
-            if isinstance(deployment_issues, list)
-            else 0,
-            "total_incident_count": len(incident_issues)
-            if isinstance(incident_issues, list)
-            else 0,
-            "trend_direction": "stable",
-            "trend_percentage": 0.0,
-        }
+    # Validate configuration based on mode
+    if not use_variable_extraction:
+        # Legacy mode: require field_mappings
+        if not isinstance(field_mappings, dict):
+            logger.error("[DORA] Change failure rate: Invalid field mappings")
+            return {
+                "metric_name": "change_failure_rate",
+                "value": None,
+                "unit": "%",
+                "error_state": "calculation_error",
+                "error_message": "Invalid field mappings configuration",
+                "performance_tier": None,
+                "performance_tier_color": None,
+                "total_deployment_count": len(deployment_issues)
+                if isinstance(deployment_issues, list)
+                else 0,
+                "total_incident_count": len(incident_issues)
+                if isinstance(incident_issues, list)
+                else 0,
+                "trend_direction": "stable",
+                "trend_percentage": 0.0,
+            }
+    else:
+        # Variable extraction mode: create extractor if not provided
+        if variable_extractor is None:
+            variable_extractor = VariableExtractor(DEFAULT_VARIABLE_COLLECTION)
 
     # Filter issues if devops_projects is provided (support both pre-filtered and mixed inputs)
     if devops_projects:
         deployment_issues = filter_deployment_issues(
             deployment_issues, devops_projects, devops_task_types
         )
+        # Only access field_mappings if not None
+        production_env_field = (
+            field_mappings.get("affected_environment") if field_mappings else None
+        )
         incident_issues = filter_incident_issues(
             incident_issues,
             devops_projects,
-            production_environment_field=field_mappings.get("affected_environment"),
+            production_environment_field=production_env_field,
             production_environment_values=production_environment_values,
             bug_types=bug_types,
         )
-    # Check for required field mappings
-    if "deployment_date" not in field_mappings:
-        return {
-            "metric_name": "change_failure_rate",
-            "value": None,
-            "unit": "percentage",
-            "error_state": "missing_mapping",
-            "error_message": "Configure 'Deployment Date' field mapping",
-            "performance_tier": None,
-            "performance_tier_color": None,
-            "total_issue_count": len(deployment_issues) + len(incident_issues),
-            "excluded_issue_count": 0,
-            "trend_direction": "stable",
-            "trend_percentage": 0.0,
-        }
+    # Check for required configuration based on mode
+    if not use_variable_extraction:
+        # Legacy mode: Check for required field mappings
+        if field_mappings is None or "deployment_date" not in field_mappings:
+            return {
+                "metric_name": "change_failure_rate",
+                "value": None,
+                "unit": "percentage",
+                "error_state": "missing_mapping",
+                "error_message": "Configure 'Deployment Date' field mapping",
+                "performance_tier": None,
+                "performance_tier_color": None,
+                "total_issue_count": len(deployment_issues) + len(incident_issues),
+                "excluded_issue_count": 0,
+                "trend_direction": "stable",
+                "trend_percentage": 0.0,
+            }
 
     # Count total deployments
     deployment_count = len(deployment_issues)
@@ -1058,48 +1077,71 @@ def calculate_change_failure_rate(
             "trend_percentage": 0.0,
         }
 
-    # Check if change_failure field is mapped (preferred method)
-    change_failure_field = field_mappings.get("change_failure")
+    # Calculate failure count based on mode
     excluded_count = 0
 
-    if change_failure_field:
-        # Method 1: Use change_failure field on deployment issues
-        # Count deployments where change_failure = "Yes" (indicating production issue)
+    if use_variable_extraction:
+        # NEW: Variable extraction mode
+        # Check deployments for failures using is_deployment_failure variable
         failed_deployment_count = 0
 
         for issue in deployment_issues:
-            fields = issue.get("fields", {})
-            if _check_deployment_failed(fields, change_failure_field):
+            variables = _extract_variables_from_issue(
+                issue,
+                ["is_deployment_failure"],
+                variable_extractor,
+            )
+
+            if variables.get("is_deployment_failure"):
                 failed_deployment_count += 1
 
         failure_count = failed_deployment_count
         logger.debug(
-            f"[DORA] CFR using change_failure field: {failed_deployment_count}/{deployment_count} failed"
+            f"[DORA] CFR using variable extraction: {failed_deployment_count}/{deployment_count} failed"
         )
     else:
-        # Method 2: Fallback to incident-based calculation
-        # Count production incidents
-        production_impact_field = field_mappings.get("production_impact")
-        incident_count = 0
+        # LEGACY: Field mappings mode
+        # Check if change_failure field is mapped (preferred method)
+        change_failure_field = field_mappings.get("change_failure")  # type: ignore[union-attr]
 
-        for issue in incident_issues:
-            fields = issue.get("fields", {})
+        if change_failure_field:
+            # Method 1: Use change_failure field on deployment issues
+            # Count deployments where change_failure = "Yes" (indicating production issue)
+            failed_deployment_count = 0
 
-            # If production_impact field is mapped, only count incidents with impact
-            if production_impact_field:
-                has_impact = fields.get(production_impact_field)
-                if has_impact:
-                    incident_count += 1
+            for issue in deployment_issues:
+                fields = issue.get("fields", {})
+                if _check_deployment_failed(fields, change_failure_field):
+                    failed_deployment_count += 1
+
+            failure_count = failed_deployment_count
+            logger.debug(
+                f"[DORA] CFR using change_failure field: {failed_deployment_count}/{deployment_count} failed"
+            )
+        else:
+            # Method 2: Fallback to incident-based calculation
+            # Count production incidents
+            production_impact_field = field_mappings.get("production_impact")  # type: ignore[union-attr]
+            incident_count = 0
+
+            for issue in incident_issues:
+                fields = issue.get("fields", {})
+
+                # If production_impact field is mapped, only count incidents with impact
+                if production_impact_field:
+                    has_impact = fields.get(production_impact_field)
+                    if has_impact:
+                        incident_count += 1
+                    else:
+                        excluded_count += 1
                 else:
-                    excluded_count += 1
-            else:
-                # If not mapped, count all incidents
-                incident_count += 1
+                    # If not mapped, count all incidents
+                    incident_count += 1
 
-        failure_count = incident_count
-        logger.debug(
-            f"[DORA] CFR using incidents: {incident_count} incidents, {deployment_count} deployments, field: {production_impact_field}"
-        )
+            failure_count = incident_count
+            logger.debug(
+                f"[DORA] CFR using incidents: {incident_count} incidents, {deployment_count} deployments, field: {production_impact_field}"
+            )
 
     # Calculate failure rate percentage
     failure_rate = (failure_count / deployment_count) * 100

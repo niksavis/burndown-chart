@@ -455,3 +455,108 @@ class TestLeadTimeWithVariableExtraction:
         assert result["value"] > 0
         assert result["error_state"] == "success"
         assert result["performance_tier"] in ["Elite", "High", "Medium", "Low"]
+
+
+class TestChangeFailureRateWithVariableExtraction:
+    """Test change failure rate with variable extraction mode."""
+
+    def test_change_failure_rate_with_variable_extraction(self):
+        """Test CFR calculation using variable extraction."""
+        from data.dora_calculator import calculate_change_failure_rate
+        from datetime import datetime, timezone
+
+        # Create deployment issues - some successful, some failed
+        deployment_issues = [
+            {
+                "key": "DEPLOY-1",
+                "fields": {
+                    "project": {"key": "DEPLOY"},
+                    "issuetype": {"name": "Task"},
+                    "status": {"name": "Done"},
+                    "labels": ["production-failure"],  # Indicates deployment failure
+                },
+            },
+            {
+                "key": "DEPLOY-2",
+                "fields": {
+                    "project": {"key": "DEPLOY"},
+                    "issuetype": {"name": "Task"},
+                    "status": {"name": "Done"},
+                    # No failure label - successful deployment
+                },
+            },
+            {
+                "key": "DEPLOY-3",
+                "fields": {
+                    "project": {"key": "DEPLOY"},
+                    "issuetype": {"name": "Task"},
+                    "status": {"name": "Done"},
+                    # Successful deployment
+                },
+            },
+        ]
+
+        # Incident issues (not used in this mode - deployments tracked directly)
+        incident_issues = []
+
+        # Calculate using variable extraction mode
+        result = calculate_change_failure_rate(
+            deployment_issues=deployment_issues,
+            incident_issues=incident_issues,
+            use_variable_extraction=True,
+        )
+
+        # Verify result
+        assert result["value"] is not None
+        assert result["value"] >= 0  # Should be percentage
+        assert result["unit"] == "percentage"
+        assert result["error_state"] == "success"
+        assert result["performance_tier"] in ["Elite", "High", "Medium", "Low"]
+
+    def test_change_failure_rate_legacy_mode_still_works(self):
+        """Test that legacy field_mappings mode still works after refactoring."""
+        from data.dora_calculator import calculate_change_failure_rate
+        from datetime import datetime, timezone
+
+        # Create deployment issues with legacy field structure
+        deployment_issues = [
+            {
+                "key": "DEPLOY-1",
+                "fields": {
+                    "project": {"key": "DEPLOY"},
+                    "issuetype": {"name": "Task"},
+                    "status": {"name": "Done"},
+                    "customfield_10002": "Yes",  # Change failure field
+                },
+            },
+            {
+                "key": "DEPLOY-2",
+                "fields": {
+                    "project": {"key": "DEPLOY"},
+                    "issuetype": {"name": "Task"},
+                    "status": {"name": "Done"},
+                    "customfield_10002": "No",  # No failure
+                },
+            },
+        ]
+
+        incident_issues = []
+
+        field_mappings = {
+            "deployment_date": "fixVersions",
+            "change_failure": "customfield_10002",
+        }
+
+        # Calculate using legacy mode
+        result = calculate_change_failure_rate(
+            deployment_issues=deployment_issues,
+            incident_issues=incident_issues,
+            field_mappings=field_mappings,
+            use_variable_extraction=False,
+        )
+
+        # Verify backward compatibility
+        assert result["value"] is not None
+        assert result["value"] >= 0
+        assert result["error_state"] == "success"
+        assert result["performance_tier"] in ["Elite", "High", "Medium", "Low"]
