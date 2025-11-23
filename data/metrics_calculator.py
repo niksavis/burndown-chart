@@ -263,21 +263,41 @@ def calculate_and_save_weekly_metrics(
             + (" (running total)" if is_current_week else "")
             + "..."
         )
-        issues_completed_this_week = []
-        for issue in all_issues:
-            completion_timestamp = None
-            for status in completion_statuses:
-                timestamp = get_first_status_transition_timestamp(issue, status)
-                if timestamp:
-                    # Convert to UTC before stripping timezone (don't just strip!)
-                    timestamp = timestamp.astimezone(timezone.utc).replace(tzinfo=None)
-                    if completion_timestamp is None or timestamp < completion_timestamp:
-                        completion_timestamp = timestamp
 
-            if (
-                completion_timestamp
-                and week_start <= completion_timestamp < completion_cutoff
-            ):
+        # FEATURE 012: Use variable extraction to find completed issues
+        # This replaces hardcoded status checking with flexible variable extraction
+        from data.variable_mapping.extractor import VariableExtractor
+        from configuration.metric_variables import DEFAULT_VARIABLE_COLLECTION
+
+        extractor = VariableExtractor(DEFAULT_VARIABLE_COLLECTION)
+        issues_completed_this_week = []
+
+        for issue in all_issues:
+            # Extract completion timestamp using variable extraction
+            # This supports multiple sources: changelog transitions, resolutiondate field, etc.
+            changelog = issue.get("changelog", {}).get("histories", [])
+            result = extractor.extract_variable(
+                "work_completed_timestamp", issue, changelog
+            )
+
+            if not result["found"]:
+                continue
+
+            # Parse completion timestamp
+            try:
+                completion_timestamp = datetime.fromisoformat(
+                    result["value"].replace("Z", "+00:00")
+                )
+                # Normalize to naive UTC for comparison
+                if completion_timestamp.tzinfo is not None:
+                    completion_timestamp = completion_timestamp.astimezone(
+                        timezone.utc
+                    ).replace(tzinfo=None)
+            except (ValueError, AttributeError, TypeError):
+                continue
+
+            # Check if completion falls within this week's boundaries
+            if week_start <= completion_timestamp < completion_cutoff:
                 issues_completed_this_week.append(issue)
 
         logger.info(
@@ -296,7 +316,6 @@ def calculate_and_save_weekly_metrics(
             flow_time_result = calculate_flow_time(
                 issues_completed_this_week,  # Only issues completed this week
                 field_mappings=field_mappings,
-                time_period_days=7,  # Weekly calculation
                 # use_variable_extraction=True by default (Phase 3)
             )
         else:
@@ -314,7 +333,6 @@ def calculate_and_save_weekly_metrics(
             efficiency_result = calculate_flow_efficiency(
                 issues_completed_this_week,  # Only issues completed this week
                 field_mappings=field_mappings,
-                time_period_days=7,  # Weekly calculation
                 # use_variable_extraction=True by default (Phase 3)
             )
         else:
