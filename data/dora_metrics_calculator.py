@@ -13,11 +13,7 @@ from datetime import datetime, timezone
 from typing import Tuple, Optional, List, Dict, Any
 
 from data.dora_calculator import (
-    calculate_deployment_frequency_v2,
-    calculate_lead_time_for_changes_v2,
-    calculate_change_failure_rate_v2,
-    calculate_mttr_v2,
-    # Feature 012 - Variable extraction dual-mode functions
+    # Feature 012 - Variable extraction dual-mode functions (use these!)
     calculate_deployment_frequency,
     calculate_lead_time_for_changes,
     calculate_change_failure_rate,
@@ -68,21 +64,22 @@ def calculate_and_save_dora_weekly_metrics(
             f"Week {week_label}: Calculating deployment frequency with {len(operational_tasks)} "
             f"operational tasks from {start_date.date()} to {end_date.date()}"
         )
-        deployment_freq = calculate_deployment_frequency_v2(
+        deployment_freq = calculate_deployment_frequency(
             operational_tasks,
-            start_date=start_date,
-            end_date=end_date,
+            field_mappings=field_mappings,
+            time_period_days=7,  # Weekly calculation
+            # use_variable_extraction=True by default (Phase 3)
         )
         logger.info(
             f"Week {week_label}: Deployment frequency result: {deployment_freq.get('deployment_count', 0)} deployments"
         )
 
         # Calculate Lead Time for Changes
-        lead_time = calculate_lead_time_for_changes_v2(
+        lead_time = calculate_lead_time_for_changes(
             development_issues,
-            operational_tasks,
-            start_date=start_date,
-            end_date=end_date,
+            field_mappings=field_mappings,
+            time_period_days=7,  # Weekly calculation
+            # use_variable_extraction=True by default (Phase 3)
         )
 
         if lead_time.get("median_hours") is None:
@@ -92,33 +89,20 @@ def calculate_and_save_dora_weekly_metrics(
             )
 
         # Calculate Change Failure Rate
-        change_failure_field = field_mappings.get("change_failure")
-        if not change_failure_field:
-            logger.warning("change_failure field not configured, using placeholder")
-            change_failure_field = "customfield_XXXXX"
-
-        cfr = calculate_change_failure_rate_v2(
+        cfr = calculate_change_failure_rate(
             operational_tasks,
-            change_failure_field_id=change_failure_field,
-            start_date=start_date,
-            end_date=end_date,
+            production_bugs,  # Also pass bugs for incident correlation
+            field_mappings=field_mappings,
+            time_period_days=7,  # Weekly calculation
+            # use_variable_extraction=True by default (Phase 3)
         )
 
         # Calculate MTTR
-        affected_env_field = field_mappings.get("affected_environment")
-        if not affected_env_field:
-            logger.warning(
-                "affected_environment field not configured, using placeholder"
-            )
-            affected_env_field = "customfield_XXXXX"
-
-        mttr = calculate_mttr_v2(
+        mttr = calculate_mean_time_to_recovery(
             production_bugs,
-            operational_tasks,
-            affected_environment_field_id=affected_env_field,
-            production_value=production_value,
-            start_date=start_date,
-            end_date=end_date,
+            field_mappings=field_mappings,
+            time_period_days=7,  # Weekly calculation
+            # use_variable_extraction=True by default (Phase 3)
         )
 
         # Save each metric to snapshots

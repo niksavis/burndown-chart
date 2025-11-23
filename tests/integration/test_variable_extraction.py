@@ -276,9 +276,10 @@ class TestBatchExtraction:
         # Variables that match fixture should be present
         assert "project_key" in results
 
-        # Variables that require specific changelog events won't be present
-        # (work_started_timestamp needs "In Progress" transition)
-        assert "work_started_timestamp" not in results
+        # Feature 012 - work_started_timestamp now has fallback to created field
+        # So it WILL be present even without "In Progress" transition
+        assert "work_started_timestamp" in results
+        assert results["work_started_timestamp"] == "2025-01-05T12:00:00.000Z"  # From created field
 
 
 class TestMissingDataHandling:
@@ -290,9 +291,10 @@ class TestMissingDataHandling:
         """Test that variables not matching any source return found=False."""
         extractor = VariableExtractor(DEFAULT_VARIABLE_COLLECTION)
 
-        # Try to extract Flow variable from deployment issue (won't match)
+        # Feature 012 - work_started_timestamp now has fallback to created field
+        # Try a variable that truly has no source in the fixture
         result = extractor.extract_variable(
-            "work_started_timestamp", deployment_issue_matching_defaults
+            "active_time", deployment_issue_matching_defaults
         )
 
         # Should return structured response with found=False
