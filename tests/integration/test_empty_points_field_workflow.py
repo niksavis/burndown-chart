@@ -19,31 +19,60 @@ This test verifies the fix works correctly.
 import unittest
 import tempfile
 import os
+from pathlib import Path
 from unittest.mock import patch
 from data.persistence import (
     update_project_scope_from_jira,
     get_project_scope,
     save_unified_project_data,
 )
+from data.profile_manager import (
+    create_profile,
+    switch_profile,
+)
+from data.query_manager import create_query
 
 
 class TestEmptyPointsFieldCachingWorkflow(unittest.TestCase):
     """Test empty points field caching workflow scenarios."""
 
     def setUp(self):
-        """Set up temporary project data file."""
+        """Set up temporary project data file and profile context."""
+        # Create temporary project data file
         self.temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".json")
         self.temp_file.close()
 
-        # Mock the project data file path
-        self.patcher = patch("data.persistence.PROJECT_DATA_FILE", self.temp_file.name)
-        self.patcher.start()
+        # Mock the project data file path (but NOT the profiles directory)
+        self.patcher_data = patch(
+            "data.persistence.PROJECT_DATA_FILE", self.temp_file.name
+        )
+        self.patcher_data.start()
+
+        # Create test profile and query (uses real profiles/ directory)
+        self.test_profile_id = create_profile(
+            "Empty Points Test Profile",
+            {"jira_config": {"configured": True}},  # Required for query creation
+        )
+        self.test_query_name = "main"
+        self.test_query_id = create_query(
+            self.test_profile_id, self.test_query_name, "project = TEST"
+        )
+
+        # Switch to profile (automatically sets active query to the newly created one)
+        switch_profile(self.test_profile_id)
 
     def tearDown(self):
-        """Clean up temporary files."""
-        self.patcher.stop()
+        """Clean up temporary files and test profile."""
+        self.patcher_data.stop()
         if os.path.exists(self.temp_file.name):
             os.unlink(self.temp_file.name)
+        # Clean up test profile (uses real profiles/ directory)
+        from data.profile_manager import delete_profile
+
+        try:
+            delete_profile(self.test_profile_id)
+        except Exception:
+            pass  # Ignore cleanup errors
 
     def test_empty_points_field_workflow_fix(self):
         """
