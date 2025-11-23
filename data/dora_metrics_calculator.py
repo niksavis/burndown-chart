@@ -17,6 +17,11 @@ from data.dora_calculator import (
     calculate_lead_time_for_changes_v2,
     calculate_change_failure_rate_v2,
     calculate_mttr_v2,
+    # Feature 012 - Variable extraction dual-mode functions
+    calculate_deployment_frequency,
+    calculate_lead_time_for_changes,
+    calculate_change_failure_rate,
+    calculate_mean_time_to_recovery,
 )
 from data.metrics_snapshots import save_metric_snapshot, get_metric_snapshot
 from data.iso_week_bucketing import get_last_n_weeks
@@ -414,3 +419,128 @@ def load_dora_metrics_from_cache(n_weeks: int = 12) -> Optional[Dict[str, Any]]:
     except Exception as e:
         logger.error(f"Error loading DORA metrics from cache: {e}", exc_info=True)
         return None
+
+
+def calculate_and_save_dora_metrics_with_variable_extraction(
+    week_label: str,
+    monday,  # date object from get_last_n_weeks
+    sunday,  # date object from get_last_n_weeks
+    all_issues: List[Dict],
+    field_mappings: Dict[str, str],
+) -> Tuple[bool, str]:
+    """Calculate DORA metrics using Feature 012 variable extraction.
+
+    Args:
+        week_label: ISO week label (e.g., "2025-45")
+        monday: Week start date (date object)
+        sunday: Week end date (date object)
+        all_issues: ALL JIRA issues (not pre-filtered)
+        field_mappings: JIRA field mappings from settings (for fallback/compatibility)
+
+    Returns:
+        Tuple of (success, message)
+    """
+    try:
+        # Convert date to datetime for time_period_days calculation
+        start_date = datetime.combine(monday, datetime.min.time()).replace(
+            tzinfo=timezone.utc
+        )
+        end_date = datetime.combine(sunday, datetime.max.time()).replace(
+            tzinfo=timezone.utc
+        )
+        time_period_days = (end_date - start_date).days
+
+        logger.info(
+            f"[Feature 012] Week {week_label}: Calculating DORA metrics with variable extraction "
+            f"({len(all_issues)} issues, {time_period_days} days)"
+        )
+
+        # Calculate Deployment Frequency (variable extraction mode)
+        deployment_freq = calculate_deployment_frequency(
+            all_issues,
+            field_mappings,
+            time_period_days=time_period_days,
+            previous_period_value=None,
+            use_variable_extraction=True,  # <-- Feature 012 enabled
+        )
+        logger.info(
+            f"[Feature 012] Week {week_label}: Deployment frequency = {deployment_freq.get('value', 0)}"
+        )
+
+        # Calculate Lead Time for Changes (variable extraction mode)
+        lead_time = calculate_lead_time_for_changes(
+            all_issues,
+            field_mappings,
+            time_period_days=time_period_days,
+            previous_period_value=None,
+            use_variable_extraction=True,  # <-- Feature 012 enabled
+        )
+
+        # Calculate Change Failure Rate (variable extraction mode)
+        cfr = calculate_change_failure_rate(
+            all_issues,
+            None,  # incident_issues not needed with variable extraction
+            field_mappings,
+            time_period_days=time_period_days,
+            previous_period_value=None,
+            use_variable_extraction=True,  # <-- Feature 012 enabled
+        )
+
+        # Calculate MTTR (variable extraction mode)
+        mttr = calculate_mean_time_to_recovery(
+            all_issues,
+            field_mappings,
+            time_period_days=time_period_days,
+            previous_period_value=None,
+            use_variable_extraction=True,  # <-- Feature 012 enabled
+        )
+
+        # Save metrics to snapshots (same format as v2 functions)
+        save_metric_snapshot(
+            week_label,
+            "dora_deployment_frequency",
+            {
+                "deployment_count": deployment_freq.get("value", 0),
+                "week_label": week_label,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            },
+        )
+
+        save_metric_snapshot(
+            week_label,
+            "dora_lead_time",
+            {
+                "median_hours": lead_time.get(
+                    "value"
+                ),  # Variable extraction returns days
+                "week_label": week_label,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            },
+        )
+
+        save_metric_snapshot(
+            week_label,
+            "dora_change_failure_rate",
+            {
+                "change_failure_rate_percent": cfr.get("value", 0),
+                "week_label": week_label,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            },
+        )
+
+        save_metric_snapshot(
+            week_label,
+            "dora_mttr",
+            {
+                "median_hours": mttr.get("value"),  # Variable extraction returns hours
+                "week_label": week_label,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            },
+        )
+
+        return True, f"Week {week_label} calculated successfully (variable extraction)"
+
+    except Exception as e:
+        error_msg = f"Error calculating DORA metrics for {week_label}: {str(e)}"
+        logger.error(error_msg, exc_info=True)
+        return False, error_msg

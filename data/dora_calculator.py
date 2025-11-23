@@ -418,7 +418,7 @@ def calculate_deployment_frequency(
     devops_projects: Optional[List[str]] = None,
     development_projects: Optional[List[str]] = None,
     devops_task_types: Optional[List[str]] = None,
-    use_variable_extraction: bool = False,
+    use_variable_extraction: bool = True,  # Feature 012: Variable extraction enabled by default
     variable_extractor: Optional[VariableExtractor] = None,
 ) -> Dict[str, Any]:
     """Calculate deployment frequency metric.
@@ -686,7 +686,7 @@ def calculate_lead_time_for_changes(
     previous_period_value: Optional[float] = None,
     devops_projects: Optional[List[str]] = None,
     active_statuses: Optional[List[str]] = None,
-    use_variable_extraction: bool = False,
+    use_variable_extraction: bool = True,  # Feature 012: Variable extraction enabled by default
     variable_extractor: Optional[VariableExtractor] = None,
 ) -> Dict[str, Any]:
     """Calculate lead time for changes metric.
@@ -949,7 +949,7 @@ def calculate_change_failure_rate(
     devops_task_types: Optional[List[str]] = None,
     bug_types: Optional[List[str]] = None,
     production_environment_values: Optional[List[str]] = None,
-    use_variable_extraction: bool = False,
+    use_variable_extraction: bool = True,  # Feature 012: Variable extraction enabled by default
     variable_extractor: Optional[VariableExtractor] = None,
 ) -> Dict[str, Any]:
     """Calculate change failure rate metric.
@@ -1179,7 +1179,7 @@ def calculate_mean_time_to_recovery(
     previous_period_value: Optional[float] = None,
     devops_projects: Optional[List[str]] = None,
     operational_tasks: Optional[List[Dict[str, Any]]] = None,
-    use_variable_extraction: bool = False,
+    use_variable_extraction: bool = True,  # Feature 012: Variable extraction enabled by default
     variable_extractor: Optional[VariableExtractor] = None,
 ) -> Dict[str, Any]:
     """Calculate mean time to recovery (MTTR) metric with two-mode calculation.

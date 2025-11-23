@@ -153,7 +153,7 @@ def calculate_flow_velocity(
     start_date: Optional[datetime] = None,
     end_date: Optional[datetime] = None,
     previous_period_value: Optional[float] = None,
-    use_variable_extraction: bool = False,
+    use_variable_extraction: bool = True,  # Feature 012: Variable extraction enabled by default
     variable_extractor: Optional[VariableExtractor] = None,
 ) -> Dict[str, Any]:
     """Calculate Flow Velocity - number of completed items per period.
@@ -361,7 +361,7 @@ def calculate_flow_time(
     previous_period_value: Optional[float] = None,
     wip_statuses: Optional[List[str]] = None,
     completion_statuses: Optional[List[str]] = None,
-    use_variable_extraction: bool = False,
+    use_variable_extraction: bool = True,  # Feature 012: Variable extraction enabled by default
     variable_extractor: Optional[VariableExtractor] = None,
 ) -> Dict[str, Any]:
     """Calculate Flow Time - average time from WIP start to completion.
@@ -580,7 +580,7 @@ def calculate_flow_efficiency(
     previous_period_value: Optional[float] = None,
     active_statuses: Optional[List[str]] = None,
     wip_statuses: Optional[List[str]] = None,
-    use_variable_extraction: bool = False,
+    use_variable_extraction: bool = True,  # Feature 012: Variable extraction enabled by default
     variable_extractor: Optional[VariableExtractor] = None,
 ) -> Dict[str, Any]:
     """Calculate Flow Efficiency - ratio of active work time to total WIP time.
@@ -801,7 +801,7 @@ def calculate_flow_load(
     issues: List[Dict],
     field_mappings: Optional[Dict[str, str]] = None,
     previous_period_value: Optional[float] = None,
-    use_variable_extraction: bool = False,
+    use_variable_extraction: bool = True,  # Feature 012: Variable extraction enabled by default
     variable_extractor: Optional[VariableExtractor] = None,
 ) -> Dict[str, Any]:
     """Calculate Flow Load - current work-in-progress count.
@@ -951,7 +951,7 @@ def calculate_flow_distribution(
     start_date: Optional[datetime] = None,
     end_date: Optional[datetime] = None,
     previous_period_value: Optional[float] = None,
-    use_variable_extraction: bool = False,
+    use_variable_extraction: bool = True,  # Feature 012: Variable extraction enabled by default
     variable_extractor: Optional[VariableExtractor] = None,
 ) -> Dict[str, Any]:
     """Calculate Flow Distribution - percentage breakdown by work type.
