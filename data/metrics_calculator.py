@@ -290,9 +290,9 @@ def calculate_and_save_weekly_metrics(
         if changelog_available:
             report_progress("📊 Calculating Flow Time metric...")
             from data.flow_calculator import calculate_flow_time
-            from data.field_mapper import get_field_mappings
+            from data.field_mapper import load_field_mappings
 
-            field_mappings = get_field_mappings()
+            field_mappings = load_field_mappings()
             flow_time_result = calculate_flow_time(
                 issues_completed_this_week,  # Only issues completed this week
                 field_mappings=field_mappings,
@@ -308,9 +308,9 @@ def calculate_and_save_weekly_metrics(
         if changelog_available:
             report_progress("📊 Calculating Flow Efficiency metric...")
             from data.flow_calculator import calculate_flow_efficiency
-            from data.field_mapper import get_field_mappings
+            from data.field_mapper import load_field_mappings
 
-            field_mappings = get_field_mappings()
+            field_mappings = load_field_mappings()
             efficiency_result = calculate_flow_efficiency(
                 issues_completed_this_week,  # Only issues completed this week
                 field_mappings=field_mappings,
@@ -712,9 +712,9 @@ def calculate_and_save_weekly_metrics(
 
             # Calculate Lead Time for Changes (Feature 012 - variable extraction)
             try:
-                from data.field_mapper import get_field_mappings
+                from data.field_mapper import load_field_mappings
 
-                field_mappings = get_field_mappings()
+                field_mappings = load_field_mappings()
                 lead_time_result = calculate_lead_time_for_changes(
                     development_issues,
                     operational_tasks,  # Still pass for backward compatibility
@@ -842,10 +842,10 @@ def calculate_and_save_weekly_metrics(
             # Calculate Change Failure Rate
             try:
                 from data.dora_calculator import calculate_change_failure_rate
-                from data.field_mapper import get_field_mappings
+                from data.field_mapper import load_field_mappings
 
                 # Get required field mappings
-                field_mappings = get_field_mappings()
+                field_mappings = load_field_mappings()
                 change_failure_field = field_mappings.get("change_failure")
 
                 if not change_failure_field:
@@ -928,10 +928,10 @@ def calculate_and_save_weekly_metrics(
             # Calculate Mean Time To Recovery (MTTR)
             try:
                 from data.dora_calculator import calculate_mean_time_to_recovery
-                from data.field_mapper import get_field_mappings
+                from data.field_mapper import load_field_mappings
 
                 # Get required field mappings
-                field_mappings = get_field_mappings()
+                field_mappings = load_field_mappings()
                 affected_env_field = field_mappings.get("affected_environment")
                 production_value = app_settings.get(
                     "production_environment_values", ["PROD"]
@@ -1024,9 +1024,9 @@ def calculate_and_save_weekly_metrics(
 
             # Calculate Lead Time for Changes (Feature 012 - variable extraction)
             try:
-                from data.field_mapper import get_field_mappings
+                from data.field_mapper import load_field_mappings
 
-                field_mappings = get_field_mappings()
+                field_mappings = load_field_mappings()
                 lead_time_result = calculate_lead_time_for_changes(
                     development_issues,
                     operational_tasks,  # Still pass for backward compatibility
@@ -1144,9 +1144,9 @@ def calculate_and_save_weekly_metrics(
             # Calculate Change Failure Rate (MODE 2)
             try:
                 from data.dora_calculator import calculate_change_failure_rate
-                from data.field_mapper import get_field_mappings
+                from data.field_mapper import load_field_mappings
 
-                field_mappings = get_field_mappings()
+                field_mappings = load_field_mappings()
                 change_failure_field = field_mappings.get("change_failure")
 
                 if not change_failure_field:
@@ -1221,9 +1221,9 @@ def calculate_and_save_weekly_metrics(
             # Calculate Mean Time To Recovery (MTTR) (MODE 2)
             try:
                 from data.dora_calculator import calculate_mean_time_to_recovery
-                from data.field_mapper import get_field_mappings
+                from data.field_mapper import load_field_mappings
 
-                field_mappings = get_field_mappings()
+                field_mappings = load_field_mappings()
                 affected_env_field = field_mappings.get("affected_environment")
                 production_values = app_settings.get(
                     "production_environment_values", ["PROD"]
