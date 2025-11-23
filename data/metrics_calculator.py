@@ -449,18 +449,19 @@ def calculate_and_save_weekly_metrics(
         if flow_time_result is not None:
             flow_time_error = flow_time_result.get("error_state")
             if flow_time_error == "success":
-                # Convert hours to days for consistency
-                total_flow_time = flow_time_result.get("total_flow_time", {})
-                median_hours = total_flow_time.get("median_hours", 0)
-                mean_hours = total_flow_time.get("mean_hours", 0)
-                completed = total_flow_time.get("count", 0)
+                # Feature 012: v3 function returns flat structure with value in days (not nested total_flow_time)
+                # Extract metrics from flat result structure
+                median_days = flow_time_result.get("median_days", 0)
+                avg_days = flow_time_result.get("avg_days", 0)
+                p85_days = flow_time_result.get("p85_days", 0)
+                completed = flow_time_result.get(
+                    "total_issue_count", 0
+                ) - flow_time_result.get("excluded_issue_count", 0)
 
                 flow_time_snapshot = {
-                    "median_days": (median_hours / 24) if median_hours else 0,
-                    "avg_days": (mean_hours / 24) if mean_hours else 0,
-                    "p85_days": (total_flow_time.get("p95_hours", 0) / 24)
-                    if total_flow_time.get("p95_hours")
-                    else 0,
+                    "median_days": median_days,
+                    "avg_days": avg_days,
+                    "p85_days": p85_days,
                     "completed_count": completed,
                 }
                 save_metric_snapshot(week_label, "flow_time", flow_time_snapshot)
@@ -733,11 +734,11 @@ def calculate_and_save_weekly_metrics(
                 from data.field_mapper import load_field_mappings
 
                 field_mappings = load_field_mappings()
+                # Feature 012: v3 function takes single 'issues' parameter
+                all_issues_for_lead_time = development_issues + operational_tasks
                 lead_time_result = calculate_lead_time_for_changes(
-                    development_issues,
-                    operational_tasks,  # Still pass for backward compatibility
+                    all_issues_for_lead_time,
                     field_mappings=field_mappings,
-                    time_period_days=7,  # Weekly calculation
                     # use_variable_extraction=True by default (Phase 3)
                 )
 
@@ -1045,11 +1046,11 @@ def calculate_and_save_weekly_metrics(
                 from data.field_mapper import load_field_mappings
 
                 field_mappings = load_field_mappings()
+                # Feature 012: v3 function takes single 'issues' parameter
+                all_issues_for_lead_time = development_issues + operational_tasks
                 lead_time_result = calculate_lead_time_for_changes(
-                    development_issues,
-                    operational_tasks,  # Still pass for backward compatibility
+                    all_issues_for_lead_time,
                     field_mappings=field_mappings,
-                    time_period_days=7,  # Weekly calculation
                     # use_variable_extraction=True by default (Phase 3)
                 )
 
