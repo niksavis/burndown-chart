@@ -279,7 +279,9 @@ class TestBatchExtraction:
         # Feature 012 - work_started_timestamp now has fallback to created field
         # So it WILL be present even without "In Progress" transition
         assert "work_started_timestamp" in results
-        assert results["work_started_timestamp"] == "2025-01-05T12:00:00.000Z"  # From created field
+        assert (
+            results["work_started_timestamp"] == "2025-01-05T12:00:00.000Z"
+        )  # From created field
 
 
 class TestMissingDataHandling:

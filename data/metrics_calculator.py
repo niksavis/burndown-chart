@@ -285,33 +285,37 @@ def calculate_and_save_weekly_metrics(
             + (" (running total)" if is_current_week else " (full week)")
         )
 
-        # Calculate Flow Time using existing v2 function (for issues completed this week)
+        # Calculate Flow Time using dual-mode function (Feature 012 - variable extraction)
         # REQUIRES CHANGELOG DATA - skip if not available
         if changelog_available:
             report_progress("📊 Calculating Flow Time metric...")
-            from data.flow_calculator import calculate_flow_time_v2
+            from data.flow_calculator import calculate_flow_time
+            from data.field_mapper import get_field_mappings
 
-            flow_time_result = calculate_flow_time_v2(
+            field_mappings = get_field_mappings()
+            flow_time_result = calculate_flow_time(
                 issues_completed_this_week,  # Only issues completed this week
-                start_statuses,
-                completion_statuses,
-                active_statuses,
+                field_mappings=field_mappings,
+                time_period_days=7,  # Weekly calculation
+                # use_variable_extraction=True by default (Phase 3)
             )
         else:
             logger.info("Skipping Flow Time (requires changelog data)")
             flow_time_result = None
 
-        # Calculate Flow Efficiency using existing v2 function (for issues completed this week)
+        # Calculate Flow Efficiency using dual-mode function (Feature 012 - variable extraction)
         # REQUIRES CHANGELOG DATA - skip if not available
         if changelog_available:
             report_progress("📊 Calculating Flow Efficiency metric...")
-            from data.flow_calculator import calculate_flow_efficiency_v2
+            from data.flow_calculator import calculate_flow_efficiency
+            from data.field_mapper import get_field_mappings
 
-            efficiency_result = calculate_flow_efficiency_v2(
+            field_mappings = get_field_mappings()
+            efficiency_result = calculate_flow_efficiency(
                 issues_completed_this_week,  # Only issues completed this week
-                start_statuses,
-                completion_statuses,
-                active_statuses,
+                field_mappings=field_mappings,
+                time_period_days=7,  # Weekly calculation
+                # use_variable_extraction=True by default (Phase 3)
             )
         else:
             logger.info("Skipping Flow Efficiency (requires changelog data)")
@@ -645,7 +649,7 @@ def calculate_and_save_weekly_metrics(
         )
 
         from data.dora_calculator import (
-            calculate_lead_time_for_changes_v2,
+            calculate_lead_time_for_changes,  # Feature 012 - dual-mode with variable extraction
             aggregate_deployment_frequency_weekly,
         )
         from data.project_filter import (
@@ -706,13 +710,17 @@ def calculate_and_save_weekly_metrics(
             )
             logger.info(f"Week {week_label} boundaries: {week_start} to {week_end}")
 
-            # Calculate Lead Time for Changes
+            # Calculate Lead Time for Changes (Feature 012 - variable extraction)
             try:
-                lead_time_result = calculate_lead_time_for_changes_v2(
+                from data.field_mapper import get_field_mappings
+
+                field_mappings = get_field_mappings()
+                lead_time_result = calculate_lead_time_for_changes(
                     development_issues,
-                    operational_tasks,
-                    start_date=week_start,
-                    end_date=week_end,
+                    operational_tasks,  # Still pass for backward compatibility
+                    field_mappings=field_mappings,
+                    time_period_days=7,  # Weekly calculation
+                    # use_variable_extraction=True by default (Phase 3)
                 )
 
                 # Log exclusion details
@@ -833,9 +841,11 @@ def calculate_and_save_weekly_metrics(
 
             # Calculate Change Failure Rate
             try:
-                from data.dora_calculator import calculate_change_failure_rate_v2
+                from data.dora_calculator import calculate_change_failure_rate
+                from data.field_mapper import get_field_mappings
 
                 # Get required field mappings
+                field_mappings = get_field_mappings()
                 change_failure_field = field_mappings.get("change_failure")
 
                 if not change_failure_field:
@@ -854,11 +864,12 @@ def calculate_and_save_weekly_metrics(
                     metrics_saved += 1
                     metrics_details.append("DORA CFR: Skipped (field not configured)")
                 else:
-                    cfr_result = calculate_change_failure_rate_v2(
+                    cfr_result = calculate_change_failure_rate(
                         operational_tasks,
-                        change_failure_field_id=change_failure_field,
-                        start_date=week_start,
-                        end_date=week_end,
+                        production_bugs,  # Also pass bugs for incident correlation
+                        field_mappings=field_mappings,
+                        time_period_days=7,  # Weekly calculation
+                        # use_variable_extraction=True by default (Phase 3)
                     )
 
                     cfr_percent = cfr_result.get("change_failure_rate_percent", 0)
@@ -916,9 +927,11 @@ def calculate_and_save_weekly_metrics(
 
             # Calculate Mean Time To Recovery (MTTR)
             try:
-                from data.dora_calculator import calculate_mttr_v2
+                from data.dora_calculator import calculate_mean_time_to_recovery
+                from data.field_mapper import get_field_mappings
 
                 # Get required field mappings
+                field_mappings = get_field_mappings()
                 affected_env_field = field_mappings.get("affected_environment")
                 production_value = app_settings.get(
                     "production_environment_values", ["PROD"]
@@ -935,13 +948,11 @@ def calculate_and_save_weekly_metrics(
                     metrics_saved += 1
                     metrics_details.append("DORA MTTR: Skipped (field not configured)")
                 else:
-                    mttr_result = calculate_mttr_v2(
+                    mttr_result = calculate_mean_time_to_recovery(
                         production_bugs,
-                        operational_tasks,
-                        affected_environment_field_id=affected_env_field,
-                        production_value=production_value,
-                        start_date=week_start,
-                        end_date=week_end,
+                        field_mappings=field_mappings,
+                        time_period_days=7,  # Weekly calculation
+                        # use_variable_extraction=True by default (Phase 3)
                     )
 
                     median_hours = mttr_result.get("median_hours")
@@ -1011,13 +1022,17 @@ def calculate_and_save_weekly_metrics(
             # MODE 2: Calculate DORA Metrics using field-based filtering
             # ========================================================================
 
-            # Calculate Lead Time for Changes
+            # Calculate Lead Time for Changes (Feature 012 - variable extraction)
             try:
-                lead_time_result = calculate_lead_time_for_changes_v2(
+                from data.field_mapper import get_field_mappings
+
+                field_mappings = get_field_mappings()
+                lead_time_result = calculate_lead_time_for_changes(
                     development_issues,
-                    operational_tasks,
-                    start_date=week_start,
-                    end_date=week_end,
+                    operational_tasks,  # Still pass for backward compatibility
+                    field_mappings=field_mappings,
+                    time_period_days=7,  # Weekly calculation
+                    # use_variable_extraction=True by default (Phase 3)
                 )
 
                 # Log exclusion details
@@ -1126,10 +1141,12 @@ def calculate_and_save_weekly_metrics(
                     f"DORA Deployment Frequency: Error ({str(e)[:50]})"
                 )
 
-            # Calculate Change Failure Rate
+            # Calculate Change Failure Rate (MODE 2)
             try:
-                from data.dora_calculator import calculate_change_failure_rate_v2
+                from data.dora_calculator import calculate_change_failure_rate
+                from data.field_mapper import get_field_mappings
 
+                field_mappings = get_field_mappings()
                 change_failure_field = field_mappings.get("change_failure")
 
                 if not change_failure_field:
@@ -1146,11 +1163,12 @@ def calculate_and_save_weekly_metrics(
                     metrics_saved += 1
                     metrics_details.append("DORA CFR: Skipped (field not configured)")
                 else:
-                    cfr_result = calculate_change_failure_rate_v2(
+                    cfr_result = calculate_change_failure_rate(
                         operational_tasks,
-                        change_failure_field_id=change_failure_field,
-                        start_date=week_start,
-                        end_date=week_end,
+                        production_bugs,  # Also pass bugs for incident correlation
+                        field_mappings=field_mappings,
+                        time_period_days=7,  # Weekly calculation
+                        # use_variable_extraction=True by default (Phase 3)
                     )
 
                     cfr_percent = cfr_result.get("change_failure_rate_percent", 0)
@@ -1200,10 +1218,12 @@ def calculate_and_save_weekly_metrics(
                 metrics_saved += 1
                 metrics_details.append(f"DORA CFR: Error ({str(e)[:50]})")
 
-            # Calculate Mean Time To Recovery (MTTR)
+            # Calculate Mean Time To Recovery (MTTR) (MODE 2)
             try:
-                from data.dora_calculator import calculate_mttr_v2
+                from data.dora_calculator import calculate_mean_time_to_recovery
+                from data.field_mapper import get_field_mappings
 
+                field_mappings = get_field_mappings()
                 affected_env_field = field_mappings.get("affected_environment")
                 production_values = app_settings.get(
                     "production_environment_values", ["PROD"]
@@ -1221,13 +1241,11 @@ def calculate_and_save_weekly_metrics(
                     metrics_saved += 1
                     metrics_details.append("DORA MTTR: Skipped (field not configured)")
                 else:
-                    mttr_result = calculate_mttr_v2(
+                    mttr_result = calculate_mean_time_to_recovery(
                         production_bugs,
-                        operational_tasks,
-                        affected_environment_field_id=affected_env_field,
-                        production_value=production_value,
-                        start_date=week_start,
-                        end_date=week_end,
+                        field_mappings=field_mappings,
+                        time_period_days=7,  # Weekly calculation
+                        # use_variable_extraction=True by default (Phase 3)
                     )
 
                     median_hours = mttr_result.get("median_hours")
