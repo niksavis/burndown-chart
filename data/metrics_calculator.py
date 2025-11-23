@@ -449,28 +449,26 @@ def calculate_and_save_weekly_metrics(
         if flow_time_result is not None:
             flow_time_error = flow_time_result.get("error_state")
             if flow_time_error == "success":
-                # Feature 012: v3 function returns flat structure with value in days (not nested total_flow_time)
-                # Extract metrics from flat result structure
-                median_days = flow_time_result.get("median_days", 0)
-                avg_days = flow_time_result.get("avg_days", 0)
-                p85_days = flow_time_result.get("p85_days", 0)
+                # Feature 012: v3 function returns 'value' field as average flow time in days
+                # Note: v3 does NOT calculate median/p85 - only average
+                avg_days = flow_time_result.get("value", 0)
                 completed = flow_time_result.get(
                     "total_issue_count", 0
                 ) - flow_time_result.get("excluded_issue_count", 0)
 
                 flow_time_snapshot = {
-                    "median_days": median_days,
+                    "median_days": avg_days,  # Use avg as median (v3 doesn't calc median)
                     "avg_days": avg_days,
-                    "p85_days": p85_days,
+                    "p85_days": 0,  # Not calculated in v3
                     "completed_count": completed,
                 }
                 save_metric_snapshot(week_label, "flow_time", flow_time_snapshot)
                 metrics_saved += 1
                 metrics_details.append(
-                    f"Flow Time: {flow_time_snapshot['median_days']:.1f} days median ({completed} issues)"
+                    f"Flow Time: {flow_time_snapshot['avg_days']:.1f} days avg ({completed} issues)"
                 )
                 logger.info(
-                    f"Saved Flow Time: median {flow_time_snapshot['median_days']:.1f} days, {completed} issues"
+                    f"Saved Flow Time: avg {flow_time_snapshot['avg_days']:.1f} days, {completed} issues"
                 )
             else:
                 # Save empty snapshot for weeks with no completed issues (UI needs this)
