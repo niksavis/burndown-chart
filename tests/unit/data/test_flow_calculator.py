@@ -76,7 +76,11 @@ class TestFlowVelocityCalculation:
             end_date = datetime(2025, 1, 31, tzinfo=timezone.utc)
 
             result = calculate_flow_velocity(
-                issues, field_mappings, start_date, end_date
+                issues,
+                field_mappings,
+                start_date,
+                end_date,
+                use_variable_extraction=False,
             )
 
             assert result["metric_name"] == "flow_velocity"
@@ -101,7 +105,9 @@ class TestFlowVelocityCalculation:
         start_date = datetime(2025, 1, 1, tzinfo=timezone.utc)
         end_date = datetime(2025, 1, 31, tzinfo=timezone.utc)
 
-        result = calculate_flow_velocity(issues, field_mappings, start_date, end_date)
+        result = calculate_flow_velocity(
+            issues, field_mappings, start_date, end_date, use_variable_extraction=False
+        )
 
         assert result["error_state"] == "missing_mapping"
         assert result["value"] is None
@@ -118,7 +124,9 @@ class TestFlowVelocityCalculation:
         start_date = datetime(2025, 1, 1, tzinfo=timezone.utc)
         end_date = datetime(2025, 1, 31, tzinfo=timezone.utc)
 
-        result = calculate_flow_velocity(issues, field_mappings, start_date, end_date)
+        result = calculate_flow_velocity(
+            issues, field_mappings, start_date, end_date, use_variable_extraction=False
+        )
 
         assert result["error_state"] == "no_data"
         assert result["value"] is None  # No data returns None, not 0
@@ -180,7 +188,12 @@ class TestFlowTimeCalculation:
         # Provide WIP statuses for changelog-based calculation
         wip_statuses = ["Selected", "In Progress", "In Review"]
 
-        result = calculate_flow_time(issues, field_mappings, wip_statuses=wip_statuses)
+        result = calculate_flow_time(
+            issues,
+            field_mappings,
+            wip_statuses=wip_statuses,
+            use_variable_extraction=False,
+        )
 
         assert result["metric_name"] == "flow_time"
         assert result["value"] > 0  # Average of 5 days and 8 days = 6.5 days
@@ -309,6 +322,7 @@ class TestFlowEfficiencyCalculation:
             field_mappings,
             active_statuses=active_statuses,
             wip_statuses=wip_statuses,
+            use_variable_extraction=False,
         )
 
         assert result["metric_name"] == "flow_efficiency"
@@ -444,7 +458,11 @@ class TestFlowDistributionCalculation:
             end_date = datetime(2025, 1, 31, tzinfo=timezone.utc)
 
             result = calculate_flow_distribution(
-                issues, field_mappings, start_date, end_date
+                issues,
+                field_mappings,
+                start_date,
+                end_date,
+                use_variable_extraction=False,
             )
 
             assert result["metric_name"] == "flow_distribution"
@@ -501,7 +519,7 @@ class TestFlowDistributionCalculation:
         end_date = datetime(2025, 1, 31, tzinfo=timezone.utc)
 
         result = calculate_flow_distribution(
-            issues, field_mappings, start_date, end_date
+            issues, field_mappings, start_date, end_date, use_variable_extraction=False
         )
 
         breakdown = result["distribution_breakdown"]

@@ -370,6 +370,14 @@ def create_default_flow_variables() -> Dict[str, VariableMapping]:
                     ),
                 ),
             ],
+            fallback_source=SourceRule(
+                priority=99,
+                source=FieldValueSource(
+                    type="field_value",
+                    field="created",
+                    value_type="datetime",
+                ),
+            ),
         ),
         "work_completed_timestamp": VariableMapping(
             variable_name="work_completed_timestamp",
