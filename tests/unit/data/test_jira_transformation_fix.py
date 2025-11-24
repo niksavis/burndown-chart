@@ -15,7 +15,7 @@ from data.jira_simple import extract_story_points_value, jira_to_csv_format
 def test_story_points_extraction():
     """Test the new extract_story_points_value function with different field types."""
 
-    print("🧪 Testing Story Points Value Extraction...")
+    print("Testing Story Points Value Extraction...")
 
     test_cases = [
         # Votes field (complex object)
@@ -51,13 +51,13 @@ def test_story_points_extraction():
         )
 
         if result != expected_output:
-            print(f"      💥 FAILED: Expected {expected_output}, got {result}")
+            print(f"      [FAILED] Expected {expected_output}, got {result}")
 
 
 def test_votes_field_in_transformation():
     """Test that votes field works correctly in full JIRA transformation."""
 
-    print(f"\n🧪 Testing Votes Field in Full Transformation...")
+    print(f"\nTesting Votes Field in Full Transformation...")
 
     # Simulate JIRA issues with votes field
     test_issues = [
@@ -117,14 +117,14 @@ def test_votes_field_in_transformation():
                 print(f"   [!]  No completed points found - check date ranges")
 
     except Exception as e:
-        print(f"   💥 Transformation FAILED: {e}")
-        print(f"   💥 This would be the 'Failed to transform JIRA data' error")
+        print(f"   [ERROR] Transformation FAILED: {e}")
+        print(f"   [ERROR] This would be the 'Failed to transform JIRA data' error")
 
 
 def test_different_field_types():
     """Test that the fix works with different field types."""
 
-    print(f"\n🧪 Testing Different Field Types...")
+    print(f"\nTesting Different Field Types...")
 
     field_scenarios = [
         ("votes", {"votes": 8, "hasVoted": True}, 8.0, "Votes field (complex object)"),
@@ -157,7 +157,7 @@ def test_different_field_types():
             )
 
         except Exception as e:
-            print(f"      💥 ERROR: {e}")
+            print(f"      [ERROR]: {e}")
 
 
 if __name__ == "__main__":

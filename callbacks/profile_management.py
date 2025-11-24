@@ -434,7 +434,9 @@ def handle_delete_profile(n_clicks, profile_id, confirmation):
 
         profile_options = [
             {
-                "label": f"{p['name']} ★" if p["id"] == new_active_id else p["name"],
+                "label": f"{p['name']} [Active]"
+                if p["id"] == new_active_id
+                else p["name"],
                 "value": p["id"],
             }
             for p in updated_profiles

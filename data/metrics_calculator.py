@@ -314,7 +314,7 @@ def calculate_and_save_weekly_metrics(
 
         # Filter issues completed in this specific week (up to cutoff time)
         report_progress(
-            f"🔍 Filtering issues completed in week {week_label}"
+            f"[Filter] Filtering issues completed in week {week_label}"
             + (" (running total)" if is_current_week else "")
             + "..."
         )

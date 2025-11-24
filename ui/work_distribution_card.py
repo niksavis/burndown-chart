@@ -183,7 +183,7 @@ def create_work_distribution_card(
                             className="text-center",
                         ),
                         dbc.Badge(
-                            "✓ Healthy" if feature_in_range else "⚠ Low",
+                            "Healthy" if feature_in_range else "Low",
                             color="success" if feature_in_range else "warning",
                             className="mt-1",
                             style={"fontSize": "0.7rem"},
@@ -234,7 +234,7 @@ def create_work_distribution_card(
                             className="text-center",
                         ),
                         dbc.Badge(
-                            "✓ Healthy" if defect_in_range else "⚠ High",
+                            "Healthy" if defect_in_range else "High",
                             color="success" if defect_in_range else "warning",
                             className="mt-1",
                             style={"fontSize": "0.7rem"},
@@ -286,7 +286,7 @@ def create_work_distribution_card(
                             className="text-center",
                         ),
                         dbc.Badge(
-                            "✓ Healthy" if tech_debt_in_range else "⚠ High",
+                            "Healthy" if tech_debt_in_range else "High",
                             color="success" if tech_debt_in_range else "warning",
                             className="mt-1",
                             style={"fontSize": "0.7rem"},
@@ -337,7 +337,7 @@ def create_work_distribution_card(
                             className="text-center",
                         ),
                         dbc.Badge(
-                            "✓ Healthy" if risk_in_range else "⚠ High",
+                            "Healthy" if risk_in_range else "High",
                             color="success" if risk_in_range else "warning",
                             className="mt-1",
                             style={"fontSize": "0.7rem"},

@@ -10,7 +10,6 @@ from typing import Dict, List, Any
 import logging
 
 from data.field_mapper import (
-    load_field_mappings,
     fetch_available_jira_fields,
 )
 from ui.field_mapping_modal import (
@@ -560,9 +559,9 @@ def validate_field_selection_real_time(
                 "flow_item_type",
                 "issue_type",
             ]:
-                message = f"✓ Field type matches requirement (issuetype)"
+                message = "[OK] Field type matches requirement (issuetype)"
             else:
-                message = f"✓ Field type matches requirement ({required_type})"
+                message = f"[OK] Field type matches requirement ({required_type})"
             color = "success"
         else:
             # Check if types are compatible
@@ -572,13 +571,11 @@ def validate_field_selection_real_time(
 
             if is_valid:
                 # Compatible but not exact match
-                message = f"⚠ Field type is {actual_type}, expected {required_type} (may work)"
+                message = f"[WARN] Field type is {actual_type}, expected {required_type} (may work)"
                 color = "warning"
             else:
                 # Incompatible
-                message = (
-                    f"✗ Incompatible: field is {actual_type}, expected {required_type}"
-                )
+                message = f"[X] Incompatible: field is {actual_type}, expected {required_type}"
                 color = "danger"
 
         # Create validation alert

@@ -320,22 +320,22 @@ def fetch_jira_issues(
             ):
                 additional_fields.append(config["story_points_field"])
 
-        # Add field mappings for DORA and Flow metrics
-        # field_mappings has structure: {"dora": {"field_name": "field_id"}, "flow": {...}}
-        field_mappings = config.get("field_mappings", {})
-        for category, mappings in field_mappings.items():
-            if isinstance(mappings, dict):
-                for field_name, field_id in mappings.items():
-                    # Defensive: field_id must be a string (not dict)
-                    if (
-                        field_id
-                        and isinstance(field_id, str)
-                        and field_id.strip()
-                        and field_id not in base_fields
-                    ):
-                        # Add both custom fields (customfield_*) and standard fields
-                        # Skip if already in base_fields to avoid duplicates
-                        additional_fields.append(field_id)
+            # Add field mappings for DORA and Flow metrics
+            # field_mappings has structure: {"dora": {"field_name": "field_id"}, "flow": {...}}
+            field_mappings = config.get("field_mappings", {})
+            for category, mappings in field_mappings.items():
+                if isinstance(mappings, dict):
+                    for field_name, field_id in mappings.items():
+                        # Defensive: field_id must be a string (not dict)
+                        if (
+                            field_id
+                            and isinstance(field_id, str)
+                            and field_id.strip()
+                            and field_id not in base_fields
+                        ):
+                            # Add both custom fields (customfield_*) and standard fields
+                            # Skip if already in base_fields to avoid duplicates
+                            additional_fields.append(field_id)
 
             # Combine base fields with additional fields
             # Sort additional fields to ensure consistent ordering for cache validation
@@ -1716,7 +1716,7 @@ def fetch_changelog_on_demand(config: Dict, progress_callback=None) -> Tuple[boo
                     )
                     if progress_callback:
                         progress_callback(
-                            f"⚡ Smart fetch: {len(issues_needing_changelog)} new issues "
+                            f"Smart fetch: {len(issues_needing_changelog)} new issues "
                             f"({len(cached_issue_keys)} already cached)"
                         )
                 else:

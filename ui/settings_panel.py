@@ -90,7 +90,7 @@ def _get_query_profile_options():
         for profile in profiles:
             label = profile.get("name", "Unnamed")
             if profile.get("is_default", False):
-                label += " ★"
+                label += " [Default]"
             options.append(
                 {
                     "label": label,

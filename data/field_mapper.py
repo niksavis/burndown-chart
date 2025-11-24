@@ -609,7 +609,7 @@ def validate_dora_jira_compatibility(field_mappings: Dict[str, str]) -> Dict[str
                     "field": internal_field,
                     "mapped_to": jira_field,
                     "issue": None,
-                    "recommendation": "✓ Appears to be a proper DevOps tracking field",
+                    "recommendation": "[OK] Appears to be a proper DevOps tracking field",
                 }
             )
         else:

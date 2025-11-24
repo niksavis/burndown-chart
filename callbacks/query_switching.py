@@ -97,7 +97,7 @@ def populate_query_dropdown(_pathname, profile_id):
 
             # Mark active query
             if query.get("is_active", False):
-                label += " ★"
+                label += " [Active]"
                 active_value = value
                 active_jql = query.get("jql", "")
                 active_name = query.get("name", "")
@@ -211,7 +211,7 @@ def switch_query_callback(selected_query_id, current_options):
             label = query.get("name", "Unnamed Query")
             value = query.get("id", "")
             if query.get("is_active", False):
-                label += " ★"
+                label += " [Active]"
                 active_value = value
                 active_jql = query.get("jql", "")
                 active_name = query.get("name", "")
@@ -526,12 +526,14 @@ def trigger_delete_query_modal_from_selector(delete_clicks, selected_query_id):
         display_parts = [query_name]
 
         if is_active and is_last_query:
-            display_parts.append(" [!] ACTIVE & LAST QUERY - All charts will be cleared!")
+            display_parts.append(
+                " [!] ACTIVE & LAST QUERY - All charts will be cleared!"
+            )
             logger.warning(
                 f"Opening delete modal for ACTIVE AND LAST query: {query_name}"
             )
         elif is_active:
-            display_parts.append(" ★ ACTIVE - Charts will be cleared")
+            display_parts.append(" [ACTIVE] - Charts will be cleared")
             logger.warning(f"Opening delete modal for ACTIVE query: {query_name}")
         elif is_last_query:
             display_parts.append(" [!] LAST QUERY - Profile will have no queries")

@@ -477,7 +477,7 @@ def create_modern_dashboard_content(
                         {
                             "label": "Status",
                             "value": html.Span(
-                                ["✓ On Track" if items_on_track else "⚠ At Risk"],
+                                ["On Track" if items_on_track else "At Risk"],
                                 style={
                                     "color": "#28a745" if items_on_track else "#dc3545"
                                 },
@@ -507,7 +507,7 @@ def create_modern_dashboard_content(
                         {
                             "label": "Status",
                             "value": html.Span(
-                                ["✓ On Track" if points_on_track else "⚠ At Risk"]
+                                ["On Track" if points_on_track else "At Risk"]
                                 if show_points
                                 else "—",
                                 style={

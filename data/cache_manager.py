@@ -368,15 +368,17 @@ def invalidate_metrics_cache_only() -> None:
         # Remove metrics snapshots
         if os.path.exists("metrics_snapshots.json"):
             os.remove("metrics_snapshots.json")
-            logger.info("✓ Invalidated metrics_snapshots.json")
+            logger.info("[OK] Invalidated metrics_snapshots.json")
 
         # Remove DORA/Flow metrics cache
         from data.metrics_cache import invalidate_cache as invalidate_metrics_cache_file
 
         invalidate_metrics_cache_file()  # Removes metrics_cache.json
-        logger.info("✓ Invalidated metrics_cache.json (DORA/Flow)")
+        logger.info("[OK] Invalidated metrics_cache.json (DORA/Flow)")
 
-        logger.info("✓ Metrics cache invalidated - JIRA data cache preserved for reuse")
+        logger.info(
+            "[OK] Metrics cache invalidated - JIRA data cache preserved for reuse"
+        )
 
     except Exception as e:
         logger.error(f"Error invalidating metrics cache: {e}", exc_info=True)
@@ -410,17 +412,17 @@ def invalidate_all_cache() -> None:
                 os.remove(cache_file)
             except Exception as e:
                 logger.debug(f"Could not remove cache file {cache_file}: {e}")
-        logger.info(f"✓ Invalidated {len(cache_files)} JIRA cache files")
+        logger.info(f"[OK] Invalidated {len(cache_files)} JIRA cache files")
 
         # Remove legacy jira_cache.json
         if os.path.exists("jira_cache.json"):
             os.remove("jira_cache.json")
-            logger.info("✓ Invalidated jira_cache.json (legacy)")
+            logger.info("[OK] Invalidated jira_cache.json (legacy)")
 
         # Remove metrics cache
         invalidate_metrics_cache_only()
 
-        logger.info("✓ All cache invalidated - full JIRA re-download required")
+        logger.info("[OK] All cache invalidated - full JIRA re-download required")
 
     except Exception as e:
         logger.error(f"Error invalidating all cache: {e}", exc_info=True)

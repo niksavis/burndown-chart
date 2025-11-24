@@ -71,7 +71,7 @@ FORECAST_HELP_DETAILED = {
         Uncertainty bands calculated from variance between optimistic and pessimistic scenarios.
         Wider bands = higher uncertainty, narrower bands = more predictable outcomes.
         
-        🔍 **Practical Application:**
+        [Apply] **Practical Application:**
         Use ranges for risk planning, resource allocation, and stakeholder communication.
         The expected value provides planning target while ranges show risk boundaries.
     """,
@@ -252,9 +252,9 @@ VELOCITY_HELP_DETAILED = {
         Percentage change = ((Current Period - Previous Period) ÷ Previous Period) × 100%
         
         [Stats] **Visual Meanings:**
-        • 🔺 Green Up Arrow: >5% improvement (acceleration)
-        • 🔻 Red Down Arrow: >5% decline (deceleration)
-        • ➡️ Gray Stable: ±5% variation (consistent)
+        • [UP] Green Up Arrow: >5% improvement (acceleration)
+        • [DOWN] Red Down Arrow: >5% decline (deceleration)
+        • [STABLE] Gray Stable: ±5% variation (consistent)
         
         [Note] **Interpretation Guide:**
         Consistent upward trends may indicate team learning or process improvements.
@@ -327,7 +327,7 @@ VELOCITY_HELP_DETAILED = {
         • Provides statistical foundation for expected completion dates
         • Combined with optimistic/pessimistic bounds for full PERT analysis
         
-        ⚙️ **When to Use Average vs Median:**
+        [Config] **When to Use Average vs Median:**
         • **Choose Average** for stable teams with consistent delivery patterns
         • **Choose Median** when dealing with frequent scope changes or capacity variations
         
@@ -871,7 +871,7 @@ FORECAST_HELP_DETAILED = {
         }
         ```
         
-        ⚙️ **Automatic Capture:**
+        [Config] **Automatic Capture:**
         Snapshots are automatically saved when metrics are calculated via:
         • `callbacks/dora_flow_metrics.py` - DORA & Flow metrics
         • `callbacks/scope_metrics.py` - Scope metrics (velocity, throughput)
@@ -940,7 +940,7 @@ FORECAST_HELP_DETAILED = {
         }
         ```
         
-        ⚙️ **Customization Examples:**
+        [Config] **Customization Examples:**
         
         **More Responsive Forecasts (favor recent data):**
         ```python

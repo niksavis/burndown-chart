@@ -59,7 +59,7 @@ def create_status_config_form(
                     dbc.Col(
                         [
                             html.Label(
-                                "Completion ✓ (Required)",
+                                "Completion [Done] (Required)",
                                 className="form-label fw-bold",
                             ),
                             html.P(

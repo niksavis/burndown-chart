@@ -75,11 +75,11 @@ def _map_issue_to_flow_type(
 
     Examples:
         Feature config: issue_types=["Story"], effort_categories=["New feature"]
-        - Story with "New feature" → Feature ✓
-        - Story with "Bug Fix" → None ✗
+        - Story with "New feature" → Feature [OK]
+        - Story with "Bug Fix" → None [X]
 
         Defect config: issue_types=["Bug"], effort_categories=[]
-        - Bug with any effort category → Defect ✓
+        - Bug with any effort category → Defect [OK]
     """
     fields = issue.get("fields", {})
 

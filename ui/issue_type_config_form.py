@@ -256,8 +256,8 @@ def create_issue_type_config_form(
                                     dbc.Col(
                                         [
                                             html.Label(
-                                                "2️⃣ Effort Categories (optional)",
-                                                className="form-label",
+                                                "2. Effort Categories (optional)",
+                                                className="form-label fw-bold",
                                             ),
                                             html.P(
                                                 "[i] Leave empty to match ALL above issue types",

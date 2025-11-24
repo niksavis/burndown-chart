@@ -353,13 +353,13 @@ def detect_fields_from_issues(
     points_field = _detect_points_field(sampled_issues, field_defs)
     if points_field:
         detections["points_field"] = points_field
-        logger.info(f"[FieldDetector] ✓ Story points field: {points_field}")
+        logger.info(f"[FieldDetector] [OK] Story points field: {points_field}")
 
     # 2. Detect sprint field
     sprint_field = _detect_sprint_field(sampled_issues, field_defs)
     if sprint_field:
         detections["sprint_field"] = sprint_field
-        logger.info(f"[FieldDetector] ✓ Sprint field: {sprint_field}")
+        logger.info(f"[FieldDetector] [OK] Sprint field: {sprint_field}")
 
     # === DORA METRICS FIELDS ===
     # 3. Detect deployment date field
@@ -367,7 +367,7 @@ def detect_fields_from_issues(
     deployment_date = _detect_deployment_date_field(sampled_issues, field_defs)
     if deployment_date:
         detections["deployment_date"] = deployment_date
-        logger.info(f"[FieldDetector] ✓ Deployment date field: {deployment_date}")
+        logger.info(f"[FieldDetector] [OK] Deployment date field: {deployment_date}")
     else:
         logger.info(
             "[FieldDetector] No deployment_date field found. "
@@ -379,7 +379,7 @@ def detect_fields_from_issues(
     environment_field = _detect_environment_field(sampled_issues, field_defs)
     if environment_field:
         detections["target_environment"] = environment_field
-        logger.info(f"[FieldDetector] ✓ Environment field: {environment_field}")
+        logger.info(f"[FieldDetector] [OK] Environment field: {environment_field}")
     else:
         logger.info(
             "[FieldDetector] No environment field found. "
@@ -390,7 +390,7 @@ def detect_fields_from_issues(
     change_failure = _detect_change_failure_field(sampled_issues, field_defs)
     if change_failure:
         detections["change_failure"] = change_failure
-        logger.info(f"[FieldDetector] ✓ Change failure field: {change_failure}")
+        logger.info(f"[FieldDetector] [OK] Change failure field: {change_failure}")
 
     # 6. Detect incident fields
     # Fallback: Use created + resolutiondate for Bug/Defect issue types
@@ -398,12 +398,12 @@ def detect_fields_from_issues(
     if incident_fields["incident_detected_at"]:
         detections["incident_detected_at"] = incident_fields["incident_detected_at"]
         logger.info(
-            f"[FieldDetector] ✓ Incident detection field: {incident_fields['incident_detected_at']}"
+            f"[FieldDetector] [OK] Incident detection field: {incident_fields['incident_detected_at']}"
         )
     if incident_fields["incident_resolved_at"]:
         detections["incident_resolved_at"] = incident_fields["incident_resolved_at"]
         logger.info(
-            f"[FieldDetector] ✓ Incident resolution field: {incident_fields['incident_resolved_at']}"
+            f"[FieldDetector] [OK] Incident resolution field: {incident_fields['incident_resolved_at']}"
         )
 
     # 7. Detect priority/severity field
@@ -411,7 +411,7 @@ def detect_fields_from_issues(
     severity_field = _detect_priority_severity_field(sampled_issues, field_defs)
     if severity_field:
         detections["severity_level"] = severity_field
-        logger.info(f"[FieldDetector] ✓ Severity/Priority field: {severity_field}")
+        logger.info(f"[FieldDetector] [OK] Severity/Priority field: {severity_field}")
     else:
         logger.info(
             "[FieldDetector] No custom severity field found. "
@@ -424,7 +424,7 @@ def detect_fields_from_issues(
     effort_category = _detect_effort_category_field(sampled_issues, field_defs)
     if effort_category:
         detections["effort_category"] = effort_category
-        logger.info(f"[FieldDetector] ✓ Effort category field: {effort_category}")
+        logger.info(f"[FieldDetector] [OK] Effort category field: {effort_category}")
     else:
         logger.info(
             "[FieldDetector] No effort category field found. "
@@ -436,7 +436,7 @@ def detect_fields_from_issues(
     code_commit_date = _detect_code_commit_date_field(sampled_issues, field_defs)
     if code_commit_date:
         detections["code_commit_date"] = code_commit_date
-        logger.info(f"[FieldDetector] ✓ Code commit date field: {code_commit_date}")
+        logger.info(f"[FieldDetector] [OK] Code commit date field: {code_commit_date}")
     else:
         logger.info(
             "[FieldDetector] No code commit date field found. "
@@ -448,7 +448,9 @@ def detect_fields_from_issues(
     work_started_date = _detect_work_started_date_field(sampled_issues, field_defs)
     if work_started_date:
         detections["work_started_date"] = work_started_date
-        logger.info(f"[FieldDetector] ✓ Work started date field: {work_started_date}")
+        logger.info(
+            f"[FieldDetector] [OK] Work started date field: {work_started_date}"
+        )
     else:
         logger.info(
             "[FieldDetector] No work started date field found. "
@@ -461,7 +463,7 @@ def detect_fields_from_issues(
     if work_completed_date:
         detections["work_completed_date"] = work_completed_date
         logger.info(
-            f"[FieldDetector] ✓ Work completed date field: {work_completed_date}"
+            f"[FieldDetector] [OK] Work completed date field: {work_completed_date}"
         )
     else:
         logger.info(
@@ -474,7 +476,7 @@ def detect_fields_from_issues(
     completed_date = _detect_completed_date_field(sampled_issues, field_defs)
     if completed_date:
         detections["completed_date"] = completed_date
-        logger.info(f"[FieldDetector] ✓ Completed date field: {completed_date}")
+        logger.info(f"[FieldDetector] [OK] Completed date field: {completed_date}")
     else:
         logger.info(
             "[FieldDetector] No completed date field found. "
@@ -664,7 +666,7 @@ def _detect_sprint_field(
         if valid_candidates:
             best = max(valid_candidates.items(), key=lambda x: x[1]["score"])
             logger.info(
-                f"[FieldDetector] ✓ Sprint field detected: {best[0]} "
+                f"[FieldDetector] [OK] Sprint field detected: {best[0]} "
                 f"({best[1]['populated_count']}/{best[1]['total_count']} issues have sprint data)"
             )
             return best[0]

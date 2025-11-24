@@ -35,7 +35,7 @@ def create_profile_dropdown(id_suffix: str = "") -> dbc.Col:
 
         label = f"{profile['name']}{jira_info}"
         if profile["id"] == (active_profile.id if active_profile else None):
-            label += " ★"
+            label += " [Active]"
 
         options.append({"label": label, "value": profile["id"]})
 

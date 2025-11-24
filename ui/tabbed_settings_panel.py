@@ -344,7 +344,7 @@ def create_tabbed_settings_panel() -> html.Div:
                         ],
                     ),
                     dbc.Tab(
-                        label="🔍 Queries",
+                        label="Queries",
                         tab_id="queries-tab",
                         label_style={"width": "100%"},
                         children=[

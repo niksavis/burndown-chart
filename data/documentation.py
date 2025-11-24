@@ -232,7 +232,7 @@ def _get_query_creation_docs(
     jira_connected = setup_status.get("jira_connected", False)
 
     docs = {
-        "title": "🔍 Creating JQL Queries",
+        "title": "Creating JQL Queries",
         "summary": "Define JQL queries to analyze specific sets of JIRA issues",
         "sections": [
             {
@@ -486,8 +486,8 @@ def get_mobile_help_content(setup_step: str) -> Dict[str, Any]:
             "title": "Connect JIRA",
             "steps": [
                 "[Edit] Enter your JIRA URL",
-                "🔑 Add API token",
-                "🧪 Test connection",
+                "[Key] Add API token",
+                "[Test] Test connection",
                 "[OK] Save settings",
             ],
             "quick_tip": "Generate API tokens in Atlassian Account Settings",
@@ -496,9 +496,9 @@ def get_mobile_help_content(setup_step: str) -> Dict[str, Any]:
         "field_mapping": {
             "title": "Map Fields",
             "steps": [
-                "🔍 Find field IDs in JIRA",
+                "[Search] Find field IDs in JIRA",
                 "[List] Copy field names",
-                "🗂️ Enter in mapping form",
+                "[Edit] Enter in mapping form",
                 "[OK] Save mappings",
             ],
             "quick_tip": "Field mapping is optional - skip if unsure",
@@ -508,8 +508,8 @@ def get_mobile_help_content(setup_step: str) -> Dict[str, Any]:
             "title": "Create Query",
             "steps": [
                 "[Edit] Name your query",
-                "🔍 Write JQL filter",
-                "🧪 Test in JIRA first",
+                "[Search] Write JQL filter",
+                "[Test] Test in JIRA first",
                 "[OK] Save query",
             ],
             "quick_tip": "Start with: project = YOUR_PROJECT",

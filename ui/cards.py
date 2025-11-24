@@ -519,7 +519,7 @@ def _get_query_profile_options():
         for profile in profiles:
             label = profile["name"]
             if profile.get("is_default", False):
-                label += " ★"  # Add star indicator for default
+                label += " [Default]"  # Add indicator for default
             options.append(
                 {
                     "label": label,

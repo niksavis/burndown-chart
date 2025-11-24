@@ -368,7 +368,7 @@ def save_query_overwrite(
                 label = query.get("name", "Unnamed Query")
                 value = query.get("id", "")
                 if query.get("is_active", False):
-                    label += " ★"
+                    label += " [Active]"
                 options.append({"label": label, "value": value})
 
             feedback = html.Div(
@@ -436,7 +436,7 @@ def save_query_overwrite(
                 label = query.get("name", "Unnamed Query")
                 value = query.get("id", "")
                 if query.get("is_active", False):
-                    label += " ★"
+                    label += " [Active]"
                 options.append({"label": label, "value": value})
 
             feedback = html.Div(
@@ -500,7 +500,7 @@ def save_query_overwrite(
             label = query.get("name", "Unnamed Query")
             value = query.get("id", "")
             if query.get("is_active", False):
-                label += " ★"
+                label += " [Active]"
             options.append({"label": label, "value": value})
 
         feedback = html.Div(
@@ -613,7 +613,7 @@ def save_query_as_new(
             label = query.get("name", "Unnamed Query")
             value = query.get("id", "")
             if query.get("is_active", False):
-                label += " ★"
+                label += " [Active]"
             options.append({"label": label, "value": value})
 
         feedback = html.Div(

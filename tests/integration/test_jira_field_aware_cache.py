@@ -17,7 +17,7 @@ from data.jira_simple import cache_jira_response, load_jira_cache
 def test_field_aware_caching():
     """Test that cache invalidates when field configuration changes."""
 
-    print("🧪 Testing Field-Aware Cache Invalidation...")
+    print("Testing Field-Aware Cache Invalidation...")
 
     # Test data - minimal JIRA issue structure
     test_issues = [
@@ -143,7 +143,9 @@ def test_field_aware_caching():
     cache_loaded, loaded_issues = load_jira_cache(
         jql_query, fields_with_votes, test_cache_file
     )
-    print(f"   [X] Old cache + story points field should invalidate: {not cache_loaded}")
+    print(
+        f"   [X] Old cache + story points field should invalidate: {not cache_loaded}"
+    )
 
     # Cleanup
     if os.path.exists(test_cache_file):

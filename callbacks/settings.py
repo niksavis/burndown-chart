@@ -912,7 +912,7 @@ def register(app):
                 )
             else:
                 # Create detailed error message
-                error_details = f"✗ Failed to import JIRA data: {message}"
+                error_details = f"[X] Failed to import JIRA data: {message}"
 
                 cache_status_message = html.Div(
                     [
@@ -1372,14 +1372,14 @@ def register(app):
             for profile in profiles:
                 label = profile["name"]
                 if profile.get("is_default", False):
-                    label += " ★"  # Add star indicator for default
+                    label += " [Default]"  # Add indicator for default
                 updated_options.append({"label": label, "value": profile["id"]})
 
             # Get the saved profile ID to select it
             saved_profile_id = saved_profile["id"] if saved_profile else None
 
             logger.info(
-                f"💾 SAVE CALLBACK: Returning {len(updated_options)} options, selecting profile ID: {saved_profile_id}"
+                f"[SAVE CALLBACK] Returning {len(updated_options)} options, selecting profile ID: {saved_profile_id}"
             )
             logger.info(
                 f"💾 Options being returned: {[opt['label'] for opt in updated_options]}"
@@ -1640,7 +1640,7 @@ def register(app):
             for profile in profiles:
                 label = profile["name"]
                 if profile.get("is_default", False):
-                    label += " ★"  # Add star indicator for default
+                    label += " [Default]"  # Add indicator for default
                 updated_options.append({"label": label, "value": profile["id"]})
 
             # Keep dropdown clean for saved queries only
@@ -1717,7 +1717,7 @@ def register(app):
                 label = query.get("name", "Unnamed Query")
                 value = query.get("id", "")
                 if query.get("is_active", False):
-                    label += " ★"
+                    label += " [Active]"
                     active_value = value
                     active_jql = query.get("jql", "")
                     active_name = query.get("name", "")
@@ -1864,7 +1864,7 @@ def register(app):
                 for profile in profiles:
                     label = profile["name"]
                     if profile.get("is_default", False):
-                        label += " ★"  # Add star indicator for default
+                        label += " [Default]"  # Add indicator for default
                     updated_options.append({"label": label, "value": profile["id"]})
 
                 # Return updated options, JQL value, and clear validation

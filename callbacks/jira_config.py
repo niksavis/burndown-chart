@@ -21,7 +21,6 @@ from data.persistence import (
     validate_jira_config,
 )
 from data.jira_simple import test_jira_connection
-from data.cache_manager import invalidate_cache, CacheInvalidationTrigger
 from configuration import logger
 
 
@@ -542,7 +541,7 @@ def update_jira_config_status(modal_is_open, save_clicks, profile_id):
                             className="fas fa-exclamation-triangle text-warning me-2"
                         ),
                         html.Span(
-                            f"⚠ API {api_version} not supported - Switch to {opposite_version} in Configure JIRA",
+                            f"[WARN] API {api_version} not supported - Switch to {opposite_version} in Configure JIRA",
                             className="text-warning small fw-bold",
                         ),
                     ],

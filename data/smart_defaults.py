@@ -131,13 +131,9 @@ def get_smart_query_suggestions(profile_id: str) -> Dict[str, str]:
     Returns:
         Dict with suggested queries
     """
-    try:
-        from data.query_manager import generate_smart_jql_defaults
-
-        return generate_smart_jql_defaults(profile_id)
-    except Exception as e:
-        logger.warning(f"Could not generate smart query suggestions: {e}")
-        return _get_generic_query_suggestions()
+    # Function generate_smart_jql_defaults not yet implemented
+    # Fall back to generic suggestions
+    return _get_generic_query_suggestions()
 
 
 def _get_generic_query_suggestions() -> Dict[str, str]:
@@ -249,7 +245,7 @@ def get_contextual_help_for_step(
             ],
         },
         "query_creation": {
-            "title": "🔍 Create JQL Queries",
+            "title": "Create JQL Queries",
             "description": "Define queries to analyze specific sets of issues",
             "tips": [
                 "Start with a simple project filter",
