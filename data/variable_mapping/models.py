@@ -82,11 +82,19 @@ class ChangelogTimestampSource(BaseModel):
         ...     field="status",
         ...     condition={"transition_to": "Deployed to Production"}
         ... )
+        >>> # Or with multiple target statuses
+        >>> source = ChangelogTimestampSource(
+        ...     type="changelog_timestamp",
+        ...     field="status",
+        ...     condition={"transition_to": ["Done", "Resolved", "Closed"]}
+        ... )
     """
 
     type: Literal["changelog_timestamp"]
     field: str = Field(..., description="Field that transitioned")
-    condition: Dict[str, str] = Field(..., description="Transition conditions to match")
+    condition: Dict[str, Union[str, List[str]]] = Field(
+        ..., description="Transition conditions to match"
+    )
 
 
 class FixVersionSource(BaseModel):

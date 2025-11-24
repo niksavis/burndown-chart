@@ -352,11 +352,23 @@ class VariableExtractor:
                 transition_from = source.condition.get("transition_from")
 
                 match = False
-                if transition_to and item.get("toString") == transition_to:
-                    if transition_from:
-                        match = item.get("fromString") == transition_from
+                if transition_to:
+                    # Support both single value and list of values
+                    to_string = item.get("toString")
+                    if isinstance(transition_to, list):
+                        # Check if transitioned to any status in the list
+                        if to_string in transition_to:
+                            if transition_from:
+                                match = item.get("fromString") == transition_from
+                            else:
+                                match = True
                     else:
-                        match = True
+                        # Single value check (backward compatible)
+                        if to_string == transition_to:
+                            if transition_from:
+                                match = item.get("fromString") == transition_from
+                            else:
+                                match = True
 
                 if match:
                     timestamp = history_item.get("created")

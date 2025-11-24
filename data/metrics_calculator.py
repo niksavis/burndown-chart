@@ -325,6 +325,12 @@ def calculate_and_save_weekly_metrics(
         extractor = VariableExtractor(variable_collection)
         issues_completed_this_week = []
 
+        # DEBUG: Log extraction configuration
+        logger.info(
+            f"[DEBUG] Starting completion timestamp extraction for {len(all_issues)} issues"
+        )
+        extraction_stats = {"found": 0, "not_found": 0, "parse_errors": 0}
+
         for issue in all_issues:
             # Extract completion timestamp using variable extraction
             # This supports multiple sources: changelog transitions, resolutiondate field, etc.
@@ -334,25 +340,45 @@ def calculate_and_save_weekly_metrics(
             )
 
             if not result["found"]:
+                extraction_stats["not_found"] += 1
                 continue
+
+            extraction_stats["found"] += 1
 
             # Parse completion timestamp
             try:
-                completion_timestamp = datetime.fromisoformat(
-                    result["value"].replace("Z", "+00:00")
-                )
+                # Handle different timestamp formats from JIRA changelog
+                # Format: "2025-11-24T01:54:33.997+0000" (from changelog)
+                # Need to convert +0000 to +00:00 for Python's fromisoformat
+                timestamp_str = result["value"]
+                if timestamp_str.endswith("+0000"):
+                    timestamp_str = timestamp_str[:-5] + "+00:00"
+                elif timestamp_str.endswith("Z"):
+                    timestamp_str = timestamp_str[:-1] + "+00:00"
+
+                completion_timestamp = datetime.fromisoformat(timestamp_str)
+
                 # Normalize to naive UTC for comparison
                 if completion_timestamp.tzinfo is not None:
                     completion_timestamp = completion_timestamp.astimezone(
                         timezone.utc
                     ).replace(tzinfo=None)
-            except (ValueError, AttributeError, TypeError):
+            except (ValueError, AttributeError, TypeError) as e:
+                extraction_stats["parse_errors"] += 1
+                logger.warning(
+                    f"[DEBUG] Failed to parse timestamp '{result.get('value')}' for {issue.get('key')}: {e}"
+                )
                 continue
 
             # Check if completion falls within this week's boundaries
             if week_start <= completion_timestamp < completion_cutoff:
                 issues_completed_this_week.append(issue)
 
+        # Log extraction statistics
+        logger.info(
+            f"[DEBUG] Extraction stats: found={extraction_stats['found']}, "
+            f"not_found={extraction_stats['not_found']}, parse_errors={extraction_stats['parse_errors']}"
+        )
         logger.info(
             f"Found {len(issues_completed_this_week)} issues completed in week {week_label}"
             + (" (running total)" if is_current_week else " (full week)")
@@ -686,7 +712,7 @@ def calculate_and_save_weekly_metrics(
                 distribution["defect"] += 1
             elif flow_type == "Risk":
                 distribution["risk"] += 1
-            elif flow_type == "Technical_Debt":
+            elif flow_type == "Technical Debt":
                 distribution["tech_debt"] += 1
             else:
                 # Unknown types - don't count (or could default to feature)

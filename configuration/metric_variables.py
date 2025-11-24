@@ -745,7 +745,7 @@ def build_variable_collection_from_profile(
         )
 
     # 2. Work completed timestamp
-    if "work_completed_timestamp" in variables_dict and primary_completion:
+    if "work_completed_timestamp" in variables_dict and completion_statuses:
         variables_dict["work_completed_timestamp"] = VariableMapping(
             variable_name="work_completed_timestamp",
             variable_type="datetime",
@@ -759,7 +759,7 @@ def build_variable_collection_from_profile(
                         type="changelog_timestamp",
                         field="status",
                         condition={
-                            "transition_to": primary_completion
+                            "transition_to": completion_statuses  # ALL completion statuses
                         },  # USER CONFIGURED
                     ),
                 ),
