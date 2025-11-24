@@ -176,11 +176,11 @@ def format_help_content(content):
 
         # Process different formatting patterns
         if (
-            line.startswith("📊 **")
-            or line.startswith("🔢 **")
-            or line.startswith("📈 **")
+            line.startswith("[Stats] **")
+            or line.startswith("[Calc] **")
+            or line.startswith("[Trend] **")
         ):
-            # Section headers with emojis
+            # Section headers with prefixes
             if current_section:
                 components.extend(current_section)
                 current_section = []
@@ -193,9 +193,9 @@ def format_help_content(content):
             current_section.append(html.Li(bullet_text, className="mb-1"))
 
         elif (
-            line.startswith("💡 **")
-            or line.startswith("🎯 **")
-            or line.startswith("📅 **")
+            line.startswith("[Note] **")
+            or line.startswith("[Tip] **")
+            or line.startswith("[Date] **")
         ):
             # Highlighted insights
             if current_section:
@@ -332,7 +332,7 @@ def handle_help_modal(help_clicks, close_clicks, is_open):
                     html.Div(
                         [
                             html.H5(
-                                "⚠️ Help System Error", className="text-warning mb-3"
+                                "[!] Help System Error", className="text-warning mb-3"
                             ),
                             html.P(
                                 [
@@ -460,10 +460,10 @@ def format_help_content_enhanced(content, category, key):
 # Helper functions for enhanced content formatting
 def _is_section_header(line):
     return (
-        line.startswith("📊 **")
-        or line.startswith("🔢 **")
-        or line.startswith("📈 **")
-        or line.startswith("🎯 **")
+        line.startswith("[Stats] **")
+        or line.startswith("[Calc] **")
+        or line.startswith("[Trend] **")
+        or line.startswith("[Tip] **")
     )
 
 
@@ -477,10 +477,10 @@ def _is_bullet_point(line):
 
 def _is_insight_alert(line):
     return (
-        line.startswith("💡 **")
-        or line.startswith("🎯 **")
-        or line.startswith("📅 **")
-        or line.startswith("⚠️ **")
+        line.startswith("[Note] **")
+        or line.startswith("[Tip] **")
+        or line.startswith("[Date] **")
+        or line.startswith("[!] **")
     )
 
 
@@ -616,7 +616,7 @@ def _create_cross_references_footer(category, key):
     return html.Div(
         [
             html.Hr(className="my-4"),
-            html.H6("🔗 Related Topics", className="text-secondary mb-2"),
+            html.H6("[Link] Related Topics", className="text-secondary mb-2"),
             html.P(
                 [
                     f"For more information, see: {', '.join(topic.replace('_', ' ').title() for topic in related)}"

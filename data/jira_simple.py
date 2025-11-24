@@ -592,7 +592,7 @@ def fetch_jira_issues_with_changelog(
                     len(issue_keys) / page_size
                 ) * 60  # ~60 seconds per page estimate
                 progress_callback(
-                    f"⏳ Fetching changelog for {len(issue_keys)} issues "
+                    f"[Pending] Fetching changelog for {len(issue_keys)} issues "
                     f"(~{int(estimated_time / 60)} minutes, please wait...)"
                 )
         else:
@@ -746,7 +746,7 @@ def fetch_jira_issues_with_changelog(
                         )
                         if progress_callback:
                             progress_callback(
-                                f"⚠️ Timeout, retrying... (attempt {retry_count}/{max_retries})"
+                                f"[!] Timeout, retrying... (attempt {retry_count}/{max_retries})"
                             )
                     else:
                         logger.error(
@@ -765,7 +765,7 @@ def fetch_jira_issues_with_changelog(
                         )
                         if progress_callback:
                             progress_callback(
-                                f"⚠️ Network error, retrying... (attempt {retry_count}/{max_retries})"
+                                f"[!] Network error, retrying... (attempt {retry_count}/{max_retries})"
                             )
                     else:
                         logger.error(
@@ -1660,7 +1660,7 @@ def fetch_changelog_on_demand(config: Dict, progress_callback=None) -> Tuple[boo
     try:
         logger.info("[JIRA] Fetching changelog data for Flow Time and DORA metrics")
         if progress_callback:
-            progress_callback("📊 Starting changelog download...")
+            progress_callback("[Stats] Starting changelog download...")
 
         # Get query-specific cache file paths
         from data.profile_manager import get_active_query_workspace
@@ -1725,11 +1725,11 @@ def fetch_changelog_on_demand(config: Dict, progress_callback=None) -> Tuple[boo
                     )
                     if progress_callback:
                         progress_callback(
-                            f"✅ All {len(cached_issue_keys)} issues already cached - skipping download"
+                            f"[OK] All {len(cached_issue_keys)} issues already cached - skipping download"
                         )
                     return (
                         True,
-                        f"✅ Changelog already cached for all {len(cached_issue_keys)} issues",
+                        f"[OK] Changelog already cached for all {len(cached_issue_keys)} issues",
                     )
 
             except Exception as e:
@@ -1872,12 +1872,12 @@ def fetch_changelog_on_demand(config: Dict, progress_callback=None) -> Tuple[boo
 
                 if progress_callback:
                     progress_callback(
-                        f"✅ Changelog complete: {newly_fetched} fetched, {previously_cached} cached, {total_cached} total"
+                        f"[OK] Changelog complete: {newly_fetched} fetched, {previously_cached} cached, {total_cached} total"
                     )
 
                 return (
                     True,
-                    f"✅ Changelog: {newly_fetched} newly fetched + {previously_cached} already cached = {total_cached} total issues (saved {reduction_pct:.0f}% size)",
+                    f"[OK] Changelog: {newly_fetched} newly fetched + {previously_cached} already cached = {total_cached} total issues (saved {reduction_pct:.0f}% size)",
                 )
             except Exception as e:
                 logger.warning(f"[Cache] Failed to save changelog data: {e}")

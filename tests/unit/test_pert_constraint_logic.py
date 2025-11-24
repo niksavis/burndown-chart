@@ -327,8 +327,8 @@ if __name__ == "__main__":
     import sys
 
     if validate_constraint_logic():
-        print("✅ All constraint logic tests pass!")
+        print("[OK] All constraint logic tests pass!")
         sys.exit(0)
     else:
-        print("❌ Constraint logic tests failed!")
+        print("[X] Constraint logic tests failed!")
         sys.exit(1)

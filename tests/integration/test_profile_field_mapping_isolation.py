@@ -153,7 +153,7 @@ class TestProfileFieldMappingIsolation:
             "✓ Step 4: Verified new profile has EMPTY field mappings and project classifications"
         )
         print(
-            "✅ TEST PASSED: Field mappings are properly isolated and cleared on profile deletion/recreation"
+            "[OK] TEST PASSED: Field mappings are properly isolated and cleared on profile deletion/recreation"
         )
 
     def test_field_mappings_persist_across_profile_switches(self):
@@ -210,7 +210,7 @@ class TestProfileFieldMappingIsolation:
         print("✓ Profile A (switch back): Mappings still correct")
 
         print(
-            "✅ TEST PASSED: Field mappings persist correctly across profile switches"
+            "[OK] TEST PASSED: Field mappings persist correctly across profile switches"
         )
 
     def test_state_store_cleared_on_profile_switch_callback(self):
@@ -249,7 +249,7 @@ class TestProfileFieldMappingIsolation:
         )
 
         print(
-            "✅ TEST PASSED: Callback correctly clears state store on every profile switch"
+            "[OK] TEST PASSED: Callback correctly clears state store on every profile switch"
         )
 
 

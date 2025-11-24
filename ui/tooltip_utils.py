@@ -971,16 +971,16 @@ def create_formula_tooltip(
         Dash component with formula-specific expandable tooltip
     """
     # Create summary content (basic level)
-    summary_content = f"{basic_explanation}\n\n🔢 Formula: {formula_text}"
+    summary_content = f"{basic_explanation}\n\n[Calc] Formula: {formula_text}"
 
     # Create detailed content (intermediate/advanced level)
     detailed_parts = []
 
     if example_calculation:
-        detailed_parts.append(f"📊 Example Calculation:\n{example_calculation}")
+        detailed_parts.append(f"[Example] Calculation:\n{example_calculation}")
 
     if mathematical_context:
-        detailed_parts.append(f"📈 Mathematical Context:\n{mathematical_context}")
+        detailed_parts.append(f"[Math] Context:\n{mathematical_context}")
 
     detailed_content = (
         "\n\n".join(detailed_parts)
@@ -1031,7 +1031,7 @@ def create_calculation_step_tooltip(
     detailed_content = "\n".join(formatted_steps)
 
     if interpretation:
-        detailed_content += f"\n\n💡 Result: {interpretation}"
+        detailed_content += f"\n\n[Result] {interpretation}"
 
     return create_expandable_tooltip(
         id_suffix=f"calc-{id_suffix}",
@@ -1073,10 +1073,10 @@ def create_statistical_context_tooltip(
 
     detailed_parts = []
     if confidence_info:
-        detailed_parts.append(f"📊 Confidence: {confidence_info}")
+        detailed_parts.append(f"[Stats] Confidence: {confidence_info}")
 
     if data_requirements:
-        detailed_parts.append(f"📈 Data Requirements: {data_requirements}")
+        detailed_parts.append(f"[Data] Requirements: {data_requirements}")
 
     detailed_content = (
         "\n\n".join(detailed_parts)

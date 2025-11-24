@@ -356,7 +356,7 @@ def retry_with_backoff(
 
             # Log retry attempt with context
             logger.warning(f"⚠ Attempt {attempt}/{max_attempts} failed: {error_msg}")
-            logger.info(f"⏳ Retrying in {delay:.1f}s... (exponential backoff)")
+            logger.info(f"[Pending] Retrying in {delay:.1f}s... (exponential backoff)")
 
             # Wait before retrying (exponential backoff)
             time.sleep(delay)

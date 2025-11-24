@@ -160,18 +160,18 @@ def calculate_and_save_weekly_metrics(
                     if cache_mtime < snapshot_mtime:
                         # Cache is older than snapshot - metrics are up-to-date
                         logger.info(
-                            f"✅ Metrics for week {week_label} already exist and are up-to-date. Skipping recalculation."
+                            f"[OK] Metrics for week {week_label} already exist and are up-to-date. Skipping recalculation."
                         )
                         report_progress(
-                            f"✅ Week {week_label} already calculated - using cached metrics"
+                            f"[OK] Week {week_label} already calculated - using cached metrics"
                         )
                         return (
                             True,
-                            f"✅ Metrics for week {week_label} already up-to-date",
+                            f"[OK] Metrics for week {week_label} already up-to-date",
                         )
         else:
             logger.info(
-                f"📊 Week {week_label} is current week - will recalculate (running total)"
+                f"[Stats] Week {week_label} is current week - will recalculate (running total)"
             )
 
         with open(cache_file, "r", encoding="utf-8") as f:
@@ -207,7 +207,9 @@ def calculate_and_save_weekly_metrics(
         changelog_available = os.path.exists(changelog_cache_file)
 
         if not changelog_available:
-            report_progress("⏳ Changelog data not found. Downloading from JIRA...")
+            report_progress(
+                "[Pending] Changelog data not found. Downloading from JIRA..."
+            )
 
             # Load JIRA configuration
             from data.jira_simple import get_jira_config, fetch_changelog_on_demand
@@ -233,18 +235,18 @@ def calculate_and_save_weekly_metrics(
                         "All other metrics (Velocity, Load, Distribution, DORA) will still be calculated."
                     )
                     report_progress(
-                        "⚠️ Changelog download failed. Continuing with available data..."
+                        "[!] Changelog download failed. Continuing with available data..."
                     )
                     changelog_available = False
                 else:
-                    report_progress(f"✅ {changelog_message}")
+                    report_progress(f"[OK] {changelog_message}")
                     changelog_available = True
         else:
             logger.info("Changelog cache found, using existing data")
 
         # Load changelog data and merge into issues (if available)
         if changelog_available and os.path.exists(changelog_cache_file):
-            report_progress("📊 Loading changelog data...")
+            report_progress("[Stats] Loading changelog data...")
             try:
                 with open(changelog_cache_file, "r", encoding="utf-8") as f:
                     changelog_cache = json.load(f)
@@ -387,7 +389,7 @@ def calculate_and_save_weekly_metrics(
         # Calculate Flow Time using dual-mode function (Feature 012 - variable extraction)
         # REQUIRES CHANGELOG DATA - skip if not available
         if changelog_available:
-            report_progress("📊 Calculating Flow Time metric...")
+            report_progress("[Stats] Calculating Flow Time metric...")
             from data.flow_calculator import calculate_flow_time
             from data.field_mapper import load_field_mappings
 
@@ -405,7 +407,7 @@ def calculate_and_save_weekly_metrics(
         # Calculate Flow Efficiency using dual-mode function (Feature 012 - variable extraction)
         # REQUIRES CHANGELOG DATA - skip if not available
         if changelog_available:
-            report_progress("📊 Calculating Flow Efficiency metric...")
+            report_progress("[Stats] Calculating Flow Efficiency metric...")
             from data.flow_calculator import calculate_flow_efficiency
             from data.field_mapper import load_field_mappings
 
@@ -422,7 +424,7 @@ def calculate_and_save_weekly_metrics(
 
         # Calculate Flow Load with historical WIP reconstruction
         # For historical weeks, we need WIP as-of that week's end
-        report_progress("📊 Calculating Flow Load metric...")
+        report_progress("[Stats] Calculating Flow Load metric...")
         from data.changelog_processor import get_status_at_point_in_time
 
         # Calculate historical WIP (issues in active work at end of this week)
@@ -512,7 +514,7 @@ def calculate_and_save_weekly_metrics(
         }
 
         # Calculate Flow Velocity (already have issues_completed_this_week)
-        report_progress("📊 Calculating Flow Velocity...")
+        report_progress("[Stats] Calculating Flow Velocity...")
         velocity_count = len(issues_completed_this_week)
 
         logger.info(
@@ -652,11 +654,11 @@ def calculate_and_save_weekly_metrics(
             logger.info(f"Saved Flow Load: {wip} items")
         else:
             error_msg = load_result.get("error_message", "Unknown error")
-            metrics_details.append(f"Flow Load: ⚠️ {error_msg}")
+            metrics_details.append(f"Flow Load: [!] {error_msg}")
             logger.warning(f"Flow Load calculation failed: {load_error} - {error_msg}")
 
         # Calculate work distribution using user-configured flow_type_mappings
-        report_progress("📊 Categorizing work distribution...")
+        report_progress("[Stats] Categorizing work distribution...")
         from configuration.metrics_config import get_metrics_config
 
         # Get field mappings from configuration
@@ -743,7 +745,7 @@ def calculate_and_save_weekly_metrics(
         # DORA METRICS CALCULATION
         # ============================================================================
         report_progress(
-            "📊 Calculating DORA metrics (Lead Time, Deployment Frequency)..."
+            "[Stats] Calculating DORA metrics (Lead Time, Deployment Frequency)..."
         )
 
         from data.dora_calculator import (
@@ -765,7 +767,7 @@ def calculate_and_save_weekly_metrics(
             overlap = set(devops_projects) & set(development_projects)
             if overlap:
                 logger.warning(
-                    f"⚠️ CONFIGURATION WARNING: Projects {overlap} appear in BOTH devops_projects and development_projects. "
+                    f"[!] CONFIGURATION WARNING: Projects {overlap} appear in BOTH devops_projects and development_projects. "
                     "This may cause issues to be counted twice. Please use EITHER project-based filtering (MODE 1) "
                     "OR field-based filtering (MODE 2), not both for the same project."
                 )
@@ -1099,7 +1101,7 @@ def calculate_and_save_weekly_metrics(
         else:
             # MODE 2: Field-based detection (simple JIRA setup without DevOps projects)
             logger.info(
-                f"🎯 DORA Mode: Field-based detection (scanning all {len(all_issues)} issues for DORA fields)"
+                f"[Tip] DORA Mode: Field-based detection (scanning all {len(all_issues)} issues for DORA fields)"
             )
 
             # Use field-based detection to identify DORA-relevant issues
@@ -1401,14 +1403,14 @@ def calculate_and_save_weekly_metrics(
         # Create detailed message
         if metrics_saved == 0:
             message = (
-                f"⚠️ No metrics calculated for week {week_label}. Details:\n"
+                f"[!] No metrics calculated for week {week_label}. Details:\n"
                 + "\n".join(metrics_details)
             )
             logger.warning(message)
             return False, message
 
         message = (
-            f"✅ Saved {metrics_saved} metrics for week {week_label}:\n"
+            f"[OK] Saved {metrics_saved} metrics for week {week_label}:\n"
             + "\n".join(metrics_details)
         )
         logger.info(f"Successfully saved {metrics_saved} metrics for week {week_label}")
@@ -1463,7 +1465,7 @@ def calculate_metrics_for_last_n_weeks(
 
             if progress_callback:
                 progress_callback(
-                    f"📅 Calculating metrics for week {week_label} ({monday} to {sunday})..."
+                    f"[Date] Calculating metrics for week {week_label} ({monday} to {sunday})..."
                 )
 
             success, message = calculate_and_save_weekly_metrics(
@@ -1477,11 +1479,11 @@ def calculate_metrics_for_last_n_weeks(
 
         # Summary
         if failed_weeks:
-            summary = f"⚠️ Calculated metrics for {len(successful_weeks)}/{n_weeks} weeks. Failures:\n"
+            summary = f"[!] Calculated metrics for {len(successful_weeks)}/{n_weeks} weeks. Failures:\n"
             for week, msg in failed_weeks[:3]:  # Show first 3 failures
                 summary += f"  {week}: {msg[:100]}...\n"
         else:
-            summary = f"✅ Successfully calculated metrics for all {n_weeks} weeks ({successful_weeks[0]} to {successful_weeks[-1]})"
+            summary = f"[OK] Successfully calculated metrics for all {n_weeks} weeks ({successful_weeks[0]} to {successful_weeks[-1]})"
 
         logger.info(summary)
         return len(failed_weeks) == 0, summary

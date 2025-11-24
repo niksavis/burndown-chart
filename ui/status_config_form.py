@@ -63,7 +63,7 @@ def create_status_config_form(
                                 className="form-label fw-bold",
                             ),
                             html.P(
-                                "⚠️ Issues with these statuses are counted as completed",
+                                "[!] Issues with these statuses are counted as completed",
                                 className="text-muted small mb-2",
                             ),
                         ],
@@ -101,7 +101,7 @@ def create_status_config_form(
                                 className="form-label fw-bold",
                             ),
                             html.P(
-                                "⚠️ Should be subset of WIP statuses",
+                                "[!] Should be subset of WIP statuses",
                                 className="text-muted small mb-2",
                             ),
                         ],
@@ -139,7 +139,7 @@ def create_status_config_form(
                                 className="form-label fw-bold",
                             ),
                             html.P(
-                                "ℹ️ Flow Time measurement starts when issues enter these statuses",
+                                "[i] Flow Time measurement starts when issues enter these statuses",
                                 className="text-muted small mb-2",
                             ),
                         ],
@@ -177,7 +177,7 @@ def create_status_config_form(
                                 className="form-label fw-bold",
                             ),
                             html.P(
-                                "ℹ️ Issues with these statuses are counted in Work In Progress",
+                                "[i] Issues with these statuses are counted in Work In Progress",
                                 className="text-muted small mb-2",
                             ),
                         ],

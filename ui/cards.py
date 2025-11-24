@@ -3104,7 +3104,7 @@ def create_unified_metric_card(
         ...     status_bg="rgba(40, 167, 69, 0.1)",
         ...     status_border="rgba(40, 167, 69, 0.2)",
         ...     secondary_info="123 closed / 168 total • Good",
-        ...     tertiary_info="📅 May 22, 2025 - Oct 23, 2025",
+        ...     tertiary_info="[Date] May 22, 2025 - Oct 23, 2025",
         ... )
     """
     from ui.style_constants import METRIC_CARD

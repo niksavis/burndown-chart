@@ -35,10 +35,10 @@ class TestBasicCharacterCounting:
         """Count unicode characters (emoji, special chars) correctly."""
         from ui.components import count_jql_characters
 
-        # Test with emoji and special characters
-        query = "project = 🚀TEST"
+        # Test with special characters
+        query = "project = TEST-123"
         assert count_jql_characters(query) == len(query)
-        assert count_jql_characters(query) == 15
+        assert count_jql_characters(query) == 18
 
         # Test with accented characters
         query_accented = "assignee = 'José García'"

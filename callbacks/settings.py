@@ -473,7 +473,7 @@ def register(app):
                         html.Div(
                             [
                                 html.Span(
-                                    "⚠️ JIRA is not configured.",
+                                    "[!] JIRA is not configured.",
                                     className="fw-bold d-block mb-1",
                                 ),
                                 html.Span(
@@ -1073,7 +1073,7 @@ def register(app):
 
             if not is_configured:
                 current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                status_message = "⚠️ JIRA is not configured. Please click the 'Configure JIRA' button to set up your JIRA connection before calculating project scope."
+                status_message = "[!] JIRA is not configured. Please click the 'Configure JIRA' button to set up your JIRA connection before calculating project scope."
                 return (
                     html.Div(status_message, className="text-warning"),
                     f"Last attempt: {current_time}",
@@ -1152,14 +1152,14 @@ def register(app):
                         field_coverage = field_stats.get("field_coverage_percent", 0)
 
                         if field_exists_count == 0:
-                            status_message = f"⚠️ Points field '{field_name}' not found in any JIRA issues. Only total item count ({total_items}) calculated. Check if '{field_name}' exists in your JIRA project and verify your JQL query includes issues with this field."
+                            status_message = f"[!] Points field '{field_name}' not found in any JIRA issues. Only total item count ({total_items}) calculated. Check if '{field_name}' exists in your JIRA project and verify your JQL query includes issues with this field."
                         elif field_coverage < 50:
-                            status_message = f"⚠️ Points field '{field_name}' has insufficient coverage ({field_coverage:.0f}% of issues have the field, need ≥50%). Found in {field_exists_count} of {sample_size} sample issues, with {valid_points_count} having point values. Only total item count ({total_items}) calculated. Consider refining your JQL query to include more issues with this field, or verify '{field_name}' is the correct custom field name."
+                            status_message = f"[!] Points field '{field_name}' has insufficient coverage ({field_coverage:.0f}% of issues have the field, need ≥50%). Found in {field_exists_count} of {sample_size} sample issues, with {valid_points_count} having point values. Only total item count ({total_items}) calculated. Consider refining your JQL query to include more issues with this field, or verify '{field_name}' is the correct custom field name."
                         else:
                             # This shouldn't happen if points_field_available is False, but just in case
-                            status_message = f"⚠️ Points field '{field_name}' validation failed unexpectedly ({field_coverage:.0f}% coverage). Only total item count ({total_items}) calculated."
+                            status_message = f"[!] Points field '{field_name}' validation failed unexpectedly ({field_coverage:.0f}% coverage). Only total item count ({total_items}) calculated."
                     else:
-                        status_message = f"⚠️ No points field configured. Only total item count ({total_items}) calculated. Configure a valid points field for full scope calculation."
+                        status_message = f"[!] No points field configured. Only total item count ({total_items}) calculated. Configure a valid points field for full scope calculation."
 
                 status_content = html.Div(
                     [
@@ -1777,9 +1777,9 @@ def register(app):
 
             profile = get_query_profile_by_id(selected_profile_id)
             if profile:
-                status_text = f"📋 Using saved query: {profile['name']}"
+                status_text = f"[List] Using saved query: {profile['name']}"
                 if profile.get("is_default", False):
-                    status_text += " ⭐"
+                    status_text += " [*]"
                 return status_text
             else:
                 return ""

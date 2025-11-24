@@ -551,7 +551,7 @@ def validate_field_selection_real_time(
 
         if actual_type == "unknown" or required_type == "unknown":
             # Cannot validate - show info
-            message = "ℹ️ Field type information unavailable"
+            message = "[i] Field type information unavailable"
             color = "info"
         elif actual_type == required_type:
             # Perfect match

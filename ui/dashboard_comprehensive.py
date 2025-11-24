@@ -1489,7 +1489,7 @@ def _create_insights_section(statistics_df, settings):
             insights.append(
                 {
                     "type": "positive",
-                    "title": "🚀 Accelerating Delivery",
+                    "title": "[Trend] Accelerating Delivery",
                     "message": f"Team velocity increased {((recent_velocity / historical_velocity - 1) * 100):.0f}% in recent weeks",
                     "action": "Consider taking on additional scope or bringing forward deliverables",
                 }
@@ -1498,7 +1498,7 @@ def _create_insights_section(statistics_df, settings):
             insights.append(
                 {
                     "type": "warning",
-                    "title": "⚠️ Velocity Decline",
+                    "title": "[!] Velocity Decline",
                     "message": f"Team velocity decreased {((1 - recent_velocity / historical_velocity) * 100):.0f}% recently",
                     "action": "Review team capacity, blockers, and scope complexity",
                 }
@@ -1513,7 +1513,7 @@ def _create_insights_section(statistics_df, settings):
                 insights.append(
                     {
                         "type": "warning",
-                        "title": "📈 High Scope Growth",
+                        "title": "[Trend] High Scope Growth",
                         "message": f"New items ({scope_growth}) represent {(scope_growth / scope_completion * 100):.0f}% of completed work",
                         "action": "Consider scope prioritization and change management processes",
                     }
@@ -1522,7 +1522,7 @@ def _create_insights_section(statistics_df, settings):
                 insights.append(
                     {
                         "type": "info",
-                        "title": "📊 Active Scope Management",
+                        "title": "[Stats] Active Scope Management",
                         "message": f"Moderate scope growth ({scope_growth} new items) indicates healthy project evolution",
                         "action": "Continue monitoring scope changes and stakeholder feedback",
                     }
@@ -1543,7 +1543,7 @@ def _create_insights_section(statistics_df, settings):
             insights.append(
                 {
                     "type": "positive",
-                    "title": "🎯 Predictable Delivery",
+                    "title": "[Tip] Predictable Delivery",
                     "message": f"Low velocity variation ({velocity_cv:.0f}%) indicates predictable delivery rhythm",
                     "action": "Maintain current practices and use predictability for better planning",
                 }
@@ -1552,7 +1552,7 @@ def _create_insights_section(statistics_df, settings):
             insights.append(
                 {
                     "type": "warning",
-                    "title": "📊 Inconsistent Velocity",
+                    "title": "[Stats] Inconsistent Velocity",
                     "message": f"High velocity variation ({velocity_cv:.0f}%) suggests unpredictable delivery",
                     "action": "Investigate causes: story sizing, blockers, team availability, or external dependencies",
                 }
@@ -1568,7 +1568,7 @@ def _create_insights_section(statistics_df, settings):
                 insights.append(
                     {
                         "type": "positive",
-                        "title": "📈 Increasing Throughput",
+                        "title": "[Trend] Increasing Throughput",
                         "message": f"Recent 4-week throughput ({recent_items} items) exceeded previous period by {((recent_items / prev_items - 1) * 100):.0f}%",
                         "action": "Analyze what's working well and consider scaling successful practices",
                     }
@@ -1578,7 +1578,7 @@ def _create_insights_section(statistics_df, settings):
         insights.append(
             {
                 "type": "info",
-                "title": "✅ Stable Performance",
+                "title": "[OK] Stable Performance",
                 "message": "Project metrics are within normal ranges - no immediate concerns detected",
                 "action": "Continue current practices and monitor for changes in upcoming weeks",
             }

@@ -109,7 +109,7 @@ def create_issue_type_config_form(
                                 className="form-label fw-bold",
                             ),
                             html.P(
-                                "⚠️ Required for DORA Deployment Frequency",
+                                "[!] Required for DORA Deployment Frequency",
                                 className="text-muted small mb-2",
                             ),
                         ],
@@ -147,7 +147,7 @@ def create_issue_type_config_form(
                                 className="form-label fw-bold",
                             ),
                             html.P(
-                                "⚠️ Required for DORA MTTR",
+                                "[!] Required for DORA MTTR",
                                 className="text-muted small mb-2",
                             ),
                         ],
@@ -260,7 +260,7 @@ def create_issue_type_config_form(
                                                 className="form-label",
                                             ),
                                             html.P(
-                                                "ℹ️ Leave empty to match ALL above issue types",
+                                                "[i] Leave empty to match ALL above issue types",
                                                 className="text-muted small mb-2",
                                             ),
                                         ],
@@ -359,7 +359,7 @@ def create_issue_type_config_form(
                                                 className="form-label",
                                             ),
                                             html.P(
-                                                "ℹ️ Leave empty to match ALL above issue types",
+                                                "[i] Leave empty to match ALL above issue types",
                                                 className="text-muted small mb-2",
                                             ),
                                         ],
@@ -458,7 +458,7 @@ def create_issue_type_config_form(
                                                 className="form-label",
                                             ),
                                             html.P(
-                                                "ℹ️ Leave empty to match ALL above issue types",
+                                                "[i] Leave empty to match ALL above issue types",
                                                 className="text-muted small mb-2",
                                             ),
                                         ],
@@ -557,7 +557,7 @@ def create_issue_type_config_form(
                                                 className="form-label",
                                             ),
                                             html.P(
-                                                "ℹ️ Leave empty to match ALL above issue types",
+                                                "[i] Leave empty to match ALL above issue types",
                                                 className="text-muted small mb-2",
                                             ),
                                         ],

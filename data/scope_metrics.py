@@ -36,7 +36,7 @@ CORRECT BASELINE USAGE
 When calling scope metric functions, the baseline parameters MUST represent the
 INITIAL scope (at project start), NOT the current total scope:
 
-✅ CORRECT:
+[OK] CORRECT:
 ```python
 # Calculate initial scope from earliest data point
 initial_items = df.iloc[0]['remaining_items'] + df['completed_items'].sum()
@@ -46,7 +46,7 @@ initial_points = df.iloc[0]['remaining_points'] + df['completed_points'].sum()
 scope_change_rate = calculate_scope_change_rate(df, initial_items, initial_points)
 ```
 
-❌ WRONG:
+[X] WRONG:
 ```python
 # Do NOT include created items in baseline
 current_total = initial_items + df['created_items'].sum()  # This is current total, not baseline

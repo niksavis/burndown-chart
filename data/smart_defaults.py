@@ -222,7 +222,7 @@ def get_contextual_help_for_step(
     """
     help_content = {
         "profile_creation": {
-            "title": "🚀 Create Your Workspace",
+            "title": "[Start] Create Your Workspace",
             "description": "Set up a new profile to organize your JIRA analysis",
             "tips": [
                 "Choose a descriptive name for easy identification",

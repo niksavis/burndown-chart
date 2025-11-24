@@ -167,8 +167,8 @@ def calculate_velocity_from_dataframe(
     Week 10: 10 items
     Total: 20 items
 
-    Date range method: 20 items / 9 weeks = 2.2 items/week ❌
-    Actual weeks method: 20 items / 2 weeks = 10 items/week ✅
+    Date range method: 20 items / 9 weeks = 2.2 items/week [X]
+    Actual weeks method: 20 items / 2 weeks = 10 items/week [OK]
     ```
 
     Args:
@@ -276,19 +276,19 @@ def calculate_rates(
 
     **Limitations and Appropriate Use:**
 
-    ✅ **RECOMMENDED FOR:**
+    [OK] **RECOMMENDED FOR:**
     - Short to medium term forecasts (2-12 weeks)
     - Teams with stable composition and workload
     - Projects with consistent workflow patterns
     - Contexts where empirical data is preferred over expert judgment
 
-    ⚠️ **USE WITH CAUTION FOR:**
+    [!] **USE WITH CAUTION FOR:**
     - Long-term forecasts (>6 months) - patterns may change
     - Teams undergoing major changes (new members, tech stack changes)
     - Projects with highly variable requirements
     - Seasonal projects with known cyclical patterns not yet captured in data
 
-    ❌ **NOT SUITABLE FOR:**
+    [X] **NOT SUITABLE FOR:**
     - Brand new teams with <4 weeks of history
     - Projects with fundamentally different future work than past
     - One-time initiatives without recurring patterns

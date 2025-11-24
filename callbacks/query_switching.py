@@ -526,7 +526,7 @@ def trigger_delete_query_modal_from_selector(delete_clicks, selected_query_id):
         display_parts = [query_name]
 
         if is_active and is_last_query:
-            display_parts.append(" ⚠️ ACTIVE & LAST QUERY - All charts will be cleared!")
+            display_parts.append(" [!] ACTIVE & LAST QUERY - All charts will be cleared!")
             logger.warning(
                 f"Opening delete modal for ACTIVE AND LAST query: {query_name}"
             )
@@ -534,7 +534,7 @@ def trigger_delete_query_modal_from_selector(delete_clicks, selected_query_id):
             display_parts.append(" ★ ACTIVE - Charts will be cleared")
             logger.warning(f"Opening delete modal for ACTIVE query: {query_name}")
         elif is_last_query:
-            display_parts.append(" ⚠️ LAST QUERY - Profile will have no queries")
+            display_parts.append(" [!] LAST QUERY - Profile will have no queries")
             logger.warning(f"Opening delete modal for LAST query: {query_name}")
         else:
             logger.info(f"Opening delete modal for query: {query_name}")

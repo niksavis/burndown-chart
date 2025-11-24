@@ -65,14 +65,14 @@ Layer Boundaries
 
 Callbacks must follow architecture guidelines (see specs/006-ux-ui-redesign/docs/architecture.md):
 
-✅ ALLOWED in callbacks:
+[OK] ALLOWED in callbacks:
 - Event handling and coordination
 - Calling data layer functions
 - Updating UI components
 - State management via dcc.Store
 - Error handling and user feedback
 
-❌ FORBIDDEN in callbacks:
+[X] FORBIDDEN in callbacks:
 - Business logic implementation (use data/ layer)
 - File I/O operations (use data.persistence)
 - Complex calculations (use data.processing)

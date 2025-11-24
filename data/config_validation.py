@@ -241,7 +241,7 @@ def format_validation_messages(validation_result: Dict[str, List[str]]) -> str:
 
     errors = validation_result.get("errors", [])
     if errors:
-        messages.append("❌ Errors:")
+        messages.append("[!] Errors:")
         for error in errors:
             messages.append(f"  • {error}")
 
@@ -249,11 +249,11 @@ def format_validation_messages(validation_result: Dict[str, List[str]]) -> str:
     if warnings:
         if messages:
             messages.append("")  # Blank line separator
-        messages.append("⚠️ Warnings:")
+        messages.append("[!] Warnings:")
         for warning in warnings:
             messages.append(f"  • {warning}")
 
     if not messages:
-        return "✅ Configuration is valid"
+        return "[OK] Configuration is valid"
 
     return "\n".join(messages)

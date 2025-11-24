@@ -65,7 +65,7 @@ def test_user_story_3_historical_review():
         )
         assert trend is not None, "Trend vs forecast should be calculated"
 
-        print("\n✅ US3 PASS: Historical forecast data persists and loads correctly")
+        print("\n[OK] US3 PASS: Historical forecast data persists and loads correctly")
     else:
         pytest.fail("No forecast data found in historical snapshot")
 
@@ -116,7 +116,7 @@ def test_user_story_4_wip_health_ranges():
 
         assert status == expected_status, f"WIP={wip} should be {expected_status}"
 
-    print("\n✅ US4 PASS: Flow Load range and bidirectional health working")
+    print("\n[OK] US4 PASS: Flow Load range and bidirectional health working")
 
 
 def test_user_story_5_baseline_building():
@@ -212,7 +212,7 @@ def test_user_story_5_baseline_building():
     )
     print("  ✓ Established baseline (no badge) displays correctly")
 
-    print("\n✅ US5 PASS: Baseline building with appropriate messaging working")
+    print("\n[OK] US5 PASS: Baseline building with appropriate messaging working")
 
 
 if __name__ == "__main__":
@@ -228,20 +228,20 @@ if __name__ == "__main__":
         print("\n" + "=" * 60)
         print("SUMMARY")
         print("=" * 60)
-        print(f"US3 (Historical Review):   {'✅ PASS' if us3_pass else '❌ FAIL'}")
-        print(f"US4 (WIP Health Ranges):   {'✅ PASS' if us4_pass else '❌ FAIL'}")
-        print(f"US5 (Baseline Building):   {'✅ PASS' if us5_pass else '❌ FAIL'}")
+        print(f"US3 (Historical Review):   {'[OK] PASS' if us3_pass else '[X] FAIL'}")
+        print(f"US4 (WIP Health Ranges):   {'[OK] PASS' if us4_pass else '[X] FAIL'}")
+        print(f"US5 (Baseline Building):   {'[OK] PASS' if us5_pass else '[X] FAIL'}")
 
         all_pass = us3_pass and us4_pass and us5_pass
         print("\n" + "=" * 60)
         if all_pass:
-            print("✅ ALL USER STORIES VERIFIED - FEATURE 009 COMPLETE")
+            print("[OK] ALL USER STORIES VERIFIED - FEATURE 009 COMPLETE")
         else:
-            print("❌ SOME USER STORIES FAILED - SEE DETAILS ABOVE")
+            print("[X] SOME USER STORIES FAILED - SEE DETAILS ABOVE")
         print("=" * 60)
 
     except Exception as e:
-        print(f"\n❌ ERROR during verification: {e}")
+        print(f"\n[X] ERROR during verification: {e}")
         import traceback
 
         traceback.print_exc()

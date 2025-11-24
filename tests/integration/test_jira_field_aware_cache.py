@@ -52,15 +52,15 @@ def test_field_aware_caching():
     success = cache_jira_response(
         test_issues, jql_query, fields_with_votes, test_cache_file
     )
-    print(f"   ✅ Cache created: {success}")
+    print(f"   [OK] Cache created: {success}")
 
     # Verify cache file structure
     with open(test_cache_file, "r") as f:
         cached_data = json.load(f)
 
-    print(f"   📊 Cached JQL: '{cached_data.get('jql_query')}'")
-    print(f"   📊 Cached Fields: '{cached_data.get('fields_requested')}'")
-    print(f"   📊 Issues count: {len(cached_data.get('issues', []))}")
+    print(f"   [Stats] Cached JQL: '{cached_data.get('jql_query')}'")
+    print(f"   [Stats] Cached Fields: '{cached_data.get('fields_requested')}'")
+    print(f"   [Stats] Issues count: {len(cached_data.get('issues', []))}")
 
     print("\n2️⃣ Test Cache Load with Same Fields (Should Work)...")
 
@@ -68,8 +68,8 @@ def test_field_aware_caching():
     cache_loaded, loaded_issues = load_jira_cache(
         jql_query, fields_with_votes, test_cache_file
     )
-    print(f"   ✅ Cache loaded successfully: {cache_loaded}")
-    print(f"   📊 Loaded issues: {len(loaded_issues) if loaded_issues else 0}")
+    print(f"   [OK] Cache loaded successfully: {cache_loaded}")
+    print(f"   [Stats] Loaded issues: {len(loaded_issues) if loaded_issues else 0}")
 
     print("\n3️⃣ Test Cache Load with Different Fields (Should Invalidate)...")
 
@@ -78,8 +78,8 @@ def test_field_aware_caching():
     cache_loaded, loaded_issues = load_jira_cache(
         jql_query, fields_with_story_points, test_cache_file
     )
-    print(f"   ❌ Cache should be invalidated: {not cache_loaded}")
-    print(f"   📊 Issues returned: {len(loaded_issues) if loaded_issues else 0}")
+    print(f"   [X] Cache should be invalidated: {not cache_loaded}")
+    print(f"   [Stats] Issues returned: {len(loaded_issues) if loaded_issues else 0}")
 
     print("\n4️⃣ Test Cache Load with No Story Points Field (Should Work)...")
 
@@ -99,13 +99,13 @@ def test_field_aware_caching():
     success = cache_jira_response(
         base_test_issues, jql_query, base_fields, test_cache_file
     )
-    print(f"   ✅ Base fields cache created: {success}")
+    print(f"   [OK] Base fields cache created: {success}")
 
     # Load with base fields (should work)
     cache_loaded, loaded_issues = load_jira_cache(
         jql_query, base_fields, test_cache_file
     )
-    print(f"   ✅ Base fields cache loaded: {cache_loaded}")
+    print(f"   [OK] Base fields cache loaded: {cache_loaded}")
 
     print("\n5️⃣ Test Cache Load Base vs Story Points (Should Invalidate)...")
 
@@ -114,7 +114,7 @@ def test_field_aware_caching():
         jql_query, fields_with_votes, test_cache_file
     )
     print(
-        f"   ❌ Cache should be invalidated (base → story points): {not cache_loaded}"
+        f"   [X] Cache should be invalidated (base → story points): {not cache_loaded}"
     )
 
     print("\n6️⃣ Test Backward Compatibility (Old Cache Format)...")
@@ -131,28 +131,28 @@ def test_field_aware_caching():
     with open(test_cache_file, "w") as f:
         json.dump(old_cache_data, f, indent=2)
 
-    print(f"   📊 Created old cache format (no fields_requested)")
+    print(f"   [Stats] Created old cache format (no fields_requested)")
 
     # Try to load old cache with base fields (should work)
     cache_loaded, loaded_issues = load_jira_cache(
         jql_query, base_fields, test_cache_file
     )
-    print(f"   ✅ Old cache + base fields: {cache_loaded}")
+    print(f"   [OK] Old cache + base fields: {cache_loaded}")
 
     # Try to load old cache with story points fields (should invalidate)
     cache_loaded, loaded_issues = load_jira_cache(
         jql_query, fields_with_votes, test_cache_file
     )
-    print(f"   ❌ Old cache + story points field should invalidate: {not cache_loaded}")
+    print(f"   [X] Old cache + story points field should invalidate: {not cache_loaded}")
 
     # Cleanup
     if os.path.exists(test_cache_file):
         os.remove(test_cache_file)
 
-    print(f"\n🎯 Test Summary:")
-    print(f"   ✅ Cache invalidation works for field changes")
-    print(f"   ✅ Backward compatibility maintained")
-    print(f"   ✅ Base fields vs story points detection works")
+    print(f"\n[Tip] Test Summary:")
+    print(f"   [OK] Cache invalidation works for field changes")
+    print(f"   [OK] Backward compatibility maintained")
+    print(f"   [OK] Base fields vs story points detection works")
     print(f"   🔥 Your field configuration caching issue is SOLVED!")
 
 

@@ -371,7 +371,7 @@ def create_work_distribution_card(
     relationship_hint = None
     if defect_pct > 30 or tech_debt_pct > 15:
         relationship_hint = html.P(
-            "💡 High defect/debt work reduces capacity for features and may signal quality issues",
+            "[Note] High defect/debt work reduces capacity for features and may signal quality issues",
             className="text-muted text-center small mb-2",
             style={"fontSize": "0.8rem", "fontStyle": "italic"},
         )

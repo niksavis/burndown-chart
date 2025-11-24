@@ -1054,7 +1054,7 @@ def calculate_metrics_from_settings(
         ]
 
         # Extract actual weeks processed from the summary message
-        # Message format: "✅ Successfully calculated metrics for all X weeks (YYYY-WW to YYYY-WW)"
+        # Message format: "[OK] Successfully calculated metrics for all X weeks (YYYY-WW to YYYY-WW)"
         actual_weeks_processed = n_weeks  # Default to requested weeks
         if "calculated metrics for all" in message.lower():
             import re

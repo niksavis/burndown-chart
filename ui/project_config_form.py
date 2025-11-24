@@ -60,7 +60,7 @@ def create_project_config_form(
                                 className="mb-2",
                             ),
                             html.Small(
-                                "ℹ️ Burndown, velocity, Flow metrics",
+                                "[i] Burndown, velocity, Flow metrics",
                                 className="text-muted d-block mb-3",
                             ),
                         ],
@@ -83,7 +83,7 @@ def create_project_config_form(
                                 className="mb-2",
                             ),
                             html.Small(
-                                "ℹ️ Optional. Specify projects containing operational tasks (deployments, incidents). "
+                                "[i] Optional. Specify projects containing operational tasks (deployments, incidents). "
                                 "If empty, all issues will be scanned for DORA-relevant fields.",
                                 className="text-muted d-block mb-3",
                             ),

@@ -410,7 +410,7 @@ def get_relevant_deployment_date(
 
         if not deployment_dates:
             logger.warning(
-                f"[RELEVANT_DEPLOY] {dev_key}: ❌ Found {len(matching_tasks)} matching operational tasks, but NONE have valid deployment dates!"
+                f"[RELEVANT_DEPLOY] {dev_key}: [X] Found {len(matching_tasks)} matching operational tasks, but NONE have valid deployment dates!"
             )
             return None
 
@@ -435,14 +435,14 @@ def get_relevant_deployment_date(
                 # Return the earliest deployment after ready time (closest to ready)
                 relevant = min(after_ready, key=lambda x: x[0])
                 logger.warning(
-                    f"[RELEVANT_DEPLOY] {dev_key}: ✅ USING deployment = {relevant[0]} from {relevant[1].get('key')} "
+                    f"[RELEVANT_DEPLOY] {dev_key}: [OK] USING deployment = {relevant[0]} from {relevant[1].get('key')} "
                     f"(after ready time {ready_date}, matched by {relevant[2]})"
                 )
                 return relevant
             else:
                 # No deployments after ready time - this is suspicious but return earliest anyway
                 logger.warning(
-                    f"[RELEVANT_DEPLOY] {dev_key}: ❌ All {len(deployment_dates)} deployments are BEFORE ready time {ready_date}. "
+                    f"[RELEVANT_DEPLOY] {dev_key}: [X] All {len(deployment_dates)} deployments are BEFORE ready time {ready_date}. "
                     f"Using earliest anyway."
                 )
 

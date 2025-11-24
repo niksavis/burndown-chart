@@ -27,7 +27,7 @@ class TestConfigurationStatusTracking:
         # Profile is always enabled (can select profile at any time)
         assert status["profile"]["enabled"] is True
         assert status["profile"]["complete"] is False
-        assert status["profile"]["icon"] == "⏳"
+        assert status["profile"]["icon"] == "[Pending]"
 
         assert status["jira"]["enabled"] is False
         assert status["jira"]["complete"] is False
@@ -54,12 +54,12 @@ class TestConfigurationStatusTracking:
         # Profile section should be enabled
         assert status["profile"]["enabled"] is True
         assert status["profile"]["complete"] is True
-        assert status["profile"]["icon"] == "✅"
+        assert status["profile"]["icon"] == "[OK]"
 
         # JIRA section should be enabled (unlocked) but not complete
         assert status["jira"]["enabled"] is True
         assert status["jira"]["complete"] is False
-        assert status["jira"]["icon"] == "⏳"
+        assert status["jira"]["icon"] == "[Pending]"
 
         # Other sections still locked
         assert status["fields"]["enabled"] is False
@@ -70,8 +70,8 @@ class TestConfigurationStatusTracking:
         """Verify JIRA completion unlocks field mappings and queries."""
         from callbacks.accordion_settings import update_configuration_status
 
-        # JIRA status must contain 'success' or '✅' in its string representation
-        jira_status = "✅ JIRA Connected"
+        # JIRA status must contain 'success' or '[OK]' in its string representation
+        jira_status = "[OK] JIRA Connected"
         status = update_configuration_status("default", jira_status, 0)
 
         # Profile complete
@@ -80,17 +80,17 @@ class TestConfigurationStatusTracking:
         # JIRA complete
         assert status["jira"]["enabled"] is True
         assert status["jira"]["complete"] is True
-        assert status["jira"]["icon"] == "✅"
+        assert status["jira"]["icon"] == "[OK]"
 
         # Fields unlocked (enabled but not complete)
         assert status["fields"]["enabled"] is True
         assert status["fields"]["complete"] is False
-        assert status["fields"]["icon"] == "⏳"
+        assert status["fields"]["icon"] == "[Pending]"
 
         # Queries unlocked (enabled but not complete)
         assert status["queries"]["enabled"] is True
         assert status["queries"]["complete"] is False
-        assert status["queries"]["icon"] == "⏳"
+        assert status["queries"]["icon"] == "[Pending]"
 
         # Data ops still locked (no query saved yet)
         assert status["data_operations"]["enabled"] is False
@@ -100,7 +100,7 @@ class TestConfigurationStatusTracking:
         """Verify saving query unlocks data operations."""
         from callbacks.accordion_settings import update_configuration_status
 
-        jira_status = "✅ JIRA Connected"
+        jira_status = "[OK] JIRA Connected"
         status = update_configuration_status("default", jira_status, 1)
 
         # All previous sections complete
@@ -110,12 +110,12 @@ class TestConfigurationStatusTracking:
         # Queries complete (saved at least once)
         assert status["queries"]["enabled"] is True
         assert status["queries"]["complete"] is True
-        assert status["queries"]["icon"] == "✅"
+        assert status["queries"]["icon"] == "[OK]"
 
         # Data ops unlocked
         assert status["data_operations"]["enabled"] is True
         assert status["data_operations"]["complete"] is False
-        assert status["data_operations"]["icon"] == "⏳"
+        assert status["data_operations"]["icon"] == "[Pending]"
 
 
 class TestSectionStateManagement:
@@ -202,10 +202,10 @@ class TestSectionTitleUpdates:
         from callbacks.accordion_settings import update_section_titles
 
         config_status = {
-            "profile": {"enabled": True, "icon": "✅"},
-            "jira": {"enabled": True, "icon": "⏳"},
-            "fields": {"enabled": True, "icon": "⏳"},
-            "queries": {"enabled": True, "icon": "⏳"},
+            "profile": {"enabled": True, "icon": "[OK]"},
+            "jira": {"enabled": True, "icon": "[Pending]"},
+            "fields": {"enabled": True, "icon": "[Pending]"},
+            "queries": {"enabled": True, "icon": "[Pending]"},
             "data_operations": {"enabled": False, "icon": "🔒"},
         }
 
@@ -217,10 +217,10 @@ class TestSectionTitleUpdates:
             data_ops_title,
         ) = update_section_titles(config_status)
 
-        assert "✅" in profile_title
-        assert "⏳" in jira_title
-        assert "⏳" in fields_title
-        assert "⏳" in queries_title
+        assert "[OK]" in profile_title
+        assert "[Pending]" in jira_title
+        assert "[Pending]" in fields_title
+        assert "[Pending]" in queries_title
         assert "🔒" in data_ops_title
 
     def test_section_titles_show_complete_icons(self):
@@ -228,11 +228,11 @@ class TestSectionTitleUpdates:
         from callbacks.accordion_settings import update_section_titles
 
         config_status = {
-            "profile": {"enabled": True, "icon": "✅"},
-            "jira": {"enabled": True, "icon": "✅"},
-            "fields": {"enabled": True, "icon": "✅"},
-            "queries": {"enabled": True, "icon": "✅"},
-            "data_operations": {"enabled": True, "icon": "⏳"},
+            "profile": {"enabled": True, "icon": "[OK]"},
+            "jira": {"enabled": True, "icon": "[OK]"},
+            "fields": {"enabled": True, "icon": "[OK]"},
+            "queries": {"enabled": True, "icon": "[OK]"},
+            "data_operations": {"enabled": True, "icon": "[Pending]"},
         }
 
         (
@@ -243,11 +243,11 @@ class TestSectionTitleUpdates:
             data_ops_title,
         ) = update_section_titles(config_status)
 
-        assert "✅" in profile_title
-        assert "✅" in jira_title
-        assert "✅" in fields_title
-        assert "✅" in queries_title
-        assert "⏳" in data_ops_title
+        assert "[OK]" in profile_title
+        assert "[OK]" in jira_title
+        assert "[OK]" in fields_title
+        assert "[OK]" in queries_title
+        assert "[Pending]" in data_ops_title
 
 
 class TestQuerySaveEnforcement:
@@ -416,7 +416,7 @@ class TestCallbackIntegration:
         )
 
         # Simulate JIRA configuration
-        jira_status = "✅ JIRA Connected"
+        jira_status = "[OK] JIRA Connected"
         status = update_configuration_status("default", jira_status, 0)
 
         (
@@ -428,13 +428,13 @@ class TestCallbackIntegration:
         ) = update_section_titles(status)
 
         # Profile should show checkmark, JIRA should show in-progress
-        assert "✅" in profile_title
+        assert "[OK]" in profile_title
         # JIRA shows in-progress since we haven't verified field mappings
-        assert "⏳" in jira_title or "✅" in jira_title
+        assert "[Pending]" in jira_title or "[OK]" in jira_title
 
         # Fields and queries should show in-progress
-        assert "⏳" in fields_title
-        assert "⏳" in queries_title
+        assert "[Pending]" in fields_title
+        assert "[Pending]" in queries_title
 
         # Data ops should show locked
         assert "🔒" in data_ops_title
@@ -457,7 +457,7 @@ class TestCallbackIntegration:
         assert button_disabled is True  # Still locked (no JIRA)
 
         # Step 3: JIRA configured
-        jira_status = "✅ JIRA Connected"
+        jira_status = "[OK] JIRA Connected"
         status = update_configuration_status("default", jira_status, 0)
         button_disabled, _, _ = enforce_query_save_before_data_ops(status)
         assert button_disabled is True  # Still locked (no query saved)

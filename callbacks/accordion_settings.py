@@ -55,7 +55,7 @@ def update_configuration_status(profile_id, jira_status, save_query_clicks):
     if jira_status:
         jira_status_str = str(jira_status)
         jira_configured = (
-            "success" in jira_status_str.lower() or "✅" in jira_status_str
+            "success" in jira_status_str.lower() or "[OK]" in jira_status_str
         )
 
     # Determine if query is saved
@@ -66,27 +66,27 @@ def update_configuration_status(profile_id, jira_status, save_query_clicks):
         "profile": {
             "enabled": True,  # Always enabled
             "complete": profile_id is not None,
-            "icon": "✅" if profile_id else "⏳",
+            "icon": "[OK]" if profile_id else "[Pending]",
         },
         "jira": {
             "enabled": profile_id is not None,
             "complete": jira_configured,
-            "icon": "✅" if jira_configured else ("⏳" if profile_id else "🔒"),
+            "icon": "[OK]" if jira_configured else ("[Pending]" if profile_id else "🔒"),
         },
         "fields": {
             "enabled": jira_configured,  # Enabled when JIRA configured
             "complete": False,  # Field mappings are optional
-            "icon": "⏳" if jira_configured else "🔒",
+            "icon": "[Pending]" if jira_configured else "🔒",
         },
         "queries": {
             "enabled": jira_configured,  # Enabled when JIRA configured
             "complete": query_saved,
-            "icon": "✅" if query_saved else ("⏳" if jira_configured else "🔒"),
+            "icon": "[OK]" if query_saved else ("[Pending]" if jira_configured else "🔒"),
         },
         "data_operations": {
             "enabled": query_saved,  # Enabled when query saved
             "complete": False,  # Always requires manual trigger
-            "icon": "⏳" if query_saved else "🔒",
+            "icon": "[Pending]" if query_saved else "🔒",
         },
     }
 
@@ -163,7 +163,7 @@ def update_section_titles(config_status):
     """
     Update section titles with status icons.
 
-    Adds visual indicators (✅ ⏳ 🔒) to accordion section titles
+    Adds visual indicators ([OK] [Pending] 🔒) to accordion section titles
     to show which steps are complete, in progress, or locked.
 
     Args:

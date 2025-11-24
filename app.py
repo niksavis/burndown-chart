@@ -99,7 +99,7 @@ def ensure_valid_workspace() -> None:
                 "[Workspace] No profiles found - fresh installation. "
                 "User will create first profile via UI."
             )
-            logger.info("[Workspace] Workspace validation complete ✅")
+            logger.info("[Workspace] Workspace validation complete [OK]")
             return
 
         # Step 2: Ensure active profile is set (if profiles exist)
@@ -136,7 +136,7 @@ def ensure_valid_workspace() -> None:
 
                 switch_query(active_profile.id, queries[0]["id"])
 
-        logger.info("[Workspace] Workspace validation complete ✅")
+        logger.info("[Workspace] Workspace validation complete [OK]")
 
     except Exception as e:
         # Log error but don't crash - allow app to continue
