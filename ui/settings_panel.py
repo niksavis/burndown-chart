@@ -195,10 +195,8 @@ def create_settings_panel_expanded(id_suffix: str = "") -> html.Div:
                                                 className="d-flex align-items-center mb-3",
                                             ),
                                             # Integrated Query Management - JQL-first workflow
-                                            # Replaces: JQL editor + Profile selector + Query selector
                                             create_integrated_query_management(),
                                             # Hidden compatibility components for old JQL profile callbacks
-                                            # TODO: Remove these after migrating all old JQL profile callbacks
                                             html.Div(
                                                 [
                                                     dcc.Dropdown(
