@@ -800,7 +800,7 @@ def calculate_lead_time_for_changes(
                 "value": None,
                 "unit": "days",
                 "error_state": "missing_config",
-                "error_message": "Configure 'active_statuses' in app_settings.json",
+                "error_message": "Configure 'active_statuses' in Settings → Configure JIRA Mappings",
                 "performance_tier": None,
                 "performance_tier_color": None,
                 "total_issue_count": len(issues),
@@ -2960,7 +2960,7 @@ def filter_issues_by_dora_fields(
 
     Args:
         issues: List of all JIRA issues
-        field_mappings: Field mapping configuration (from app_settings.json)
+        field_mappings: Field mapping configuration (from profile.json)
         app_settings: Full app settings for bug_types, etc.
 
     Returns:

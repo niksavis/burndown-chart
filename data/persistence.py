@@ -1589,7 +1589,7 @@ def cleanup_legacy_jira_fields(app_settings: Dict[str, Any]) -> Dict[str, Any]:
 
 def load_jira_configuration() -> Dict[str, Any]:
     """
-    Load JIRA configuration from app_settings.json.
+    Load JIRA configuration from profile.json.
     Automatically migrates legacy configuration if needed.
 
     Returns:
@@ -1611,7 +1611,7 @@ def load_jira_configuration() -> Dict[str, Any]:
         # Save migrated settings back to file
         try:
             workspace = get_active_profile_workspace()
-            settings_file = workspace / "app_settings.json"
+            settings_file = workspace / "profile.json"
             with open(str(settings_file), "w") as f:
                 json.dump(app_settings, f, indent=2)
             logger.info(
@@ -1643,7 +1643,7 @@ def load_jira_configuration() -> Dict[str, Any]:
         # Save cleaned settings
         try:
             workspace = get_active_profile_workspace()
-            settings_file = workspace / "app_settings.json"
+            settings_file = workspace / "profile.json"
             with open(str(settings_file), "w") as f:
                 json.dump(app_settings, f, indent=2)
             logger.info(f"[Config] Removed legacy JIRA fields from {settings_file}")
@@ -2044,7 +2044,7 @@ def save_parameter_panel_state(is_open: bool, user_preference: bool = True) -> b
 
     This function supports User Story 1: Quick Parameter Adjustments While Viewing Charts.
     The parameter panel state is primarily managed client-side via dcc.Store,
-    but this function persists the state to app_settings.json for session continuity.
+    but this function persists the state to profile.json for session continuity.
 
     Args:
         is_open: Whether the parameter panel should be expanded
@@ -2072,7 +2072,7 @@ def save_parameter_panel_state(is_open: bool, user_preference: bool = True) -> b
 
         # Save to file using profile-level path
         workspace = get_active_profile_workspace()
-        settings_file = workspace / "app_settings.json"
+        settings_file = workspace / "profile.json"
         with open(str(settings_file), "w") as f:
             json.dump(app_settings, f, indent=2)
 

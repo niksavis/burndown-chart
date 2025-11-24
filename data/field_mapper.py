@@ -33,6 +33,18 @@ JIRA_TYPE_MAPPING = {
     "option": "select",
     "array": "multiselect",
     "any": "checkbox",  # Jira checkbox type
+    # Standard JIRA field types
+    "issuetype": "select",
+    "status": "select",
+    "priority": "select",
+    "resolution": "select",
+    "project": "select",
+    "user": "select",
+    "version": "select",
+    "securitylevel": "select",
+    "component": "multiselect",
+    "fixVersions": "multiselect",
+    "labels": "multiselect",
 }
 
 # Internal field type requirements for DORA and Flow metrics
@@ -229,7 +241,7 @@ def validate_field_mapping(
 
 
 def save_field_mappings(mappings: Dict) -> bool:
-    """Save field mappings to app_settings.json (flat structure).
+    """Save field mappings to profile.json (flat structure).
 
     Args:
         mappings: Dictionary with structure:
@@ -267,12 +279,12 @@ def save_field_mappings(mappings: Dict) -> bool:
 
         # Get profile-level path (field mappings shared across all queries)
         workspace = get_active_profile_workspace()
-        settings_file = workspace / "app_settings.json"
+        settings_file = workspace / "profile.json"
 
         with open(str(settings_file), "w") as f:
             json.dump(settings, f, indent=2)
 
-        logger.info("Successfully saved field mappings to app_settings.json")
+        logger.info("Successfully saved field mappings to profile.json")
         return True
 
     except Exception as e:
@@ -281,7 +293,7 @@ def save_field_mappings(mappings: Dict) -> bool:
 
 
 def load_field_mappings() -> Dict:
-    """Load field mappings from app_settings.json.
+    """Load field mappings from profile.json.
 
     Converts flat field_mappings structure to nested dora/flow structure
     expected by the UI.

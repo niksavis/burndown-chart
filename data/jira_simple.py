@@ -118,7 +118,7 @@ def get_jira_config(settings_jql_query: str | None = None) -> Dict:
     """
     Load JIRA configuration with priority hierarchy: jira_config → Environment → Default.
 
-    This function reads from the jira_config structure in app_settings.json (managed via
+    This function reads from the jira_config structure in profile.json (managed via
     the JIRA Configuration modal). Falls back to environment variables if config not found.
 
     Args:
@@ -303,14 +303,22 @@ def fetch_jira_issues(
             return False, []
 
         # Parameters - fetch required fields including field mappings for DORA/Flow
-        # Base fields: always fetch these standard fields
-        # CRITICAL: Include 'project' to enable filtering DevOps vs Development projects
-        base_fields = "key,project,created,resolutiondate,status,issuetype"
+        # Check if caller requested specific fields (e.g., "*all" for field detection)
+        if config.get("fields"):
+            fields = config["fields"]
+            logger.debug(f"[JIRA] Using caller-specified fields: {fields}")
+        else:
+            # Base fields: always fetch these standard fields
+            # CRITICAL: Include 'project' to enable filtering DevOps vs Development projects
+            base_fields = "key,project,created,resolutiondate,status,issuetype"
 
-        # Add story points field if specified
-        additional_fields = []
-        if config.get("story_points_field") and config["story_points_field"].strip():
-            additional_fields.append(config["story_points_field"])
+            # Add story points field if specified
+            additional_fields = []
+            if (
+                config.get("story_points_field")
+                and config["story_points_field"].strip()
+            ):
+                additional_fields.append(config["story_points_field"])
 
         # Add field mappings for DORA and Flow metrics
         # field_mappings has structure: {"dora": {"field_name": "field_id"}, "flow": {...}}
@@ -329,12 +337,12 @@ def fetch_jira_issues(
                         # Skip if already in base_fields to avoid duplicates
                         additional_fields.append(field_id)
 
-        # Combine base fields with additional fields
-        # Sort additional fields to ensure consistent ordering for cache validation
-        if additional_fields:
-            fields = f"{base_fields},{','.join(sorted(set(additional_fields)))}"
-        else:
-            fields = base_fields
+            # Combine base fields with additional fields
+            # Sort additional fields to ensure consistent ordering for cache validation
+            if additional_fields:
+                fields = f"{base_fields},{','.join(sorted(set(additional_fields)))}"
+            else:
+                fields = base_fields
 
         # ===== T051: INCREMENTAL FETCH OPTIMIZATION =====
         # Check if data has changed before doing expensive full fetch
@@ -389,11 +397,12 @@ def fetch_jira_issues(
 
         # ===== PROCEED WITH FULL FETCH (cache miss or data changed) =====
 
-        # Use max_results as page size (per API call), not total limit
-        # JIRA API hard limit is 1000 per call
-        page_size = (
-            max_results if max_results is not None else config.get("max_results", 1000)
-        )
+        # Use max_results as TOTAL LIMIT (for field detection: 100 issues max)
+        # Page size is separate (per API call), JIRA API hard limit is 1000 per call
+        total_limit = (
+            max_results if max_results is not None else None
+        )  # None = fetch all
+        page_size = min(total_limit or 1000, 1000)  # Use smaller of limit or 1000
 
         # Enforce JIRA API hard limit
         if page_size > 1000:
@@ -487,13 +496,23 @@ def fetch_jira_issues(
                 total_issues = data.get("total", 0)
                 logger.info(f"[JIRA] Query matched {total_issues} issues, paginating")
 
-            # Add this page's issues to our collection
-            all_issues.extend(issues_in_page)
+            # Determine how many issues to add (respect total_limit)
+            if total_limit is not None:
+                remaining_quota = total_limit - len(all_issues)
+                issues_to_add = issues_in_page[:remaining_quota]  # Truncate if needed
+            else:
+                issues_to_add = issues_in_page
 
-            # Check if we've fetched everything
+            # Add issues to collection
+            all_issues.extend(issues_to_add)
+
+            # Check if we've fetched everything OR reached total_limit
             if (
-                len(issues_in_page) < page_size
-                or start_at + len(issues_in_page) >= total_issues
+                len(issues_in_page) < page_size  # Last page (partial)
+                or start_at + len(issues_in_page) >= total_issues  # All issues fetched
+                or (
+                    total_limit is not None and len(all_issues) >= total_limit
+                )  # Limit reached
             ):
                 logger.info(
                     f"[JIRA] Pagination complete: {len(all_issues)}/{total_issues} fetched"

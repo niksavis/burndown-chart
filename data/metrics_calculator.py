@@ -32,7 +32,7 @@ def get_current_iso_week() -> str:
 
 
 def calculate_and_save_weekly_metrics(
-    week_label: str = "", progress_callback=None
+    week_label: str = "", progress_callback=None, profile_id: Optional[str] = None
 ) -> Tuple[bool, str]:
     """
     Calculate all Flow/DORA metrics for current week and save to snapshots.
@@ -44,6 +44,7 @@ def calculate_and_save_weekly_metrics(
     Args:
         week_label: ISO week (e.g., "2025-44"). Defaults to current week.
         progress_callback: Optional callback function(message: str) for progress updates
+        profile_id: Optional profile ID. Defaults to active profile from profiles/profiles.json.
 
     Returns:
         Tuple of (success: bool, message: str)
@@ -60,6 +61,58 @@ def calculate_and_save_weekly_metrics(
             logger.info(message)
             if progress_callback:
                 progress_callback(message)
+
+        # Load profile configuration (FEATURE 012: Profile-based variable extraction)
+        # This replaces hardcoded status values with user-configured values from profile
+        # AND integrates auto-detected custom field mappings
+        report_progress("Loading profile configuration...")
+        from configuration.metrics_config import MetricsConfig
+        from configuration.metric_variables import (
+            build_variable_collection_from_profile,
+            build_variable_collection_from_field_mappings,
+        )
+
+        try:
+            # Load active profile or use specified profile_id
+            metrics_config = MetricsConfig(profile_id=profile_id)
+            logger.info(f"Loaded profile: {metrics_config.profile_id}")
+
+            # Build variable collection from profile configuration
+            # This integrates BOTH status configuration AND auto-detected custom fields
+            # Priority order: Custom fields (priority 1) → Changelog extraction → Standard fields
+
+            # Check if profile has field_mappings (from auto-configure)
+            field_mappings = metrics_config.profile_config.get("field_mappings", {})
+
+            if field_mappings:
+                logger.info(
+                    f"Found field_mappings in profile: {len(field_mappings.get('dora', {}))} DORA fields, {len(field_mappings.get('flow', {}))} Flow fields"
+                )
+                # Use the field_mappings-aware builder (includes status config + custom fields)
+                variable_collection = build_variable_collection_from_field_mappings(
+                    metrics_config.profile_config
+                )
+                logger.info(
+                    f"Built variable collection with custom field mappings: {len(variable_collection.mappings)} variables"
+                )
+            else:
+                logger.info(
+                    "No field_mappings found in profile, using status-based configuration only"
+                )
+                # Fall back to status-only builder (no custom fields detected yet)
+                variable_collection = build_variable_collection_from_profile(
+                    metrics_config.profile_config
+                )
+                logger.info(
+                    f"Built variable collection from profile statuses: {len(variable_collection.mappings)} variables"
+                )
+
+        except Exception as e:
+            logger.error(f"Failed to load profile configuration: {e}")
+            return (
+                False,
+                f"Failed to load profile configuration: {str(e)}. Please configure JIRA mappings in the UI.",
+            )
 
         # Load configuration
         from data.persistence import load_app_settings
@@ -266,10 +319,10 @@ def calculate_and_save_weekly_metrics(
 
         # FEATURE 012: Use variable extraction to find completed issues
         # This replaces hardcoded status checking with flexible variable extraction
+        # Variable collection is built from user's profile configuration (not hardcoded)
         from data.variable_mapping.extractor import VariableExtractor
-        from configuration.metric_variables import DEFAULT_VARIABLE_COLLECTION
 
-        extractor = VariableExtractor(DEFAULT_VARIABLE_COLLECTION)
+        extractor = VariableExtractor(variable_collection)
         issues_completed_this_week = []
 
         for issue in all_issues:
@@ -316,6 +369,7 @@ def calculate_and_save_weekly_metrics(
             flow_time_result = calculate_flow_time(
                 issues_completed_this_week,  # Only issues completed this week
                 field_mappings=field_mappings,
+                variable_extractor=extractor,  # Use profile-based extractor
                 # use_variable_extraction=True by default (Phase 3)
             )
         else:
@@ -333,6 +387,7 @@ def calculate_and_save_weekly_metrics(
             efficiency_result = calculate_flow_efficiency(
                 issues_completed_this_week,  # Only issues completed this week
                 field_mappings=field_mappings,
+                variable_extractor=extractor,  # Use profile-based extractor
                 # use_variable_extraction=True by default (Phase 3)
             )
         else:
@@ -622,7 +677,7 @@ def calculate_and_save_weekly_metrics(
                     effort_category = str(effort_value) if effort_value else None
 
             # Use configured classification
-            flow_type = config.classify_issue_to_flow_type(issue_type, effort_category)
+            flow_type = config.get_flow_type_for_issue(issue_type, effort_category)
 
             # Map flow types to distribution keys
             if flow_type == "Feature":
@@ -737,6 +792,7 @@ def calculate_and_save_weekly_metrics(
                 lead_time_result = calculate_lead_time_for_changes(
                     all_issues_for_lead_time,
                     field_mappings=field_mappings,
+                    variable_extractor=extractor,  # Use profile-based extractor
                     # use_variable_extraction=True by default (Phase 3)
                 )
 
@@ -886,6 +942,7 @@ def calculate_and_save_weekly_metrics(
                         production_bugs,  # Also pass bugs for incident correlation
                         field_mappings=field_mappings,
                         time_period_days=7,  # Weekly calculation
+                        variable_extractor=extractor,  # Use profile-based extractor
                         # use_variable_extraction=True by default (Phase 3)
                     )
 
@@ -969,6 +1026,7 @@ def calculate_and_save_weekly_metrics(
                         production_bugs,
                         field_mappings=field_mappings,
                         time_period_days=7,  # Weekly calculation
+                        variable_extractor=extractor,  # Use profile-based extractor
                         # use_variable_extraction=True by default (Phase 3)
                     )
 
@@ -1049,6 +1107,7 @@ def calculate_and_save_weekly_metrics(
                 lead_time_result = calculate_lead_time_for_changes(
                     all_issues_for_lead_time,
                     field_mappings=field_mappings,
+                    variable_extractor=extractor,  # Use profile-based extractor
                     # use_variable_extraction=True by default (Phase 3)
                 )
 
@@ -1185,6 +1244,7 @@ def calculate_and_save_weekly_metrics(
                         production_bugs,  # Also pass bugs for incident correlation
                         field_mappings=field_mappings,
                         time_period_days=7,  # Weekly calculation
+                        variable_extractor=extractor,  # Use profile-based extractor
                         # use_variable_extraction=True by default (Phase 3)
                     )
 
@@ -1262,6 +1322,7 @@ def calculate_and_save_weekly_metrics(
                         production_bugs,
                         field_mappings=field_mappings,
                         time_period_days=7,  # Weekly calculation
+                        variable_extractor=extractor,  # Use profile-based extractor
                         # use_variable_extraction=True by default (Phase 3)
                     )
 

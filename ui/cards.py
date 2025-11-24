@@ -451,7 +451,7 @@ def _get_default_jql_profile_id():
 
 
 # Legacy JIRA helper functions removed - JIRA configuration is now managed
-# via the JIRA Configuration modal (jira_config structure in app_settings.json)
+# via the JIRA Configuration modal (jira_config structure in profile.json)
 
 
 def _get_default_jira_story_points_field():

@@ -30,7 +30,51 @@ def create_field_mapping_modal() -> dbc.Modal:
                             "Configure how your JIRA instance maps to the application. Use tabs to navigate between different configuration categories.",
                         ],
                         color="info",
-                        className="mb-4",
+                        className="mb-3",
+                    ),
+                    # Auto-Configure Warning Banner (inline, collapsible)
+                    dbc.Collapse(
+                        dbc.Alert(
+                            [
+                                html.P(
+                                    [
+                                        html.I(
+                                            className="fas fa-exclamation-triangle me-2"
+                                        ),
+                                        "Auto-Configure will overwrite your current configuration with automatically detected values from JIRA.",
+                                    ],
+                                    className="mb-3",
+                                ),
+                                html.Div(
+                                    [
+                                        dbc.Button(
+                                            [
+                                                html.I(className="fas fa-times me-2"),
+                                                "Cancel",
+                                            ],
+                                            id="auto-configure-cancel-inline",
+                                            color="secondary",
+                                            size="sm",
+                                            className="me-2",
+                                        ),
+                                        dbc.Button(
+                                            [
+                                                html.I(className="fas fa-check me-2"),
+                                                "Yes, Auto-Configure Now",
+                                            ],
+                                            id="auto-configure-confirm-button",
+                                            color="dark",
+                                            size="sm",
+                                        ),
+                                    ],
+                                    className="d-flex justify-content-end",
+                                ),
+                            ],
+                            color="warning",
+                            className="mb-3",
+                        ),
+                        id="auto-configure-warning-banner",
+                        is_open=False,
                     ),
                     # Tabs for different configuration sections
                     dbc.Tabs(
@@ -73,13 +117,15 @@ def create_field_mapping_modal() -> dbc.Modal:
                         outline=True,  # Outline style for less prominence
                         className="me-auto",  # Push to left, creates visual separation
                     ),
-                    # Action buttons grouped on right: Fetch Metadata → Save
+                    # Action buttons grouped on right: Auto-Configure → Save
+                    # Note: Metadata is now fetched automatically when modal opens
                     dbc.Button(
-                        [html.I(className="fas fa-sync me-2"), "Fetch Metadata"],
-                        id="fetch-metadata-button",
+                        [html.I(className="fas fa-magic me-2"), "Auto-Configure"],
+                        id="auto-configure-button",
                         color="info",
                         outline=True,  # Less prominent than Save
                         className="me-2",
+                        disabled=True,  # Enabled after metadata loads
                     ),
                     dbc.Button(
                         [html.I(className="fas fa-save me-2"), "Save Mappings"],

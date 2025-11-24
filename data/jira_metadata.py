@@ -420,13 +420,14 @@ class JiraMetadataFetcher:
         except Exception as e:
             logger.warning(f"[JIRA] Failed to extract from cache: {e}")
 
-        # Fallback 2: Extract from live issues via JQL (same as production identifiers pattern)
+        # Fallback 2: Extract from live issues via JQL (search ALL projects for field values)
+        # Use scoped=False to ensure we find values even if development_projects not configured yet
         logger.info(
-            f"[JIRA] Fetching {field_id} values via JQL query (sampling up to 1000 issues)"
+            f"[JIRA] Fetching {field_id} values via JQL query (sampling up to 1000 issues across ALL projects)"
         )
         try:
             values = self._fetch_field_values_from_issues(
-                field_id, scoped=True, max_results=1000
+                field_id, scoped=False, max_results=1000
             )
 
             if values:

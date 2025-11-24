@@ -6,6 +6,9 @@ Provides UI for configuring JIRA issue type mappings for DORA and Flow metrics.
 
 from dash import html, dcc
 import dash_bootstrap_components as dbc
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def create_issue_type_config_form(
@@ -67,6 +70,16 @@ def create_issue_type_config_form(
             if issue_type and issue_type not in existing_types:
                 issue_type_options.append({"label": issue_type, "value": issue_type})
                 existing_types.add(issue_type)
+
+    logger.info(
+        f"[IssueTypeForm] Created {len(issue_type_options)} issue type options from "
+        f"{len(available_issue_types)} available types, "
+        f"{len(devops_task_types)} devops types, {len(bug_types)} bug types"
+    )
+    logger.info(
+        f"[IssueTypeForm] Technical Debt current value: "
+        f"{flow_type_mappings.get('Technical Debt', {}).get('issue_types', [])}"
+    )
 
     # Create effort category options
     effort_category_options = [
@@ -419,7 +432,7 @@ def create_issue_type_config_form(
                                                 id="flow-technical-debt-issue-types-dropdown",
                                                 options=issue_type_options,  # type: ignore  # Dash accepts list[dict]
                                                 value=flow_type_mappings.get(
-                                                    "Technical_Debt", {}
+                                                    "Technical Debt", {}
                                                 ).get("issue_types", []),
                                                 multi=True,
                                                 placeholder="Type or select issue types...",
@@ -458,7 +471,7 @@ def create_issue_type_config_form(
                                                 id="flow-technical-debt-effort-categories-dropdown",
                                                 options=effort_category_options,  # type: ignore  # Dash accepts list[dict]
                                                 value=flow_type_mappings.get(
-                                                    "Technical_Debt", {}
+                                                    "Technical Debt", {}
                                                 ).get("effort_categories", []),
                                                 multi=True,
                                                 placeholder="Type or select categories...",

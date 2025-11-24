@@ -32,7 +32,7 @@ class TestFlowVelocityCalculation:
             "Technical_Debt": {"issue_types": ["Task"], "effort_categories": []},
             "Risk": {"issue_types": ["Spike"], "effort_categories": []},
         }
-        mock_config.classify_issue_to_flow_type.side_effect = (
+        mock_config.get_flow_type_for_issue.side_effect = (
             lambda issue_type, effort_category: {
                 "Story": "Feature",
                 "Epic": "Feature",
@@ -400,7 +400,7 @@ class TestFlowDistributionCalculation:
             "Technical_Debt": {"issue_types": ["Task"], "effort_categories": []},
             "Risk": {"issue_types": ["Spike"], "effort_categories": []},
         }
-        mock_config.classify_issue_to_flow_type.side_effect = (
+        mock_config.get_flow_type_for_issue.side_effect = (
             lambda issue_type, effort_category: {
                 "Story": "Feature",
                 "Epic": "Feature",

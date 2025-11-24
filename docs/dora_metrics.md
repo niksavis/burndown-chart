@@ -30,6 +30,188 @@ Research-backed metrics developed by Google's DORA team measuring software deliv
 
 ---
 
+## Field Configuration
+
+### Required JIRA Fields
+
+DORA metrics require mapping custom JIRA fields to standard metric fields. Configure via **Settings → Field Mappings → Fields tab**.
+
+**Required Fields**:
+
+| Internal Field             | Purpose                         | JIRA Field Type | Example JIRA Field                            |
+| -------------------------- | ------------------------------- | --------------- | --------------------------------------------- |
+| **Deployment Date**        | When deployment occurred        | Date/DateTime   | `customfield_10100` ("Deployment Date")       |
+| **Deployment Successful**  | Deployment success/failure      | Checkbox        | `customfield_10101` ("Deployment Success")    |
+| **Code Commit Date**       | When code was committed         | Date/DateTime   | `customfield_10102` ("Code Commit Timestamp") |
+| **Deployed to Production** | Production deployment timestamp | Date/DateTime   | `customfield_10103` ("Prod Deploy Date")      |
+| **Incident Detected At**   | When production issue found     | Date/DateTime   | `created` (standard field)                    |
+| **Incident Resolved At**   | When issue fixed in production  | Date/DateTime   | `resolutiondate` (standard field)             |
+
+**Optional Fields** (Enhanced Metrics):
+
+| Internal Field         | Purpose                       | JIRA Field Type | Example JIRA Field                        |
+| ---------------------- | ----------------------------- | --------------- | ----------------------------------------- |
+| **Target Environment** | Deployment environment        | Select          | `customfield_10104` ("Environment")       |
+| **Production Impact**  | Severity of production issues | Select          | `customfield_10105` ("Production Impact") |
+| **Severity Level**     | Incident priority/severity    | Select          | `priority` (standard field)               |
+
+### Field Mapping Process
+
+**Step 1: Auto-Configure** (Recommended)
+1. Open **Settings → Field Mappings**
+2. Click **Auto-Configure** button
+3. System detects JIRA fields by name patterns:
+   - "deployment", "deploy", "release" → Deployment Date
+   - "success", "failed", "failure" → Deployment Successful
+   - "commit", "code" → Code Commit Date
+   - "production", "prod" → Production-related fields
+   - "incident", "detected", "resolved" → Incident timestamps
+4. Review suggested mappings
+5. Click **Save Mappings**
+
+**Step 2: Manual Override** (If Auto-Configure Misses Fields)
+1. Navigate to **Fields** tab in Field Mappings modal
+2. For each unmapped field, select from dropdown:
+   - Dropdown shows: `customfield_10100 - Deployment Date`
+   - Only compatible field types shown (datetime fields for date mappings, etc.)
+3. Click **Save Mappings**
+
+**Step 3: Verify Configuration**
+1. Open **DORA Metrics** tab
+2. Click **Calculate Metrics** button (Settings panel, top right)
+3. Check for error states:
+   - "Missing Required Field" → Return to Field Mappings, configure field
+   - "No Data" → Check JIRA query includes issues with mapped fields
+
+### Field Type Compatibility
+
+**System validates field types automatically:**
+
+✅ **Compatible Mappings**:
+- Deployment Date (datetime) ← JIRA Date field
+- Deployment Date (datetime) ← JIRA DateTime field
+- Deployment Successful (checkbox) ← JIRA Checkbox field
+- Target Environment (select) ← JIRA Select/Dropdown field
+
+❌ **Incompatible Mappings**:
+- Deployment Date (datetime) ← JIRA Text field (will be hidden in dropdown)
+- Deployment Successful (checkbox) ← JIRA Number field (will be hidden)
+
+**Fallback Strategy**:
+- If custom field not available, use standard JIRA fields:
+  - Incident Detected At → `created`
+  - Incident Resolved At → `resolutiondate`
+  - Target Environment → `fixVersions[0].name`
+
+### Status & Work Type Mappings
+
+**Completion Statuses** (Required for all metrics):
+- Configure via **Types** tab → **Completion Statuses**
+- Default: ["Done", "Closed", "Resolved"]
+- Auto-Configure detects: "done", "complete", "finish", "close", "resolve"
+- Used to identify deployed/completed work
+
+**Active Statuses** (Required for Flow metrics):
+- Configure via **Types** tab → **Active Statuses**
+- Default: ["In Progress", "In Review", "Testing"]
+- Auto-Configure detects: "progress", "development", "review", "test"
+- Used to calculate Flow Time active periods
+
+**WIP Statuses** (Required for Flow Load):
+- Configure via **Types** tab → **WIP Statuses**
+- Default: ["Selected", "In Progress", "In Review", "Testing"]
+- Auto-Configure detects: "select", "backlog", "ready", "progress", "review", "test"
+- Used to identify work in progress
+
+**Work Type Mappings** (Required for Flow Distribution):
+- Configure via **Types** tab → Drag issue types to categories
+- Categories: Feature, Defect, Tech Debt, Risk
+- Auto-Configure uses semantic rules:
+  - Defect: "bug", "defect", "incident"
+  - Risk: "spike", "investigation", "security"
+  - Tech Debt: "refactor", "maintenance", "improvement"
+  - Feature: "story", "epic", "feature" (default)
+
+### DevOps Projects Configuration
+
+**Purpose**: Scope DORA metrics to deployment-focused projects
+
+**Configuration**:
+1. Open **Settings → Field Mappings → Environment tab**
+2. Configure **Development Projects** field:
+   - Multi-select JIRA projects with deployments
+   - Example: ["DEVOPS", "INFRASTRUCTURE", "PLATFORM"]
+3. Click **Save Mappings**
+
+**Impact on Metrics**:
+- **Deployment Frequency**: Only counts deployments from DevOps projects
+- **Lead Time**: Only measures lead time for DevOps project issues
+- **CFR**: Only counts failures in DevOps projects
+- **MTTR**: Unaffected (uses production bugs from all projects)
+
+**When to Use**:
+- ✅ Large organization with separate DevOps team
+- ✅ Multiple JIRA projects, only some do deployments
+- ❌ Single project with all work (leave empty for all projects)
+
+### Production Identifiers Configuration
+
+**Purpose**: Identify production incidents for MTTR calculation
+
+**Configuration**:
+1. Open **Settings → Field Mappings → Environment tab**
+2. Map **Affected Environment Field** to JIRA custom field:
+   - Example: `customfield_10200` ("Affected Environment")
+3. Select **Production Identifiers** from dropdown:
+   - Values auto-populate from mapped field
+   - Example: ["Production", "PROD", "Live"]
+4. Click **Save Mappings**
+
+**Impact on Metrics**:
+- **MTTR**: Only counts bugs where `affected_environment IN production_identifiers`
+- Other metrics: Unaffected
+
+**Troubleshooting**:
+- **Production Identifiers dropdown empty**: 
+  - Ensure **Affected Environment Field** is mapped first
+  - Refresh page to load field values from JIRA
+  - Check JIRA issues have values in mapped field
+
+### Common Configuration Issues
+
+**Issue**: "Missing Required Field: Deployment Date"
+**Solution**: 
+1. Check JIRA has custom field for deployment dates
+2. Map field via Settings → Field Mappings → Fields tab
+3. If no field exists, create in JIRA admin or use `resolutiondate` as fallback
+
+**Issue**: "No Data" despite having deployments
+**Solution**:
+1. Verify JQL query includes deployment issues: Settings → JIRA Configuration
+2. Check field mappings point to correct JIRA fields
+3. Verify JIRA issues have values in mapped fields (not null/empty)
+4. Check DevOps Projects filter isn't excluding issues
+
+**Issue**: Auto-Configure misses custom fields
+**Solution**:
+1. JIRA field names don't match detection patterns
+2. Manually map via Fields tab
+3. Provide feedback on patterns to improve auto-detection
+
+**Issue**: Metrics show wrong performance tier
+**Solution**:
+1. Verify field mappings:
+   - Deployment Frequency: Check "Deployment Date" points to correct field
+   - Lead Time: Check "Code Commit Date" and "Deployed to Production" mappings
+   - CFR: Check "Deployment Successful" checkbox field
+   - MTTR: Check "Incident Detected At" and "Incident Resolved At" fields
+2. Check JIRA data quality:
+   - Are timestamps populated correctly?
+   - Are checkbox values set (Yes/No, true/false)?
+   - Are production bugs tagged with correct environment?
+
+---
+
 ## 1. Deployment Frequency
 
 ### What It Measures

@@ -32,6 +32,239 @@ While DORA metrics tell you **WHAT** happened (deployment outcomes), Flow metric
 
 ---
 
+## Field Configuration
+
+### Required JIRA Fields
+
+Flow metrics require mapping custom JIRA fields to standard metric fields. Configure via **Settings → Field Mappings → Fields tab**.
+
+**Required Fields**:
+
+| Internal Field          | Purpose             | JIRA Field Type | Example JIRA Field                     |
+| ----------------------- | ------------------- | --------------- | -------------------------------------- |
+| **Work Started Date**   | When work began     | Date/DateTime   | `customfield_10300` ("Dev Start Date") |
+| **Work Completed Date** | When work finished  | Date/DateTime   | `resolutiondate` (standard field)      |
+| **Status**              | Current work status | Select          | `status` (standard field)              |
+| **Flow Item Type**      | Work category       | Select          | `issuetype` (standard field)           |
+
+**Optional Fields** (Enhanced Metrics):
+
+| Internal Field      | Purpose                       | JIRA Field Type | Example JIRA Field                   |
+| ------------------- | ----------------------------- | --------------- | ------------------------------------ |
+| **Effort Category** | Secondary work classification | Select          | `customfield_10301` ("Effort Type")  |
+| **Estimate**        | Story points or effort        | Number          | `customfield_10002` ("Story Points") |
+
+### Field Mapping Process
+
+**Step 1: Auto-Configure** (Recommended)
+1. Open **Settings → Field Mappings**
+2. Click **Auto-Configure** button
+3. System detects JIRA fields by name patterns:
+   - "start", "began", "commenced" → Work Started Date
+   - "complete", "finish", "done" → Work Completed Date
+   - "effort", "category", "type" → Effort Category
+   - "points", "estimate", "size" → Estimate
+4. Review suggested mappings
+5. Click **Save Mappings**
+
+**Step 2: Manual Override** (If Auto-Configure Misses Fields)
+1. Navigate to **Fields** tab in Field Mappings modal
+2. For each unmapped field, select from dropdown:
+   - Dropdown shows: `customfield_10300 - Dev Start Date`
+   - Only compatible field types shown (datetime for dates, number for estimates)
+3. Click **Save Mappings**
+
+**Step 3: Configure Status Mappings**
+1. Navigate to **Types** tab in Field Mappings modal
+2. Configure status categories:
+   - **Completion Statuses**: Drag statuses like "Done", "Closed", "Resolved"
+   - **Active Statuses**: Drag statuses like "In Progress", "In Review", "Testing"
+   - **WIP Statuses**: Drag statuses like "Selected", "In Progress", "Ready"
+3. Click **Save Mappings**
+
+**Step 4: Configure Work Type Mappings**
+1. Still in **Types** tab
+2. Drag issue types to categories:
+   - **Feature**: "Story", "Epic", "New Feature"
+   - **Defect**: "Bug", "Defect", "Production Bug"
+   - **Tech Debt**: "Technical Debt", "Refactoring", "Improvement"
+   - **Risk**: "Spike", "Investigation", "Security Issue"
+3. Click **Save Mappings**
+
+**Step 5: Verify Configuration**
+1. Open **Flow Metrics** tab
+2. Click **Calculate Metrics** button (Settings panel, top right)
+3. Check for error states:
+   - "Missing Required Field" → Return to Field Mappings, configure field
+   - "No Data" → Check JIRA query includes issues with mapped fields
+
+### Field Type Compatibility
+
+**System validates field types automatically:**
+
+✅ **Compatible Mappings**:
+- Work Started Date (datetime) ← JIRA Date field
+- Work Started Date (datetime) ← JIRA DateTime field  
+- Effort Category (select) ← JIRA Select/Dropdown field
+- Estimate (number) ← JIRA Number field
+
+❌ **Incompatible Mappings**:
+- Work Started Date (datetime) ← JIRA Text field (will be hidden in dropdown)
+- Estimate (number) ← JIRA Text field (will be hidden)
+
+**Fallback Strategy**:
+- If custom field not available, use standard JIRA fields:
+  - Work Started Date → `created` (issue creation date)
+  - Work Completed Date → `resolutiondate`
+  - Flow Item Type → `issuetype`
+  - Status → `status`
+
+### Status Mappings (Critical for Flow Metrics)
+
+**Completion Statuses** (Required for Flow Velocity, Flow Time):
+- **Purpose**: Identify completed work
+- **Configure**: Types tab → Completion Statuses
+- **Default**: ["Done", "Closed", "Resolved"]
+- **Auto-Detection**: "done", "complete", "finish", "close", "resolve"
+- **Used By**: Flow Velocity (counts completed items), Flow Time (end timestamp)
+
+**Active Statuses** (Required for Flow Efficiency):
+- **Purpose**: Measure active work time vs. waiting time
+- **Configure**: Types tab → Active Statuses
+- **Default**: ["In Progress", "In Review", "Testing"]
+- **Auto-Detection**: "progress", "development", "review", "test"
+- **Used By**: Flow Efficiency (active time / total time)
+
+**WIP Statuses** (Required for Flow Load, Flow Time):
+- **Purpose**: Identify work in progress
+- **Configure**: Types tab → WIP Statuses
+- **Default**: ["Selected", "In Progress", "In Review", "Testing", "Ready for Testing"]
+- **Auto-Detection**: "select", "backlog", "ready", "progress", "review", "test"
+- **Used By**: Flow Load (WIP count), Flow Time (start timestamp = first WIP status)
+
+**Status Configuration Best Practices**:
+
+✅ **Do**:
+- Include all statuses where team is actively working (Active Statuses)
+- Include queue statuses in WIP but not Active (e.g., "Ready for Review")
+- Test with sample data to verify correct categorization
+
+❌ **Don't**:
+- Include "To Do" or "Backlog" in WIP (inflates WIP count)
+- Forget to include review/testing statuses in Active (underestimates efficiency)
+- Mix completion statuses ("Done") with WIP statuses
+
+### Work Type Mappings (Critical for Flow Distribution)
+
+**Two-Tier Classification System**:
+
+**Primary Classification** (Issue Type):
+- **Feature**: Story, Epic, New Feature, Enhancement
+- **Defect**: Bug, Defect, Production Bug, Hotfix
+- **Tech Debt**: Technical Debt, Refactoring, Code Quality, Maintenance
+- **Risk**: Spike, Investigation, Research, POC, Security Issue
+
+**Secondary Classification** (Effort Category - Overrides Primary):
+- If issue type = "Task" or "Story" AND effort category = "Technical Debt" → Tech Debt
+- If issue type = "Task" AND effort category = "Security" → Risk
+- If issue type = "Story" AND effort category = "Investigation" → Risk
+
+**Configuration Steps**:
+1. **Auto-Configure** (recommended first step):
+   - System uses semantic rules to categorize issue types
+   - Bug/Defect/Incident → Defect
+   - Spike/Investigation → Risk  
+   - Refactor/Maintenance → Tech Debt
+   - Story/Epic/Feature → Feature
+
+2. **Manual Override** (drag & drop in Types tab):
+   - Drag "Story" to Feature category
+   - Drag "Bug" to Defect category
+   - Drag "Technical Debt" to Tech Debt category
+   - Drag "Spike" to Risk category
+
+3. **Effort Category Mapping** (optional, for secondary classification):
+   - Map custom field: `customfield_10301` → "Effort Category"
+   - System automatically applies overrides based on effort category values
+
+**Mutual Exclusivity Rule**:
+- Each issue type can only belong to ONE category
+- If dragged to new category, automatically removed from old category
+- DevOps types (if detected) belong to Tech Debt AND appear separately
+
+### Common Configuration Issues
+
+**Issue**: "Missing Required Field: Work Started Date"
+**Solution**:
+1. Check JIRA has custom field for work start dates
+2. If no field exists, options:
+   - Create custom field in JIRA admin
+   - Use `created` as fallback (less accurate, measures from creation)
+   - Calculate from changelog: first transition to "In Progress" status
+3. Map field via Settings → Field Mappings → Fields tab
+
+**Issue**: Flow Time shows unrealistic values (e.g., 200 days)
+**Solution**:
+1. Check WIP Status mapping:
+   - If "To Do" included in WIP → Measures from backlog entry, not work start
+   - If "Done" included in WIP → Never exits WIP, infinite cycle time
+2. Verify Work Started Date field:
+   - Should capture when work ACTUALLY started, not when created
+   - Review JIRA data: Are timestamps populated correctly?
+
+**Issue**: Flow Efficiency shows 0% or 100%
+**Solution**:
+1. **0% Efficiency**:
+   - Check Active Status mapping: Are any statuses mapped?
+   - Verify JIRA changelog: Does issue history show status transitions?
+2. **100% Efficiency**:
+   - Check WIP Status mapping: Should include queue statuses ("Ready for Review")
+   - If WIP = Active, efficiency will always be 100%
+
+**Issue**: Flow Distribution shows 0% for all categories
+**Solution**:
+1. Check Work Type mapping in Types tab
+2. Verify issue types exist in JIRA query results
+3. Check spelling: "Bug" ≠ "bug" (case-sensitive)
+4. Review Auto-Configure results: Did it detect issue types?
+
+**Issue**: Flow Load (WIP) shows unrealistic high numbers (e.g., 500 items)
+**Solution**:
+1. Check WIP Status mapping:
+   - Remove "To Do", "Backlog" from WIP statuses
+   - Only include statuses where team actively works or queues
+2. Check JQL query scope:
+   - Are you querying entire JIRA instance instead of team/project?
+   - Add project filter: `project = MYPROJECT`
+
+**Issue**: Auto-Configure doesn't detect custom fields
+**Solution**:
+1. JIRA field names don't match detection patterns
+2. Examples of detectable names:
+   - ✅ "Development Start Date", "Work Begin Date", "Started At"
+   - ❌ "Custom Field 1", "Date Field", "Timestamp"
+3. Manual mapping required for non-standard names
+4. Consider renaming JIRA fields for better auto-detection
+
+### Historical Data Reconstruction
+
+**Flow Load (WIP) Calculation**:
+- System replays JIRA changelog to reconstruct historical WIP
+- For each past week, determines which issues were "in progress" at end of week
+- Enables WIP trend analysis and dynamic threshold calculation
+
+**Requirements**:
+- JIRA changelog history available (not purged)
+- Status transitions logged in changelog
+- WIP Status mapping configured correctly
+
+**Performance Note**:
+- First calculation may take 30-60 seconds for large projects (1000+ issues)
+- Results cached for 5 minutes (in-memory)
+- Subsequent loads are instant
+
+---
+
 ## 1. Flow Velocity
 
 ### What It Measures

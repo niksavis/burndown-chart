@@ -167,13 +167,22 @@ def track_form_state_changes(*args):
             if metric not in current_state["field_mappings"]:
                 current_state["field_mappings"][metric] = {}
 
-            # Handle multi-select dropdown: extract first value or empty string
+            # Handle multi-select dropdown: extract first value
+            # CRITICAL: Only store if value exists (non-empty)
+            # Empty/missing fields should NOT be in field_mappings - this allows
+            # variable extraction to fall back to changelog-based extraction
             if isinstance(new_value, list):
-                current_state["field_mappings"][metric][field] = (
-                    new_value[0] if new_value else ""
-                )
+                if new_value:  # Only store if list has values
+                    current_state["field_mappings"][metric][field] = new_value[0]
+                elif field in current_state.get("field_mappings", {}).get(metric, {}):
+                    # Remove field if user cleared it
+                    del current_state["field_mappings"][metric][field]
             else:
-                current_state["field_mappings"][metric][field] = new_value or ""
+                if new_value:  # Only store if value is non-empty
+                    current_state["field_mappings"][metric][field] = new_value
+                elif field in current_state.get("field_mappings", {}).get(metric, {}):
+                    # Remove field if user cleared it
+                    del current_state["field_mappings"][metric][field]
 
     logger.info(f"[StateTracking] Updated state for {triggered}: {new_value}")
 
@@ -247,6 +256,11 @@ def track_types_tab_changes(*args):
         current_state[key] = (
             value if isinstance(value, list) else ([value] if value else [])
         )
+        # Log Technical Debt changes specifically
+        if key == "flow_technical_debt_issue_types" and value:
+            logger.info(
+                f"[FieldMapping] track_types_tab_changes: Storing {key}={value}"
+            )
 
     return current_state
 
@@ -541,7 +555,14 @@ def validate_field_selection_real_time(
             color = "info"
         elif actual_type == required_type:
             # Perfect match
-            message = f"✓ Field type matches requirement ({required_type})"
+            # Special message for issuetype field (most common standard field)
+            if selected_field_id == "issuetype" and internal_field in [
+                "flow_item_type",
+                "issue_type",
+            ]:
+                message = f"✓ Field type matches requirement (issuetype)"
+            else:
+                message = f"✓ Field type matches requirement ({required_type})"
             color = "success"
         else:
             # Check if types are compatible
@@ -683,7 +704,9 @@ def _get_mock_mappings() -> Dict[str, Dict[str, str]]:
     Input("mappings-tabs", "active_tab"),
     Input("jira-metadata-store", "data"),
     Input("field-mapping-modal", "is_open"),
-    State("field-mapping-state-store", "data"),
+    Input(
+        "field-mapping-state-store", "data"
+    ),  # Changed from State to Input so UI updates when auto-configure changes state
     prevent_initial_call="initial_duplicate",
 )
 def render_tab_content(
@@ -851,12 +874,23 @@ def render_tab_content(
                 effort_category_field, []
             )
 
+        available_issue_types_list = metadata.get("issue_types", [])
+        logger.info(
+            f"[FieldMapping] Rendering Types tab with {len(available_issue_types_list)} available issue types"
+        )
+        logger.info(
+            f"[FieldMapping] Flow type mappings: Feature={len(flow_type_mappings.get('Feature', {}).get('issue_types', []))}, "
+            f"Defect={len(flow_type_mappings.get('Defect', {}).get('issue_types', []))}, "
+            f"TechnicalDebt={len(flow_type_mappings.get('Technical Debt', {}).get('issue_types', []))}, "
+            f"Risk={len(flow_type_mappings.get('Risk', {}).get('issue_types', []))}"
+        )
+
         return create_issue_type_config_form(
             devops_task_types=display_settings.get("devops_task_types", []),
             bug_types=display_settings.get("bug_types", []),
             story_types=display_settings.get("story_types", []),
             task_types=display_settings.get("task_types", []),
-            available_issue_types=metadata.get("issue_types", []),
+            available_issue_types=available_issue_types_list,
             flow_type_mappings=flow_type_mappings,
             available_effort_categories=available_effort_categories,
         ), state_data
@@ -871,12 +905,19 @@ def render_tab_content(
         ), state_data
 
     elif active_tab == "tab-environment":
-        # Get production environment field value options
-        prod_env_field = settings.get("field_mappings", {}).get("target_environment")
+        # Get production environment field value options from affected_environment field
+        # This is the field used for incident tracking and MTTR calculation
+        affected_env_field = settings.get("field_mappings", {}).get(
+            "affected_environment"
+        )
+
         available_env_values = []
-        if prod_env_field and metadata.get("field_options"):
+        if affected_env_field and metadata.get("field_options"):
             available_env_values = metadata.get("field_options", {}).get(
-                prod_env_field, []
+                affected_env_field, []
+            )
+            logger.debug(
+                f"[FieldMapping] Loaded {len(available_env_values)} values from affected_environment field: {affected_env_field}"
             )
 
         return create_environment_config_form(
@@ -893,37 +934,36 @@ def render_tab_content(
     [
         Output("jira-metadata-store", "data"),
         Output("field-mapping-status", "children", allow_duplicate=True),
+        Output(
+            "auto-configure-button", "disabled"
+        ),  # Enable button after metadata loads
     ],
-    Input("fetch-metadata-button", "n_clicks"),
     Input("field-mapping-modal", "is_open"),
     State("jira-metadata-store", "data"),
     prevent_initial_call=True,
 )
-def fetch_metadata(n_clicks: int, is_open: bool, current_metadata: dict):
+def fetch_metadata_on_modal_open(is_open: bool, current_metadata: dict):
     """
-    Fetch JIRA metadata when button clicked or modal opened (if not cached).
+    Fetch JIRA metadata automatically when modal opens (if not cached).
 
     Args:
-        n_clicks: Number of times fetch button clicked
         is_open: Whether modal is open
         current_metadata: Currently cached metadata
 
     Returns:
-        Dictionary with fetched metadata
+        Tuple of (metadata_dict, status_alert, auto_configure_button_disabled)
     """
     from data.jira_metadata import create_metadata_fetcher
     from data.persistence import load_app_settings
 
-    # Determine trigger
-    ctx = callback_context
-    if not ctx.triggered:
-        return no_update, no_update
+    # Only fetch when modal opens
+    if not is_open:
+        return no_update, no_update, no_update
 
-    trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
-
-    # If modal just opened and we have cached data, don't refetch
-    if trigger_id == "field-mapping-modal" and current_metadata:
-        return no_update, no_update
+    # If we have cached data, don't refetch but enable auto-configure button
+    if current_metadata and not current_metadata.get("error"):
+        logger.info("[FieldMapping] Using cached metadata")
+        return no_update, no_update, False  # Enable auto-configure button
 
     try:
         # Load JIRA configuration from profile.json
@@ -957,7 +997,11 @@ def fetch_metadata(n_clicks: int, is_open: bool, current_metadata: dict):
                 color="danger",
                 dismissable=True,
             )
-            return {"error": "JIRA not configured"}, error_alert
+            return (
+                {"error": "JIRA not configured"},
+                error_alert,
+                True,
+            )  # Keep button disabled
 
         # Create fetcher and fetch all metadata
         fetcher = create_metadata_fetcher(
@@ -995,15 +1039,31 @@ def fetch_metadata(n_clicks: int, is_open: bool, current_metadata: dict):
         settings = load_app_settings()
 
         # Fetch environment field options if mapped
+        # affected_environment is the primary field for incident tracking and MTTR
+        # If target_environment is also mapped to same field ID, values will be available for both
         affected_env_field = settings.get("field_mappings", {}).get(
             "affected_environment"
         )
+        target_env_field = settings.get("field_mappings", {}).get("target_environment")
+
         env_options = []
+        env_field_to_fetch = None
+
+        # Fetch from affected_environment (primary field for Production Identifiers)
         if affected_env_field:
+            env_field_to_fetch = affected_env_field
             logger.info(
                 f"[FieldMapping] Fetching field options for affected_environment field: {affected_env_field}"
             )
-            env_options = fetcher.fetch_field_options(affected_env_field)
+        # Fallback to target_environment if affected_environment not mapped
+        elif target_env_field:
+            env_field_to_fetch = target_env_field
+            logger.info(
+                f"[FieldMapping] affected_environment not mapped, fetching from target_environment field: {target_env_field}"
+            )
+
+        if env_field_to_fetch:
+            env_options = fetcher.fetch_field_options(env_field_to_fetch)
             logger.info(
                 f"[FieldMapping] Found {len(env_options)} environment values: {env_options}"
             )
@@ -1013,7 +1073,7 @@ def fetch_metadata(n_clicks: int, is_open: bool, current_metadata: dict):
             )
         else:
             logger.warning(
-                "[FieldMapping] affected_environment field not mapped, cannot fetch environment values"
+                "[FieldMapping] affected_environment field not mapped, cannot fetch environment values for Production Identifiers"
             )
             auto_detected_prod = []
 
@@ -1036,9 +1096,15 @@ def fetch_metadata(n_clicks: int, is_open: bool, current_metadata: dict):
             )
 
         # Build field_options dictionary with all fetched fields
+        # Store environment options under the fetched field ID
+        # If both target_environment and affected_environment point to same field, both will work
         field_options_dict = {}
-        if affected_env_field:
-            field_options_dict[affected_env_field] = env_options
+        if env_field_to_fetch and env_options:
+            field_options_dict[env_field_to_fetch] = env_options
+            logger.info(
+                f"[FieldMapping] Stored {len(env_options)} environment values under field ID: {env_field_to_fetch}"
+            )
+
         if effort_category_field:
             field_options_dict[effort_category_field] = effort_category_options
 
@@ -1083,7 +1149,7 @@ def fetch_metadata(n_clicks: int, is_open: bool, current_metadata: dict):
             duration=4000,  # Auto-dismiss after 4 seconds
         )
 
-        return metadata, success_alert
+        return metadata, success_alert, False  # Enable auto-configure button
 
     except Exception as e:
         logger.error(f"Error fetching JIRA metadata: {e}")
@@ -1107,7 +1173,404 @@ def fetch_metadata(n_clicks: int, is_open: bool, current_metadata: dict):
             color="danger",
             dismissable=True,
         )
-        return {"error": str(e)}, error_alert
+        return {"error": str(e)}, error_alert, True  # Keep button disabled on error
+
+
+# ============================================================================
+# AUTO-CONFIGURE WARNING BANNER TOGGLE
+# ============================================================================
+
+
+@callback(
+    Output("auto-configure-warning-banner", "is_open"),
+    [
+        Input("auto-configure-button", "n_clicks"),
+        Input("auto-configure-cancel-inline", "n_clicks"),
+    ],
+    State("auto-configure-warning-banner", "is_open"),
+    prevent_initial_call=True,
+)
+def toggle_auto_configure_warning(auto_click, cancel_click, is_open):
+    """Show/hide inline warning banner before auto-configure.
+
+    Args:
+        auto_click: Auto-configure button clicks
+        cancel_click: Cancel button clicks
+        is_open: Current banner visibility state
+
+    Returns:
+        Updated banner visibility state
+    """
+    from dash import ctx
+
+    if not ctx.triggered_id:
+        return no_update
+
+    # Toggle banner state
+    return not is_open
+
+
+# ============================================================================
+# AUTO-CONFIGURE FROM METADATA
+# ============================================================================
+
+
+@callback(
+    [
+        Output("field-mapping-state-store", "data", allow_duplicate=True),
+        Output("field-mapping-status", "children", allow_duplicate=True),
+        Output("auto-configure-warning-banner", "is_open", allow_duplicate=True),
+    ],
+    Input("auto-configure-confirm-button", "n_clicks"),
+    [
+        State("jira-metadata-store", "data"),
+        State("field-mapping-state-store", "data"),
+    ],
+    prevent_initial_call=True,
+)
+def auto_configure_from_metadata(n_clicks: int, metadata: Dict, current_state: Dict):
+    """Auto-configure profile settings from JIRA metadata.
+
+    Generates smart defaults for all configuration sections:
+    - Project classification (completion/active/WIP statuses)
+    - Flow type mappings (Feature/Defect/TechnicalDebt/Risk)
+    - Development projects (extracted from JQL query)
+
+    Args:
+        n_clicks: Number of times auto-configure button clicked
+        metadata: JIRA metadata from jira-metadata-store
+        current_state: Current state from state store
+
+    Returns:
+        Tuple of (updated_state, status_alert, banner_closed)
+    """
+    from data.auto_configure import generate_smart_defaults
+    from data.profile_manager import get_active_profile, get_profile_file_path
+    import json
+
+    if not n_clicks:
+        return (
+            no_update,
+            no_update,
+            no_update,
+        )
+
+    try:
+        # Validate metadata is available
+        if not metadata or metadata.get("error"):
+            error_alert = dbc.Alert(
+                [
+                    html.I(className="fas fa-exclamation-circle me-2"),
+                    "Cannot auto-configure: JIRA metadata not available. Please ensure JIRA is connected.",
+                ],
+                color="danger",
+                dismissable=True,
+            )
+            return (
+                no_update,
+                error_alert,
+                False,  # Close confirmation modal
+            )
+
+        # Get active profile to extract JQL query
+        active_profile = get_active_profile()
+        if not active_profile:
+            error_alert = dbc.Alert(
+                [
+                    html.I(className="fas fa-exclamation-circle me-2"),
+                    "Cannot auto-configure: No active profile found.",
+                ],
+                color="danger",
+                dismissable=True,
+            )
+            return (
+                no_update,
+                error_alert,
+                False,  # Close confirmation modal
+            )
+
+        profile_id = active_profile.id
+        profile_path = get_profile_file_path(profile_id)
+
+        # Load current profile to get active query JQL
+        jql_query = None
+        try:
+            with open(profile_path, "r", encoding="utf-8") as f:
+                profile_data = json.load(f)
+
+                # Get active query ID from profile
+                active_query_id = profile_data.get("active_query_id")
+
+                # Fallback: If no active query, check if there are any queries
+                if not active_query_id:
+                    queries = profile_data.get("queries", [])
+                    if queries and len(queries) > 0:
+                        active_query_id = (
+                            queries[0].get("id")
+                            if isinstance(queries[0], dict)
+                            else queries[0]
+                        )
+                        logger.info(
+                            f"[AutoConfigure] No active query, using first query: {active_query_id}"
+                        )
+                    else:
+                        # Last resort: Check for query directories
+                        from pathlib import Path
+
+                        queries_dir = Path(profile_path).parent / "queries"
+                        if queries_dir.exists():
+                            query_dirs = [
+                                d for d in queries_dir.iterdir() if d.is_dir()
+                            ]
+                            if query_dirs:
+                                active_query_id = query_dirs[0].name
+                                logger.info(
+                                    f"[AutoConfigure] Found query directory: {active_query_id}"
+                                )
+
+                if active_query_id:
+                    # Load query file to get JQL
+                    from data.profile_manager import get_query_file_path
+
+                    query_path = get_query_file_path(profile_id, active_query_id)
+
+                    try:
+                        with open(query_path, "r", encoding="utf-8") as qf:
+                            query_data = json.load(qf)
+                            jql_query = query_data.get("jql", "")
+                            logger.info(
+                                f"[AutoConfigure] Loaded JQL query from active query: {jql_query}"
+                            )
+                    except Exception as qe:
+                        logger.warning(f"Could not load query file: {qe}")
+                else:
+                    logger.warning(
+                        "No active query ID found in profile and no fallback queries available"
+                    )
+        except Exception as e:
+            logger.warning(f"Could not load profile data: {e}")
+
+        logger.info(
+            f"[AutoConfigure] Generating smart defaults for profile {profile_id}"
+        )
+
+        # Fetch recent issues for field detection (last 100 issues)
+        issues = []
+        if jql_query:
+            try:
+                from data.jira_simple import fetch_jira_issues
+
+                logger.info(
+                    "[AutoConfigure] Fetching last 100 issues for field analysis..."
+                )
+                # Modify JQL to get last 100 issues ordered by created date
+                sample_jql = f"{jql_query} ORDER BY created DESC"
+
+                # Get JIRA config from profile
+                with open(profile_path, "r", encoding="utf-8") as f:
+                    profile_data = json.load(f)
+                    jira_config = profile_data.get("jira_config", {})
+
+                # Build config dict for fetch_jira_issues (matches expected structure)
+                fetch_config = {
+                    "jql_query": sample_jql,
+                    "api_endpoint": jira_config.get("base_url", "").rstrip("/")
+                    + "/rest/api/2/search",
+                    "token": jira_config.get("token", ""),
+                    "story_points_field": jira_config.get("points_field", ""),
+                    "field_mappings": {},  # Empty for field detection - we want ALL fields
+                    "fields": "*all",  # CRITICAL: Request ALL fields including custom fields
+                }
+
+                # Fetch issues
+                success, fetched_issues = fetch_jira_issues(
+                    config=fetch_config, max_results=100
+                )
+
+                if success:
+                    issues = fetched_issues
+                    logger.info(
+                        f"[AutoConfigure] Fetched {len(issues)} issues for analysis"
+                    )
+                else:
+                    logger.warning(
+                        "[AutoConfigure] Failed to fetch issues for field detection"
+                    )
+
+            except Exception as e:
+                logger.warning(
+                    f"[AutoConfigure] Could not fetch issues for field detection: {e}",
+                    exc_info=True,
+                )
+
+        # Generate smart defaults using metadata and issues
+        defaults = generate_smart_defaults(metadata, jql_query, issues)
+
+        # Update state store with auto-configured values
+        new_state = current_state.copy() if current_state else {}
+
+        # CRITICAL: Store values in FLAT keys that the UI dropdowns read from
+        # The render_tab_content callback reads from these flat keys to populate dropdowns
+        new_state["completion_statuses"] = defaults["project_classification"][
+            "completion_statuses"
+        ]
+        new_state["active_statuses"] = defaults["project_classification"][
+            "active_statuses"
+        ]
+        new_state["flow_start_statuses"] = defaults["project_classification"][
+            "flow_start_statuses"
+        ]
+        new_state["wip_statuses"] = defaults["project_classification"]["wip_statuses"]
+        new_state["development_projects"] = defaults["project_classification"][
+            "development_projects"
+        ]
+        new_state["devops_projects"] = defaults["project_classification"].get(
+            "devops_projects", []
+        )
+
+        # Flow type mappings - store in flat keys for UI
+        new_state["flow_feature_issue_types"] = defaults["flow_type_mappings"][
+            "Feature"
+        ]
+        new_state["flow_defect_issue_types"] = defaults["flow_type_mappings"]["Defect"]
+        new_state["flow_technical_debt_issue_types"] = defaults[
+            "flow_type_mappings"
+        ].get("Technical Debt", [])
+        new_state["flow_risk_issue_types"] = defaults["flow_type_mappings"].get(
+            "Risk", []
+        )
+
+        # Bug types - store in flat key for UI (Incident Types dropdown)
+        if (
+            "project_classification" in defaults
+            and "bug_types" in defaults["project_classification"]
+        ):
+            new_state["bug_types"] = defaults["project_classification"]["bug_types"]
+            logger.info(
+                f"[AutoConfigure] Stored {len(new_state['bug_types'])} incident types for UI"
+            )
+
+        # DevOps task types - store in flat key for UI (DevOps Task Types dropdown)
+        if (
+            "project_classification" in defaults
+            and "devops_task_types" in defaults["project_classification"]
+        ):
+            new_state["devops_task_types"] = defaults["project_classification"][
+                "devops_task_types"
+            ]
+            logger.info(
+                f"[AutoConfigure] Stored {len(new_state['devops_task_types'])} DevOps task types for UI"
+            )
+
+        # Field mappings - store if detected (DORA + Flow only)
+        if "field_mappings" in defaults:
+            new_state["field_mappings"] = defaults["field_mappings"]
+
+        # Points field - store separately for jira_config (NOT in field_mappings)
+        if "points_field" in defaults:
+            new_state["points_field"] = defaults["points_field"]
+
+        # Field values - store for dropdown population
+        if "field_values" in defaults:
+            new_state["field_values"] = defaults["field_values"]
+
+        # ALSO store in nested structure for profile.json compatibility
+        if "project_classification" not in new_state:
+            new_state["project_classification"] = {}
+        new_state["project_classification"].update(defaults["project_classification"])
+
+        # Populate production_environment_values from field_values if available
+        if (
+            "field_values" in defaults
+            and "target_environment" in defaults["field_values"]
+        ):
+            new_state["project_classification"]["production_environment_values"] = (
+                defaults["field_values"]["target_environment"]
+            )
+            logger.info(
+                f"[AutoConfigure] Populated {len(defaults['field_values']['target_environment'])} production identifiers"
+            )
+
+        if "flow_type_mappings" not in new_state:
+            new_state["flow_type_mappings"] = {}
+        for flow_type, issue_types in defaults["flow_type_mappings"].items():
+            if flow_type not in new_state["flow_type_mappings"]:
+                new_state["flow_type_mappings"][flow_type] = {
+                    "issue_types": [],
+                    "effort_categories": [],
+                }
+            new_state["flow_type_mappings"][flow_type]["issue_types"] = issue_types
+
+            # Populate effort_categories from field_values if available
+            if (
+                "field_values" in defaults
+                and "effort_category" in defaults["field_values"]
+            ):
+                new_state["flow_type_mappings"][flow_type]["effort_categories"] = (
+                    defaults["field_values"]["effort_category"]
+                )
+                logger.info(
+                    f"[AutoConfigure] Populated {len(defaults['field_values']['effort_category'])} effort categories for {flow_type}"
+                )
+
+        # Count what was configured
+        completion_count = len(
+            defaults["project_classification"]["completion_statuses"]
+        )
+        active_count = len(defaults["project_classification"]["active_statuses"])
+        wip_count = len(defaults["project_classification"]["wip_statuses"])
+        feature_count = len(defaults["flow_type_mappings"]["Feature"])
+        defect_count = len(defaults["flow_type_mappings"]["Defect"])
+        project_count = len(defaults["project_classification"]["development_projects"])
+
+        logger.info(
+            f"[AutoConfigure] Generated defaults: {completion_count} completion, "
+            f"{active_count} active, {wip_count} WIP statuses, "
+            f"{feature_count} features, {defect_count} defects, {project_count} projects"
+        )
+
+        # Create compact success message
+        success_alert = dbc.Alert(
+            [
+                html.Div(
+                    [
+                        html.I(className="fas fa-check-circle me-2"),
+                        html.Strong("Auto-Configuration Complete: "),
+                        f"{completion_count + active_count + wip_count} statuses, ",
+                        f"{feature_count + defect_count} work types, ",
+                        f"{project_count} project{'s' if project_count != 1 else ''}. ",
+                        html.Strong(
+                            "Click 'Save Mappings' to apply.", className="ms-2"
+                        ),
+                    ],
+                ),
+            ],
+            color="success",
+            dismissable=True,
+            duration=6000,
+        )
+
+        return new_state, success_alert, False  # Close confirmation modal
+
+    except Exception as e:
+        logger.error(
+            f"[AutoConfigure] Error during auto-configuration: {e}", exc_info=True
+        )
+        error_alert = dbc.Alert(
+            [
+                html.I(className="fas fa-exclamation-circle me-2"),
+                html.Div(
+                    [
+                        html.Strong("Auto-Configuration Failed"),
+                        html.Br(),
+                        html.Small(f"Error: {str(e)}", style={"opacity": "0.85"}),
+                    ]
+                ),
+            ],
+            color="danger",
+            dismissable=True,
+        )
+        return no_update, error_alert, False  # Close confirmation modal
 
 
 @callback(
@@ -1145,50 +1608,27 @@ def save_comprehensive_mappings(n_clicks, state_data):
         if "field_mappings" in state_data:
             settings["field_mappings"] = state_data["field_mappings"]
 
-        # Projects
+        # Read from nested project_classification structure (NEW format from auto-configure)
+        if "project_classification" in state_data:
+            proj_class = state_data["project_classification"]
+            settings["development_projects"] = proj_class.get(
+                "development_projects", []
+            )
+            settings["devops_projects"] = proj_class.get("devops_projects", [])
+            settings["completion_statuses"] = proj_class.get("completion_statuses", [])
+            settings["active_statuses"] = proj_class.get("active_statuses", [])
+            settings["flow_start_statuses"] = proj_class.get("flow_start_statuses", [])
+            settings["wip_statuses"] = proj_class.get("wip_statuses", [])
+
+        # Read from nested flow_type_mappings structure (NEW format from auto-configure)
+        if "flow_type_mappings" in state_data:
+            settings["flow_type_mappings"] = state_data["flow_type_mappings"]
+
+        # Fallback: Also check old flat keys for backward compatibility
         if "development_projects" in state_data:
             settings["development_projects"] = state_data["development_projects"]
         if "devops_projects" in state_data:
             settings["devops_projects"] = state_data["devops_projects"]
-
-        # Issue Types
-        if "devops_task_types" in state_data:
-            settings["devops_task_types"] = state_data["devops_task_types"]
-        if "bug_types" in state_data:
-            settings["bug_types"] = state_data["bug_types"]
-        if "story_types" in state_data:
-            settings["story_types"] = state_data["story_types"]
-        if "task_types" in state_data:
-            settings["task_types"] = state_data["task_types"]
-
-        # Flow type mappings
-        flow_type_mappings = {
-            "Feature": {
-                "issue_types": state_data.get("flow_feature_issue_types", []),
-                "effort_categories": state_data.get(
-                    "flow_feature_effort_categories", []
-                ),
-            },
-            "Defect": {
-                "issue_types": state_data.get("flow_defect_issue_types", []),
-                "effort_categories": state_data.get(
-                    "flow_defect_effort_categories", []
-                ),
-            },
-            "Technical Debt": {
-                "issue_types": state_data.get("flow_technical_debt_issue_types", []),
-                "effort_categories": state_data.get(
-                    "flow_technical_debt_effort_categories", []
-                ),
-            },
-            "Risk": {
-                "issue_types": state_data.get("flow_risk_issue_types", []),
-                "effort_categories": state_data.get("flow_risk_effort_categories", []),
-            },
-        }
-        settings["flow_type_mappings"] = flow_type_mappings
-
-        # Statuses
         if "completion_statuses" in state_data:
             settings["completion_statuses"] = state_data["completion_statuses"]
         if "active_statuses" in state_data:
@@ -1198,11 +1638,65 @@ def save_comprehensive_mappings(n_clicks, state_data):
         if "wip_statuses" in state_data:
             settings["wip_statuses"] = state_data["wip_statuses"]
 
+        # Fallback: Old flow type keys (kept for backward compatibility with manual edits)
+        if (
+            "flow_feature_issue_types" in state_data
+            or "flow_defect_issue_types" in state_data
+        ):
+            flow_type_mappings = {
+                "Feature": {
+                    "issue_types": state_data.get("flow_feature_issue_types", []),
+                    "effort_categories": state_data.get(
+                        "flow_feature_effort_categories", []
+                    ),
+                },
+                "Defect": {
+                    "issue_types": state_data.get("flow_defect_issue_types", []),
+                    "effort_categories": state_data.get(
+                        "flow_defect_effort_categories", []
+                    ),
+                },
+                "Technical Debt": {
+                    "issue_types": state_data.get(
+                        "flow_technical_debt_issue_types", []
+                    ),
+                    "effort_categories": state_data.get(
+                        "flow_technical_debt_effort_categories", []
+                    ),
+                },
+                "Risk": {
+                    "issue_types": state_data.get("flow_risk_issue_types", []),
+                    "effort_categories": state_data.get(
+                        "flow_risk_effort_categories", []
+                    ),
+                },
+            }
+            settings["flow_type_mappings"] = flow_type_mappings
+
+        # Issue Types (old flat structure - kept for backward compatibility)
+        if "devops_task_types" in state_data:
+            settings["devops_task_types"] = state_data["devops_task_types"]
+        if "bug_types" in state_data:
+            settings["bug_types"] = state_data["bug_types"]
+        if "story_types" in state_data:
+            settings["story_types"] = state_data["story_types"]
+        if "task_types" in state_data:
+            settings["task_types"] = state_data["task_types"]
+
         # Environment
         if "production_environment_values" in state_data:
             settings["production_environment_values"] = state_data[
                 "production_environment_values"
             ]
+
+        # Points field - goes in jira_config, NOT field_mappings
+        if "points_field" in state_data:
+            if "jira_config" not in settings:
+                settings["jira_config"] = {}
+            settings["jira_config"]["points_field"] = state_data["points_field"]
+            logger.info(
+                f"[FieldMapping] Updated points_field in jira_config: {state_data['points_field']}"
+            )
 
         # Save to disk - extract individual parameters from settings dict
         save_app_settings(
@@ -1257,8 +1751,8 @@ def save_comprehensive_mappings(n_clicks, state_data):
             duration=4000,
         )
 
-        # Clear state store after successful save
-        return True, success_alert, {}
+        # Keep state store intact so UI remains populated
+        return True, success_alert, no_update
 
     except Exception as e:
         logger.error(f"[FieldMapping] Error saving mappings: {e}")

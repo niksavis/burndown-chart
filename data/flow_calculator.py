@@ -104,7 +104,7 @@ def _map_issue_to_flow_type(
 
     # Use configured classification
     config = get_metrics_config()
-    flow_type = config.classify_issue_to_flow_type(issue_type, effort_category)
+    flow_type = config.get_flow_type_for_issue(issue_type, effort_category)
 
     return flow_type
 
@@ -439,7 +439,7 @@ def calculate_flow_time(
                     return _create_error_response(
                         "flow_time",
                         "missing_config",
-                        "Configure 'wip_statuses' in app_settings.json",
+                        "Configure 'wip_statuses' in Settings → Configure JIRA Mappings",
                     )
 
         flow_times = []
@@ -720,13 +720,13 @@ def calculate_flow_efficiency(
                 return _create_error_response(
                     "flow_efficiency",
                     "missing_config",
-                    "Configure 'active_statuses' in app_settings.json",
+                    "Configure 'active_statuses' in Settings → Configure JIRA Mappings",
                 )
             if not wip_statuses:
                 return _create_error_response(
                     "flow_efficiency",
                     "missing_config",
-                    "Configure 'wip_statuses' in app_settings.json",
+                    "Configure 'wip_statuses' in Settings → Configure JIRA Mappings",
                 )
 
         total_active_hours = 0
