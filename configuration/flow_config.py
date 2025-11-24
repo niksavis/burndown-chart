@@ -52,14 +52,14 @@ FLOW_EFFICIENCY_THRESHOLDS = {
 # NOTE: flow_time and flow_efficiency can be calculated from changelog without field mappings
 # if status lists are configured (flow_start_statuses, completion_statuses, active_statuses)
 REQUIRED_FLOW_FIELDS = {
-    "flow_velocity": ["flow_item_type", "completed_date"],
+    "flow_velocity": ["flow_item_type", "work_completed_date"],
     "flow_time": [
         "work_started_date",
         "work_completed_date",
     ],  # Optional if using changelog
     "flow_efficiency": [],  # Calculated from changelog (no field mappings needed)
     "flow_load": ["status"],  # Current status
-    "flow_distribution": ["flow_item_type", "completed_date"],
+    "flow_distribution": ["flow_item_type", "work_completed_date"],
 }
 
 # Metric display names

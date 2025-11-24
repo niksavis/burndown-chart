@@ -685,7 +685,7 @@ def _get_mock_mappings() -> Dict[str, Dict[str, str]]:
         "flow": {
             "flow_item_type": "customfield_10007",
             "status": "status",
-            "completed_date": "resolutiondate",
+            "work_completed_date": "resolutiondate",
         },
     }
 

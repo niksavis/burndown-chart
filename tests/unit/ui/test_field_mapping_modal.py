@@ -420,8 +420,8 @@ class TestFieldTypeDisplay:
         form_str = str(form)
 
         # Verify expected types are in help text
-        assert "Expected type: datetime" in form_str
-        assert "Expected type: select" in form_str
+        assert "Type: datetime" in form_str
+        assert "Type: select" in form_str
 
     def test_standard_and_custom_field_type_labels(self):
         """Test that both standard and custom fields show type information."""
@@ -471,7 +471,6 @@ class TestFieldTypeRequirements:
             ("effort_category", "select"),
             ("work_started_date", "datetime"),
             ("work_completed_date", "datetime"),
-            ("completed_date", "datetime"),
             ("status", "select"),
         ],
     )
@@ -492,7 +491,7 @@ class TestFieldTypeRequirements:
         form_str = str(form)
 
         # Verify expected type is mentioned in the form
-        assert f"Expected type: {expected_type}" in form_str
+        assert f"Type: {expected_type}" in form_str
 
     def test_all_dora_fields_have_type_information(self):
         """Test that all DORA fields show expected type."""
@@ -529,8 +528,8 @@ class TestFieldTypeRequirements:
             pass  # Type info verified in parametrized test above
 
         # Verify at least some expected types are present
-        assert "Expected type: datetime" in form_str
-        assert "Expected type: select" in form_str
+        assert "Type: datetime" in form_str
+        assert "Type: select" in form_str
 
     def test_all_flow_fields_have_type_information(self):
         """Test that all Flow fields show expected type."""
@@ -548,8 +547,8 @@ class TestFieldTypeRequirements:
         form_str = str(form)
 
         # Verify expected types are shown
-        assert "Expected type: select" in form_str
-        assert "Expected type: datetime" in form_str
+        assert "Type: select" in form_str
+        assert "Type: datetime" in form_str
 
 
 class TestValidationPlaceholders:

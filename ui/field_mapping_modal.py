@@ -247,57 +247,63 @@ def create_field_mapping_form(
         [
             (
                 "deployment_date",
-                "Deployment Date Field",
+                "Deployment Date",
                 "datetime",
-                "[!] Required for DORA Deployment Frequency | Expected type: datetime",
+                "When deployment occurred | REQUIRED for Deployment Frequency | Typical field: customfield_XXXXX | Type: datetime",
             ),
             (
-                "target_environment",
-                "Target Environment Field",
-                "select",
-                "[i] Deployment environment tracking (DEV/STAGING/PROD) | Expected type: select",
+                "deployment_successful",
+                "Deployment Successful",
+                "checkbox",
+                "Deployment success/failure indicator | OPTIONAL for enhanced Change Failure Rate | Type: checkbox",
             ),
             (
                 "code_commit_date",
-                "Code Commit Date Field (Optional)",
+                "Code Commit Date",
                 "datetime",
-                "[i] Lead Time calculation | Expected type: datetime",
+                "When code was committed | OPTIONAL for Lead Time for Changes | Type: datetime",
             ),
             (
                 "deployed_to_production_date",
-                "Production Deployment Date Field",
+                "Deployed to Production",
                 "datetime",
-                "[i] Lead Time to Production | Expected type: datetime",
+                "Production deployment timestamp | OPTIONAL for Lead Time for Changes | Type: datetime",
             ),
             (
                 "incident_detected_at",
-                "Incident Detection Date Field",
+                "Incident Detected At",
                 "datetime",
-                "[!] Required for DORA MTTR | Expected type: datetime",
+                "When production issue found | REQUIRED for MTTR | Typical field: created | Type: datetime",
             ),
             (
                 "incident_resolved_at",
-                "Incident Resolution Date Field",
+                "Incident Resolved At",
                 "datetime",
-                "[!] Required for DORA MTTR | Expected type: datetime",
+                "When issue fixed in production | REQUIRED for MTTR | Typical field: resolutiondate | Type: datetime",
             ),
             (
                 "change_failure",
-                "Change Failure Field",
+                "Change Failure",
                 "select",
-                "[!] Required for Change Failure Rate (values: Yes/No/None) | Expected type: select",
+                "Deployment failure indicator | REQUIRED for Change Failure Rate | Values: Yes/No/None | Type: select",
             ),
             (
                 "affected_environment",
-                "Affected Environment Field",
+                "Affected Environment",
                 "select",
-                "[!] Required for production incident filtering (MTTR) | Expected type: select",
+                "Environment affected by incident | REQUIRED for production bug filtering (MTTR) | Type: select",
+            ),
+            (
+                "target_environment",
+                "Target Environment",
+                "select",
+                "Deployment target environment | OPTIONAL for environment-specific metrics | Type: select",
             ),
             (
                 "severity_level",
-                "Severity/Priority Field",
+                "Severity Level",
                 "select",
-                "[i] Incident impact analysis | Expected type: select",
+                "Incident priority/severity | OPTIONAL for impact analysis | Typical field: priority | Type: select",
             ),
         ],
         field_options,
@@ -311,39 +317,39 @@ def create_field_mapping_form(
         [
             (
                 "flow_item_type",
-                "Issue Type Field",
+                "Flow Item Type",
                 "select",
-                "[!] Required for Flow metrics (typically 'issuetype') | Expected type: select",
-            ),
-            (
-                "effort_category",
-                "Effort Category Field",
-                "select",
-                "[i] Work classification (Feature, Tech Debt, Bug Fix, etc.) | Expected type: select",
-            ),
-            (
-                "work_started_date",
-                "Work Started Date Field (Optional)",
-                "datetime",
-                "[i] Optional - can be calculated from changelog | Expected type: datetime",
-            ),
-            (
-                "work_completed_date",
-                "Work Completed Date Field (Optional)",
-                "datetime",
-                "[!] Required for Flow Time calculation | Expected type: datetime",
-            ),
-            (
-                "completed_date",
-                "Completed Date Field",
-                "datetime",
-                "[!] Required for Flow metrics (typically 'resolutiondate') | Expected type: datetime",
+                "Work category | REQUIRED for Flow Distribution | Typical field: issuetype | Type: select",
             ),
             (
                 "status",
-                "Status Field",
+                "Status",
                 "select",
-                "[!] Required for WIP and Flow State (typically 'status') | Expected type: select",
+                "Current work status | REQUIRED for Flow Load and Flow State | Typical field: status | Type: select",
+            ),
+            (
+                "work_started_date",
+                "Work Started Date",
+                "datetime",
+                "When work began | OPTIONAL - calculated from first WIP status if empty | Type: datetime",
+            ),
+            (
+                "work_completed_date",
+                "Work Completed Date",
+                "datetime",
+                "When work finished | REQUIRED for Flow Velocity, Flow Time, Flow Distribution | Typical field: resolutiondate | Type: datetime",
+            ),
+            (
+                "effort_category",
+                "Effort Category",
+                "select",
+                "Secondary work classification | OPTIONAL for enhanced Flow Distribution | Type: select",
+            ),
+            (
+                "estimate",
+                "Estimate",
+                "number",
+                "Story points or effort | OPTIONAL for capacity planning | Typical field: Story Points | Type: number",
             ),
         ],
         field_options,
@@ -392,14 +398,24 @@ def create_metric_section(
             else:
                 dash_options.append(opt)
 
+        # Determine if field is required based on help text
+        is_required = "REQUIRED" in help_text
+        label_class = "form-label fw-bold" if is_required else "form-label"
+
+        # Add required indicator to label
+        label_content = [
+            label,
+            html.Span(" *", className="text-danger") if is_required else None,
+        ]
+
         field_row = dbc.Row(
             [
-                # Field label and required type
+                # Field label and help text
                 dbc.Col(
                     [
                         html.Label(
-                            label,
-                            className="form-label fw-bold",
+                            label_content,
+                            className=label_class,
                         ),
                         html.P(
                             help_text,

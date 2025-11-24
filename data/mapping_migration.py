@@ -38,7 +38,6 @@ LEGACY_FIELD_TO_VARIABLE_MAP = {
     # Flow field mappings
     "work_started_date": "work_started_timestamp",
     "work_completed_date": "work_completed_timestamp",
-    "completed_date": "completion_timestamp",
     "flow_item_type": "work_type_category",
     "status": "is_completed",
     "estimate": "work_item_size",

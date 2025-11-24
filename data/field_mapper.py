@@ -48,29 +48,26 @@ JIRA_TYPE_MAPPING = {
 }
 
 # Internal field type requirements for DORA and Flow metrics
+# Field names match official DORA and Flow Metrics documentation
 INTERNAL_FIELD_TYPES = {
-    # DORA fields
-    "deployment_date": "datetime",
-    "target_environment": "select",
-    "code_commit_date": "datetime",
-    "deployed_to_production_date": "datetime",
-    "incident_detected_at": "datetime",
-    "incident_resolved_at": "datetime",
-    "deployment_successful": "checkbox",
-    "production_impact": "select",
-    "severity_level": "select",  # Severity/Priority field for incidents
-    # Flow fields
-    "flow_item_type": "select",
-    "work_started_date": "datetime",
-    "work_completed_date": "datetime",
-    "completed_date": "datetime",
-    "status": "select",
-    # Additional optional fields for enhanced metrics
-    "change_failure": "select",  # Deployment success/failure indicator
+    # DORA Metrics fields (aligned with dora.dev standards)
+    "deployment_date": "datetime",  # When deployment occurred
+    "deployment_successful": "checkbox",  # Deployment success/failure
+    "code_commit_date": "datetime",  # When code was committed
+    "deployed_to_production_date": "datetime",  # Production deployment timestamp
+    "incident_detected_at": "datetime",  # When production issue found
+    "incident_resolved_at": "datetime",  # When issue fixed in production
+    "change_failure": "select",  # Deployment failure indicator (Yes/No/None)
     "affected_environment": "select",  # Environment affected by incidents
-    "effort_category": "select",  # Flow type secondary classification
+    "target_environment": "select",  # Deployment target environment
+    "severity_level": "select",  # Incident priority/severity
+    # Flow Metrics fields (aligned with Flow Framework standards)
+    "flow_item_type": "select",  # Work category (Feature/Defect/Tech Debt/Risk)
+    "status": "select",  # Current work status
+    "work_started_date": "datetime",  # When work began (optional - can calculate from changelog)
+    "work_completed_date": "datetime",  # When work finished (typically resolutiondate)
+    "effort_category": "select",  # Secondary work classification
     "estimate": "number",  # Story points or effort estimation
-    "deployment_approval": "select",  # Optional deployment approval indicator
 }
 
 
@@ -337,7 +334,6 @@ def load_field_mappings() -> Dict:
             "effort_category",
             "work_started_date",
             "work_completed_date",
-            "completed_date",
             "status",
         }
 

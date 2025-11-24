@@ -169,7 +169,7 @@ class TestFlowVelocityWithVariableExtraction:
         # Arrange
         field_mappings = {
             "flow_item_type": "issuetype",  # Use issuetype.name for classification
-            "completed_date": "resolutiondate",
+            "work_completed_date": "resolutiondate",
         }
         start_date = datetime(2025, 1, 1, tzinfo=timezone.utc)
         end_date = datetime(2025, 1, 31, tzinfo=timezone.utc)
@@ -637,7 +637,7 @@ class TestFlowDistributionWithVariableExtraction:
         ]
 
         field_mappings = {
-            "completed_date": "resolutiondate",  # Required
+            "work_completed_date": "resolutiondate",  # Required
             "flow_item_type": "issuetype",  # Required
         }
 

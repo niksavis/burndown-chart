@@ -292,7 +292,6 @@ class TestLegacyFieldMapping:
         flow_legacy_fields = [
             "work_started_date",
             "work_completed_date",
-            "completed_date",
             "flow_item_type",
             "estimate",
         ]

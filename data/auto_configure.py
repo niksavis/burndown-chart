@@ -163,7 +163,6 @@ def generate_smart_defaults(
         "issue_type": "issuetype",  # Standard field (for metrics calculator compatibility)
         "work_started_date": "status",  # Changelog: Flow Start statuses
         "work_completed_date": "status",  # Changelog: Completion statuses
-        "completed_date": "resolutiondate",  # Standard field
         "status": "status",  # Standard field (for WIP)
     }
 

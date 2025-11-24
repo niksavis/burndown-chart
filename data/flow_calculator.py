@@ -162,7 +162,7 @@ def calculate_flow_velocity(
 
     Args:
         issues: List of Jira issues
-        field_mappings: (Legacy) Field mappings for flow_item_type and completed_date
+        field_mappings: (Legacy) Field mappings for flow_item_type and work_completed_date
         start_date: Start of measurement period
         end_date: End of measurement period
         previous_period_value: Previous period's metric value for trend calculation
@@ -232,16 +232,16 @@ def calculate_flow_velocity(
             if (
                 field_mappings is None
                 or "flow_item_type" not in field_mappings
-                or "completed_date" not in field_mappings
+                or "work_completed_date" not in field_mappings
             ):
                 return _create_error_response(
                     "flow_velocity",
                     "missing_mapping",
-                    "Missing required field mappings: flow_item_type or completed_date",
+                    "Missing required field mappings: flow_item_type or work_completed_date",
                 )
 
             flow_type_field = field_mappings["flow_item_type"]
-            completed_field = field_mappings["completed_date"]
+            completed_field = field_mappings["work_completed_date"]
             effort_category_field = field_mappings.get("effort_category")  # Optional
 
         # Count completed items by type
@@ -434,7 +434,7 @@ def calculate_flow_time(
                 from configuration.metrics_config import get_metrics_config
 
                 config = get_metrics_config()
-                wip_statuses = config.get_wip_included_statuses()
+                wip_statuses = config.get_wip_statuses()
                 if not wip_statuses:
                     return _create_error_response(
                         "flow_time",
@@ -714,7 +714,7 @@ def calculate_flow_efficiency(
             if active_statuses is None:
                 active_statuses = config.get_active_statuses()
             if wip_statuses is None:
-                wip_statuses = config.get_wip_included_statuses()
+                wip_statuses = config.get_wip_statuses()
 
             if not active_statuses:
                 return _create_error_response(
@@ -1030,16 +1030,16 @@ def calculate_flow_distribution(
             if (
                 field_mappings is None
                 or "flow_item_type" not in field_mappings
-                or "completed_date" not in field_mappings
+                or "work_completed_date" not in field_mappings
             ):
                 return _create_error_response(
                     "flow_distribution",
                     "missing_mapping",
-                    "Missing required field mappings: flow_item_type or completed_date",
+                    "Missing required field mappings: flow_item_type or work_completed_date",
                 )
 
             flow_type_field = field_mappings["flow_item_type"]
-            completed_field = field_mappings["completed_date"]
+            completed_field = field_mappings["work_completed_date"]
             effort_category_field = field_mappings.get("effort_category")  # Optional
 
         # Count items by type

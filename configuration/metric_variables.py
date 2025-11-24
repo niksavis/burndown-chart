@@ -1019,11 +1019,6 @@ def build_variable_collection_from_field_mappings(
             flow_fields["work_completed_date"],
             "datetime",
         )
-    if flow_fields.get("completed_date"):
-        field_variable_map["completion_timestamp"] = (
-            flow_fields["completed_date"],
-            "datetime",
-        )
 
     # Update variable sources with detected custom fields
     for var_name, (field_id, value_type) in field_variable_map.items():

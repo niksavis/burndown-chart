@@ -471,17 +471,7 @@ def detect_fields_from_issues(
             "Fallback: Will use resolutiondate (standard field)"
         )
 
-    # 12. Detect completed date field (general completion tracking)
-    # Fallback: Use resolutiondate (standard field)
-    completed_date = _detect_completed_date_field(sampled_issues, field_defs)
-    if completed_date:
-        detections["completed_date"] = completed_date
-        logger.info(f"[FieldDetector] [OK] Completed date field: {completed_date}")
-    else:
-        logger.info(
-            "[FieldDetector] No completed date field found. "
-            "Fallback: Will use resolutiondate (standard field)"
-        )
+    # Field detection complete - work_completed_date already detected above
 
     logger.info(f"[FieldDetector] Detected {len(detections)} custom fields total")
     logger.info(
