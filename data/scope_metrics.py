@@ -65,6 +65,7 @@ IMPLICATIONS FOR DECISION-MAKING
 
 import pandas as pd
 from datetime import datetime
+from typing import Dict, Any
 
 
 def calculate_scope_change_rate(
@@ -178,7 +179,9 @@ def calculate_scope_creep_rate(
     )
 
 
-def calculate_total_project_scope(df, remaining_items, remaining_points):
+def calculate_total_project_scope(
+    df: pd.DataFrame, remaining_items: int, remaining_points: int
+) -> Dict[str, int]:
     """
     Calculate the initial project scope (baseline) at a specific point in time.
 
@@ -221,7 +224,9 @@ def calculate_total_project_scope(df, remaining_items, remaining_points):
     return {"total_items": int(total_items), "total_points": int(total_points)}
 
 
-def calculate_weekly_scope_growth(df, data_points_count=None):
+def calculate_weekly_scope_growth(
+    df: pd.DataFrame, data_points_count: int = None
+) -> pd.DataFrame:
     """
     Calculate weekly scope growth (created - completed).
 
@@ -302,7 +307,7 @@ def calculate_weekly_scope_growth(df, data_points_count=None):
     return result
 
 
-def get_week_start_date(year, week):
+def get_week_start_date(year: int, week: int) -> datetime:
     """Get the start date (Monday) of a given ISO week."""
     # The %G and %V format codes are for ISO year and ISO week
     # %u gives day of week (1=Monday, 7=Sunday)
@@ -377,7 +382,9 @@ def calculate_scope_stability_index(
     }
 
 
-def check_scope_change_threshold(scope_change_rate, threshold):
+def check_scope_change_threshold(
+    scope_change_rate: Dict[str, Any], threshold: float
+) -> Dict[str, str]:
     """
     Check if scope change rate exceeds threshold.
 

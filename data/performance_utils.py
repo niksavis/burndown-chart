@@ -89,7 +89,7 @@ class PerformanceTimer:
     Usage:
         with PerformanceTimer("load_data") as timer:
             data = load_large_dataset()
-        print(f"Loaded in {timer.elapsed:.3f}s")
+        logger.info(f"Loaded in {timer.elapsed:.3f}s")
 
     Attributes:
         operation_name: Optional name for logging

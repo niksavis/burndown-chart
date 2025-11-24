@@ -41,7 +41,7 @@ from data.profile_manager import (
 #######################################################################
 
 
-def should_sync_jira():
+def should_sync_jira() -> bool:
     """
     Check if JIRA sync should be performed based on configuration.
 
@@ -345,7 +345,7 @@ def save_app_settings(
         logger.error(f"[Config] Error saving app settings: {e}")
 
 
-def load_app_settings():
+def load_app_settings() -> Dict[str, Any]:
     """
     Load app-level settings from JSON file with automatic migration from legacy format.
 
@@ -577,7 +577,7 @@ def save_project_data(
         logger.error(f"[Cache] Error saving project data: {e}")
 
 
-def load_project_data():
+def load_project_data() -> Dict[str, Any]:
     """
     Load project-specific data from JSON file.
 
@@ -728,7 +728,7 @@ def load_settings():
         return default_settings
 
 
-def save_statistics(data):
+def save_statistics(data: List[Dict[str, Any]]) -> None:
     """
     Save statistics data to unified JSON file.
 
@@ -771,7 +771,7 @@ def save_statistics(data):
         logger.error(f"[Cache] Error saving statistics: {e}")
 
 
-def save_statistics_from_csv_import(data):
+def save_statistics_from_csv_import(data: List[Dict[str, Any]]) -> None:
     """
     Save statistics data from CSV import to unified JSON file.
     This function specifically handles CSV imports and sets appropriate metadata.
@@ -817,7 +817,7 @@ def save_statistics_from_csv_import(data):
         logger.error(f"[Cache] Error saving CSV import statistics: {e}")
 
 
-def load_statistics():
+def load_statistics() -> tuple[List[Dict[str, Any]], bool]:
     """
     Load statistics data from unified project data JSON file.
 
@@ -1019,7 +1019,7 @@ def read_and_clean_data(df):
 #######################################################################
 
 
-def load_unified_project_data():
+def load_unified_project_data() -> Dict[str, Any]:
     """
     Load unified project data (Phase 3).
 
@@ -1066,7 +1066,7 @@ def load_unified_project_data():
         return get_default_unified_data()
 
 
-def save_unified_project_data(data):
+def save_unified_project_data(data: Dict[str, Any]) -> None:
     """
     Save unified project data (Phase 3).
 
@@ -1331,7 +1331,11 @@ def load_project_data_legacy():
     return load_project_data()
 
 
-def save_jira_data_unified(statistics_data, project_scope_data, jira_config=None):
+def save_jira_data_unified(
+    statistics_data: List[Dict[str, Any]],
+    project_scope_data: Dict[str, Any],
+    jira_config: Dict[str, Any] = None,
+) -> None:
     """
     Save both JIRA statistics and project scope to unified data structure.
 
@@ -1446,7 +1450,7 @@ def _backup_legacy_files() -> None:
     if os.path.exists("forecast_statistics.csv"):
         backup_name = f"backup_forecast_statistics_{timestamp}.csv"
         shutil.copy2("forecast_statistics.csv", backup_name)
-        print(f"📁 Created backup: {backup_name}")
+        logger.info(f"[Backup] Created backup: {backup_name}")
 
     # Note: Don't backup project_data.json as we're updating it in place
     # The legacy migration preserves existing data

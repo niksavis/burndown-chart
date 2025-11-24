@@ -888,9 +888,6 @@ def calculate_metrics_from_settings(
     Returns:
         Tuple of (status message, button disabled state, button children, refresh timestamp)
     """
-    print(f"\n{'=' * 80}")
-    print(f"CALCULATE METRICS CALLBACK TRIGGERED - button_clicks={button_clicks}")
-    print(f"{'=' * 80}\n")
     logger.info(
         f"[CALCULATE METRICS] Callback triggered - button_clicks={button_clicks}"
     )

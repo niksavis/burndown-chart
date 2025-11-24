@@ -407,12 +407,9 @@ def register(app):
             Tuple: Upload contents, filename, cache status, statistics table data,
                    scope values, settings, button state
         """
-        print(f"\n{'=' * 80}")
-        print(
-            f"UPDATE DATA CALLBACK TRIGGERED - n_clicks={n_clicks}, force_refresh={force_refresh}"
+        logger.info(
+            f"[UPDATE DATA] Callback triggered - n_clicks={n_clicks}, force_refresh={force_refresh}"
         )
-        print(f"{'=' * 80}\n")
-        logger.info(f"[UPDATE DATA] Callback triggered - n_clicks={n_clicks}")
 
         # Normal button state
         button_normal = [
