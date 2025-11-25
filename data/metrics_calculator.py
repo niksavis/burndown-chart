@@ -386,37 +386,31 @@ def calculate_and_save_weekly_metrics(
             + (" (running total)" if is_current_week else " (full week)")
         )
 
-        # Calculate Flow Time using dual-mode function (Feature 012 - variable extraction)
+        # Calculate Flow Time using variable extraction (Feature 012)
         # REQUIRES CHANGELOG DATA - skip if not available
         if changelog_available:
             report_progress("[Stats] Calculating Flow Time metric...")
-            from data.flow_calculator import calculate_flow_time
-            from data.field_mapper import load_field_mappings
+            from data.flow_metrics import calculate_flow_time
 
-            field_mappings = load_field_mappings()
             flow_time_result = calculate_flow_time(
                 issues_completed_this_week,  # Only issues completed this week
-                field_mappings=field_mappings,
-                variable_extractor=extractor,  # Use profile-based extractor
-                # use_variable_extraction=True by default (Phase 3)
+                extractor,  # Use profile-based extractor
+                time_period_days=7,  # Weekly calculation
             )
         else:
             logger.info("Skipping Flow Time (requires changelog data)")
             flow_time_result = None
 
-        # Calculate Flow Efficiency using dual-mode function (Feature 012 - variable extraction)
+        # Calculate Flow Efficiency using variable extraction (Feature 012)
         # REQUIRES CHANGELOG DATA - skip if not available
         if changelog_available:
             report_progress("[Stats] Calculating Flow Efficiency metric...")
-            from data.flow_calculator import calculate_flow_efficiency
-            from data.field_mapper import load_field_mappings
+            from data.flow_metrics import calculate_flow_efficiency
 
-            field_mappings = load_field_mappings()
             efficiency_result = calculate_flow_efficiency(
                 issues_completed_this_week,  # Only issues completed this week
-                field_mappings=field_mappings,
-                variable_extractor=extractor,  # Use profile-based extractor
-                # use_variable_extraction=True by default (Phase 3)
+                extractor,  # Use profile-based extractor
+                time_period_days=7,  # Weekly calculation
             )
         else:
             logger.info("Skipping Flow Efficiency (requires changelog data)")
@@ -531,18 +525,16 @@ def calculate_and_save_weekly_metrics(
         # Skip if changelog not available (flow_time_result will be None)
         if flow_time_result is not None:
             flow_time_error = flow_time_result.get("error_state")
-            if flow_time_error == "success":
-                # Feature 012: v3 function returns 'value' field as average flow time in days
-                # Note: v3 does NOT calculate median/p85 - only average
+            if flow_time_error is None:  # Success (new format)
+                # New flow_metrics format: {"value": days, "unit": "days", "error_state": None}
                 avg_days = flow_time_result.get("value", 0)
-                completed = flow_time_result.get(
-                    "total_issue_count", 0
-                ) - flow_time_result.get("excluded_issue_count", 0)
+                # Note: New format doesn't track completed count separately, estimate from issues list
+                completed = len(issues_completed_this_week)
 
                 flow_time_snapshot = {
-                    "median_days": avg_days,  # Use avg as median (v3 doesn't calc median)
+                    "median_days": avg_days,  # Use avg as median (new format only has average)
                     "avg_days": avg_days,
-                    "p85_days": 0,  # Not calculated in v3
+                    "p85_days": 0,  # Not calculated in new format
                     "completed_count": completed,
                 }
                 save_metric_snapshot(week_label, "flow_time", flow_time_snapshot)
@@ -581,32 +573,30 @@ def calculate_and_save_weekly_metrics(
             metrics_details.append("Flow Time: Skipped (no changelog data)")
             logger.info("Flow Time: Skipped (changelog not available)")
 
-        # Save Flow Efficiency (use MEAN instead of median for more representative value)
-        # Always save, even with 0 completed issues for UI consistency
+        # Save Flow Efficiency (always save, even with 0 completed issues for UI consistency)
         # Skip if changelog not available (efficiency_result will be None)
         if efficiency_result is not None:
             efficiency_error = efficiency_result.get("error_state")
-            if efficiency_error == "success":
-                completed = efficiency_result.get("count", 0)
-                mean_pct = efficiency_result.get(
-                    "mean_percent", 0
-                )  # Use mean instead of median
-                median_pct = efficiency_result.get("median_percent", 0)
+            if efficiency_error is None:  # Success (new format)
+                # New flow_metrics format: {"value": percentage, "unit": "%", "error_state": None}
+                efficiency_pct = efficiency_result.get("value", 0)
+                # Note: New format doesn't track completed count separately, estimate from issues list
+                completed = len(issues_completed_this_week)
 
                 efficiency_snapshot = {
-                    "overall_pct": mean_pct,  # Changed to mean for more representative value
-                    "median_pct": median_pct,  # Keep median for reference
-                    "avg_active_days": 0,  # Not directly available
-                    "avg_waiting_days": 0,  # Not directly available
+                    "overall_pct": efficiency_pct,  # Use value as overall percentage
+                    "median_pct": efficiency_pct,  # Use same value for median (new format only has average)
+                    "avg_active_days": 0,  # Not directly available in new format
+                    "avg_waiting_days": 0,  # Not directly available in new format
                     "completed_count": completed,
                 }
                 save_metric_snapshot(week_label, "flow_efficiency", efficiency_snapshot)
                 metrics_saved += 1
                 metrics_details.append(
-                    f"Flow Efficiency: {mean_pct:.1f}% mean, {median_pct:.1f}% median ({completed} issues)"
+                    f"Flow Efficiency: {efficiency_pct:.1f}% ({completed} issues)"
                 )
                 logger.info(
-                    f"Saved Flow Efficiency: mean={mean_pct:.1f}%, median={median_pct:.1f}%, {completed} issues"
+                    f"Saved Flow Efficiency: {efficiency_pct:.1f}%, {completed} issues"
                 )
             else:
                 # Save empty snapshot for weeks with no completed issues (UI needs this)

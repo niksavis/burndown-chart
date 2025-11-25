@@ -171,7 +171,7 @@ def load_and_display_dora_metrics(
         n_weeks_display = cached_metrics.get("_n_weeks", 12)
 
         # Import tier calculation function
-        from data.dora_calculator import (
+        from data.dora_metrics import (
             _determine_performance_tier,
             DEPLOYMENT_FREQUENCY_TIERS,
             LEAD_TIME_TIERS,
