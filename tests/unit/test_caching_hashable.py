@@ -6,7 +6,7 @@ import pytest
 import pandas as pd
 from unittest.mock import patch
 
-from caching import _make_hashable
+from utils.caching import _make_hashable
 
 
 @pytest.fixture
