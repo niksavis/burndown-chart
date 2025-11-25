@@ -431,7 +431,24 @@ def calculate_lead_time_for_changes(
                 f"(missing start: {missing_start_count}, missing end: {missing_end_count})",
                 "trend_direction": "stable",
                 "trend_percentage": 0.0,
+                # Backward compatibility fields for metrics_calculator
+                "median_hours": 0,
+                "mean_hours": 0,
+                "p95_hours": 0,
+                "issues_with_lead_time": 0,
             }
+
+        # Calculate statistics in hours for backward compatibility
+        import statistics
+
+        lead_times_hours = [lt * 24 for lt in lead_times]
+        median_hours = statistics.median(lead_times_hours)
+        mean_hours = statistics.mean(lead_times_hours)
+        p95_hours = (
+            sorted(lead_times_hours)[int(len(lead_times_hours) * 0.95)]
+            if len(lead_times_hours) >= 2
+            else mean_hours
+        )
 
         # Calculate average lead time
         avg_lead_time_days = sum(lead_times) / len(lead_times)
@@ -463,6 +480,11 @@ def calculate_lead_time_for_changes(
             "performance_tier": performance_tier,
             "sample_count": len(lead_times),
             "period_days": time_period_days,
+            # Backward compatibility fields for metrics_calculator
+            "median_hours": median_hours,
+            "mean_hours": mean_hours,
+            "p95_hours": p95_hours,
+            "issues_with_lead_time": len(lead_times),
             **trend,
         }
 

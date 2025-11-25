@@ -474,53 +474,96 @@ def calculate_and_save_dora_metrics_for_all_issues(
         )
 
         # Save metrics to snapshots (convert to legacy format for compatibility)
-        save_metric_snapshot(
-            week_label,
-            "dora_deployment_frequency",
-            {
-                "deployment_count": deployment_freq.get("deployment_count", 0),
-                "week_label": week_label,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-            },
-        )
+        # CRITICAL: Only save if metric calculation succeeded (no error_state)
+        if "error_state" not in deployment_freq:
+            save_metric_snapshot(
+                week_label,
+                "dora_deployment_frequency",
+                {
+                    "deployment_count": deployment_freq.get("deployment_count", 0),
+                    "release_count": deployment_freq.get("release_count", 0),
+                    "week_label": week_label,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                },
+            )
+        else:
+            logger.warning(
+                f"Week {week_label}: Deployment frequency calculation failed - {deployment_freq.get('error_message', 'Unknown error')}"
+            )
 
         # Convert lead time days to hours for legacy compatibility
-        lead_time_value = lead_time.get("value")
-        lead_time_hours = lead_time_value * 24 if lead_time_value is not None else None
+        if "error_state" not in lead_time:
+            lead_time_value = lead_time.get("value")
+            lead_time_hours = (
+                lead_time_value * 24 if lead_time_value is not None else None
+            )
+            lead_time_p95_value = lead_time.get("p95_value")
+            lead_time_p95_hours = (
+                lead_time_p95_value * 24 if lead_time_p95_value is not None else None
+            )
+            lead_time_mean_value = lead_time.get("mean_value")
+            lead_time_mean_hours = (
+                lead_time_mean_value * 24 if lead_time_mean_value is not None else None
+            )
 
-        save_metric_snapshot(
-            week_label,
-            "dora_lead_time",
-            {
-                "median_hours": lead_time_hours,
-                "issues_with_lead_time": lead_time.get("sample_count", 0),
-                "week_label": week_label,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-            },
-        )
+            save_metric_snapshot(
+                week_label,
+                "dora_lead_time",
+                {
+                    "median_hours": lead_time_hours,
+                    "p95_hours": lead_time_p95_hours,
+                    "mean_hours": lead_time_mean_hours,
+                    "issues_with_lead_time": lead_time.get("sample_count", 0),
+                    "week_label": week_label,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                },
+            )
+        else:
+            logger.warning(
+                f"Week {week_label}: Lead time calculation failed - {lead_time.get('error_message', 'Unknown error')}"
+            )
 
-        save_metric_snapshot(
-            week_label,
-            "dora_change_failure_rate",
-            {
-                "change_failure_rate_percent": cfr.get("value", 0),
-                "total_deployments": cfr.get("deployment_count", 0),
-                "failed_deployments": cfr.get("incident_count", 0),
-                "week_label": week_label,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-            },
-        )
+        if "error_state" not in cfr:
+            save_metric_snapshot(
+                week_label,
+                "dora_change_failure_rate",
+                {
+                    "change_failure_rate_percent": cfr.get("value", 0),
+                    "release_failure_rate_percent": cfr.get("release_value", 0),
+                    "total_deployments": cfr.get("deployment_count", 0),
+                    "failed_deployments": cfr.get("incident_count", 0),
+                    "total_releases": cfr.get("release_count", 0),
+                    "failed_releases": cfr.get("failed_release_count", 0),
+                    "week_label": week_label,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                },
+            )
+        else:
+            logger.warning(
+                f"Week {week_label}: Change failure rate calculation failed - {cfr.get('error_message', 'Unknown error')}"
+            )
 
-        save_metric_snapshot(
-            week_label,
-            "dora_mttr",
-            {
-                "median_hours": mttr.get("value"),
-                "bugs_with_mttr": mttr.get("incident_count", 0),
-                "week_label": week_label,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-            },
-        )
+        if "error_state" not in mttr:
+            mttr_value = mttr.get("value")
+            mttr_p95_value = mttr.get("p95_value")
+            mttr_mean_value = mttr.get("mean_value")
+
+            save_metric_snapshot(
+                week_label,
+                "dora_mttr",
+                {
+                    "median_hours": mttr_value,
+                    "p95_hours": mttr_p95_value,
+                    "mean_hours": mttr_mean_value,
+                    "bugs_with_mttr": mttr.get("incident_count", 0),
+                    "week_label": week_label,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                },
+            )
+        else:
+            logger.warning(
+                f"Week {week_label}: MTTR calculation failed - {mttr.get('error_message', 'Unknown error')}"
+            )
 
         return True, f"Week {week_label} calculated successfully (variable extraction)"
 

@@ -967,22 +967,37 @@ def build_variable_collection_from_field_mappings(
     # Format: {variable_name: (field_id, value_type)}
     field_variable_map = {}
 
+    # Skip standard JIRA object fields that should use changelog extraction
+    # These fields return objects, not datetime strings, so FieldValueSource won't work
+    # The auto-configure sets these to "status" meaning "use changelog transitions"
+    standard_object_fields = {"status", "issuetype", "project"}
+
     # DORA field mappings
     if dora_fields.get("deployment_date"):
-        field_variable_map["deployment_timestamp"] = (
-            dora_fields["deployment_date"],
-            "datetime",
-        )
+        field_id = dora_fields["deployment_date"]
+        if field_id not in standard_object_fields:
+            field_variable_map["deployment_timestamp"] = (field_id, "datetime")
+        else:
+            logger.info(
+                f"[VariableMapping] Skipping deployment_timestamp override - "
+                f"'{field_id}' is a standard object field, using changelog extraction"
+            )
+
     if dora_fields.get("target_environment"):
         field_variable_map["environment"] = (
             dora_fields["target_environment"],
             "string",
         )
     if dora_fields.get("code_commit_date"):
-        field_variable_map["commit_timestamp"] = (
-            dora_fields["code_commit_date"],
-            "datetime",
-        )
+        field_id = dora_fields["code_commit_date"]
+        if field_id not in standard_object_fields:
+            field_variable_map["commit_timestamp"] = (field_id, "datetime")
+        else:
+            logger.info(
+                f"[VariableMapping] Skipping commit_timestamp override - "
+                f"'{field_id}' is a standard object field, using changelog extraction"
+            )
+
     if dora_fields.get("incident_detected_at"):
         field_variable_map["incident_start_timestamp"] = (
             dora_fields["incident_detected_at"],
@@ -1009,16 +1024,28 @@ def build_variable_collection_from_field_mappings(
             flow_fields["effort_category"],
             "string",
         )
+
+    # Handle work_started_date and work_completed_date
+    # (standard_object_fields already defined above)
     if flow_fields.get("work_started_date"):
-        field_variable_map["work_started_timestamp"] = (
-            flow_fields["work_started_date"],
-            "datetime",
-        )
+        field_id = flow_fields["work_started_date"]
+        if field_id not in standard_object_fields:
+            field_variable_map["work_started_timestamp"] = (field_id, "datetime")
+        else:
+            logger.info(
+                f"[VariableMapping] Skipping work_started_timestamp override - "
+                f"'{field_id}' is a standard object field, using changelog extraction"
+            )
+
     if flow_fields.get("work_completed_date"):
-        field_variable_map["work_completed_timestamp"] = (
-            flow_fields["work_completed_date"],
-            "datetime",
-        )
+        field_id = flow_fields["work_completed_date"]
+        if field_id not in standard_object_fields:
+            field_variable_map["work_completed_timestamp"] = (field_id, "datetime")
+        else:
+            logger.info(
+                f"[VariableMapping] Skipping work_completed_timestamp override - "
+                f"'{field_id}' is a standard object field, using changelog extraction"
+            )
 
     # Update variable sources with detected custom fields
     for var_name, (field_id, value_type) in field_variable_map.items():

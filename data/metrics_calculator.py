@@ -276,10 +276,7 @@ def calculate_and_save_weekly_metrics(
         completion_statuses = app_settings.get(
             "completion_statuses", ["Done", "Resolved", "Closed"]
         )
-        active_statuses = app_settings.get(
-            "active_statuses", ["In Progress", "In Review", "In Testing"]
-        )
-        start_statuses = app_settings.get("flow_start_statuses", ["In Progress"])
+        # Note: active_statuses and start_statuses were removed as unused
         wip_statuses = app_settings.get(
             "wip_statuses",
             [
@@ -738,15 +735,33 @@ def calculate_and_save_weekly_metrics(
             "[Stats] Calculating DORA metrics (Lead Time, Deployment Frequency)..."
         )
 
-        from data.dora_calculator import (
-            calculate_lead_time_for_changes,  # Feature 012 - dual-mode with variable extraction
-            aggregate_deployment_frequency_weekly,
-        )
+        from data.dora_metrics import calculate_lead_time_for_changes
         from data.project_filter import (
             filter_development_issues,
             filter_operational_tasks,
             extract_all_fixversions,
         )
+
+        # Helper: Count deployments per week (replacement for deleted aggregate_deployment_frequency_weekly)
+        def count_deployments_for_week(issues, completion_statuses, week_label):
+            """Count deployment issues completed in specified week."""
+            deployment_count = 0
+            releases = set()
+            for issue in issues:
+                status = issue.get("fields", {}).get("status", {}).get("name", "")
+                if status in completion_statuses:
+                    deployment_count += 1
+                    fix_versions = issue.get("fields", {}).get("fixVersions", [])
+                    for fv in fix_versions:
+                        if fv.get("name"):
+                            releases.add(fv["name"])
+            return {
+                week_label: {
+                    "deployments": deployment_count,
+                    "releases": len(releases),
+                    "release_names": sorted(list(releases)),
+                }
+            }
 
         # Get DevOps projects from configuration
         devops_projects = app_settings.get("devops_projects", [])
@@ -800,18 +815,17 @@ def calculate_and_save_weekly_metrics(
             )
             logger.info(f"Week {week_label} boundaries: {week_start} to {week_end}")
 
+            # Create extractor instance for MODE 1 (used by all DORA metrics)
+            extractor_instance = VariableExtractor(variable_collection)
+
             # Calculate Lead Time for Changes (Feature 012 - variable extraction)
             try:
-                from data.field_mapper import load_field_mappings
-
-                field_mappings = load_field_mappings()
-                # Feature 012: v3 function takes single 'issues' parameter
+                # Feature 012: Use VariableExtractor from profile configuration
                 all_issues_for_lead_time = development_issues + operational_tasks
                 lead_time_result = calculate_lead_time_for_changes(
                     all_issues_for_lead_time,
-                    field_mappings=field_mappings,
-                    variable_extractor=extractor,  # Use profile-based extractor
-                    # use_variable_extraction=True by default (Phase 3)
+                    extractor=extractor_instance,
+                    time_period_days=7,  # Weekly calculation
                 )
 
                 # Log exclusion details
@@ -886,11 +900,10 @@ def calculate_and_save_weekly_metrics(
                 )
 
                 # Get deployment count for this single week
-                weekly_deployments = aggregate_deployment_frequency_weekly(
+                weekly_deployments = count_deployments_for_week(
                     operational_tasks,
                     completion_statuses,
-                    [week_label],  # Single week
-                    case_sensitive=False,
+                    week_label,
                 )
 
                 week_data = weekly_deployments.get(week_label, {})
@@ -932,74 +945,50 @@ def calculate_and_save_weekly_metrics(
 
             # Calculate Change Failure Rate
             try:
-                from data.dora_calculator import calculate_change_failure_rate
-                from data.field_mapper import load_field_mappings
+                from data.dora_metrics import calculate_change_failure_rate
 
-                # Get required field mappings
-                field_mappings = load_field_mappings()
-                change_failure_field = field_mappings.get("change_failure")
+                # CFR calculation now uses extractor_instance (no field_mappings needed)
+                cfr_result = calculate_change_failure_rate(
+                    operational_tasks,
+                    production_bugs,  # Also pass bugs for incident correlation
+                    extractor=extractor_instance,
+                    time_period_days=7,  # Weekly calculation
+                )
 
-                if not change_failure_field:
-                    logger.warning(
-                        "Change Failure or Affected Environment field not configured"
-                    )
-                    cfr_snapshot = {
-                        "change_failure_rate_percent": 0,
-                        "total_deployments": 0,
-                        "failed_deployments": 0,
-                        "week": week_label,
-                    }
-                    save_metric_snapshot(
-                        week_label, "dora_change_failure_rate", cfr_snapshot
-                    )
-                    metrics_saved += 1
-                    metrics_details.append("DORA CFR: Skipped (field not configured)")
-                else:
-                    cfr_result = calculate_change_failure_rate(
-                        operational_tasks,
-                        production_bugs,  # Also pass bugs for incident correlation
-                        field_mappings=field_mappings,
-                        time_period_days=7,  # Weekly calculation
-                        variable_extractor=extractor,  # Use profile-based extractor
-                        # use_variable_extraction=True by default (Phase 3)
-                    )
+                cfr_percent = cfr_result.get("change_failure_rate_percent", 0)
+                total_deps = cfr_result.get("total_deployments", 0)
+                failed_deps = cfr_result.get("failed_deployments", 0)
+                # NEW: Get release data
+                total_releases = cfr_result.get("total_releases", 0)
+                failed_releases = cfr_result.get("failed_releases", 0)
+                release_names = cfr_result.get("release_names", [])
+                failed_release_names = cfr_result.get("failed_release_names", [])
+                release_failure_rate = cfr_result.get("release_failure_rate_percent", 0)
 
-                    cfr_percent = cfr_result.get("change_failure_rate_percent", 0)
-                    total_deps = cfr_result.get("total_deployments", 0)
-                    failed_deps = cfr_result.get("failed_deployments", 0)
-                    # NEW: Get release data
-                    total_releases = cfr_result.get("total_releases", 0)
-                    failed_releases = cfr_result.get("failed_releases", 0)
-                    release_names = cfr_result.get("release_names", [])
-                    failed_release_names = cfr_result.get("failed_release_names", [])
-                    release_failure_rate = cfr_result.get(
-                        "release_failure_rate_percent", 0
-                    )
-
-                    cfr_snapshot = {
-                        "change_failure_rate_percent": cfr_percent,
-                        "total_deployments": total_deps,
-                        "failed_deployments": failed_deps,
-                        # NEW: Release tracking
-                        "total_releases": total_releases,
-                        "failed_releases": failed_releases,
-                        "release_failure_rate_percent": release_failure_rate,
-                        "release_names": release_names,
-                        "failed_release_names": failed_release_names,
-                        "week": week_label,
-                    }
-                    save_metric_snapshot(
-                        week_label, "dora_change_failure_rate", cfr_snapshot
-                    )
-                    metrics_saved += 1
-                    metrics_details.append(
-                        f"DORA CFR: {cfr_percent:.1f}% ({failed_deps}/{total_deps} deployments, "
-                        f"{failed_releases}/{total_releases} releases)"
-                    )
-                    logger.info(
-                        f"Saved DORA CFR: {cfr_percent:.1f}% ({failed_deps}/{total_deps} deployments, "
-                        f"{failed_releases}/{total_releases} releases)"
-                    )
+                cfr_snapshot = {
+                    "change_failure_rate_percent": cfr_percent,
+                    "total_deployments": total_deps,
+                    "failed_deployments": failed_deps,
+                    # NEW: Release tracking
+                    "total_releases": total_releases,
+                    "failed_releases": failed_releases,
+                    "release_failure_rate_percent": release_failure_rate,
+                    "release_names": release_names,
+                    "failed_release_names": failed_release_names,
+                    "week": week_label,
+                }
+                save_metric_snapshot(
+                    week_label, "dora_change_failure_rate", cfr_snapshot
+                )
+                metrics_saved += 1
+                metrics_details.append(
+                    f"DORA CFR: {cfr_percent:.1f}% ({failed_deps}/{total_deps} deployments, "
+                    f"{failed_releases}/{total_releases} releases)"
+                )
+                logger.info(
+                    f"Saved DORA CFR: {cfr_percent:.1f}% ({failed_deps}/{total_deps} deployments, "
+                    f"{failed_releases}/{total_releases} releases)"
+                )
 
             except Exception as e:
                 logger.error(
@@ -1019,63 +1008,43 @@ def calculate_and_save_weekly_metrics(
 
             # Calculate Mean Time To Recovery (MTTR)
             try:
-                from data.dora_calculator import calculate_mean_time_to_recovery
-                from data.field_mapper import load_field_mappings
+                from data.dora_metrics import calculate_mean_time_to_recovery
 
-                # Get required field mappings
-                field_mappings = load_field_mappings()
-                affected_env_field = field_mappings.get("affected_environment")
-                production_value = app_settings.get(
-                    "production_environment_values", ["PROD"]
-                )[0]
+                # MTTR calculation now uses extractor_instance (no field_mappings needed)
+                mttr_result = calculate_mean_time_to_recovery(
+                    production_bugs,
+                    extractor=extractor_instance,
+                    time_period_days=7,  # Weekly calculation
+                )
 
-                if not affected_env_field:
-                    logger.warning("Affected Environment field not configured for MTTR")
-                    mttr_snapshot = {
-                        "median_hours": None,
-                        "bugs_with_mttr": 0,
-                        "week": week_label,
-                    }
-                    save_metric_snapshot(week_label, "dora_mttr", mttr_snapshot)
-                    metrics_saved += 1
-                    metrics_details.append("DORA MTTR: Skipped (field not configured)")
-                else:
-                    mttr_result = calculate_mean_time_to_recovery(
-                        production_bugs,
-                        field_mappings=field_mappings,
-                        time_period_days=7,  # Weekly calculation
-                        variable_extractor=extractor,  # Use profile-based extractor
-                        # use_variable_extraction=True by default (Phase 3)
+                median_hours = mttr_result.get("median_hours")
+                mean_hours = mttr_result.get("mean_hours")
+                p95_hours = mttr_result.get("p95_hours")
+                bugs_count = mttr_result.get("bugs_with_mttr", 0)
+
+                mttr_snapshot = {
+                    "median_hours": median_hours,
+                    "mean_hours": mean_hours,
+                    "p95_hours": p95_hours,
+                    "bugs_with_mttr": bugs_count,
+                    "week": week_label,
+                }
+                save_metric_snapshot(week_label, "dora_mttr", mttr_snapshot)
+                metrics_saved += 1
+
+                if median_hours:
+                    mttr_days = median_hours / 24
+                    metrics_details.append(
+                        f"DORA MTTR: {mttr_days:.1f} days median ({bugs_count} bugs)"
                     )
-
-                    median_hours = mttr_result.get("median_hours")
-                    mean_hours = mttr_result.get("mean_hours")
-                    p95_hours = mttr_result.get("p95_hours")
-                    bugs_count = mttr_result.get("bugs_with_mttr", 0)
-
-                    mttr_snapshot = {
-                        "median_hours": median_hours,
-                        "mean_hours": mean_hours,
-                        "p95_hours": p95_hours,
-                        "bugs_with_mttr": bugs_count,
-                        "week": week_label,
-                    }
-                    save_metric_snapshot(week_label, "dora_mttr", mttr_snapshot)
-                    metrics_saved += 1
-
-                    if median_hours:
-                        mttr_days = median_hours / 24
-                        metrics_details.append(
-                            f"DORA MTTR: {mttr_days:.1f} days median ({bugs_count} bugs)"
-                        )
-                        logger.info(
-                            f"Saved DORA MTTR: {mttr_days:.1f} days ({bugs_count} bugs)"
-                        )
-                    else:
-                        metrics_details.append(
-                            "DORA MTTR: No Data (no production bugs resolved)"
-                        )
-                        logger.info(f"DORA MTTR: No data for week {week_label}")
+                    logger.info(
+                        f"Saved DORA MTTR: {mttr_days:.1f} days ({bugs_count} bugs)"
+                    )
+                else:
+                    metrics_details.append(
+                        "DORA MTTR: No Data (no production bugs resolved)"
+                    )
+                    logger.info(f"DORA MTTR: No data for week {week_label}")
 
             except Exception as e:
                 logger.error(f"Failed to calculate DORA MTTR: {e}", exc_info=True)
@@ -1095,15 +1064,33 @@ def calculate_and_save_weekly_metrics(
             )
 
             # Use field-based detection to identify DORA-relevant issues
-            from data.dora_calculator import filter_issues_by_dora_fields
+            # Inline replacement for deleted filter_issues_by_dora_fields function
+            operational_tasks = []
+            development_issues = []
+            production_bugs = []
 
-            filtered_results = filter_issues_by_dora_fields(
-                all_issues, field_mappings, app_settings
-            )
+            # CRITICAL FIX: field_mappings is nested (dora/flow), not flat
+            dora_mappings = field_mappings.get("dora", {})
+            deployment_field = dora_mappings.get("deployment_date")
+            incident_field = dora_mappings.get("incident_detected_at")
 
-            operational_tasks = filtered_results["operational_tasks"]
-            development_issues = filtered_results["development_issues"]
-            production_bugs = filtered_results["production_bugs"]
+            for issue in all_issues:
+                fields = issue.get("fields", {})
+                issue_type = fields.get("issuetype", {}).get("name", "").lower()
+
+                # Operational tasks: have deployment_date field populated
+                if deployment_field and fields.get(deployment_field):
+                    operational_tasks.append(issue)
+                # Production bugs: have incident fields or marked as production bug
+                elif incident_field and fields.get(incident_field):
+                    production_bugs.append(issue)
+                elif (
+                    "bug" in issue_type and "production" in issue.get("key", "").lower()
+                ):
+                    production_bugs.append(issue)
+                # Everything else is development work
+                else:
+                    development_issues.append(issue)
 
             logger.info(
                 f"Field-based DORA: {len(operational_tasks)} operational tasks, "
@@ -1115,18 +1102,17 @@ def calculate_and_save_weekly_metrics(
             # MODE 2: Calculate DORA Metrics using field-based filtering
             # ========================================================================
 
+            # Create extractor instance for MODE 2
+            extractor_instance = VariableExtractor(variable_collection)
+
             # Calculate Lead Time for Changes (Feature 012 - variable extraction)
             try:
-                from data.field_mapper import load_field_mappings
-
-                field_mappings = load_field_mappings()
                 # Feature 012: v3 function takes single 'issues' parameter
                 all_issues_for_lead_time = development_issues + operational_tasks
                 lead_time_result = calculate_lead_time_for_changes(
                     all_issues_for_lead_time,
-                    field_mappings=field_mappings,
-                    variable_extractor=extractor,  # Use profile-based extractor
-                    # use_variable_extraction=True by default (Phase 3)
+                    extractor=extractor_instance,
+                    time_period_days=7,
                 )
 
                 # Log exclusion details
@@ -1193,11 +1179,10 @@ def calculate_and_save_weekly_metrics(
                     "completion_statuses", ["Done", "Resolved", "Closed"]
                 )
 
-                weekly_deployments = aggregate_deployment_frequency_weekly(
+                weekly_deployments = count_deployments_for_week(
                     operational_tasks,
                     completion_statuses,
-                    [week_label],
-                    case_sensitive=False,
+                    week_label,
                 )
 
                 week_data = weekly_deployments.get(week_label, {})
@@ -1237,67 +1222,46 @@ def calculate_and_save_weekly_metrics(
 
             # Calculate Change Failure Rate (MODE 2)
             try:
-                from data.dora_calculator import calculate_change_failure_rate
-                from data.field_mapper import load_field_mappings
+                from data.dora_metrics import calculate_change_failure_rate
 
-                field_mappings = load_field_mappings()
-                change_failure_field = field_mappings.get("change_failure")
+                # CFR calculation now uses extractor_instance (no field_mappings needed)
+                cfr_result = calculate_change_failure_rate(
+                    operational_tasks,
+                    production_bugs,  # Also pass bugs for incident correlation
+                    extractor=extractor_instance,
+                    time_period_days=7,  # Weekly calculation
+                )
 
-                if not change_failure_field:
-                    logger.warning("Change Failure field not configured for CFR")
-                    cfr_snapshot = {
-                        "change_failure_rate_percent": 0,
-                        "total_deployments": 0,
-                        "failed_deployments": 0,
-                        "week": week_label,
-                    }
-                    save_metric_snapshot(
-                        week_label, "dora_change_failure_rate", cfr_snapshot
-                    )
-                    metrics_saved += 1
-                    metrics_details.append("DORA CFR: Skipped (field not configured)")
-                else:
-                    cfr_result = calculate_change_failure_rate(
-                        operational_tasks,
-                        production_bugs,  # Also pass bugs for incident correlation
-                        field_mappings=field_mappings,
-                        time_period_days=7,  # Weekly calculation
-                        variable_extractor=extractor,  # Use profile-based extractor
-                        # use_variable_extraction=True by default (Phase 3)
-                    )
+                cfr_percent = cfr_result.get("change_failure_rate_percent", 0)
+                total_deps = cfr_result.get("total_deployments", 0)
+                failed_deps = cfr_result.get("failed_deployments", 0)
+                total_releases = cfr_result.get("total_releases", 0)
+                failed_releases = cfr_result.get("failed_releases", 0)
+                release_names = cfr_result.get("release_names", [])
+                failed_release_names = cfr_result.get("failed_release_names", [])
+                release_failure_rate = cfr_result.get("release_failure_rate_percent", 0)
 
-                    cfr_percent = cfr_result.get("change_failure_rate_percent", 0)
-                    total_deps = cfr_result.get("total_deployments", 0)
-                    failed_deps = cfr_result.get("failed_deployments", 0)
-                    total_releases = cfr_result.get("total_releases", 0)
-                    failed_releases = cfr_result.get("failed_releases", 0)
-                    release_names = cfr_result.get("release_names", [])
-                    failed_release_names = cfr_result.get("failed_release_names", [])
-                    release_failure_rate = cfr_result.get(
-                        "release_failure_rate_percent", 0
-                    )
-
-                    cfr_snapshot = {
-                        "change_failure_rate_percent": cfr_percent,
-                        "total_deployments": total_deps,
-                        "failed_deployments": failed_deps,
-                        "total_releases": total_releases,
-                        "failed_releases": failed_releases,
-                        "release_failure_rate_percent": release_failure_rate,
-                        "release_names": release_names,
-                        "failed_release_names": failed_release_names,
-                        "week": week_label,
-                    }
-                    save_metric_snapshot(
-                        week_label, "dora_change_failure_rate", cfr_snapshot
-                    )
-                    metrics_saved += 1
-                    metrics_details.append(
-                        f"DORA CFR: {cfr_percent:.1f}% ({failed_deps}/{total_deps} deployments)"
-                    )
-                    logger.info(
-                        f"Saved DORA CFR: {cfr_percent:.1f}% ({failed_deps}/{total_deps})"
-                    )
+                cfr_snapshot = {
+                    "change_failure_rate_percent": cfr_percent,
+                    "total_deployments": total_deps,
+                    "failed_deployments": failed_deps,
+                    "total_releases": total_releases,
+                    "failed_releases": failed_releases,
+                    "release_failure_rate_percent": release_failure_rate,
+                    "release_names": release_names,
+                    "failed_release_names": failed_release_names,
+                    "week": week_label,
+                }
+                save_metric_snapshot(
+                    week_label, "dora_change_failure_rate", cfr_snapshot
+                )
+                metrics_saved += 1
+                metrics_details.append(
+                    f"DORA CFR: {cfr_percent:.1f}% ({failed_deps}/{total_deps} deployments)"
+                )
+                logger.info(
+                    f"Saved DORA CFR: {cfr_percent:.1f}% ({failed_deps}/{total_deps})"
+                )
 
             except Exception as e:
                 logger.error(f"Failed to calculate DORA CFR: {e}", exc_info=True)
@@ -1315,61 +1279,41 @@ def calculate_and_save_weekly_metrics(
 
             # Calculate Mean Time To Recovery (MTTR) (MODE 2)
             try:
-                from data.dora_calculator import calculate_mean_time_to_recovery
-                from data.field_mapper import load_field_mappings
+                from data.dora_metrics import calculate_mean_time_to_recovery
 
-                field_mappings = load_field_mappings()
-                affected_env_field = field_mappings.get("affected_environment")
-                production_values = app_settings.get(
-                    "production_environment_values", ["PROD"]
+                # MTTR calculation now uses extractor_instance (no field_mappings needed)
+                mttr_result = calculate_mean_time_to_recovery(
+                    production_bugs,
+                    extractor=extractor_instance,
+                    time_period_days=7,  # Weekly calculation
                 )
-                production_value = production_values[0] if production_values else "PROD"
 
-                if not affected_env_field:
-                    logger.warning("Affected Environment field not configured for MTTR")
-                    mttr_snapshot = {
-                        "median_hours": None,
-                        "bugs_with_mttr": 0,
-                        "week": week_label,
-                    }
-                    save_metric_snapshot(week_label, "dora_mttr", mttr_snapshot)
-                    metrics_saved += 1
-                    metrics_details.append("DORA MTTR: Skipped (field not configured)")
-                else:
-                    mttr_result = calculate_mean_time_to_recovery(
-                        production_bugs,
-                        field_mappings=field_mappings,
-                        time_period_days=7,  # Weekly calculation
-                        variable_extractor=extractor,  # Use profile-based extractor
-                        # use_variable_extraction=True by default (Phase 3)
+                median_hours = mttr_result.get("median_hours")
+                mean_hours = mttr_result.get("mean_hours")
+                p95_hours = mttr_result.get("p95_hours")
+                bugs_count = mttr_result.get("bugs_with_mttr", 0)
+
+                mttr_snapshot = {
+                    "median_hours": median_hours,
+                    "mean_hours": mean_hours,
+                    "p95_hours": p95_hours,
+                    "bugs_with_mttr": bugs_count,
+                    "week": week_label,
+                }
+                save_metric_snapshot(week_label, "dora_mttr", mttr_snapshot)
+                metrics_saved += 1
+
+                if median_hours:
+                    mttr_days = median_hours / 24
+                    metrics_details.append(
+                        f"DORA MTTR: {mttr_days:.1f} days median ({bugs_count} bugs)"
                     )
-
-                    median_hours = mttr_result.get("median_hours")
-                    mean_hours = mttr_result.get("mean_hours")
-                    p95_hours = mttr_result.get("p95_hours")
-                    bugs_count = mttr_result.get("bugs_with_mttr", 0)
-
-                    mttr_snapshot = {
-                        "median_hours": median_hours,
-                        "mean_hours": mean_hours,
-                        "p95_hours": p95_hours,
-                        "bugs_with_mttr": bugs_count,
-                        "week": week_label,
-                    }
-                    save_metric_snapshot(week_label, "dora_mttr", mttr_snapshot)
-                    metrics_saved += 1
-
-                    if median_hours:
-                        mttr_days = median_hours / 24
-                        metrics_details.append(
-                            f"DORA MTTR: {mttr_days:.1f} days median ({bugs_count} bugs)"
-                        )
-                        logger.info(
-                            f"Saved DORA MTTR: {mttr_days:.1f} days ({bugs_count} bugs)"
-                        )
-                    else:
-                        metrics_details.append("DORA MTTR: No Data")
-                        logger.info(f"DORA MTTR: No data for week {week_label}")
+                    logger.info(
+                        f"Saved DORA MTTR: {mttr_days:.1f} days ({bugs_count} bugs)"
+                    )
+                else:
+                    metrics_details.append("DORA MTTR: No Data")
+                    logger.info(f"DORA MTTR: No data for week {week_label}")
 
             except Exception as e:
                 logger.error(f"Failed to calculate DORA MTTR: {e}", exc_info=True)

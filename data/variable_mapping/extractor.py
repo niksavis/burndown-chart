@@ -437,7 +437,7 @@ class VariableExtractor:
         elif source.calculation == "count_transitions":
             return self._calculate_transition_count(source, changelog)
         elif source.calculation == "timestamp_diff":
-            return self._calculate_timestamp_diff(source, issue)
+            return self._calculate_timestamp_diff(source, issue, changelog)
         else:
             logger.warning(f"Unknown calculation type: {source.calculation}")
             return {"found": False}
@@ -512,26 +512,53 @@ class VariableExtractor:
         return {"found": True, "value": count}
 
     def _calculate_timestamp_diff(
-        self, source: CalculatedSource, issue: Dict[str, Any]
+        self,
+        source: CalculatedSource,
+        issue: Dict[str, Any],
+        changelog: Optional[List[Dict[str, Any]]] = None,
     ) -> Dict[str, Any]:
         """Calculate difference between two timestamps.
+
+        The inputs can be either:
+        1. Variable names (e.g., "work_started_timestamp") - will be extracted recursively
+        2. Field paths (e.g., "created", "resolutiondate") - looked up directly
 
         Args:
             source: CalculatedSource with inputs
             issue: JIRA issue
+            changelog: Optional changelog history for recursive extraction
 
         Returns:
             {"found": bool, "value": int (difference in seconds if found)}
         """
-        fields = issue.get("fields", {})
-        start_field = source.inputs.get("start")
-        end_field = source.inputs.get("end")
+        start_input = source.inputs.get("start")
+        end_input = source.inputs.get("end")
 
-        if not start_field or not end_field:
+        if not start_input or not end_input:
             return {"found": False}
 
-        start_value = self._get_field_value(fields, start_field)
-        end_value = self._get_field_value(fields, end_field)
+        # Try to extract as variables first (recursive extraction)
+        # Variables are named things like "work_started_timestamp"
+        start_value = None
+        end_value = None
+
+        # Check if start_input is a variable name we can extract
+        if start_input in self.mappings.mappings:
+            start_result = self.extract_variable(start_input, issue, changelog)
+            if start_result.get("found"):
+                start_value = start_result.get("value")
+        else:
+            # Fallback: treat as field path
+            start_value = self._get_field_value(issue.get("fields", {}), start_input)
+
+        # Check if end_input is a variable name we can extract
+        if end_input in self.mappings.mappings:
+            end_result = self.extract_variable(end_input, issue, changelog)
+            if end_result.get("found"):
+                end_value = end_result.get("value")
+        else:
+            # Fallback: treat as field path
+            end_value = self._get_field_value(issue.get("fields", {}), end_input)
 
         if not start_value or not end_value:
             return {"found": False}

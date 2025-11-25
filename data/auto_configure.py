@@ -151,6 +151,7 @@ def generate_smart_defaults(
         "code_commit_date": "status",  # Changelog: Flow Start statuses
         "deployed_to_production_date": "status",  # Changelog: Completion statuses (UI expects this name)
         "deployment_date": "status",  # Changelog: Completion statuses (for metrics calculator compatibility)
+        "deployment_successful": "status",  # Placeholder for checkbox field (will be detected from issues)
         "issue_type": "issuetype",  # Standard field (for metrics calculator)
         "severity_level": "priority",  # Standard field
         "incident_detected_at": "created",  # Standard field
@@ -183,6 +184,7 @@ def generate_smart_defaults(
                 ("target_environment", "target_environment"),
                 ("affected_environment", "target_environment"),  # Reuse same field
                 ("change_failure", "change_failure"),
+                ("deployment_successful", "deployment_successful"),
                 ("incident_detected_at", "incident_detected_at"),
                 ("incident_resolved_at", "incident_resolved_at"),
                 ("severity_level", "severity_level"),

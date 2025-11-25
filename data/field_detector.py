@@ -392,6 +392,16 @@ def detect_fields_from_issues(
         detections["change_failure"] = change_failure
         logger.info(f"[FieldDetector] [OK] Change failure field: {change_failure}")
 
+    # 5b. Detect deployment successful field (checkbox variant of change_failure)
+    deployment_successful = _detect_deployment_successful_field(
+        sampled_issues, field_defs
+    )
+    if deployment_successful:
+        detections["deployment_successful"] = deployment_successful
+        logger.info(
+            f"[FieldDetector] [OK] Deployment successful field: {deployment_successful}"
+        )
+
     # 6. Detect incident fields
     # Fallback: Use created + resolutiondate for Bug/Defect issue types
     incident_fields = _detect_incident_related_fields(sampled_issues, field_defs)
@@ -1007,6 +1017,101 @@ def _detect_change_failure_field(
     if candidates:
         best = max(candidates.items(), key=lambda x: x[1]["score"])
         if best[1]["score"] >= 40:
+            return best[0]
+
+    return None
+
+
+def _detect_deployment_successful_field(
+    issues: List[Dict], field_defs: Dict[str, Dict]
+) -> Optional[str]:
+    """Detect deployment successful checkbox field for DORA Change Failure Rate.
+
+    This is a checkbox (boolean) field variant of change_failure. Typical usage:
+    - Field name: "Deployment Successful", "Deploy Success", "Succeeded"
+    - Field type: checkbox (boolean) or option
+    - Values: true/false (checkbox) or Yes/No (option)
+    - Logic: true = successful deployment, false = failed deployment
+
+    Heuristics:
+    - Field name contains: "deployment successful", "deploy success", "succeeded"
+    - Field type: MUST be checkbox (string type in schema) or option
+    - Values: boolean or Yes/No strings
+
+    Args:
+        issues: List of JIRA issues with full field data
+        field_defs: Dictionary of field definitions from metadata
+
+    Returns:
+        Field ID of deployment successful checkbox, or None if not found
+    """
+    candidates = {}
+
+    for issue in issues:
+        fields_data = issue.get("fields", {})
+        for field_id, field_value in fields_data.items():
+            if not field_id.startswith("customfield_"):
+                continue
+
+            field_def = field_defs.get(field_id, {})
+            field_name = field_def.get("name", "").lower()
+            field_type = field_def.get("schema", {}).get("type", "")
+
+            score = 0
+
+            # Name matching - specifically for "successful" variant (not "failure")
+            if any(
+                kw in field_name
+                for kw in [
+                    "deployment successful",
+                    "deployment success",
+                    "deploy success",
+                    "deployment succeeded",
+                    "deploy succeeded",
+                    "successful deployment",
+                ]
+            ):
+                score += 60  # Strong signal for positive indicator
+
+            # Exclude "failure" fields (those belong to change_failure field)
+            if any(kw in field_name for kw in ["fail", "failure", "rollback"]):
+                score -= 100  # Disqualify - this is change_failure, not deployment_successful
+
+            # Type should be string (checkbox) or option
+            # CRITICAL: JIRA checkboxes appear as type="string" in schema, not "boolean"
+            if field_type in ["string", "option"]:
+                score += 30
+
+            # Check values for boolean indicators
+            if field_value:
+                # Handle both boolean and string values
+                if isinstance(field_value, bool):
+                    score += 20  # Direct boolean value
+                else:
+                    value_str = str(field_value).upper()
+                    if any(
+                        indicator in value_str
+                        for indicator in ["TRUE", "FALSE", "YES", "NO"]
+                    ):
+                        score += 20
+
+            if score > 0:
+                if field_id not in candidates:
+                    candidates[field_id] = {
+                        "score": score,
+                        "name": field_def.get("name", field_id),
+                        "type": field_type,
+                    }
+                else:
+                    candidates[field_id]["score"] += score
+
+    if candidates:
+        best = max(candidates.items(), key=lambda x: x[1]["score"])
+        if best[1]["score"] >= 40:  # Confidence threshold
+            logger.info(
+                f"[FieldDetector] Deployment successful field candidate: {best[0]} "
+                f"('{best[1]['name']}', type={best[1]['type']}, score={best[1]['score']})"
+            )
             return best[0]
 
     return None
