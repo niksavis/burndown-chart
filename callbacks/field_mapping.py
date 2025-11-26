@@ -303,6 +303,12 @@ def track_status_tab_changes(completion, active, flow_start, wip, current_state)
 )
 def track_environment_tab_changes(prod_env, current_state):
     """Track Environment tab dropdown changes."""
+    from dash import ctx
+
+    # Only process if this was triggered by an actual user interaction
+    if not ctx.triggered or not ctx.triggered[0]["value"]:
+        return no_update
+
     current_state = current_state or {}
     current_state["production_environment_values"] = (
         prod_env if isinstance(prod_env, list) else ([prod_env] if prod_env else [])
@@ -701,13 +707,16 @@ def _get_mock_mappings() -> Dict[str, Dict[str, str]]:
     Input("mappings-tabs", "active_tab"),
     Input("jira-metadata-store", "data"),
     Input("field-mapping-modal", "is_open"),
-    Input(
-        "field-mapping-state-store", "data"
-    ),  # Changed from State to Input so UI updates when auto-configure changes state
+    Input("auto-configure-refresh-trigger", "data"),  # Trigger from auto-configure
+    State("field-mapping-state-store", "data"),  # Read-only state access
     prevent_initial_call="initial_duplicate",
 )
 def render_tab_content(
-    active_tab: str, metadata: dict, is_open: bool, state_data: dict
+    active_tab: str,
+    metadata: dict,
+    is_open: bool,
+    refresh_trigger: int,
+    state_data: dict,
 ):
     """Render appropriate form based on active tab.
 
@@ -737,8 +746,14 @@ def render_tab_content(
     settings = load_app_settings()
     metadata = metadata or {}
 
+    # Check if state is empty or only contains profile tracking metadata
+    # (state_data with only "_profile_id" key should be re-initialized)
+    is_empty_state = not state_data or (
+        len(state_data) == 1 and "_profile_id" in state_data
+    )
+
     # If state is empty, initialize it from saved settings
-    if not state_data:
+    if is_empty_state:
         # Helper to safely extract flow type mappings
         flow_mappings = settings.get("flow_type_mappings", {}) or {}
 
@@ -749,7 +764,11 @@ def render_tab_content(
                 return []
             return flow_config.get(key, []) or []
 
+        # Preserve profile ID if it exists
+        profile_id = (state_data or {}).get("_profile_id")
+
         state_data = {
+            "_profile_id": profile_id,  # Track current profile for switch detection
             "field_mappings": settings.get("field_mappings", {}),
             "development_projects": settings.get("development_projects", []),
             "devops_projects": settings.get("devops_projects", []),
@@ -821,7 +840,7 @@ def render_tab_content(
             ), state_data
         except Exception as e:
             logger.error(f"[FieldMapping] Error loading field mappings: {e}")
-            return create_field_mapping_error_alert(str(e)), no_update
+            return create_field_mapping_error_alert(str(e)), state_data
 
     elif active_tab == "tab-projects":
         return create_project_config_form(
@@ -904,18 +923,46 @@ def render_tab_content(
     elif active_tab == "tab-environment":
         # Get production environment field value options from affected_environment field
         # This is the field used for incident tracking and MTTR calculation
-        affected_env_field = settings.get("field_mappings", {}).get(
-            "affected_environment"
-        )
+        # Note: field_mappings are nested under 'dora' and 'flow' categories
+        dora_mappings = settings.get("field_mappings", {}).get("dora", {})
+        affected_env_field = dora_mappings.get("affected_environment")
 
         available_env_values = []
+
+        # Priority 1: Use field options from metadata (if field was already mapped when modal opened)
         if affected_env_field and metadata.get("field_options"):
             available_env_values = metadata.get("field_options", {}).get(
                 affected_env_field, []
             )
             logger.debug(
-                f"[FieldMapping] Loaded {len(available_env_values)} values from affected_environment field: {affected_env_field}"
+                f"[FieldMapping] Loaded {len(available_env_values)} values from metadata.field_options[{affected_env_field}]"
             )
+
+        # Priority 2: Use field_values from state (populated by auto-configure from issue analysis)
+        if not available_env_values:
+            field_values = (state_data or {}).get("field_values", {})
+            if field_values and "target_environment" in field_values:
+                available_env_values = field_values["target_environment"]
+                # Limit to first 50 values to prevent browser performance issues
+                if len(available_env_values) > 50:
+                    logger.warning(
+                        f"[FieldMapping] Truncating environment values from {len(available_env_values)} to 50"
+                    )
+                    available_env_values = available_env_values[:50]
+                logger.debug(
+                    f"[FieldMapping] Loaded {len(available_env_values)} values from state_data.field_values.target_environment"
+                )
+
+        # Priority 3: Use auto-detected production identifiers from metadata as options
+        # (at minimum, show these so user can select from them)
+        if not available_env_values:
+            auto_detected = (metadata or {}).get("auto_detected", {})
+            prod_identifiers = auto_detected.get("production_identifiers", [])
+            if prod_identifiers:
+                available_env_values = prod_identifiers
+                logger.debug(
+                    f"[FieldMapping] Using {len(available_env_values)} auto-detected production identifiers as options"
+                )
 
         return create_environment_config_form(
             production_environment_values=display_settings.get(
@@ -1038,10 +1085,10 @@ def fetch_metadata_on_modal_open(is_open: bool, current_metadata: dict):
         # Fetch environment field options if mapped
         # affected_environment is the primary field for incident tracking and MTTR
         # If target_environment is also mapped to same field ID, values will be available for both
-        affected_env_field = settings.get("field_mappings", {}).get(
-            "affected_environment"
-        )
-        target_env_field = settings.get("field_mappings", {}).get("target_environment")
+        # Note: field_mappings are nested under 'dora' and 'flow' categories
+        dora_mappings = settings.get("field_mappings", {}).get("dora", {})
+        affected_env_field = dora_mappings.get("affected_environment")
+        target_env_field = dora_mappings.get("target_environment")
 
         env_options = []
         env_field_to_fetch = None
@@ -1217,15 +1264,21 @@ def toggle_auto_configure_warning(auto_click, cancel_click, is_open):
         Output("field-mapping-state-store", "data", allow_duplicate=True),
         Output("field-mapping-status", "children", allow_duplicate=True),
         Output("auto-configure-warning-banner", "is_open", allow_duplicate=True),
+        Output("auto-configure-refresh-trigger", "data"),  # Trigger tab re-render
     ],
     Input("auto-configure-confirm-button", "n_clicks"),
     [
         State("jira-metadata-store", "data"),
         State("field-mapping-state-store", "data"),
+        State(
+            "auto-configure-refresh-trigger", "data"
+        ),  # Get current value to increment
     ],
     prevent_initial_call=True,
 )
-def auto_configure_from_metadata(n_clicks: int, metadata: Dict, current_state: Dict):
+def auto_configure_from_metadata(
+    n_clicks: int, metadata: Dict, current_state: Dict, current_trigger: int
+):
     """Auto-configure profile settings from JIRA metadata.
 
     Generates smart defaults for all configuration sections:
@@ -1250,6 +1303,7 @@ def auto_configure_from_metadata(n_clicks: int, metadata: Dict, current_state: D
             no_update,
             no_update,
             no_update,
+            no_update,  # Don't trigger refresh
         )
 
     try:
@@ -1267,6 +1321,7 @@ def auto_configure_from_metadata(n_clicks: int, metadata: Dict, current_state: D
                 no_update,
                 error_alert,
                 False,  # Close confirmation modal
+                no_update,  # Don't trigger refresh on error
             )
 
         # Get active profile to extract JQL query
@@ -1284,6 +1339,7 @@ def auto_configure_from_metadata(n_clicks: int, metadata: Dict, current_state: D
                 no_update,
                 error_alert,
                 False,  # Close confirmation modal
+                no_update,  # Don't trigger refresh on error
             )
 
         profile_id = active_profile.id
@@ -1476,16 +1532,31 @@ def auto_configure_from_metadata(n_clicks: int, metadata: Dict, current_state: D
             new_state["project_classification"] = {}
         new_state["project_classification"].update(defaults["project_classification"])
 
-        # Populate production_environment_values from field_values if available
-        if (
+        # Populate production_environment_values from auto-detected production identifiers
+        # These are values matching patterns like "prod", "production", "live", "prd"
+        auto_detected_prod = (
+            metadata.get("auto_detected", {}).get("production_identifiers", [])
+            if metadata
+            else []
+        )
+        if auto_detected_prod:
+            # Use auto-detected production identifiers for pre-selection
+            new_state["project_classification"]["production_environment_values"] = (
+                auto_detected_prod
+            )
+            new_state["production_environment_values"] = auto_detected_prod
+            logger.info(
+                f"[AutoConfigure] Pre-selected {len(auto_detected_prod)} auto-detected production identifiers: {auto_detected_prod}"
+            )
+        elif (
             "field_values" in defaults
             and "target_environment" in defaults["field_values"]
         ):
-            new_state["project_classification"]["production_environment_values"] = (
-                defaults["field_values"]["target_environment"]
-            )
+            # Fallback: If no auto-detected values, don't pre-select anything
+            # The dropdown will show all available values for manual selection
             logger.info(
-                f"[AutoConfigure] Populated {len(defaults['field_values']['target_environment'])} production identifiers"
+                f"[AutoConfigure] No auto-detected production identifiers found. "
+                f"Available environment values: {len(defaults['field_values']['target_environment'])}"
             )
 
         if "flow_type_mappings" not in new_state:
@@ -1547,7 +1618,14 @@ def auto_configure_from_metadata(n_clicks: int, metadata: Dict, current_state: D
             duration=6000,
         )
 
-        return new_state, success_alert, False  # Close confirmation modal
+        # Increment refresh trigger to force tab re-render with new state
+        new_trigger = (current_trigger or 0) + 1
+        return (
+            new_state,
+            success_alert,
+            False,
+            new_trigger,
+        )  # Close modal, trigger refresh
 
     except Exception as e:
         logger.error(
@@ -1567,7 +1645,12 @@ def auto_configure_from_metadata(n_clicks: int, metadata: Dict, current_state: D
             color="danger",
             dismissable=True,
         )
-        return no_update, error_alert, False  # Close confirmation modal
+        return (
+            no_update,
+            error_alert,
+            False,
+            no_update,
+        )  # Close modal, don't trigger refresh
 
 
 @callback(
@@ -1604,6 +1687,10 @@ def save_comprehensive_mappings(n_clicks, state_data):
         # Field mappings
         if "field_mappings" in state_data:
             settings["field_mappings"] = state_data["field_mappings"]
+        else:
+            logger.warning(
+                "[FieldMapping] Field mappings not found in state - state may be empty"
+            )
 
         # Read from nested project_classification structure (NEW format from auto-configure)
         if "project_classification" in state_data:
@@ -1782,9 +1869,13 @@ def save_comprehensive_mappings(n_clicks, state_data):
         Output("jira-metadata-store", "data", allow_duplicate=True),
     ],
     Input("profile-selector", "value"),
+    State("field-mapping-state-store", "data"),
+    State("jira-metadata-store", "data"),
     prevent_initial_call=True,
 )
-def clear_field_mapping_state_on_profile_switch(profile_id):
+def clear_field_mapping_state_on_profile_switch(
+    profile_id, current_state, current_metadata
+):
     """Clear field mapping state store AND metadata cache when switching profiles.
 
     This prevents old field mappings and JIRA metadata from persisting in browser memory
@@ -1798,13 +1889,45 @@ def clear_field_mapping_state_on_profile_switch(profile_id):
     the field fetching was still using Profile 1's cached metadata and JIRA connection,
     causing data leakage between profiles.
 
+    Bug Fix 3: When profile selector is set to the same profile (e.g., during page init),
+    don't clear state unnecessarily - this was causing field mappings to disappear when
+    reopening the modal.
+
     Args:
         profile_id: ID of newly selected profile
+        current_state: Current state store data (may contain previous profile ID)
+        current_metadata: Current metadata store data
 
     Returns:
-        Tuple of (empty state dict, empty metadata dict) to clear both stores
+        Tuple of (empty state dict, empty metadata dict) to clear both stores,
+        or no_update if profile hasn't actually changed
     """
+    # Check if this is actually a profile change by looking at stored profile ID
+    previous_profile_id = (current_state or {}).get("_profile_id")
+
+    if previous_profile_id == profile_id:
+        # Same profile - don't clear state (prevents losing data on modal reopen)
+        logger.debug(
+            f"[FieldMapping] Profile selector set to same profile ({profile_id}), preserving state"
+        )
+        return no_update, no_update
+
+    if previous_profile_id is None:
+        # First profile set (app initialization) - don't clear, just mark the profile
+        # The render_tab_content callback will initialize from settings
+        logger.info(
+            f"[FieldMapping] First profile set: {profile_id}. Marking profile without clearing."
+        )
+        # Preserve any existing state, just add profile tracking
+        new_state = (current_state or {}).copy()
+        new_state["_profile_id"] = profile_id
+        return new_state, no_update  # Preserve state, don't clear metadata
+
+    # Actual profile switch (different profile) - clear state and metadata
     logger.info(
-        f"[FieldMapping] Clearing state store AND metadata cache due to profile switch to: {profile_id}"
+        f"[FieldMapping] Profile switch detected: {previous_profile_id} → {profile_id}. Clearing state and metadata."
     )
-    return {}, {}  # Clear both state store and metadata cache
+    # Clear everything except profile tracking
+    return {
+        "_profile_id": profile_id
+    }, {}  # Clear state to re-init from new profile, clear metadata
