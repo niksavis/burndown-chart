@@ -105,6 +105,10 @@ def create_field_mapping_modal() -> dbc.Modal:
                         storage_type="memory",
                         data={},
                     ),  # Real-time state tracking - survives tab switches
+                    dcc.Store(
+                        id="auto-configure-refresh-trigger",
+                        data=0,
+                    ),  # Trigger tab re-render after auto-configure
                 ],
             ),
             dbc.ModalFooter(
@@ -345,12 +349,8 @@ def create_field_mapping_form(
                 "select",
                 "Secondary work classification | OPTIONAL for enhanced Flow Distribution | Type: select",
             ),
-            (
-                "estimate",
-                "Estimate",
-                "number",
-                "Story points or effort | OPTIONAL for capacity planning | Typical field: Story Points | Type: number",
-            ),
+            # NOTE: Estimate/Story Points field is configured in JIRA Connection modal, not here
+            # This avoids duplicate configuration and confusion
         ],
         field_options,
         current_mappings.get("field_mappings", {}).get("flow", {}),  # type: ignore

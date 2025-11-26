@@ -176,7 +176,7 @@ def create_jira_config_modal():
                             dbc.Col(
                                 [
                                     dbc.Label(
-                                        "Story Points Field",
+                                        "Estimate Field",
                                         html_for="jira-points-field-input",
                                         className="fw-bold",
                                     ),
@@ -187,7 +187,7 @@ def create_jira_config_modal():
                                         value="customfield_10016",
                                     ),
                                     dbc.FormText(
-                                        "JIRA custom field ID for story points (e.g., customfield_10016)",
+                                        "JIRA custom field ID for story points or effort estimate (e.g., customfield_10016)",
                                         color="muted",
                                     ),
                                 ],
