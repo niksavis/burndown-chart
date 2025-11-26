@@ -2,11 +2,11 @@
 
 ## Overview
 
-**Status**: ✅ **Phase 1 Complete** - Core infrastructure implemented, UI pending  
+**Status**: ✅ **Phases 1-2 Complete** - Backend production-ready, UI pending  
 **Branch**: `012-rule-based-variable-mapping` (merged to 011)  
 **Dependencies**: Feature 011 (Profile Workspace Switching)  
-**Current Release**: v3.0-alpha (backend only)  
-**Target Release**: v3.0-stable (with full UI)
+**Current Release**: v3.0-alpha (backend fully integrated)  
+**Target Release**: v3.0-stable (with configuration UI)
 
 ## Problem Statement
 
@@ -257,25 +257,27 @@ Metric calculated with extracted values
 
 **Status**: ✅ **100% Complete** - Core infrastructure production-ready
 
-### Phase 2: Metric Integration (⚠️ PARTIAL)
+### Phase 2: Metric Integration (✅ COMPLETE)
 
 **Tasks:**
 
-- [ ] T006: Update DORA calculator
-  - ❌ NOT STARTED - Still uses legacy field access
-  - Replace hardcoded field access with variable extraction
+- [x] T006: Update DORA calculator
+  - ✅ COMPLETE - All DORA metrics use VariableExtractor
   - Deployment Frequency, Lead Time, CFR, MTTR
+  - Dual-mode support (legacy field_mappings + variable_mappings)
+  - Production ready as of commits 8e81bb7-e2d5545
 
 - [x] T007: Update Flow calculator
-  - ✅ COMPLETE - Uses VariableExtractor with use_variable_extraction flag
+  - ✅ COMPLETE - Uses VariableExtractor with dual-mode support
   - Flow Velocity, Flow Time, Flow Efficiency, Flow Load, Flow Distribution
   - Backward compatibility maintained
+  - Production ready as of commits f24fd2d-ca28d77
 
 - [x] T008: Add changelog analysis support
   - ✅ COMPLETE - ChangelogEventSource and ChangelogTimestampSource implemented
   - Parse changelog from JIRA API
   - Calculate durations in statuses
-  - ⚠️  Needs validation with real JIRA data
+  - ⚠️  Needs validation with real JIRA changelog data
 
 - [x] T009: Integration tests
   - ✅ COMPLETE - 1212/1212 tests passing
@@ -283,7 +285,7 @@ Metric calculated with extracted values
   - Fallback behavior tested
   - Filter conditions tested
 
-**Status**: ⚠️ **60% Complete** - Flow metrics integrated, DORA pending
+**Status**: ✅ **100% Complete** - All metrics use variable extraction in production
 
 ### Phase 3: User Interface (❌ NOT STARTED)
 
@@ -358,7 +360,7 @@ Metric calculated with extracted values
 
 ## 📊 Implementation Status Summary
 
-### ✅ What's Built and Working (Phase 1 Complete)
+### ✅ What's Built and Working (Phases 1-2 Complete)
 
 **Backend Infrastructure** - Production Ready:
 - `data/variable_mapping/models.py` (317 lines)
@@ -379,20 +381,23 @@ Metric calculated with extracted values
   
 - `data/mapping_migration.py`
   - Backward compatibility layer
-  - use_variable_extraction flag (defaults True)
+  - Dual-mode support (legacy field_mappings + variable_mappings)
   
-- **Flow Calculator Integration**
-  - `data/flow_calculator.py` uses VariableExtractor
-  - Backward compatible via flag
-  - All 1212 tests passing
+- **Metric Integration** - All metrics use VariableExtractor:
+  - ✅ `data/dora_metrics.py` - All 4 DORA metrics (Deployment Freq, Lead Time, CFR, MTTR)
+  - ✅ `data/flow_calculator.py` - All 5 Flow metrics (Velocity, Time, Efficiency, Load, Distribution)
+  - ✅ `data/metrics_calculator.py` - Unified weekly calculation with variable extraction
+  - ✅ Backward compatible via dual-mode functions
+  - ✅ All 1212 tests passing
 
-### ⚠️ What's Partially Done (Phase 2 - 60%)
+### ⚠️ What's Partially Done (Validation Pending)
 
-**Metric Integration**:
-- ✅ Flow metrics: Velocity, Time, Efficiency, Load, Distribution
-- ✅ Changelog analysis infrastructure
-- ❌ DORA metrics: Still use legacy field access
-- ⚠️ Changelog validation: Tested with sample data, needs real JIRA validation
+### ⚠️ What's Partially Done (Validation Pending)
+
+**Changelog Validation**:
+- ✅ Infrastructure built and tested with sample data
+- ⚠️ Needs validation with real JIRA changelog API responses
+- ⚠️ Needs validation across different JIRA versions (tested: v8.20, v9.12)
 
 ### ❌ What's NOT Built (Phases 3-4 - UI Pending)
 
@@ -417,7 +422,11 @@ Metric calculated with extracted values
 
 ### 🎯 Recommendation
 
-**Keep this spec as a roadmap for Phases 2-4**. The backend infrastructure (Phase 1) is production-ready with 1212 passing tests. The remaining work is primarily UI/UX for end-user configuration and DORA metric integration.
+**Backend (Phases 1-2) is production-ready** with all metrics using VariableExtractor. The most valuable next steps:
+
+1. **Build metric configuration wizard UI** (T010-T013) - Enable end-users to configure variable mappings without editing JSON
+2. **Validate changelog extraction with real JIRA** - Test against production JIRA instances with actual changelog data
+3. **Performance benchmarking** (T016) - Establish baseline metrics for variable extraction speed
 
 ---
 
@@ -588,6 +597,7 @@ If auto-configure doesn't detect your fields but you know they exist:
 
 ## Change Log
 
+- 2025-11-26: **Updated spec to reflect Phase 2 completion** - All DORA and Flow metrics now use VariableExtractor in production
 - 2025-11-26: Added troubleshooting section for sparse JIRA instances and missing field mappings
 - 2025-11-26: Fixed field mapping save/load bug (render_tab_content state initialization)
 - 2025-11-26: Fixed Java class name filter for environment field detection
