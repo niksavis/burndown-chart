@@ -486,6 +486,86 @@ Metric calculated with extracted values
 ### Risk: JIRA API rate limiting
 **Mitigation**: Cache changelog data, batch requests, respect rate limits
 
+## Troubleshooting
+
+### Missing or Empty Field Mappings After Auto-Configure
+
+**Symptom**: After running auto-configure, some DORA/Flow fields are empty or not detected (e.g., `change_failure`, `affected_environment`, `target_environment`).
+
+**Root Cause**: Not all JIRA instances have these custom fields. Different organizations configure JIRA differently:
+- **Apache JIRA**: Open-source project JIRA typically lacks deployment/environment tracking fields
+- **Corporate JIRA**: Enterprise instances usually have comprehensive custom field setups
+- **Sparse Data**: Fields may exist but have too few values to meet detection thresholds (40% for sprint field)
+
+**Expected Behavior**: This is NORMAL for JIRA instances without these custom fields. The application will:
+1. Show empty dropdowns in Configure JIRA Mappings modal
+2. Fall back to changelog-based extraction for missing field mappings
+3. Skip metrics that require unavailable data (e.g., deployment metrics without deployment fields)
+
+**How to Verify Your JIRA Has These Fields**:
+
+1. **Via JIRA Web UI**:
+   - Go to any issue in your project
+   - Click "Configure Fields" or view Custom Fields section
+   - Look for fields like "Deployment Date", "Change Failure", "Affected Environment"
+
+2. **Via JIRA API** (requires authentication):
+   ```powershell
+   # Get all custom fields
+   $headers = @{
+       "Authorization" = "Bearer YOUR_TOKEN"
+       "Content-Type" = "application/json"
+   }
+   Invoke-RestMethod -Uri "https://your-jira.com/rest/api/2/field" -Headers $headers | 
+       Where-Object { $_.custom -eq $true } | 
+       Select-Object id, name, schema
+   ```
+
+3. **Via App Logs**:
+   - Open browser DevTools → Console tab
+   - Look for field detection results in JIRA metadata store
+   - Check `jira_cache.json` for available custom fields
+
+**Solutions**:
+
+1. **For Missing DORA Fields** (deployment_date, deployment_successful, change_failure):
+   - If your team doesn't track deployments in JIRA: Use alternative DORA data sources
+   - If fields exist but not detected: Manually configure field IDs in Configure JIRA Mappings modal
+   - If fields don't exist: Create custom fields in JIRA or skip DORA metrics
+
+2. **For Missing Environment Fields** (affected_environment, target_environment):
+   - If environments not tracked in JIRA: Configure production environment values manually
+   - If fields exist but not detected: Lower detection threshold or configure manually
+   - If fields don't exist: Create custom fields or use JQL filters instead
+
+3. **For Low Detection Confidence** (field exists but threshold not met):
+   - Current threshold: 40% of issues must have the field populated
+   - Workaround: Manually configure field ID even if auto-detect fails
+   - Future enhancement: Make thresholds configurable per field type
+
+**Manual Field Configuration**:
+
+If auto-configure doesn't detect your fields but you know they exist:
+1. Open "Configure JIRA Mappings" modal
+2. Click "Fields" tab
+3. Manually enter the custom field ID (e.g., `customfield_10042`)
+4. Click Save
+5. Test with "Calculate Metrics" to verify data extraction works
+
+### Java Class Names in Environment Dropdown
+
+**Symptom**: Environment dropdown shows Java class names like `com.atlassian.jira.plugin.devstatus.rest.SummaryItemBean`.
+
+**Root Cause**: JIRA's Development panel custom field contains Java class metadata.
+
+**Fix**: ✅ Fixed in v3.0-alpha - Java class patterns are now filtered from environment field detection.
+
+**If Still Occurring**:
+1. Clear browser cache and refresh
+2. Re-run auto-configure
+3. Check app version is ≥ v3.0-alpha
+4. Report bug if issue persists
+
 ## Open Questions
 
 1. Should we support custom calculation logic (e.g., Python expressions)?
@@ -508,4 +588,7 @@ Metric calculated with extracted values
 
 ## Change Log
 
+- 2025-11-26: Added troubleshooting section for sparse JIRA instances and missing field mappings
+- 2025-11-26: Fixed field mapping save/load bug (render_tab_content state initialization)
+- 2025-11-26: Fixed Java class name filter for environment field detection
 - 2025-11-18: Feature created, comprehensive specifications completed

@@ -14,6 +14,28 @@ import re
 
 logger = logging.getLogger(__name__)
 
+# Detection confidence thresholds (minimum scores required)
+# Lower thresholds = more lenient detection (catches sparse data)
+# Higher thresholds = stricter detection (reduces false positives)
+#
+# These thresholds are calibrated for typical JIRA instances where:
+# - 30-50% of issues have the field populated
+# - Field names follow common naming conventions
+# - Values match expected patterns
+#
+# For sparse JIRA instances (e.g., Apache JIRA, open-source projects):
+# - Fields may exist but have <30% population
+# - Fallback to manual configuration recommended
+# - Future enhancement: Make thresholds configurable per installation
+DETECTION_THRESHOLDS = {
+    "deployment_date": 40,  # Datetime fields - strict to avoid false positives
+    "deployment_successful": 40,  # Boolean fields - strict to avoid false positives
+    "sprint": 40,  # Sprint fields - strict due to many custom fields
+    "environment": 30,  # Environment fields - lenient to catch variants
+    "change_failure": 30,  # Boolean/select fields - lenient for sparse data
+    "effort_category": 30,  # Classification fields - lenient for new setups
+}
+
 # Java class patterns to filter out from field detection
 # These are typically JIRA's internal plugin fields (Development panel, etc.)
 # that contain complex Java object references instead of user-facing values
@@ -772,7 +794,7 @@ def _detect_deployment_date_field(
 
     if candidates:
         best = max(candidates.items(), key=lambda x: x[1]["score"])
-        if best[1]["score"] >= 40:  # Confidence threshold
+        if best[1]["score"] >= DETECTION_THRESHOLDS["deployment_date"]:
             return best[0]
 
     return None
@@ -858,7 +880,7 @@ def _detect_environment_field(
 
     if candidates:
         best = max(candidates.items(), key=lambda x: x[1]["score"])
-        if best[1]["score"] >= 30:  # Lower threshold to catch fallbacks
+        if best[1]["score"] >= DETECTION_THRESHOLDS["change_failure"]:
             return best[0]
 
     return None
@@ -1149,7 +1171,7 @@ def _detect_deployment_successful_field(
 
     if candidates:
         best = max(candidates.items(), key=lambda x: x[1]["score"])
-        if best[1]["score"] >= 40:  # Confidence threshold
+        if best[1]["score"] >= DETECTION_THRESHOLDS["deployment_successful"]:
             logger.info(
                 f"[FieldDetector] Deployment successful field candidate: {best[0]} "
                 f"('{best[1]['name']}', type={best[1]['type']}, score={best[1]['score']})"
