@@ -204,7 +204,15 @@ def create_data_operations_card() -> html.Div:
                     ),
                     # Hidden store for force refresh functionality (long-press)
                     dcc.Store(id="force-refresh-store", data=False),
-                    html.Div(id="update-data-status", className="mb-3"),
+                    # Status message with fixed height to prevent layout shift
+                    html.Div(
+                        html.Div(id="update-data-status", className="mb-3"),
+                        style={
+                            "minHeight": "80px",  # Prevents layout shift when loading
+                            "display": "flex",
+                            "alignItems": "flex-start",
+                        },
+                    ),
                     html.Div(
                         [
                             html.Small(

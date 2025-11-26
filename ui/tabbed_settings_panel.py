@@ -280,17 +280,21 @@ def create_queries_and_data_tab_content() -> html.Div:
             ),
             # Hidden store for force refresh functionality (long-press)
             dcc.Store(id="force-refresh-store", data=False),
-            # Loading spinner + status message
-            dcc.Loading(
-                id="update-data-loading",
-                type="default",
-                children=html.Div(id="update-data-status", className="mb-3"),
+            # Loading spinner + status message (fixed height to prevent overflow)
+            html.Div(
+                dcc.Loading(
+                    id="update-data-loading",
+                    type="default",
+                    children=html.Div(id="update-data-status", className="mb-3"),
+                ),
+                style={
+                    "minHeight": "80px",  # Fixed height prevents spinner from extending beyond panel
+                    "display": "flex",
+                    "alignItems": "flex-start",  # Align content to top
+                },
             ),
         ],
         className="settings-tab-content",
-        style={
-            "minHeight": "512px"
-        },  # Match exact height when message is displayed to prevent spinner overflow
     )
 
 
