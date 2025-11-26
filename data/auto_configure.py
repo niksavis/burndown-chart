@@ -554,22 +554,28 @@ def _map_issue_types(
     if auto_detected.get("issue_types"):
         detected = auto_detected["issue_types"]
 
+        # 0. DevOps types (DORA Deployment Frequency)
+        # These are ALSO added to Technical Debt for Flow metrics
+        for devops_type in detected.get("devops_task_types", []):
+            if devops_type and devops_type not in categorized:
+                devops_types.append(devops_type)
+                mappings["Technical Debt"].append(devops_type)
+                categorized.add(devops_type)
+                logger.info(
+                    f"[AutoConfigure] Auto-detected '{devops_type}' → DevOps (DORA) + Technical Debt (Flow)"
+                )
+
         # 1. Defects (highest priority - production issues)
         for bug_type in detected.get("bug_types", []):
             if bug_type and bug_type not in categorized:
                 mappings["Defect"].append(bug_type)
                 categorized.add(bug_type)
 
-        # 2. Technical Debt (tasks and non-DevOps work)
+        # 2. Technical Debt (tasks - but NOT devops, already handled above)
         for task_type in detected.get("task_types", []):
             if task_type and task_type not in categorized:
                 mappings["Technical Debt"].append(task_type)
                 categorized.add(task_type)
-
-        for devops_type in detected.get("devops_task_types", []):
-            if devops_type and devops_type not in categorized:
-                mappings["Technical Debt"].append(devops_type)
-                categorized.add(devops_type)
 
         # 3. Features (stories)
         for story_type in detected.get("story_types", []):
@@ -581,6 +587,7 @@ def _map_issue_types(
         logger.info(
             f"[AutoConfigure] Categorized {len(categorized)} types from auto-detection"
         )
+        logger.info(f"[AutoConfigure] DevOps types from auto-detection: {devops_types}")
 
     # Semantic categorization for any unmapped types
     # Uses multi-keyword scoring to understand work intent and risk profile
@@ -696,14 +703,33 @@ def _extract_field_values(
         env_field = field_detections["target_environment"]
         env_values = set()
 
+        # Java class patterns to filter out (from JIRA's Development panel field)
+        java_class_patterns = [
+            "com.atlassian",
+            "java.lang",
+            "beans.",
+            "Summary/ItemBean",
+            "BranchOverall",
+            "DeploymentOverall",
+            "PullRequestOverall",
+            "RepositoryOverall",
+        ]
+
         for issue in issues:
             value = issue.get("fields", {}).get(env_field)
             if value:
                 # Handle both string and object values
+                extracted_value = None
                 if isinstance(value, dict):
-                    env_values.add(value.get("value", ""))
+                    extracted_value = value.get("value", "")
                 elif isinstance(value, str):
-                    env_values.add(value)
+                    extracted_value = value
+
+                # Filter out Java class names (from JIRA's Development panel field)
+                if extracted_value and not any(
+                    pattern in extracted_value for pattern in java_class_patterns
+                ):
+                    env_values.add(extracted_value)
 
         if env_values:
             field_values["target_environment"] = sorted(v for v in env_values if v)

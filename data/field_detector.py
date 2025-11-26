@@ -14,6 +14,35 @@ import re
 
 logger = logging.getLogger(__name__)
 
+# Java class patterns to filter out from field detection
+# These are typically JIRA's internal plugin fields (Development panel, etc.)
+# that contain complex Java object references instead of user-facing values
+JAVA_CLASS_PATTERNS = [
+    "com.atlassian",
+    "java.lang",
+    "beans.",
+    "Summary/ItemBean",
+    "BranchOverall",
+    "DeploymentOverall",
+    "PullRequestOverall",
+    "RepositoryOverall",
+]
+
+
+def _is_java_class_value(field_value: Any) -> bool:
+    """Check if a field value contains Java class names (internal JIRA plugin data).
+
+    Args:
+        field_value: The value to check (can be any type)
+
+    Returns:
+        True if the value contains Java class patterns, False otherwise
+    """
+    if not field_value:
+        return False
+    value_str = str(field_value)
+    return any(pattern in value_str for pattern in JAVA_CLASS_PATTERNS)
+
 
 def _detect_code_commit_date_field(
     issues: List[Dict], field_defs: Dict[str, Dict]
@@ -759,6 +788,7 @@ def _detect_environment_field(
     - Field type: select, string
     - Values: DEV, STAGING, PROD, QA, etc.
     - Fallback: Any field with environment-like values (production, staging, testing)
+    - REJECT: Fields with Java class names (com.atlassian.*) or complex objects
     """
     candidates = {}
 
@@ -773,6 +803,10 @@ def _detect_environment_field(
             field_type = field_def.get("schema", {}).get("type", "")
 
             score = 0
+
+            # CRITICAL: Reject fields containing Java class names or complex objects
+            if _is_java_class_value(field_value):
+                continue
 
             # Rule 1: Name matching (strongest signal)
             if any(
@@ -978,6 +1012,10 @@ def _detect_change_failure_field(
             field_name = field_def.get("name", "").lower()
             field_type = field_def.get("schema", {}).get("type", "")
 
+            # CRITICAL: Reject fields containing Java class names or complex objects
+            if _is_java_class_value(field_value):
+                continue
+
             score = 0
 
             # Name matching for success/failure indicators
@@ -1056,6 +1094,10 @@ def _detect_deployment_successful_field(
             field_def = field_defs.get(field_id, {})
             field_name = field_def.get("name", "").lower()
             field_type = field_def.get("schema", {}).get("type", "")
+
+            # CRITICAL: Reject fields containing Java class names or complex objects
+            if _is_java_class_value(field_value):
+                continue
 
             score = 0
 
@@ -1138,6 +1180,10 @@ def _detect_effort_category_field(
             field_def = field_defs.get(field_id, {})
             field_name = field_def.get("name", "").lower()
             field_type = field_def.get("schema", {}).get("type", "")
+
+            # CRITICAL: Reject fields containing Java class names or complex objects
+            if _is_java_class_value(field_value):
+                continue
 
             score = 0
 
