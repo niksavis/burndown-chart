@@ -96,10 +96,24 @@ Metric calculated with extracted values
 
 ### Storage Format
 
-**Profile-level** (`profiles/{profile_id}/app_settings.json`):
+**Profile-level** (`profiles/{profile_id}/profile.json`):
 
 ```json
 {
+  "id": "p_7236f5fa88b9",
+  "name": "Production Monitoring",
+  "description": "DORA metrics for production deployments",
+  "created_at": "2025-11-18T10:00:00Z",
+  "last_used": "2025-11-26T14:30:00Z",
+  "jira_config": {
+    "base_url": "https://jira.example.com",
+    "token": "encrypted_token_here",
+    "api_version": "v2"
+  },
+  "field_mappings": {
+    "points_field": "customfield_10002",
+    "sprint_field": "customfield_10001"
+  },
   "variable_mappings": {
     "deployment_timestamp": {
       "variable_type": "datetime",
@@ -130,6 +144,11 @@ Metric calculated with extracted values
         "environment_value": "Production"
       }
     }
+  },
+  "forecast_settings": {
+    "pert_factor": 1.2,
+    "deadline": "2025-12-31",
+    "data_points_count": 52
   }
 }
 ```
