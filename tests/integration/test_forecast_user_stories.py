@@ -8,6 +8,8 @@ Tests:
 Run: .\\.venv\\Scripts\\activate; python test_user_stories_3_5.py
 """
 
+import pytest
+
 from data.metrics_snapshots import (
     save_metric_snapshot,
     get_metric_snapshot,
@@ -50,13 +52,13 @@ def test_user_story_3_historical_review():
         forecast = snapshot["forecast"]
         trend = snapshot.get("trend_vs_forecast")
 
-        print(f"  ✓ Forecast found: {forecast['forecast_value']:.1f} items/week")
-        print(f"  ✓ Confidence: {forecast['confidence']}")
-        print(f"  ✓ Weeks used: {forecast['weeks_available']}")
+        print(f"  [OK] Forecast found: {forecast['forecast_value']:.1f} items/week")
+        print(f"  [OK] Confidence: {forecast['confidence']}")
+        print(f"  [OK] Weeks used: {forecast['weeks_available']}")
 
         if trend:
-            print(f"  ✓ Trend: {trend['direction']} {trend['status_text']}")
-            print(f"  ✓ Color: {trend['color_class']}")
+            print(f"  [OK] Trend: {trend['direction']} {trend['status_text']}")
+            print(f"  [OK] Color: {trend['color_class']}")
 
         # Test: US3 requirement - forecasts persist and load correctly
         assert forecast["forecast_value"] > 0, "Forecast value should be positive"
@@ -86,14 +88,14 @@ def test_user_story_4_wip_health_ranges():
     assert range_data["lower"] == 12.0, "Lower bound should be 15 * 0.8 = 12"
     assert range_data["upper"] == 18.0, "Upper bound should be 15 * 1.2 = 18"
 
-    print("  ✓ Range calculation correct")
+    print("  [OK] Range calculation correct")
 
     # Test different WIP scenarios
     print("\n2. Testing bidirectional WIP health scenarios...")
 
     test_scenarios = [
         (24, "above", "Above normal range - too much WIP"),
-        (14, "within", "Within normal range ✓"),
+        (14, "within", "Within normal range [OK]"),
         (9, "below", "Below normal range - underutilized"),
     ]
 
@@ -131,9 +133,9 @@ def test_user_story_5_baseline_building():
     assert forecast_2w["confidence"] == "building", "Should show 'building' confidence"
     assert forecast_2w["weeks_available"] == 2, "Should report 2 weeks used"
 
-    print(f"  ✓ Forecast: {forecast_2w['forecast_value']:.1f} items/week")
-    print(f"  ✓ Confidence: {forecast_2w['confidence']}")
-    print(f"  ✓ Weeks: {forecast_2w['weeks_available']}")
+    print(f"  [OK] Forecast: {forecast_2w['forecast_value']:.1f} items/week")
+    print(f"  [OK] Confidence: {forecast_2w['confidence']}")
+    print(f"  [OK] Weeks: {forecast_2w['weeks_available']}")
 
     # Test with 3 weeks
     print("\n2. Testing with 3 weeks of data...")
@@ -145,9 +147,9 @@ def test_user_story_5_baseline_building():
     )
     assert forecast_3w["weeks_available"] == 3, "Should report 3 weeks used"
 
-    print(f"  ✓ Forecast: {forecast_3w['forecast_value']:.1f} items/week")
-    print(f"  ✓ Confidence: {forecast_3w['confidence']}")
-    print(f"  ✓ Weeks: {forecast_3w['weeks_available']}")
+    print(f"  [OK] Forecast: {forecast_3w['forecast_value']:.1f} items/week")
+    print(f"  [OK] Confidence: {forecast_3w['confidence']}")
+    print(f"  [OK] Weeks: {forecast_3w['weeks_available']}")
 
     # Test with 4 weeks (established baseline)
     print("\n3. Testing with 4 weeks of data...")
@@ -159,16 +161,16 @@ def test_user_story_5_baseline_building():
     )
     assert forecast_4w["weeks_available"] == 4, "Should report 4 weeks used"
 
-    print(f"  ✓ Forecast: {forecast_4w['forecast_value']:.1f} items/week")
-    print(f"  ✓ Confidence: {forecast_4w['confidence']}")
-    print(f"  ✓ Weeks: {forecast_4w['weeks_available']}")
+    print(f"  [OK] Forecast: {forecast_4w['forecast_value']:.1f} items/week")
+    print(f"  [OK] Confidence: {forecast_4w['confidence']}")
+    print(f"  [OK] Weeks: {forecast_4w['weeks_available']}")
 
     # Test with 1 week (insufficient data)
     print("\n4. Testing with 1 week of data (insufficient)...")
     forecast_1w = calculate_forecast([10.0], min_weeks=2)
 
     assert forecast_1w is None, "Should return None with insufficient data"
-    print("  ✓ Correctly returns None for insufficient data")
+    print("  [OK] Correctly returns None for insufficient data")
 
     # Test UI display
     print("\n5. Testing UI forecast section display...")
@@ -191,7 +193,7 @@ def test_user_story_5_baseline_building():
     assert "Building baseline" in section_html, (
         "Should display 'Building baseline' badge"
     )
-    print("  ✓ 'Building baseline' badge displays correctly")
+    print("  [OK] 'Building baseline' badge displays correctly")
 
     # Test established baseline (no badge)
     forecast_section_established = create_forecast_section(
@@ -210,7 +212,7 @@ def test_user_story_5_baseline_building():
     assert "Building baseline" not in section_html_est, (
         "Should NOT display 'Building baseline' badge for established"
     )
-    print("  ✓ Established baseline (no badge) displays correctly")
+    print("  [OK] Established baseline (no badge) displays correctly")
 
     print("\n[OK] US5 PASS: Baseline building with appropriate messaging working")
 

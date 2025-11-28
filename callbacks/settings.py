@@ -480,7 +480,7 @@ def register(app):
                             ]
                         ),
                     ],
-                    className="text-warning small mt-2",
+                    className="text-warning small",
                 )
                 logger.warning(
                     "[Settings] Attempted to update data without JIRA configuration"
@@ -633,7 +633,7 @@ def register(app):
                             ]
                         ),
                     ],
-                    className="text-danger small mt-2",
+                    className="text-danger small",
                 )
                 logger.error(
                     f"[Settings] JIRA configuration validation failed: {validation_message}"
@@ -748,7 +748,7 @@ def register(app):
                         html.I(className="fas fa-check-circle me-2 text-success"),
                         html.Span(success_details, className="fw-medium"),
                     ],
-                    className="text-success small mt-2",
+                    className="text-success small",
                 )
                 logger.info(
                     f"[JIRA] Data import successful: {issues_count} issues loaded, {weekly_count} weekly data points created"
@@ -927,7 +927,7 @@ def register(app):
                         ),
                         html.Span(error_details, className="fw-medium"),
                     ],
-                    className="text-danger small mt-2",
+                    className="text-danger small",
                 )
                 logger.error(f"[JIRA] Data import failed: {message}")
                 # Clear task progress
@@ -966,7 +966,7 @@ def register(app):
                         ]
                     ),
                 ],
-                className="text-danger small mt-2",
+                className="text-danger small",
             )
             # Clear task progress
             from data.task_progress import TaskProgress
@@ -1000,7 +1000,7 @@ def register(app):
                         ]
                     ),
                 ],
-                className="text-danger small mt-2",
+                className="text-danger small",
             )
             # Clear task progress
             from data.task_progress import TaskProgress
@@ -1379,7 +1379,7 @@ def register(app):
                 f"[SAVE CALLBACK] Returning {len(updated_options)} options, selecting profile ID: {saved_profile_id}"
             )
             logger.info(
-                f"💾 Options being returned: {[opt['label'] for opt in updated_options]}"
+                f"[SaveProfile] Options being returned: {[opt['label'] for opt in updated_options]}"
             )
 
             # Clear form, hide validation, and select the newly saved query

@@ -1833,7 +1833,7 @@ def fetch_changelog_on_demand(config: Dict, progress_callback=None) -> Tuple[boo
                             )
                             if progress_callback:
                                 progress_callback(
-                                    f"💾 Saved progress: {issues_processed} issues"
+                                    f"Saved progress: {issues_processed} issues"
                                 )
                         except Exception as e:
                             logger.warning(
@@ -1843,7 +1843,7 @@ def fetch_changelog_on_demand(config: Dict, progress_callback=None) -> Tuple[boo
                 # Final save: Save all remaining issues
                 if progress_callback:
                     progress_callback(
-                        f"💾 Finalizing changelog data for {len(changelog_cache)} issues..."
+                        f"Finalizing changelog data for {len(changelog_cache)} issues..."
                     )
 
                 with open(changelog_cache_file, "w", encoding="utf-8") as f:

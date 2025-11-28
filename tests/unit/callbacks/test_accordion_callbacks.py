@@ -31,19 +31,19 @@ class TestConfigurationStatusTracking:
 
         assert status["jira"]["enabled"] is False
         assert status["jira"]["complete"] is False
-        assert status["jira"]["icon"] == "🔒"
+        assert status["jira"]["icon"] == "[Locked]"
 
         assert status["fields"]["enabled"] is False
         assert status["fields"]["complete"] is False
-        assert status["fields"]["icon"] == "🔒"
+        assert status["fields"]["icon"] == "[Locked]"
 
         assert status["queries"]["enabled"] is False
         assert status["queries"]["complete"] is False
-        assert status["queries"]["icon"] == "🔒"
+        assert status["queries"]["icon"] == "[Locked]"
 
         assert status["data_operations"]["enabled"] is False
         assert status["data_operations"]["complete"] is False
-        assert status["data_operations"]["icon"] == "🔒"
+        assert status["data_operations"]["icon"] == "[Locked]"
 
     def test_status_profile_enabled_when_selected(self):
         """Verify profile section enabled when profile selected."""
@@ -94,7 +94,7 @@ class TestConfigurationStatusTracking:
 
         # Data ops still locked (no query saved yet)
         assert status["data_operations"]["enabled"] is False
-        assert status["data_operations"]["icon"] == "🔒"
+        assert status["data_operations"]["icon"] == "[Locked]"
 
     def test_status_query_saved_unlocks_data_ops(self):
         """Verify saving query unlocks data operations."""
@@ -176,11 +176,11 @@ class TestSectionTitleUpdates:
         from callbacks.accordion_settings import update_section_titles
 
         config_status = {
-            "profile": {"enabled": False, "icon": "🔒"},
-            "jira": {"enabled": False, "icon": "🔒"},
-            "fields": {"enabled": False, "icon": "🔒"},
-            "queries": {"enabled": False, "icon": "🔒"},
-            "data_operations": {"enabled": False, "icon": "🔒"},
+            "profile": {"enabled": False, "icon": "[Locked]"},
+            "jira": {"enabled": False, "icon": "[Locked]"},
+            "fields": {"enabled": False, "icon": "[Locked]"},
+            "queries": {"enabled": False, "icon": "[Locked]"},
+            "data_operations": {"enabled": False, "icon": "[Locked]"},
         }
 
         (
@@ -191,11 +191,11 @@ class TestSectionTitleUpdates:
             data_ops_title,
         ) = update_section_titles(config_status)
 
-        assert "🔒" in profile_title
-        assert "🔒" in jira_title
-        assert "🔒" in fields_title
-        assert "🔒" in queries_title
-        assert "🔒" in data_ops_title
+        assert "[Locked]" in profile_title
+        assert "[Locked]" in jira_title
+        assert "[Locked]" in fields_title
+        assert "[Locked]" in queries_title
+        assert "[Locked]" in data_ops_title
 
     def test_section_titles_show_in_progress_icons(self):
         """Verify in-progress icons shown when sections enabled but incomplete."""
@@ -206,7 +206,7 @@ class TestSectionTitleUpdates:
             "jira": {"enabled": True, "icon": "[Pending]"},
             "fields": {"enabled": True, "icon": "[Pending]"},
             "queries": {"enabled": True, "icon": "[Pending]"},
-            "data_operations": {"enabled": False, "icon": "🔒"},
+            "data_operations": {"enabled": False, "icon": "[Locked]"},
         }
 
         (
@@ -221,7 +221,7 @@ class TestSectionTitleUpdates:
         assert "[Pending]" in jira_title
         assert "[Pending]" in fields_title
         assert "[Pending]" in queries_title
-        assert "🔒" in data_ops_title
+        assert "[Locked]" in data_ops_title
 
     def test_section_titles_show_complete_icons(self):
         """Verify checkmark icons shown when sections complete."""
@@ -437,7 +437,7 @@ class TestCallbackIntegration:
         assert "[Pending]" in queries_title
 
         # Data ops should show locked
-        assert "🔒" in data_ops_title
+        assert "[Locked]" in data_ops_title
 
     def test_full_workflow_profile_to_data_ops(self):
         """Test complete workflow from profile selection to data operations."""
@@ -465,7 +465,7 @@ class TestCallbackIntegration:
         # Step 4: Query saved
         status = update_configuration_status("default", jira_status, 1)
         button_disabled, _, _ = enforce_query_save_before_data_ops(status)
-        assert button_disabled is False  # Finally unlocked! 🎉
+        assert button_disabled is False  # Finally unlocked!
 
 
 class TestLoadQueryJQL:

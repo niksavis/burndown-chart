@@ -43,7 +43,7 @@ def test_field_aware_caching():
 
     test_cache_file = "test_cache.json"
 
-    print("\n1️⃣ Test Cache Creation with 'Votes' field...")
+    print("\n1. Test Cache Creation with 'Votes' field...")
 
     # Cache data with "Votes" field
     jql_query = "project = TEST"
@@ -62,7 +62,7 @@ def test_field_aware_caching():
     print(f"   [Stats] Cached Fields: '{cached_data.get('fields_requested')}'")
     print(f"   [Stats] Issues count: {len(cached_data.get('issues', []))}")
 
-    print("\n2️⃣ Test Cache Load with Same Fields (Should Work)...")
+    print("\n2. Test Cache Load with Same Fields (Should Work)...")
 
     # Load with same fields
     cache_loaded, loaded_issues = load_jira_cache(
@@ -71,7 +71,7 @@ def test_field_aware_caching():
     print(f"   [OK] Cache loaded successfully: {cache_loaded}")
     print(f"   [Stats] Loaded issues: {len(loaded_issues) if loaded_issues else 0}")
 
-    print("\n3️⃣ Test Cache Load with Different Fields (Should Invalidate)...")
+    print("\n3. Test Cache Load with Different Fields (Should Invalidate)...")
 
     # Load with different fields (change from "Votes" to "customfield_10020")
     fields_with_story_points = "key,created,resolutiondate,status,customfield_10020"
@@ -81,7 +81,7 @@ def test_field_aware_caching():
     print(f"   [X] Cache should be invalidated: {not cache_loaded}")
     print(f"   [Stats] Issues returned: {len(loaded_issues) if loaded_issues else 0}")
 
-    print("\n4️⃣ Test Cache Load with No Story Points Field (Should Work)...")
+    print("\n4. Test Cache Load with No Story Points Field (Should Work)...")
 
     # Create cache with base fields only
     base_fields = "key,created,resolutiondate,status"
@@ -107,7 +107,7 @@ def test_field_aware_caching():
     )
     print(f"   [OK] Base fields cache loaded: {cache_loaded}")
 
-    print("\n5️⃣ Test Cache Load Base vs Story Points (Should Invalidate)...")
+    print("\n5. Test Cache Load Base vs Story Points (Should Invalidate)...")
 
     # Try to load base cache but with story points configured
     cache_loaded, loaded_issues = load_jira_cache(

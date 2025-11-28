@@ -16,8 +16,75 @@ from ui.field_mapping_modal import (
     create_field_mapping_form,
     create_field_mapping_error_alert,
 )
+from data.namespace_parser import NamespaceParser
 
 logger = logging.getLogger(__name__)
+
+
+def _parse_namespace_field_mappings(field_mappings: Dict[str, Any]) -> Dict[str, Any]:
+    """Parse namespace syntax in field mappings and convert to SourceRule serialization.
+
+    Args:
+        field_mappings: Nested dict with 'dora' and 'flow' keys containing field values
+                       Structure: {"dora": {"field_name": "value"}, "flow": {...}}
+
+    Returns:
+        Updated field_mappings with namespace syntax parsed to SourceRule serialization
+
+    Example:
+        Input:  {"dora": {"deployment_date": "DevOps.customfield_10001"}}
+        Output: {"dora": {"deployment_date": {...SourceRule serialization...}}}
+
+    Note:
+        - Only parses values that contain namespace syntax (. or :)
+        - Leaves simple field IDs unchanged (backward compatibility)
+        - Logs warnings for invalid namespace syntax
+    """
+    if not field_mappings:
+        return field_mappings
+
+    parser = NamespaceParser()
+    parsed_mappings = {}
+
+    for metric_type in ["dora", "flow"]:
+        if metric_type not in field_mappings:
+            continue
+
+        parsed_mappings[metric_type] = {}
+        metric_data = field_mappings[metric_type]
+
+        # Handle flat structure: {"field_name": "value"}
+        for field_name, field_value in metric_data.items():
+            if not isinstance(field_value, str):
+                # Already parsed or not a string value - keep as-is
+                parsed_mappings[metric_type][field_name] = field_value
+                continue
+
+            # Check if value contains namespace syntax
+            if "." in field_value or ":" in field_value:
+                try:
+                    # Parse namespace syntax
+                    parsed_namespace = parser.parse(field_value)
+
+                    # Convert to SourceRule and serialize
+                    source_rule = parser.translate_to_source_rule(parsed_namespace)
+                    parsed_mappings[metric_type][field_name] = source_rule.model_dump()
+
+                    logger.info(
+                        f"[FieldMapping] Parsed namespace syntax for {metric_type}.{field_name}: "
+                        f"{field_value} → SourceRule with source type={source_rule.source.type}"
+                    )
+                except Exception as e:
+                    logger.error(
+                        f"[FieldMapping] Failed to parse namespace syntax for {metric_type}.{field_name}: "
+                        f"{field_value} - Exception: {e}. Storing as-is."
+                    )
+                    parsed_mappings[metric_type][field_name] = field_value
+            else:
+                # Simple field ID without namespace syntax - keep as-is
+                parsed_mappings[metric_type][field_name] = field_value
+
+    return parsed_mappings
 
 
 def _create_dora_flow_mappings_display(field_mappings: Dict) -> html.Div:
@@ -189,6 +256,18 @@ def track_form_state_changes(*args):
 
 
 # ============================================================================
+# NAMESPACE FIELD INPUT STATE TRACKING
+# ============================================================================
+# NOTE: Namespace inputs do NOT use server-side state tracking.
+# Server-side callbacks cause React to re-render inputs, which loses
+# autocomplete selections (the "stat" vs "status" bug).
+#
+# Instead, namespace field values are collected at SAVE time via a
+# clientside callback that reads directly from the DOM.
+# See: save_field_mappings() and assets/namespace_autocomplete_clientside.js
+
+
+# ============================================================================
 # TAB-SPECIFIC STATE TRACKING
 # These callbacks track dropdowns that only exist in specific tabs
 # ============================================================================
@@ -317,6 +396,93 @@ def track_environment_tab_changes(prod_env, current_state):
 
 
 # ============================================================================
+# STATUS VALIDATION - Active and Flow Start should be subsets of WIP
+# ============================================================================
+
+
+@callback(
+    Output("active-wip-subset-warning", "children"),
+    Input("active-statuses-dropdown", "value"),
+    Input("wip-statuses-dropdown", "value"),
+    prevent_initial_call=True,
+)
+def validate_active_wip_subset(active_statuses, wip_statuses):
+    """Validate that Active statuses are a subset of WIP statuses.
+
+    Shows a warning alert only when Active contains statuses not in WIP.
+
+    Args:
+        active_statuses: List of selected active status names
+        wip_statuses: List of selected WIP status names
+
+    Returns:
+        Warning alert if validation fails, empty div otherwise
+    """
+    active_set = set(active_statuses or [])
+    wip_set = set(wip_statuses or [])
+
+    # Find statuses in Active that are not in WIP
+    not_in_wip = active_set - wip_set
+
+    if not_in_wip:
+        # Show warning with specific statuses
+        status_list = ", ".join(sorted(not_in_wip))
+        return dbc.Alert(
+            [
+                html.I(className="fas fa-exclamation-triangle me-2"),
+                html.Strong("Warning: "),
+                f"These Active statuses are not in WIP: {status_list}",
+            ],
+            color="warning",
+            className="py-2 px-3 mb-0 small",
+        )
+
+    # No issues - return empty
+    return html.Div()
+
+
+@callback(
+    Output("flow-start-wip-subset-warning", "children"),
+    Input("flow-start-statuses-dropdown", "value"),
+    Input("wip-statuses-dropdown", "value"),
+    prevent_initial_call=True,
+)
+def validate_flow_start_wip_subset(flow_start_statuses, wip_statuses):
+    """Validate that Flow Start statuses are a subset of WIP statuses.
+
+    Shows a warning alert only when Flow Start contains statuses not in WIP.
+
+    Args:
+        flow_start_statuses: List of selected flow start status names
+        wip_statuses: List of selected WIP status names
+
+    Returns:
+        Warning alert if validation fails, empty div otherwise
+    """
+    flow_start_set = set(flow_start_statuses or [])
+    wip_set = set(wip_statuses or [])
+
+    # Find statuses in Flow Start that are not in WIP
+    not_in_wip = flow_start_set - wip_set
+
+    if not_in_wip:
+        # Show warning with specific statuses
+        status_list = ", ".join(sorted(not_in_wip))
+        return dbc.Alert(
+            [
+                html.I(className="fas fa-exclamation-triangle me-2"),
+                html.Strong("Warning: "),
+                f"These Flow Start statuses are not in WIP: {status_list}",
+            ],
+            color="warning",
+            className="py-2 px-3 mb-0 small",
+        )
+
+    # No issues - return empty
+    return html.Div()
+
+
+# ============================================================================
 # MODAL MANAGEMENT
 # ============================================================================
 
@@ -426,179 +592,9 @@ def enforce_single_selection_in_multi_dropdown(
     return result
 
 
-@callback(
-    Output(
-        {"type": "field-validation-message", "metric": ALL, "field": ALL}, "children"
-    ),
-    Input({"type": "field-mapping-dropdown", "metric": ALL, "field": ALL}, "value"),
-    Input("field-mapping-content", "children"),  # Trigger when form loads
-    prevent_initial_call=True,
-)
-def validate_field_selection_real_time(
-    field_values: List[List[str]],
-    form_content,  # Not used, just triggers callback
-) -> List[html.Div]:
-    """Show real-time validation feedback when user selects a field.
-
-    Validates field type compatibility and shows color-coded alerts:
-    - Green: Perfect type match
-    - Yellow: Compatible type (may work)
-    - Red: Incompatible type
-    - Gray: No field selected
-
-    Args:
-        field_values: List of selected field values (each is a list due to multi=True)
-        form_content: Form content (triggers validation when form loads)
-
-    Returns:
-        List of validation message components for each dropdown
-    """
-    from data.field_mapper import INTERNAL_FIELD_TYPES, validate_field_mapping
-
-    logger.info(
-        f"[FieldMapping] [FieldMapping] Validation callback triggered with {len(field_values)} field values"
-    )
-
-    # Get triggered dropdown context
-    ctx = callback_context
-    if not ctx.triggered:
-        logger.warning("[FieldMapping] Validation callback - no trigger context")
-        return [html.Div() for _ in field_values]
-
-    logger.info(
-        f"[FieldMapping] Validation callback - triggered by: {ctx.triggered[0]['prop_id']}"
-    )
-
-    # Fetch available fields using the same function as the form
-    # This ensures consistent field metadata structure
-    try:
-        available_fields = fetch_available_jira_fields()
-        logger.info(
-            f"[FieldMapping] [FieldMapping] Validation callback - fetched {len(available_fields)} fields from JIRA"
-        )
-    except Exception as e:
-        logger.error(f"[FieldMapping] Error fetching fields for validation: {e}")
-        return [html.Div() for _ in field_values]
-
-    # Build field metadata lookup from available fields
-    field_metadata = {}
-    logger.debug(
-        f"[FieldMapping] Building field metadata from {len(available_fields)} fields"
-    )
-    for field in available_fields:
-        field_id = field.get("field_id")
-        field_type = field.get("field_type", "text")
-        if field_id:
-            field_metadata[field_id] = {"field_type": field_type}
-    logger.info(
-        f"[FieldMapping] [FieldMapping] Field metadata built with {len(field_metadata)} entries"
-    )
-
-    # Get all dropdown IDs from callback context
-    # For pattern-matching callbacks with ALL, ctx.inputs_list contains the component IDs
-    # Structure: ctx.inputs_list[0] is a list of dicts with component IDs
-    # Example: [{"id": {"type": "...", "metric": "...", "field": "..."}, "property": "value", "value": [...]}]
-
-    # Extract component IDs from inputs
-    dropdown_ids = []
-    if ctx.inputs_list and len(ctx.inputs_list) > 0:
-        for input_item in ctx.inputs_list[0]:
-            if isinstance(input_item, dict) and "id" in input_item:
-                dropdown_ids.append(input_item["id"])
-
-    logger.info(f"[FieldMapping] Found {len(dropdown_ids)} dropdown IDs")
-    if len(dropdown_ids) > 0:
-        logger.info(f"[FieldMapping] First dropdown ID structure: {dropdown_ids[0]}")
-
-    # Validate each field selection
-    results = []
-    for i, (dropdown_id, value_list) in enumerate(zip(dropdown_ids, field_values)):
-        # Extract field info from pattern-matching ID
-        internal_field = dropdown_id.get("field", "")
-
-        logger.info(
-            f"[FieldMapping] Validating dropdown {i}: internal_field='{internal_field}', value_list={value_list}"
-        )
-
-        # Get selected field ID (first item in list due to multi=True)
-        selected_field_id = (
-            value_list[0] if value_list and len(value_list) > 0 else None
-        )
-
-        if not selected_field_id:
-            # No field selected - show empty
-            logger.debug(f"[FieldMapping] Dropdown {i}: No field selected")
-            results.append(html.Div())
-            continue
-
-        # Get required type for this internal field
-        required_type = INTERNAL_FIELD_TYPES.get(internal_field, "unknown")
-
-        logger.info(
-            f"[FieldMapping] Dropdown {i}: selected_field_id='{selected_field_id}', required_type='{required_type}'"
-        )
-
-        # Get actual field type from metadata
-        actual_type = "unknown"
-        if selected_field_id in field_metadata:
-            actual_type = field_metadata[selected_field_id].get("field_type", "unknown")
-            logger.info(
-                f"[FieldMapping] Dropdown {i}: Found field type: actual_type={actual_type}, required_type={required_type}"
-            )
-        else:
-            logger.warning(
-                f"[FieldMapping] Dropdown {i}: Field {selected_field_id} not found in metadata. Sample available fields: {list(field_metadata.keys())[:10]}"
-            )
-
-        # Validate compatibility
-        is_valid = True
-        message = ""
-
-        if actual_type == "unknown" or required_type == "unknown":
-            # Cannot validate - show info
-            message = "[i] Field type information unavailable"
-            color = "info"
-        elif actual_type == required_type:
-            # Perfect match
-            # Special message for issuetype field (most common standard field)
-            if selected_field_id == "issuetype" and internal_field in [
-                "flow_item_type",
-                "issue_type",
-            ]:
-                message = "[OK] Field type matches requirement (issuetype)"
-            else:
-                message = f"[OK] Field type matches requirement ({required_type})"
-            color = "success"
-        else:
-            # Check if types are compatible
-            is_valid, validation_msg = validate_field_mapping(
-                internal_field, selected_field_id, field_metadata
-            )
-
-            if is_valid:
-                # Compatible but not exact match
-                message = f"[WARN] Field type is {actual_type}, expected {required_type} (may work)"
-                color = "warning"
-            else:
-                # Incompatible
-                message = f"[X] Incompatible: field is {actual_type}, expected {required_type}"
-                color = "danger"
-
-        # Create validation alert
-        results.append(
-            dbc.Alert(
-                message, color=color, className="mb-0 py-1 small", dismissable=False
-            )
-        )
-
-    return results
-
-
-# REMOVED: Old save_field_mappings_callback
-# This callback has been replaced by save_comprehensive_mappings (line ~842)
-# which handles all tabs (Fields, Projects, Types, Status, Environment) with comprehensive validation.
-# The old callback only handled the Fields tab without comprehensive validation,
-# causing inconsistent save behavior between tabs.
+# NOTE: The validate_field_selection_real_time callback was removed because
+# we no longer use simple mode dropdowns. Namespace inputs use clientside
+# validation in namespace_autocomplete_clientside.js instead.
 
 
 def _get_mock_jira_fields() -> List[Dict[str, Any]]:
@@ -709,6 +705,7 @@ def _get_mock_mappings() -> Dict[str, Dict[str, str]]:
     Input("field-mapping-modal", "is_open"),
     Input("auto-configure-refresh-trigger", "data"),  # Trigger from auto-configure
     State("field-mapping-state-store", "data"),  # Read-only state access
+    State("namespace-collected-values", "data"),  # Collected namespace values from DOM
     prevent_initial_call="initial_duplicate",
 )
 def render_tab_content(
@@ -717,6 +714,7 @@ def render_tab_content(
     is_open: bool,
     refresh_trigger: int,
     state_data: dict,
+    collected_namespace_values: dict,
 ):
     """Render appropriate form based on active tab.
 
@@ -727,7 +725,9 @@ def render_tab_content(
         active_tab: ID of currently active tab
         metadata: Cached JIRA metadata from store
         is_open: Whether modal is open
+        refresh_trigger: Trigger value from auto-configure
         state_data: Current form state from state store
+        collected_namespace_values: Values collected from namespace inputs (DOM)
 
     Returns:
         Tuple of (form component, updated state)
@@ -738,6 +738,14 @@ def render_tab_content(
     from ui.status_config_form import create_status_config_form
     from ui.environment_config_form import create_environment_config_form
 
+    # Debug logging
+    logger.info(
+        f"[FieldMapping] render_tab_content: tab={active_tab}, is_open={is_open}, "
+        f"has_metadata={bool(metadata and metadata.get('fields'))}, "
+        f"field_count={len(metadata.get('fields', [])) if metadata else 0}, "
+        f"collected_values={bool(collected_namespace_values)}"
+    )
+
     # Don't render if modal is closed (but allow initial empty state)
     if not is_open and callback_context.triggered:
         return html.Div(), no_update
@@ -745,6 +753,53 @@ def render_tab_content(
     # Initialize state from saved settings on first open
     settings = load_app_settings()
     metadata = metadata or {}
+
+    # Merge collected namespace values into state_data field_mappings
+    # This preserves values when switching modes (simple <-> advanced)
+    if collected_namespace_values and state_data:
+        state_data = state_data.copy()  # Don't mutate original
+        field_mappings = (
+            state_data.get("field_mappings", {}).copy()
+            if state_data.get("field_mappings")
+            else {}
+        )
+
+        # collected_namespace_values format: {_trigger: "save"|"mode_switch", values: {metric: {field: value}}}
+        # Extract actual values from the wrapper structure
+        actual_values = collected_namespace_values.get("values", {})
+        if not actual_values and "_trigger" not in collected_namespace_values:
+            # Backward compatibility: old format was {metric: {field: value}} directly
+            actual_values = collected_namespace_values
+
+        logger.debug(
+            f"[FieldMapping] collected_namespace_values type: {type(collected_namespace_values)}, keys: {list(collected_namespace_values.keys()) if isinstance(collected_namespace_values, dict) else 'NOT DICT'}"
+        )
+        logger.debug(
+            f"[FieldMapping] actual_values type: {type(actual_values)}, content: {actual_values}"
+        )
+
+        for metric, fields in actual_values.items():
+            # Skip non-dict entries (like _trigger key that may have leaked through)
+            if not isinstance(fields, dict):
+                logger.debug(
+                    f"[FieldMapping] Skipping non-dict entry: {metric}={fields}"
+                )
+                continue
+            if metric not in field_mappings:
+                field_mappings[metric] = {}
+            elif not isinstance(field_mappings[metric], dict):
+                field_mappings[metric] = {}
+            for field, value in fields.items():
+                if value:  # Only update if there's a value
+                    field_mappings[metric][field] = value
+                    logger.debug(
+                        f"[FieldMapping] Merged collected value: {metric}.{field} = {value}"
+                    )
+
+        state_data["field_mappings"] = field_mappings
+        logger.info(
+            f"[FieldMapping] Merged {len(collected_namespace_values)} metric groups from collected values"
+        )
 
     # Check if state is empty or only contains profile tracking metadata
     # (state_data with only "_profile_id" key should be re-initialized)
@@ -976,237 +1031,78 @@ def render_tab_content(
 
 @callback(
     [
-        Output("jira-metadata-store", "data"),
         Output("field-mapping-status", "children", allow_duplicate=True),
-        Output(
-            "auto-configure-button", "disabled"
-        ),  # Enable button after metadata loads
+        Output("auto-configure-button", "disabled"),
+        Output("field-mapping-save-button", "disabled"),
+        Output("validate-mappings-button", "disabled"),
+        Output("metadata-loading-overlay", "style"),
     ],
-    Input("field-mapping-modal", "is_open"),
-    State("jira-metadata-store", "data"),
+    [
+        Input("field-mapping-modal", "is_open"),
+        Input("jira-metadata-store", "data"),
+    ],
     prevent_initial_call=True,
 )
-def fetch_metadata_on_modal_open(is_open: bool, current_metadata: dict):
+def manage_modal_loading_state(is_open: bool, metadata: dict):
     """
-    Fetch JIRA metadata automatically when modal opens (if not cached).
+    Manage modal loading state based on app-level metadata store.
+
+    Shows loading overlay while metadata is being fetched (metadata is None),
+    disables buttons until metadata is available, and shows appropriate
+    status messages.
 
     Args:
         is_open: Whether modal is open
-        current_metadata: Currently cached metadata
+        metadata: App-level JIRA metadata (None while loading, dict when loaded)
 
     Returns:
-        Tuple of (metadata_dict, status_alert, auto_configure_button_disabled)
+        Tuple of (status_alert, auto_configure_disabled, save_disabled, validate_disabled, overlay_style)
     """
-    from data.jira_metadata import create_metadata_fetcher
-    from data.persistence import load_app_settings
+    # Style for showing/hiding the loading overlay
+    # Note: Use visibility instead of display because Bootstrap's d-flex class has !important
+    overlay_hidden = {
+        "zIndex": 1000,
+        "visibility": "hidden",
+        "opacity": 0,
+        "pointerEvents": "none",
+    }
+    overlay_visible = {
+        "zIndex": 1000,
+        "visibility": "visible",
+        "opacity": 1,
+        "pointerEvents": "auto",
+        "backgroundColor": "rgba(255, 255, 255, 0.95)",
+    }
 
-    # Only fetch when modal opens
+    # Only process when modal is open
     if not is_open:
-        return no_update, no_update, no_update
+        return no_update, no_update, no_update, no_update, overlay_hidden
 
-    # If we have cached data, don't refetch but enable auto-configure button
-    if current_metadata and not current_metadata.get("error"):
-        logger.info("[FieldMapping] Using cached metadata")
-        return no_update, no_update, False  # Enable auto-configure button
-
-    try:
-        # Load JIRA configuration from profile.json
-        from data.persistence import load_jira_configuration
-
-        jira_config = load_jira_configuration()
-
-        # Check if JIRA is configured (base_url is required)
-        if (
-            not jira_config.get("base_url")
-            or jira_config.get("base_url", "").strip() == ""
-        ):
-            logger.warning("[FieldMapping] JIRA not configured, cannot fetch metadata")
-            error_alert = dbc.Alert(
-                html.Div(
-                    [
-                        html.I(className="fas fa-exclamation-circle me-2"),
-                        html.Span(
-                            [
-                                html.Strong("JIRA Not Configured"),
-                                html.Br(),
-                                html.Small(
-                                    "Please configure JIRA connection first in the Connect tab.",
-                                    style={"opacity": "0.85"},
-                                ),
-                            ]
-                        ),
-                    ],
-                    className="d-flex align-items-start",
-                ),
-                color="danger",
-                dismissable=True,
-            )
-            return (
-                {"error": "JIRA not configured"},
-                error_alert,
-                True,
-            )  # Keep button disabled
-
-        # Create fetcher and fetch all metadata
-        fetcher = create_metadata_fetcher(
-            jira_url=jira_config.get("base_url", ""),
-            jira_token=jira_config.get("token", ""),
-            api_version=jira_config.get("api_version", "v2"),
+    # Metadata still loading (None) - show loading overlay, disable buttons
+    if metadata is None:
+        logger.info("[FieldMapping] Metadata loading, showing overlay")
+        return (
+            None,  # No status message while loading
+            True,  # Disable auto-configure
+            True,  # Disable save
+            True,  # Disable validate
+            overlay_visible,  # Show loading overlay
         )
 
-        logger.info("[FieldMapping] Fetching JIRA metadata...")
-
-        # Fetch all metadata types
-        fields = fetcher.fetch_fields()
-
-        # Log all custom fields to help find the correct field ID
-        custom_fields = [f for f in fields if f.get("custom", False)]
-        logger.info(
-            f"[FieldMapping] [FieldMapping] Found {len(custom_fields)} custom fields in JIRA:"
-        )
-        for field in custom_fields:
-            logger.info(
-                f"[FieldMapping] [FieldMapping]   - {field['id']}: {field['name']} (type: {field['type']})"
-            )
-
-        projects = fetcher.fetch_projects()
-        issue_types = fetcher.fetch_issue_types()
-        statuses = fetcher.fetch_statuses()
-
-        # Auto-detect configurations
-        auto_detected_types = fetcher.auto_detect_issue_types(issue_types)
-        auto_detected_statuses = fetcher.auto_detect_statuses(statuses)
-
-        # Load current settings for field mappings
-        from data.persistence import load_app_settings
-
-        settings = load_app_settings()
-
-        # Fetch environment field options if mapped
-        # affected_environment is the primary field for incident tracking and MTTR
-        # If target_environment is also mapped to same field ID, values will be available for both
-        # Note: field_mappings are nested under 'dora' and 'flow' categories
-        dora_mappings = settings.get("field_mappings", {}).get("dora", {})
-        affected_env_field = dora_mappings.get("affected_environment")
-        target_env_field = dora_mappings.get("target_environment")
-
-        env_options = []
-        env_field_to_fetch = None
-
-        # Fetch from affected_environment (primary field for Production Identifiers)
-        if affected_env_field:
-            env_field_to_fetch = affected_env_field
-            logger.info(
-                f"[FieldMapping] Fetching field options for affected_environment field: {affected_env_field}"
-            )
-        # Fallback to target_environment if affected_environment not mapped
-        elif target_env_field:
-            env_field_to_fetch = target_env_field
-            logger.info(
-                f"[FieldMapping] affected_environment not mapped, fetching from target_environment field: {target_env_field}"
-            )
-
-        if env_field_to_fetch:
-            env_options = fetcher.fetch_field_options(env_field_to_fetch)
-            logger.info(
-                f"[FieldMapping] Found {len(env_options)} environment values: {env_options}"
-            )
-            auto_detected_prod = fetcher.auto_detect_production_identifiers(env_options)
-            logger.info(
-                f"[FieldMapping] Auto-detected production identifiers: {auto_detected_prod}"
-            )
-        else:
-            logger.warning(
-                "[FieldMapping] affected_environment field not mapped, cannot fetch environment values for Production Identifiers"
-            )
-            auto_detected_prod = []
-
-        # Fetch effort category field options if mapped
-        effort_category_field = settings.get("field_mappings", {}).get(
-            "effort_category"
-        )
-        effort_category_options = []
-        if effort_category_field:
-            logger.info(
-                f"[FieldMapping] Fetching field options for effort_category field: {effort_category_field}"
-            )
-            effort_category_options = fetcher.fetch_field_options(effort_category_field)
-            logger.info(
-                f"[FieldMapping] Found {len(effort_category_options)} effort category values: {effort_category_options}"
-            )
-        else:
-            logger.warning(
-                "[FieldMapping] effort_category field not mapped, cannot fetch effort category values"
-            )
-
-        # Build field_options dictionary with all fetched fields
-        # Store environment options under the fetched field ID
-        # If both target_environment and affected_environment point to same field, both will work
-        field_options_dict = {}
-        if env_field_to_fetch and env_options:
-            field_options_dict[env_field_to_fetch] = env_options
-            logger.info(
-                f"[FieldMapping] Stored {len(env_options)} environment values under field ID: {env_field_to_fetch}"
-            )
-
-        if effort_category_field:
-            field_options_dict[effort_category_field] = effort_category_options
-
-        metadata = {
-            "fields": fields,
-            "projects": projects,
-            "issue_types": issue_types,
-            "statuses": statuses,
-            "field_options": field_options_dict,
-            "auto_detected": {
-                "issue_types": auto_detected_types,
-                "statuses": auto_detected_statuses,
-                "production_identifiers": auto_detected_prod,
-            },
-            "fetched_at": callback_context.triggered[0]["value"],
-        }
-
-        logger.info(
-            f"Successfully fetched metadata: {len(projects)} projects, {len(issue_types)} issue types, {len(statuses)} statuses"
-        )
-
-        # Show success toast message
-        success_alert = dbc.Alert(
-            html.Div(
-                [
-                    html.I(className="fas fa-check-circle me-2"),
-                    html.Span(
-                        [
-                            html.Strong("Metadata Fetched"),
-                            html.Br(),
-                            html.Small(
-                                f"Loaded {len(projects)} projects, {len(issue_types)} issue types, {len(statuses)} statuses.",
-                                style={"opacity": "0.85"},
-                            ),
-                        ]
-                    ),
-                ],
-                className="d-flex align-items-start",
-            ),
-            color="success",
-            dismissable=True,
-            duration=4000,  # Auto-dismiss after 4 seconds
-        )
-
-        return metadata, success_alert, False  # Enable auto-configure button
-
-    except Exception as e:
-        logger.error(f"Error fetching JIRA metadata: {e}")
+    # Metadata has error - show error message, disable auto-configure
+    if metadata.get("error"):
+        error_msg = metadata.get("error", "Unknown error")
+        logger.warning(f"[FieldMapping] Metadata has error: {error_msg}")
         error_alert = dbc.Alert(
             html.Div(
                 [
                     html.I(className="fas fa-exclamation-circle me-2"),
                     html.Span(
                         [
-                            html.Strong("Fetch Failed"),
+                            html.Strong("JIRA Not Configured"),
                             html.Br(),
                             html.Small(
-                                f"Error fetching metadata: {str(e)}",
+                                "Please configure JIRA connection first in the Connect tab.",
                                 style={"opacity": "0.85"},
                             ),
                         ]
@@ -1217,7 +1113,56 @@ def fetch_metadata_on_modal_open(is_open: bool, current_metadata: dict):
             color="danger",
             dismissable=True,
         )
-        return {"error": str(e)}, error_alert, True  # Keep button disabled on error
+        return (
+            error_alert,
+            True,  # Disable auto-configure
+            False,  # Keep save enabled (user might want to save partial config)
+            True,  # Disable validate (needs metadata)
+            overlay_hidden,  # Hide loading overlay
+        )
+
+    # Metadata loaded successfully - enable buttons, show success briefly
+    fields = metadata.get("fields", [])
+    projects = metadata.get("projects", [])
+    issue_types = metadata.get("issue_types", [])
+    statuses = metadata.get("statuses", [])
+
+    logger.info(
+        f"[FieldMapping] Metadata ready: {len(fields)} fields, "
+        f"{len(projects)} projects, {len(issue_types)} issue types, {len(statuses)} statuses"
+    )
+
+    # Show brief success message (will auto-dismiss)
+    success_alert = dbc.Alert(
+        html.Div(
+            [
+                html.I(className="fas fa-check-circle me-2"),
+                html.Span(
+                    [
+                        html.Strong("Metadata Ready"),
+                        html.Br(),
+                        html.Small(
+                            f"{len(fields)} fields, {len(projects)} projects, "
+                            f"{len(issue_types)} issue types available.",
+                            style={"opacity": "0.85"},
+                        ),
+                    ]
+                ),
+            ],
+            className="d-flex align-items-start",
+        ),
+        color="success",
+        dismissable=True,
+        duration=3000,  # Auto-dismiss after 3 seconds
+    )
+
+    return (
+        success_alert,
+        False,  # Enable auto-configure
+        False,  # Enable save
+        False,  # Enable validate
+        overlay_hidden,  # Hide loading overlay
+    )
 
 
 # ============================================================================
@@ -1265,6 +1210,8 @@ def toggle_auto_configure_warning(auto_click, cancel_click, is_open):
         Output("field-mapping-status", "children", allow_duplicate=True),
         Output("auto-configure-warning-banner", "is_open", allow_duplicate=True),
         Output("auto-configure-refresh-trigger", "data"),  # Trigger tab re-render
+        Output("auto-configure-confirm-button", "disabled"),
+        Output("auto-configure-confirm-button", "children"),
     ],
     Input("auto-configure-confirm-button", "n_clicks"),
     [
@@ -1275,6 +1222,14 @@ def toggle_auto_configure_warning(auto_click, cancel_click, is_open):
         ),  # Get current value to increment
     ],
     prevent_initial_call=True,
+    running=[
+        (Output("auto-configure-confirm-button", "disabled"), True, False),
+        (
+            Output("auto-configure-confirm-button", "children"),
+            [dbc.Spinner(size="sm", spinner_class_name="me-2"), "Configuring..."],
+            [html.I(className="fas fa-check me-2"), "Yes, Auto-Configure Now"],
+        ),
+    ],
 )
 def auto_configure_from_metadata(
     n_clicks: int, metadata: Dict, current_state: Dict, current_trigger: int
@@ -1304,6 +1259,8 @@ def auto_configure_from_metadata(
             no_update,
             no_update,
             no_update,  # Don't trigger refresh
+            no_update,  # Button disabled state
+            no_update,  # Button children
         )
 
     try:
@@ -1322,6 +1279,8 @@ def auto_configure_from_metadata(
                 error_alert,
                 False,  # Close confirmation modal
                 no_update,  # Don't trigger refresh on error
+                False,  # Re-enable button
+                [html.I(className="fas fa-check me-2"), "Yes, Auto-Configure Now"],
             )
 
         # Get active profile to extract JQL query
@@ -1340,6 +1299,8 @@ def auto_configure_from_metadata(
                 error_alert,
                 False,  # Close confirmation modal
                 no_update,  # Don't trigger refresh on error
+                False,  # Re-enable button
+                [html.I(className="fas fa-check me-2"), "Yes, Auto-Configure Now"],
             )
 
         profile_id = active_profile.id
@@ -1625,6 +1586,8 @@ def auto_configure_from_metadata(
             success_alert,
             False,
             new_trigger,
+            False,  # Re-enable button
+            [html.I(className="fas fa-check me-2"), "Yes, Auto-Configure Now"],
         )  # Close modal, trigger refresh
 
     except Exception as e:
@@ -1650,25 +1613,446 @@ def auto_configure_from_metadata(
             error_alert,
             False,
             no_update,
+            False,  # Re-enable button
+            [html.I(className="fas fa-check me-2"), "Yes, Auto-Configure Now"],
         )  # Close modal, don't trigger refresh
+
+
+# ============================================================================
+# VALIDATE AND SAVE MAPPINGS
+# ============================================================================
+
+
+def _validate_all_tabs(state_data: Dict, field_validation_errors: list) -> Dict:
+    """Validate all configuration tabs comprehensively.
+
+    Args:
+        state_data: Current form state from state store
+        field_validation_errors: Validation errors from Fields tab (namespace inputs)
+
+    Returns:
+        Dict with validation results:
+        {
+            "is_valid": bool,
+            "errors": [{"tab": str, "field": str, "error": str}, ...],
+            "warnings": [{"tab": str, "field": str, "warning": str}, ...],
+            "summary": {"fields": int, "statuses": int, "projects": int, "issue_types": int}
+        }
+    """
+    errors = []
+    warnings = []
+    summary = {"fields": 0, "statuses": 0, "projects": 0, "issue_types": 0}
+
+    state_data = state_data or {}
+
+    # =========================================================================
+    # 1. FIELDS TAB VALIDATION (from clientside namespace validation)
+    # =========================================================================
+    if field_validation_errors:
+        for err in field_validation_errors:
+            errors.append(
+                {
+                    "tab": "Fields",
+                    "field": f"{err.get('metric', '').upper()} > {err.get('field', '').replace('_', ' ').title()}",
+                    "error": err.get("error", "Invalid value"),
+                }
+            )
+
+    # Count configured fields (from namespace values in field_mappings)
+    field_mappings = state_data.get("field_mappings", {})
+    for metric in ["dora", "flow"]:
+        if metric in field_mappings:
+            summary["fields"] += len([v for v in field_mappings[metric].values() if v])
+
+    # =========================================================================
+    # 2. STATUS TAB VALIDATION
+    # =========================================================================
+    # Get status values (check both flat and nested structure)
+    completion_statuses = state_data.get("completion_statuses", [])
+    if not completion_statuses and "project_classification" in state_data:
+        completion_statuses = state_data["project_classification"].get(
+            "completion_statuses", []
+        )
+
+    active_statuses = state_data.get("active_statuses", [])
+    if not active_statuses and "project_classification" in state_data:
+        active_statuses = state_data["project_classification"].get(
+            "active_statuses", []
+        )
+
+    wip_statuses = state_data.get("wip_statuses", [])
+    if not wip_statuses and "project_classification" in state_data:
+        wip_statuses = state_data["project_classification"].get("wip_statuses", [])
+
+    flow_start_statuses = state_data.get("flow_start_statuses", [])
+    if not flow_start_statuses and "project_classification" in state_data:
+        flow_start_statuses = state_data["project_classification"].get(
+            "flow_start_statuses", []
+        )
+
+    # Count total statuses
+    summary["statuses"] = (
+        len(completion_statuses)
+        + len(active_statuses)
+        + len(wip_statuses)
+        + len(flow_start_statuses)
+    )
+
+    # Validate: Completion statuses required
+    if not completion_statuses:
+        warnings.append(
+            {
+                "tab": "Status",
+                "field": "Completion Statuses",
+                "warning": "No completion statuses selected. Required for metrics calculation.",
+            }
+        )
+
+    # Validate: WIP statuses required
+    if not wip_statuses:
+        warnings.append(
+            {
+                "tab": "Status",
+                "field": "WIP Statuses",
+                "warning": "No WIP statuses selected. Required for flow metrics.",
+            }
+        )
+
+    # Validate: Active statuses should be subset of WIP
+    if active_statuses and wip_statuses:
+        wip_set = set(wip_statuses)
+        active_not_in_wip = [s for s in active_statuses if s not in wip_set]
+        if active_not_in_wip:
+            warnings.append(
+                {
+                    "tab": "Status",
+                    "field": "Active Statuses",
+                    "warning": f"Active statuses not in WIP: {', '.join(active_not_in_wip[:3])}{'...' if len(active_not_in_wip) > 3 else ''}",
+                }
+            )
+
+    # Validate: Flow Start statuses should be subset of WIP
+    if flow_start_statuses and wip_statuses:
+        wip_set = set(wip_statuses)
+        flow_start_not_in_wip = [s for s in flow_start_statuses if s not in wip_set]
+        if flow_start_not_in_wip:
+            warnings.append(
+                {
+                    "tab": "Status",
+                    "field": "Flow Start Statuses",
+                    "warning": f"Flow Start statuses not in WIP: {', '.join(flow_start_not_in_wip[:3])}{'...' if len(flow_start_not_in_wip) > 3 else ''}",
+                }
+            )
+
+    # =========================================================================
+    # 3. PROJECT TAB VALIDATION
+    # =========================================================================
+    dev_projects = state_data.get("development_projects", [])
+    if not dev_projects and "project_classification" in state_data:
+        dev_projects = state_data["project_classification"].get(
+            "development_projects", []
+        )
+
+    devops_projects = state_data.get("devops_projects", [])
+    if not devops_projects and "project_classification" in state_data:
+        devops_projects = state_data["project_classification"].get(
+            "devops_projects", []
+        )
+
+    summary["projects"] = len(dev_projects) + len(devops_projects)
+
+    # Validate: At least one project type should be selected
+    if not dev_projects and not devops_projects:
+        warnings.append(
+            {
+                "tab": "Projects",
+                "field": "Project Selection",
+                "warning": "No projects selected. Select Development or DevOps projects.",
+            }
+        )
+
+    # =========================================================================
+    # 4. ISSUE TYPE TAB VALIDATION
+    # =========================================================================
+    flow_type_mappings = state_data.get("flow_type_mappings", {})
+
+    # Also check flat keys for backward compatibility
+    feature_types = state_data.get("flow_feature_issue_types", [])
+    if not feature_types and "Feature" in flow_type_mappings:
+        feature_mapping = flow_type_mappings["Feature"]
+        feature_types = (
+            feature_mapping.get("issue_types", [])
+            if isinstance(feature_mapping, dict)
+            else feature_mapping
+        )
+
+    defect_types = state_data.get("flow_defect_issue_types", [])
+    if not defect_types and "Defect" in flow_type_mappings:
+        defect_mapping = flow_type_mappings["Defect"]
+        defect_types = (
+            defect_mapping.get("issue_types", [])
+            if isinstance(defect_mapping, dict)
+            else defect_mapping
+        )
+
+    tech_debt_types = state_data.get("flow_technical_debt_issue_types", [])
+    if not tech_debt_types and "Technical Debt" in flow_type_mappings:
+        td_mapping = flow_type_mappings["Technical Debt"]
+        tech_debt_types = (
+            td_mapping.get("issue_types", [])
+            if isinstance(td_mapping, dict)
+            else td_mapping
+        )
+
+    risk_types = state_data.get("flow_risk_issue_types", [])
+    if not risk_types and "Risk" in flow_type_mappings:
+        risk_mapping = flow_type_mappings["Risk"]
+        risk_types = (
+            risk_mapping.get("issue_types", [])
+            if isinstance(risk_mapping, dict)
+            else risk_mapping
+        )
+
+    summary["issue_types"] = (
+        len(feature_types) + len(defect_types) + len(tech_debt_types) + len(risk_types)
+    )
+
+    # Validate: At least Feature or Defect should have mappings
+    if not feature_types and not defect_types:
+        warnings.append(
+            {
+                "tab": "Issue Types",
+                "field": "Flow Type Mappings",
+                "warning": "No Feature or Defect types mapped. Required for Flow Distribution.",
+            }
+        )
+
+    return {
+        "is_valid": len(errors) == 0,
+        "errors": errors,
+        "warnings": warnings,
+        "summary": summary,
+    }
+
+
+def _build_comprehensive_validation_alert(validation_result: Dict):
+    """Build comprehensive validation alert showing all tabs' results."""
+    errors = validation_result.get("errors", [])
+    warnings = validation_result.get("warnings", [])
+    summary = validation_result.get("summary", {})
+    is_valid = validation_result.get("is_valid", True)
+
+    # Build summary line
+    summary_parts = []
+    if summary.get("fields", 0) > 0:
+        summary_parts.append(f"{summary['fields']} field(s)")
+    if summary.get("statuses", 0) > 0:
+        summary_parts.append(f"{summary['statuses']} status(es)")
+    if summary.get("projects", 0) > 0:
+        summary_parts.append(f"{summary['projects']} project(s)")
+    if summary.get("issue_types", 0) > 0:
+        summary_parts.append(f"{summary['issue_types']} issue type(s)")
+
+    summary_text = ", ".join(summary_parts) if summary_parts else "No configuration"
+
+    # Build error list
+    error_items = []
+    for err in errors:
+        error_items.append(
+            html.Li(
+                [
+                    html.Strong(f"{err['tab']} > {err['field']}: "),
+                    html.Span(err["error"], className="text-danger"),
+                ],
+                className="mb-1",
+            )
+        )
+
+    # Build warning list
+    warning_items = []
+    for warn in warnings:
+        warning_items.append(
+            html.Li(
+                [
+                    html.Strong(f"{warn['tab']} > {warn['field']}: "),
+                    html.Span(warn["warning"]),
+                ],
+                className="mb-1",
+            )
+        )
+
+    # Determine alert color and icon
+    if errors:
+        color = "danger"
+        icon = "fas fa-times-circle"
+        title = f"Validation Failed - {len(errors)} error(s)"
+    elif warnings:
+        color = "warning"
+        icon = "fas fa-exclamation-triangle"
+        title = f"Validation Passed with {len(warnings)} warning(s)"
+    else:
+        color = "success"
+        icon = "fas fa-check-circle"
+        title = "Validation Passed"
+
+    # Build alert content
+    content = [
+        html.Div(
+            [
+                html.I(className=f"{icon} me-2"),
+                html.Strong(title),
+            ],
+            className="mb-2",
+        ),
+        html.Small(f"Configured: {summary_text}", className="d-block mb-2 text-muted"),
+    ]
+
+    if error_items:
+        content.append(
+            html.Div(
+                [
+                    html.Strong("Errors:", className="text-danger"),
+                    html.Ul(error_items, className="mb-2 ps-3"),
+                ]
+            )
+        )
+
+    if warning_items:
+        content.append(
+            html.Div(
+                [
+                    html.Strong("Warnings:", className="text-warning"),
+                    html.Ul(warning_items, className="mb-0 ps-3"),
+                ]
+            )
+        )
+
+    if is_valid and not warnings:
+        content.append(
+            html.Small(
+                "Click 'Save Mappings' to persist your changes.",
+                className="d-block mt-2",
+                style={"opacity": "0.85"},
+            )
+        )
+
+    return dbc.Alert(content, color=color, dismissable=True)
+
+
+def _build_validation_error_alert(validation_errors):
+    """Build validation error alert for display in modal."""
+    error_items = []
+    for err in validation_errors:
+        metric_label = err.get("metric", "unknown").upper()
+        field_label = err.get("field", "unknown").replace("_", " ").title()
+        error_msg = err.get("error", "Invalid value")
+        error_items.append(
+            html.Li(
+                [
+                    html.Strong(f"{metric_label} > {field_label}: "),
+                    html.Span(error_msg),
+                ]
+            )
+        )
+
+    return dbc.Alert(
+        [
+            html.Div(
+                [
+                    html.I(className="fas fa-times-circle me-2"),
+                    html.Strong(
+                        f"Validation Failed - {len(validation_errors)} error(s) found"
+                    ),
+                ],
+                className="d-flex align-items-center mb-2",
+            ),
+            html.Ul(error_items, className="mb-2 ps-4"),
+            html.Small(
+                [
+                    html.I(className="fas fa-info-circle me-1"),
+                    "Fix the errors above before saving. Use autocomplete to select valid values.",
+                ],
+                className="text-muted",
+            ),
+        ],
+        color="danger",
+        dismissable=True,
+    )
+
+
+def _build_validation_success_alert(total_fields):
+    """Build validation success alert for display in modal."""
+    return dbc.Alert(
+        html.Div(
+            [
+                html.I(className="fas fa-check-circle me-2"),
+                html.Span(
+                    [
+                        html.Strong("Validation Passed!"),
+                        html.Br(),
+                        html.Small(
+                            f"All {total_fields} configured field(s) are valid. "
+                            "Click 'Save Mappings' to persist your changes.",
+                            style={"opacity": "0.85"},
+                        ),
+                    ]
+                ),
+            ],
+            className="d-flex align-items-start",
+        ),
+        color="success",
+        dismissable=True,
+    )
+
+
+def _build_no_fields_alert():
+    """Build info alert when no fields are configured."""
+    return dbc.Alert(
+        html.Div(
+            [
+                html.I(className="fas fa-info-circle me-2 text-info"),
+                html.Span(
+                    [
+                        html.Strong("No Field Mappings Configured"),
+                        html.Br(),
+                        html.Small(
+                            "Configure field mappings in the 'Fields' tab to enable "
+                            "DORA and Flow metrics calculation.",
+                            style={"opacity": "0.85"},
+                        ),
+                    ]
+                ),
+            ],
+            className="d-flex align-items-start",
+        ),
+        color="info",
+        dismissable=True,
+    )
 
 
 @callback(
     Output("field-mapping-save-success", "data", allow_duplicate=True),
     Output("field-mapping-status", "children", allow_duplicate=True),
     Output("field-mapping-state-store", "data", allow_duplicate=True),
-    Input("field-mapping-save-button", "n_clicks"),
+    Input("namespace-collected-values", "data"),
     State("field-mapping-state-store", "data"),
     prevent_initial_call=True,
 )
-def save_comprehensive_mappings(n_clicks, state_data):
-    """Save comprehensive configuration from state store.
+def save_or_validate_mappings(namespace_values, state_data):
+    """Save or validate comprehensive configuration from state store.
 
-    This simplified callback reads directly from the state store,
-    eliminating the need for DOM parsing and complex extraction logic.
+    This callback handles both "save" and "validate" triggers from the
+    clientside collectNamespaceValues function. The trigger type determines
+    whether to save the mappings or just validate them.
+
+    - trigger="validate": Validates and shows results in modal (no save)
+    - trigger="save": Validates, then saves if valid
+
+    Values are collected by a clientside callback (collectNamespaceValues)
+    that reads directly from the DOM and stores them in namespace-collected-values.
 
     Args:
-        n_clicks: Number of times save button clicked
+        namespace_values: Collected values with trigger info from clientside callback
         state_data: Current form state from state store
 
     Returns:
@@ -1676,17 +2060,100 @@ def save_comprehensive_mappings(n_clicks, state_data):
     """
     from data.persistence import save_app_settings, load_app_settings
 
-    if not n_clicks:
+    # namespace_values has structure: {trigger: "save"|"validate", values: {...}, validationErrors: [...]}
+    if not namespace_values or not isinstance(namespace_values, dict):
         return no_update, no_update, no_update
+
+    trigger = namespace_values.get("trigger", "")
+    collected_values = namespace_values.get("values", {})
+    validation_errors = namespace_values.get("validationErrors", [])
+
+    # Count total configured fields
+    total_fields = sum(
+        len(fields) for metric, fields in collected_values.items() if fields
+    )
+
+    # Handle VALIDATE trigger - comprehensive validation across all tabs
+    if trigger == "validate":
+        # Merge collected field values into state for comprehensive validation
+        state_with_fields = (state_data or {}).copy()
+        if collected_values:
+            if "field_mappings" not in state_with_fields:
+                state_with_fields["field_mappings"] = {}
+            for metric, fields in collected_values.items():
+                if metric not in state_with_fields["field_mappings"]:
+                    state_with_fields["field_mappings"][metric] = {}
+                for field, value in fields.items():
+                    if value:
+                        state_with_fields["field_mappings"][metric][field] = value
+
+        # Run comprehensive validation across all tabs
+        validation_result = _validate_all_tabs(state_with_fields, validation_errors)
+
+        logger.info(
+            f"[FieldMapping] Comprehensive validation: "
+            f"valid={validation_result['is_valid']}, "
+            f"errors={len(validation_result['errors'])}, "
+            f"warnings={len(validation_result['warnings'])}, "
+            f"summary={validation_result['summary']}"
+        )
+
+        return (
+            no_update,
+            _build_comprehensive_validation_alert(validation_result),
+            no_update,
+        )
+
+    # Handle SAVE trigger
+    if trigger != "save":
+        # Unknown trigger - ignore
+        logger.info(
+            f"[FieldMapping] Unknown trigger detected, ignoring (trigger={trigger})"
+        )
+        return no_update, no_update, no_update
+
+    # Check for validation errors - reject save if any invalid values
+    if validation_errors:
+        logger.warning(
+            f"[FieldMapping] Save rejected due to validation errors: {validation_errors}"
+        )
+        return False, _build_validation_error_alert(validation_errors), no_update
 
     try:
         # Load current settings
         settings = load_app_settings()
 
+        # Use values collected by clientside callback from namespace inputs
+        if collected_values and isinstance(collected_values, dict):
+            logger.info(f"[FieldMapping] Saving namespace values: {collected_values}")
+            # Build field_mappings from namespace input values
+            state_data = state_data or {}
+            if "field_mappings" not in state_data:
+                state_data["field_mappings"] = {}
+
+            # Merge collected namespace values into field_mappings
+            for metric, fields in collected_values.items():
+                if metric not in state_data["field_mappings"]:
+                    state_data["field_mappings"][metric] = {}
+                for field, value in fields.items():
+                    if value and str(value).strip():
+                        state_data["field_mappings"][metric][field] = str(value).strip()
+                        logger.info(
+                            f"[FieldMapping] Saved namespace value: {metric}.{field} = {value}"
+                        )
+
         # Update settings from state store
         # Field mappings
         if "field_mappings" in state_data:
-            settings["field_mappings"] = state_data["field_mappings"]
+            # Store raw namespace strings WITHOUT parsing to SourceRule
+            # Parsing should happen at metric calculation time, not save time
+            # This ensures the UI can display the original namespace syntax
+            raw_field_mappings = state_data["field_mappings"]
+            settings["field_mappings"] = raw_field_mappings
+            logger.info(
+                f"[FieldMapping] Saved field mappings with {len(raw_field_mappings.get('dora', {}))} DORA "
+                f"and {len(raw_field_mappings.get('flow', {}))} Flow fields"
+            )
         else:
             logger.warning(
                 "[FieldMapping] Field mappings not found in state - state may be empty"

@@ -53,154 +53,201 @@ def create_status_config_form(
 
     return html.Div(
         [
-            # Completion Statuses
-            dbc.Row(
+            # Flow Metrics Status Classification Card
+            dbc.Card(
                 [
-                    dbc.Col(
+                    dbc.CardHeader(
+                        html.H5("Flow Metrics Status Classification", className="mb-0"),
+                        className="bg-light",
+                    ),
+                    dbc.CardBody(
                         [
-                            html.Label(
-                                "Completion [Done] (Required)",
-                                className="form-label fw-bold",
-                            ),
                             html.P(
-                                "[!] Issues with these statuses are counted as completed",
-                                className="text-muted small mb-2",
+                                "Configure status mappings for Flow metrics calculation. These statuses determine how issues flow through your workflow.",
+                                className="text-muted small mb-3",
                             ),
-                        ],
-                        width=12,
-                        md=4,
-                    ),
-                    dbc.Col(
-                        [
-                            dcc.Dropdown(
-                                id="completion-statuses-dropdown",
-                                options=status_options,  # type: ignore  # Dash accepts list[dict]
-                                value=completion_statuses,
-                                multi=True,
-                                placeholder="Type or select statuses...",
-                                className="mb-2",
-                                clearable=True,
-                                searchable=True,
-                                optionHeight=50,
-                                maxHeight=300,
+                            # Completion Statuses
+                            dbc.Row(
+                                [
+                                    dbc.Col(
+                                        [
+                                            html.Label(
+                                                [
+                                                    html.I(
+                                                        className="fas fa-check-circle me-2 text-success"
+                                                    ),
+                                                    "Completion [Done] (Required)",
+                                                ],
+                                                className="form-label fw-bold",
+                                            ),
+                                            html.P(
+                                                "Issues with these statuses are counted as completed",
+                                                className="text-muted small mb-2",
+                                            ),
+                                        ],
+                                        width=12,
+                                        md=4,
+                                    ),
+                                    dbc.Col(
+                                        [
+                                            dcc.Dropdown(
+                                                id="completion-statuses-dropdown",
+                                                options=status_options,  # type: ignore  # Dash accepts list[dict]
+                                                value=completion_statuses,
+                                                multi=True,
+                                                placeholder="Type or select statuses...",
+                                                className="mb-2",
+                                                clearable=True,
+                                                searchable=True,
+                                                optionHeight=50,
+                                                maxHeight=300,
+                                            ),
+                                        ],
+                                        width=12,
+                                        md=8,
+                                    ),
+                                ],
+                                className="mb-3",
                             ),
-                        ],
-                        width=12,
-                        md=8,
-                    ),
-                ],
-                className="mb-3",
-            ),
-            # Active Statuses
-            dbc.Row(
-                [
-                    dbc.Col(
-                        [
-                            html.Label(
-                                "Active",
-                                className="form-label fw-bold",
+                            # Active Statuses
+                            dbc.Row(
+                                [
+                                    dbc.Col(
+                                        [
+                                            html.Label(
+                                                [
+                                                    html.I(
+                                                        className="fas fa-play-circle me-2 text-primary"
+                                                    ),
+                                                    "Active",
+                                                ],
+                                                className="form-label fw-bold",
+                                            ),
+                                            html.P(
+                                                "Statuses indicating active work (should be subset of WIP)",
+                                                className="text-muted small mb-2",
+                                            ),
+                                            # Dynamic validation warning - shown only when Active has values not in WIP
+                                            html.Div(
+                                                id="active-wip-subset-warning",
+                                                className="mb-2",
+                                            ),
+                                        ],
+                                        width=12,
+                                        md=4,
+                                    ),
+                                    dbc.Col(
+                                        [
+                                            dcc.Dropdown(
+                                                id="active-statuses-dropdown",
+                                                options=status_options,  # type: ignore  # Dash accepts list[dict]
+                                                value=active_statuses,
+                                                multi=True,
+                                                placeholder="Type or select statuses...",
+                                                className="mb-2",
+                                                clearable=True,
+                                                searchable=True,
+                                                optionHeight=50,
+                                                maxHeight=300,
+                                            ),
+                                        ],
+                                        width=12,
+                                        md=8,
+                                    ),
+                                ],
+                                className="mb-3",
                             ),
-                            html.P(
-                                "[!] Should be subset of WIP statuses",
-                                className="text-muted small mb-2",
+                            # Flow Start Statuses
+                            dbc.Row(
+                                [
+                                    dbc.Col(
+                                        [
+                                            html.Label(
+                                                [
+                                                    html.I(
+                                                        className="fas fa-flag me-2 text-info"
+                                                    ),
+                                                    "Flow Start",
+                                                ],
+                                                className="form-label fw-bold",
+                                            ),
+                                            html.P(
+                                                "Flow Time measurement starts when issues enter these statuses (should be subset of WIP)",
+                                                className="text-muted small mb-2",
+                                            ),
+                                            # Dynamic validation warning - shown only when Flow Start has values not in WIP
+                                            html.Div(
+                                                id="flow-start-wip-subset-warning",
+                                                className="mb-2",
+                                            ),
+                                        ],
+                                        width=12,
+                                        md=4,
+                                    ),
+                                    dbc.Col(
+                                        [
+                                            dcc.Dropdown(
+                                                id="flow-start-statuses-dropdown",
+                                                options=status_options,  # type: ignore  # Dash accepts list[dict]
+                                                value=flow_start_statuses,
+                                                multi=True,
+                                                placeholder="Type or select statuses...",
+                                                className="mb-2",
+                                                clearable=True,
+                                                searchable=True,
+                                                optionHeight=50,
+                                                maxHeight=300,
+                                            ),
+                                        ],
+                                        width=12,
+                                        md=8,
+                                    ),
+                                ],
+                                className="mb-3",
                             ),
-                        ],
-                        width=12,
-                        md=4,
-                    ),
-                    dbc.Col(
-                        [
-                            dcc.Dropdown(
-                                id="active-statuses-dropdown",
-                                options=status_options,  # type: ignore  # Dash accepts list[dict]
-                                value=active_statuses,
-                                multi=True,
-                                placeholder="Type or select statuses...",
-                                className="mb-2",
-                                clearable=True,
-                                searchable=True,
-                                optionHeight=50,
-                                maxHeight=300,
+                            # WIP Statuses
+                            dbc.Row(
+                                [
+                                    dbc.Col(
+                                        [
+                                            html.Label(
+                                                [
+                                                    html.I(
+                                                        className="fas fa-spinner me-2 text-warning"
+                                                    ),
+                                                    "WIP (Work In Progress)",
+                                                ],
+                                                className="form-label fw-bold",
+                                            ),
+                                            html.P(
+                                                "Issues with these statuses are counted in Work In Progress",
+                                                className="text-muted small mb-2",
+                                            ),
+                                        ],
+                                        width=12,
+                                        md=4,
+                                    ),
+                                    dbc.Col(
+                                        [
+                                            dcc.Dropdown(
+                                                id="wip-statuses-dropdown",
+                                                options=status_options,  # type: ignore  # Dash accepts list[dict]
+                                                value=wip_statuses,
+                                                multi=True,
+                                                placeholder="Type or select statuses...",
+                                                className="mb-2",
+                                                clearable=True,
+                                                searchable=True,
+                                                optionHeight=50,
+                                                maxHeight=300,
+                                            ),
+                                        ],
+                                        width=12,
+                                        md=8,
+                                    ),
+                                ],
                             ),
-                        ],
-                        width=12,
-                        md=8,
-                    ),
-                ],
-                className="mb-3",
-            ),
-            # Flow Start Statuses
-            dbc.Row(
-                [
-                    dbc.Col(
-                        [
-                            html.Label(
-                                "Flow Start",
-                                className="form-label fw-bold",
-                            ),
-                            html.P(
-                                "[i] Flow Time measurement starts when issues enter these statuses",
-                                className="text-muted small mb-2",
-                            ),
-                        ],
-                        width=12,
-                        md=4,
-                    ),
-                    dbc.Col(
-                        [
-                            dcc.Dropdown(
-                                id="flow-start-statuses-dropdown",
-                                options=status_options,  # type: ignore  # Dash accepts list[dict]
-                                value=flow_start_statuses,
-                                multi=True,
-                                placeholder="Type or select statuses...",
-                                className="mb-2",
-                                clearable=True,
-                                searchable=True,
-                                optionHeight=50,
-                                maxHeight=300,
-                            ),
-                        ],
-                        width=12,
-                        md=8,
-                    ),
-                ],
-                className="mb-3",
-            ),
-            # WIP Statuses
-            dbc.Row(
-                [
-                    dbc.Col(
-                        [
-                            html.Label(
-                                "WIP (Work In Progress)",
-                                className="form-label fw-bold",
-                            ),
-                            html.P(
-                                "[i] Issues with these statuses are counted in Work In Progress",
-                                className="text-muted small mb-2",
-                            ),
-                        ],
-                        width=12,
-                        md=4,
-                    ),
-                    dbc.Col(
-                        [
-                            dcc.Dropdown(
-                                id="wip-statuses-dropdown",
-                                options=status_options,  # type: ignore  # Dash accepts list[dict]
-                                value=wip_statuses,
-                                multi=True,
-                                placeholder="Type or select statuses...",
-                                className="mb-2",
-                                clearable=True,
-                                searchable=True,
-                                optionHeight=50,
-                                maxHeight=300,
-                            ),
-                        ],
-                        width=12,
-                        md=8,
+                        ]
                     ),
                 ],
                 className="mb-3",
@@ -214,5 +261,4 @@ def create_status_config_form(
                 style={"display": "none"},
             ),
         ],
-        className="p-3",
     )

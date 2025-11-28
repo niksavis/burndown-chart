@@ -111,7 +111,7 @@ def create_import_export_flyout(is_open: bool = False):
                         dbc.Tabs(
                             [
                                 dbc.Tab(
-                                    label="💾 Data",
+                                    label="Data",
                                     tab_id="data-tab",
                                     label_style={"width": "100%"},
                                     children=[

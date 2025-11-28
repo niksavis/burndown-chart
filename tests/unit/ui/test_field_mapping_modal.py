@@ -366,10 +366,10 @@ class TestFieldMappingIntegration:
 
 
 class TestFieldTypeDisplay:
-    """Test that field types are displayed in dropdown labels (Feature: Priority 2)."""
+    """Test that field types are displayed in form elements."""
 
-    def test_field_type_shown_in_dropdown_labels(self):
-        """Test that field types are included in dropdown option labels."""
+    def test_field_type_shown_in_help_text(self):
+        """Test that field types are shown in help text (namespace mode uses help text not dropdown labels)."""
         # Sample fields with type information
         available_fields = [
             {
@@ -397,34 +397,13 @@ class TestFieldTypeDisplay:
         # Convert form to string to check content
         form_str = str(form)
 
-        # Verify field types are shown in labels
-        assert "[datetime]" in form_str
-        assert "[select]" in form_str
-
-    def test_expected_type_in_help_text(self):
-        """Test that expected type is included in help text (Feature: Priority 1)."""
-        available_fields = [
-            {
-                "field_id": "created",
-                "field_name": "Created",
-                "field_type": "datetime",
-            }
-        ]
-
-        current_mappings = {"dora": {}, "flow": {}}
-
-        # Create form
-        form = create_field_mapping_form(available_fields, current_mappings)
-
-        # Convert form to string to check content
-        form_str = str(form)
-
-        # Verify expected types are in help text
+        # Verify field types are shown in help text format (namespace mode)
+        # Help text shows expected type like "Type: datetime"
         assert "Type: datetime" in form_str
         assert "Type: select" in form_str
 
     def test_standard_and_custom_field_type_labels(self):
-        """Test that both standard and custom fields show type information."""
+        """Test that field type information is shown for fields (namespace mode uses help text)."""
         available_fields = [
             {
                 "field_id": "created",
@@ -449,11 +428,11 @@ class TestFieldTypeDisplay:
         form = create_field_mapping_form(available_fields, current_mappings)
         form_str = str(form)
 
-        # Verify separators and types exist
-        assert "Standard Jira Fields" in form_str
-        assert "Custom Fields" in form_str
-        assert "[datetime]" in form_str
-        assert "[select]" in form_str
+        # Verify types are shown in help text (namespace mode format)
+        # Note: Old dropdown mode used "Standard Jira Fields" / "Custom Fields" separators
+        # and "[datetime]" / "[select]" format - now we use "Type: datetime" in help text
+        assert "Type: datetime" in form_str
+        assert "Type: select" in form_str
 
 
 class TestFieldTypeRequirements:

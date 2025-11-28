@@ -1063,37 +1063,64 @@ def calculate_and_save_weekly_metrics(
                 f"[Tip] DORA Mode: Field-based detection (scanning all {len(all_issues)} issues for DORA fields)"
             )
 
+            # Create extractor instance EARLY for MODE 2 - needed for categorization
+            extractor_instance = VariableExtractor(variable_collection)
+
             # Use field-based detection to identify DORA-relevant issues
-            # Inline replacement for deleted filter_issues_by_dora_fields function
+            # Uses VariableExtractor to handle namespace syntax (status:RESOLVED.DateTime)
             operational_tasks = []
             development_issues = []
             production_bugs = []
 
-            # CRITICAL FIX: field_mappings is nested (dora/flow), not flat
-            dora_mappings = field_mappings.get("dora", {})
-            deployment_field = dora_mappings.get("deployment_date")
-            incident_field = dora_mappings.get("incident_detected_at")
+            # Get devops_task_types from app_settings for issue type classification
+            devops_task_types = app_settings.get("devops_task_types", [])
+            bug_types = app_settings.get("bug_types", ["Bug"])
+
+            # MODE 2 STRATEGY:
+            # - If devops_task_types is configured: use type + deployment_timestamp filter
+            # - If devops_task_types is empty: treat ANY resolved issue as a "deployment"
+            #   (common for bug trackers where fixing a bug = deploying a fix)
+            use_type_filter = bool(devops_task_types)
 
             for issue in all_issues:
                 fields = issue.get("fields", {})
-                issue_type = fields.get("issuetype", {}).get("name", "").lower()
+                issue_type = fields.get("issuetype", {}).get("name", "")
 
-                # Operational tasks: have deployment_date field populated
-                if deployment_field and fields.get(deployment_field):
-                    operational_tasks.append(issue)
-                # Production bugs: have incident fields or marked as production bug
-                elif incident_field and fields.get(incident_field):
+                # Use VariableExtractor to check for deployment_timestamp
+                # This handles namespace syntax like "status:RESOLVED.DateTime"
+                extraction_result = extractor_instance.extract_variable(
+                    "deployment_timestamp", issue
+                )
+                deployment_timestamp = (
+                    extraction_result.get("value")
+                    if extraction_result.get("found")
+                    else None
+                )
+
+                # Production bugs: issue type matches bug_types (always categorize bugs first)
+                if issue_type in bug_types:
                     production_bugs.append(issue)
+                # Operational tasks with type filter: type matches AND has deployment timestamp
                 elif (
-                    "bug" in issue_type and "production" in issue.get("key", "").lower()
+                    use_type_filter
+                    and issue_type in devops_task_types
+                    and deployment_timestamp
                 ):
-                    production_bugs.append(issue)
-                # Everything else is development work
+                    operational_tasks.append(issue)
+                # Operational tasks without type filter: ANY issue with deployment timestamp
+                elif not use_type_filter and deployment_timestamp:
+                    operational_tasks.append(issue)
+                # Everything else is development work (no deployment timestamp yet)
                 else:
                     development_issues.append(issue)
 
+            filter_mode = (
+                "type+timestamp"
+                if use_type_filter
+                else "timestamp-only (no devops_task_types)"
+            )
             logger.info(
-                f"Field-based DORA: {len(operational_tasks)} operational tasks, "
+                f"Field-based DORA ({filter_mode}): {len(operational_tasks)} operational tasks, "
                 f"{len(development_issues)} development issues, {len(production_bugs)} production bugs"
             )
             logger.info(f"Week {week_label} boundaries: {week_start} to {week_end}")
@@ -1101,9 +1128,7 @@ def calculate_and_save_weekly_metrics(
             # ========================================================================
             # MODE 2: Calculate DORA Metrics using field-based filtering
             # ========================================================================
-
-            # Create extractor instance for MODE 2
-            extractor_instance = VariableExtractor(variable_collection)
+            # extractor_instance already created above for categorization
 
             # Calculate Lead Time for Changes (Feature 012 - variable extraction)
             try:
@@ -1288,32 +1313,44 @@ def calculate_and_save_weekly_metrics(
                     time_period_days=7,  # Weekly calculation
                 )
 
-                median_hours = mttr_result.get("median_hours")
-                mean_hours = mttr_result.get("mean_hours")
-                p95_hours = mttr_result.get("p95_hours")
-                bugs_count = mttr_result.get("bugs_with_mttr", 0)
+                # The function returns 'value' (in hours or days) and 'unit'
+                # Convert to hours for consistent storage
+                mttr_value = mttr_result.get("value")
+                mttr_unit = mttr_result.get("unit", "hours")
+                bugs_count = mttr_result.get("incident_count", 0)
+
+                # Convert to hours for storage consistency
+                if mttr_value is not None:
+                    if mttr_unit == "days":
+                        mttr_hours = mttr_value * 24
+                    else:
+                        mttr_hours = mttr_value
+                else:
+                    mttr_hours = None
 
                 mttr_snapshot = {
-                    "median_hours": median_hours,
-                    "mean_hours": mean_hours,
-                    "p95_hours": p95_hours,
+                    "median_hours": mttr_hours,  # Store as hours for compatibility
+                    "mean_hours": mttr_hours,
+                    "value": mttr_value,
+                    "unit": mttr_unit,
                     "bugs_with_mttr": bugs_count,
+                    "performance_tier": mttr_result.get("performance_tier"),
                     "week": week_label,
                 }
                 save_metric_snapshot(week_label, "dora_mttr", mttr_snapshot)
                 metrics_saved += 1
 
-                if median_hours:
-                    mttr_days = median_hours / 24
+                if mttr_value is not None:
                     metrics_details.append(
-                        f"DORA MTTR: {mttr_days:.1f} days median ({bugs_count} bugs)"
+                        f"DORA MTTR: {mttr_value:.1f} {mttr_unit} ({bugs_count} incidents)"
                     )
                     logger.info(
-                        f"Saved DORA MTTR: {mttr_days:.1f} days ({bugs_count} bugs)"
+                        f"Saved DORA MTTR: {mttr_value:.1f} {mttr_unit} ({bugs_count} incidents)"
                     )
                 else:
-                    metrics_details.append("DORA MTTR: No Data")
-                    logger.info(f"DORA MTTR: No data for week {week_label}")
+                    error_msg = mttr_result.get("error_message", "No data")
+                    metrics_details.append(f"DORA MTTR: {error_msg}")
+                    logger.info(f"DORA MTTR: {error_msg} for week {week_label}")
 
             except Exception as e:
                 logger.error(f"Failed to calculate DORA MTTR: {e}", exc_info=True)

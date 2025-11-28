@@ -22,6 +22,31 @@ def generate_smart_defaults(
     Automatically maps JIRA statuses, issue types, and projects to profile configuration
     based on JIRA conventions and best practices.
 
+    Field Mapping Strategy (Namespace Syntax):
+    - Uses changelog-based extraction for date fields via namespace syntax
+    - Example: "status:In Progress.DateTime" extracts timestamp when status changed
+    - Standard fields (created, resolutiondate, issuetype) used directly
+    - Custom fields detected and added for optional enhancements
+
+    Default Field Mappings (DORA):
+    - deployment_date: status:{completion_status}.DateTime
+    - code_commit_date: status:{flow_start_status}.DateTime
+    - deployed_to_production_date: resolutiondate
+    - incident_detected_at: created
+    - incident_resolved_at: resolutiondate
+    - severity_level: priority
+    - deployment_successful: (detected from issues if available)
+    - change_failure: (detected from issues if available)
+    - affected_environment: (detected from issues if available)
+    - target_environment: (detected from issues if available)
+
+    Default Field Mappings (Flow):
+    - flow_item_type: issuetype
+    - status: status
+    - work_started_date: status:{flow_start_status}.DateTime
+    - work_completed_date: status:{completion_status}.DateTime
+    - effort_category: (detected from issues if available)
+
     Args:
         metadata: JIRA metadata dictionary with keys:
             - statuses: List of status dicts with 'name', 'statusCategory' keys
@@ -50,11 +75,14 @@ def generate_smart_defaults(
                 },
                 "field_mappings": {
                     "dora": {
-                        "deployment_date": "customfield_XXXXX",
-                        "target_environment": "customfield_XXXXX"
+                        "deployment_date": "status:Done.DateTime",
+                        "code_commit_date": "status:In Progress.DateTime",
+                        ...
                     },
                     "flow": {
-                        "effort_category": "customfield_XXXXX"
+                        "work_started_date": "status:In Progress.DateTime",
+                        "work_completed_date": "status:Done.DateTime",
+                        ...
                     }
                 },
                 "points_field": "customfield_XXXXX"  # Stored separately for jira_config
@@ -142,66 +170,104 @@ def generate_smart_defaults(
             "[AutoConfigure] No JQL query provided, skipping project extraction"
         )
 
-    # 4. Map standard JIRA fields FIRST (always available, always work)
+    # 4. Map fields using namespace syntax for changelog-based extraction
     # Custom field detection is OPTIONAL - only override if we find something better
     field_mappings: Dict[str, Any] = {}
 
-    # === DORA METRICS: Start with standard fields ===
+    # Get flow start and completion statuses for namespace syntax
+    # Flow start = typically "In Progress" or first WIP status
+    flow_start_status = (
+        defaults["project_classification"]["flow_start_statuses"][0]
+        if defaults["project_classification"]["flow_start_statuses"]
+        else "In Progress"
+    )
+
+    # Completion status = first completion status (typically "Done")
+    completion_status = completion_statuses[0] if completion_statuses else "Done"
+
+    # === DORA METRICS: Use namespace syntax for changelog-based extraction ===
     dora_mappings = {
-        "code_commit_date": "status",  # Changelog: Flow Start statuses
-        "deployed_to_production_date": "status",  # Changelog: Completion statuses (UI expects this name)
-        "deployment_date": "status",  # Changelog: Completion statuses (for metrics calculator compatibility)
-        "deployment_successful": "status",  # Placeholder for checkbox field (will be detected from issues)
-        "issue_type": "issuetype",  # Standard field (for metrics calculator)
-        "severity_level": "priority",  # Standard field
-        "incident_detected_at": "created",  # Standard field
-        "incident_resolved_at": "resolutiondate",  # Standard field
+        # Deployment Date: When work was deployed (completion status transition)
+        # Namespace: status:Done.DateTime - extracts timestamp when status changed to Done
+        "deployment_date": f"status:{completion_status}.DateTime",
+        # Code Commit Date: When development started (flow start status transition)
+        # Namespace: status:In Progress.DateTime - extracts timestamp when work began
+        "code_commit_date": f"status:{flow_start_status}.DateTime",
+        # Deployed to Production: Same as deployment_date (completion = deployment)
+        # Alternative: Use resolutiondate if you want the explicit resolution timestamp
+        "deployed_to_production_date": "resolutiondate",
+        # Incident Detected At: When the incident was created
+        # Standard field - always available in JIRA
+        "incident_detected_at": "created",
+        # Incident Resolved At: When the incident was resolved
+        # Standard field - always available for resolved issues
+        "incident_resolved_at": "resolutiondate",
+        # Severity Level: Priority/severity of the issue
+        # Standard field - available in all JIRA instances
+        "severity_level": "priority",
     }
 
-    # === FLOW METRICS: Start with standard fields ===
+    # === FLOW METRICS: Use namespace syntax for changelog-based extraction ===
     flow_mappings = {
-        "flow_item_type": "issuetype",  # Standard field (UI expects this name)
-        "issue_type": "issuetype",  # Standard field (for metrics calculator compatibility)
-        "work_started_date": "status",  # Changelog: Flow Start statuses
-        "work_completed_date": "status",  # Changelog: Completion statuses
-        "status": "status",  # Standard field (for WIP)
+        # Flow Item Type: Issue type classification
+        # Standard field - always available in JIRA
+        "flow_item_type": "issuetype",
+        # Status: Current status (for WIP calculations)
+        # Standard field - always available
+        "status": "status",
+        # Work Started Date: When work began (flow start status transition)
+        # Namespace: status:In Progress.DateTime - calculated from first WIP status
+        "work_started_date": f"status:{flow_start_status}.DateTime",
+        # Work Completed Date: When work was done (completion status transition)
+        # Namespace: status:Done.DateTime - calculated from completion status
+        "work_completed_date": f"status:{completion_status}.DateTime",
     }
 
     logger.info(
-        "[AutoConfigure] Mapped standard JIRA fields for immediate working metrics"
+        f"[AutoConfigure] Using namespace syntax for changelog-based extraction: "
+        f"flow_start='{flow_start_status}', completion='{completion_status}'"
     )
 
-    # === OPTIONAL: Detect custom fields to OVERRIDE standard mappings ===
+    # === OPTIONAL: Detect custom fields to ADD to mappings (not override) ===
+    # These are fields that may have dedicated custom fields in some JIRA instances
     if issues:
         logger.info(
             f"[AutoConfigure] Analyzing {len(issues)} issues for custom field detection (optional enhancements)"
         )
         field_detections = detect_fields_from_issues(issues, metadata)
 
-        # Override standard mappings with detected custom fields
-        custom_field_overrides = {
-            "dora": [
-                ("target_environment", "target_environment"),
-                ("affected_environment", "target_environment"),  # Reuse same field
-                ("change_failure", "change_failure"),
-                ("deployment_successful", "deployment_successful"),
-                ("incident_detected_at", "incident_detected_at"),
-                ("incident_resolved_at", "incident_resolved_at"),
-                ("severity_level", "severity_level"),
-            ],
-            "flow": [
-                ("effort_category", "effort_category"),
-            ],
-        }
+        # Add detected custom fields for DORA metrics (optional enhancements)
+        optional_dora_fields = [
+            (
+                "deployment_successful",
+                "deployment_successful",
+            ),  # Checkbox: deployment success
+            ("change_failure", "change_failure"),  # Select: deployment result
+            ("target_environment", "target_environment"),  # Select: deployment target
+            (
+                "affected_environment",
+                "target_environment",
+            ),  # Reuse same field for incidents
+        ]
 
-        for metric_type, overrides in custom_field_overrides.items():
-            mappings = dora_mappings if metric_type == "dora" else flow_mappings
-            for field_name, detection_key in overrides:
-                if detection_key in field_detections:
-                    mappings[field_name] = field_detections[detection_key]
-                    logger.info(
-                        f"[AutoConfigure] Found custom {field_name} field - using {field_detections[detection_key]}"
-                    )
+        for field_name, detection_key in optional_dora_fields:
+            if detection_key in field_detections:
+                dora_mappings[field_name] = field_detections[detection_key]
+                logger.info(
+                    f"[AutoConfigure] Found custom {field_name} field - using {field_detections[detection_key]}"
+                )
+
+        # Add detected custom fields for Flow metrics (optional enhancements)
+        optional_flow_fields = [
+            ("effort_category", "effort_category"),  # Select: work classification
+        ]
+
+        for field_name, detection_key in optional_flow_fields:
+            if detection_key in field_detections:
+                flow_mappings[field_name] = field_detections[detection_key]
+                logger.info(
+                    f"[AutoConfigure] Found custom {field_name} field - using {field_detections[detection_key]}"
+                )
 
         # Store points_field separately for jira_config
         if "points_field" in field_detections:
@@ -219,7 +285,7 @@ def generate_smart_defaults(
             )
     else:
         logger.info(
-            "[AutoConfigure] No custom field detection (no issues provided). Using standard fields only."
+            "[AutoConfigure] No custom field detection (no issues provided). Using namespace syntax only."
         )
 
     # Always store field_mappings (standard fields + any detected custom overrides)

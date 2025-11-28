@@ -108,8 +108,10 @@ from callbacks import (
     integrated_query_management,  # Integrated query management callbacks (Feature 011, auto-registers via @callback)  # noqa: F401
     jira_config,  # JIRA config modal callbacks (auto-registers via @callback)  # noqa: F401
     jira_data_store,  # JIRA issues store population (Feature 007, auto-registers via @callback)  # noqa: F401
+    jira_metadata,  # App-level JIRA metadata fetching (Feature 012, auto-registers via @callback)  # noqa: F401
     jql_editor,  # JQL editor textarea-to-store sync
     mobile_navigation,  # Add mobile navigation callbacks
+    namespace_autocomplete,  # Namespace syntax autocomplete callbacks (Feature 012, auto-registers via @callback)  # noqa: F401
     profile_management,  # Profile management callbacks (Feature 011, auto-registers via @callback)  # noqa: F401
     query_management,  # Query management callbacks (Feature 011 Phase 3, auto-registers via @callback)  # noqa: F401
     query_switching,  # Query switching callbacks (Feature 011, auto-registers via @callback)  # noqa: F401
@@ -149,5 +151,5 @@ def register_all_callbacks(app):
     bug_analysis.register(app)  # Register bug analysis callbacks (Feature 004)
     dashboard.register(app)  # Register dashboard callbacks (Feature 006, User Story 2)
     # Note: jira_config, settings_panel, jira_data_store, dora_flow_metrics, field_mapping,
-    # integrated_query_management, query_management, profile_management, and query_switching
-    # callbacks auto-register via @callback decorator when imported
+    # integrated_query_management, query_management, profile_management, query_switching,
+    # jira_metadata, and namespace_autocomplete callbacks auto-register via @callback decorator when imported

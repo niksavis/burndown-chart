@@ -227,7 +227,7 @@ def get_contextual_help_for_step(
             ],
         },
         "jira_connection": {
-            "title": "🔌 Connect to JIRA",
+            "title": "Connect to JIRA",
             "description": "Configure connection to your JIRA instance",
             "tips": [
                 "Use API tokens instead of passwords for security",
@@ -236,7 +236,7 @@ def get_contextual_help_for_step(
             ],
         },
         "field_mapping": {
-            "title": "🗺️ Map JIRA Fields",
+            "title": "Map JIRA Fields",
             "description": "Configure custom fields for DORA and Flow metrics",
             "tips": [
                 "Field mapping is optional but enables advanced metrics",

@@ -137,7 +137,7 @@ def _get_jira_connection_docs(
 ) -> Dict[str, Any]:
     """Documentation for JIRA connection step."""
     base_docs = {
-        "title": "🔌 Connecting to JIRA",
+        "title": "Connecting to JIRA",
         "summary": "Securely connect to your JIRA instance for data analysis",
         "sections": [
             {
@@ -190,7 +190,7 @@ def _get_field_mapping_docs(
 ) -> Dict[str, Any]:
     """Documentation for field mapping step."""
     return {
-        "title": "🗺️ Mapping JIRA Fields",
+        "title": " Mapping JIRA Fields",
         "summary": "Configure custom fields to enable DORA and Flow metrics",
         "sections": [
             {

@@ -36,6 +36,8 @@ Research-backed metrics developed by Google's DORA team measuring software deliv
 
 DORA metrics require mapping custom JIRA fields to standard metric fields. Configure via **Settings → Field Mappings → Fields tab**.
 
+> **See Also**: [Namespace Syntax](namespace_syntax.md) for advanced field path syntax (e.g., `*.Status:Deployed.DateTime`).
+
 **Required Fields**:
 
 | Internal Field             | Purpose                         | JIRA Field Type | Example JIRA Field                            |

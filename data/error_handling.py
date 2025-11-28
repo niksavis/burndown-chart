@@ -303,9 +303,9 @@ def _handle_dependency_error(
 
     remediation = []
     if not setup_status.get("jira_connected", False):
-        remediation.append("🔌 Configure JIRA connection first")
+        remediation.append("Configure JIRA connection first")
     if not setup_status.get("fields_mapped", False):
-        remediation.append("🗺️ Map JIRA fields (optional but recommended)")
+        remediation.append("Map JIRA fields (optional but recommended)")
 
     return ContextualError(
         category=ErrorCategory.DEPENDENCY,
@@ -520,26 +520,33 @@ def get_error_summary_for_dashboard(errors: List[ContextualError]) -> Dict[str, 
     if not errors:
         return {"status": "healthy", "total": 0}
 
-    summary = {
-        "total": len(errors),
-        "critical": sum(1 for e in errors if e.severity == ErrorSeverity.CRITICAL),
-        "high": sum(1 for e in errors if e.severity == ErrorSeverity.HIGH),
-        "medium": sum(1 for e in errors if e.severity == ErrorSeverity.MEDIUM),
-        "low": sum(1 for e in errors if e.severity == ErrorSeverity.LOW),
-    }
+    # Count errors by severity
+    total = len(errors)
+    critical = sum(1 for e in errors if e.severity == ErrorSeverity.CRITICAL)
+    high = sum(1 for e in errors if e.severity == ErrorSeverity.HIGH)
+    medium = sum(1 for e in errors if e.severity == ErrorSeverity.MEDIUM)
+    low = sum(1 for e in errors if e.severity == ErrorSeverity.LOW)
 
-    # Determine overall status
-    if summary["critical"] > 0:
-        summary["status"] = "critical"
-        summary["message"] = f"{summary['critical']} critical issue(s) need attention"
-    elif summary["high"] > 0:
-        summary["status"] = "warning"
-        summary["message"] = f"{summary['high']} high priority issue(s) found"
-    elif summary["medium"] > 0:
-        summary["status"] = "info"
-        summary["message"] = f"{summary['medium']} issue(s) found"
+    # Determine overall status and message
+    if critical > 0:
+        status = "critical"
+        message = f"{critical} critical issue(s) need attention"
+    elif high > 0:
+        status = "warning"
+        message = f"{high} high priority issue(s) found"
+    elif medium > 0:
+        status = "info"
+        message = f"{medium} issue(s) found"
     else:
-        summary["status"] = "healthy"
-        summary["message"] = "No significant issues"
+        status = "healthy"
+        message = "No significant issues"
 
-    return summary
+    return {
+        "total": total,
+        "critical": critical,
+        "high": high,
+        "medium": medium,
+        "low": low,
+        "status": status,
+        "message": message,
+    }

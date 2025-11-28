@@ -7,6 +7,10 @@
 - **[Defensive Refactoring Guide](defensive_refactoring_guide.md)** - Safely removing unused code and dependencies
 - **[Logging Standards](logging_standards.md)** - Logging conventions and best practices
 
+### Configuration Guides
+
+- **[Namespace Syntax](namespace_syntax.md)** - JIRA field mapping syntax reference
+
 ### Metrics Documentation
 
 - **[Metrics Index](metrics_index.md)** - Navigation hub with quick start guide
@@ -17,4 +21,4 @@
 
 ---
 
-**Last Updated**: 2025-11-24
+**Last Updated**: 2025-11-28

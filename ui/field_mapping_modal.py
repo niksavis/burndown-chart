@@ -9,6 +9,94 @@ from dash import html, dcc
 from typing import List, Dict, Any
 
 
+def _reconstruct_namespace_from_source_rule(source_rule: Dict[str, Any]) -> str:
+    """Reconstruct namespace string from a parsed SourceRule dict.
+
+    This handles the case where old data was parsed to SourceRule before saving.
+    We attempt to reconstruct the original namespace syntax.
+
+    Args:
+        source_rule: Dict representation of a SourceRule object
+
+    Returns:
+        Reconstructed namespace string, or empty string if reconstruction fails
+    """
+    try:
+        source = source_rule.get("source", {})
+        source_type = source.get("type", "")
+
+        if source_type == "changelog_timestamp":
+            # Changelog syntax: field:value.DateTime
+            field = source.get("field", "")
+            to_value = source.get("to_value", "")
+            return f"{field}:{to_value}.DateTime" if to_value else field
+
+        elif source_type == "changelog_event":
+            # Changelog event: field:value.Occurred
+            field = source.get("field", "")
+            to_value = source.get("to_value", "")
+            return f"{field}:{to_value}.Occurred" if to_value else field
+
+        elif source_type == "field_value":
+            # Field value: [project.]field[.property]
+            field = source.get("field", "")
+            property_path = source.get("property_path")
+
+            # Check for project filter
+            filters = source_rule.get("filters", [])
+            project_prefix = ""
+            for f in filters:
+                if f.get("type") == "project":
+                    projects = f.get("values", [])
+                    if projects and projects != ["*"]:
+                        project_prefix = "|".join(projects) + "."
+                    elif projects == ["*"]:
+                        project_prefix = "*."
+
+            result = project_prefix + field
+            if property_path:
+                result += "." + property_path
+
+            return result
+
+        # Unknown type - return field if available
+        return source.get("field", "")
+
+    except Exception:
+        return ""
+
+
+def extract_field_id_from_namespace(namespace_value: str) -> str:
+    """Extract the field ID from namespace syntax.
+
+    Namespace formats supported:
+    - "PROJECT.fieldId" → "fieldId"
+    - "*.fieldId" → "fieldId"
+    - "fieldId" → "fieldId" (no change)
+    - "Status:Done.DateTime" → "Status" (changelog syntax - use first part)
+
+    Args:
+        namespace_value: Value that may contain namespace syntax
+
+    Returns:
+        Extracted field ID suitable for simple dropdown mode
+    """
+    if not namespace_value:
+        return ""
+
+    value = namespace_value.strip()
+
+    # Handle changelog syntax (Status:value) - extract field name before colon
+    if ":" in value:
+        value = value.split(":")[0]
+
+    # Handle project prefix (PROJECT.field or *.field) - extract field after last dot
+    if "." in value:
+        value = value.split(".")[-1]
+
+    return value
+
+
 def create_field_mapping_modal() -> dbc.Modal:
     """Create the field mapping configuration modal.
 
@@ -23,15 +111,6 @@ def create_field_mapping_modal() -> dbc.Modal:
             ),
             dbc.ModalBody(
                 [
-                    # Instructions
-                    dbc.Alert(
-                        [
-                            html.I(className="fas fa-info-circle me-2"),
-                            "Configure how your JIRA instance maps to the application. Use tabs to navigate between different configuration categories.",
-                        ],
-                        color="info",
-                        className="mb-3",
-                    ),
                     # Auto-Configure Warning Banner (inline, collapsible)
                     dbc.Collapse(
                         dbc.Alert(
@@ -95,11 +174,52 @@ def create_field_mapping_modal() -> dbc.Modal:
                         type="default",
                         children=html.Div(id="field-mapping-content"),
                     ),
+                    # Metadata loading overlay - shown while fetching JIRA metadata
+                    html.Div(
+                        [
+                            html.Div(
+                                [
+                                    dbc.Spinner(
+                                        color="primary",
+                                        size="lg",
+                                        spinner_class_name="mb-3",
+                                    ),
+                                    html.H5(
+                                        "Loading JIRA Metadata...",
+                                        className="text-primary mb-2",
+                                    ),
+                                    html.P(
+                                        "Fetching fields, projects, and statuses from JIRA.",
+                                        className="text-muted small",
+                                    ),
+                                ],
+                                className="text-center py-5",
+                            ),
+                        ],
+                        id="metadata-loading-overlay",
+                        className="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center",
+                        style={
+                            "zIndex": 1000,
+                            "visibility": "hidden",
+                            "opacity": 0,
+                            "pointerEvents": "none",
+                            "backgroundColor": "rgba(255, 255, 255, 0.95)",
+                        },
+                    ),
                     # Status messages
                     html.Div(id="field-mapping-status"),
-                    # Hidden stores
+                    # Hidden stores (jira-metadata-store moved to app level in layout.py)
                     dcc.Store(id="field-mapping-save-success", data=None),
-                    dcc.Store(id="jira-metadata-store", data=None),  # Cache metadata
+                    dcc.Store(
+                        id="namespace-autocomplete-data",
+                        storage_type="memory",
+                        data=None,
+                    ),  # Pre-built autocomplete dataset for clientside filtering
+                    dcc.Store(
+                        id="namespace-collected-values",
+                        storage_type="memory",
+                        data={},
+                    ),  # Collected namespace input values at save time
                     dcc.Store(
                         id="field-mapping-state-store",
                         storage_type="memory",
@@ -109,7 +229,13 @@ def create_field_mapping_modal() -> dbc.Modal:
                         id="auto-configure-refresh-trigger",
                         data=0,
                     ),  # Trigger tab re-render after auto-configure
+                    dcc.Store(
+                        id="validate-mappings-trigger",
+                        storage_type="memory",
+                        data=0,
+                    ),  # Trigger validation without saving
                 ],
+                style={"position": "relative"},  # Required for overlay positioning
             ),
             dbc.ModalFooter(
                 [
@@ -121,7 +247,7 @@ def create_field_mapping_modal() -> dbc.Modal:
                         outline=True,  # Outline style for less prominence
                         className="me-auto",  # Push to left, creates visual separation
                     ),
-                    # Action buttons grouped on right: Auto-Configure → Save
+                    # Action buttons grouped on right: Auto-Configure → Validate → Save
                     # Note: Metadata is now fetched automatically when modal opens
                     dbc.Button(
                         [html.I(className="fas fa-magic me-2"), "Auto-Configure"],
@@ -132,9 +258,18 @@ def create_field_mapping_modal() -> dbc.Modal:
                         disabled=True,  # Enabled after metadata loads
                     ),
                     dbc.Button(
+                        [html.I(className="fas fa-check-circle me-2"), "Validate"],
+                        id="validate-mappings-button",
+                        color="success",
+                        outline=True,  # Less prominent than Save
+                        className="me-2",
+                        disabled=True,  # Enabled after metadata loads
+                    ),
+                    dbc.Button(
                         [html.I(className="fas fa-save me-2"), "Save Mappings"],
                         id="field-mapping-save-button",
                         color="primary",
+                        disabled=True,  # Enabled after metadata loads
                     ),
                 ]
             ),
@@ -153,7 +288,7 @@ def create_field_mapping_form(
     available_fields: List[Dict[str, Any]],
     current_mappings: Dict[str, Dict[str, str]],
 ) -> html.Div:
-    """Create the field mapping form with dropdowns for all required fields.
+    """Create the field mapping form with namespace inputs for all required fields.
 
     Args:
         available_fields: List of available Jira fields with metadata
@@ -375,11 +510,15 @@ def create_metric_section(
 ) -> dbc.Card:
     """Create a section for a specific metric type (DORA or Flow).
 
+    Uses namespace syntax inputs with autocomplete for field mapping.
+    Supports project scoping (e.g., PROJECT.status:Done.DateTime) and
+    extractors for changelog fields.
+
     Args:
         title: Section title (e.g., "DORA Metrics")
         metric_type: Metric type identifier ("dora" or "flow")
         fields: List of (field_id, label, required_type, help_text) tuples
-        field_options: Available Jira field options for dropdowns
+        field_options: Available Jira field options (for validation reference)
         current_mappings: Current mappings for this metric type
 
     Returns:
@@ -388,15 +527,15 @@ def create_metric_section(
     field_rows = []
 
     for field_id, label, required_type, help_text in fields:
-        current_value = current_mappings.get(field_id, "")
+        raw_value = current_mappings.get(field_id, "")
 
-        # Ensure options are a list of dicts for Dash compatibility
-        dash_options = []
-        for opt in field_options:
-            if isinstance(opt, dict) and "label" in opt and "value" in opt:
-                dash_options.append({"label": opt["label"], "value": opt["value"]})
-            else:
-                dash_options.append(opt)
+        # Handle case where value is a dict (parsed SourceRule) - extract original string
+        # This can happen if old data was parsed before save
+        if isinstance(raw_value, dict):
+            # Try to reconstruct namespace string from SourceRule
+            raw_value = _reconstruct_namespace_from_source_rule(raw_value)
+
+        current_value = raw_value
 
         # Determine if field is required based on help text
         is_required = "REQUIRED" in help_text
@@ -408,6 +547,43 @@ def create_metric_section(
             html.Span(" *", className="text-danger") if is_required else None,
         ]
 
+        # Namespace syntax input with CLIENTSIDE autocomplete
+        # All filtering happens in browser via namespace_autocomplete_clientside.js
+        # No server round-trips = no focus loss
+        #
+        # NOTE: We use dcc.Input but read values via clientside JS (collectNamespaceValues)
+        # which reads directly from DOM. This avoids React state sync issues when
+        # JavaScript modifies the input value during autocomplete selection.
+        field_input = html.Div(
+            [
+                dcc.Input(
+                    id={
+                        "type": "namespace-field-input",
+                        "metric": metric_type,
+                        "field": field_id,
+                    },
+                    type="text",
+                    value=current_value,
+                    placeholder="Type to search fields... (e.g., status:Done.DateTime)",
+                    className="form-control namespace-input",
+                    autoComplete="off",
+                    # Disable debounce to ensure immediate DOM updates
+                    debounce=False,
+                    persistence=False,  # Don't persist - we manage state ourselves
+                ),
+                # Autocomplete dropdown - populated by clientside callback
+                html.Div(
+                    id={
+                        "type": "namespace-suggestions",
+                        "metric": metric_type,
+                        "field": field_id,
+                    },
+                    className="namespace-suggestions-dropdown",
+                ),
+            ],
+            className="namespace-input-container position-relative mb-2",
+        )
+
         field_row = dbc.Row(
             [
                 # Field label and help text
@@ -418,34 +594,20 @@ def create_metric_section(
                             className=label_class,
                         ),
                         html.P(
-                            help_text,
+                            [
+                                html.I(className="fas fa-info-circle me-1 text-info"),
+                                help_text,
+                            ],
                             className="text-muted small mb-2",
                         ),
                     ],
                     width=12,
                     md=4,
                 ),
-                # Dropdown for selecting Jira field
+                # Field input (dropdown or namespace input)
                 dbc.Col(
                     [
-                        dcc.Dropdown(
-                            id={
-                                "type": "field-mapping-dropdown",
-                                "metric": metric_type,
-                                "field": field_id,
-                            },
-                            options=dash_options,
-                            value=[current_value]
-                            if current_value
-                            else [],  # Multi expects list
-                            placeholder="Type or select Jira field...",
-                            className="mb-2",
-                            clearable=True,
-                            searchable=True,
-                            optionHeight=50,
-                            maxHeight=300,
-                            multi=True,  # Enable multi-select for consistent styling
-                        ),
+                        field_input,
                         # Validation message placeholder (pattern-matching ID for callback)
                         html.Div(
                             id={

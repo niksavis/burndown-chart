@@ -38,6 +38,8 @@ While DORA metrics tell you **WHAT** happened (deployment outcomes), Flow metric
 
 Flow metrics require mapping custom JIRA fields to standard metric fields. Configure via **Settings → Field Mappings → Fields tab**.
 
+> **See Also**: [Namespace Syntax](namespace_syntax.md) for advanced field path syntax (e.g., `DevOps|Platform.customfield_10016`).
+
 **Required Fields**:
 
 | Internal Field          | Purpose             | JIRA Field Type | Example JIRA Field                     |

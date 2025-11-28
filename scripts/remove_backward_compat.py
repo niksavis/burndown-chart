@@ -81,7 +81,7 @@ if __name__ == "__main__":
     changes = remove_backward_compat_from_dora_calculator()
 
     for change in changes:
-        print(f"✓ {change}")
+        print(f"[OK] {change}")
 
     print(f"\nTotal changes: {len(changes)}")
     print("Done!")

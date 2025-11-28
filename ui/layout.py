@@ -221,6 +221,13 @@ def create_app_layout(settings, statistics, is_sample_data):
             dcc.Store(id="is-sample-data", data=is_sample_data),
             # Store for raw JIRA issues data (for DORA/Flow metrics calculations)
             dcc.Store(id="jira-issues-store", data=None),
+            # App-level JIRA metadata store (fetched once on startup, refreshed on config change)
+            # This store is used by field mapping modal and namespace autocomplete
+            dcc.Store(id="jira-metadata-store", data=None),
+            # Track JIRA config version to detect changes and trigger metadata refresh
+            dcc.Store(id="jira-config-hash", data=None),
+            # Trigger for metadata refresh when JIRA config is saved
+            dcc.Store(id="jira-config-save-trigger", data=0),
             # Store for calculation results
             dcc.Store(
                 id="calculation-results",

@@ -85,6 +85,7 @@ class TestFieldMappingStateInitialization:
             is_open=True,
             refresh_trigger=0,
             state_data=empty_state,
+            collected_namespace_values={},  # No collected DOM values in test
         )
 
         # Assert: State should be initialized from saved settings
@@ -146,6 +147,7 @@ class TestFieldMappingStateInitialization:
             is_open=True,
             refresh_trigger=0,
             state_data=existing_state,
+            collected_namespace_values={},  # No collected DOM values in test
         )
 
         # Assert: State should be preserved (not reinitialized)
@@ -186,6 +188,7 @@ class TestFieldMappingStateInitialization:
             is_open=True,
             refresh_trigger=0,
             state_data=cleared_state,
+            collected_namespace_values={},  # No collected DOM values in test
         )
 
         # Assert: State should be reinitialized from settings
