@@ -94,7 +94,7 @@ class TestProfileFieldMappingIsolation:
         assert settings_v1["development_projects"] == ["KAFKA", "SPARK"]
 
         print(
-            f"✓ Step 1: Created profile '{profile_id_v1}' with field mappings and project classifications"
+            f"[OK] Step 1: Created profile '{profile_id_v1}' with field mappings and project classifications"
         )
 
         # Step 2: Delete profile
@@ -104,7 +104,7 @@ class TestProfileFieldMappingIsolation:
         profile_dir_v1 = PROFILES_DIR / profile_id_v1
         assert not profile_dir_v1.exists(), "Profile directory should be deleted"
         print(
-            f"✓ Step 2: Deleted profile '{profile_id_v1}' and verified directory removed"
+            f"[OK] Step 2: Deleted profile '{profile_id_v1}' and verified directory removed"
         )
 
         # Step 3: Create new profile with SAME NAME but different settings
@@ -128,7 +128,7 @@ class TestProfileFieldMappingIsolation:
         assert profile_id_v1 != profile_id_v2, (
             "New profile should have different ID than deleted profile"
         )
-        print(f"✓ Step 3: Created new profile '{profile_id_v2}' with empty mappings")
+        print(f"[OK] Step 3: Created new profile '{profile_id_v2}' with empty mappings")
 
         # Step 4: Verify new profile has EMPTY field mappings
         settings_v2 = load_app_settings()
@@ -150,10 +150,10 @@ class TestProfileFieldMappingIsolation:
         assert settings_v2["data_points_count"] == 15
 
         print(
-            "✓ Step 4: Verified new profile has EMPTY field mappings and project classifications"
+            "[OK] Step 4: Verified new profile has EMPTY field mappings and project classifications"
         )
         print(
-            "✅ TEST PASSED: Field mappings are properly isolated and cleared on profile deletion/recreation"
+            "[OK] TEST PASSED: Field mappings are properly isolated and cleared on profile deletion/recreation"
         )
 
     def test_field_mappings_persist_across_profile_switches(self):
@@ -192,7 +192,7 @@ class TestProfileFieldMappingIsolation:
         settings_a = load_app_settings()
         assert settings_a["field_mappings"]["deployment_date"] == "fixVersions"
         assert settings_a["development_projects"] == ["PROJECT-A"]
-        print("✓ Profile A: Mappings loaded correctly")
+        print("[OK] Profile A: Mappings loaded correctly")
 
         # Switch to Profile B
         switch_profile(profile_b_id)
@@ -200,56 +200,82 @@ class TestProfileFieldMappingIsolation:
         assert settings_b["field_mappings"]["deployment_date"] == "customfield_20001"
         assert "code_commit_date" in settings_b["field_mappings"]
         assert settings_b["development_projects"] == ["PROJECT-B"]
-        print("✓ Profile B: Mappings loaded correctly")
+        print("[OK] Profile B: Mappings loaded correctly")
 
         # Switch back to Profile A
         switch_profile(profile_a_id)
         settings_a_again = load_app_settings()
         assert settings_a_again["field_mappings"]["deployment_date"] == "fixVersions"
         assert settings_a_again["development_projects"] == ["PROJECT-A"]
-        print("✓ Profile A (switch back): Mappings still correct")
+        print("[OK] Profile A (switch back): Mappings still correct")
 
         print(
-            "✅ TEST PASSED: Field mappings persist correctly across profile switches"
+            "[OK] TEST PASSED: Field mappings persist correctly across profile switches"
         )
 
     def test_state_store_cleared_on_profile_switch_callback(self):
-        """Verify the callback clears state store on profile switch.
+        """Verify the callback clears state store on ACTUAL profile switch.
 
         This tests the fix directly: clear_field_mapping_state_on_profile_switch()
-        callback should return empty dicts when profile selector changes.
+        callback should only clear when profile actually changes, not when set to same value.
         """
+        from dash import no_update
         from callbacks.field_mapping import (
             clear_field_mapping_state_on_profile_switch,
         )
 
         # Create two profiles
         profile_a_id = create_profile(
-            "TestProfile-StateStore-A", {"field_mappings": {"key": "value"}}
+            "TestProfile-StateStore-A", {"field_mappings": {"dora": {"key": "value"}}}
         )
         profile_b_id = create_profile(
             "TestProfile-StateStore-B", {"field_mappings": {}}
         )
 
-        # Simulate profile switch by calling the callback directly
-        result = clear_field_mapping_state_on_profile_switch(profile_b_id)
-
-        # Verify callback returns tuple of empty dicts (clears both stores)
-        assert result == ({}, {}), (
-            "Callback should return ({}, {}) to clear both state and metadata stores"
+        # Test 1: First profile set (no previous profile) - should mark profile without clearing
+        state_before_first_switch = {}  # Empty state initially
+        result = clear_field_mapping_state_on_profile_switch(
+            profile_a_id, state_before_first_switch, {}
         )
+
+        # Should preserve empty state and just add profile ID (render_tab_content will init from settings)
+        assert result[0] == {"_profile_id": profile_a_id}, (
+            f"First profile set should only add profile ID, got {result[0]}"
+        )
+        assert result[1] == no_update, "Metadata should not be cleared on first set"
         print(
-            "✓ Callback clear_field_mapping_state_on_profile_switch() returns ({}, {})"
+            f"[OK] First profile set: Marks profile ID as {profile_a_id}, preserves state"
         )
 
-        # Test with different profile ID
-        result_a = clear_field_mapping_state_on_profile_switch(profile_a_id)
-        assert result_a == ({}, {}), (
-            "Callback should always return ({}, {}) regardless of profile"
+        # Test 2: Same profile again (simulates page refresh/reopen modal) - should NOT clear
+        state_with_data = {
+            "_profile_id": profile_a_id,
+            "field_mappings": {"dora": {"deployment_date": "fixVersions"}},
+        }
+        result = clear_field_mapping_state_on_profile_switch(
+            profile_a_id, state_with_data, {"some": "metadata"}
+        )
+
+        assert result == (no_update, no_update), (
+            "Same profile should not clear state (no_update expected)"
+        )
+        print(f"[OK] Same profile ({profile_a_id}): Preserves state (no_update)")
+
+        # Test 3: Actual profile change - should clear state and update profile ID
+        result = clear_field_mapping_state_on_profile_switch(
+            profile_b_id, state_with_data, {"some": "metadata"}
+        )
+
+        assert result[0] == {"_profile_id": profile_b_id}, (
+            f"Profile switch should update profile ID to {profile_b_id}, got {result[0]}"
+        )
+        assert result[1] == {}, "Metadata should be cleared on profile switch"
+        print(
+            f"[OK] Profile switch ({profile_a_id} → {profile_b_id}): Clears state and updates ID"
         )
 
         print(
-            "✅ TEST PASSED: Callback correctly clears state store on every profile switch"
+            "[OK] TEST PASSED: Callback correctly handles profile switches and same-profile sets"
         )
 
 

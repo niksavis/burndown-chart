@@ -1,7 +1,7 @@
 """
 DEPRECATED - Callbacks for scope metrics.
 
-⚠️ WARNING: This module is DEPRECATED and NO LONGER USED.
+[!] WARNING: This module is DEPRECATED and NO LONGER USED.
 
 This module contained an orphaned callback that caused a critical bug where
 scope change content would render in all tabs after the scope tab was first activated.

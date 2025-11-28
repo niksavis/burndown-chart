@@ -82,12 +82,12 @@ class TestPERTConstraintLogic:
         "pert_factor, data_points",
         [
             # Valid constraint cases
-            (3, 6),  # 3*2 = 6 <= 6 ✓
-            (5, 10),  # 5*2 = 10 <= 10 ✓
-            (12, 25),  # 12*2 = 24 <= 25 ✓
-            (15, 30),  # 15*2 = 30 <= 30 ✓
-            (2, 4),  # 2*2 = 4 <= 4 ✓
-            (1, 2),  # 1*2 = 2 <= 2 ✓
+            (3, 6),  # 3*2 = 6 <= 6 [OK]
+            (5, 10),  # 5*2 = 10 <= 10 [OK]
+            (12, 25),  # 12*2 = 24 <= 25 [OK]
+            (15, 30),  # 15*2 = 30 <= 30 [OK]
+            (2, 4),  # 2*2 = 4 <= 4 [OK]
+            (1, 2),  # 1*2 = 2 <= 2 [OK]
         ],
     )
     def test_constraint_satisfaction(self, pert_factor, data_points):
@@ -327,8 +327,8 @@ if __name__ == "__main__":
     import sys
 
     if validate_constraint_logic():
-        print("✅ All constraint logic tests pass!")
+        print("[OK] All constraint logic tests pass!")
         sys.exit(0)
     else:
-        print("❌ Constraint logic tests failed!")
+        print("[X] Constraint logic tests failed!")
         sys.exit(1)

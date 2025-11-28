@@ -7,7 +7,7 @@ import pandas as pd
 from unittest.mock import patch
 import time
 
-from caching import memoize, clear_cache
+from utils.caching import memoize, clear_cache
 
 
 # Test data fixtures

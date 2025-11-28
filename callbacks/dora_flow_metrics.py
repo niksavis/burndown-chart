@@ -171,7 +171,7 @@ def load_and_display_dora_metrics(
         n_weeks_display = cached_metrics.get("_n_weeks", 12)
 
         # Import tier calculation function
-        from data.dora_calculator import (
+        from data.dora_metrics import (
             _determine_performance_tier,
             DEPLOYMENT_FREQUENCY_TIERS,
             LEAD_TIME_TIERS,
@@ -888,9 +888,6 @@ def calculate_metrics_from_settings(
     Returns:
         Tuple of (status message, button disabled state, button children, refresh timestamp)
     """
-    print(f"\n{'=' * 80}")
-    print(f"CALCULATE METRICS CALLBACK TRIGGERED - button_clicks={button_clicks}")
-    print(f"{'=' * 80}\n")
     logger.info(
         f"[CALCULATE METRICS] Callback triggered - button_clicks={button_clicks}"
     )
@@ -1054,7 +1051,7 @@ def calculate_metrics_from_settings(
         ]
 
         # Extract actual weeks processed from the summary message
-        # Message format: "✅ Successfully calculated metrics for all X weeks (YYYY-WW to YYYY-WW)"
+        # Message format: "[OK] Successfully calculated metrics for all X weeks (YYYY-WW to YYYY-WW)"
         actual_weeks_processed = n_weeks  # Default to requested weeks
         if "calculated metrics for all" in message.lower():
             import re

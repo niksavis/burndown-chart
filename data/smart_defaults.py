@@ -131,13 +131,9 @@ def get_smart_query_suggestions(profile_id: str) -> Dict[str, str]:
     Returns:
         Dict with suggested queries
     """
-    try:
-        from data.query_manager import generate_smart_jql_defaults
-
-        return generate_smart_jql_defaults(profile_id)
-    except Exception as e:
-        logger.warning(f"Could not generate smart query suggestions: {e}")
-        return _get_generic_query_suggestions()
+    # Function generate_smart_jql_defaults not yet implemented
+    # Fall back to generic suggestions
+    return _get_generic_query_suggestions()
 
 
 def _get_generic_query_suggestions() -> Dict[str, str]:
@@ -222,7 +218,7 @@ def get_contextual_help_for_step(
     """
     help_content = {
         "profile_creation": {
-            "title": "🚀 Create Your Workspace",
+            "title": "[Start] Create Your Workspace",
             "description": "Set up a new profile to organize your JIRA analysis",
             "tips": [
                 "Choose a descriptive name for easy identification",
@@ -231,7 +227,7 @@ def get_contextual_help_for_step(
             ],
         },
         "jira_connection": {
-            "title": "🔌 Connect to JIRA",
+            "title": "Connect to JIRA",
             "description": "Configure connection to your JIRA instance",
             "tips": [
                 "Use API tokens instead of passwords for security",
@@ -240,7 +236,7 @@ def get_contextual_help_for_step(
             ],
         },
         "field_mapping": {
-            "title": "🗺️ Map JIRA Fields",
+            "title": "Map JIRA Fields",
             "description": "Configure custom fields for DORA and Flow metrics",
             "tips": [
                 "Field mapping is optional but enables advanced metrics",
@@ -249,7 +245,7 @@ def get_contextual_help_for_step(
             ],
         },
         "query_creation": {
-            "title": "🔍 Create JQL Queries",
+            "title": "Create JQL Queries",
             "description": "Define queries to analyze specific sets of issues",
             "tips": [
                 "Start with a simple project filter",

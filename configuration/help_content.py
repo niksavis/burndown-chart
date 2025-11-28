@@ -12,17 +12,17 @@ FORECAST_HELP_DETAILED = {
     "pert_methodology": """
         PERT (Program Evaluation and Review Technique) uses three-point estimation for probabilistic forecasting:
         
-        📊 **Formula Components:**
+        [Stats] **Formula Components:**
         • Optimistic (O): Best-case scenario from top velocity periods
         • Most Likely (ML): Current average velocity from recent data
         • Pessimistic (P): Worst-case scenario from lowest velocity periods
         • Expected (E): Weighted average = (O + 4×ML + P) ÷ 6
         
-        🔢 **Mathematical Foundation:**
+        [Calc] **Mathematical Foundation:**
         The formula weights the Most Likely estimate 4x more heavily than extreme scenarios,
         following beta distribution principles for realistic project estimation.
         
-        📈 **Confidence Intervals (Statistical Percentiles):**
+        [Trend] **Confidence Intervals (Statistical Percentiles):**
         • 50% (Median): The PERT forecast itself - 50% chance of completion by this date
         • 80% (Good Confidence): PERT + 0.84 standard deviations - 80% chance of completion
         • 95% (High Confidence): PERT + 1.65 standard deviations - 95% chance of completion
@@ -50,50 +50,50 @@ FORECAST_HELP_DETAILED = {
     "expected_forecast": """
         PERT Expected estimate using weighted average of all three scenarios.
         
-        🔢 **Step-by-Step Calculation:**
+        [Calc] **Step-by-Step Calculation:**
         1. Expected = (Optimistic + 4×Most Likely + Pessimistic) ÷ 6
         2. Example: (8 + 4×12 + 20) ÷ 6 = (8 + 48 + 20) ÷ 6 = 76 ÷ 6 = 12.67 weeks
         
-        📊 **Why This Formula:**
+        [Stats] **Why This Formula:**
         • Weights Most Likely 4x more than extremes (follows beta distribution)
         • Balances optimism with realism for statistically sound estimates
         • Reduces impact of outlier scenarios while acknowledging uncertainty
         
-        💡 **Interpretation:** Most reliable single-point forecast for project planning.
+        [Note] **Interpretation:** Most reliable single-point forecast for project planning.
     """,
     "three_point_estimation": """
         Three-point estimation technique provides forecast ranges instead of single points.
         
-        🎯 **Mathematical Advantage:**
+        [Tip] **Mathematical Advantage:**
         Single estimates ignore uncertainty; ranges acknowledge project variability.
         
-        📈 **Confidence Calculation:**
+        [Trend] **Confidence Calculation:**
         Uncertainty bands calculated from variance between optimistic and pessimistic scenarios.
         Wider bands = higher uncertainty, narrower bands = more predictable outcomes.
         
-        🔍 **Practical Application:**
+        [Apply] **Practical Application:**
         Use ranges for risk planning, resource allocation, and stakeholder communication.
         The expected value provides planning target while ranges show risk boundaries.
     """,
     "project_overview": """
         Project Overview provides a comprehensive dashboard of your project's current state and progress metrics.
         
-        📊 **Progress Tracking:**
+        [Stats] **Progress Tracking:**
         • Items Completion: Shows percentage of work items completed vs remaining
         • Points Completion: Shows percentage of story points completed vs remaining
         • Timeline Progress: Visual representation of project advancement
         
-        🎯 **Key Metrics Displayed:**
+        [Tip] **Key Metrics Displayed:**
         • Total project scope (items and points)
         • Completed work (items and points) 
         • Remaining work estimates
         • Completion percentages for both items and points
         
-        📈 **Visual Indicators:**
+        [Trend] **Visual Indicators:**
         Progress bars provide immediate visual feedback on project completion status.
         Different completion rates for items vs points can indicate scope or estimation changes.
         
-        💡 **Interpretation Guide:**
+        [Note] **Interpretation Guide:**
         Items and points completion percentages may differ due to:
         • Variable item complexity (some items worth more points)
         • Scope changes affecting total estimates
@@ -102,25 +102,25 @@ FORECAST_HELP_DETAILED = {
     "forecast_graph_overview": """
         Interactive forecast visualization showing project completion timeline with uncertainty ranges.
         
-        📈 **Chart Elements:**
+        [Trend] **Chart Elements:**
         • Historical Data: Solid lines showing actual completed work over time
         • PERT Forecasts: Dashed lines showing three-point estimation projections
         • Confidence Bands: Shaded areas indicating forecast uncertainty ranges
         • Scope Changes: Vertical markers showing requirement additions
         
-        🔢 **PERT Integration:**
+        [Calc] **PERT Integration:**
         The chart displays all three PERT scenarios:
         • Optimistic: Best-case completion timeline (green)
         • Most Likely: Expected completion timeline (blue) 
         • Pessimistic: Worst-case completion timeline (red)
         • Expected: Weighted PERT calculation (primary forecast)
         
-        📊 **Burndown Chart:**
+        [Stats] **Burndown Chart:**
         • Shows remaining work decreasing toward zero over time
         • Ideal for tracking progress against fixed deadlines
         • Visual representation of project velocity and completion trends
         
-        🎯 **Practical Usage:**
+        [Tip] **Practical Usage:**
         • Use for stakeholder communication and deadline planning
         • Monitor actual progress against forecasted timelines
         • Identify trends and potential delays early
@@ -129,7 +129,7 @@ FORECAST_HELP_DETAILED = {
     "pert_analysis_detailed": """
         Comprehensive PERT (Program Evaluation and Review Technique) analysis using statistical forecasting.
         
-        🔢 **Three-Point Calculation Method:**
+        [Calc] **Three-Point Calculation Method:**
         
         **Data Collection Process:**
         • Optimistic (O): Average of top 25% velocity periods from your historical data
@@ -157,7 +157,7 @@ FORECAST_HELP_DETAILED = {
         **Your Completion Timeline:**
         With 50 remaining items: 50 ÷ 10.17 = ~5 weeks expected completion
         
-        📊 **Statistical Foundation:**
+        [Stats] **Statistical Foundation:**
         • **Beta Distribution**: Mathematically models project uncertainty patterns naturally
         • **4× Most Likely Weighting**: Statistically optimal balance (proven by decades of project data)
         • **Confidence Intervals**: Calculated using coefficient of variation (CV = std/mean) applied to forecast
@@ -165,16 +165,16 @@ FORECAST_HELP_DETAILED = {
           - 80th percentile: PERT + 0.84 × forecast_std
           - 95th percentile: PERT + 1.65 × forecast_std
         
-        🔗 **Related Topics:**
+        [Link] **Related Topics:**
         See also: Weekly Velocity Calculation, Forecast Graph Overview, Input Parameters Guide
         
-        🎯 **Forecast Applications:**
+        [Tip] **Forecast Applications:**
         • Timeline Planning: Use Expected value for primary planning
         • Risk Assessment: Monitor gap between Optimistic and Pessimistic
         • Stakeholder Communication: Present ranges rather than single dates
         • Buffer Planning: Use Pessimistic scenario for contingency planning
         
-        📈 **Accuracy Factors:**
+        [Trend] **Accuracy Factors:**
         Forecast accuracy improves with:
         • More historical data points (8+ weeks recommended)
         • Consistent team composition and working patterns
@@ -184,7 +184,7 @@ FORECAST_HELP_DETAILED = {
     "input_parameters_guide": """
         Input Parameters control forecast calculations and scope definitions for your project.
         
-        🔧 **Parameter Relationships:**
+        [Config] **Parameter Relationships:**
         
         **PERT Factor (Default: 6):**
         • Controls forecast horizon (number of data points)
@@ -204,19 +204,19 @@ FORECAST_HELP_DETAILED = {
         • Total Points: Complete project effort (all story points)
         • Estimated Points: Remaining effort to complete
         
-        ⚠️ **Critical Relationships:**
+        [!] **Critical Relationships:**
         • Estimated values should be ≤ Total values
         • Changes affect all forecast calculations immediately
         • Points-based forecasts often more accurate than item-based
         • Regular updates improve forecast accuracy over time
         
-        🎯 **Optimization Tips:**
+        [Tip] **Optimization Tips:**
         • Increase PERT Factor for volatile teams (new teams, changing scope)
         • Decrease PERT Factor for stable teams with consistent delivery
         • Update scope parameters weekly as requirements evolve
         • Monitor forecast accuracy and adjust parameters accordingly
         
-        📊 **Impact on Forecasting:**
+        [Stats] **Impact on Forecasting:**
         These parameters directly affect:
         • PERT calculation timeframes and confidence ranges
         • Velocity trend analysis and weighting
@@ -230,16 +230,16 @@ VELOCITY_HELP_DETAILED = {
     "weekly_velocity_calculation": """
         Weekly velocity represents your team's average completion rate calculated over the last 10 weeks of data.
         
-        📊 **Calculation Methods:**
+        [Stats] **Calculation Methods:**
         • Average Velocity: Simple arithmetic mean (sum ÷ count)
         • Median Velocity: Middle value when sorted (outlier resistant)
         • Weighted Average: Recent weeks weighted more heavily
         
-        🔢 **Mathematical Examples:**
+        [Calc] **Mathematical Examples:**
         Average: (12 + 15 + 8 + 18 + 10) ÷ 5 = 12.6 items/week
         Median: Sort [8, 10, 12, 15, 18], middle value = 12 items/week
         
-        📈 **Trend Analysis:**
+        [Trend] **Trend Analysis:**
         Trend indicators show percentage change from previous periods:
         • Up arrows: Velocity acceleration (positive trend)
         • Down arrows: Velocity deceleration (negative trend)  
@@ -248,15 +248,15 @@ VELOCITY_HELP_DETAILED = {
     "velocity_trend_indicators": """
         Visual indicators showing velocity change patterns over time.
         
-        🎯 **Trend Calculation:**
+        [Tip] **Trend Calculation:**
         Percentage change = ((Current Period - Previous Period) ÷ Previous Period) × 100%
         
-        📊 **Visual Meanings:**
-        • 🔺 Green Up Arrow: >5% improvement (acceleration)
-        • 🔻 Red Down Arrow: >5% decline (deceleration)
-        • ➡️ Gray Stable: ±5% variation (consistent)
+        [Stats] **Visual Meanings:**
+        • [UP] Green Up Arrow: >5% improvement (acceleration)
+        • [DOWN] Red Down Arrow: >5% decline (deceleration)
+        • [STABLE] Gray Stable: ±5% variation (consistent)
         
-        💡 **Interpretation Guide:**
+        [Note] **Interpretation Guide:**
         Consistent upward trends may indicate team learning or process improvements.
         Consistent downward trends may indicate technical debt, scope creep, or team changes.
         Stable trends indicate predictable delivery capacity.
@@ -264,25 +264,25 @@ VELOCITY_HELP_DETAILED = {
     "data_quality_impact": """
         Data quality and quantity directly affect forecast accuracy and confidence levels.
         
-        📈 **Data Point Requirements:**
+        [Trend] **Data Point Requirements:**
         • Minimum: 4-6 weeks for basic trends
         • Recommended: 8-12 weeks for reliable forecasts
         • Optimal: 12+ weeks for high-confidence predictions
         
-        🎯 **Quality Factors:**
+        [Tip] **Quality Factors:**
         • Consistency: Regular data collection intervals
         • Completeness: No missing weeks or partial data
         • Accuracy: Reflects actual work completed (not started)
         • Context: Accounts for holidays, team changes, scope shifts
         
-        📊 **Impact on Forecasts:**
+        [Stats] **Impact on Forecasts:**
         More data points = narrower confidence intervals = more reliable predictions
         Less data points = wider confidence intervals = higher uncertainty ranges
     """,
     "velocity_average_calculation": """
         Average Velocity calculation using arithmetic mean for consistent baseline forecasting.
         
-        🔢 **Mathematical Formula:**
+        [Calc] **Mathematical Formula:**
         ```
         Average Velocity = Σ(completed items/points) ÷ Number of weeks
         ```
@@ -305,13 +305,13 @@ VELOCITY_HELP_DETAILED = {
         **Real Forecasting Application:**
         With 50 remaining items: 50 ÷ 12.6 = ~4 weeks expected completion
         
-        📊 **Statistical Characteristics:**
+        [Stats] **Statistical Characteristics:**
         • **Equal Weighting**: Every week contributes equally to final calculation
         • **Outlier Sensitivity**: Week 4 (18 items) and Week 3 (8 items) both pull the average 
         • **Stability Indicator**: Consistent averages = predictable delivery capacity
         • **Trending Capability**: Shows velocity evolution over rolling time periods
         
-        📈 **Advanced Trend Analysis:**
+        [Trend] **Advanced Trend Analysis:**
         ```
         Trend % = ((Current Period - Previous Period) ÷ Previous Period) × 100%
         ```
@@ -322,22 +322,22 @@ VELOCITY_HELP_DETAILED = {
         • Calculation: ((12.6 - 10.2) ÷ 10.2) × 100% = +23.5% 
         • Interpretation: ↗️ **Positive acceleration** - team improving over time
         
-        🎯 **Integration with PERT Forecasting:**
+        [Tip] **Integration with PERT Forecasting:**
         • Average velocity = "Most Likely" scenario in three-point estimation
         • Provides statistical foundation for expected completion dates
         • Combined with optimistic/pessimistic bounds for full PERT analysis
         
-        ⚙️ **When to Use Average vs Median:**
+        [Config] **When to Use Average vs Median:**
         • **Choose Average** for stable teams with consistent delivery patterns
         • **Choose Median** when dealing with frequent scope changes or capacity variations
         
-        🔗 **Related Topics:**
+        [Link] **Related Topics:**
         See also: Median Velocity Calculation, PERT Analysis Detailed, Velocity Trend Indicators
     """,
     "velocity_median_calculation": """
         Median Velocity calculation using middle value for outlier-resistant forecasting.
         
-        🔢 **Formula:**
+        [Calc] **Formula:**
         Median Velocity = Middle value when all weekly velocities are sorted
         
         **Step-by-Step Example:**
@@ -353,13 +353,13 @@ VELOCITY_HELP_DETAILED = {
         • Sort values: [8, 10, 12, 15]
         • Median: (10 + 12) ÷ 2 = 11 items/week
         
-        📊 **Characteristics:**
+        [Stats] **Characteristics:**
         • **Outlier Resistance**: High - extreme values don't affect result
         • **Stability**: More stable than average when data has outliers
         • **Use Case**: Best for teams with variable delivery or scope changes
         • **Interpretation**: Represents "typical" week performance
         
-        📈 **Advantage Over Average:**
+        [Trend] **Advantage Over Average:**
         
         **Example with Outlier:**
         Weekly data: [2, 10, 12, 13, 48] items
@@ -369,7 +369,7 @@ VELOCITY_HELP_DETAILED = {
         The median (12) better represents typical performance than average (17) 
         which is skewed by the outlier week of 48 items.
         
-        🎯 **Forecasting Application:**
+        [Tip] **Forecasting Application:**
         Median velocity provides more realistic estimates when:
         • Team has inconsistent delivery patterns
         • Data includes exceptional weeks (holidays, crunch periods, blockers)
@@ -383,22 +383,22 @@ SCOPE_HELP_DETAILED = {
     "scope_change_methodology": """
         Scope change rate measures the percentage increase in project requirements relative to the original baseline.
         
-        🔢 **Calculation Formula:**
+        [Calc] **Calculation Formula:**
         Scope Change Rate = (Items Created ÷ Baseline Items) × 100%
         
-        📊 **Example Calculation:**
+        [Stats] **Example Calculation:**
         • Original baseline: 100 items
         • Items added during project: 25 items
         • Scope change rate: (25 ÷ 100) × 100% = 25%
         
-        🎯 **Agile Context:**
+        [Tip] **Agile Context:**
         In agile projects, scope changes are normal and healthy, representing:
         • Discovery of new requirements
         • User feedback integration  
         • Market responsiveness
         • Learning and adaptation
         
-        📈 **Healthy Ranges:**
+        [Trend] **Healthy Ranges:**
         • 10-30%: Good adaptability without excessive thrash
         • 30-50%: High responsiveness, monitor for scope creep
         • >50%: Potential planning or requirements issues
@@ -406,40 +406,40 @@ SCOPE_HELP_DETAILED = {
     "adaptability_index": """
         Adaptability Index measures how well your team balances scope changes with delivery consistency.
         
-        🔢 **Calculation Method:**
+        [Calc] **Calculation Method:**
         Adaptability = 1 - (Standard Deviation of Weekly Scope Changes ÷ Mean Weekly Scope Changes)
         
-        📊 **Interpretation Scale:**
+        [Stats] **Interpretation Scale:**
         • 0.8-1.0: Highly adaptable (excellent scope management)
         • 0.5-0.8: Good adaptability (normal agile patterns)
         • 0.2-0.5: Moderate adaptability (some instability)
         • 0.0-0.2: Low adaptability (high scope volatility)
         
-        🎯 **Agile Context:**
+        [Tip] **Agile Context:**
         Low values (0.2-0.5) are NORMAL for responsive agile teams!
         This indicates healthy adaptation to changing requirements.
         Very high values might suggest insufficient customer feedback or market responsiveness.
         
-        💡 **Action Insights:**
+        [Note] **Action Insights:**
         Use trends over time rather than absolute values for decision making.
     """,
     "throughput_ratio": """
         Throughput ratio compares the rate of new work creation to work completion.
         
-        🔢 **Calculation Formula:**
+        [Calc] **Calculation Formula:**
         Throughput Ratio = Created Items ÷ Completed Items
         
-        📊 **Ratio Interpretation:**
+        [Stats] **Ratio Interpretation:**
         • 1.0: Perfect balance (creating = completing)
         • <1.0: Burning down backlog (completing > creating)
         • >1.0: Growing backlog (creating > completing)
         
-        🎯 **Healthy Patterns:**
+        [Tip] **Healthy Patterns:**
         • Early project: >1.0 (discovery and planning phase)
         • Mid project: ~1.0 (steady state development)
         • Late project: <1.0 (completion and cleanup phase)
         
-        📈 **Strategic Insights:**
+        [Trend] **Strategic Insights:**
         Sustained ratios >1.5 may indicate:
         • Insufficient development capacity
         • Scope creep or poor requirements management
@@ -452,12 +452,12 @@ STATISTICS_HELP_DETAILED = {
     "data_collection_methodology": """
         Data collection methodology for accurate project tracking and forecasting.
         
-        📅 **Weekly Data Collection:**
+        [Date] **Weekly Data Collection:**
         • Collection Point: End of each work week (typically Friday)
         • Scope: Monday-Sunday work period for consistency
         • Frequency: Weekly snapshots for trend analysis
         
-        🔢 **Data Fields Explained:**
+        [Calc] **Data Fields Explained:**
         
         **Week Start (Monday)**: 
         - Date marking the beginning of the work week
@@ -487,7 +487,7 @@ STATISTICS_HELP_DETAILED = {
     "data_quality_guidelines": """
         Guidelines for maintaining high-quality project data for accurate forecasting.
         
-        ✅ **Data Quality Checklist:**
+        [OK] **Data Quality Checklist:**
         
         **Completeness:**
         • No missing weeks in the data series
@@ -509,7 +509,7 @@ STATISTICS_HELP_DETAILED = {
         • Note any data collection irregularities or exceptions
         • Track external factors that might affect velocity patterns
         
-        📊 **Impact on Forecasting:**
+        [Stats] **Impact on Forecasting:**
         High-quality data leads to:
         • More accurate PERT forecasts
         • Narrower confidence intervals
@@ -525,10 +525,10 @@ STATISTICS_HELP_DETAILED = {
     "weekly_progress_data_explanation": """
         Weekly Progress Data table provides comprehensive tracking of team velocity and scope changes.
         
-        📊 **Table Structure:**
+        [Stats] **Table Structure:**
         Each row represents one week of project activity with key metrics for forecasting.
         
-        🔢 **Column Definitions:**
+        [Calc] **Column Definitions:**
         
         **Week Start (Monday):**
         • Reference date for the work week (Monday-Sunday period)
@@ -558,7 +558,7 @@ STATISTICS_HELP_DETAILED = {
         • Represents scope impact of new requirements
         • Used for throughput ratio and scope stability analysis
         
-        📈 **Usage for Forecasting:**
+        [Trend] **Usage for Forecasting:**
         
         **Velocity Calculations:**
         • Average: Sum of "Items/Points Done" ÷ Number of weeks
@@ -576,7 +576,7 @@ STATISTICS_HELP_DETAILED = {
         • Include all work types (features, bugs, technical tasks)
         • Estimate new items promptly for accurate scope tracking
         
-        ⚠️ **Common Mistakes:**
+        [!] **Common Mistakes:**
         • Entering cumulative totals instead of weekly increments
         • Inconsistent item/point estimation practices
         • Missing weeks creating gaps in trend analysis
@@ -595,13 +595,13 @@ CHART_HELP_DETAILED = {
         • Ideal for tracking progress against fixed deadlines
         • Emphasize completion progress and deadline tracking
         
-        🎯 **Best Practices:**
+        [Tip] **Best Practices:**
         • Monitor actual progress against forecasted timelines
         • Track "how much work is left" to completion
         • Identify trends and potential delays early
         • Communicate project status to stakeholders
         
-        📊 **Visual Elements:**
+        [Stats] **Visual Elements:**
         • Solid lines: Historical actual data
         • Dashed lines: PERT forecast projections  
         • Dotted lines: Confidence intervals and uncertainty ranges
@@ -611,19 +611,19 @@ CHART_HELP_DETAILED = {
     "pert_forecast_methodology": """
         PERT (Program Evaluation Review Technique) creates realistic forecasts using three-point estimation.
         
-        🔢 **Three-Point Estimation Process:**
+        [Calc] **Three-Point Estimation Process:**
         1. **Optimistic Scenario**: Best-case timeline from peak velocity periods
         2. **Most Likely Scenario**: Realistic estimate from current average velocity
         3. **Pessimistic Scenario**: Worst-case timeline from lowest velocity periods
         4. **Expected Value**: Weighted calculation = (O + 4×ML + P) ÷ 6
         
-        📊 **Mathematical Foundation:**
+        [Stats] **Mathematical Foundation:**
         • Follows beta distribution for project estimation
         • Weights most likely scenario 4x more than extremes
         • Provides statistically sound forecasts with confidence intervals
         • Accounts for both optimism bias and risk factors
         
-        📈 **Confidence Intervals:**
+        [Trend] **Confidence Intervals:**
         • Calculated using coefficient of variation applied to PERT forecast
         • 50th percentile: The PERT forecast itself (median estimate)
         • 80th percentile: PERT + 0.84 standard deviations
@@ -632,13 +632,13 @@ CHART_HELP_DETAILED = {
         • Narrower intervals suggest more predictable delivery patterns
         • Use for risk planning and stakeholder communication
         
-        🎯 **Practical Application:**
+        [Tip] **Practical Application:**
         • Expected value: Primary planning target
         • Optimistic: Best-case scenario for resource planning
         • Pessimistic: Risk mitigation and buffer planning
         • Confidence bands: Communication of forecast uncertainty
         
-        💡 **Accuracy Factors:**
+        [Note] **Accuracy Factors:**
         Forecast accuracy improves with:
         • More historical data points (8+ weeks recommended)
         • Consistent team composition and working arrangements
@@ -648,13 +648,13 @@ CHART_HELP_DETAILED = {
     "weekly_chart_methodology": """
         Weekly velocity charts with predictive forecasting using weighted moving averages.
         
-        📊 **Chart Components:**
+        [Stats] **Chart Components:**
         • Historical bars: Actual weekly completion rates
         • Forecast bars: Predicted next week performance using PERT methodology  
         • Trend lines: Moving average patterns for visual trend identification
         • Confidence intervals: Error bars showing forecast uncertainty ranges
         
-        🔢 **Forecasting Methodology:**
+        [Calc] **Forecasting Methodology:**
         **Weighted Moving Average:**
         • Most recent week: 40% weight
         • Second recent: 30% weight  
@@ -668,13 +668,13 @@ CHART_HELP_DETAILED = {
         • Pessimistic: Bottom 25% of historical weekly performance
         • Expected: (O + 4×ML + P) ÷ 6 for next week prediction
         
-        📈 **Visual Interpretation:**
+        [Trend] **Visual Interpretation:**
         • Solid bars: Confirmed historical performance
         • Patterned bars: Forecasted performance with uncertainty
         • Error bars: Confidence intervals using coefficient of variation method
         • Trend direction: Overall velocity acceleration or deceleration patterns
         
-        🎯 **Usage Guidelines:**
+        [Tip] **Usage Guidelines:**
         • Use for short-term capacity planning (1-2 weeks ahead)
         • Compare forecast vs actual for methodology refinement
         • Monitor confidence interval width for prediction reliability
@@ -744,21 +744,21 @@ FORECAST_HELP_DETAILED = {
     "forecast_algorithm": """
         4-Week Weighted Forecast provides actionable predictions for next week's performance.
         
-        📊 **Weighting Strategy:**
+        [Stats] **Weighting Strategy:**
         Recent weeks are weighted more heavily using exponential decay:
         • Week 0 (current): 1.0 (100% weight)
         • Week -1 (last week): 0.8 (80% weight)
         • Week -2 (2 weeks ago): 0.6 (60% weight)
         • Week -3 (3 weeks ago): 0.4 (40% weight)
         
-        🔢 **Calculation Formula:**
+        [Calc] **Calculation Formula:**
         ```python
         weights = [1.0, 0.8, 0.6, 0.4]  # Week 0 → Week -3
         weighted_sum = sum(value × weight for value, weight in zip(values, weights))
         forecast = weighted_sum / sum(weights)  # Normalize by total weight
         ```
         
-        📈 **Interactive Example:**
+        [Trend] **Interactive Example:**
         Your team's Flow Velocity over last 4 weeks: [15, 12, 18, 10] items/week
         
         **Step-by-Step Calculation:**
@@ -772,19 +772,19 @@ FORECAST_HELP_DETAILED = {
         Forecast = 39.4 / 2.8 = 14.07 items/week (predicted next week)
         ```
         
-        🎯 **Why Weighted Average?**
+        [Tip] **Why Weighted Average?**
         • Recent performance matters more than old data (recency bias)
         • Smooths out weekly volatility without ignoring trends
         • Balances responsiveness with stability
         • Proven effective in time series forecasting
         
-        📊 **Confidence Levels:**
+        [Stats] **Confidence Levels:**
         • **High (4 weeks)**: Full weighting, most reliable forecast
         • **Medium (3 weeks)**: Reduced accuracy, still useful guidance
         • **Low (2 weeks)**: Limited data, use with caution
         • **Insufficient (<2 weeks)**: "Gathering data..." message shown
         
-        💡 **Practical Application:**
+        [Note] **Practical Application:**
         Use forecasts to:
         • Proactively identify performance issues before they impact delivery
         • Plan capacity and resource allocation for next sprint
@@ -794,15 +794,15 @@ FORECAST_HELP_DETAILED = {
     "trend_vs_forecast_explained": """
         Trend vs Forecast Indicator compares actual performance against predictions.
         
-        🎯 **Purpose:**
+        [Tip] **Purpose:**
         Shows if your team is exceeding, meeting, or falling short of forecast expectations.
         
-        🔢 **Calculation:**
+        [Calc] **Calculation:**
         ```python
         deviation_percent = ((current_value - forecast_value) / forecast_value) × 100%
         ```
         
-        📊 **Interpretation:**
+        [Stats] **Interpretation:**
         
         **Deviation Thresholds:**
         • **On Track (→)**: ±5% deviation - performing as expected
@@ -811,16 +811,16 @@ FORECAST_HELP_DETAILED = {
         
         **Direction Meanings:**
         • **↗ (Up Arrow)**: Above forecast
-          - For "higher is better" metrics (velocity, efficiency): ✅ Good (green)
-          - For "lower is better" metrics (lead time, MTTR): ⚠️ Warning (yellow/red)
+          - For "higher is better" metrics (velocity, efficiency): [OK] Good (green)
+          - For "lower is better" metrics (lead time, MTTR): [!] Warning (yellow/red)
         
         • **↘ (Down Arrow)**: Below forecast
-          - For "higher is better" metrics: ⚠️ Warning (yellow/red)
-          - For "lower is better" metrics: ✅ Good (green)
+          - For "higher is better" metrics: [!] Warning (yellow/red)
+          - For "lower is better" metrics: [OK] Good (green)
         
         • **→ (Stable)**: Within ±5% of forecast - on track (neutral)
         
-        📈 **Real-World Examples:**
+        [Trend] **Real-World Examples:**
         
         **Example 1: Flow Velocity (higher is better)**
         • Forecast: 12 items/week
@@ -846,7 +846,7 @@ FORECAST_HELP_DETAILED = {
         • Color: Secondary (neutral, not danger)
         • Interpretation: Week just started, no completions yet (not a failure)
         
-        💡 **Action Insights:**
+        [Note] **Action Insights:**
         • **Consistent ↗ (good direction)**: Celebrate success, document what's working
         • **Consistent ↘ (bad direction)**: Investigate blockers, address issues
         • **Volatile trends**: Examine team stability, process consistency
@@ -858,7 +858,7 @@ FORECAST_HELP_DETAILED = {
         📁 **Storage Location:**
         `metrics_snapshots.json` → `{metric_name: [{date, value, iso_week}, ...]}`
         
-        🔢 **Data Structure:**
+        [Calc] **Data Structure:**
         ```python
         {
             "flow_velocity": [
@@ -871,29 +871,29 @@ FORECAST_HELP_DETAILED = {
         }
         ```
         
-        ⚙️ **Automatic Capture:**
+        [Config] **Automatic Capture:**
         Snapshots are automatically saved when metrics are calculated via:
         • `callbacks/dora_flow_metrics.py` - DORA & Flow metrics
         • `callbacks/scope_metrics.py` - Scope metrics (velocity, throughput)
         
-        📊 **Retention Policy:**
+        [Stats] **Retention Policy:**
         • Keeps last 4 weeks of data per metric (for weighted forecast)
         • Older data automatically pruned to prevent file bloat
         • One snapshot per ISO week (no duplicates)
         
-        🔄 **Usage Flow:**
+        [Flow] **Usage Flow:**
         1. Metric calculated (e.g., Flow Velocity = 15 items/week)
         2. `save_weekly_snapshot(metric_name, value, current_week)` called
         3. Snapshot stored with ISO week number and timestamp
         4. `get_historical_values(metric_name, weeks=4)` retrieves for forecast
         5. Forecast calculated using weighted average algorithm
         
-        🛠️ **Maintenance:**
+        [Maint] **Maintenance:**
         • **File Size**: Minimal (~10KB with 9 metrics × 4 weeks × 50 bytes/entry)
         • **Corruption Recovery**: File recreated automatically if invalid JSON
         • **Manual Reset**: Delete `metrics_snapshots.json` to clear all history
         
-        💡 **Troubleshooting:**
+        [Note] **Troubleshooting:**
         • **"Gathering data..." message**: <2 weeks of snapshots available
         • **Stale forecasts**: Check snapshot timestamps, verify weekly updates
         • **Missing metrics**: Confirm metric is being calculated and saved
@@ -904,7 +904,7 @@ FORECAST_HELP_DETAILED = {
         📁 **Configuration File:**
         `configuration/metrics_config.py` → `FORECAST_CONFIG` dictionary
         
-        🔧 **Configurable Parameters:**
+        [Config] **Configurable Parameters:**
         
         ```python
         FORECAST_CONFIG = {
@@ -920,7 +920,7 @@ FORECAST_HELP_DETAILED = {
         }
         ```
         
-        📊 **Metric Direction Mapping:**
+        [Stats] **Metric Direction Mapping:**
         
         ```python
         METRIC_DIRECTIONS = {
@@ -940,7 +940,7 @@ FORECAST_HELP_DETAILED = {
         }
         ```
         
-        ⚙️ **Customization Examples:**
+        [Config] **Customization Examples:**
         
         **More Responsive Forecasts (favor recent data):**
         ```python
@@ -962,7 +962,7 @@ FORECAST_HELP_DETAILED = {
         "min_weeks": 3  # Need 3+ weeks before showing forecast
         ```
         
-        💡 **Best Practices:**
+        [Note] **Best Practices:**
         • **Default weights (1.0, 0.8, 0.6, 0.4)**: Proven effective for most teams
         • **Adjust weights**: Only if forecasts consistently lag or overshoot reality
         • **Test changes**: Compare forecast accuracy before/after adjustments

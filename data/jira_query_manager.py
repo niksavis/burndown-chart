@@ -273,8 +273,8 @@ def retry_with_backoff(
     - Reasonable total time: ~31s total retry time is long enough for transient issues
 
     **Retryable vs Non-Retryable Errors:**
-    - ✓ Retry: 429 (rate limit), 5xx (server errors), timeouts, connection errors
-    - ✗ Don't retry: 4xx client errors (except 429) - these indicate bad requests
+    - [OK] Retry: 429 (rate limit), 5xx (server errors), timeouts, connection errors
+    - [X] Don't retry: 4xx client errors (except 429) - these indicate bad requests
 
     **Example Scenario:**
     - Attempt 1: Network timeout → Wait 1s, retry
@@ -330,7 +330,7 @@ def retry_with_backoff(
 
             # Success! Return immediately
             if attempt > 1:
-                logger.info(f"✓ Request succeeded after {attempt} attempts")
+                logger.info(f"[OK] Request succeeded after {attempt} attempts")
             return True, result
 
         except Exception as e:
@@ -350,13 +350,15 @@ def retry_with_backoff(
             if not is_retryable or attempt >= max_attempts:
                 # Either non-retryable error or exhausted all attempts
                 logger.warning(
-                    f"✗ Request failed after {attempt} attempts: {error_msg}"
+                    f"[X] Request failed after {attempt} attempts: {error_msg}"
                 )
                 return False, e
 
             # Log retry attempt with context
-            logger.warning(f"⚠ Attempt {attempt}/{max_attempts} failed: {error_msg}")
-            logger.info(f"⏳ Retrying in {delay:.1f}s... (exponential backoff)")
+            logger.warning(
+                f"[WARN] Attempt {attempt}/{max_attempts} failed: {error_msg}"
+            )
+            logger.info(f"[Pending] Retrying in {delay:.1f}s... (exponential backoff)")
 
             # Wait before retrying (exponential backoff)
             time.sleep(delay)

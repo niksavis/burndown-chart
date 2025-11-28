@@ -35,7 +35,7 @@ def create_profile_dropdown(id_suffix: str = "") -> dbc.Col:
 
         label = f"{profile['name']}{jira_info}"
         if profile["id"] == (active_profile.id if active_profile else None):
-            label += " ★"
+            label += " [Active]"
 
         options.append({"label": label, "value": profile["id"]})
 
@@ -147,18 +147,18 @@ def create_profile_tooltip_content(profile: Dict) -> str:
     parts = []
 
     if profile.get("description"):
-        parts.append(f"📝 {profile['description']}")
+        parts.append(f"{profile['description']}")
 
     if profile.get("jira_url"):
-        parts.append(f"🔗 {profile['jira_url']}")
+        parts.append(f"URL: {profile['jira_url']}")
 
     pert_factor = profile.get("pert_factor", 1.2)
-    parts.append(f"📊 PERT Factor: {pert_factor}")
+    parts.append(f"PERT Factor: {pert_factor}")
 
     query_count = profile.get("query_count", 0)
-    parts.append(f"📋 {query_count} queries")
+    parts.append(f"{query_count} queries")
 
     if profile.get("created_at"):
-        parts.append(f"📅 Created: {profile['created_at'][:10]}")
+        parts.append(f"Created: {profile['created_at'][:10]}")
 
     return "<br>".join(parts)

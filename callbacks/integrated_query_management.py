@@ -16,8 +16,7 @@ import logging
 from datetime import datetime
 from typing import Dict, Any, Optional, Tuple
 
-from dash import callback, Output, Input, State, ctx, no_update, html, dcc, ALL, MATCH
-from dash.exceptions import PreventUpdate
+from dash import callback, Output, Input, State, ctx, no_update
 from dash.exceptions import PreventUpdate
 
 logger = logging.getLogger(__name__)
@@ -478,7 +477,7 @@ def save_query_confirm(
         all_queries = list_queries_for_profile(profile_id)
         dropdown_options = [
             {
-                "label": f"{q.get('name', 'Unnamed')} {'★' if q.get('id') == selected_query_id else ''}",
+                "label": f"{q.get('name', 'Unnamed')} {'[Active]' if q.get('id') == selected_query_id else ''}",
                 "value": q.get("id", ""),
             }
             for q in all_queries
@@ -675,7 +674,7 @@ def confirm_delete_query(
             # Update dropdown
             dropdown_options = [
                 {
-                    "label": f"{q.get('name', 'Unnamed')} {'★' if q.get('id') == first_query_id else ''}",
+                    "label": f"{q.get('name', 'Unnamed')} {'[Active]' if q.get('id') == first_query_id else ''}",
                     "value": q.get("id", ""),
                 }
                 for q in remaining_queries
@@ -771,7 +770,7 @@ def initialize_query_dropdown(state: Dict[str, Any]) -> Tuple:
 
         dropdown_options = [
             {
-                "label": f"{q.get('name', 'Unnamed')} {'★' if q.get('id') == active_query_id else ''}",
+                "label": f"{q.get('name', 'Unnamed')} {'[Active]' if q.get('id') == active_query_id else ''}",
                 "value": q.get("id", ""),
             }
             for q in all_queries

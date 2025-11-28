@@ -2781,7 +2781,6 @@ def create_parameter_panel_expanded(
         >>> create_parameter_panel_expanded(settings)
     """
     from datetime import datetime
-    from ui.style_constants import DESIGN_TOKENS
     from ui.help_system import create_parameter_tooltip
 
     panel_id = f"parameter-panel-expanded{'-' + id_suffix if id_suffix else ''}"
@@ -2828,7 +2827,7 @@ def create_parameter_panel_expanded(
                     dbc.Tabs(
                         [
                             dbc.Tab(
-                                label="⚙️ Parameters",
+                                label="Parameters",
                                 tab_id="parameters-tab",
                                 label_style={"width": "100%"},
                                 children=[

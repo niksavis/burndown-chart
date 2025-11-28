@@ -57,11 +57,11 @@ class TestTouchTargetCompliance:
                         f"Large input should have min 48px, got: {height}"
                     )
                 print(
-                    f"✅ Input {size} height: {height} - meets touch target requirements"
+                    f"[OK] Input {size} height: {height} - meets touch target requirements"
                 )
             else:
                 print(
-                    f"⚠️ Input {size} height: {height} - check if this meets requirements"
+                    f"[!] Input {size} height: {height} - check if this meets requirements"
                 )
 
     def test_touch_target_utility_classes(self):
@@ -127,7 +127,7 @@ class TestTouchTargetCompliance:
                     assert height_value >= 44, (
                         f"{class_name} should have min 44px height"
                     )
-            print(f"✅ CSS class {class_name} meets touch target requirements")
+            print(f"[OK] CSS class {class_name} meets touch target requirements")
 
     def test_responsive_breakpoint_touch_targets(self):
         """Test that responsive breakpoint rules are properly defined."""
@@ -150,4 +150,4 @@ class TestTouchTargetCompliance:
                     selector in rule
                     for selector in [".btn", ".form-control", ".btn-link"]
                 ), "44px minimum should be for standard interactive elements"
-            print(f"✅ Mobile breakpoint rule validated: {rule}")
+            print(f"[OK] Mobile breakpoint rule validated: {rule}")

@@ -4,8 +4,52 @@ Provides unified "no data" and "no metrics" states for Flow and DORA dashboards.
 Ensures consistent messaging and visual design across the application.
 """
 
+from typing import List, Dict, Any
 from dash import html
 import dash_bootstrap_components as dbc
+
+
+def _create_info_card_row(cards: List[Dict[str, Any]]) -> dbc.Row:
+    """Create a centered row with info cards (DRY helper).
+
+    Args:
+        cards: List of dicts with keys:
+            - icon: Font Awesome icon name (e.g., "calculator", "bolt")
+            - icon_color: Bootstrap color class (e.g., "primary", "success")
+            - title: Card heading text
+            - description: Card body text
+
+    Returns:
+        dbc.Row with centered cards
+    """
+    cols = [
+        dbc.Col(
+            dbc.Card(
+                dbc.CardBody(
+                    html.Div(
+                        [
+                            html.I(
+                                className=f"fas fa-{card['icon']} fa-2x text-{card['icon_color']} mb-3"
+                            ),
+                            html.H5(card["title"], className="mb-2"),
+                            html.P(
+                                card["description"],
+                                className="text-muted small mb-0",
+                            ),
+                        ],
+                        className="text-center",
+                    )
+                ),
+                className="border-0 shadow-sm h-100",
+            ),
+            xs=12,
+            md=5,
+            lg=4,
+            className="mb-3 d-flex",
+        )
+        for card in cards
+    ]
+    return dbc.Row(cols, justify="center")
 
 
 def create_loading_placeholder() -> html.Div:
@@ -48,66 +92,26 @@ def create_loading_placeholder() -> html.Div:
             dbc.Row(
                 [
                     dbc.Col(
-                        [
-                            dbc.Card(
-                                [
-                                    dbc.CardBody(
-                                        [
-                                            html.Div(
-                                                [
-                                                    html.I(
-                                                        className="fas fa-download fa-2x text-primary mb-3"
-                                                    ),
-                                                    html.H5(
-                                                        "Placeholder Card",
-                                                        className="mb-2",
-                                                    ),
-                                                    html.P(
-                                                        "Placeholder text to match card height exactly.",
-                                                        className="text-muted small mb-0",
-                                                    ),
-                                                ],
-                                                className="text-center",
-                                            ),
-                                        ]
-                                    ),
-                                ],
-                                className="border-0 shadow-sm h-100",
-                            ),
-                        ],
-                        md=6,
-                        className="mb-3 d-flex",
-                    ),
-                    dbc.Col(
-                        [
-                            dbc.Card(
-                                [
-                                    dbc.CardBody(
-                                        [
-                                            html.Div(
-                                                [
-                                                    html.I(
-                                                        className="fas fa-cog fa-2x text-info mb-3"
-                                                    ),
-                                                    html.H5(
-                                                        "Placeholder Card",
-                                                        className="mb-2",
-                                                    ),
-                                                    html.P(
-                                                        "Placeholder text to match card height exactly.",
-                                                        className="text-muted small mb-0",
-                                                    ),
-                                                ],
-                                                className="text-center",
-                                            ),
-                                        ]
-                                    ),
-                                ],
-                                className="border-0 shadow-sm h-100",
-                            ),
-                        ],
-                        md=6,
-                        className="mb-3 d-flex",
+                        _create_info_card_row(
+                            [
+                                {
+                                    "icon": "download",
+                                    "icon_color": "primary",
+                                    "title": "Placeholder Card",
+                                    "description": "Placeholder text to match card height exactly.",
+                                },
+                                {
+                                    "icon": "cog",
+                                    "icon_color": "info",
+                                    "title": "Placeholder Card",
+                                    "description": "Placeholder text to match card height exactly.",
+                                },
+                            ]
+                        ),
+                        xs=12,
+                        lg=10,
+                        xl=8,
+                        className="mx-auto",
                     ),
                 ],
             ),
@@ -119,6 +123,7 @@ def create_loading_placeholder() -> html.Div:
                                 [
                                     html.I(className="fas fa-lightbulb me-2"),
                                     html.Strong("Tip: "),
+                                    "The first data load may take a few minutes depending on your project size. "
                                     "Placeholder text to match alert height exactly.",
                                 ],
                                 color="info",
@@ -182,66 +187,26 @@ def create_no_metrics_state(metric_type: str = "Flow") -> html.Div:
             dbc.Row(
                 [
                     dbc.Col(
-                        [
-                            dbc.Card(
-                                [
-                                    dbc.CardBody(
-                                        [
-                                            html.Div(
-                                                [
-                                                    html.I(
-                                                        className="fas fa-calculator fa-2x text-primary mb-3"
-                                                    ),
-                                                    html.H5(
-                                                        "Calculate Metrics",
-                                                        className="mb-2",
-                                                    ),
-                                                    html.P(
-                                                        "Click the Calculate Metrics button in the Settings panel (top right) to process your JIRA data.",
-                                                        className="text-muted small mb-0",
-                                                    ),
-                                                ],
-                                                className="text-center",
-                                            ),
-                                        ]
-                                    ),
-                                ],
-                                className="border-0 shadow-sm h-100",
-                            ),
-                        ],
-                        md=6,
-                        className="mb-3 d-flex",
-                    ),
-                    dbc.Col(
-                        [
-                            dbc.Card(
-                                [
-                                    dbc.CardBody(
-                                        [
-                                            html.Div(
-                                                [
-                                                    html.I(
-                                                        className="fas fa-bolt fa-2x text-success mb-3"
-                                                    ),
-                                                    html.H5(
-                                                        "Fast & Cached",
-                                                        className="mb-2",
-                                                    ),
-                                                    html.P(
-                                                        "Metrics are calculated once and cached. Future page loads are instant.",
-                                                        className="text-muted small mb-0",
-                                                    ),
-                                                ],
-                                                className="text-center",
-                                            ),
-                                        ]
-                                    ),
-                                ],
-                                className="border-0 shadow-sm h-100",
-                            ),
-                        ],
-                        md=6,
-                        className="mb-3 d-flex",
+                        _create_info_card_row(
+                            [
+                                {
+                                    "icon": "calculator",
+                                    "icon_color": "primary",
+                                    "title": "Calculate Metrics",
+                                    "description": "Click the Calculate Metrics button in the Settings panel (top right) to process your JIRA data.",
+                                },
+                                {
+                                    "icon": "bolt",
+                                    "icon_color": "success",
+                                    "title": "Fast & Cached",
+                                    "description": "Metrics are calculated once and cached. Future page loads are instant.",
+                                },
+                            ]
+                        ),
+                        xs=12,
+                        lg=10,
+                        xl=8,
+                        className="mx-auto",
                     ),
                 ],
             ),
@@ -309,66 +274,26 @@ def create_no_data_state() -> html.Div:
             dbc.Row(
                 [
                     dbc.Col(
-                        [
-                            dbc.Card(
-                                [
-                                    dbc.CardBody(
-                                        [
-                                            html.Div(
-                                                [
-                                                    html.I(
-                                                        className="fas fa-download fa-2x text-primary mb-3"
-                                                    ),
-                                                    html.H5(
-                                                        "Load JIRA Data",
-                                                        className="mb-2",
-                                                    ),
-                                                    html.P(
-                                                        "Click the Update Data button in the Settings panel to fetch issues from JIRA.",
-                                                        className="text-muted small mb-0",
-                                                    ),
-                                                ],
-                                                className="text-center",
-                                            ),
-                                        ]
-                                    ),
-                                ],
-                                className="border-0 shadow-sm h-100",
-                            ),
-                        ],
-                        md=6,
-                        className="mb-3 d-flex",
-                    ),
-                    dbc.Col(
-                        [
-                            dbc.Card(
-                                [
-                                    dbc.CardBody(
-                                        [
-                                            html.Div(
-                                                [
-                                                    html.I(
-                                                        className="fas fa-cog fa-2x text-info mb-3"
-                                                    ),
-                                                    html.H5(
-                                                        "Configure JIRA",
-                                                        className="mb-2",
-                                                    ),
-                                                    html.P(
-                                                        "Ensure JIRA connection is configured in Settings → JIRA Configuration tab.",
-                                                        className="text-muted small mb-0",
-                                                    ),
-                                                ],
-                                                className="text-center",
-                                            ),
-                                        ]
-                                    ),
-                                ],
-                                className="border-0 shadow-sm h-100",
-                            ),
-                        ],
-                        md=6,
-                        className="mb-3 d-flex",
+                        _create_info_card_row(
+                            [
+                                {
+                                    "icon": "download",
+                                    "icon_color": "primary",
+                                    "title": "Load JIRA Data",
+                                    "description": "Click the Update Data button in the Settings panel to fetch issues from JIRA.",
+                                },
+                                {
+                                    "icon": "cog",
+                                    "icon_color": "info",
+                                    "title": "Configure JIRA",
+                                    "description": "Ensure JIRA connection is configured in Settings → JIRA Configuration tab.",
+                                },
+                            ]
+                        ),
+                        xs=12,
+                        lg=10,
+                        xl=8,
+                        className="mx-auto",
                     ),
                 ],
             ),

@@ -407,12 +407,9 @@ def register(app):
             Tuple: Upload contents, filename, cache status, statistics table data,
                    scope values, settings, button state
         """
-        print(f"\n{'=' * 80}")
-        print(
-            f"UPDATE DATA CALLBACK TRIGGERED - n_clicks={n_clicks}, force_refresh={force_refresh}"
+        logger.info(
+            f"[UPDATE DATA] Callback triggered - n_clicks={n_clicks}, force_refresh={force_refresh}"
         )
-        print(f"{'=' * 80}\n")
-        logger.info(f"[UPDATE DATA] Callback triggered - n_clicks={n_clicks}")
 
         # Normal button state
         button_normal = [
@@ -473,7 +470,7 @@ def register(app):
                         html.Div(
                             [
                                 html.Span(
-                                    "⚠️ JIRA is not configured.",
+                                    "[!] JIRA is not configured.",
                                     className="fw-bold d-block mb-1",
                                 ),
                                 html.Span(
@@ -483,7 +480,7 @@ def register(app):
                             ]
                         ),
                     ],
-                    className="text-warning small mt-2",
+                    className="text-warning small",
                 )
                 logger.warning(
                     "[Settings] Attempted to update data without JIRA configuration"
@@ -636,7 +633,7 @@ def register(app):
                             ]
                         ),
                     ],
-                    className="text-danger small mt-2",
+                    className="text-danger small",
                 )
                 logger.error(
                     f"[Settings] JIRA configuration validation failed: {validation_message}"
@@ -751,7 +748,7 @@ def register(app):
                         html.I(className="fas fa-check-circle me-2 text-success"),
                         html.Span(success_details, className="fw-medium"),
                     ],
-                    className="text-success small mt-2",
+                    className="text-success small",
                 )
                 logger.info(
                     f"[JIRA] Data import successful: {issues_count} issues loaded, {weekly_count} weekly data points created"
@@ -912,7 +909,7 @@ def register(app):
                 )
             else:
                 # Create detailed error message
-                error_details = f"✗ Failed to import JIRA data: {message}"
+                error_details = f"[X] Failed to import JIRA data: {message}"
 
                 cache_status_message = html.Div(
                     [
@@ -930,7 +927,7 @@ def register(app):
                         ),
                         html.Span(error_details, className="fw-medium"),
                     ],
-                    className="text-danger small mt-2",
+                    className="text-danger small",
                 )
                 logger.error(f"[JIRA] Data import failed: {message}")
                 # Clear task progress
@@ -969,7 +966,7 @@ def register(app):
                         ]
                     ),
                 ],
-                className="text-danger small mt-2",
+                className="text-danger small",
             )
             # Clear task progress
             from data.task_progress import TaskProgress
@@ -1003,7 +1000,7 @@ def register(app):
                         ]
                     ),
                 ],
-                className="text-danger small mt-2",
+                className="text-danger small",
             )
             # Clear task progress
             from data.task_progress import TaskProgress
@@ -1073,7 +1070,7 @@ def register(app):
 
             if not is_configured:
                 current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                status_message = "⚠️ JIRA is not configured. Please click the 'Configure JIRA' button to set up your JIRA connection before calculating project scope."
+                status_message = "[!] JIRA is not configured. Please click the 'Configure JIRA' button to set up your JIRA connection before calculating project scope."
                 return (
                     html.Div(status_message, className="text-warning"),
                     f"Last attempt: {current_time}",
@@ -1152,14 +1149,14 @@ def register(app):
                         field_coverage = field_stats.get("field_coverage_percent", 0)
 
                         if field_exists_count == 0:
-                            status_message = f"⚠️ Points field '{field_name}' not found in any JIRA issues. Only total item count ({total_items}) calculated. Check if '{field_name}' exists in your JIRA project and verify your JQL query includes issues with this field."
+                            status_message = f"[!] Points field '{field_name}' not found in any JIRA issues. Only total item count ({total_items}) calculated. Check if '{field_name}' exists in your JIRA project and verify your JQL query includes issues with this field."
                         elif field_coverage < 50:
-                            status_message = f"⚠️ Points field '{field_name}' has insufficient coverage ({field_coverage:.0f}% of issues have the field, need ≥50%). Found in {field_exists_count} of {sample_size} sample issues, with {valid_points_count} having point values. Only total item count ({total_items}) calculated. Consider refining your JQL query to include more issues with this field, or verify '{field_name}' is the correct custom field name."
+                            status_message = f"[!] Points field '{field_name}' has insufficient coverage ({field_coverage:.0f}% of issues have the field, need ≥50%). Found in {field_exists_count} of {sample_size} sample issues, with {valid_points_count} having point values. Only total item count ({total_items}) calculated. Consider refining your JQL query to include more issues with this field, or verify '{field_name}' is the correct custom field name."
                         else:
                             # This shouldn't happen if points_field_available is False, but just in case
-                            status_message = f"⚠️ Points field '{field_name}' validation failed unexpectedly ({field_coverage:.0f}% coverage). Only total item count ({total_items}) calculated."
+                            status_message = f"[!] Points field '{field_name}' validation failed unexpectedly ({field_coverage:.0f}% coverage). Only total item count ({total_items}) calculated."
                     else:
-                        status_message = f"⚠️ No points field configured. Only total item count ({total_items}) calculated. Configure a valid points field for full scope calculation."
+                        status_message = f"[!] No points field configured. Only total item count ({total_items}) calculated. Configure a valid points field for full scope calculation."
 
                 status_content = html.Div(
                     [
@@ -1372,17 +1369,17 @@ def register(app):
             for profile in profiles:
                 label = profile["name"]
                 if profile.get("is_default", False):
-                    label += " ★"  # Add star indicator for default
+                    label += " [Default]"  # Add indicator for default
                 updated_options.append({"label": label, "value": profile["id"]})
 
             # Get the saved profile ID to select it
             saved_profile_id = saved_profile["id"] if saved_profile else None
 
             logger.info(
-                f"💾 SAVE CALLBACK: Returning {len(updated_options)} options, selecting profile ID: {saved_profile_id}"
+                f"[SAVE CALLBACK] Returning {len(updated_options)} options, selecting profile ID: {saved_profile_id}"
             )
             logger.info(
-                f"💾 Options being returned: {[opt['label'] for opt in updated_options]}"
+                f"[SaveProfile] Options being returned: {[opt['label'] for opt in updated_options]}"
             )
 
             # Clear form, hide validation, and select the newly saved query
@@ -1640,7 +1637,7 @@ def register(app):
             for profile in profiles:
                 label = profile["name"]
                 if profile.get("is_default", False):
-                    label += " ★"  # Add star indicator for default
+                    label += " [Default]"  # Add indicator for default
                 updated_options.append({"label": label, "value": profile["id"]})
 
             # Keep dropdown clean for saved queries only
@@ -1717,7 +1714,7 @@ def register(app):
                 label = query.get("name", "Unnamed Query")
                 value = query.get("id", "")
                 if query.get("is_active", False):
-                    label += " ★"
+                    label += " [Active]"
                     active_value = value
                     active_jql = query.get("jql", "")
                     active_name = query.get("name", "")
@@ -1777,9 +1774,9 @@ def register(app):
 
             profile = get_query_profile_by_id(selected_profile_id)
             if profile:
-                status_text = f"📋 Using saved query: {profile['name']}"
+                status_text = f"[List] Using saved query: {profile['name']}"
                 if profile.get("is_default", False):
-                    status_text += " ⭐"
+                    status_text += " [*]"
                 return status_text
             else:
                 return ""
@@ -1864,7 +1861,7 @@ def register(app):
                 for profile in profiles:
                     label = profile["name"]
                     if profile.get("is_default", False):
-                        label += " ★"  # Add star indicator for default
+                        label += " [Default]"  # Add indicator for default
                     updated_options.append({"label": label, "value": profile["id"]})
 
                 # Return updated options, JQL value, and clear validation

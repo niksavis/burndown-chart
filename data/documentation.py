@@ -71,7 +71,7 @@ def _get_profile_creation_docs(user_level: str) -> Dict[str, Any]:
     """Documentation for profile creation step."""
     if user_level == "beginner":
         return {
-            "title": "🚀 Creating Your First Workspace",
+            "title": "[Start] Creating Your First Workspace",
             "summary": "Profiles organize your JIRA analysis projects",
             "sections": [
                 {
@@ -137,7 +137,7 @@ def _get_jira_connection_docs(
 ) -> Dict[str, Any]:
     """Documentation for JIRA connection step."""
     base_docs = {
-        "title": "🔌 Connecting to JIRA",
+        "title": "Connecting to JIRA",
         "summary": "Securely connect to your JIRA instance for data analysis",
         "sections": [
             {
@@ -190,7 +190,7 @@ def _get_field_mapping_docs(
 ) -> Dict[str, Any]:
     """Documentation for field mapping step."""
     return {
-        "title": "🗺️ Mapping JIRA Fields",
+        "title": " Mapping JIRA Fields",
         "summary": "Configure custom fields to enable DORA and Flow metrics",
         "sections": [
             {
@@ -232,7 +232,7 @@ def _get_query_creation_docs(
     jira_connected = setup_status.get("jira_connected", False)
 
     docs = {
-        "title": "🔍 Creating JQL Queries",
+        "title": "Creating JQL Queries",
         "summary": "Define JQL queries to analyze specific sets of JIRA issues",
         "sections": [
             {
@@ -273,7 +273,7 @@ def _get_query_creation_docs(
     # Add connection-specific guidance
     if not jira_connected:
         docs["prerequisites"] = {
-            "title": "⚠️ JIRA Connection Required",
+            "title": "[!] JIRA Connection Required",
             "content": "You need to configure JIRA connection before creating queries. The system needs to validate query syntax against your JIRA instance.",
             "action": "Complete JIRA configuration first",
         }
@@ -485,10 +485,10 @@ def get_mobile_help_content(setup_step: str) -> Dict[str, Any]:
         "jira_connection": {
             "title": "Connect JIRA",
             "steps": [
-                "📝 Enter your JIRA URL",
-                "🔑 Add API token",
-                "🧪 Test connection",
-                "✅ Save settings",
+                "[Edit] Enter your JIRA URL",
+                "[Key] Add API token",
+                "[Test] Test connection",
+                "[OK] Save settings",
             ],
             "quick_tip": "Generate API tokens in Atlassian Account Settings",
             "time_estimate": "2-3 minutes",
@@ -496,10 +496,10 @@ def get_mobile_help_content(setup_step: str) -> Dict[str, Any]:
         "field_mapping": {
             "title": "Map Fields",
             "steps": [
-                "🔍 Find field IDs in JIRA",
-                "📋 Copy field names",
-                "🗂️ Enter in mapping form",
-                "✅ Save mappings",
+                "[Search] Find field IDs in JIRA",
+                "[List] Copy field names",
+                "[Edit] Enter in mapping form",
+                "[OK] Save mappings",
             ],
             "quick_tip": "Field mapping is optional - skip if unsure",
             "time_estimate": "5-10 minutes",
@@ -507,10 +507,10 @@ def get_mobile_help_content(setup_step: str) -> Dict[str, Any]:
         "query_creation": {
             "title": "Create Query",
             "steps": [
-                "📝 Name your query",
-                "🔍 Write JQL filter",
-                "🧪 Test in JIRA first",
-                "✅ Save query",
+                "[Edit] Name your query",
+                "[Search] Write JQL filter",
+                "[Test] Test in JIRA first",
+                "[OK] Save query",
             ],
             "quick_tip": "Start with: project = YOUR_PROJECT",
             "time_estimate": "1-2 minutes",

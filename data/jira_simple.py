@@ -118,7 +118,7 @@ def get_jira_config(settings_jql_query: str | None = None) -> Dict:
     """
     Load JIRA configuration with priority hierarchy: jira_config → Environment → Default.
 
-    This function reads from the jira_config structure in app_settings.json (managed via
+    This function reads from the jira_config structure in profile.json (managed via
     the JIRA Configuration modal). Falls back to environment variables if config not found.
 
     Args:
@@ -303,38 +303,46 @@ def fetch_jira_issues(
             return False, []
 
         # Parameters - fetch required fields including field mappings for DORA/Flow
-        # Base fields: always fetch these standard fields
-        # CRITICAL: Include 'project' to enable filtering DevOps vs Development projects
-        base_fields = "key,project,created,resolutiondate,status,issuetype"
-
-        # Add story points field if specified
-        additional_fields = []
-        if config.get("story_points_field") and config["story_points_field"].strip():
-            additional_fields.append(config["story_points_field"])
-
-        # Add field mappings for DORA and Flow metrics
-        # field_mappings has structure: {"dora": {"field_name": "field_id"}, "flow": {...}}
-        field_mappings = config.get("field_mappings", {})
-        for category, mappings in field_mappings.items():
-            if isinstance(mappings, dict):
-                for field_name, field_id in mappings.items():
-                    # Defensive: field_id must be a string (not dict)
-                    if (
-                        field_id
-                        and isinstance(field_id, str)
-                        and field_id.strip()
-                        and field_id not in base_fields
-                    ):
-                        # Add both custom fields (customfield_*) and standard fields
-                        # Skip if already in base_fields to avoid duplicates
-                        additional_fields.append(field_id)
-
-        # Combine base fields with additional fields
-        # Sort additional fields to ensure consistent ordering for cache validation
-        if additional_fields:
-            fields = f"{base_fields},{','.join(sorted(set(additional_fields)))}"
+        # Check if caller requested specific fields (e.g., "*all" for field detection)
+        if config.get("fields"):
+            fields = config["fields"]
+            logger.debug(f"[JIRA] Using caller-specified fields: {fields}")
         else:
-            fields = base_fields
+            # Base fields: always fetch these standard fields
+            # CRITICAL: Include 'project' to enable filtering DevOps vs Development projects
+            base_fields = "key,project,created,resolutiondate,status,issuetype"
+
+            # Add story points field if specified
+            additional_fields = []
+            if (
+                config.get("story_points_field")
+                and config["story_points_field"].strip()
+            ):
+                additional_fields.append(config["story_points_field"])
+
+            # Add field mappings for DORA and Flow metrics
+            # field_mappings has structure: {"dora": {"field_name": "field_id"}, "flow": {...}}
+            field_mappings = config.get("field_mappings", {})
+            for category, mappings in field_mappings.items():
+                if isinstance(mappings, dict):
+                    for field_name, field_id in mappings.items():
+                        # Defensive: field_id must be a string (not dict)
+                        if (
+                            field_id
+                            and isinstance(field_id, str)
+                            and field_id.strip()
+                            and field_id not in base_fields
+                        ):
+                            # Add both custom fields (customfield_*) and standard fields
+                            # Skip if already in base_fields to avoid duplicates
+                            additional_fields.append(field_id)
+
+            # Combine base fields with additional fields
+            # Sort additional fields to ensure consistent ordering for cache validation
+            if additional_fields:
+                fields = f"{base_fields},{','.join(sorted(set(additional_fields)))}"
+            else:
+                fields = base_fields
 
         # ===== T051: INCREMENTAL FETCH OPTIMIZATION =====
         # Check if data has changed before doing expensive full fetch
@@ -389,11 +397,12 @@ def fetch_jira_issues(
 
         # ===== PROCEED WITH FULL FETCH (cache miss or data changed) =====
 
-        # Use max_results as page size (per API call), not total limit
-        # JIRA API hard limit is 1000 per call
-        page_size = (
-            max_results if max_results is not None else config.get("max_results", 1000)
-        )
+        # Use max_results as TOTAL LIMIT (for field detection: 100 issues max)
+        # Page size is separate (per API call), JIRA API hard limit is 1000 per call
+        total_limit = (
+            max_results if max_results is not None else None
+        )  # None = fetch all
+        page_size = min(total_limit or 1000, 1000)  # Use smaller of limit or 1000
 
         # Enforce JIRA API hard limit
         if page_size > 1000:
@@ -487,13 +496,23 @@ def fetch_jira_issues(
                 total_issues = data.get("total", 0)
                 logger.info(f"[JIRA] Query matched {total_issues} issues, paginating")
 
-            # Add this page's issues to our collection
-            all_issues.extend(issues_in_page)
+            # Determine how many issues to add (respect total_limit)
+            if total_limit is not None:
+                remaining_quota = total_limit - len(all_issues)
+                issues_to_add = issues_in_page[:remaining_quota]  # Truncate if needed
+            else:
+                issues_to_add = issues_in_page
 
-            # Check if we've fetched everything
+            # Add issues to collection
+            all_issues.extend(issues_to_add)
+
+            # Check if we've fetched everything OR reached total_limit
             if (
-                len(issues_in_page) < page_size
-                or start_at + len(issues_in_page) >= total_issues
+                len(issues_in_page) < page_size  # Last page (partial)
+                or start_at + len(issues_in_page) >= total_issues  # All issues fetched
+                or (
+                    total_limit is not None and len(all_issues) >= total_limit
+                )  # Limit reached
             ):
                 logger.info(
                     f"[JIRA] Pagination complete: {len(all_issues)}/{total_issues} fetched"
@@ -573,7 +592,7 @@ def fetch_jira_issues_with_changelog(
                     len(issue_keys) / page_size
                 ) * 60  # ~60 seconds per page estimate
                 progress_callback(
-                    f"⏳ Fetching changelog for {len(issue_keys)} issues "
+                    f"[Pending] Fetching changelog for {len(issue_keys)} issues "
                     f"(~{int(estimated_time / 60)} minutes, please wait...)"
                 )
         else:
@@ -727,7 +746,7 @@ def fetch_jira_issues_with_changelog(
                         )
                         if progress_callback:
                             progress_callback(
-                                f"⚠️ Timeout, retrying... (attempt {retry_count}/{max_retries})"
+                                f"[!] Timeout, retrying... (attempt {retry_count}/{max_retries})"
                             )
                     else:
                         logger.error(
@@ -746,7 +765,7 @@ def fetch_jira_issues_with_changelog(
                         )
                         if progress_callback:
                             progress_callback(
-                                f"⚠️ Network error, retrying... (attempt {retry_count}/{max_retries})"
+                                f"[!] Network error, retrying... (attempt {retry_count}/{max_retries})"
                             )
                     else:
                         logger.error(
@@ -1641,7 +1660,7 @@ def fetch_changelog_on_demand(config: Dict, progress_callback=None) -> Tuple[boo
     try:
         logger.info("[JIRA] Fetching changelog data for Flow Time and DORA metrics")
         if progress_callback:
-            progress_callback("📊 Starting changelog download...")
+            progress_callback("[Stats] Starting changelog download...")
 
         # Get query-specific cache file paths
         from data.profile_manager import get_active_query_workspace
@@ -1697,7 +1716,7 @@ def fetch_changelog_on_demand(config: Dict, progress_callback=None) -> Tuple[boo
                     )
                     if progress_callback:
                         progress_callback(
-                            f"⚡ Smart fetch: {len(issues_needing_changelog)} new issues "
+                            f"Smart fetch: {len(issues_needing_changelog)} new issues "
                             f"({len(cached_issue_keys)} already cached)"
                         )
                 else:
@@ -1706,11 +1725,11 @@ def fetch_changelog_on_demand(config: Dict, progress_callback=None) -> Tuple[boo
                     )
                     if progress_callback:
                         progress_callback(
-                            f"✅ All {len(cached_issue_keys)} issues already cached - skipping download"
+                            f"[OK] All {len(cached_issue_keys)} issues already cached - skipping download"
                         )
                     return (
                         True,
-                        f"✅ Changelog already cached for all {len(cached_issue_keys)} issues",
+                        f"[OK] Changelog already cached for all {len(cached_issue_keys)} issues",
                     )
 
             except Exception as e:
@@ -1814,7 +1833,7 @@ def fetch_changelog_on_demand(config: Dict, progress_callback=None) -> Tuple[boo
                             )
                             if progress_callback:
                                 progress_callback(
-                                    f"💾 Saved progress: {issues_processed} issues"
+                                    f"Saved progress: {issues_processed} issues"
                                 )
                         except Exception as e:
                             logger.warning(
@@ -1824,7 +1843,7 @@ def fetch_changelog_on_demand(config: Dict, progress_callback=None) -> Tuple[boo
                 # Final save: Save all remaining issues
                 if progress_callback:
                     progress_callback(
-                        f"💾 Finalizing changelog data for {len(changelog_cache)} issues..."
+                        f"Finalizing changelog data for {len(changelog_cache)} issues..."
                     )
 
                 with open(changelog_cache_file, "w", encoding="utf-8") as f:
@@ -1853,12 +1872,12 @@ def fetch_changelog_on_demand(config: Dict, progress_callback=None) -> Tuple[boo
 
                 if progress_callback:
                     progress_callback(
-                        f"✅ Changelog complete: {newly_fetched} fetched, {previously_cached} cached, {total_cached} total"
+                        f"[OK] Changelog complete: {newly_fetched} fetched, {previously_cached} cached, {total_cached} total"
                     )
 
                 return (
                     True,
-                    f"✅ Changelog: {newly_fetched} newly fetched + {previously_cached} already cached = {total_cached} total issues (saved {reduction_pct:.0f}% size)",
+                    f"[OK] Changelog: {newly_fetched} newly fetched + {previously_cached} already cached = {total_cached} total issues (saved {reduction_pct:.0f}% size)",
                 )
             except Exception as e:
                 logger.warning(f"[Cache] Failed to save changelog data: {e}")

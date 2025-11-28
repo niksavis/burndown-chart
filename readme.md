@@ -33,47 +33,40 @@ Interactive web app for agile project forecasting with JIRA integration and comp
 - **📁 File Import**: CSV/JSON upload support
 - **💾 Export**: Download charts and metrics data
 
-## Data Sources
+## Configuration
+
+### Profile-Based Workspaces
+
+Each profile stores independent configuration for different projects/teams:
+
+1. **Create Profile**: Settings → Profile Management → "Create New Profile"
+2. **Switch Profiles**: Use profile dropdown in top navigation
+3. **Profile Storage**: All settings saved in `profiles/{profile_id}/profile.json`
 
 ### JIRA Integration (Recommended)
 
-Configure via web interface **Data Import Configuration** section:
+**Step 1: Connect to JIRA**
+1. Settings → JIRA Configuration
+2. Enter JIRA URL and API token
+3. Enter JQL query (e.g., `project = MYPROJECT`)
+4. Click **Fetch Metadata** to detect available fields
 
-1. Navigate to **Input Parameters → Data Import Configuration**
-2. Enter:
-   - **JIRA URL**: Your JIRA instance endpoint
-   - **JQL Query**: Filter for your project (e.g., `project = MYPROJECT`)
-   - **API Token**: Personal access token (optional for public instances)
-   - **Story Points Field**: Custom field ID (optional)
-3. Click **Update Data** to sync
+**Step 2: Configure Field Mappings**
+1. Settings → Configure JIRA Mappings (modal opens)
+2. Click **Auto-Configure** - system detects fields automatically
+3. Review and adjust mappings across 5 tabs:
+   - **Projects**: Development vs. DevOps projects
+   - **Fields**: Map JIRA custom fields to metrics
+   - **Types**: Issue type classifications (Feature/Defect/Tech Debt/Risk)
+   - **Status**: Workflow statuses (completion, active, WIP)
+   - **Environment**: Production identifiers
+4. Click **Save Mappings**
 
-**Quick Test**: Try `https://jira.atlassian.com/rest/api/2/search` with JQL `project = JRASERVER` (no token needed).
+**Step 3: Load Data**
+1. Click **Update Data** button
+2. Data cached in `jira_cache.json` (24hr TTL)
 
-### File Upload (Alternative)
-
-Upload CSV or JSON files with project statistics:
-
-**CSV Format:**
-```csv
-date;completed_items;completed_points;created_items;created_points
-2025-03-01;5;50;0;0
-2025-03-02;7;70;2;15
-```
-
-**JSON Format:**
-```json
-{
-  "project_scope": {
-    "total_items": 100,
-    "total_points": 500,
-    "completed_items": 25,
-    "completed_points": 120
-  },
-  "statistics": [
-    {"date": "2025-03-01", "completed_items": 5, "completed_points": 50}
-  ]
-}
-```
+**Quick Test**: Public JIRA instance `https://jira.atlassian.com` with JQL `project = JRASERVER` (no token needed)
 
 ## Metrics Overview
 
@@ -97,17 +90,37 @@ Track project health, delivery performance, and process efficiency.
 |                    | Flow Load (WIP)       | Work in progress          | <P25 threshold     |
 |                    | Flow Distribution     | Work type balance         | 40-50% features    |
 
-**Configuration**: Click "Configure Field Mappings" on dashboard to map JIRA custom fields (deployment date, environment, work type).
+**Auto-Configuration**: System detects JIRA fields by name patterns and suggests mappings. Review in Settings → Configure JIRA Mappings.
 
-**Export**: Download as CSV or JSON for external reporting.
+**Export**: Download metrics as CSV or JSON for external reporting.
 
 ## Troubleshooting
 
+**Installation Issues:**
 - **Missing packages?** Activate venv: `.venv\Scripts\activate`, then `pip install -r requirements.txt`
 - **Port in use?** Run with `python app.py --port 8060`
-- **JIRA connection failed?** Verify URL and token in Data Import Configuration
-- **No data?** Check field mappings and JIRA data contains required fields
-- **Full reset**: Delete `project_data.json`, `app_settings.json`, `jira_cache.json`, and `metrics_snapshots.json`
+
+**JIRA Issues:**
+- **Connection failed?** Settings → JIRA Configuration - verify URL and API token
+- **No data after sync?** Check JQL query returns issues in JIRA web UI
+- **"Missing Required Field" errors?** Settings → Configure JIRA Mappings - map required fields
+- **Clear cache:** Delete `jira_cache.json` to force fresh data fetch
+
+**Metrics Issues:**
+- **Metrics show "No Data"?** 
+  - Verify field mappings point to correct JIRA fields (Settings → Configure JIRA Mappings)
+  - Check JIRA issues have values in mapped fields (not null/empty)
+  - Review Status tab - ensure completion/active/WIP statuses configured
+- **Wrong calculations?** 
+  - DORA metrics: Check Environment tab for DevOps projects and production identifiers
+  - Flow metrics: Check Types tab for work type classifications
+
+**Profile Issues:**
+- **Lost settings?** Each profile stores independent config in `profiles/{profile_id}/profile.json`
+- **Switch profiles:** Use profile dropdown in top navigation
+- **Reset profile:** Settings → Profile Management → Delete profile and recreate
+
+**Complete Reset:** Delete `profiles` folder
 
 ## Documentation
 

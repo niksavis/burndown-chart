@@ -35,75 +35,107 @@ def create_environment_config_form(
 
     return html.Div(
         [
-            # Production Identifiers
-            dbc.Row(
+            # DORA Metrics Environment Classification Card
+            dbc.Card(
                 [
-                    dbc.Col(
+                    dbc.CardHeader(
+                        html.H5(
+                            "DORA Metrics Environment Classification", className="mb-0"
+                        ),
+                        className="bg-light",
+                    ),
+                    dbc.CardBody(
                         [
-                            html.Label(
-                                "Production Identifiers (Required for MTTR)",
-                                className="fw-bold mb-2",
+                            html.P(
+                                "Configure production environment identifiers for DORA MTTR (Mean Time to Recovery) calculation.",
+                                className="text-muted small mb-3",
                             ),
-                            dcc.Dropdown(
-                                id="production-environment-values-dropdown",
-                                options=env_options,  # type: ignore  # Dash accepts list[dict]
-                                value=production_environment_values,
-                                multi=True,
-                                placeholder="Select production environment identifiers (e.g., PROD, Production)...",
-                                className="mb-2",
-                            ),
-                            html.Div(
+                            # Production Identifiers
+                            dbc.Row(
                                 [
-                                    html.Small(
+                                    dbc.Col(
                                         [
-                                            html.I(className="fas fa-info-circle me-1"),
-                                            "Any match counts as production bug for MTTR. ",
-                                            "Select all values that identify production environment.",
-                                        ],
-                                        className="text-muted d-block mb-2",
-                                    ),
-                                    html.Small(
-                                        [
-                                            html.I(
-                                                className="fas fa-sync me-1 text-info"
+                                            html.Label(
+                                                [
+                                                    html.I(
+                                                        className="fas fa-server me-2 text-danger"
+                                                    ),
+                                                    "Production Identifiers (Required)",
+                                                ],
+                                                className="fw-bold mb-2",
                                             ),
-                                            html.Strong("How to populate: "),
-                                            "Click ",
-                                            html.Strong("'Fetch Metadata'"),
-                                            " button to automatically load all values from your JIRA 'Affected Environment' field. ",
-                                            "The system will extract unique values from existing issues.",
-                                        ]
-                                        if not available_environment_values
-                                        else [
-                                            html.I(
-                                                className="fas fa-check-circle me-1 text-success"
+                                            dcc.Dropdown(
+                                                id="production-environment-values-dropdown",
+                                                options=env_options,  # type: ignore  # Dash accepts list[dict]
+                                                value=production_environment_values,
+                                                multi=True,
+                                                placeholder="Select production environment identifiers (e.g., PROD, Production)...",
+                                                className="mb-2",
                                             ),
-                                            f"Loaded {len(available_environment_values)} unique value(s) from JIRA issues.",
+                                            html.Div(
+                                                [
+                                                    html.Small(
+                                                        [
+                                                            html.I(
+                                                                className="fas fa-info-circle me-1 text-info"
+                                                            ),
+                                                            "Issues affecting these environments are counted for MTTR calculation. ",
+                                                            "Select all values that identify your production environment.",
+                                                        ],
+                                                        className="text-muted d-block mb-2",
+                                                    ),
+                                                    html.Small(
+                                                        [
+                                                            html.I(
+                                                                className="fas fa-magic me-1 text-info"
+                                                            ),
+                                                            html.Strong(
+                                                                "Auto-populated: "
+                                                            ),
+                                                            "Values are loaded automatically from JIRA when you open this modal. ",
+                                                            "Use ",
+                                                            html.Strong(
+                                                                "'Auto-Configure'"
+                                                            ),
+                                                            " to detect production identifiers.",
+                                                        ]
+                                                        if not available_environment_values
+                                                        else [
+                                                            html.I(
+                                                                className="fas fa-check-circle me-1 text-success"
+                                                            ),
+                                                            f"Loaded {len(available_environment_values)} unique value(s) from JIRA.",
+                                                        ],
+                                                        className="text-muted d-block mb-2",
+                                                    ),
+                                                    (
+                                                        html.Small(
+                                                            [
+                                                                html.I(
+                                                                    className="fas fa-lightbulb me-1 text-warning"
+                                                                ),
+                                                                html.Strong(
+                                                                    "No values showing? "
+                                                                ),
+                                                                "Ensure JIRA is connected and 'Affected Environment' field is mapped in the Fields tab. ",
+                                                                "Re-open this modal to refresh the available values.",
+                                                            ],
+                                                            className="text-muted d-block",
+                                                        )
+                                                        if not available_environment_values
+                                                        else html.Div()
+                                                    ),
+                                                ],
+                                            ),
                                         ],
-                                        className="text-muted d-block mb-2",
-                                    ),
-                                    (
-                                        html.Small(
-                                            [
-                                                html.I(
-                                                    className="fas fa-lightbulb me-1 text-warning"
-                                                ),
-                                                html.Strong("Still no values? "),
-                                                "Ensure 'Affected Environment' is mapped in the Fields tab, then click 'Fetch Metadata' again. ",
-                                                "The system searches your actual JIRA issues to find all possible values.",
-                                            ],
-                                            className="text-muted d-block",
-                                        )
-                                        if not available_environment_values
-                                        else html.Div()
-                                    ),
-                                ],
-                                className="mb-3",
+                                        width=12,
+                                    )
+                                ]
                             ),
-                        ],
-                        width=12,
-                    )
-                ]
+                        ]
+                    ),
+                ],
+                className="mb-3",
             ),
             # Validation warnings
             html.Div(id="environment-config-validation-warnings", className="mt-3"),
@@ -114,5 +146,4 @@ def create_environment_config_form(
                 style={"display": "none"},
             ),
         ],
-        className="p-3",
     )

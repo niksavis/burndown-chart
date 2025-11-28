@@ -15,7 +15,7 @@ from data.jira_simple import extract_story_points_value, jira_to_csv_format
 def test_story_points_extraction():
     """Test the new extract_story_points_value function with different field types."""
 
-    print("🧪 Testing Story Points Value Extraction...")
+    print("Testing Story Points Value Extraction...")
 
     test_cases = [
         # Votes field (complex object)
@@ -40,24 +40,24 @@ def test_story_points_extraction():
         (["array", "values"], "bad_field", 0.0),
     ]
 
-    print(f"\n📊 Testing {len(test_cases)} different field value scenarios...")
+    print(f"\n[Stats] Testing {len(test_cases)} different field value scenarios...")
 
     for i, (input_value, field_name, expected_output) in enumerate(test_cases, 1):
         result = extract_story_points_value(input_value, field_name)
 
-        status = "✅" if result == expected_output else "❌"
+        status = "[OK]" if result == expected_output else "[X]"
         print(
             f"   {status} Test {i}: {input_value} → {result} (expected {expected_output})"
         )
 
         if result != expected_output:
-            print(f"      💥 FAILED: Expected {expected_output}, got {result}")
+            print(f"      [FAILED] Expected {expected_output}, got {result}")
 
 
 def test_votes_field_in_transformation():
     """Test that votes field works correctly in full JIRA transformation."""
 
-    print(f"\n🧪 Testing Votes Field in Full Transformation...")
+    print(f"\nTesting Votes Field in Full Transformation...")
 
     # Simulate JIRA issues with votes field
     test_issues = [
@@ -93,38 +93,38 @@ def test_votes_field_in_transformation():
         "story_points_field": "votes"  # This is the problematic configuration
     }
 
-    print(f"   📋 Testing with {len(test_issues)} issues using 'votes' field")
-    print(f"   📊 Issue 1 votes: {test_issues[0]['fields']['votes']['votes']}")
-    print(f"   📊 Issue 2 votes: {test_issues[1]['fields']['votes']['votes']}")
+    print(f"   [List] Testing with {len(test_issues)} issues using 'votes' field")
+    print(f"   [Stats] Issue 1 votes: {test_issues[0]['fields']['votes']['votes']}")
+    print(f"   [Stats] Issue 2 votes: {test_issues[1]['fields']['votes']['votes']}")
 
     try:
         # This should now work without errors
         csv_data = jira_to_csv_format(test_issues, config)
 
         print(
-            f"   ✅ Transformation SUCCESS! Generated {len(csv_data)} weekly data points"
+            f"   [OK] Transformation SUCCESS! Generated {len(csv_data)} weekly data points"
         )
 
         # Check if votes were properly extracted
         if csv_data:
             first_week = csv_data[0]
-            print(f"   📊 First week data: {first_week}")
+            print(f"   [Stats] First week data: {first_week}")
 
             # Issue 1 was completed, so should contribute to completed_points
             if first_week.get("completed_points", 0) > 0:
-                print(f"   ✅ Votes properly extracted as story points!")
+                print(f"   [OK] Votes properly extracted as story points!")
             else:
-                print(f"   ⚠️  No completed points found - check date ranges")
+                print(f"   [!]  No completed points found - check date ranges")
 
     except Exception as e:
-        print(f"   💥 Transformation FAILED: {e}")
-        print(f"   💥 This would be the 'Failed to transform JIRA data' error")
+        print(f"   [ERROR] Transformation FAILED: {e}")
+        print(f"   [ERROR] This would be the 'Failed to transform JIRA data' error")
 
 
 def test_different_field_types():
     """Test that the fix works with different field types."""
 
-    print(f"\n🧪 Testing Different Field Types...")
+    print(f"\nTesting Different Field Types...")
 
     field_scenarios = [
         ("votes", {"votes": 8, "hasVoted": True}, 8.0, "Votes field (complex object)"),
@@ -146,18 +146,18 @@ def test_different_field_types():
 
         config = {"story_points_field": field_name}
 
-        print(f"   📋 Testing: {description}")
+        print(f"   [List] Testing: {description}")
         print(f"      Field: {field_name} = {field_value}")
 
         try:
             csv_data = jira_to_csv_format([test_issue], config)
-            status = "✅" if csv_data else "❌"
+            status = "[OK]" if csv_data else "[X]"
             print(
                 f"      {status} Transformation: {'SUCCESS' if csv_data else 'FAILED'}"
             )
 
         except Exception as e:
-            print(f"      💥 ERROR: {e}")
+            print(f"      [ERROR]: {e}")
 
 
 if __name__ == "__main__":

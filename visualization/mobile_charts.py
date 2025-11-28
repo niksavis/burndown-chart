@@ -911,7 +911,7 @@ def create_bug_forecast_chart(
     # Add annotation for insufficient data warning if < 4 weeks
     if forecast.get("insufficient_data"):
         fig.add_annotation(
-            text="⚠️ Limited data - forecast may be less accurate",
+            text="[!] Limited data - forecast may be less accurate",
             xref="paper",
             yref="paper",
             x=0.5,

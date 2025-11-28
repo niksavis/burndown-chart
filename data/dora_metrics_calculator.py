@@ -12,12 +12,13 @@ import logging
 from datetime import datetime, timezone
 from typing import Tuple, Optional, List, Dict, Any
 
-from data.dora_calculator import (
-    calculate_deployment_frequency_v2,
-    calculate_lead_time_for_changes_v2,
-    calculate_change_failure_rate_v2,
-    calculate_mttr_v2,
+from data.dora_metrics import (
+    calculate_deployment_frequency,
+    calculate_lead_time_for_changes,
+    calculate_change_failure_rate,
+    calculate_mean_time_to_recovery,
 )
+from data.variable_mapping.extractor import VariableExtractor
 from data.metrics_snapshots import save_metric_snapshot, get_metric_snapshot
 from data.iso_week_bucketing import get_last_n_weeks
 
@@ -31,7 +32,7 @@ def calculate_and_save_dora_weekly_metrics(
     operational_tasks: List[Dict],
     development_issues: List[Dict],
     production_bugs: List[Dict],
-    field_mappings: Dict[str, str],
+    variable_mappings: Dict[str, Any],  # Changed from field_mappings
     production_value: str,
 ) -> Tuple[bool, str]:
     """Calculate DORA metrics for a single week and save to cache.
@@ -43,80 +44,63 @@ def calculate_and_save_dora_weekly_metrics(
         operational_tasks: Filtered operational task issues
         development_issues: Filtered development issues
         production_bugs: Filtered production bug issues
-        field_mappings: JIRA field mappings from settings
+        variable_mappings: Variable mapping collection configuration
         production_value: Production environment identifier
 
     Returns:
         Tuple of (success, message)
     """
     try:
-        # Convert date to datetime with timezone
-        start_date = datetime.combine(monday, datetime.min.time()).replace(
-            tzinfo=timezone.utc
-        )
-        end_date = datetime.combine(sunday, datetime.max.time()).replace(
-            tzinfo=timezone.utc
-        )
+        # Create VariableExtractor from configuration
+        from data.variable_mapping.models import VariableMappingCollection
+
+        collection = VariableMappingCollection(**variable_mappings)
+        extractor = VariableExtractor(collection)
+
+        # Combine all issues for extraction
+        all_issues = operational_tasks + development_issues + production_bugs
 
         # Calculate Deployment Frequency
         logger.info(
-            f"Week {week_label}: Calculating deployment frequency with {len(operational_tasks)} "
-            f"operational tasks from {start_date.date()} to {end_date.date()}"
+            f"Week {week_label}: Calculating deployment frequency with {len(all_issues)} issues"
         )
-        deployment_freq = calculate_deployment_frequency_v2(
-            operational_tasks,
-            start_date=start_date,
-            end_date=end_date,
+        deployment_freq = calculate_deployment_frequency(
+            all_issues,
+            extractor,
+            time_period_days=7,  # Weekly calculation
         )
         logger.info(
             f"Week {week_label}: Deployment frequency result: {deployment_freq.get('deployment_count', 0)} deployments"
         )
 
         # Calculate Lead Time for Changes
-        lead_time = calculate_lead_time_for_changes_v2(
-            development_issues,
-            operational_tasks,
-            start_date=start_date,
-            end_date=end_date,
+        lead_time = calculate_lead_time_for_changes(
+            all_issues,
+            extractor,
+            time_period_days=7,  # Weekly calculation
         )
 
-        if lead_time.get("median_hours") is None:
+        if lead_time.get("value") is None:
             logger.info(
-                f"Week {week_label}: No lead time data (checked {len(development_issues)} dev issues, "
-                f"{len(operational_tasks)} operational tasks)"
+                f"Week {week_label}: No lead time data (checked {len(all_issues)} issues)"
             )
 
         # Calculate Change Failure Rate
-        change_failure_field = field_mappings.get("change_failure")
-        if not change_failure_field:
-            logger.warning("change_failure field not configured, using placeholder")
-            change_failure_field = "customfield_XXXXX"
-
-        cfr = calculate_change_failure_rate_v2(
+        cfr = calculate_change_failure_rate(
             operational_tasks,
-            change_failure_field_id=change_failure_field,
-            start_date=start_date,
-            end_date=end_date,
+            production_bugs,
+            extractor,
+            time_period_days=7,  # Weekly calculation
         )
 
         # Calculate MTTR
-        affected_env_field = field_mappings.get("affected_environment")
-        if not affected_env_field:
-            logger.warning(
-                "affected_environment field not configured, using placeholder"
-            )
-            affected_env_field = "customfield_XXXXX"
-
-        mttr = calculate_mttr_v2(
+        mttr = calculate_mean_time_to_recovery(
             production_bugs,
-            operational_tasks,
-            affected_environment_field_id=affected_env_field,
-            production_value=production_value,
-            start_date=start_date,
-            end_date=end_date,
+            extractor,
+            time_period_days=7,  # Weekly calculation
         )
 
-        # Save each metric to snapshots
+        # Save each metric to snapshots (convert to legacy format for compatibility)
         save_metric_snapshot(
             week_label,
             "dora_deployment_frequency",
@@ -127,14 +111,18 @@ def calculate_and_save_dora_weekly_metrics(
             },
         )
 
+        # Convert lead time days to hours for legacy compatibility
+        lead_time_value = lead_time.get("value")
+        lead_time_hours = lead_time_value * 24 if lead_time_value is not None else None
+
         save_metric_snapshot(
             week_label,
             "dora_lead_time",
             {
-                "median_hours": lead_time.get("median_hours"),
-                "mean_hours": lead_time.get("mean_hours"),
-                "p95_hours": lead_time.get("p95_hours"),
-                "issues_with_lead_time": lead_time.get("issues_with_lead_time", 0),
+                "median_hours": lead_time_hours,
+                "mean_hours": lead_time_hours,  # Using same value for now
+                "p95_hours": lead_time_hours,  # Using same value for now
+                "issues_with_lead_time": lead_time.get("sample_count", 0),
                 "week_label": week_label,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             },
@@ -144,11 +132,9 @@ def calculate_and_save_dora_weekly_metrics(
             week_label,
             "dora_change_failure_rate",
             {
-                "change_failure_rate_percent": cfr.get(
-                    "change_failure_rate_percent", 0
-                ),
-                "total_deployments": cfr.get("total_deployments", 0),
-                "failed_deployments": cfr.get("failed_deployments", 0),
+                "change_failure_rate_percent": cfr.get("value", 0),
+                "total_deployments": cfr.get("deployment_count", 0),
+                "failed_deployments": cfr.get("incident_count", 0),
                 "week_label": week_label,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             },
@@ -158,10 +144,10 @@ def calculate_and_save_dora_weekly_metrics(
             week_label,
             "dora_mttr",
             {
-                "median_hours": mttr.get("median_hours"),
-                "mean_hours": mttr.get("mean_hours"),
-                "p95_hours": mttr.get("p95_hours"),
-                "bugs_with_mttr": mttr.get("bugs_with_mttr", 0),
+                "median_hours": mttr.get("value"),
+                "mean_hours": mttr.get("value"),  # Using same value for now
+                "p95_hours": mttr.get("value"),  # Using same value for now
+                "bugs_with_mttr": mttr.get("incident_count", 0),
                 "week_label": week_label,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             },
@@ -414,3 +400,174 @@ def load_dora_metrics_from_cache(n_weeks: int = 12) -> Optional[Dict[str, Any]]:
     except Exception as e:
         logger.error(f"Error loading DORA metrics from cache: {e}", exc_info=True)
         return None
+
+
+def calculate_and_save_dora_metrics_for_all_issues(
+    week_label: str,
+    monday,  # date object from get_last_n_weeks
+    sunday,  # date object from get_last_n_weeks
+    all_issues: List[Dict],
+    variable_mappings: Dict[str, Any],
+) -> Tuple[bool, str]:
+    """Calculate DORA metrics from all issues using variable extraction.
+
+    This function is simpler than the filtered version - it takes ALL issues
+    and uses the VariableExtractor to identify deployments, incidents, etc.
+
+    Args:
+        week_label: ISO week label (e.g., "2025-45")
+        monday: Week start date (date object)
+        sunday: Week end date (date object)
+        all_issues: ALL JIRA issues (not pre-filtered)
+        variable_mappings: Variable mapping collection configuration
+
+    Returns:
+        Tuple of (success, message)
+    """
+    try:
+        # Convert date to datetime for time_period_days calculation
+        start_date = datetime.combine(monday, datetime.min.time()).replace(
+            tzinfo=timezone.utc
+        )
+        end_date = datetime.combine(sunday, datetime.max.time()).replace(
+            tzinfo=timezone.utc
+        )
+        time_period_days = (end_date - start_date).days
+
+        # Create VariableExtractor from configuration
+        from data.variable_mapping.models import VariableMappingCollection
+
+        collection = VariableMappingCollection(**variable_mappings)
+        extractor = VariableExtractor(collection)
+
+        logger.info(
+            f"Week {week_label}: Calculating DORA metrics with variable extraction "
+            f"({len(all_issues)} issues, {time_period_days} days)"
+        )
+
+        # Calculate all four DORA metrics
+        deployment_freq = calculate_deployment_frequency(
+            all_issues,
+            extractor,
+            time_period_days=time_period_days,
+        )
+
+        lead_time = calculate_lead_time_for_changes(
+            all_issues,
+            extractor,
+            time_period_days=time_period_days,
+        )
+
+        # For CFR, we need to split issues into deployments and incidents
+        # The extractor will handle identifying which is which
+        cfr = calculate_change_failure_rate(
+            all_issues,  # Will extract deployments
+            all_issues,  # Will extract incidents
+            extractor,
+            time_period_days=time_period_days,
+        )
+
+        mttr = calculate_mean_time_to_recovery(
+            all_issues,
+            extractor,
+            time_period_days=time_period_days,
+        )
+
+        # Save metrics to snapshots (convert to legacy format for compatibility)
+        # CRITICAL: Only save if metric calculation succeeded (no error_state)
+        if "error_state" not in deployment_freq:
+            save_metric_snapshot(
+                week_label,
+                "dora_deployment_frequency",
+                {
+                    "deployment_count": deployment_freq.get("deployment_count", 0),
+                    "release_count": deployment_freq.get("release_count", 0),
+                    "week_label": week_label,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                },
+            )
+        else:
+            logger.warning(
+                f"Week {week_label}: Deployment frequency calculation failed - {deployment_freq.get('error_message', 'Unknown error')}"
+            )
+
+        # Convert lead time days to hours for legacy compatibility
+        if "error_state" not in lead_time:
+            lead_time_value = lead_time.get("value")
+            lead_time_hours = (
+                lead_time_value * 24 if lead_time_value is not None else None
+            )
+            lead_time_p95_value = lead_time.get("p95_value")
+            lead_time_p95_hours = (
+                lead_time_p95_value * 24 if lead_time_p95_value is not None else None
+            )
+            lead_time_mean_value = lead_time.get("mean_value")
+            lead_time_mean_hours = (
+                lead_time_mean_value * 24 if lead_time_mean_value is not None else None
+            )
+
+            save_metric_snapshot(
+                week_label,
+                "dora_lead_time",
+                {
+                    "median_hours": lead_time_hours,
+                    "p95_hours": lead_time_p95_hours,
+                    "mean_hours": lead_time_mean_hours,
+                    "issues_with_lead_time": lead_time.get("sample_count", 0),
+                    "week_label": week_label,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                },
+            )
+        else:
+            logger.warning(
+                f"Week {week_label}: Lead time calculation failed - {lead_time.get('error_message', 'Unknown error')}"
+            )
+
+        if "error_state" not in cfr:
+            save_metric_snapshot(
+                week_label,
+                "dora_change_failure_rate",
+                {
+                    "change_failure_rate_percent": cfr.get("value", 0),
+                    "release_failure_rate_percent": cfr.get("release_value", 0),
+                    "total_deployments": cfr.get("deployment_count", 0),
+                    "failed_deployments": cfr.get("incident_count", 0),
+                    "total_releases": cfr.get("release_count", 0),
+                    "failed_releases": cfr.get("failed_release_count", 0),
+                    "week_label": week_label,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                },
+            )
+        else:
+            logger.warning(
+                f"Week {week_label}: Change failure rate calculation failed - {cfr.get('error_message', 'Unknown error')}"
+            )
+
+        if "error_state" not in mttr:
+            mttr_value = mttr.get("value")
+            mttr_p95_value = mttr.get("p95_value")
+            mttr_mean_value = mttr.get("mean_value")
+
+            save_metric_snapshot(
+                week_label,
+                "dora_mttr",
+                {
+                    "median_hours": mttr_value,
+                    "p95_hours": mttr_p95_value,
+                    "mean_hours": mttr_mean_value,
+                    "bugs_with_mttr": mttr.get("incident_count", 0),
+                    "week_label": week_label,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                },
+            )
+        else:
+            logger.warning(
+                f"Week {week_label}: MTTR calculation failed - {mttr.get('error_message', 'Unknown error')}"
+            )
+
+        return True, f"Week {week_label} calculated successfully (variable extraction)"
+
+    except Exception as e:
+        error_msg = f"Error calculating DORA metrics for {week_label}: {str(e)}"
+        logger.error(error_msg, exc_info=True)
+        return False, error_msg

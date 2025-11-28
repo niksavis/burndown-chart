@@ -48,7 +48,7 @@ def create_confirmation_modal(
     Example:
         >>> modal = create_confirmation_modal(
         ...     modal_id="delete-profile-modal",
-        ...     title="⚠️ Delete Profile",
+        ...     title="[!] Delete Profile",
         ...     warning_message="This profile and all its data will be permanently deleted.",
         ...     cancel_button_id="cancel-delete-profile",
         ...     confirm_button_id="confirm-delete-profile",

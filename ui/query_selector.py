@@ -33,9 +33,9 @@ def create_query_dropdown(
         label = query.get("name", "Unnamed Query")
         value = query.get("id", "")
 
-        # Add star indicator for active query
+        # Add indicator for active query
         if query.get("is_active", False):
-            label += " ★"
+            label += " [Active]"
 
         options.append({"label": label, "value": value})
 
@@ -211,7 +211,7 @@ def get_query_dropdown_options(queries: List[Dict[str, Any]]) -> List[Dict[str, 
 
         # Add active indicator
         if query.get("is_active", False):
-            label += " ★"
+            label += " [Active]"
 
         options.append({"label": label, "value": value})
 

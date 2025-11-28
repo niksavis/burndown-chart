@@ -276,21 +276,28 @@ def create_queries_and_data_tab_content() -> html.Div:
                 color="primary",
                 size="lg",
                 disabled=True,  # Enabled when query is saved
-                className="mb-3 long-press-button w-100",
+                className="long-press-button w-100",
+                style={"marginBottom": "2px"},
             ),
             # Hidden store for force refresh functionality (long-press)
             dcc.Store(id="force-refresh-store", data=False),
             # Loading spinner + status message
-            dcc.Loading(
-                id="update-data-loading",
-                type="default",
-                children=html.Div(id="update-data-status", className="mb-3"),
+            html.Div(
+                dcc.Loading(
+                    id="update-data-loading",
+                    type="default",
+                    children=html.Div(id="update-data-status"),
+                ),
+                style={
+                    "minHeight": "36px",  # Compact height for status message
+                    "marginTop": "6px",  # Small gap below button
+                    "display": "flex",
+                    "justifyContent": "center",  # Center horizontally
+                    "alignItems": "center",  # Center vertically for consistent positioning
+                },
             ),
         ],
         className="settings-tab-content",
-        style={
-            "minHeight": "512px"
-        },  # Match exact height when message is displayed to prevent spinner overflow
     )
 
 
@@ -316,7 +323,7 @@ def create_tabbed_settings_panel() -> html.Div:
             dbc.Tabs(
                 [
                     dbc.Tab(
-                        label="👤 Profile",
+                        label="Profile",
                         tab_id="profile-tab",
                         label_style={"width": "100%"},
                         children=[
@@ -327,7 +334,7 @@ def create_tabbed_settings_panel() -> html.Div:
                         ],
                     ),
                     dbc.Tab(
-                        label="🔌 Connect",
+                        label="Connect",
                         tab_id="connect-tab",
                         label_style={"width": "100%"},
                         children=[
@@ -344,7 +351,7 @@ def create_tabbed_settings_panel() -> html.Div:
                         ],
                     ),
                     dbc.Tab(
-                        label="🔍 Queries",
+                        label="Queries",
                         tab_id="queries-tab",
                         label_style={"width": "100%"},
                         children=[

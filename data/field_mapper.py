@@ -33,32 +33,41 @@ JIRA_TYPE_MAPPING = {
     "option": "select",
     "array": "multiselect",
     "any": "checkbox",  # Jira checkbox type
+    # Standard JIRA field types
+    "issuetype": "select",
+    "status": "select",
+    "priority": "select",
+    "resolution": "select",
+    "project": "select",
+    "user": "select",
+    "version": "select",
+    "securitylevel": "select",
+    "component": "multiselect",
+    "fixVersions": "multiselect",
+    "labels": "multiselect",
 }
 
 # Internal field type requirements for DORA and Flow metrics
+# Field names match official DORA and Flow Metrics documentation
 INTERNAL_FIELD_TYPES = {
-    # DORA fields
-    "deployment_date": "datetime",
-    "target_environment": "select",
-    "code_commit_date": "datetime",
-    "deployed_to_production_date": "datetime",
-    "incident_detected_at": "datetime",
-    "incident_resolved_at": "datetime",
-    "deployment_successful": "checkbox",
-    "production_impact": "select",
-    "severity_level": "select",  # Severity/Priority field for incidents
-    # Flow fields
-    "flow_item_type": "select",
-    "work_started_date": "datetime",
-    "work_completed_date": "datetime",
-    "completed_date": "datetime",
-    "status": "select",
-    # Additional optional fields for enhanced metrics
-    "change_failure": "select",  # Deployment success/failure indicator
+    # DORA Metrics fields (aligned with dora.dev standards)
+    "deployment_date": "datetime",  # When deployment occurred
+    "deployment_successful": "checkbox",  # Deployment success/failure
+    "code_commit_date": "datetime",  # When code was committed
+    "deployed_to_production_date": "datetime",  # Production deployment timestamp
+    "incident_detected_at": "datetime",  # When production issue found
+    "incident_resolved_at": "datetime",  # When issue fixed in production
+    "change_failure": "select",  # Deployment failure indicator (Yes/No/None)
     "affected_environment": "select",  # Environment affected by incidents
-    "effort_category": "select",  # Flow type secondary classification
+    "target_environment": "select",  # Deployment target environment
+    "severity_level": "select",  # Incident priority/severity
+    # Flow Metrics fields (aligned with Flow Framework standards)
+    "flow_item_type": "select",  # Work category (Feature/Defect/Tech Debt/Risk)
+    "status": "select",  # Current work status
+    "work_started_date": "datetime",  # When work began (optional - can calculate from changelog)
+    "work_completed_date": "datetime",  # When work finished (typically resolutiondate)
+    "effort_category": "select",  # Secondary work classification
     "estimate": "number",  # Story points or effort estimation
-    "deployment_approval": "select",  # Optional deployment approval indicator
 }
 
 
@@ -229,7 +238,7 @@ def validate_field_mapping(
 
 
 def save_field_mappings(mappings: Dict) -> bool:
-    """Save field mappings to app_settings.json (flat structure).
+    """Save field mappings to profile.json (flat structure).
 
     Args:
         mappings: Dictionary with structure:
@@ -267,12 +276,12 @@ def save_field_mappings(mappings: Dict) -> bool:
 
         # Get profile-level path (field mappings shared across all queries)
         workspace = get_active_profile_workspace()
-        settings_file = workspace / "app_settings.json"
+        settings_file = workspace / "profile.json"
 
         with open(str(settings_file), "w") as f:
             json.dump(settings, f, indent=2)
 
-        logger.info("Successfully saved field mappings to app_settings.json")
+        logger.info("Successfully saved field mappings to profile.json")
         return True
 
     except Exception as e:
@@ -281,7 +290,7 @@ def save_field_mappings(mappings: Dict) -> bool:
 
 
 def load_field_mappings() -> Dict:
-    """Load field mappings from app_settings.json.
+    """Load field mappings from profile.json.
 
     Converts flat field_mappings structure to nested dora/flow structure
     expected by the UI.
@@ -325,7 +334,6 @@ def load_field_mappings() -> Dict:
             "effort_category",
             "work_started_date",
             "work_completed_date",
-            "completed_date",
             "status",
         }
 
@@ -597,7 +605,7 @@ def validate_dora_jira_compatibility(field_mappings: Dict[str, str]) -> Dict[str
                     "field": internal_field,
                     "mapped_to": jira_field,
                     "issue": None,
-                    "recommendation": "✓ Appears to be a proper DevOps tracking field",
+                    "recommendation": "[OK] Appears to be a proper DevOps tracking field",
                 }
             )
         else:

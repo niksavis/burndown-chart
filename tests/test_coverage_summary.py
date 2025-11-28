@@ -38,27 +38,27 @@ ALL_NEW_TESTS = [
 
 COVERED_FUNCTIONALITY = {
     "Data Layer": [
-        "✅ Query profile CRUD operations (save, load, delete, update)",
-        "✅ Default profile management (3 built-in profiles)",
-        "✅ Profile validation and error handling",
-        "✅ File-based persistence with JSON storage",
-        "✅ Backward compatibility with existing data",
-        "✅ Settings persistence for data source and profile ID",
+        "[OK] Query profile CRUD operations (save, load, delete, update)",
+        "[OK] Default profile management (3 built-in profiles)",
+        "[OK] Profile validation and error handling",
+        "[OK] File-based persistence with JSON storage",
+        "[OK] Backward compatibility with existing data",
+        "[OK] Settings persistence for data source and profile ID",
     ],
     "UI Layer": [
-        "✅ Data source default value resolution",
-        "✅ JQL profile ID persistence and retrieval",
-        "✅ Import error handling and fallbacks",
-        "✅ Various data source value edge cases",
-        "✅ Profile ID variations and defaults",
+        "[OK] Data source default value resolution",
+        "[OK] JQL profile ID persistence and retrieval",
+        "[OK] Import error handling and fallbacks",
+        "[OK] Various data source value edge cases",
+        "[OK] Profile ID variations and defaults",
     ],
     "Integration": [
-        "✅ End-to-end data source switching workflow",
-        "✅ Query profiles + settings integration",
-        "✅ Backward compatibility with old settings format",
-        "✅ Data source switch simulation (JIRA ↔ CSV)",
-        "✅ Default profiles availability verification",
-        "✅ Error handling across the integrated system",
+        "[OK] End-to-end data source switching workflow",
+        "[OK] Query profiles + settings integration",
+        "[OK] Backward compatibility with old settings format",
+        "[OK] Data source switch simulation (JIRA ↔ CSV)",
+        "[OK] Default profiles availability verification",
+        "[OK] Error handling across the integrated system",
     ],
 }
 
@@ -81,11 +81,11 @@ CRITICAL_TEST_SCENARIOS = [
 # =========================
 
 MANUAL_TESTING_STEPS = [
-    "1. ✅ Verify JIRA API appears first in radio button options",
-    "2. ✅ Confirm data source selection persists across browser refreshes",
-    "3. ✅ Check that default query profiles are loaded correctly",
-    "4. ✅ Validate no errors appear in browser console",
-    "5. ✅ Test backward compatibility with existing functionality",
+    "1. [OK] Verify JIRA API appears first in radio button options",
+    "2. [OK] Confirm data source selection persists across browser refreshes",
+    "3. [OK] Check that default query profiles are loaded correctly",
+    "4. [OK] Validate no errors appear in browser console",
+    "5. [OK] Test backward compatibility with existing functionality",
 ]
 
 # Performance Considerations

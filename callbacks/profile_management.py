@@ -18,6 +18,75 @@ from data.profile_manager import (
 logger = logging.getLogger(__name__)
 
 
+# ============================================================================
+# Helper Functions
+# ============================================================================
+
+
+def _toggle_modal(trigger_button_id: str, cancel_buttons: list, is_open: bool) -> bool:
+    """Reusable modal toggle logic.
+
+    Args:
+        trigger_button_id: ID of button that opens modal
+        cancel_buttons: List of button IDs that close modal
+        is_open: Current modal state
+
+    Returns:
+        New modal state (True=open, False=closed)
+    """
+    if not ctx.triggered:
+        return is_open
+
+    triggered_id = ctx.triggered[0]["prop_id"].split(".")[0]
+
+    if triggered_id == trigger_button_id:
+        return True
+    elif triggered_id in cancel_buttons:
+        return False
+    return is_open
+
+
+def _validate_profile_name(name: str) -> tuple:
+    """Validate profile name with consistent rules.
+
+    Args:
+        name: Profile name to validate
+
+    Returns:
+        Tuple of (is_valid, error_message, valid_flag, invalid_flag, feedback)
+    """
+    if not name or not name.strip():
+        return (False, "", False, True, "Profile name is required")
+
+    name = name.strip()
+    if len(name) > 100:
+        return (
+            False,
+            "",
+            False,
+            True,
+            "Profile name too long (max 100 characters)",
+        )
+
+    # Check for duplicate names
+    existing_profiles = list_profiles()
+    if any(p["name"].lower() == name.lower() for p in existing_profiles):
+        return (
+            False,
+            "",
+            False,
+            True,
+            "Profile with this name already exists",
+        )
+
+    return (True, name, True, False, "")
+
+
+# ============================================================================
+# Callbacks
+# ============================================================================
+
+
 @callback(
     [
         Output("profile-selector", "options"),
@@ -71,16 +140,11 @@ def refresh_profile_selector(create_open, duplicate_open, delete_open):
 )
 def toggle_create_profile_modal(create_btn, cancel_btn, confirm_btn, is_open):
     """Toggle create profile modal open/close."""
-    if not ctx.triggered:
-        return is_open
-
-    triggered_id = ctx.triggered[0]["prop_id"].split(".")[0]
-
-    if triggered_id == "create-profile-btn":
-        return True
-    elif triggered_id in ["cancel-create-profile", "confirm-create-profile"]:
-        return False
-    return is_open
+    return _toggle_modal(
+        "create-profile-btn",
+        ["cancel-create-profile", "confirm-create-profile"],
+        is_open,
+    )
 
 
 @callback(
@@ -99,29 +163,13 @@ def handle_create_profile(n_clicks, name, description):
     if not n_clicks:
         return "", "alert alert-danger d-none", None, None, ""
 
-    if not name or not name.strip():
-        return "", "alert alert-danger d-none", False, True, "Profile name is required"
+    is_valid, validated_name, valid_flag, invalid_flag, feedback = (
+        _validate_profile_name(name)
+    )
+    if not is_valid:
+        return "", "alert alert-danger d-none", valid_flag, invalid_flag, feedback
 
-    name = name.strip()
-    if len(name) > 100:
-        return (
-            "",
-            "alert alert-danger d-none",
-            False,
-            True,
-            "Profile name too long (max 100 characters)",
-        )
-
-    # Check for duplicate names
-    existing_profiles = list_profiles()
-    if any(p["name"].lower() == name.lower() for p in existing_profiles):
-        return (
-            "",
-            "alert alert-danger d-none",
-            False,
-            True,
-            "Profile with this name already exists",
-        )
+    name = validated_name
 
     try:
         # Create profile with default settings
@@ -159,16 +207,11 @@ def handle_create_profile(n_clicks, name, description):
 )
 def toggle_duplicate_profile_modal(duplicate_btn, cancel_btn, confirm_btn, is_open):
     """Toggle duplicate profile modal open/close."""
-    if not ctx.triggered:
-        return is_open
-
-    triggered_id = ctx.triggered[0]["prop_id"].split(".")[0]
-
-    if triggered_id == "duplicate-profile-btn":
-        return True
-    elif triggered_id in ["cancel-duplicate-profile", "confirm-duplicate-profile"]:
-        return False
-    return is_open
+    return _toggle_modal(
+        "duplicate-profile-btn",
+        ["cancel-duplicate-profile", "confirm-duplicate-profile"],
+        is_open,
+    )
 
 
 @callback(
@@ -218,33 +261,15 @@ def handle_duplicate_profile(n_clicks, name, description, source_profile_id):
     if not n_clicks:
         return "", "alert alert-danger d-none", None, None, ""
 
-    if not name or not name.strip():
-        return "", "alert alert-danger d-none", False, True, "Profile name is required"
+    is_valid, validated_name, valid_flag, invalid_flag, feedback = (
+        _validate_profile_name(name)
+    )
+    if not is_valid:
+        return "", "alert alert-danger d-none", valid_flag, invalid_flag, feedback
 
-    name = name.strip()
-    if len(name) > 100:
-        return (
-            "",
-            "alert alert-danger d-none",
-            False,
-            True,
-            "Profile name too long (max 100 characters)",
-        )
-
-    # Check for duplicate names
-    existing_profiles = list_profiles()
-    if any(p["name"].lower() == name.lower() for p in existing_profiles):
-        return (
-            "",
-            "alert alert-danger d-none",
-            False,
-            True,
-            "Profile with this name already exists",
-        )
+    name = validated_name
 
     try:
-        # TODO: Implement profile duplication in profile_manager.py
-        # For now, create a new profile with default settings
         settings = {
             "description": description or "",
             "pert_factor": 1.2,
@@ -279,16 +304,11 @@ def handle_duplicate_profile(n_clicks, name, description, source_profile_id):
 )
 def toggle_delete_profile_modal(delete_btn, cancel_btn, confirm_btn, is_open):
     """Toggle delete profile modal open/close."""
-    if not ctx.triggered:
-        return is_open
-
-    triggered_id = ctx.triggered[0]["prop_id"].split(".")[0]
-
-    if triggered_id == "delete-profile-btn":
-        return True
-    elif triggered_id in ["cancel-delete-profile", "confirm-delete-profile"]:
-        return False
-    return is_open
+    return _toggle_modal(
+        "delete-profile-btn",
+        ["cancel-delete-profile", "confirm-delete-profile"],
+        is_open,
+    )
 
 
 @callback(
@@ -414,7 +434,9 @@ def handle_delete_profile(n_clicks, profile_id, confirmation):
 
         profile_options = [
             {
-                "label": f"{p['name']} ★" if p["id"] == new_active_id else p["name"],
+                "label": f"{p['name']} [Active]"
+                if p["id"] == new_active_id
+                else p["name"],
                 "value": p["id"],
             }
             for p in updated_profiles

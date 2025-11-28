@@ -21,7 +21,6 @@ from data.persistence import (
     validate_jira_config,
 )
 from data.jira_simple import test_jira_connection
-from data.cache_manager import invalidate_cache, CacheInvalidationTrigger
 from configuration import logger
 
 
@@ -250,6 +249,7 @@ def test_jira_connection_callback(n_clicks, base_url, api_version, token):
     [
         Output("jira-config-modal", "is_open", allow_duplicate=True),
         Output("jira-save-status", "children"),
+        Output("jira-config-save-trigger", "data"),  # Trigger metadata refresh
     ],
     Input("jira-config-save-button", "n_clicks"),
     [
@@ -259,11 +259,19 @@ def test_jira_connection_callback(n_clicks, base_url, api_version, token):
         State("jira-cache-size-input", "value"),
         State("jira-max-results-input", "value"),
         State("jira-points-field-input", "value"),
+        State("jira-config-save-trigger", "data"),  # Current trigger value
     ],
     prevent_initial_call=True,
 )
 def save_jira_configuration_callback(
-    n_clicks, base_url, api_version, token, cache_size, max_results, points_field
+    n_clicks,
+    base_url,
+    api_version,
+    token,
+    cache_size,
+    max_results,
+    points_field,
+    current_trigger,
 ):
     """
     Validate and save JIRA configuration to app_settings.json.
@@ -276,9 +284,10 @@ def save_jira_configuration_callback(
         cache_size: Cache size limit in MB
         max_results: Maximum results per API call
         points_field: Custom field ID for story points
+        current_trigger: Current trigger value for incrementing
 
     Returns:
-        Tuple of (modal_is_open, status_message)
+        Tuple of (modal_is_open, status_message, trigger_value)
     """
     if not n_clicks:
         raise PreventUpdate
@@ -320,6 +329,7 @@ def save_jira_configuration_callback(
                     color="danger",
                     dismissable=True,
                 ),
+                no_update,  # Don't trigger metadata refresh on validation error
             )
 
         # Warn about high cache sizes (T026 - User Story 2)
@@ -390,10 +400,16 @@ def save_jira_configuration_callback(
             )
 
             # Combine success message with cache warning if present
+            # Trigger metadata refresh by incrementing counter
+            new_trigger = (current_trigger or 0) + 1
             if cache_warning:
-                return (no_update, html.Div([success_message, cache_warning]))
+                return (
+                    no_update,
+                    html.Div([success_message, cache_warning]),
+                    new_trigger,
+                )
             else:
-                return (no_update, success_message)
+                return (no_update, success_message, new_trigger)
         else:
             logger.error("Failed to save JIRA configuration")
             return (
@@ -418,6 +434,7 @@ def save_jira_configuration_callback(
                     color="danger",
                     dismissable=True,
                 ),
+                no_update,  # Don't trigger metadata refresh on save failure
             )
 
     except Exception as e:
@@ -443,6 +460,7 @@ def save_jira_configuration_callback(
                 color="danger",
                 dismissable=True,
             ),
+            no_update,  # Don't trigger metadata refresh on exception
         )
 
 
@@ -542,7 +560,7 @@ def update_jira_config_status(modal_is_open, save_clicks, profile_id):
                             className="fas fa-exclamation-triangle text-warning me-2"
                         ),
                         html.Span(
-                            f"⚠ API {api_version} not supported - Switch to {opposite_version} in Configure JIRA",
+                            f"[WARN] API {api_version} not supported - Switch to {opposite_version} in Configure JIRA",
                             className="text-warning small fw-bold",
                         ),
                     ],

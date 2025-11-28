@@ -1,8 +1,91 @@
 """
-UI Cards Module
+UI Cards Module - Dashboard Component Library
 
 This module provides card components that make up the main UI sections
-of the application, such as the forecast graph card, info card, etc.
+of the application. Cards are the primary building blocks for dashboard layouts.
+
+CARD CREATION PATTERNS
+=======================
+
+This module contains multiple card creation functions. Use the following guide
+to choose the appropriate function for your needs:
+
+1. **Atomic Card Functions** (Preferred for new code):
+   - `create_info_card()` - Generic info display with icon, value, unit
+   - `create_unified_metric_card()` - Standardized metrics with trend, forecast
+   - `create_unified_metric_row()` - Row container for metric cards
+
+   When to use: New dashboard sections, reusable metric displays
+   Benefits: Consistent styling, encapsulation, maintainability
+
+2. **Legacy Card Functions** (Avoid for new code):
+   - `create_dashboard_metrics_card()` - Old dashboard overview (pre-Feature 010)
+   - `create_project_status_card()` - Legacy project status display
+   - `create_project_summary_card()` - Deprecated summary layout
+
+   When to use: Only when maintaining existing code that uses these functions
+   Migration: Gradually refactor to use atomic card functions
+
+3. **Specialized Card Functions**:
+   - `create_forecast_graph_card()` - Chart container with tab navigation
+   - `create_pert_analysis_card()` - PERT timeline visualization
+   - `create_input_parameters_card()` - Settings form card
+   - `create_statistics_data_card()` - Data table display
+
+   When to use: Specific use cases that require custom layouts
+   Pattern: Single responsibility, configurable via parameters
+
+COMPONENT CONTRACTS
+===================
+
+All card functions follow these contracts:
+
+**Input Parameters**:
+- Required parameters first, optional with defaults after
+- Use type hints for all parameters
+- Provide docstrings with parameter descriptions
+
+**Return Type**:
+- Always return Dash components (dbc.Card, dbc.Row, html.Div)
+- Never return None or raw data structures
+- Use consistent return types across similar functions
+
+**Styling**:
+- Use `ui.style_constants` for colors, spacing, tokens
+- Avoid inline styles - prefer CSS classes
+- Use Bootstrap classes (dbc.*) for responsive layouts
+
+**Error Handling**:
+- Validate inputs, provide sensible defaults
+- Never crash - return placeholder UI on errors
+- Log errors but don't expose to user
+
+REFACTORING GUIDELINES
+=======================
+
+When adding new card functionality:
+1. Check if `create_info_card()` or `create_unified_metric_card()` can be extended
+2. If not, create new function following atomic component pattern
+3. Add comprehensive docstring with usage example
+4. Use multi_replace_string_in_file for batch updates when consolidating duplicates
+
+DRY Principle: If you copy card code 3+ times, extract to a helper function.
+KISS Principle: Prefer simple, focused functions over monolithic card builders.
+
+Examples:
+    >>> # Good: Reusable atomic card
+    >>> create_info_card(
+    ...     title="Velocity",
+    ...     value=8.5,
+    ...     unit="items/week",
+    ...     icon="tachometer-alt"
+    ... )
+
+    >>> # Bad: Inline card construction with duplicated patterns
+    >>> dbc.Card([
+    ...     dbc.CardHeader([html.I(className="fas fa-tachometer-alt"), "Velocity"]),
+    ...     dbc.CardBody([html.H3("8.5"), html.Small("items/week")])
+    ... ])
 """
 
 #######################################################################
@@ -451,7 +534,7 @@ def _get_default_jql_profile_id():
 
 
 # Legacy JIRA helper functions removed - JIRA configuration is now managed
-# via the JIRA Configuration modal (jira_config structure in app_settings.json)
+# via the JIRA Configuration modal (jira_config structure in profile.json)
 
 
 def _get_default_jira_story_points_field():
@@ -519,7 +602,7 @@ def _get_query_profile_options():
         for profile in profiles:
             label = profile["name"]
             if profile.get("is_default", False):
-                label += " ★"  # Add star indicator for default
+                label += " [Default]"  # Add indicator for default
             options.append(
                 {
                     "label": label,
@@ -3104,7 +3187,7 @@ def create_unified_metric_card(
         ...     status_bg="rgba(40, 167, 69, 0.1)",
         ...     status_border="rgba(40, 167, 69, 0.2)",
         ...     secondary_info="123 closed / 168 total • Good",
-        ...     tertiary_info="📅 May 22, 2025 - Oct 23, 2025",
+        ...     tertiary_info="[Date] May 22, 2025 - Oct 23, 2025",
         ... )
     """
     from ui.style_constants import METRIC_CARD

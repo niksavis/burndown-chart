@@ -139,7 +139,7 @@ def calculate_jira_project_scope(
     }
 
     logger.info(
-        f"📊 JIRA Scope Calculated: {completed_items}/{total_items} items completed, "
+        f"[Stats] JIRA Scope Calculated: {completed_items}/{total_items} items completed, "
         f"{completed_points}/{total_points} points completed"
     )
 

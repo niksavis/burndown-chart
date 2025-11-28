@@ -195,7 +195,7 @@ def create_profile_deletion_modal() -> dbc.Modal:
     """
     return dbc.Modal(
         [
-            dbc.ModalHeader(dbc.ModalTitle("⚠️ Delete Profile")),
+            dbc.ModalHeader(dbc.ModalTitle("[!] Delete Profile")),
             dbc.ModalBody(
                 [
                     html.P(

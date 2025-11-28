@@ -279,38 +279,38 @@ def _get_metric_relationship_hint(
 
     # Flow Load (WIP) - affects everything
     if metric_name == "flow_load":
-        return "💡 High WIP typically increases Lead Time and Flow Time"
+        return "[Note] High WIP typically increases Lead Time and Flow Time"
 
     # Change Failure Rate - affects MTTR
     elif metric_name == "change_failure_rate":
-        return "💡 High failure rate often increases MTTR and slows delivery"
+        return "[Note] High failure rate often increases MTTR and slows delivery"
 
     # Mean Time To Recovery - affected by CFR and process maturity
     elif metric_name == "mean_time_to_recovery":
-        return "💡 Long MTTR may indicate insufficient monitoring or unclear rollback procedures"
+        return "[Note] Long MTTR may indicate insufficient monitoring or unclear rollback procedures"
 
     # Deployment Frequency - foundation for other DORA metrics
     elif metric_name == "deployment_frequency":
-        return "💡 Low deployment frequency can increase batch size and Lead Time"
+        return "[Note] Low deployment frequency can increase batch size and Lead Time"
 
     # Lead Time - affected by WIP
     elif metric_name == "lead_time_for_changes":
-        return "💡 Long lead time may indicate high WIP or process bottlenecks"
+        return "[Note] Long lead time may indicate high WIP or process bottlenecks"
 
     # Flow Time - affected by WIP
     elif metric_name == "flow_time":
-        return "💡 Long cycle time may indicate high WIP or too much waiting"
+        return "[Note] Long cycle time may indicate high WIP or too much waiting"
 
     # Flow Velocity - core throughput metric
     elif metric_name == "flow_velocity":
-        return "💡 Low velocity may indicate bottlenecks, high WIP, or process inefficiency"
+        return "[Note] Low velocity may indicate bottlenecks, high WIP, or process inefficiency"
 
     # Flow Efficiency - related to waiting
     elif metric_name == "flow_efficiency":
         if value < 20:
-            return "💡 Low efficiency indicates high wait times between work stages"
+            return "[Note] Low efficiency indicates high wait times between work stages"
         elif value > 60:
-            return "💡 Very high efficiency may indicate team overload - check WIP"
+            return "[Note] Very high efficiency may indicate team overload - check WIP"
 
     return None
 

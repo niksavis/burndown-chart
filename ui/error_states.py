@@ -728,5 +728,5 @@ def log_error(error, additional_context=None):
         with open("burndown_errors.log", "a") as f:
             f.write(json.dumps(error_data) + "\n")
     except Exception as log_error:
-        print(f"Failed to log error: {log_error}")
-        print(f"Original error: {error}")
+        logger.error(f"Failed to log error: {log_error}")
+        logger.error(f"Original error: {error}")

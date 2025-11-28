@@ -204,7 +204,17 @@ def create_data_operations_card() -> html.Div:
                     ),
                     # Hidden store for force refresh functionality (long-press)
                     dcc.Store(id="force-refresh-store", data=False),
-                    html.Div(id="update-data-status", className="mb-3"),
+                    # Status message with fixed height to prevent layout shift
+                    html.Div(
+                        html.Div(id="update-data-status", className="mb-3"),
+                        style={
+                            "minHeight": "40px",  # Compact height for status message
+                            "marginTop": "8px",  # Space between button and spinner
+                            "display": "flex",
+                            "justifyContent": "center",  # Center horizontally
+                            "alignItems": "flex-start",
+                        },
+                    ),
                     html.Div(
                         [
                             html.Small(
@@ -245,7 +255,7 @@ def create_accordion_settings_panel() -> html.Div:
                     # Section 1: Profile Settings (ALWAYS ENABLED)
                     dbc.AccordionItem(
                         [create_profile_settings_card()],
-                        title="1️⃣ Profile Settings",
+                        title="1. Profile Settings",
                         id="profile-section-accordion",
                         item_id="profile-section",
                     ),
@@ -257,7 +267,7 @@ def create_accordion_settings_panel() -> html.Div:
                                 children=[create_jira_config_card()],
                             )
                         ],
-                        title="2️⃣ JIRA Configuration",
+                        title="2. JIRA Configuration",
                         id="jira-section-accordion",
                         item_id="jira-section",
                     ),
@@ -269,7 +279,7 @@ def create_accordion_settings_panel() -> html.Div:
                                 children=[create_field_mapping_card()],
                             )
                         ],
-                        title="3️⃣ Field Mappings",
+                        title="3. Field Mappings",
                         id="field-mapping-section-accordion",
                         item_id="field-mapping-section",
                     ),
@@ -281,7 +291,7 @@ def create_accordion_settings_panel() -> html.Div:
                                 children=[create_query_management_card()],
                             )
                         ],
-                        title="4️⃣ Query Management",
+                        title="4. Query Management",
                         id="query-section-accordion",
                         item_id="query-section",
                     ),
@@ -293,7 +303,7 @@ def create_accordion_settings_panel() -> html.Div:
                                 children=[create_data_operations_card()],
                             )
                         ],
-                        title="5️⃣ Data Operations",
+                        title="5. Data Operations",
                         id="data-actions-section-accordion",
                         item_id="data-actions-section",
                     ),

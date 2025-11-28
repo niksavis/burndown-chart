@@ -55,7 +55,7 @@ def update_configuration_status(profile_id, jira_status, save_query_clicks):
     if jira_status:
         jira_status_str = str(jira_status)
         jira_configured = (
-            "success" in jira_status_str.lower() or "✅" in jira_status_str
+            "success" in jira_status_str.lower() or "[OK]" in jira_status_str
         )
 
     # Determine if query is saved
@@ -66,27 +66,31 @@ def update_configuration_status(profile_id, jira_status, save_query_clicks):
         "profile": {
             "enabled": True,  # Always enabled
             "complete": profile_id is not None,
-            "icon": "✅" if profile_id else "⏳",
+            "icon": "[OK]" if profile_id else "[Pending]",
         },
         "jira": {
             "enabled": profile_id is not None,
             "complete": jira_configured,
-            "icon": "✅" if jira_configured else ("⏳" if profile_id else "🔒"),
+            "icon": "[OK]"
+            if jira_configured
+            else ("[Pending]" if profile_id else "[Locked]"),
         },
         "fields": {
             "enabled": jira_configured,  # Enabled when JIRA configured
             "complete": False,  # Field mappings are optional
-            "icon": "⏳" if jira_configured else "🔒",
+            "icon": "[Pending]" if jira_configured else "[Locked]",
         },
         "queries": {
             "enabled": jira_configured,  # Enabled when JIRA configured
             "complete": query_saved,
-            "icon": "✅" if query_saved else ("⏳" if jira_configured else "🔒"),
+            "icon": "[OK]"
+            if query_saved
+            else ("[Pending]" if jira_configured else "[Locked]"),
         },
         "data_operations": {
             "enabled": query_saved,  # Enabled when query saved
             "complete": False,  # Always requires manual trigger
-            "icon": "⏳" if query_saved else "🔒",
+            "icon": "[Pending]" if query_saved else "[Locked]",
         },
     }
 
@@ -161,9 +165,9 @@ def update_section_states(config_status):
 )
 def update_section_titles(config_status):
     """
-    Update section titles with status icons.
+    Update section titles with status indicators.
 
-    Adds visual indicators (✅ ⏳ 🔒) to accordion section titles
+    Adds visual indicators ([OK] [Pending] [Locked]) to accordion section titles
     to show which steps are complete, in progress, or locked.
 
     Args:
@@ -175,19 +179,19 @@ def update_section_titles(config_status):
     if not config_status:
         # Default titles with no status icons
         return (
-            "1️⃣ Profile Settings",
-            "2️⃣ JIRA Configuration 🔒",
-            "3️⃣ Field Mappings 🔒",
-            "4️⃣ Query Management 🔒",
-            "5️⃣ Data Operations 🔒",
+            "1. Profile Settings",
+            "2. JIRA Configuration [Locked]",
+            "3. Field Mappings [Locked]",
+            "4. Query Management [Locked]",
+            "5. Data Operations [Locked]",
         )
 
     # Build titles with status icons
-    profile_title = f"1️⃣ Profile Settings {config_status['profile']['icon']}"
-    jira_title = f"2️⃣ JIRA Configuration {config_status['jira']['icon']}"
-    fields_title = f"3️⃣ Field Mappings {config_status['fields']['icon']}"
-    queries_title = f"4️⃣ Query Management {config_status['queries']['icon']}"
-    data_title = f"5️⃣ Data Operations {config_status['data_operations']['icon']}"
+    profile_title = f"1. Profile Settings {config_status['profile']['icon']}"
+    jira_title = f"2. JIRA Configuration {config_status['jira']['icon']}"
+    fields_title = f"3. Field Mappings {config_status['fields']['icon']}"
+    queries_title = f"4. Query Management {config_status['queries']['icon']}"
+    data_title = f"5. Data Operations {config_status['data_operations']['icon']}"
 
     return profile_title, jira_title, fields_title, queries_title, data_title
 

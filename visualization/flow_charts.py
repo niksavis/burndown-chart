@@ -50,7 +50,7 @@ def create_flow_distribution_chart(distribution_data: Dict[str, Any]) -> go.Figu
         colors.append(color_map.get(work_type, "#6c757d"))
 
         # Create hover text with range info
-        range_status = "✓ Within range" if within_range else "⚠ Outside range"
+        range_status = "Within range" if within_range else "Outside range"
         hover_text.append(
             f"<b>{label}</b><br>"
             f"Count: {count}<br>"
@@ -105,7 +105,7 @@ def create_flow_distribution_chart(distribution_data: Dict[str, Any]) -> go.Figu
         within_range = data.get("within_range", True)
 
         label = work_type.replace("_", " ")
-        status_icon = "✓" if within_range else "⚠"
+        status_icon = "[OK]" if within_range else "[WARN]"
         color = "green" if within_range else "red"
 
         annotations.append(

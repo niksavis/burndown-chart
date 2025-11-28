@@ -230,40 +230,46 @@ def _assess_project_health(
 
     # Factor 1: Velocity Predictability
     if velocity_cv < 25:
-        factors.append({"name": "Velocity Predictable", "status": "good", "icon": "✅"})
+        factors.append(
+            {"name": "Velocity Predictable", "status": "good", "icon": "[OK]"}
+        )
     elif velocity_cv < 40:
         factors.append(
-            {"name": "Velocity Moderately Stable", "status": "warning", "icon": "⚠️"}
+            {"name": "Velocity Moderately Stable", "status": "warning", "icon": "[!]"}
         )
     else:
         factors.append(
-            {"name": "Velocity Unpredictable", "status": "bad", "icon": "🔴"}
+            {"name": "Velocity Unpredictable", "status": "bad", "icon": "[X]"}
         )
 
     # Factor 2: Schedule Status
     schedule_delta = pert_forecast_days - days_to_deadline
     if schedule_delta <= 0:
-        factors.append({"name": "On Schedule", "status": "good", "icon": "✅"})
+        factors.append({"name": "On Schedule", "status": "good", "icon": "[OK]"})
     elif schedule_delta <= 14:
-        factors.append({"name": "Slightly Behind", "status": "warning", "icon": "⚠️"})
+        factors.append({"name": "Slightly Behind", "status": "warning", "icon": "[!]"})
     else:
-        factors.append({"name": "Behind Schedule", "status": "bad", "icon": "🔴"})
+        factors.append({"name": "Behind Schedule", "status": "bad", "icon": "[X]"})
 
     # Factor 3: Velocity Trend
     if recent_velocity_change >= 5:
-        factors.append({"name": "Velocity Improving", "status": "good", "icon": "✅"})
+        factors.append({"name": "Velocity Improving", "status": "good", "icon": "[OK]"})
     elif recent_velocity_change >= -5:
-        factors.append({"name": "Velocity Stable", "status": "good", "icon": "✅"})
+        factors.append({"name": "Velocity Stable", "status": "good", "icon": "[OK]"})
     else:
-        factors.append({"name": "Velocity Declining", "status": "warning", "icon": "⚠️"})
+        factors.append(
+            {"name": "Velocity Declining", "status": "warning", "icon": "[!]"}
+        )
 
     # Factor 4: Capacity
     if capacity_gap_percent >= -10:
-        factors.append({"name": "Adequate Capacity", "status": "good", "icon": "✅"})
+        factors.append({"name": "Adequate Capacity", "status": "good", "icon": "[OK]"})
     elif capacity_gap_percent >= -25:
-        factors.append({"name": "Capacity Stretched", "status": "warning", "icon": "⚠️"})
+        factors.append(
+            {"name": "Capacity Stretched", "status": "warning", "icon": "[!]"}
+        )
     else:
-        factors.append({"name": "Capacity Shortfall", "status": "bad", "icon": "🔴"})
+        factors.append({"name": "Capacity Shortfall", "status": "bad", "icon": "[X]"})
 
     # Calculate overall health score
     good_count = sum(1 for f in factors if f["status"] == "good")
@@ -273,21 +279,21 @@ def _assess_project_health(
         overall = {
             "level": "healthy",
             "color": "#28a745",
-            "emoji": "🟢",
+            "emoji": "[OK]",
             "label": "HEALTHY",
         }
     elif bad_count >= 2:
         overall = {
             "level": "at_risk",
             "color": "#dc3545",
-            "emoji": "🔴",
+            "emoji": "[X]",
             "label": "AT RISK",
         }
     else:
         overall = {
             "level": "moderate",
             "color": "#ffc107",
-            "emoji": "🟡",
+            "emoji": "[!]",
             "label": "MODERATE",
         }
 
@@ -661,15 +667,15 @@ def _create_velocity_card(
     if cv < 25:
         predict_label = "Predictable"
         predict_color = "#28a745"
-        predict_emoji = "🟢"
+        predict_emoji = "[OK]"
     elif cv < 40:
         predict_label = "Moderate"
         predict_color = "#ffc107"
-        predict_emoji = "🟡"
+        predict_emoji = "[!]"
     else:
         predict_label = "Unpredictable"
         predict_color = "#dc3545"
-        predict_emoji = "🔴"
+        predict_emoji = "[X]"
 
     # Recent trend
     recent_change = velocity_stats["recent_change"]
@@ -840,15 +846,15 @@ def _create_capacity_card(
     # Status
     if gap_percent >= -5:
         gap_color = "#28a745"
-        gap_emoji = "✅"
+        gap_emoji = "[OK]"
         gap_label = "ADEQUATE"
     elif gap_percent >= -20:
         gap_color = "#ffc107"
-        gap_emoji = "⚠️"
+        gap_emoji = "[!]"
         gap_label = "STRETCHED"
     else:
         gap_color = "#dc3545"
-        gap_emoji = "🔴"
+        gap_emoji = "[X]"
         gap_label = "SHORTFALL"
 
     # Calculate options
@@ -953,7 +959,7 @@ def _create_capacity_card(
                         )
                         if gap_percent < -5
                         else html.Div(
-                            "✅ On track to meet deadline",
+                            "[OK] On track to meet deadline",
                             className="text-center",
                             style={
                                 "fontSize": "0.95rem",

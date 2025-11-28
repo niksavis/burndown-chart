@@ -61,11 +61,11 @@ class TestAccordionSettingsPanel:
         panel_str = str(panel)
 
         # Check for section titles (emoji + text)
-        assert "1️⃣ Profile Settings" in panel_str or "Profile Settings" in panel_str
-        assert "2️⃣ JIRA Configuration" in panel_str or "JIRA Configuration" in panel_str
-        assert "3️⃣ Field Mappings" in panel_str or "Field Mappings" in panel_str
-        assert "4️⃣ Query Management" in panel_str or "Query Management" in panel_str
-        assert "5️⃣ Data Operations" in panel_str or "Data Operations" in panel_str
+        assert "1. Profile Settings" in panel_str or "Profile Settings" in panel_str
+        assert "2. JIRA Configuration" in panel_str or "JIRA Configuration" in panel_str
+        assert "3. Field Mappings" in panel_str or "Field Mappings" in panel_str
+        assert "4. Query Management" in panel_str or "Query Management" in panel_str
+        assert "5. Data Operations" in panel_str or "Data Operations" in panel_str
 
     def test_profile_settings_card_present(self):
         """Verify profile settings card is included."""

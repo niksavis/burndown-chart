@@ -66,7 +66,7 @@ def log_performance(func: Callable) -> Callable:
         except Exception as e:
             elapsed = time.perf_counter() - start_time
             logger.error(
-                f"❌ {func_name} failed after {elapsed:.3f}s: {type(e).__name__}: {e}",
+                f"[X] {func_name} failed after {elapsed:.3f}s: {type(e).__name__}: {e}",
                 exc_info=True,
             )
             raise
@@ -89,7 +89,7 @@ class PerformanceTimer:
     Usage:
         with PerformanceTimer("load_data") as timer:
             data = load_large_dataset()
-        print(f"Loaded in {timer.elapsed:.3f}s")
+        logger.info(f"Loaded in {timer.elapsed:.3f}s")
 
     Attributes:
         operation_name: Optional name for logging
@@ -123,7 +123,7 @@ class PerformanceTimer:
                 )
             else:
                 logger.error(
-                    f"❌ {self.operation_name} failed after {self.elapsed:.3f}s: "
+                    f"[X] {self.operation_name} failed after {self.elapsed:.3f}s: "
                     f"{exc_type.__name__}: {exc_val}"
                 )
 
