@@ -1823,6 +1823,16 @@ def fetch_changelog_on_demand(config: Dict, progress_callback=None) -> Tuple[boo
                         }
                         issues_processed += 1
 
+                    # LOG PROGRESS: Every 50 issues to show activity without impacting performance
+                    if issues_processed > 0 and issues_processed % 50 == 0:
+                        logger.info(
+                            f"[JIRA] Processing changelog: {issues_processed}/{len(issues_with_changelog)} issues"
+                        )
+                        if progress_callback:
+                            progress_callback(
+                                f"Processing changelog: {issues_processed}/{len(issues_with_changelog)} issues"
+                            )
+
                     # INCREMENTAL SAVE: Save every 100 issues to prevent data loss on timeout
                     if issues_processed > 0 and issues_processed % batch_size == 0:
                         try:

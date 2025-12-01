@@ -972,10 +972,52 @@ def build_variable_collection_from_field_mappings(
     # The auto-configure sets these to "status" meaning "use changelog transitions"
     standard_object_fields = {"status", "issuetype", "project"}
 
+    # fixVersions is a special case - needs FixVersionSource instead of FieldValueSource
+    fixversions_fields = {"fixVersions"}
+
     # DORA field mappings
     if dora_fields.get("deployment_date"):
         field_id = dora_fields["deployment_date"]
-        if field_id not in standard_object_fields:
+        if field_id in fixversions_fields:
+            # Special handling: fixVersions uses FixVersionSource to extract releaseDate
+            # Override deployment_timestamp to use FixVersionSource
+            variables_dict["deployment_timestamp"] = VariableMapping(
+                variable_name="deployment_timestamp",
+                variable_type="datetime",
+                metric_category="dora",
+                description="When the deployment occurred",
+                required=True,
+                sources=[
+                    SourceRule(
+                        priority=1,
+                        source=ChangelogTimestampSource(
+                            type="changelog_timestamp",
+                            field="status",
+                            condition={"transition_to": "Deployed"},
+                        ),
+                    ),
+                    SourceRule(
+                        priority=2,
+                        source=FixVersionSource(
+                            type="fixversion_releasedate",
+                            field="fixVersions",
+                            selector="first",
+                        ),
+                    ),
+                    SourceRule(
+                        priority=3,
+                        source=FieldValueSource(
+                            type="field_value",
+                            field="resolutiondate",
+                            value_type="datetime",
+                        ),
+                    ),
+                ],
+            )
+            logger.info(
+                f"[VariableMapping] deployment_timestamp using FixVersionSource for '{field_id}'"
+            )
+        elif field_id not in standard_object_fields:
             field_variable_map["deployment_timestamp"] = (field_id, "datetime")
         else:
             logger.info(
@@ -990,7 +1032,14 @@ def build_variable_collection_from_field_mappings(
         )
     if dora_fields.get("code_commit_date"):
         field_id = dora_fields["code_commit_date"]
-        if field_id not in standard_object_fields:
+        # Check if it's a namespace syntax pattern (e.g., "status:In Progress.DateTime")
+        if ":" in field_id and ".DateTime" in field_id:
+            # This is changelog-based extraction - use default ChangelogTimestampSource
+            logger.info(
+                f"[VariableMapping] commit_timestamp using changelog extraction for '{field_id}'"
+            )
+            # commit_timestamp will use its default sources (changelog extraction)
+        elif field_id not in standard_object_fields:
             field_variable_map["commit_timestamp"] = (field_id, "datetime")
         else:
             logger.info(
@@ -1029,7 +1078,13 @@ def build_variable_collection_from_field_mappings(
     # (standard_object_fields already defined above)
     if flow_fields.get("work_started_date"):
         field_id = flow_fields["work_started_date"]
-        if field_id not in standard_object_fields:
+        # Check if it's a namespace syntax pattern (e.g., "status:In Progress.DateTime")
+        if ":" in field_id and ".DateTime" in field_id:
+            logger.info(
+                f"[VariableMapping] work_started_timestamp using changelog extraction for '{field_id}'"
+            )
+            # work_started_timestamp will use its default sources (changelog extraction)
+        elif field_id not in standard_object_fields:
             field_variable_map["work_started_timestamp"] = (field_id, "datetime")
         else:
             logger.info(
@@ -1039,7 +1094,13 @@ def build_variable_collection_from_field_mappings(
 
     if flow_fields.get("work_completed_date"):
         field_id = flow_fields["work_completed_date"]
-        if field_id not in standard_object_fields:
+        # Check if it's a namespace syntax pattern (e.g., "status:Done.DateTime")
+        if ":" in field_id and ".DateTime" in field_id:
+            logger.info(
+                f"[VariableMapping] work_completed_timestamp using changelog extraction for '{field_id}'"
+            )
+            # work_completed_timestamp will use its default sources (changelog extraction)
+        elif field_id not in standard_object_fields:
             field_variable_map["work_completed_timestamp"] = (field_id, "datetime")
         else:
             logger.info(
