@@ -394,7 +394,7 @@ def create_field_mapping_form(
                 "deployment_successful",
                 "Deployment Successful",
                 "checkbox",
-                "Deployment success/failure indicator | OPTIONAL for enhanced Change Failure Rate | Type: checkbox",
+                "Filter failed deployments | OPTIONAL - if empty, assumes all successful | Type: checkbox/select",
             ),
             (
                 "code_commit_date",

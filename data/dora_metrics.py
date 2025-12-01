@@ -226,6 +226,18 @@ def calculate_deployment_frequency(
             if not deployment_event.get("found") or not deployment_event.get("value"):
                 continue
 
+            # Filter out failed deployments (if deployment_successful field is mapped)
+            deployment_successful = extractor.extract_variable(
+                "deployment_successful", issue, changelog
+            )
+            if deployment_successful.get("found") and not deployment_successful.get(
+                "value"
+            ):
+                logger.debug(
+                    f"[DORA] Issue {issue.get('key')} is failed deployment, excluding from count"
+                )
+                continue
+
             # Extract deployment timestamp
             deployment_timestamp = extractor.extract_variable(
                 "deployment_timestamp", issue, changelog
