@@ -135,7 +135,7 @@ def validate_comprehensive_config(config: Dict[str, Any]) -> Dict[str, List[str]
     # Field mappings validation - distinguish between required and optional
     # CRITICAL: Only Flow metrics baseline fields are truly required
     # DORA fields are optional since not all JIRA setups support them
-    required_field_mappings = [
+    required_flow_fields = [
         "flow_item_type",  # Required for Flow metrics
         "work_completed_date",  # Required for Flow metrics
     ]
@@ -149,17 +149,20 @@ def validate_comprehensive_config(config: Dict[str, Any]) -> Dict[str, List[str]
         "incident_resolved_at",  # DORA: MTTR
     ]
 
+    # Access nested field mappings (flow and dora are sub-objects)
     field_mappings = config.get("field_mappings", {})
+    flow_mappings = field_mappings.get("flow", {})
+    dora_mappings = field_mappings.get("dora", {})
 
-    # Check required fields (errors)
-    for field in required_field_mappings:
-        if not field_mappings.get(field):
+    # Check required FLOW fields (errors)
+    for field in required_flow_fields:
+        if not flow_mappings.get(field):
             errors.append(f"Required field mapping missing: {field}")
 
     # Check optional DORA fields (warnings only)
     missing_dora_fields = []
     for field in optional_dora_fields:
-        if not field_mappings.get(field):
+        if not dora_mappings.get(field):
             missing_dora_fields.append(field)
 
     if missing_dora_fields:
@@ -216,7 +219,7 @@ def validate_comprehensive_config(config: Dict[str, Any]) -> Dict[str, List[str]
 
     # Environment validation
     prod_env_values = config.get("production_environment_values", [])
-    affected_env_field = field_mappings.get("affected_environment", "")
+    affected_env_field = dora_mappings.get("affected_environment", "")
 
     # Only warn about production values if affected_environment is configured
     if affected_env_field and not prod_env_values:

@@ -388,8 +388,7 @@ def _create_detailed_chart(
 
     Special handling for:
     - deployment_frequency: Shows dual lines (deployments vs releases) and details table
-    - change_failure_rate: Shows dual lines (deployment CFR vs release CFR)
-    For other metrics, shows standard single-line chart.
+    For other metrics (including change_failure_rate), shows standard single-line chart.
 
     Args:
         metric_name: Internal metric name (e.g., "deployment_frequency", "change_failure_rate")
@@ -440,36 +439,8 @@ def _create_detailed_chart(
         # (enables 2-cards-per-row grid on desktop)
         return chart
 
-    # Special case 2: change_failure_rate with release tracking
-    if metric_name == "change_failure_rate" and "weekly_release_values" in metric_data:
-        weekly_release_values = metric_data.get("weekly_release_values", [])
-
-        # Use performance tier color already calculated from overall metric value
-        tier_color = metric_data.get("performance_tier_color", "green")
-
-        tier_color_map = {
-            "green": "#198754",  # Elite
-            "blue": "#0dcaf0",  # High (cyan)
-            "yellow": "#ffc107",  # Medium
-            "orange": "#fd7e14",  # Low
-        }
-        primary_color = tier_color_map.get(tier_color, "#0d6efd")
-
-        # Reuse dual line chart but with different labels and dynamic color
-        chart = create_dual_line_trend(
-            week_labels=weekly_labels,
-            deployment_values=weekly_values,
-            release_values=weekly_release_values,
-            height=250,
-            show_axes=True,
-            primary_color=primary_color,  # Dynamic color based on performance
-            chart_title="Change Failure Rate",  # Explicit title
-        )
-
-        # Return chart without extra explanatory text for consistent layout
-        return chart
-
     # Standard single-line chart for other metrics
+    # Note: change_failure_rate uses standard single-line chart (not dual-line like deployment_frequency)
     # Use full trend chart with performance zones for DORA metrics
     is_dora_metric = metric_name in [
         "deployment_frequency",
@@ -842,6 +813,9 @@ def _create_success_card(
     # Format value - special handling for deployment_frequency with release count
     value = metric_data.get("value")
     release_value = metric_data.get("release_value")  # NEW: for deployment_frequency
+    task_value = metric_data.get(
+        "task_value"
+    )  # NEW: deployment count (operational tasks)
     p95_value = metric_data.get("p95_value")  # NEW: for lead_time and mttr
 
     if value is not None:
@@ -856,6 +830,14 @@ def _create_success_card(
         )
     else:
         formatted_release_value = None
+
+    # Format task value if present (deployment_frequency - operational task count)
+    if task_value is not None:
+        formatted_task_value = (
+            f"{task_value:.1f}" if task_value >= 10 else f"{task_value:.2f}"
+        )
+    else:
+        formatted_task_value = None
 
     # Format P95 value if present (lead_time and mttr metrics)
     if p95_value is not None:
@@ -1088,38 +1070,35 @@ def _create_success_card(
     weekly_labels = metric_data.get("weekly_labels", [])
     weekly_values = metric_data.get("weekly_values", [])
 
-    # Add release count for deployment_frequency and change_failure_rate metrics
-    # Add P95 for lead_time_for_changes and mean_time_to_recovery metrics
-    if formatted_release_value is not None and metric_name in [
-        "deployment_frequency",
-        "change_failure_rate",
-    ]:
-        # Determine text and icon based on metric type
-        release_config = {
-            "deployment_frequency": {
-                "text": f"{formatted_release_value} releases/week",
-                "icon": "fas fa-code-branch me-1",
-            },
-            "change_failure_rate": {
-                "text": f"{formatted_release_value}% release CFR",
-                "icon": "fas fa-code-branch me-1",
-            },
-        }
+    # For deployment_frequency, use release values for sparkline (primary metric)
+    # Deployments are secondary, releases are what we measure for DORA
+    if metric_name == "deployment_frequency":
+        weekly_release_values = metric_data.get("weekly_release_values", [])
+        if weekly_release_values:
+            sparkline_values = weekly_release_values
+        else:
+            sparkline_values = weekly_values
+    else:
+        sparkline_values = weekly_values
 
-        config = release_config.get(metric_name, {})
-        if config:
-            card_body_children.append(
-                html.Div(
-                    [
-                        html.I(className=config["icon"]),
-                        html.Span(config["text"]),
-                    ],
-                    className="text-center text-muted small mb-2",
-                )
+    # Add deployment count for deployment_frequency metric
+    # Add release CFR for change_failure_rate metric
+    # Add P95 for lead_time_for_changes and mean_time_to_recovery metrics
+    if metric_name == "deployment_frequency" and formatted_task_value is not None:
+        # Show deployment count (operational tasks) as secondary metric
+        card_body_children.append(
+            html.Div(
+                [
+                    html.I(className="fas fa-rocket me-1"),
+                    html.Span(f"{formatted_task_value} deployments/week"),
+                ],
+                className="text-center text-muted small mb-2",
             )
+        )
+    # Note: change_failure_rate uses single value (no secondary release CFR)
 
     # Add P95 information for lead_time_for_changes and mean_time_to_recovery
-    elif formatted_p95_value is not None and metric_name in [
+    if formatted_p95_value is not None and metric_name in [
         "lead_time_for_changes",
         "mean_time_to_recovery",
     ]:
@@ -1171,8 +1150,9 @@ def _create_success_card(
         }.get(tier_color, "#6c757d")
 
         # Create inline mini sparkline (CSS-based, compact)
+        # For deployment_frequency, use sparkline_values (releases) not weekly_values (deployments)
         mini_sparkline = _create_mini_bar_sparkline(
-            weekly_values, sparkline_color, height=40
+            sparkline_values, sparkline_color, height=40
         )
 
         # Generate unique collapse ID for this card
@@ -1185,7 +1165,7 @@ def _create_success_card(
                     html.Div(
                         [
                             html.Small(
-                                f"Trend (last {len(weekly_values)} weeks):",
+                                f"Trend (last {len(sparkline_values)} weeks):",
                                 className="text-muted d-block mb-1",
                             ),
                             mini_sparkline,

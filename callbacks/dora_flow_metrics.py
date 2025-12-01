@@ -180,9 +180,23 @@ def load_and_display_dora_metrics(
         )
 
         # Calculate performance tiers for each metric
+        # Use RELEASE count as primary deployment frequency (unique fixVersions)
+        # This represents actual production deployments, not individual operational tasks
         deployment_freq_value = cached_metrics.get("deployment_frequency", {}).get(
+            "release_value",
+            0,  # Use release_value (unique fixVersions) as primary metric
+        )
+        # Fallback to task count if release_value not available
+        if deployment_freq_value == 0:
+            deployment_freq_value = cached_metrics.get("deployment_frequency", {}).get(
+                "value", 0
+            )
+
+        # Also keep task count for detailed view
+        task_count_value = cached_metrics.get("deployment_frequency", {}).get(
             "value", 0
         )
+
         # Convert deployments/week to deployments/month for tier comparison
         deployments_per_month = deployment_freq_value * 4.33  # Average weeks per month
 
@@ -210,27 +224,31 @@ def load_and_display_dora_metrics(
         metrics_data = {
             "deployment_frequency": {
                 "metric_name": "deployment_frequency",
-                "value": deployment_freq_value,
+                "value": deployment_freq_value,  # Now uses release_value (unique fixVersions)
+                "task_value": task_count_value,  # Individual operational tasks (for details)
                 "release_value": cached_metrics.get("deployment_frequency", {}).get(
                     "release_value", 0
-                ),  # NEW
-                "unit": f"deployments/week (avg {n_weeks_display}w)",
+                ),
+                "unit": f"releases/week (avg {n_weeks_display}w)",  # Changed label from deployments to releases
                 "error_state": "success",
                 "performance_tier": deployment_freq_tier["tier"],
                 "performance_tier_color": deployment_freq_tier["color"],
                 "total_issue_count": cached_metrics.get("deployment_frequency", {}).get(
                     "total_issue_count", 0
                 ),
-                "tooltip": f"{DORA_METRICS_TOOLTIPS.get('deployment_frequency', '')} Average calculated over last {n_weeks_display} weeks. Deployment = operational task, Release = unique fixVersion.",
+                "tooltip": f"{DORA_METRICS_TOOLTIPS.get('deployment_frequency', '')} Average calculated over last {n_weeks_display} weeks. Shows unique releases (fixVersions) per week.",
                 "weekly_labels": cached_metrics.get("deployment_frequency", {}).get(
                     "weekly_labels", []
                 ),
                 "weekly_values": cached_metrics.get("deployment_frequency", {}).get(
-                    "weekly_values", []
+                    "weekly_values",
+                    [],  # Use deployment values for primary chart line
                 ),
                 "weekly_release_values": cached_metrics.get(
                     "deployment_frequency", {}
-                ).get("weekly_release_values", []),  # NEW: For scatter chart
+                ).get(
+                    "weekly_release_values", []
+                ),  # Use release values for secondary chart line
             },
             "lead_time_for_changes": {
                 "metric_name": "lead_time_for_changes",

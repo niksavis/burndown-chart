@@ -22,55 +22,46 @@ class TestDeploymentFrequencyClean:
     """Test deployment frequency calculation with clean implementation."""
 
     def test_deployment_frequency_with_valid_data(self):
-        """Test deployment frequency calculation with valid deployment data."""
-        # Arrange: Create realistic deployment issues with changelog
+        """Test deployment frequency calculation with valid deployment data.
+
+        Per user requirements, deployments are identified by:
+        - Operational tasks with fixVersion.releaseDate in the time period
+        - Releases are counted as distinct fixVersions
+        """
+        # Arrange: Create realistic deployment issues with fixVersions
         issues = [
             {
                 "key": "DEPLOY-1",
                 "fields": {
-                    "status": {"name": "Deployed"},
-                    "customfield_10001": "Production",  # environment
-                    "created": "2025-11-01T10:00:00Z",
-                },
-                "changelog": {
-                    "histories": [
-                        {
-                            "created": "2025-11-01T10:00:00Z",
-                            "items": [{"field": "status", "toString": "Deployed"}],
-                        }
-                    ]
+                    "status": {"name": "Done"},
+                    "issuetype": {"name": "Operational Task"},
+                    "fixVersions": [{"name": "v1.0.0", "releaseDate": "2025-11-01"}],
+                    "created": "2025-10-25T10:00:00Z",
                 },
             },
             {
                 "key": "DEPLOY-2",
                 "fields": {
-                    "status": {"name": "Deployed"},
-                    "customfield_10001": "Production",
-                    "created": "2025-11-08T14:00:00Z",
-                },
-                "changelog": {
-                    "histories": [
-                        {
-                            "created": "2025-11-08T14:00:00Z",
-                            "items": [{"field": "status", "toString": "Deployed"}],
-                        }
-                    ]
+                    "status": {"name": "Done"},
+                    "issuetype": {"name": "Operational Task"},
+                    "fixVersions": [
+                        {"name": "v1.0.0", "releaseDate": "2025-11-01"}  # Same release
+                    ],
+                    "created": "2025-10-28T14:00:00Z",
                 },
             },
             {
                 "key": "DEPLOY-3",
                 "fields": {
-                    "status": {"name": "Deployed"},
-                    "customfield_10001": "Production",
-                    "created": "2025-11-15T09:00:00Z",
-                },
-                "changelog": {
-                    "histories": [
+                    "status": {"name": "Done"},
+                    "issuetype": {"name": "Operational Task"},
+                    "fixVersions": [
                         {
-                            "created": "2025-11-15T09:00:00Z",
-                            "items": [{"field": "status", "toString": "Deployed"}],
-                        }
-                    ]
+                            "name": "v1.1.0",
+                            "releaseDate": "2025-11-15",
+                        }  # Different release
+                    ],
+                    "created": "2025-11-10T09:00:00Z",
                 },
             },
         ]
@@ -82,15 +73,20 @@ class TestDeploymentFrequencyClean:
 
         # Assert
         assert "error_state" not in result
-        assert result["deployment_count"] == 3
+        assert result["deployment_count"] == 3  # 3 operational tasks
+        assert result["release_count"] == 2  # 2 distinct fixVersions (v1.0.0, v1.1.0)
         assert result["period_days"] == 30
         assert result["value"] > 0
+        assert result["deployments_per_week"] > 0
+        assert result["releases_per_week"] > 0
         assert result["unit"] in [
             "deployments/day",
             "deployments/week",
             "deployments/month",
         ]
         assert result["performance_tier"] in ["elite", "high", "medium", "low"]
+        assert "v1.0.0" in result["release_names"]
+        assert "v1.1.0" in result["release_names"]
 
     def test_deployment_frequency_no_deployments(self):
         """Test deployment frequency with no deployment issues."""

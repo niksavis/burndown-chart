@@ -1862,7 +1862,7 @@ def _build_comprehensive_validation_alert(validation_result: Dict):
             html.Li(
                 [
                     html.Strong(f"{err['tab']} > {err['field']}: "),
-                    html.Span(err["error"], className="text-danger"),
+                    html.Span(err["error"]),  # No text-danger - inherits alert color
                 ],
                 className="mb-1",
             )

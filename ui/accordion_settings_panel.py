@@ -19,7 +19,6 @@ from ui.profile_settings_card import create_profile_settings_card
 from ui.jira_config_modal import create_jira_config_button
 from ui.query_selector import create_query_selector_panel
 from ui.jql_editor import create_jql_editor
-from ui.import_export_panel import create_import_export_panel
 
 
 def create_jira_config_card() -> html.Div:

@@ -299,6 +299,16 @@ class MetricsConfig:
     ) -> Optional[str]:
         """Determine flow type (Feature/Defect/Technical_Debt/Risk) for an issue.
 
+        Classification algorithm:
+        1. Find ALL flow types where issue_type matches
+        2. If effort_category is provided:
+           a. First try to find a flow type that matches BOTH issue_type AND effort_category
+           b. If no match, fall back to a flow type with empty effort_categories (catch-all)
+        3. If no effort_category, use the first matching flow type
+
+        This allows effort_category to refine classification when the same issue_type
+        (e.g., "Task", "Story") can belong to different flow types depending on effort.
+
         Args:
             issue_type: JIRA issue type name (e.g., "Story", "Bug")
             effort_category: Optional effort category value
@@ -308,15 +318,34 @@ class MetricsConfig:
         """
         flow_mappings = self.get_flow_type_mappings()
 
+        # Find ALL flow types where issue_type matches
+        matching_flow_types = []
+        catch_all_flow_type = None  # Flow type with empty effort_categories
+
         for flow_type, mapping in flow_mappings.items():
             issue_types = mapping.get("issue_types", [])
-            effort_categories = mapping.get("effort_categories", [])
-
             if issue_type in issue_types:
-                return flow_type
+                effort_categories = mapping.get("effort_categories", [])
+                if not effort_categories:
+                    # This flow type accepts ALL issues of this type (catch-all)
+                    if catch_all_flow_type is None:
+                        catch_all_flow_type = flow_type
+                else:
+                    matching_flow_types.append((flow_type, effort_categories))
 
-            if effort_category and effort_category in effort_categories:
-                return flow_type
+        # If effort_category is provided, try to find exact match first
+        if effort_category:
+            for flow_type, effort_categories in matching_flow_types:
+                if effort_category in effort_categories:
+                    return flow_type
+
+        # Fall back to catch-all flow type (one with no effort_categories filter)
+        if catch_all_flow_type:
+            return catch_all_flow_type
+
+        # If no catch-all but we have matches, return first one (for None effort_category)
+        if matching_flow_types and not effort_category:
+            return matching_flow_types[0][0]
 
         return None
 

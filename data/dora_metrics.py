@@ -1,4 +1,4 @@
-"""Modern DORA metrics calculator using variable extraction.
+"""Modern DORA metrics calculator using field mappings.
 
 Calculates the four DORA (DevOps Research and Assessment) metrics:
 - Deployment Frequency: How often code is deployed to production
@@ -6,12 +6,12 @@ Calculates the four DORA (DevOps Research and Assessment) metrics:
 - Change Failure Rate: Percentage of deployments causing incidents
 - Mean Time to Recovery: Time to restore service after incidents
 
-This implementation uses VariableExtractor for clean, rule-based data extraction
-with no backward compatibility for legacy field_mappings.
+This implementation uses field_mappings from user profile configuration.
 
 Architecture:
 - Pure business logic with no UI dependencies
-- Clean separation between data extraction (VariableExtractor) and calculation
+- Uses user-configured field mappings (no hardcoded field names)
+- Supports changelog extraction for datetime values (status:StatusName.DateTime)
 - Consistent error handling and performance tier classification
 - Comprehensive logging for debugging and monitoring
 
@@ -26,6 +26,126 @@ from data.variable_mapping.extractor import VariableExtractor
 from data.performance_utils import log_performance
 
 logger = logging.getLogger(__name__)
+
+
+def _get_field_mappings():
+    """Load field mappings from app settings.
+
+    Returns:
+        Tuple of (dora_mappings, project_classification)
+    """
+    from data.persistence import load_app_settings
+
+    app_settings = load_app_settings()
+    field_mappings = app_settings.get("field_mappings", {})
+    dora_mappings = field_mappings.get("dora", {})
+
+    # Project classification is flattened to root level by load_app_settings
+    # Reconstruct the nested structure for backward compatibility
+    project_classification = {
+        "completion_statuses": app_settings.get("completion_statuses", []),
+        "active_statuses": app_settings.get("active_statuses", []),
+        "wip_statuses": app_settings.get("wip_statuses", []),
+        "flow_start_statuses": app_settings.get("flow_start_statuses", []),
+        "bug_types": app_settings.get("bug_types", []),
+        "devops_task_types": app_settings.get("devops_task_types", []),
+        "production_environment_values": app_settings.get(
+            "production_environment_values", []
+        ),
+    }
+
+    return dora_mappings, project_classification
+
+
+def _is_issue_completed(issue: Dict[str, Any], completion_statuses: List[str]) -> bool:
+    """Check if issue is in a completed status.
+
+    Args:
+        issue: JIRA issue dictionary
+        completion_statuses: List of status names that indicate completion
+
+    Returns:
+        True if issue status is in completion_statuses
+    """
+    status = issue.get("fields", {}).get("status", {}).get("name", "")
+    return status in completion_statuses
+
+
+def _extract_datetime_from_field_mapping(
+    issue: Dict[str, Any], field_mapping: str, changelog: Optional[List] = None
+) -> Optional[str]:
+    """Extract datetime value from issue based on field mapping configuration.
+
+    Supports multiple field mapping formats:
+    - Simple field: "created", "resolutiondate"
+    - Nested field: "status.name"
+    - Changelog transition: "status:In Progress.DateTime" (extracts timestamp when status changed to "In Progress")
+    - fixVersions: "fixVersions" (extracts releaseDate from first fixVersion)
+
+    Args:
+        issue: JIRA issue dictionary
+        field_mapping: Field mapping string from profile.json (e.g., "status:Done.DateTime")
+        changelog: Optional changelog history for transition timestamp extraction
+
+    Returns:
+        ISO datetime string if found, None otherwise
+    """
+    if not field_mapping:
+        return None
+
+    # Handle changelog transition format: "status:StatusName.DateTime"
+    if ":" in field_mapping and ".DateTime" in field_mapping:
+        # Extract field name and target status
+        # Format: "status:In Progress.DateTime"
+        parts = field_mapping.split(":")
+        if len(parts) != 2:
+            return None
+
+        field_name = parts[0]  # "status"
+        status_datetime = parts[1]  # "In Progress.DateTime"
+        target_status = status_datetime.replace(".DateTime", "")  # "In Progress"
+
+        # Search changelog for transition to target status
+        if changelog is None:
+            changelog = issue.get("changelog", {}).get("histories", [])
+
+        if not isinstance(changelog, list):
+            return None
+
+        for history in changelog:
+            for item in history.get("items", []):
+                if (
+                    item.get("field") == field_name
+                    and item.get("toString") == target_status
+                ):
+                    return history.get("created")  # Return transition timestamp
+
+        return None
+
+    # Handle fixVersions special case
+    if field_mapping == "fixVersions":
+        fix_versions = issue.get("fields", {}).get("fixVersions", [])
+        for fv in fix_versions:
+            release_date = fv.get("releaseDate")
+            if release_date:
+                return release_date
+        return None
+
+    # Handle simple and nested field paths
+    fields = issue.get("fields", {})
+    if "." in field_mapping:
+        # Nested field like "status.name"
+        parts = field_mapping.split(".")
+        value = fields
+        for part in parts:
+            if isinstance(value, dict):
+                value = value.get(part)
+            else:
+                return None
+        return value if isinstance(value, str) else None
+    else:
+        # Simple field like "created", "resolutiondate"
+        return fields.get(field_mapping)
 
 
 # DORA performance tier thresholds (based on industry research)
@@ -172,12 +292,14 @@ def calculate_deployment_frequency(
 ) -> Dict[str, Any]:
     """Calculate deployment frequency metric.
 
-    Measures how often code is deployed to production. Industry-leading teams
-    deploy multiple times per day (elite), while lower-performing teams deploy
-    monthly or less (low).
+    Measures how often code is deployed to production:
+    - Deployments: Count of operational tasks with fixVersion.releaseDate in period
+    - Releases: Count of DISTINCT fixVersions with releaseDate in period
+
+    Multiple deployments (operational tasks) can share one release (fixVersion).
 
     Args:
-        issues: List of JIRA issues to analyze
+        issues: List of JIRA issues (operational tasks) to analyze
         extractor: VariableExtractor configured with deployment variable mappings
         time_period_days: Number of days in measurement period (default: 30)
         previous_period_value: Optional previous period value for trend calculation
@@ -185,10 +307,14 @@ def calculate_deployment_frequency(
     Returns:
         Dictionary with deployment frequency metrics:
         {
-            "value": float,  # Deployments per day
-            "unit": "deployments/day" | "deployments/week" | "deployments/month",
+            "value": float,  # Deployments per week (primary metric)
+            "deployments_per_week": float,
+            "releases_per_week": float,
+            "unit": "deployments/week",
             "performance_tier": "elite" | "high" | "medium" | "low",
-            "deployment_count": int,
+            "deployment_count": int,  # Total operational tasks
+            "release_count": int,  # Distinct fixVersions
+            "release_names": List[str],  # Names of releases
             "period_days": int,
             "trend_direction": "up" | "down" | "stable",
             "trend_percentage": float
@@ -211,94 +337,70 @@ def calculate_deployment_frequency(
                 "trend_percentage": 0.0,
             }
 
-        # Extract deployments using variable mapping
-        deployments = []
-        no_timestamp_count = 0
+        # Get field mappings from profile
+        dora_mappings, project_classification = _get_field_mappings()
+        completion_statuses = project_classification.get(
+            "completion_statuses", ["Done", "Resolved", "Closed"]
+        )
+
+        # Count deployments (operational tasks) and releases (distinct fixVersions)
+        deployment_count = 0
+        all_releases = set()  # Track distinct fixVersion names
 
         for issue in issues:
-            # Extract changelog if present
-            changelog = issue.get("changelog", {}).get("histories", [])
+            fields = issue.get("fields", {})
 
-            # Check if this issue represents a deployment
-            deployment_event = extractor.extract_variable(
-                "deployment_event", issue, changelog
-            )
-            if not deployment_event.get("found") or not deployment_event.get("value"):
+            # Check if issue is completed
+            if not _is_issue_completed(issue, completion_statuses):
                 continue
 
-            # Filter out failed deployments (if deployment_successful field is mapped)
-            deployment_successful = extractor.extract_variable(
-                "deployment_successful", issue, changelog
-            )
-            if deployment_successful.get("found") and not deployment_successful.get(
-                "value"
-            ):
+            # Check if issue has fixVersion with releaseDate
+            fix_versions = fields.get("fixVersions", [])
+            has_release_date = False
+
+            for fv in fix_versions:
+                if fv.get("releaseDate"):
+                    has_release_date = True
+                    release_name = fv.get("name", "")
+                    if release_name:
+                        all_releases.add(release_name)
+
+            if has_release_date:
+                deployment_count += 1
                 logger.debug(
-                    f"[DORA] Issue {issue.get('key')} is failed deployment, excluding from count"
+                    f"[DORA] Issue {issue.get('key')} counted as deployment: "
+                    f"type={fields.get('issuetype', {}).get('name')}, "
+                    f"fixVersions={[v.get('name') for v in fix_versions if v.get('releaseDate')]}"
                 )
-                continue
 
-            # Extract deployment timestamp
-            deployment_timestamp = extractor.extract_variable(
-                "deployment_timestamp", issue, changelog
-            )
-            if not deployment_timestamp.get("found"):
-                no_timestamp_count += 1
-                logger.debug(
-                    f"[DORA] Issue {issue.get('key')} is deployment but has no timestamp"
-                )
-                continue
-
-            timestamp_str = deployment_timestamp.get("value")
-            if not timestamp_str:
-                no_timestamp_count += 1
-                continue
-
-            try:
-                # Parse timestamp
-                timestamp = datetime.fromisoformat(timestamp_str.replace("Z", "+00:00"))
-                if timestamp.tzinfo is None:
-                    timestamp = timestamp.replace(tzinfo=timezone.utc)
-
-                deployments.append(
-                    {
-                        "issue_key": issue.get("key"),
-                        "timestamp": timestamp,
-                        "source_priority": deployment_timestamp.get("source_priority"),
-                    }
-                )
-            except (ValueError, TypeError) as e:
-                logger.warning(
-                    f"[DORA] Invalid timestamp format for {issue.get('key')}: {timestamp_str} - {e}"
-                )
-                no_timestamp_count += 1
-                continue
-
-        if not deployments:
+        if deployment_count == 0:
             return {
                 "error_state": "no_data",
-                "error_message": f"No valid deployments found in {len(issues)} issues "
-                f"({no_timestamp_count} without timestamps)",
+                "error_message": f"No completed deployments with fixVersion.releaseDate found in {len(issues)} issues",
                 "trend_direction": "stable",
                 "trend_percentage": 0.0,
             }
 
-        # Calculate deployment frequency
-        deployment_count = len(deployments)
+        # Calculate frequencies
+        release_count = len(all_releases)
+        weeks = time_period_days / 7.0
+
+        deployments_per_week = deployment_count / weeks if weeks > 0 else 0
+        releases_per_week = release_count / weeks if weeks > 0 else 0
         deployments_per_day = deployment_count / time_period_days
 
-        # Determine best display unit
+        # Determine best display unit based on frequency
         if deployments_per_day >= 0.9:
             unit = "deployments/day"
             display_value = deployments_per_day
         elif deployments_per_day >= 0.13:
             unit = "deployments/week"
-            display_value = deployments_per_day * 7
+            display_value = deployments_per_week
         else:
             unit = "deployments/month"
             display_value = deployments_per_day * 30
 
-        # Classify performance tier
+        # Classify performance tier based on deployments per day
         performance_tier = _classify_performance_tier(
             deployments_per_day, DEPLOYMENT_FREQUENCY_TIERS, higher_is_better=True
         )
@@ -308,14 +410,19 @@ def calculate_deployment_frequency(
 
         logger.info(
             f"[DORA] Deployment Frequency: {display_value:.1f} {unit} "
-            f"({deployment_count} deployments / {time_period_days} days) - {performance_tier}"
+            f"({deployment_count} deployments, {release_count} releases / {time_period_days} days) - {performance_tier}"
         )
+        logger.debug(f"[DORA] Releases: {sorted(all_releases)}")
 
         return {
             "value": display_value,
+            "deployments_per_week": deployments_per_week,
+            "releases_per_week": releases_per_week,
             "unit": unit,
             "performance_tier": performance_tier,
             "deployment_count": deployment_count,
+            "release_count": release_count,
+            "release_names": sorted(all_releases),
             "period_days": time_period_days,
             **trend,
         }
@@ -384,32 +491,42 @@ def calculate_lead_time_for_changes(
         missing_start_count = 0
         missing_end_count = 0
 
+        # Get field mappings from profile configuration
+        from data.persistence import load_app_settings
+
+        app_settings = load_app_settings()
+        field_mappings = app_settings.get("field_mappings", {})
+        dora_mappings = field_mappings.get("dora", {})
+
+        code_commit_field = dora_mappings.get("code_commit_date", "created")
+        deployment_date_field = dora_mappings.get("deployment_date", "fixVersions")
+
         for issue in issues:
             # Extract changelog if present
             changelog = issue.get("changelog", {}).get("histories", [])
 
-            # Extract work start timestamp
-            work_start = extractor.extract_variable(
-                "work_started_timestamp", issue, changelog
+            # Extract work start timestamp using field mapping
+            work_start_value = _extract_datetime_from_field_mapping(
+                issue, code_commit_field, changelog
             )
-            if not work_start.get("found"):
+            if not work_start_value:
                 missing_start_count += 1
                 continue
 
-            # Extract deployment timestamp
-            deployment = extractor.extract_variable(
-                "deployment_timestamp", issue, changelog
+            # Extract deployment timestamp using field mapping
+            deployment_value = _extract_datetime_from_field_mapping(
+                issue, deployment_date_field, changelog
             )
-            if not deployment.get("found"):
+            if not deployment_value:
                 missing_end_count += 1
                 continue
 
             try:
                 start_time = datetime.fromisoformat(
-                    work_start["value"].replace("Z", "+00:00")
+                    work_start_value.replace("Z", "+00:00")
                 )
                 end_time = datetime.fromisoformat(
-                    deployment["value"].replace("Z", "+00:00")
+                    deployment_value.replace("Z", "+00:00")
                 )
 
                 if start_time.tzinfo is None:
@@ -517,6 +634,7 @@ def calculate_change_failure_rate(
     extractor: VariableExtractor,
     time_period_days: int = 30,
     previous_period_value: Optional[float] = None,
+    valid_fix_versions: Optional[set] = None,
 ) -> Dict[str, Any]:
     """Calculate change failure rate metric.
 
@@ -524,11 +642,13 @@ def calculate_change_failure_rate(
     Elite teams have failure rates under 15%, while low performers exceed 45%.
 
     Args:
-        deployment_issues: List of deployment issues
-        incident_issues: List of incident/bug issues
-        extractor: VariableExtractor configured with incident variable mappings
+        deployment_issues: List of deployment/operational task issues
+        incident_issues: List of incident/bug issues (kept for backward compatibility, not used)
+        extractor: VariableExtractor configured with field mappings
         time_period_days: Number of days in measurement period (default: 30)
         previous_period_value: Optional previous period value for trend calculation
+        valid_fix_versions: Set of fixVersion names from development projects.
+            If provided, only count Operational Tasks with matching fixVersions.
 
     Returns:
         Dictionary with change failure rate metrics:
@@ -536,8 +656,12 @@ def calculate_change_failure_rate(
             "value": float,  # Failure rate percentage (0-100)
             "unit": "%",
             "performance_tier": "elite" | "high" | "medium" | "low",
-            "deployment_count": int,
-            "incident_count": int,
+            "total_deployments": int,
+            "failed_deployments": int,
+            "total_releases": int,
+            "failed_releases": int,
+            "release_names": List[str],
+            "failed_release_names": List[str],
             "period_days": int,
             "trend_direction": "up" | "down" | "stable",
             "trend_percentage": float
@@ -552,57 +676,159 @@ def calculate_change_failure_rate(
         }
     """
     try:
-        # Count deployments
-        deployment_count = 0
-        for issue in deployment_issues:
-            changelog = issue.get("changelog", {}).get("histories", [])
-            deployment_event = extractor.extract_variable(
-                "deployment_event", issue, changelog
-            )
-            if deployment_event.get("found") and deployment_event.get("value"):
-                deployment_count += 1
+        # Get field mappings from profile
+        dora_mappings, project_classification = _get_field_mappings()
 
-        if deployment_count == 0:
+        # Get change_failure field from profile (e.g., "customfield_12708" or "customfield_12708=Yes")
+        change_failure_mapping = dora_mappings.get("change_failure")
+        if not change_failure_mapping:
             return {
-                "error_state": "no_data",
-                "error_message": "No deployments found in specified period",
+                "error_state": "missing_mapping",
+                "error_message": "change_failure field not configured in profile.json field_mappings.dora",
                 "trend_direction": "stable",
                 "trend_percentage": 0.0,
             }
 
-        # Count incidents caused by deployments
-        incident_count = 0
-        for issue in incident_issues:
-            changelog = issue.get("changelog", {}).get("histories", [])
-            # Check if incident is deployment-related
-            incident_event = extractor.extract_variable(
-                "incident_event", issue, changelog
-            )
-            if incident_event.get("found") and incident_event.get("value"):
-                incident_count += 1
+        # Parse field mapping - support "field=value" syntax for configurable failure values
+        # Default positive values if no specific value is configured
+        change_failure_field = change_failure_mapping
+        configured_failure_values = {"yes", "true", "1"}  # Default positive values
 
-        # Calculate failure rate
-        failure_rate = (incident_count / deployment_count) * 100
+        if "=" in change_failure_mapping:
+            # Configurable value syntax: "customfield_12708=Yes" or "customfield_12708=Yes|Ja|Oui"
+            field_part, value_part = change_failure_mapping.split("=", 1)
+            change_failure_field = field_part.strip()
+            # Support multiple values separated by pipe: "Yes|Ja|Oui"
+            configured_failure_values = {
+                v.strip().lower() for v in value_part.split("|") if v.strip()
+            }
+            logger.info(
+                f"[DORA CFR] Using configured failure values: {configured_failure_values}"
+            )
+
+        completion_statuses = project_classification.get(
+            "completion_statuses", ["Done", "Resolved", "Closed"]
+        )
+
+        # Count deployments and track which have change_failure flag set
+        # Also track releases (distinct fixVersions)
+        total_deployments = 0
+        failed_deployments = 0
+        all_releases = set()  # Track all fixVersion names
+        failed_releases = set()  # Track fixVersions that had failures
+
+        for issue in deployment_issues:
+            fields = issue.get("fields", {})
+
+            # Check if issue is completed
+            if not _is_issue_completed(issue, completion_statuses):
+                continue
+
+            # Check if issue has fixVersion with releaseDate (deployment date)
+            fix_versions = fields.get("fixVersions", [])
+            has_valid_release = False
+            issue_releases = []
+
+            for fv in fix_versions:
+                if fv.get("releaseDate"):
+                    release_name = fv.get("name", "")
+                    if release_name:
+                        # Filter: Only count if fixVersion exists in development projects
+                        if (
+                            valid_fix_versions
+                            and release_name not in valid_fix_versions
+                        ):
+                            continue
+                        has_valid_release = True
+                        issue_releases.append(release_name)
+                        all_releases.add(release_name)
+
+            if not has_valid_release:
+                continue
+
+            total_deployments += 1
+
+            # Check change_failure field from profile mapping
+            # Handle both simple values and object values (e.g., {"value": "Yes"})
+            change_failure_value = fields.get(change_failure_field)
+            is_failure = False
+
+            if change_failure_value is not None:
+                if isinstance(change_failure_value, bool):
+                    # Boolean fields: true means failure
+                    is_failure = change_failure_value
+                elif isinstance(change_failure_value, dict):
+                    # Handle JIRA custom field objects like {"value": "Yes", "id": "123"}
+                    val = change_failure_value.get("value", "")
+                    is_failure = str(val).lower() in configured_failure_values
+                elif isinstance(change_failure_value, str):
+                    is_failure = (
+                        change_failure_value.lower() in configured_failure_values
+                    )
+                elif isinstance(change_failure_value, (int, float)):
+                    # Numeric fields: non-zero means failure, or check if matches configured value
+                    is_failure = str(
+                        int(change_failure_value)
+                    ) in configured_failure_values or bool(change_failure_value)
+
+            if is_failure:
+                failed_deployments += 1
+                # Mark these releases as having failures
+                for release_name in issue_releases:
+                    failed_releases.add(release_name)
+
+                logger.debug(
+                    f"[DORA] Issue {issue.get('key')} marked as causing production issue "
+                    f"(change_failure={change_failure_value})"
+                )
+
+        if total_deployments == 0:
+            return {
+                "error_state": "no_data",
+                "error_message": "No completed deployments with fixVersion.releaseDate found",
+                "trend_direction": "stable",
+                "trend_percentage": 0.0,
+            }
+
+        # Calculate failure rates
+        # CFR based on deployments (operational tasks)
+        change_failure_rate = (failed_deployments / total_deployments) * 100
+
+        # Also calculate release-level failure rate
+        total_releases_count = len(all_releases)
+        failed_releases_count = len(failed_releases)
+        release_failure_rate = (
+            (failed_releases_count / total_releases_count) * 100
+            if total_releases_count > 0
+            else 0
+        )
 
         # Classify performance tier (lower is better)
         performance_tier = _classify_performance_tier(
-            failure_rate, CHANGE_FAILURE_RATE_TIERS, higher_is_better=False
+            change_failure_rate, CHANGE_FAILURE_RATE_TIERS, higher_is_better=False
         )
 
         # Calculate trend
-        trend = _calculate_trend(failure_rate, previous_period_value)
+        trend = _calculate_trend(change_failure_rate, previous_period_value)
 
         logger.info(
-            f"[DORA] Change Failure Rate: {failure_rate:.1f}% "
-            f"({incident_count} incidents / {deployment_count} deployments) - {performance_tier}"
+            f"[DORA] Change Failure Rate: {change_failure_rate:.1f}% "
+            f"({failed_deployments}/{total_deployments} deployments, "
+            f"{failed_releases_count}/{total_releases_count} releases) - {performance_tier}"
         )
 
         return {
-            "value": failure_rate,
+            "value": change_failure_rate,
+            "change_failure_rate_percent": change_failure_rate,
             "unit": "%",
             "performance_tier": performance_tier,
-            "deployment_count": deployment_count,
-            "incident_count": incident_count,
+            "total_deployments": total_deployments,
+            "failed_deployments": failed_deployments,
+            "total_releases": total_releases_count,
+            "failed_releases": failed_releases_count,
+            "release_failure_rate_percent": release_failure_rate,
+            "release_names": sorted(list(all_releases)),
+            "failed_release_names": sorted(list(failed_releases)),
             "period_days": time_period_days,
             **trend,
         }
@@ -671,32 +897,44 @@ def calculate_mean_time_to_recovery(
         missing_start_count = 0
         missing_end_count = 0
 
+        # Get field mappings from profile configuration
+        from data.persistence import load_app_settings
+
+        app_settings = load_app_settings()
+        field_mappings = app_settings.get("field_mappings", {})
+        dora_mappings = field_mappings.get("dora", {})
+
+        incident_detected_field = dora_mappings.get("incident_detected_at", "created")
+        incident_resolved_field = dora_mappings.get(
+            "incident_resolved_at", "resolutiondate"
+        )
+
         for issue in incident_issues:
             # Extract changelog if present
             changelog = issue.get("changelog", {}).get("histories", [])
 
-            # Extract incident start timestamp
-            incident_start = extractor.extract_variable(
-                "incident_start_timestamp", issue, changelog
+            # Extract incident start timestamp using field mapping
+            incident_start_value = _extract_datetime_from_field_mapping(
+                issue, incident_detected_field, changelog
             )
-            if not incident_start.get("found"):
+            if not incident_start_value:
                 missing_start_count += 1
                 continue
 
-            # Extract incident resolved timestamp
-            incident_resolved = extractor.extract_variable(
-                "incident_resolved_timestamp", issue, changelog
+            # Extract incident resolved timestamp using field mapping
+            incident_resolved_value = _extract_datetime_from_field_mapping(
+                issue, incident_resolved_field, changelog
             )
-            if not incident_resolved.get("found"):
+            if not incident_resolved_value:
                 missing_end_count += 1
                 continue
 
             try:
                 start_time = datetime.fromisoformat(
-                    incident_start["value"].replace("Z", "+00:00")
+                    incident_start_value.replace("Z", "+00:00")
                 )
                 end_time = datetime.fromisoformat(
-                    incident_resolved["value"].replace("Z", "+00:00")
+                    incident_resolved_value.replace("Z", "+00:00")
                 )
 
                 if start_time.tzinfo is None:

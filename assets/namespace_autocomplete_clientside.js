@@ -180,8 +180,14 @@ window.dash_clientside.namespace_autocomplete = {
     }
 
     // Extract field ID from namespace syntax
-    // Formats: "fieldId", "PROJECT.fieldId", "*.fieldId", "Status:value.DateTime"
+    // Formats: "fieldId", "PROJECT.fieldId", "*.fieldId", "Status:value.DateTime", "field=Value"
     let fieldId = value;
+
+    // Handle value filter syntax first (field=Value or field=Value1|Value2)
+    if (fieldId.includes("=")) {
+      fieldId = fieldId.split("=")[0];
+    }
+
     if (value.includes(".")) {
       const parts = value.split(".");
       fieldId = parts[parts.length - 1]; // Last part is usually field ID
@@ -190,6 +196,10 @@ window.dash_clientside.namespace_autocomplete = {
         ["DateTime", "Occurred", "FirstValue", "LastValue"].includes(fieldId)
       ) {
         fieldId = parts[parts.length - 2]; // Go one level up
+      }
+      // Handle value filter in last part
+      if (fieldId.includes("=")) {
+        fieldId = fieldId.split("=")[0];
       }
     }
     if (value.includes(":")) {
@@ -249,6 +259,11 @@ window.dash_clientside.namespace_autocomplete = {
 
     // Check category match
     if (actualCategory === expectedCategory) {
+      // Add note about value filter if used
+      if (value.includes("=")) {
+        const filterValue = value.split("=")[1];
+        return `<small class="text-success"><i class="fas fa-check-circle me-1"></i>${fieldInfo.name} with value filter "${filterValue}"</small>`;
+      }
       return `<small class="text-success"><i class="fas fa-check-circle me-1"></i>${fieldInfo.name} (${actualType})</small>`;
     }
 
@@ -379,6 +394,20 @@ window.dash_clientside.namespace_autocomplete = {
       // Changelog value cannot be empty
       if (!changelogValue || !changelogValue.trim()) {
         return 'Incomplete - add a value after ":"';
+      }
+    }
+
+    // Step 2b: Check for value filter syntax (field=Value or field=Value1|Value2)
+    // This is used for fields like change_failure where you want to match specific values
+    let valueFilter = null;
+    const equalsIndex = workingStr.indexOf("=");
+    if (equalsIndex > 0) {
+      valueFilter = workingStr.substring(equalsIndex + 1);
+      workingStr = workingStr.substring(0, equalsIndex);
+
+      // Value filter cannot be empty
+      if (!valueFilter || !valueFilter.trim()) {
+        return 'Incomplete - add a value after "="';
       }
     }
 

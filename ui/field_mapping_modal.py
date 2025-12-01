@@ -418,7 +418,7 @@ def create_field_mapping_form(
                 "change_failure",
                 "Change Failure",
                 "select",
-                "Deployment failure indicator | REQUIRED for Change Failure Rate | Values: Yes/No/None | Type: select",
+                "Deployment failure indicator | REQUIRED for CFR | Syntax: field or field=Value | Examples: customfield_12708 or customfield_12708=Yes",
             ),
             (
                 "affected_environment",

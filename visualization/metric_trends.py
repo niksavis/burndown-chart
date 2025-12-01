@@ -608,32 +608,32 @@ def create_dual_line_trend(
             style={"height": f"{height}px"},
         )
 
-    # Create traces for deployments and releases
+    # Create traces for releases (primary) and deployments (secondary)
     traces = []
 
-    # Deployment trace (primary - operational tasks) with dynamic color
-    traces.append(
-        go.Scatter(
-            x=week_labels,
-            y=deployment_values,
-            mode="lines+markers",
-            name="Deployments (Tasks)",
-            line={"color": primary_color, "width": 3},
-            marker={"size": 8, "color": primary_color},
-            hovertemplate="<b>%{x}</b><br>Deployments: %{y}<extra></extra>",
-        )
-    )
-
-    # Release trace (secondary - unique fixVersions)
+    # Release trace (PRIMARY - unique fixVersions, what we measure for DORA)
     traces.append(
         go.Scatter(
             x=week_labels,
             y=release_values,
             mode="lines+markers",
-            name="Releases (fixVersions)",
+            name="Releases",
+            line={"color": primary_color, "width": 3},
+            marker={"size": 8, "color": primary_color},
+            hovertemplate="<b>%{x}</b><br>Releases: %{y}<extra></extra>",
+        )
+    )
+
+    # Deployment trace (SECONDARY - operational tasks, supporting detail)
+    traces.append(
+        go.Scatter(
+            x=week_labels,
+            y=deployment_values,
+            mode="lines+markers",
+            name="Deployments",
             line={"color": secondary_color, "width": 2, "dash": "dot"},
             marker={"size": 6, "color": secondary_color, "symbol": "diamond"},
-            hovertemplate="<b>%{x}</b><br>Releases: %{y}<extra></extra>",
+            hovertemplate="<b>%{x}</b><br>Deployments: %{y}<extra></extra>",
         )
     )
 

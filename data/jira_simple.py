@@ -694,6 +694,10 @@ def fetch_jira_issues_with_changelog(
             f"[JIRA] Page size: {page_size}, Fields: {fields}, Expand: changelog"
         )
 
+        # Progress tracking for terminal/logs (every 50 issues)
+        last_progress_log = 0
+        progress_interval = 50
+
         while True:
             # Use POST method with body parameters to avoid HTTP 414 "Request-URI Too Long" errors
             # POST /search is read-only (same as GET) - documented by Atlassian for complex queries
@@ -830,6 +834,18 @@ def fetch_jira_issues_with_changelog(
                     f"📥 Downloading changelog page {current_page}/{total_pages} "
                     f"({len(all_issues)}/{total_issues} issues)..."
                 )
+
+            # Terminal/log progress: Log every 50 issues to show progress without flooding logs
+            issues_fetched = len(all_issues)
+            if issues_fetched - last_progress_log >= progress_interval:
+                percent_complete = (
+                    (issues_fetched / total_issues * 100) if total_issues > 0 else 0
+                )
+                logger.info(
+                    f"[JIRA] Changelog download progress: {issues_fetched}/{total_issues} issues "
+                    f"({percent_complete:.0f}%) - Page {current_page}/{total_pages}"
+                )
+                last_progress_log = issues_fetched
 
             # Check if we've fetched everything
             if (

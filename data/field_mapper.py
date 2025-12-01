@@ -56,7 +56,7 @@ INTERNAL_FIELD_TYPES = {
     "code_commit_date": "datetime",  # When code was committed
     "incident_detected_at": "datetime",  # When production issue found
     "incident_resolved_at": "datetime",  # When issue fixed in production
-    "change_failure": "select",  # Deployment failure indicator (Yes/No/None)
+    "change_failure": "select",  # Deployment failure indicator (field or field=Value syntax)
     "affected_environment": "select",  # Environment affected by incidents
     "target_environment": "select",  # Deployment target environment
     "severity_level": "select",  # Incident priority/severity
@@ -159,10 +159,12 @@ def validate_field_mapping(
     - Standard fields (issuetype, status, fixVersions) are always valid
     - Text fields can be used as select fields (JIRA returns string values)
     - Multiselect fields can provide datetime values (e.g., fixVersions release dates)
+    - Value filter syntax (field=Value) is supported for conditional matching
 
     Args:
         internal_field: Internal field name (e.g., "deployment_date")
-        jira_field_id: Jira field ID (e.g., "customfield_10100")
+        jira_field_id: Jira field ID, optionally with value filter
+            (e.g., "customfield_10100" or "customfield_10100=Yes")
         field_metadata: Dictionary of available Jira fields with metadata
 
     Returns:
@@ -177,7 +179,22 @@ def validate_field_mapping(
         ...     {"customfield_10100": {"field_type": "datetime"}}
         ... )
         (True, None)
+        >>> validate_field_mapping(
+        ...     "change_failure",
+        ...     "customfield_12708=Yes",
+        ...     {"customfield_12708": {"field_type": "select"}}
+        ... )
+        (True, None)
     """
+    # Handle value filter syntax: "field=Value" or "field=Value1|Value2"
+    # Extract just the field ID for validation
+    actual_field_id = jira_field_id
+    if "=" in jira_field_id:
+        actual_field_id = jira_field_id.split("=", 1)[0].strip()
+        logger.debug(
+            f"Value filter syntax detected: '{jira_field_id}' -> field '{actual_field_id}'"
+        )
+
     # Check if internal field has type requirement
     required_type = INTERNAL_FIELD_TYPES.get(internal_field)
     if not required_type:
@@ -185,11 +202,11 @@ def validate_field_mapping(
         return True, None  # Allow unknown fields for flexibility
 
     # Check if Jira field exists in metadata
-    if jira_field_id not in field_metadata:
-        return False, f"Jira field '{jira_field_id}' not found in available fields"
+    if actual_field_id not in field_metadata:
+        return False, f"Jira field '{actual_field_id}' not found in available fields"
 
     # Get JIRA field type
-    jira_field_type = field_metadata[jira_field_id].get("field_type", "text")
+    jira_field_type = field_metadata[actual_field_id].get("field_type", "text")
 
     # FLEXIBLE VALIDATION RULES
     # Allow standard JIRA fields to be used regardless of reported type
@@ -205,8 +222,10 @@ def validate_field_mapping(
         "components",
     ]
 
-    if jira_field_id in standard_fields:
-        logger.debug(f"Standard field '{jira_field_id}' allowed for '{internal_field}'")
+    if actual_field_id in standard_fields:
+        logger.debug(
+            f"Standard field '{actual_field_id}' allowed for '{internal_field}'"
+        )
         return True, None
 
     # Type compatibility matrix: which JIRA types can satisfy which requirements
@@ -228,7 +247,7 @@ def validate_field_mapping(
     if jira_field_type not in allowed_types:
         logger.warning(
             f"Type flexibility: '{internal_field}' expects '{required_type}', "
-            f"but '{jira_field_id}' is '{jira_field_type}' - allowing anyway"
+            f"but '{actual_field_id}' is '{jira_field_type}' - allowing anyway"
         )
         # Allow with warning instead of blocking
         return True, None

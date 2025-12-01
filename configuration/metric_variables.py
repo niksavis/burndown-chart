@@ -67,15 +67,8 @@ def create_default_dora_variables() -> Dict[str, VariableMapping]:
                     ),
                 ),
             ],
-            fallback_source=SourceRule(
-                priority=99,
-                source=FieldValueMatchSource(
-                    type="field_value_match",
-                    field="fixVersions",
-                    operator="not_equals",
-                    value=[],
-                ),
-            ),
+            # NO FALLBACK: Only count explicit deployment events, not every issue with a fixVersion
+            # fallback_source=None,
         ),
         "deployment_timestamp": VariableMapping(
             variable_name="deployment_timestamp",
