@@ -403,12 +403,6 @@ def create_field_mapping_form(
                 "When code was committed | OPTIONAL for Lead Time for Changes | Type: datetime",
             ),
             (
-                "deployed_to_production_date",
-                "Deployed to Production",
-                "datetime",
-                "Production deployment timestamp | OPTIONAL for Lead Time for Changes | Type: datetime",
-            ),
-            (
                 "incident_detected_at",
                 "Incident Detected At",
                 "datetime",

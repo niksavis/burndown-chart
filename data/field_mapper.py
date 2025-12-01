@@ -54,7 +54,6 @@ INTERNAL_FIELD_TYPES = {
     "deployment_date": "datetime",  # When deployment occurred
     "deployment_successful": "checkbox",  # Deployment success/failure
     "code_commit_date": "datetime",  # When code was committed
-    "deployed_to_production_date": "datetime",  # Production deployment timestamp
     "incident_detected_at": "datetime",  # When production issue found
     "incident_resolved_at": "datetime",  # When issue fixed in production
     "change_failure": "select",  # Deployment failure indicator (Yes/No/None)
@@ -320,7 +319,6 @@ def load_field_mappings() -> Dict:
             "deployment_date",
             "target_environment",
             "code_commit_date",
-            "deployed_to_production_date",
             "incident_detected_at",
             "incident_resolved_at",
             "change_failure",  # Changed from deployment_successful to change_failure

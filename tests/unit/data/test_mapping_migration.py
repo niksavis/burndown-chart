@@ -277,7 +277,6 @@ class TestLegacyFieldMapping:
         """Test all DORA legacy fields have variable mappings."""
         dora_legacy_fields = [
             "deployment_date",
-            "deployed_to_production_date",
             "code_commit_date",
             "incident_detected_at",
             "incident_resolved_at",

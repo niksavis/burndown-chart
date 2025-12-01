@@ -492,7 +492,6 @@ class TestFieldTypeRequirements:
             "deployment_date",
             "target_environment",
             "code_commit_date",
-            "deployed_to_production_date",
             "incident_detected_at",
             "incident_resolved_at",
             "change_failure",

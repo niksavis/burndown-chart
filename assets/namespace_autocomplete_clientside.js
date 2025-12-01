@@ -100,7 +100,6 @@ window.dash_clientside.namespace_autocomplete = {
       // DORA Metrics - datetime fields
       deployment_date: "datetime",
       code_commit_date: "datetime",
-      deployed_to_production_date: "datetime",
       incident_detected_at: "datetime",
       incident_resolved_at: "datetime",
       // DORA Metrics - boolean/option fields

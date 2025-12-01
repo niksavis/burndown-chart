@@ -31,7 +31,6 @@ def generate_smart_defaults(
     Default Field Mappings (DORA):
     - deployment_date: status:{completion_status}.DateTime
     - code_commit_date: status:{flow_start_status}.DateTime
-    - deployed_to_production_date: resolutiondate
     - incident_detected_at: created
     - incident_resolved_at: resolutiondate
     - severity_level: priority
@@ -193,9 +192,6 @@ def generate_smart_defaults(
         # Code Commit Date: When development started (flow start status transition)
         # Namespace: status:In Progress.DateTime - extracts timestamp when work began
         "code_commit_date": f"status:{flow_start_status}.DateTime",
-        # Deployed to Production: Same as deployment_date (completion = deployment)
-        # Alternative: Use resolutiondate if you want the explicit resolution timestamp
-        "deployed_to_production_date": "resolutiondate",
         # Incident Detected At: When the incident was created
         # Standard field - always available in JIRA
         "incident_detected_at": "created",

@@ -27,7 +27,6 @@ logger = logging.getLogger(__name__)
 LEGACY_FIELD_TO_VARIABLE_MAP = {
     # DORA field mappings
     "deployment_date": "deployment_timestamp",
-    "deployed_to_production_date": "deployment_timestamp",
     "code_commit_date": "commit_timestamp",
     "incident_detected_at": "incident_start_timestamp",
     "incident_resolved_at": "incident_resolved_timestamp",
