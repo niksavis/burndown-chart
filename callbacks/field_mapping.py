@@ -1895,48 +1895,65 @@ def _build_comprehensive_validation_alert(validation_result: Dict):
         icon = "fas fa-check-circle"
         title = "Validation Passed"
 
-    # Build alert content
-    content = [
+    # Build alert content with improved layout - wrap in single div to prevent column layout
+    content_parts = [
+        # Header with icon and title
         html.Div(
             [
                 html.I(className=f"{icon} me-2"),
                 html.Strong(title),
             ],
-            className="mb-2",
+            className="d-flex align-items-center mb-2",
         ),
-        html.Small(f"Configured: {summary_text}", className="d-block mb-2 text-muted"),
+        # Summary line
+        html.Div(
+            f"Configured: {summary_text}",
+            className="mb-2",
+            style={"fontSize": "0.9rem"},
+        ),
     ]
 
+    # Add errors section if present
     if error_items:
-        content.append(
+        content_parts.append(
             html.Div(
                 [
-                    html.Strong("Errors:", className="text-danger"),
+                    html.Strong("Errors:", className="text-danger d-block mb-1"),
                     html.Ul(error_items, className="mb-2 ps-3"),
-                ]
+                ],
+                className="mt-2",
             )
         )
 
+    # Add warnings section if present
     if warning_items:
-        content.append(
+        content_parts.append(
             html.Div(
                 [
-                    html.Strong("Warnings:", className="text-warning"),
+                    html.Strong("Warnings:", className="text-warning d-block mb-1"),
                     html.Ul(warning_items, className="mb-0 ps-3"),
-                ]
+                ],
+                className="mt-2",
             )
         )
 
+    # Add success message at the bottom
     if is_valid and not warnings:
-        content.append(
-            html.Small(
+        content_parts.append(
+            html.Div(
                 "Click 'Save Mappings' to persist your changes.",
-                className="d-block mt-2",
-                style={"opacity": "0.85"},
+                className="mt-2",
+                style={"fontSize": "0.85rem", "opacity": "0.85"},
             )
         )
 
-    return dbc.Alert(content, color=color, dismissable=True)
+    # Wrap all content in a single container div to ensure vertical stacking
+    return dbc.Alert(
+        html.Div(content_parts),
+        color=color,
+        dismissable=True,
+        id="validation-result-alert",
+    )
 
 
 def _build_validation_error_alert(validation_errors):
@@ -1956,25 +1973,27 @@ def _build_validation_error_alert(validation_errors):
         )
 
     return dbc.Alert(
-        [
-            html.Div(
-                [
-                    html.I(className="fas fa-times-circle me-2"),
-                    html.Strong(
-                        f"Validation Failed - {len(validation_errors)} error(s) found"
-                    ),
-                ],
-                className="d-flex align-items-center mb-2",
-            ),
-            html.Ul(error_items, className="mb-2 ps-4"),
-            html.Small(
-                [
-                    html.I(className="fas fa-info-circle me-1"),
-                    "Fix the errors above before saving. Use autocomplete to select valid values.",
-                ],
-                className="text-muted",
-            ),
-        ],
+        html.Div(
+            [
+                html.Div(
+                    [
+                        html.I(className="fas fa-times-circle me-2"),
+                        html.Strong(
+                            f"Validation Failed - {len(validation_errors)} error(s) found"
+                        ),
+                    ],
+                    className="d-flex align-items-center mb-2",
+                ),
+                html.Ul(error_items, className="mb-2 ps-4"),
+                html.Small(
+                    [
+                        html.I(className="fas fa-info-circle me-1"),
+                        "Fix the errors above before saving. Use autocomplete to select valid values.",
+                    ],
+                    className="text-muted",
+                ),
+            ]
+        ),
         color="danger",
         dismissable=True,
     )
