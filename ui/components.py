@@ -2787,8 +2787,10 @@ def create_parameter_panel_expanded(
 
     # Extract settings with defaults
     pert_factor = settings.get("pert_factor", 3)
-    deadline = settings.get("deadline", "2025-12-31")
-    milestone = settings.get("milestone", None)
+    deadline = (
+        settings.get("deadline", "2025-12-31") or None
+    )  # Convert empty string to None
+    milestone = settings.get("milestone", None) or None  # Convert empty string to None
     total_items = settings.get("total_items", 0)
     estimated_items = settings.get("estimated_items", 0)
     total_points = settings.get("total_points", 0)
@@ -3333,7 +3335,9 @@ def create_parameter_panel(
 
     # Extract key values for collapsed bar
     pert_factor = settings.get("pert_factor", 3)
-    deadline = settings.get("deadline", "2025-12-31")
+    deadline = (
+        settings.get("deadline", "2025-12-31") or "2025-12-31"
+    )  # Ensure valid default for display
     total_items = settings.get("total_items", 0)
     total_points = settings.get("total_points", 0)
     data_points = settings.get("data_points_count")
@@ -3446,8 +3450,10 @@ def create_mobile_parameter_bottom_sheet(
 
     # Extract settings with defaults
     pert_factor = settings.get("pert_factor", 3)
-    deadline = settings.get("deadline", "2025-12-31")
-    milestone = settings.get("milestone", None)
+    deadline = (
+        settings.get("deadline", "2025-12-31") or None
+    )  # Convert empty string to None
+    milestone = settings.get("milestone", None) or None  # Convert empty string to None
     total_items = settings.get("total_items", 0)
     estimated_items = settings.get("estimated_items", 0)
     total_points = settings.get("total_points", 0)
