@@ -279,7 +279,9 @@ def create_queries_and_data_tab_content() -> html.Div:
             # Update Data button (activates query)
             dbc.Button(
                 [
-                    html.I(className="fas fa-sync-alt me-2"),
+                    html.I(
+                        className="fas fa-sync-alt", style={"marginRight": "0.5rem"}
+                    ),
                     "Update Data",
                 ],
                 id="update-data-unified",

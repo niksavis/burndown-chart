@@ -22,17 +22,31 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
         let allowNextClick = false;
         const originalText = "Update Data";
         const forceRefreshText = "Force Refresh";
-        const LONG_PRESS_DURATION = 3000; // 3 seconds
+        const LONG_PRESS_DURATION = 2000; // 2 seconds
 
         // Get text span inside button
         function getButtonTextElement() {
-          // Button structure: <button><i class="fas..."></i> Update Data</button>
+          // Button structure: <button><i class="fas..."></i><span>Update Data</span></button>
+          // OR: <button><i class="fas..."></i> Update Data</button>
           const children = Array.from(button.childNodes);
+
+          // First, try to find a span element
+          for (let child of children) {
+            if (
+              child.nodeType === Node.ELEMENT_NODE &&
+              child.tagName === "SPAN"
+            ) {
+              return child;
+            }
+          }
+
+          // Fallback: find direct text node
           for (let child of children) {
             if (child.nodeType === Node.TEXT_NODE) {
               return child;
             }
           }
+
           return null;
         }
 
@@ -62,7 +76,7 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
           textChangeTimer = setTimeout(function () {
             const textElement = getButtonTextElement();
             if (textElement) {
-              textElement.textContent = " " + forceRefreshText;
+              textElement.textContent = forceRefreshText;
             }
             isReadyForForceRefresh = true;
           }, LONG_PRESS_DURATION);
@@ -124,7 +138,7 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
           // Reset text
           const textElement = getButtonTextElement();
           if (textElement) {
-            textElement.textContent = " " + originalText;
+            textElement.textContent = originalText;
           }
         }
 

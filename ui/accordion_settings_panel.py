@@ -193,8 +193,11 @@ def create_data_operations_card() -> html.Div:
                     ),
                     dbc.Button(
                         [
-                            html.I(className="fas fa-sync-alt me-2"),
-                            "Update JIRA Data",
+                            html.I(
+                                className="fas fa-sync-alt",
+                                style={"marginRight": "0.5rem"},
+                            ),
+                            "Update Data",
                         ],
                         id="update-data-unified",
                         color="primary",

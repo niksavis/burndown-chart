@@ -2704,7 +2704,7 @@ def create_settings_tab_content(
                             ),
                             # Update Data Button
                             create_button(
-                                text="Update Data & Calculate Scope",
+                                text="Update Data",
                                 id="update-data-unified",
                                 variant="primary",
                                 icon_class="fas fa-sync-alt",

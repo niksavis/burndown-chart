@@ -414,7 +414,7 @@ def register(app):
         # Normal button state
         button_normal = [
             html.I(className="fas fa-sync-alt", style={"marginRight": "0.5rem"}),
-            "Update Data",
+            html.Span("Update Data"),
         ]
 
         if not n_clicks:
@@ -2663,7 +2663,7 @@ def register(app):
         # No active task - return normal state
         button_normal = [
             html.I(className="fas fa-sync-alt", style={"marginRight": "0.5rem"}),
-            "Update Data",
+            html.Span("Update Data"),
         ]
 
         return False, button_normal, ""

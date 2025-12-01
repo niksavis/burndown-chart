@@ -1261,7 +1261,7 @@ def create_input_parameters_card(
                                         html.Div(
                                             [
                                                 create_button(
-                                                    text="Update Data & Calculate Scope",
+                                                    text="Update Data",
                                                     id="update-data-unified",
                                                     variant="primary",
                                                     icon_class="fas fa-sync-alt",

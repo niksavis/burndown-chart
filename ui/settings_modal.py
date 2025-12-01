@@ -289,7 +289,7 @@ def create_jira_integration_tab():
                 className="text-muted small mb-3",
             ),
             create_button(
-                text="Update Data & Calculate Scope",
+                text="Update Data",
                 id="update-data-unified",
                 variant="primary",
                 icon_class="fas fa-sync-alt",
