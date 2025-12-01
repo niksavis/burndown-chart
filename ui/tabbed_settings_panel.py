@@ -76,15 +76,25 @@ def create_connect_tab_content() -> html.Div:
                             html.Div(
                                 [
                                     html.I(
-                                        className="fas fa-diagram-project me-2 text-primary"
+                                        className="fas fa-project-diagram me-2 text-primary"
                                     ),
                                     html.Span("Field Mapping", className="fw-bold"),
                                 ],
                                 className="d-flex align-items-center mb-2",
                             ),
-                            html.P(
-                                "Map JIRA custom fields for DORA and Flow metrics.",
-                                className="text-muted small mb-3",
+                            html.Div(
+                                id="field-mapping-status-indicator",
+                                className="mb-3",
+                                children=[
+                                    html.I(
+                                        className="fas fa-exclamation-triangle text-warning me-2"
+                                    ),
+                                    html.Span(
+                                        "Configure field mappings to enable metrics",
+                                        className="text-muted small",
+                                    ),
+                                ],
+                                style={"display": "flex", "alignItems": "center"},
                             ),
                             dbc.Button(
                                 [
