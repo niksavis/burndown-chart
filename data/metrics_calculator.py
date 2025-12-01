@@ -864,10 +864,9 @@ def calculate_and_save_weekly_metrics(
             "completion_statuses", ["Done", "Resolved", "Closed"]
         )
 
-        # Get the field that contains environment info from field_mappings
+        # Get field mappings for DORA metrics
         field_mappings = app_settings.get("field_mappings", {})
         dora_mappings = field_mappings.get("dora", {})
-        affected_environment_field = dora_mappings.get("affected_environment")
 
         # ========================================================================
         # OPERATIONAL TASKS: Get from all_issues_raw (includes DevOps projects)
@@ -889,9 +888,15 @@ def calculate_and_save_weekly_metrics(
         # ========================================================================
         # DEVELOPMENT ISSUES & PRODUCTION BUGS: From filtered all_issues
         # (excludes DevOps projects, used for Lead Time and MTTR)
+        # Uses is_production_environment() with =Value syntax support
         # ========================================================================
+        from data.dora_metrics import is_production_environment
+
         development_issues = []
         production_bugs = []
+
+        # Get affected_environment mapping (may include =Value filter)
+        affected_environment_mapping = dora_mappings.get("affected_environment", "")
 
         for issue in all_issues:
             fields = issue.get("fields", {})
@@ -899,55 +904,23 @@ def calculate_and_save_weekly_metrics(
 
             # Production bugs: issue type matches bug_types
             if issue_type in bug_types:
-                # Check if we need to filter by production environment
-                if production_env_values and affected_environment_field:
-                    # Extract environment value from the configured field
-                    env_value = fields.get(affected_environment_field)
-
-                    # Handle different field types (string, dict, list)
-                    env_str = ""
-                    if isinstance(env_value, str):
-                        env_str = env_value
-                    elif isinstance(env_value, dict):
-                        env_str = env_value.get("value", "") or env_value.get(
-                            "name", ""
-                        )
-                    elif isinstance(env_value, list):
-                        # For multi-select fields, join all values
-                        env_parts = []
-                        for v in env_value:
-                            if isinstance(v, str):
-                                env_parts.append(v)
-                            elif isinstance(v, dict):
-                                env_parts.append(
-                                    v.get("value", "") or v.get("name", "")
-                                )
-                        env_str = " ".join(env_parts)
-
-                    # Check if any production identifier is in the environment value
-                    is_production = any(
-                        prod_id.lower() in env_str.lower()
-                        for prod_id in production_env_values
-                    )
-
-                    if is_production:
-                        production_bugs.append(issue)
-                    else:
-                        development_issues.append(issue)
-                else:
-                    # No production filter configured - include all bugs
+                # Check production environment using =Value syntax or fallback
+                if is_production_environment(
+                    issue,
+                    affected_environment_mapping,
+                    fallback_values=production_env_values,
+                ):
                     production_bugs.append(issue)
+                else:
+                    development_issues.append(issue)
             else:
                 # All non-bug issues are development work
                 development_issues.append(issue)
 
-        prod_filter_info = (
-            f", production_env_filter={production_env_values}"
-            if production_env_values
-            else ""
-        )
+        # Log filter info
+        filter_info = affected_environment_mapping or str(production_env_values)
         logger.info(
-            f"[DORA] Classification{prod_filter_info}: "
+            f"[DORA] Classification (env_filter={filter_info}): "
             f"{len(development_issues)} development issues, {len(production_bugs)} production bugs"
         )
         logger.info(f"Week {week_label} boundaries: {week_start} to {week_end}")
@@ -975,26 +948,48 @@ def calculate_and_save_weekly_metrics(
             logger.info(f"[DORA] Sample development fixVersions: {sample}")
 
         # ========================================================================
+        # BUILD SHARED FIXVERSION RELEASE MAP (DRY - reused by all DORA metrics)
+        # Maps fixVersion name → releaseDate from Operational Tasks
+        # This is the shared "deployment date" lookup for Lead Time, MTTR, etc.
+        # ========================================================================
+        from data.fixversion_matcher import (
+            build_fixversion_release_map,
+            filter_issues_deployed_in_week,
+        )
+
+        fixversion_release_map = build_fixversion_release_map(
+            operational_tasks,
+            valid_fix_versions=development_fix_versions,
+            completion_statuses=completion_statuses,
+        )
+        logger.info(
+            f"[DORA] Built fixVersion release map: {len(fixversion_release_map)} versions "
+            f"(filtered to development project fixVersions)"
+        )
+
+        # ========================================================================
         # Calculate DORA Metrics using field-based filtering
         # ========================================================================
         # extractor_instance already created above for categorization
 
-        # Calculate Lead Time for Changes (Feature 012 - variable extraction)
+        # Calculate Lead Time for Changes
+        # Uses development issues + shared fixversion_release_map for deployment dates
         try:
-            # Filter issues to only those deployed in this specific week
-            all_issues_for_lead_time = development_issues + operational_tasks
-            week_issues_for_lead_time = filter_issues_by_deployment_week(
-                all_issues_for_lead_time, week_start, week_end
+            # Filter development issues to those deployed in this specific week
+            # (using shared fixversion_release_map, not each issue's own fixVersions)
+            week_dev_issues = filter_issues_deployed_in_week(
+                development_issues, fixversion_release_map, week_start, week_end
             )
             logger.info(
-                f"Week {week_label}: Filtered {len(week_issues_for_lead_time)} issues for Lead Time "
-                f"(from {len(all_issues_for_lead_time)} total)"
+                f"Week {week_label}: {len(week_dev_issues)} development issues deployed "
+                f"(from {len(development_issues)} total)"
             )
 
             lead_time_result = calculate_lead_time_for_changes(
-                week_issues_for_lead_time,
+                week_dev_issues,
                 extractor=extractor_instance,
                 time_period_days=7,
+                fixversion_release_map=fixversion_release_map,
             )
 
             # Log exclusion details
@@ -1154,23 +1149,44 @@ def calculate_and_save_weekly_metrics(
             metrics_details.append(f"DORA CFR: Error ({str(e)[:50]})")
 
         # Calculate Mean Time To Recovery (MTTR)
+        # MTTR can use either:
+        # - "resolutiondate": Bug created → Bug resolved (team fix time)
+        # - "fixVersions": Bug created → Bug deployed (true production MTTR)
         try:
             from data.dora_metrics import calculate_mean_time_to_recovery
 
-            # Filter bugs to only those resolved in this specific week
-            week_bugs = filter_bugs_by_resolution_week(
-                production_bugs, week_start, week_end
+            # Check which end state is configured
+            incident_resolved_field = dora_mappings.get(
+                "incident_resolved_at", "resolutiondate"
             )
-            logger.info(
-                f"Week {week_label}: Filtered {len(week_bugs)} bugs for MTTR "
-                f"(from {len(production_bugs)} total production bugs)"
-            )
+            use_deployment_date = incident_resolved_field.lower() == "fixversions"
 
-            # MTTR calculation on bugs resolved this week
+            if use_deployment_date:
+                # Filter bugs to those deployed in this specific week
+                # Uses same fixversion_release_map as Lead Time (DRY)
+                week_bugs = filter_issues_deployed_in_week(
+                    production_bugs, fixversion_release_map, week_start, week_end
+                )
+                logger.info(
+                    f"Week {week_label}: {len(week_bugs)} bugs deployed for MTTR "
+                    f"(from {len(production_bugs)} total, using fixVersion deployment)"
+                )
+            else:
+                # Filter bugs to those resolved in this specific week (legacy behavior)
+                week_bugs = filter_bugs_by_resolution_week(
+                    production_bugs, week_start, week_end
+                )
+                logger.info(
+                    f"Week {week_label}: Filtered {len(week_bugs)} bugs for MTTR "
+                    f"(from {len(production_bugs)} total, using resolutiondate)"
+                )
+
+            # MTTR calculation - pass fixversion_release_map for deployment date lookup
             mttr_result = calculate_mean_time_to_recovery(
                 week_bugs,
                 extractor=extractor_instance,
                 time_period_days=7,  # Weekly calculation
+                fixversion_release_map=fixversion_release_map,
             )
 
             # The function returns 'value' (in hours or days) and 'unit'

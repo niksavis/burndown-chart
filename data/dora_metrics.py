@@ -148,6 +148,126 @@ def _extract_datetime_from_field_mapping(
         return fields.get(field_mapping)
 
 
+def parse_field_value_filter(field_mapping: str) -> tuple:
+    """Parse field=Value syntax from field mapping.
+
+    Supports:
+    - Simple field: "customfield_11309" → ("customfield_11309", None)
+    - Single value: "customfield_11309=PROD" → ("customfield_11309", ["PROD"])
+    - Multiple values: "customfield_11309=PROD|Production" → ("customfield_11309", ["PROD", "Production"])
+
+    Args:
+        field_mapping: Field mapping string, optionally with =Value filter
+
+    Returns:
+        Tuple of (field_id, filter_values)
+        - field_id: The field ID to check
+        - filter_values: List of values to match, or None if no filter
+    """
+    if not field_mapping:
+        return None, None
+
+    if "=" in field_mapping:
+        parts = field_mapping.split("=", 1)
+        field_id = parts[0].strip()
+        value_str = parts[1].strip()
+        # Support | separator for multiple values
+        filter_values = [v.strip() for v in value_str.split("|") if v.strip()]
+        return field_id, filter_values if filter_values else None
+    else:
+        return field_mapping, None
+
+
+def check_field_value_match(
+    issue: Dict[str, Any], field_id: str, filter_values: List[str]
+) -> bool:
+    """Check if issue field value matches any of the filter values.
+
+    Handles various JIRA field types:
+    - String: Direct comparison
+    - Dict (select): Check 'value' or 'name' keys
+    - List (multi-select): Check if any item matches
+
+    Args:
+        issue: JIRA issue dictionary
+        field_id: Field ID to check (e.g., "customfield_11309")
+        filter_values: List of values to match (e.g., ["PROD", "Production"])
+
+    Returns:
+        True if any filter value matches the field value
+    """
+    if not filter_values:
+        return True  # No filter means all pass
+
+    field_value = issue.get("fields", {}).get(field_id)
+
+    if field_value is None:
+        return False
+
+    # Normalize filter values to lowercase for case-insensitive matching
+    filter_values_lower = [v.lower() for v in filter_values]
+
+    # Handle string field
+    if isinstance(field_value, str):
+        return field_value.lower() in filter_values_lower
+
+    # Handle dict field (single select)
+    if isinstance(field_value, dict):
+        value_str = field_value.get("value", "") or field_value.get("name", "")
+        return value_str.lower() in filter_values_lower
+
+    # Handle list field (multi-select)
+    if isinstance(field_value, list):
+        for item in field_value:
+            if isinstance(item, str):
+                if item.lower() in filter_values_lower:
+                    return True
+            elif isinstance(item, dict):
+                item_str = item.get("value", "") or item.get("name", "")
+                if item_str.lower() in filter_values_lower:
+                    return True
+
+    return False
+
+
+def is_production_environment(
+    issue: Dict[str, Any],
+    affected_environment_mapping: str,
+    fallback_values: Optional[List[str]] = None,
+) -> bool:
+    """Check if issue is from production environment.
+
+    Uses the =Value syntax in affected_environment field mapping.
+    Falls back to production_environment_values if no =Value specified.
+
+    Args:
+        issue: JIRA issue dictionary
+        affected_environment_mapping: Field mapping (e.g., "customfield_11309=PROD")
+        fallback_values: Fallback list of production values (from project_classification)
+
+    Returns:
+        True if issue is from production environment
+    """
+    if not affected_environment_mapping:
+        return True  # No filter configured, include all
+
+    field_id, filter_values = parse_field_value_filter(affected_environment_mapping)
+
+    if field_id is None:
+        return True
+
+    # If =Value syntax used, apply that filter
+    if filter_values:
+        return check_field_value_match(issue, field_id, filter_values)
+
+    # Fallback to production_environment_values list
+    if fallback_values:
+        return check_field_value_match(issue, field_id, fallback_values)
+
+    # No filter values at all - include all
+    return True
+
+
 # DORA performance tier thresholds (based on industry research)
 DEPLOYMENT_FREQUENCY_TIERS = {
     "elite": {"threshold": 0.9, "unit": "per day", "label": "Multiple deploys per day"},
@@ -445,17 +565,25 @@ def calculate_lead_time_for_changes(
     extractor: VariableExtractor,
     time_period_days: int = 30,
     previous_period_value: Optional[float] = None,
+    fixversion_release_map: Optional[Dict[str, datetime]] = None,
 ) -> Dict[str, Any]:
     """Calculate lead time for changes metric.
 
-    Measures time from code commit to production deployment. Elite teams have
-    lead times under 1 day, while low performers take over 1 month.
+    Measures time from code commit (status:In Progress) to production deployment
+    (fixVersion.releaseDate from matching Operational Task).
+
+    IMPORTANT: Lead Time uses the SAME deployment date logic as Deployment Frequency:
+    - Development issues link to Operational Tasks via shared fixVersions
+    - Deployment date = fixVersion.releaseDate from the Operational Task
+    - fixversion_release_map is built once and reused across metrics (DRY)
 
     Args:
-        issues: List of JIRA issues to analyze
+        issues: List of development issues to analyze
         extractor: VariableExtractor configured with lead time variable mappings
         time_period_days: Number of days in measurement period (default: 30)
         previous_period_value: Optional previous period value for trend calculation
+        fixversion_release_map: Map of fixVersion name → releaseDate datetime
+            Built from Operational Tasks via build_fixversion_release_map()
 
     Returns:
         Dictionary with lead time metrics:
@@ -486,10 +614,14 @@ def calculate_lead_time_for_changes(
                 "trend_percentage": 0.0,
             }
 
+        # Import shared fixversion lookup function
+        from data.fixversion_matcher import get_deployment_date_for_issue
+
         # Extract lead times
         lead_times = []
         missing_start_count = 0
-        missing_end_count = 0
+        missing_deployment_count = 0
+        no_fixversion_match_count = 0
 
         # Get field mappings from profile configuration
         from data.persistence import load_app_settings
@@ -499,13 +631,14 @@ def calculate_lead_time_for_changes(
         dora_mappings = field_mappings.get("dora", {})
 
         code_commit_field = dora_mappings.get("code_commit_date", "created")
-        deployment_date_field = dora_mappings.get("deployment_date", "fixVersions")
 
         for issue in issues:
+            issue_key = issue.get("key", "UNKNOWN")
+
             # Extract changelog if present
             changelog = issue.get("changelog", {}).get("histories", [])
 
-            # Extract work start timestamp using field mapping
+            # Extract work start timestamp using field mapping (e.g., status:In Progress.DateTime)
             work_start_value = _extract_datetime_from_field_mapping(
                 issue, code_commit_field, changelog
             )
@@ -513,51 +646,83 @@ def calculate_lead_time_for_changes(
                 missing_start_count += 1
                 continue
 
-            # Extract deployment timestamp using field mapping
-            deployment_value = _extract_datetime_from_field_mapping(
-                issue, deployment_date_field, changelog
-            )
-            if not deployment_value:
-                missing_end_count += 1
-                continue
+            # Get deployment date from fixVersion release map (shared with Deployment Frequency)
+            if fixversion_release_map:
+                deployment_datetime = get_deployment_date_for_issue(
+                    issue, fixversion_release_map
+                )
+                if not deployment_datetime:
+                    no_fixversion_match_count += 1
+                    logger.debug(
+                        f"[Lead Time] {issue_key}: No matching fixVersion in release map"
+                    )
+                    continue
+            else:
+                # Fallback: Try to extract from issue's own fixVersions (legacy behavior)
+                deployment_value = _extract_datetime_from_field_mapping(
+                    issue, "fixVersions", changelog
+                )
+                if not deployment_value:
+                    missing_deployment_count += 1
+                    continue
+                try:
+                    deployment_datetime = datetime.fromisoformat(
+                        deployment_value.replace("Z", "+00:00")
+                    )
+                except (ValueError, TypeError):
+                    missing_deployment_count += 1
+                    continue
 
             try:
                 start_time = datetime.fromisoformat(
                     work_start_value.replace("Z", "+00:00")
                 )
-                end_time = datetime.fromisoformat(
-                    deployment_value.replace("Z", "+00:00")
-                )
 
                 if start_time.tzinfo is None:
                     start_time = start_time.replace(tzinfo=timezone.utc)
-                if end_time.tzinfo is None:
-                    end_time = end_time.replace(tzinfo=timezone.utc)
+                if deployment_datetime.tzinfo is None:
+                    deployment_datetime = deployment_datetime.replace(
+                        tzinfo=timezone.utc
+                    )
 
                 # Calculate lead time in days
-                lead_time_delta = end_time - start_time
+                lead_time_delta = deployment_datetime - start_time
                 lead_time_days = (
                     lead_time_delta.total_seconds() / 86400
                 )  # 86400 seconds per day
 
                 if lead_time_days < 0:
                     logger.warning(
-                        f"[DORA] Negative lead time for {issue.get('key')}: "
-                        f"start={start_time}, end={end_time}"
+                        f"[DORA] Negative lead time for {issue_key}: "
+                        f"start={start_time}, deployment={deployment_datetime}"
                     )
                     continue
 
                 lead_times.append(lead_time_days)
+                logger.debug(
+                    f"[Lead Time] {issue_key}: {lead_time_days:.1f} days "
+                    f"(start={start_time.date()}, deploy={deployment_datetime.date()})"
+                )
 
             except (ValueError, TypeError) as e:
-                logger.warning(f"[DORA] Invalid timestamp for {issue.get('key')}: {e}")
+                logger.warning(f"[DORA] Invalid timestamp for {issue_key}: {e}")
                 continue
 
         if not lead_times:
+            error_details = []
+            if missing_start_count:
+                error_details.append(f"missing start: {missing_start_count}")
+            if no_fixversion_match_count:
+                error_details.append(
+                    f"no fixVersion match: {no_fixversion_match_count}"
+                )
+            if missing_deployment_count:
+                error_details.append(f"missing deployment: {missing_deployment_count}")
+
             return {
                 "error_state": "no_data",
-                "error_message": f"No valid lead times calculated from {len(issues)} issues "
-                f"(missing start: {missing_start_count}, missing end: {missing_end_count})",
+                "error_message": f"No valid lead times from {len(issues)} issues "
+                f"({', '.join(error_details)})",
                 "trend_direction": "stable",
                 "trend_percentage": 0.0,
                 # Backward compatibility fields for metrics_calculator
@@ -851,17 +1016,28 @@ def calculate_mean_time_to_recovery(
     extractor: VariableExtractor,
     time_period_days: int = 30,
     previous_period_value: Optional[float] = None,
+    fixversion_release_map: Optional[Dict[str, datetime]] = None,
 ) -> Dict[str, Any]:
     """Calculate mean time to recovery metric.
 
     Measures average time to restore service after an incident. Elite teams
     recover in under 1 hour, while low performers take over 1 week.
 
+    IMPORTANT: MTTR end state depends on `incident_resolved_at` field mapping:
+    - "resolutiondate": Bug created → Bug resolved (team fix time)
+    - "fixVersions": Bug created → Bug deployed (true production MTTR)
+
+    When using "fixVersions", MTTR uses the SAME deployment date logic as
+    Deployment Frequency and Lead Time (DRY principle).
+
     Args:
         incident_issues: List of incident/bug issues
         extractor: VariableExtractor configured with incident variable mappings
         time_period_days: Number of days in measurement period (default: 30)
         previous_period_value: Optional previous period value for trend calculation
+        fixversion_release_map: Map of fixVersion name → releaseDate datetime
+            Built from Operational Tasks via build_fixversion_release_map()
+            Required when incident_resolved_at is "fixVersions"
 
     Returns:
         Dictionary with MTTR metrics:
@@ -892,10 +1068,14 @@ def calculate_mean_time_to_recovery(
                 "trend_percentage": 0.0,
             }
 
+        # Import shared fixversion lookup function
+        from data.fixversion_matcher import get_deployment_date_for_issue
+
         # Extract recovery times
         recovery_times = []
         missing_start_count = 0
         missing_end_count = 0
+        no_fixversion_match_count = 0
 
         # Get field mappings from profile configuration
         from data.persistence import load_app_settings
@@ -909,7 +1089,12 @@ def calculate_mean_time_to_recovery(
             "incident_resolved_at", "resolutiondate"
         )
 
+        # Check if using fixVersions for end state (production deployment)
+        use_deployment_date = incident_resolved_field.lower() == "fixversions"
+
         for issue in incident_issues:
+            issue_key = issue.get("key", "UNKNOWN")
+
             # Extract changelog if present
             changelog = issue.get("changelog", {}).get("histories", [])
 
@@ -921,51 +1106,82 @@ def calculate_mean_time_to_recovery(
                 missing_start_count += 1
                 continue
 
-            # Extract incident resolved timestamp using field mapping
-            incident_resolved_value = _extract_datetime_from_field_mapping(
-                issue, incident_resolved_field, changelog
-            )
-            if not incident_resolved_value:
-                missing_end_count += 1
-                continue
+            # Get end timestamp based on configuration
+            if use_deployment_date and fixversion_release_map:
+                # Use deployment date from Operational Task (same as Lead Time)
+                end_datetime = get_deployment_date_for_issue(
+                    issue, fixversion_release_map
+                )
+                if not end_datetime:
+                    no_fixversion_match_count += 1
+                    logger.debug(
+                        f"[MTTR] {issue_key}: No matching fixVersion in release map"
+                    )
+                    continue
+            else:
+                # Use standard field extraction (e.g., resolutiondate)
+                incident_resolved_value = _extract_datetime_from_field_mapping(
+                    issue, incident_resolved_field, changelog
+                )
+                if not incident_resolved_value:
+                    missing_end_count += 1
+                    continue
+                try:
+                    end_datetime = datetime.fromisoformat(
+                        incident_resolved_value.replace("Z", "+00:00")
+                    )
+                except (ValueError, TypeError):
+                    missing_end_count += 1
+                    continue
 
             try:
                 start_time = datetime.fromisoformat(
                     incident_start_value.replace("Z", "+00:00")
                 )
-                end_time = datetime.fromisoformat(
-                    incident_resolved_value.replace("Z", "+00:00")
-                )
 
                 if start_time.tzinfo is None:
                     start_time = start_time.replace(tzinfo=timezone.utc)
-                if end_time.tzinfo is None:
-                    end_time = end_time.replace(tzinfo=timezone.utc)
+                if end_datetime.tzinfo is None:
+                    end_datetime = end_datetime.replace(tzinfo=timezone.utc)
 
                 # Calculate recovery time in hours
-                recovery_delta = end_time - start_time
+                recovery_delta = end_datetime - start_time
                 recovery_hours = (
                     recovery_delta.total_seconds() / 3600
                 )  # 3600 seconds per hour
 
                 if recovery_hours < 0:
                     logger.warning(
-                        f"[DORA] Negative recovery time for {issue.get('key')}: "
-                        f"start={start_time}, end={end_time}"
+                        f"[DORA] Negative recovery time for {issue_key}: "
+                        f"start={start_time}, end={end_datetime}"
                     )
                     continue
 
                 recovery_times.append(recovery_hours)
+                logger.debug(
+                    f"[MTTR] {issue_key}: {recovery_hours:.1f} hours "
+                    f"(start={start_time.date()}, end={end_datetime.date()})"
+                )
 
             except (ValueError, TypeError) as e:
-                logger.warning(f"[DORA] Invalid timestamp for {issue.get('key')}: {e}")
+                logger.warning(f"[DORA] Invalid timestamp for {issue_key}: {e}")
                 continue
 
         if not recovery_times:
+            error_details = []
+            if missing_start_count:
+                error_details.append(f"missing start: {missing_start_count}")
+            if no_fixversion_match_count:
+                error_details.append(
+                    f"no fixVersion match: {no_fixversion_match_count}"
+                )
+            if missing_end_count:
+                error_details.append(f"missing end: {missing_end_count}")
+
             return {
                 "error_state": "no_data",
-                "error_message": f"No valid recovery times calculated from {len(incident_issues)} incidents "
-                f"(missing start: {missing_start_count}, missing end: {missing_end_count})",
+                "error_message": f"No valid recovery times from {len(incident_issues)} incidents "
+                f"({', '.join(error_details)})",
                 "trend_direction": "stable",
                 "trend_percentage": 0.0,
             }

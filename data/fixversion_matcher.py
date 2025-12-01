@@ -581,3 +581,148 @@ def filter_operational_tasks_by_fixversion(
     except Exception as e:
         logger.error(f"Error filtering operational tasks by fixVersion: {e}")
         return operational_tasks  # Return all on error to avoid losing data
+
+
+#######################################################################
+# SHARED DORA DEPLOYMENT LOOKUP
+#######################################################################
+
+
+def build_fixversion_release_map(
+    operational_tasks: List[Dict],
+    valid_fix_versions: Optional[set] = None,
+    completion_statuses: Optional[List[str]] = None,
+) -> Dict[str, datetime]:
+    """Build a map of fixVersion name → releaseDate from Operational Tasks.
+
+    This provides a shared lookup for all DORA metrics that need to find
+    when a fixVersion was deployed to production.
+
+    Args:
+        operational_tasks: List of Operational Task issues
+        valid_fix_versions: Optional set of fixVersion names to filter by
+            (typically collected from development project issues)
+        completion_statuses: Optional list of completion statuses to filter by
+            (e.g., ["Done", "Resolved", "Closed"])
+
+    Returns:
+        Dict mapping fixVersion name → releaseDate (datetime)
+        Only includes fixVersions with valid releaseDates.
+
+    Example:
+        >>> op_tasks = [{"fields": {"fixVersions": [{"name": "v1.0", "releaseDate": "2025-01-15"}]}}]
+        >>> build_fixversion_release_map(op_tasks)
+        {"v1.0": datetime(2025, 1, 15, 0, 0)}
+    """
+    release_map: Dict[str, datetime] = {}
+
+    for issue in operational_tasks:
+        # Filter by completion status if provided
+        if completion_statuses:
+            status = issue.get("fields", {}).get("status", {}).get("name", "")
+            if status not in completion_statuses:
+                continue
+
+        fix_versions = issue.get("fields", {}).get("fixVersions", [])
+        for fv in fix_versions:
+            fv_name = fv.get("name")
+            release_date_str = fv.get("releaseDate")
+
+            if not fv_name or not release_date_str:
+                continue
+
+            # Filter by valid fixVersions if provided
+            if valid_fix_versions and fv_name not in valid_fix_versions:
+                continue
+
+            try:
+                release_date = datetime.fromisoformat(release_date_str)
+                # Keep earliest releaseDate if multiple Operational Tasks have same fixVersion
+                if fv_name not in release_map or release_date < release_map[fv_name]:
+                    release_map[fv_name] = release_date
+            except (ValueError, TypeError) as e:
+                logger.warning(f"Invalid releaseDate for fixVersion {fv_name}: {e}")
+                continue
+
+    logger.info(
+        f"Built fixVersion release map: {len(release_map)} versions with release dates"
+    )
+    if release_map:
+        sample = list(release_map.items())[:3]
+        logger.debug(f"Sample: {sample}")
+
+    return release_map
+
+
+def get_deployment_date_for_issue(
+    issue: Dict,
+    fixversion_release_map: Dict[str, datetime],
+) -> Optional[datetime]:
+    """Get the deployment date for an issue from its fixVersions.
+
+    Looks up the issue's fixVersions in the release map and returns
+    the earliest releaseDate among matching versions.
+
+    This is the shared function for all DORA metrics that need to
+    determine when an issue was deployed to production.
+
+    Args:
+        issue: JIRA issue dictionary (development issue or bug)
+        fixversion_release_map: Map of fixVersion name → releaseDate
+            (built from Operational Tasks via build_fixversion_release_map)
+
+    Returns:
+        Earliest deployment datetime for this issue, or None if no match
+
+    Example:
+        >>> issue = {"fields": {"fixVersions": [{"name": "v1.0"}, {"name": "v2.0"}]}}
+        >>> release_map = {"v1.0": datetime(2025, 1, 15), "v2.0": datetime(2025, 2, 1)}
+        >>> get_deployment_date_for_issue(issue, release_map)
+        datetime(2025, 1, 15, 0, 0)  # Returns earliest
+    """
+    fix_versions = issue.get("fields", {}).get("fixVersions", [])
+
+    deployment_dates = []
+    for fv in fix_versions:
+        fv_name = fv.get("name")
+        if fv_name and fv_name in fixversion_release_map:
+            deployment_dates.append(fixversion_release_map[fv_name])
+
+    if not deployment_dates:
+        return None
+
+    # Return earliest deployment date
+    return min(deployment_dates)
+
+
+def filter_issues_deployed_in_week(
+    issues: List[Dict],
+    fixversion_release_map: Dict[str, datetime],
+    week_start: datetime,
+    week_end: datetime,
+) -> List[Dict]:
+    """Filter issues to only those deployed in the specified week.
+
+    Uses the fixVersion → releaseDate map to determine deployment dates.
+    This is used to get issues relevant to a specific week for DORA metrics.
+
+    Args:
+        issues: List of issues (development issues or bugs)
+        fixversion_release_map: Map of fixVersion name → releaseDate
+        week_start: Start of week (datetime, inclusive)
+        week_end: End of week (datetime, exclusive)
+
+    Returns:
+        Filtered list of issues deployed in the week
+    """
+    filtered = []
+    for issue in issues:
+        deployment_date = get_deployment_date_for_issue(issue, fixversion_release_map)
+        if deployment_date and week_start <= deployment_date < week_end:
+            filtered.append(issue)
+
+    logger.debug(
+        f"Filtered {len(filtered)} of {len(issues)} issues deployed in week "
+        f"{week_start.date()} to {week_end.date()}"
+    )
+    return filtered
