@@ -220,6 +220,7 @@ window.dash_clientside.namespace_autocomplete = {
         "resolutiondate",
         "duedate",
         "lastViewed",
+        "fixversions", // Array field but extracts releaseDate automatically
       ];
       const builtInOptionFields = [
         "status",
@@ -250,6 +251,14 @@ window.dash_clientside.namespace_autocomplete = {
     // Check category match
     if (actualCategory === expectedCategory) {
       return `<small class="text-success"><i class="fas fa-check-circle me-1"></i>${fieldInfo.name} (${actualType})</small>`;
+    }
+
+    // Special case: fixVersions for datetime requirement - explain it's valid
+    if (
+      fieldId.toLowerCase() === "fixversions" &&
+      expectedCategory === "datetime"
+    ) {
+      return `<small class="text-success"><i class="fas fa-check-circle me-1"></i>fixVersions is valid (uses releaseDate automatically)</small>`;
     }
 
     // Special case: option field for datetime requirement - suggest changelog syntax

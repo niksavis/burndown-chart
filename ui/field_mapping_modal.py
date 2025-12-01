@@ -388,7 +388,7 @@ def create_field_mapping_form(
                 "deployment_date",
                 "Deployment Date",
                 "datetime",
-                "When deployment occurred | REQUIRED for Deployment Frequency | Typical field: customfield_XXXXX | Type: datetime",
+                "When deployment occurred | REQUIRED for Deployment Frequency | Use: fixVersions OR customfield_XXXXX (datetime)",
             ),
             (
                 "deployment_successful",
