@@ -66,7 +66,7 @@ def create_status_config_form(
                                 "Configure status mappings for Flow metrics calculation. These statuses determine how issues flow through your workflow.",
                                 className="text-muted small mb-3",
                             ),
-                            # Completion Statuses
+                            # Flow End (Completion) Statuses
                             dbc.Row(
                                 [
                                     dbc.Col(
@@ -76,7 +76,12 @@ def create_status_config_form(
                                                     html.I(
                                                         className="fas fa-check-circle me-2 text-success"
                                                     ),
-                                                    "Completion [Done] (Required)",
+                                                    "Flow End ",
+                                                    html.Span(
+                                                        "*",
+                                                        className="text-danger",
+                                                        title="Required for Flow Velocity, Flow Time, Flow Efficiency, Flow Distribution",
+                                                    ),
                                                 ],
                                                 className="form-label fw-bold",
                                             ),
@@ -119,12 +124,17 @@ def create_status_config_form(
                                                     html.I(
                                                         className="fas fa-play-circle me-2 text-primary"
                                                     ),
-                                                    "Active",
+                                                    "Active ",
+                                                    html.Span(
+                                                        "*",
+                                                        className="text-danger",
+                                                        title="Required for Flow Efficiency",
+                                                    ),
                                                 ],
                                                 className="form-label fw-bold",
                                             ),
                                             html.P(
-                                                "Statuses indicating active work (should be subset of WIP)",
+                                                "Statuses indicating active work (subset of WIP)",
                                                 className="text-muted small mb-2",
                                             ),
                                             # Dynamic validation warning - shown only when Active has values not in WIP
@@ -167,12 +177,17 @@ def create_status_config_form(
                                                     html.I(
                                                         className="fas fa-flag me-2 text-info"
                                                     ),
-                                                    "Flow Start",
+                                                    "Flow Start ",
+                                                    html.Span(
+                                                        "*",
+                                                        className="text-danger",
+                                                        title="Required for Flow Time",
+                                                    ),
                                                 ],
                                                 className="form-label fw-bold",
                                             ),
                                             html.P(
-                                                "Flow Time measurement starts when issues enter these statuses (should be subset of WIP)",
+                                                "Flow Time measurement starts when issues enter these statuses (subset of WIP)",
                                                 className="text-muted small mb-2",
                                             ),
                                             # Dynamic validation warning - shown only when Flow Start has values not in WIP
@@ -215,7 +230,12 @@ def create_status_config_form(
                                                     html.I(
                                                         className="fas fa-spinner me-2 text-warning"
                                                     ),
-                                                    "WIP (Work In Progress)",
+                                                    "Work In Progress (WIP) ",
+                                                    html.Span(
+                                                        "*",
+                                                        className="text-danger",
+                                                        title="Required for Flow Load, Flow Efficiency",
+                                                    ),
                                                 ],
                                                 className="form-label fw-bold",
                                             ),
