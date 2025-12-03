@@ -509,62 +509,10 @@ def calculate_and_display_flow_metrics(
             )
 
         # READ METRICS FROM SNAPSHOTS (instant, no calculation)
+        # AGGREGATED across all weeks in selected period (like DORA metrics)
         from data.metrics_snapshots import get_metric_snapshot
 
-        # Get current week metrics
-        flow_time_snapshot = get_metric_snapshot(current_week_label, "flow_time")
-        flow_efficiency_snapshot = get_metric_snapshot(
-            current_week_label, "flow_efficiency"
-        )
-        flow_load_snapshot = get_metric_snapshot(current_week_label, "flow_load")
-
-        # Extract values from snapshots (with defaults)
-        median_flow_time = (
-            flow_time_snapshot.get("median_days", 0) if flow_time_snapshot else 0
-        )
-        median_efficiency = (
-            flow_efficiency_snapshot.get("overall_pct", 0)
-            if flow_efficiency_snapshot
-            else 0
-        )
-        wip_count = flow_load_snapshot.get("wip_count", 0) if flow_load_snapshot else 0
-
-        # Get Flow Velocity from snapshot
-        flow_velocity_snapshot = get_metric_snapshot(
-            current_week_label, "flow_velocity"
-        )
-        total_velocity = (
-            flow_velocity_snapshot.get("completed_count", 0)
-            if flow_velocity_snapshot
-            else 0
-        )
-
-        # Work Distribution: Use current week (consistent with other Flow metrics)
-        # Show current week even if 0, matching Flow Velocity, Time, Efficiency, Load behavior
-        distribution = (
-            flow_velocity_snapshot.get("distribution", {})
-            if flow_velocity_snapshot
-            else {}
-        )
-        feature_count = distribution.get("feature", 0)
-        defect_count = distribution.get("defect", 0)
-        tech_debt_count = distribution.get("tech_debt", 0)
-        risk_count = distribution.get("risk", 0)
-
-        # Use velocity snapshot for issue count (always available, even when flow_time is N/A)
-        issues_in_period_count = (
-            flow_velocity_snapshot.get("completed_count", 0)
-            if flow_velocity_snapshot
-            else 0
-        )
-
-        logger.info(
-            f"Flow metrics from snapshot {current_week_label}: "
-            f"Flow Time={median_flow_time:.1f}d, Efficiency={median_efficiency:.1f}%, WIP={wip_count}, "
-            f"Completed={issues_in_period_count} issues"
-        )
-
-        # Load historical metric values from snapshots for sparklines
+        # Load historical metric values from snapshots for sparklines AND aggregation
         from data.metrics_snapshots import get_metric_weekly_values
 
         flow_load_values = get_metric_weekly_values(
@@ -576,21 +524,75 @@ def calculate_and_display_flow_metrics(
         flow_efficiency_values = get_metric_weekly_values(
             week_labels, "flow_efficiency", "overall_pct"
         )
+        velocity_values = get_metric_weekly_values(
+            week_labels, "flow_velocity", "completed_count"
+        )
 
-        # Collect historical distribution data for all weeks
+        # AGGREGATE Flow metrics across selected period (like DORA)
+        # Flow Velocity: Average items/week across period
+        non_zero_velocity = [v for v in velocity_values if v > 0]
+        avg_velocity = (
+            sum(velocity_values) / len(velocity_values) if velocity_values else 0
+        )
+
+        # Flow Time: Median of weekly medians (exclude zeros = weeks with no completions)
+        non_zero_flow_times = [v for v in flow_time_values if v > 0]
+        if non_zero_flow_times:
+            sorted_times = sorted(non_zero_flow_times)
+            mid = len(sorted_times) // 2
+            median_flow_time = (
+                sorted_times[mid]
+                if len(sorted_times) % 2 == 1
+                else (sorted_times[mid - 1] + sorted_times[mid]) / 2
+            )
+        else:
+            median_flow_time = 0
+
+        # Flow Efficiency: Average efficiency across period (exclude zeros)
+        non_zero_efficiency = [v for v in flow_efficiency_values if v > 0]
+        avg_efficiency = (
+            sum(non_zero_efficiency) / len(non_zero_efficiency)
+            if non_zero_efficiency
+            else 0
+        )
+
+        # Flow Load (WIP): Current week snapshot ONLY (WIP is a point-in-time metric)
+        flow_load_snapshot = get_metric_snapshot(current_week_label, "flow_load")
+        wip_count = flow_load_snapshot.get("wip_count", 0) if flow_load_snapshot else 0
+
+        # Collect distribution data across ALL weeks for aggregated totals
+        total_feature = 0
+        total_defect = 0
+        total_tech_debt = 0
+        total_risk = 0
+        total_completed = 0
         distribution_history = []
+
         for week in week_labels:
             week_snapshot = get_metric_snapshot(week, "flow_velocity")
             if week_snapshot:
                 week_dist = week_snapshot.get("distribution", {})
+                week_feature = week_dist.get("feature", 0)
+                week_defect = week_dist.get("defect", 0)
+                week_tech_debt = week_dist.get("tech_debt", 0)
+                week_risk = week_dist.get("risk", 0)
+                week_total = week_snapshot.get("completed_count", 0)
+
+                # Accumulate totals for aggregated display
+                total_feature += week_feature
+                total_defect += week_defect
+                total_tech_debt += week_tech_debt
+                total_risk += week_risk
+                total_completed += week_total
+
                 distribution_history.append(
                     {
                         "week": week,
-                        "feature": week_dist.get("feature", 0),
-                        "defect": week_dist.get("defect", 0),
-                        "tech_debt": week_dist.get("tech_debt", 0),
-                        "risk": week_dist.get("risk", 0),
-                        "total": week_snapshot.get("completed_count", 0),
+                        "feature": week_feature,
+                        "defect": week_defect,
+                        "tech_debt": week_tech_debt,
+                        "risk": week_risk,
+                        "total": week_total,
                     }
                 )
             else:
@@ -604,6 +606,21 @@ def calculate_and_display_flow_metrics(
                         "total": 0,
                     }
                 )
+
+        # Use aggregated values for display
+        feature_count = total_feature
+        defect_count = total_defect
+        tech_debt_count = total_tech_debt
+        risk_count = total_risk
+        total_velocity = total_completed
+        issues_in_period_count = total_completed
+
+        logger.info(
+            f"Flow metrics AGGREGATED over {n_weeks} weeks: "
+            f"Velocity={avg_velocity:.1f} items/week (total {total_completed}), "
+            f"Flow Time={median_flow_time:.1f}d (median), Efficiency={avg_efficiency:.1f}% (avg), "
+            f"WIP={wip_count} (current week {current_week_label})"
+        )
 
         # Note: dist_card layout moved to distribution chart section below
         # (Keeping 4-card grid for Flow metrics consistency)
@@ -700,28 +717,13 @@ def calculate_and_display_flow_metrics(
 
         dist_card = create_work_distribution_card(
             distribution_data=distribution_data,
-            week_label=current_week_label,
+            week_label=f"{n_weeks}w aggregate",
             distribution_history=distribution_history,
             card_id="work-distribution-card",
         )
 
-        # Load velocity historicalalues
-        velocity_values = get_metric_weekly_values(
-            week_labels, "flow_velocity", "completed_count"
-        )
-
         # Create metric cards using same component as DORA
-        # Reading from snapshots - error_state is "success" if data exists
-
-        # Get individual metric issue counts from snapshots (not all use velocity count)
-        flow_time_issue_count = (
-            flow_time_snapshot.get("completed_count", 0) if flow_time_snapshot else 0
-        )
-        flow_efficiency_issue_count = (
-            flow_efficiency_snapshot.get("completed_count", 0)
-            if flow_efficiency_snapshot
-            else 0
-        )
+        # AGGREGATED across selected period (like DORA metrics)
 
         # Import performance tier calculation functions
         from ui.flow_metrics_dashboard import (
@@ -732,14 +734,14 @@ def calculate_and_display_flow_metrics(
         metrics_data = {
             "flow_velocity": {
                 "metric_name": "flow_velocity",
-                "value": total_velocity,
-                "unit": "items/week",
+                "value": round(avg_velocity, 1),  # Average items/week over period
+                "unit": f"items/week (avg {n_weeks}w)",
                 "error_state": "success",  # Always valid - 0 velocity is acceptable
                 "performance_tier": _get_flow_performance_tier(
-                    "flow_velocity", total_velocity
+                    "flow_velocity", avg_velocity
                 ),
                 "performance_tier_color": _get_flow_performance_tier_color(
-                    "flow_velocity", total_velocity
+                    "flow_velocity", avg_velocity
                 ),
                 "total_issue_count": issues_in_period_count,
                 "weekly_labels": week_labels,
@@ -756,7 +758,7 @@ def calculate_and_display_flow_metrics(
                 "value": round(median_flow_time, 1)
                 if median_flow_time is not None
                 else 0,
-                "unit": "days (median)",
+                "unit": f"days (median {n_weeks}w)",
                 "error_state": "success",  # Always success - 0 is valid for weeks with no completions
                 "performance_tier": _get_flow_performance_tier(
                     "flow_time", median_flow_time if median_flow_time is not None else 0
@@ -764,33 +766,31 @@ def calculate_and_display_flow_metrics(
                 "performance_tier_color": _get_flow_performance_tier_color(
                     "flow_time", median_flow_time if median_flow_time is not None else 0
                 ),
-                "total_issue_count": flow_time_issue_count,  # Use Flow Time's own completed count
+                "total_issue_count": issues_in_period_count,
                 "weekly_labels": week_labels,
                 "weekly_values": flow_time_values,
             },
             "flow_efficiency": {
                 "metric_name": "flow_efficiency",
-                "value": round(median_efficiency, 1)
-                if median_efficiency is not None
-                else 0,
-                "unit": "% (median)",
+                "value": round(avg_efficiency, 1) if avg_efficiency is not None else 0,
+                "unit": f"% (avg {n_weeks}w)",
                 "error_state": "success",  # Always success - 0 is valid for weeks with no completions
                 "performance_tier": _get_flow_performance_tier(
                     "flow_efficiency",
-                    median_efficiency if median_efficiency is not None else 0,
+                    avg_efficiency if avg_efficiency is not None else 0,
                 ),
                 "performance_tier_color": _get_flow_performance_tier_color(
                     "flow_efficiency",
-                    median_efficiency if median_efficiency is not None else 0,
+                    avg_efficiency if avg_efficiency is not None else 0,
                 ),
-                "total_issue_count": flow_efficiency_issue_count,  # Use Flow Efficiency's own completed count
+                "total_issue_count": issues_in_period_count,
                 "weekly_labels": week_labels,
                 "weekly_values": flow_efficiency_values,
             },
             "flow_load": {
                 "metric_name": "flow_load",
                 "value": wip_count if wip_count is not None else 0,
-                "unit": "items",  # Consistent with other count metrics
+                "unit": f"items (current WIP)",  # WIP is always current snapshot
                 "error_state": "success" if flow_load_snapshot else "no_data",
                 "performance_tier": _get_flow_performance_tier(
                     "flow_load", wip_count if wip_count is not None else 0

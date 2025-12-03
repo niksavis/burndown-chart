@@ -669,14 +669,14 @@ def _create_throughput_section(statistics_df, forecast_data):
                     dbc.Col(
                         [
                             _create_metric_card(
-                                "Avg Cycle Time",
-                                f"{_safe_divide(7, avg_items) if avg_items > 0 else 0:.1f}d",
-                                "Days per item",
-                                "fa-clock",
+                                "Avg Item Size",
+                                f"{_safe_divide(avg_points, avg_items):.1f} pts",
+                                "Points per item",
+                                "fa-weight-hanging",
                                 "#17a2b8",
                                 sparkline_data=None,
-                                tooltip_text="Average time to complete one work item. Calculated as 7 days ÷ items per week. Lower values indicate faster throughput and shorter feedback cycles.",
-                                tooltip_id="throughput-cycle-time",
+                                tooltip_text="Average story points per completed work item. Shows typical item complexity. Higher values mean larger items taking longer to complete. Use this to understand capacity: fewer large items or more small items per sprint.",
+                                tooltip_id="throughput-item-size",
                             )
                         ],
                         width=12,
@@ -1700,27 +1700,62 @@ def create_comprehensive_dashboard(
         else None,
     }
 
-    # Calculate velocity coefficient of variation if we have enough data
+    # Calculate velocity statistics for confidence intervals
+    velocity_std = 0
+    velocity_mean = 0
+    remaining_items = total_items  # Items still to complete
+
     if not statistics_df.empty and len(statistics_df) >= 4:
         velocity_std = statistics_df["completed_items"].std()
         velocity_mean = statistics_df["completed_items"].mean()
         if velocity_mean > 0:
             forecast_data["velocity_cv"] = (velocity_std / velocity_mean) * 100
 
-    # Prepare confidence intervals
-    confidence_data = {
-        "ci_50": max(0, pert_time_items - 7) if pert_time_items else 0,
-        "ci_80": pert_time_items if pert_time_items else 0,
-        "ci_95": pert_time_items + 14 if pert_time_items else 0,
-        "deadline_probability": max(
-            0,
-            min(
-                100,
-                100 - ((pert_time_items - days_to_deadline) / days_to_deadline * 50),
-            ),
+    # Calculate statistically-based confidence intervals
+    # Using Monte Carlo-inspired approach: forecast uncertainty grows with remaining work
+    # Standard error of completion time ≈ (remaining_items / velocity) * (velocity_std / velocity_mean)
+    # This accounts for: more remaining work = more uncertainty, higher velocity variance = more uncertainty
+
+    if pert_time_items and velocity_mean > 0 and velocity_std > 0:
+        # Coefficient of variation as a ratio (not percentage)
+        cv_ratio = velocity_std / velocity_mean
+
+        # Forecast standard deviation: uncertainty scales with forecast duration and velocity variability
+        # Using: σ_forecast ≈ pert_time * CV * sqrt(weeks_remaining / weeks_observed)
+        weeks_observed = len(statistics_df) if not statistics_df.empty else 1
+        weeks_remaining = max(1, pert_time_items / 7)  # Convert days to weeks
+        uncertainty_factor = (weeks_remaining / weeks_observed) ** 0.5
+
+        forecast_std_days = pert_time_items * cv_ratio * uncertainty_factor
+
+        # Confidence intervals using z-scores:
+        # 50% CI: ±0.67σ (but we show median which equals PERT estimate)
+        # 95% CI: +1.65σ (one-tailed, conservative estimate)
+        ci_50_days = pert_time_items  # Median = PERT estimate (50th percentile)
+        ci_95_days = pert_time_items + (1.65 * forecast_std_days)  # 95th percentile
+
+        # Calculate deadline probability using z-score
+        # Z = (deadline - forecast) / forecast_std
+        if days_to_deadline > 0 and forecast_std_days > 0:
+            z_score = (days_to_deadline - pert_time_items) / forecast_std_days
+            # Approximate normal CDF using logistic approximation: Φ(z) ≈ 1 / (1 + e^(-1.7 * z))
+            deadline_probability = 100 / (1 + 2.718 ** (-1.7 * z_score))
+        else:
+            # Fallback: simple linear estimate
+            deadline_probability = 75 if pert_time_items <= days_to_deadline else 25
+    else:
+        # Fallback for insufficient data: use conservative fixed offsets
+        ci_50_days = pert_time_items if pert_time_items else 0
+        ci_95_days = (pert_time_items + 14) if pert_time_items else 0
+        deadline_probability = (
+            75 if (pert_time_items or 0) <= (days_to_deadline or 0) else 25
         )
-        if pert_time_items and days_to_deadline > 0
-        else 75,
+
+    confidence_data = {
+        "ci_50": max(0, ci_50_days),
+        "ci_80": pert_time_items if pert_time_items else 0,  # Keep for compatibility
+        "ci_95": max(0, ci_95_days),
+        "deadline_probability": max(0, min(100, deadline_probability)),
     }
 
     # Prepare settings for sections
