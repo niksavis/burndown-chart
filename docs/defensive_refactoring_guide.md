@@ -238,7 +238,7 @@ When performing refactoring tasks:
 6. **Ask for confirmation**: If uncertain about whether code is used (dynamic imports, reflection, etc.), ask the human before removing
 
 **Common pitfalls for AI agents**:
-- ❌ Removing code based on simple text search (misses dynamic imports, getattr, __import__)
+- ❌ Removing code based on simple text search (misses dynamic imports, getattr, **import**)
 - ❌ Batch removing multiple functions in one commit (hard to rollback specific changes)
 - ❌ Forgetting to check test files for references
 - ❌ Not running tests after removal (assuming they'll still pass)

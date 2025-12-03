@@ -1614,8 +1614,8 @@ To verify metrics are correct:
    - Check excluded counts in logs for unexpected filtering
 
 ---
-   - `wip_statuses`: ["Selected", "In Progress", "Testing", ...]
-   - `active_statuses`: ["In Progress", "In Review", "Testing"]
+- `wip_statuses`: ["Selected", "In Progress", "Testing", ...]
+- `active_statuses`: ["In Progress", "In Review", "Testing"]
 
 4. **Check Flow Type Mappings**:
    - Verify `flow_type_mappings` has correct effort category values
