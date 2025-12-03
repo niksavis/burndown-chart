@@ -1,7 +1,5 @@
 # Metrics Documentation Index
 
-**Last Updated**: November 12, 2025
-
 ## 📚 Documentation Structure
 
 This application tracks three categories of metrics, each documented in its own focused guide:
@@ -45,6 +43,20 @@ Covers the **DORA & Flow Metrics** tab - Flow section:
 - **Flow Distribution** - Balance of work types with recommended ranges
 
 **Flow Framework** - Process metrics from Mik Kersten's "Project to Product" methodology.
+
+---
+
+### 4. [Metrics Correlation Guide](./metrics_correlation_guide.md) 🆕
+**Best for**: Teams validating metric configurations and understanding relationships
+
+Covers metric relationships and validation:
+- **Expected Correlations** - Lead Time vs Flow Time, MTTR vs Lead Time, etc.
+- **Little's Law** - WIP, Velocity, and Flow Time mathematical relationship
+- **Validation Rules** - How to verify your metrics are configured correctly
+- **Timeline Diagrams** - Visual explanation of measurement points
+- **Common Issues** - Troubleshooting guide for metric configuration problems
+
+**Use this guide to verify your field mappings are producing reliable, consistent metrics.**
 
 ---
 
@@ -166,3 +178,7 @@ If you find discrepancies between documentation and actual behavior:
 3. File an issue with: metric name, expected behavior, actual behavior, screenshot
 
 **Known Limitations**: See Dashboard Metrics guide for transparent documentation of calculation issues and fixes.
+
+---
+
+*Document Version: 1.0 | Last Updated: December 2025*

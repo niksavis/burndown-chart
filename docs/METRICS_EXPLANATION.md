@@ -1,12 +1,5 @@
 # Metrics Documentation
 
-**⚠️ This document has been reorganized for better usability.**
-
-**Version**: 2.0  
-**Last Updated**: November 12, 2025
-
----
-
 ## 📚 New Documentation Structure
 
 This guide has been split into focused, manageable documents for easier navigation:
@@ -2140,5 +2133,4 @@ health_score = (
 
 ---
 
-**Last Updated**: November 12, 2025  
-**Maintained By**: Development Team
+*Document Version: 1.0 | Last Updated: December 2025*

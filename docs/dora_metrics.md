@@ -1,6 +1,5 @@
 # DORA Metrics Guide
 
-**Last Updated**: December 2, 2025  
 **Part of**: [Metrics Documentation Index](./metrics_index.md)
 
 ## What Are DORA Metrics?
@@ -713,7 +712,8 @@ Improve Lead Time
 
 ## Documentation Verification
 
-**Last Verified**: November 12, 2025  
-**Verified Against**: `data/dora_calculator.py` implementations
-
 All calculations, formulas, and behaviors documented above match the actual code implementation.
+
+---
+
+*Document Version: 1.0 | Last Updated: December 2025*

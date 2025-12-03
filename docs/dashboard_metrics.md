@@ -1,7 +1,5 @@
 # Project Dashboard Metrics Guide
 
-**Version**: 2.0  
-**Last Updated**: November 12, 2025  
 **Part of**: [Metrics Documentation](./metrics_index.md)
 
 ---
@@ -751,3 +749,7 @@ health_score = (
 ---
 
 **Questions or Issues?**: See [Common Dashboard Questions](#common-dashboard-questions) above or file an issue on GitHub.
+
+---
+
+*Document Version: 1.0 | Last Updated: December 2025*

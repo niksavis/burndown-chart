@@ -260,3 +260,7 @@ Current implementation does not support:
 - Duration calculations (`*.Status:InProgress.Duration`)
 
 These features may be added in future releases based on user demand.
+
+---
+
+*Document Version: 1.0 | Last Updated: December 2025*

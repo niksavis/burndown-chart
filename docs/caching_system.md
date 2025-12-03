@@ -357,3 +357,7 @@ if config.get("project") != cached_config.get("project"):
 - Background validation without blocking UI
 
 Both systems are intentionally redundant for reliability and performance. The global cache could be removed in a future simplification, but currently provides measurable benefits with minimal complexity cost.
+
+---
+
+*Document Version: 1.0 | Last Updated: December 2025*

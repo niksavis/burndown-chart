@@ -21,4 +21,4 @@
 
 ---
 
-**Last Updated**: 2025-11-28
+*Document Version: 1.0 | Last Updated: December 2025*
