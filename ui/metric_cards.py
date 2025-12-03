@@ -1088,7 +1088,6 @@ def _create_success_card(
 
     # Add deployment count for deployment_frequency metric
     # Add release CFR for change_failure_rate metric
-    # Add P95 for lead_time_for_changes and mean_time_to_recovery metrics
     if metric_name == "deployment_frequency" and formatted_task_value is not None:
         # Show deployment count (operational tasks) as secondary metric
         card_body_children.append(
@@ -1100,32 +1099,53 @@ def _create_success_card(
                 className="text-center text-muted small mb-2",
             )
         )
-    # Note: change_failure_rate uses single value (no secondary release CFR)
 
-    # Add P95 information for lead_time_for_changes and mean_time_to_recovery
-    if formatted_p95_value is not None and metric_name in [
-        "lead_time_for_changes",
-        "mean_time_to_recovery",
-    ]:
-        # Determine text and icon based on metric type
-        p95_config = {
-            "lead_time_for_changes": {
-                "text": f"{formatted_p95_value}d P95 (95% faster)",
-                "icon": "fas fa-chart-line me-1",
-            },
-            "mean_time_to_recovery": {
-                "text": f"{formatted_p95_value}h P95 (95% faster)",
-                "icon": "fas fa-chart-line me-1",
-            },
-        }
-
-        config = p95_config.get(metric_name, {})
-        if config:
+    # Add release-based CFR as secondary for change_failure_rate
+    if metric_name == "change_failure_rate":
+        release_cfr = metric_data.get("release_value")
+        if release_cfr is not None:
+            formatted_release_cfr = (
+                f"{release_cfr:.1f}" if release_cfr >= 10 else f"{release_cfr:.1f}"
+            )
             card_body_children.append(
                 html.Div(
                     [
-                        html.I(className=config["icon"]),
-                        html.Span(config["text"]),
+                        html.I(className="fas fa-tag me-1"),
+                        html.Span(f"{formatted_release_cfr}% by release"),
+                    ],
+                    className="text-center text-muted small mb-2",
+                )
+            )
+
+    # Add secondary value display for Lead Time and MTTR (comparison in alternate unit)
+    # Lead Time shows in days primarily, so show hours as secondary
+    # MTTR shows in hours primarily, so show days as secondary
+    if metric_name == "lead_time_for_changes":
+        value_hours = metric_data.get("value_hours")
+        if value_hours is not None:
+            formatted_hours = (
+                f"{value_hours:.1f}" if value_hours >= 10 else f"{value_hours:.2f}"
+            )
+            card_body_children.append(
+                html.Div(
+                    [
+                        html.I(className="fas fa-clock me-1"),
+                        html.Span(f"{formatted_hours} hours"),
+                    ],
+                    className="text-center text-muted small mb-2",
+                )
+            )
+    elif metric_name == "mean_time_to_recovery":
+        value_days = metric_data.get("value_days")
+        if value_days is not None:
+            formatted_days = (
+                f"{value_days:.1f}" if value_days >= 10 else f"{value_days:.2f}"
+            )
+            card_body_children.append(
+                html.Div(
+                    [
+                        html.I(className="fas fa-calendar-day me-1"),
+                        html.Span(f"{formatted_days} days"),
                     ],
                     className="text-center text-muted small mb-2",
                 )

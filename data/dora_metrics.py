@@ -743,9 +743,10 @@ def calculate_lead_time_for_changes(
         avg_lead_time_days = sum(lead_times) / len(lead_times)
 
         # Determine display unit
+        avg_lead_time_hours = avg_lead_time_days * 24
         if avg_lead_time_days < 1:
             unit = "hours"
-            display_value = avg_lead_time_days * 24
+            display_value = avg_lead_time_hours
         else:
             unit = "days"
             display_value = avg_lead_time_days
@@ -766,6 +767,8 @@ def calculate_lead_time_for_changes(
         return {
             "value": display_value,
             "unit": unit,
+            "value_hours": avg_lead_time_hours,
+            "value_days": avg_lead_time_days,
             "performance_tier": performance_tier,
             "sample_count": len(lead_times),
             "period_days": time_period_days,
@@ -1179,11 +1182,12 @@ def calculate_mean_time_to_recovery(
 
         # Calculate average MTTR
         avg_mttr_hours = sum(recovery_times) / len(recovery_times)
+        avg_mttr_days = avg_mttr_hours / 24
 
         # Determine display unit
         if avg_mttr_hours >= 24:
             unit = "days"
-            display_value = avg_mttr_hours / 24
+            display_value = avg_mttr_days
         else:
             unit = "hours"
             display_value = avg_mttr_hours
@@ -1204,6 +1208,8 @@ def calculate_mean_time_to_recovery(
         return {
             "value": display_value,
             "unit": unit,
+            "value_hours": avg_mttr_hours,
+            "value_days": avg_mttr_days,
             "performance_tier": performance_tier,
             "incident_count": len(recovery_times),
             "period_days": time_period_days,

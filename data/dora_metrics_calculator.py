@@ -350,6 +350,12 @@ def load_dora_metrics_from_cache(n_weeks: int = 12) -> Optional[Dict[str, Any]]:
                 "value": round(overall_lead_time / 24, 1)
                 if overall_lead_time is not None
                 else None,
+                "value_hours": round(overall_lead_time, 1)
+                if overall_lead_time is not None
+                else None,  # Hours equivalent for secondary display
+                "value_days": round(overall_lead_time / 24, 1)
+                if overall_lead_time is not None
+                else None,  # Days equivalent for secondary display
                 "p95_value": round(overall_lead_time_p95 / 24, 1)
                 if overall_lead_time_p95 is not None
                 else None,  # NEW: P95 in days
@@ -372,6 +378,12 @@ def load_dora_metrics_from_cache(n_weeks: int = 12) -> Optional[Dict[str, Any]]:
             },
             "mean_time_to_recovery": {
                 "value": round(overall_mttr, 1) if overall_mttr else None,
+                "value_hours": round(overall_mttr, 1)
+                if overall_mttr is not None
+                else None,  # Hours equivalent for secondary display
+                "value_days": round(overall_mttr / 24, 1)
+                if overall_mttr is not None
+                else None,  # Days equivalent for secondary display
                 "p95_value": round(overall_mttr_p95, 1)
                 if overall_mttr_p95 is not None
                 else None,  # NEW: P95 MTTR

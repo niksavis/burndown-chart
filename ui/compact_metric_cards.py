@@ -15,6 +15,8 @@ def create_compact_overview_card(
     unit: str,
     performance_color: str = "primary",
     icon: str = "chart-line",
+    secondary_value: Any = None,
+    secondary_unit: str = "",
 ) -> dbc.Card:
     """Create a small, compact metric overview card.
 
@@ -24,6 +26,8 @@ def create_compact_overview_card(
         unit: Unit of measurement
         performance_color: Bootstrap color class (success, info, warning, danger)
         icon: Font Awesome icon name
+        secondary_value: Optional secondary value for comparison (e.g., days equivalent)
+        secondary_unit: Unit for secondary value
 
     Returns:
         Compact card component
@@ -63,26 +67,51 @@ def create_compact_overview_card(
     else:
         value_display = str(value) if value is not None else "—"
 
+    # Format secondary value display if provided
+    secondary_display = None
+    if secondary_value is not None:
+        if isinstance(secondary_value, float):
+            secondary_display = f"{secondary_value:.1f}"
+        else:
+            secondary_display = str(secondary_value)
+
+    # Build card body content
+    card_content = [
+        html.Div(
+            [
+                html.I(className=f"fas fa-{icon} me-2 text-{bootstrap_color}"),
+                html.Span(metric_name, className="text-muted small"),
+            ],
+            className="d-flex align-items-center mb-1",
+        ),
+        html.Div(
+            [
+                html.Span(
+                    value_display,
+                    className=f"h4 mb-0 text-{bootstrap_color} fw-bold",
+                ),
+                html.Small(f" {unit}", className="text-muted ms-1"),
+            ],
+        ),
+    ]
+
+    # Add secondary value row if provided
+    if secondary_display:
+        card_content.append(
+            html.Div(
+                [
+                    html.Small(
+                        f"({secondary_display} {secondary_unit})",
+                        className="text-muted",
+                    ),
+                ],
+                className="mt-1",
+            )
+        )
+
     return dbc.Card(
         dbc.CardBody(
-            [
-                html.Div(
-                    [
-                        html.I(className=f"fas fa-{icon} me-2 text-{bootstrap_color}"),
-                        html.Span(metric_name, className="text-muted small"),
-                    ],
-                    className="d-flex align-items-center mb-1",
-                ),
-                html.Div(
-                    [
-                        html.Span(
-                            value_display,
-                            className=f"h4 mb-0 text-{bootstrap_color} fw-bold",
-                        ),
-                        html.Small(f" {unit}", className="text-muted ms-1"),
-                    ],
-                ),
-            ],
+            card_content,
             className="p-2",
         ),
         className="compact-metric-card shadow-sm",
@@ -125,16 +154,32 @@ def create_dora_metrics_overview(metrics_data: Dict[str, Any]) -> html.Div:
     # Lead Time for Changes
     if "lead_time_for_changes" in metrics_data:
         lt_metric = metrics_data["lead_time_for_changes"]
+        lt_unit = lt_metric.get("unit", "days")
+
+        # Determine secondary value: show days if primary is hours, show hours if primary is days
+        secondary_value = None
+        secondary_unit = ""
+        if lt_unit == "hours":
+            # Primary is hours, show days as secondary
+            secondary_value = lt_metric.get("value_days")
+            secondary_unit = "days"
+        elif lt_unit == "days":
+            # Primary is days, show hours as secondary
+            secondary_value = lt_metric.get("value_hours")
+            secondary_unit = "hours"
+
         cards.append(
             dbc.Col(
                 create_compact_overview_card(
                     metric_name="Lead Time",
                     value=lt_metric.get("value"),
-                    unit=lt_metric.get("unit", "days"),
+                    unit=lt_unit,
                     performance_color=lt_metric.get(
                         "performance_tier_color", "primary"
                     ),
                     icon="clock",
+                    secondary_value=secondary_value,
+                    secondary_unit=secondary_unit,
                 ),
                 width=12,
                 md=6,
@@ -167,16 +212,32 @@ def create_dora_metrics_overview(metrics_data: Dict[str, Any]) -> html.Div:
     # Mean Time to Recovery
     if "mean_time_to_recovery" in metrics_data:
         mttr_metric = metrics_data["mean_time_to_recovery"]
+        mttr_unit = mttr_metric.get("unit", "hours")
+
+        # Determine secondary value: show days if primary is hours, show hours if primary is days
+        secondary_value = None
+        secondary_unit = ""
+        if mttr_unit == "hours":
+            # Primary is hours, show days as secondary
+            secondary_value = mttr_metric.get("value_days")
+            secondary_unit = "days"
+        elif mttr_unit == "days":
+            # Primary is days, show hours as secondary
+            secondary_value = mttr_metric.get("value_hours")
+            secondary_unit = "hours"
+
         cards.append(
             dbc.Col(
                 create_compact_overview_card(
                     metric_name="MTTR",
                     value=mttr_metric.get("value"),
-                    unit=mttr_metric.get("unit", "hours"),
+                    unit=mttr_unit,
                     performance_color=mttr_metric.get(
                         "performance_tier_color", "primary"
                     ),
                     icon="medkit",
+                    secondary_value=secondary_value,
+                    secondary_unit=secondary_unit,
                 ),
                 width=12,
                 md=6,

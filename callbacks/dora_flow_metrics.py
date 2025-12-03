@@ -253,6 +253,12 @@ def load_and_display_dora_metrics(
             "lead_time_for_changes": {
                 "metric_name": "lead_time_for_changes",
                 "value": cached_metrics.get("lead_time_for_changes", {}).get("value"),
+                "value_hours": cached_metrics.get("lead_time_for_changes", {}).get(
+                    "value_hours"
+                ),  # Secondary: hours equivalent
+                "value_days": cached_metrics.get("lead_time_for_changes", {}).get(
+                    "value_days"
+                ),  # Secondary: days equivalent
                 "p95_value": cached_metrics.get("lead_time_for_changes", {}).get(
                     "p95_value"
                 ),  # NEW: P95 lead time
@@ -304,6 +310,12 @@ def load_and_display_dora_metrics(
             "mean_time_to_recovery": {
                 "metric_name": "mean_time_to_recovery",
                 "value": cached_metrics.get("mean_time_to_recovery", {}).get("value"),
+                "value_hours": cached_metrics.get("mean_time_to_recovery", {}).get(
+                    "value_hours"
+                ),  # Secondary: hours equivalent
+                "value_days": cached_metrics.get("mean_time_to_recovery", {}).get(
+                    "value_days"
+                ),  # Secondary: days equivalent
                 "p95_value": cached_metrics.get("mean_time_to_recovery", {}).get(
                     "p95_value"
                 ),  # NEW: P95 MTTR
