@@ -16,75 +16,8 @@ from ui.field_mapping_modal import (
     create_field_mapping_form,
     create_field_mapping_error_alert,
 )
-from data.namespace_parser import NamespaceParser
 
 logger = logging.getLogger(__name__)
-
-
-def _parse_namespace_field_mappings(field_mappings: Dict[str, Any]) -> Dict[str, Any]:
-    """Parse namespace syntax in field mappings and convert to SourceRule serialization.
-
-    Args:
-        field_mappings: Nested dict with 'dora' and 'flow' keys containing field values
-                       Structure: {"dora": {"field_name": "value"}, "flow": {...}}
-
-    Returns:
-        Updated field_mappings with namespace syntax parsed to SourceRule serialization
-
-    Example:
-        Input:  {"dora": {"deployment_date": "DevOps.customfield_10001"}}
-        Output: {"dora": {"deployment_date": {...SourceRule serialization...}}}
-
-    Note:
-        - Only parses values that contain namespace syntax (. or :)
-        - Leaves simple field IDs unchanged (backward compatibility)
-        - Logs warnings for invalid namespace syntax
-    """
-    if not field_mappings:
-        return field_mappings
-
-    parser = NamespaceParser()
-    parsed_mappings = {}
-
-    for metric_type in ["dora", "flow"]:
-        if metric_type not in field_mappings:
-            continue
-
-        parsed_mappings[metric_type] = {}
-        metric_data = field_mappings[metric_type]
-
-        # Handle flat structure: {"field_name": "value"}
-        for field_name, field_value in metric_data.items():
-            if not isinstance(field_value, str):
-                # Already parsed or not a string value - keep as-is
-                parsed_mappings[metric_type][field_name] = field_value
-                continue
-
-            # Check if value contains namespace syntax
-            if "." in field_value or ":" in field_value:
-                try:
-                    # Parse namespace syntax
-                    parsed_namespace = parser.parse(field_value)
-
-                    # Convert to SourceRule and serialize
-                    source_rule = parser.translate_to_source_rule(parsed_namespace)
-                    parsed_mappings[metric_type][field_name] = source_rule.model_dump()
-
-                    logger.info(
-                        f"[FieldMapping] Parsed namespace syntax for {metric_type}.{field_name}: "
-                        f"{field_value} → SourceRule with source type={source_rule.source.type}"
-                    )
-                except Exception as e:
-                    logger.error(
-                        f"[FieldMapping] Failed to parse namespace syntax for {metric_type}.{field_name}: "
-                        f"{field_value} - Exception: {e}. Storing as-is."
-                    )
-                    parsed_mappings[metric_type][field_name] = field_value
-            else:
-                # Simple field ID without namespace syntax - keep as-is
-                parsed_mappings[metric_type][field_name] = field_value
-
-    return parsed_mappings
 
 
 def _create_dora_flow_mappings_display(field_mappings: Dict) -> html.Div:
@@ -687,7 +620,7 @@ def _get_mock_mappings() -> Dict[str, Dict[str, str]]:
         "flow": {
             "flow_item_type": "customfield_10007",
             "status": "status",
-            "work_completed_date": "resolutiondate",
+            "completed_date": "resolutiondate",
         },
     }
 

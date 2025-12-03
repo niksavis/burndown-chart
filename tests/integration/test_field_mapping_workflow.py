@@ -63,7 +63,7 @@ class TestFieldMappingWorkflow:
     def test_empty_mappings_handling(self, temp_settings_file):
         """Test that system handles empty/no mappings gracefully."""
         with patch("data.field_mapper.APP_SETTINGS_FILE", temp_settings_file):
-            with patch("data.persistence.APP_SETTINGS_FILE", temp_settings_file):
+            with patch("data.persistence.SETTINGS_FILE", temp_settings_file):
                 # Save empty mappings
                 success = save_field_mappings({})
                 assert success is True

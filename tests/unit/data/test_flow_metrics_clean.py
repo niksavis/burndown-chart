@@ -1,7 +1,7 @@
 """Tests for the new clean Flow metrics implementation (data/flow_metrics.py).
 
-This test file validates the modern, backward-compatibility-free Flow calculator
-that uses only VariableExtractor for data extraction.
+This test file validates the modern Flow calculator that uses status-based
+extraction from profile configuration.
 """
 
 from data.flow_metrics import (
@@ -13,8 +13,6 @@ from data.flow_metrics import (
     _normalize_work_type,
     _calculate_trend,
 )
-from data.variable_mapping.extractor import VariableExtractor
-from configuration.metric_variables import DEFAULT_VARIABLE_COLLECTION
 
 
 class TestFlowVelocityClean:
@@ -77,10 +75,8 @@ class TestFlowVelocityClean:
             },
         ]
 
-        extractor = VariableExtractor(DEFAULT_VARIABLE_COLLECTION)
-
         # Act
-        result = calculate_flow_velocity(issues, extractor, time_period_days=7)
+        result = calculate_flow_velocity(issues, time_period_days=7)
 
         # Assert
         assert result["error_state"] is None  # Success state is None
@@ -92,9 +88,7 @@ class TestFlowVelocityClean:
 
     def test_flow_velocity_empty_issues(self):
         """Test velocity with no completed issues."""
-        extractor = VariableExtractor(DEFAULT_VARIABLE_COLLECTION)
-
-        result = calculate_flow_velocity([], extractor, time_period_days=7)
+        result = calculate_flow_velocity([], time_period_days=7)
 
         assert result["error_state"] == "no_data"
         assert "error_message" in result
@@ -111,10 +105,8 @@ class TestFlowVelocityClean:
             }
         ]
 
-        extractor = VariableExtractor(DEFAULT_VARIABLE_COLLECTION)
-
         result = calculate_flow_velocity(
-            issues, extractor, time_period_days=7, previous_period_value=5.0
+            issues, time_period_days=7, previous_period_value=5.0
         )
 
         # Should have trend information
@@ -167,9 +159,7 @@ class TestFlowTimeClean:
             },
         ]
 
-        extractor = VariableExtractor(DEFAULT_VARIABLE_COLLECTION)
-
-        result = calculate_flow_time(issues, extractor, time_period_days=30)
+        result = calculate_flow_time(issues, time_period_days=30)
 
         # Profile-dependent: success if profile matches, no_data if not
         if result["error_state"] is None:
@@ -190,17 +180,13 @@ class TestFlowTimeClean:
             }
         ]
 
-        extractor = VariableExtractor(DEFAULT_VARIABLE_COLLECTION)
-
-        result = calculate_flow_time(issues, extractor, time_period_days=30)
+        result = calculate_flow_time(issues, time_period_days=30)
 
         assert result["error_state"] == "no_data"
 
     def test_flow_time_empty_issues(self):
         """Test flow time with empty issue list."""
-        extractor = VariableExtractor(DEFAULT_VARIABLE_COLLECTION)
-
-        result = calculate_flow_time([], extractor, time_period_days=30)
+        result = calculate_flow_time([], time_period_days=30)
 
         assert result["error_state"] == "no_data"
 
@@ -234,9 +220,7 @@ class TestFlowEfficiencyClean:
             }
         ]
 
-        extractor = VariableExtractor(DEFAULT_VARIABLE_COLLECTION)
-
-        result = calculate_flow_efficiency(issues, extractor, time_period_days=30)
+        result = calculate_flow_efficiency(issues, time_period_days=30)
 
         # Should handle missing configuration gracefully
         # Returns 'missing_mapping' if profile lacks active_statuses/wip_statuses,
@@ -245,9 +229,7 @@ class TestFlowEfficiencyClean:
 
     def test_flow_efficiency_empty_issues(self):
         """Test efficiency with no completed issues."""
-        extractor = VariableExtractor(DEFAULT_VARIABLE_COLLECTION)
-
-        result = calculate_flow_efficiency([], extractor, time_period_days=30)
+        result = calculate_flow_efficiency([], time_period_days=30)
 
         # Empty issues returns 'missing_mapping' if profile lacks config,
         # or 'no_data' if config exists but no issues
@@ -286,9 +268,7 @@ class TestFlowLoadClean:
             },
         ]
 
-        extractor = VariableExtractor(DEFAULT_VARIABLE_COLLECTION)
-
-        result = calculate_flow_load(issues, extractor)
+        result = calculate_flow_load(issues)
 
         # Returns 'missing_mapping' if profile lacks wip_statuses,
         # otherwise counts WIP items
@@ -300,9 +280,7 @@ class TestFlowLoadClean:
 
     def test_flow_load_empty_issues(self):
         """Test load with no WIP items."""
-        extractor = VariableExtractor(DEFAULT_VARIABLE_COLLECTION)
-
-        result = calculate_flow_load([], extractor)
+        result = calculate_flow_load([])
 
         # Returns 'missing_mapping' if profile lacks wip_statuses,
         # or 0 items if config exists but no WIP items
@@ -323,9 +301,7 @@ class TestFlowLoadClean:
             }
         ]
 
-        extractor = VariableExtractor(DEFAULT_VARIABLE_COLLECTION)
-
-        result = calculate_flow_load(issues, extractor, previous_period_value=5.0)
+        result = calculate_flow_load(issues, previous_period_value=5.0)
 
         # Should have trend information
         assert "trend_direction" in result
@@ -380,9 +356,7 @@ class TestFlowDistributionClean:
             },
         ]
 
-        extractor = VariableExtractor(DEFAULT_VARIABLE_COLLECTION)
-
-        result = calculate_flow_distribution(issues, extractor, time_period_days=30)
+        result = calculate_flow_distribution(issues, time_period_days=30)
 
         # Profile-dependent: success if profile matches, no_data if not
         if result["error_state"] is None:
@@ -421,9 +395,7 @@ class TestFlowDistributionClean:
             },
         ]
 
-        extractor = VariableExtractor(DEFAULT_VARIABLE_COLLECTION)
-
-        result = calculate_flow_distribution(issues, extractor, time_period_days=30)
+        result = calculate_flow_distribution(issues, time_period_days=30)
 
         if result["error_state"] is None:
             # If Feature is in mappings, should be 100%
@@ -435,9 +407,7 @@ class TestFlowDistributionClean:
 
     def test_flow_distribution_empty_issues(self):
         """Test distribution with no completed issues."""
-        extractor = VariableExtractor(DEFAULT_VARIABLE_COLLECTION)
-
-        result = calculate_flow_distribution([], extractor, time_period_days=30)
+        result = calculate_flow_distribution([], time_period_days=30)
 
         assert result["error_state"] == "no_data"
 

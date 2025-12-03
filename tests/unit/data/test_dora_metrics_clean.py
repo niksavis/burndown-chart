@@ -1,7 +1,7 @@
 """Tests for the new clean DORA metrics implementation (data/dora_metrics.py).
 
-This test file validates the modern, backward-compatibility-free DORA calculator
-that uses only VariableExtractor for data extraction.
+This test file validates the modern DORA calculator that uses status-based
+extraction from profile configuration.
 """
 
 from data.dora_metrics import (
@@ -14,8 +14,6 @@ from data.dora_metrics import (
     DEPLOYMENT_FREQUENCY_TIERS,
     LEAD_TIME_TIERS,
 )
-from data.variable_mapping.extractor import VariableExtractor
-from configuration.metric_variables import DEFAULT_VARIABLE_COLLECTION
 
 
 class TestDeploymentFrequencyClean:
@@ -66,10 +64,8 @@ class TestDeploymentFrequencyClean:
             },
         ]
 
-        extractor = VariableExtractor(DEFAULT_VARIABLE_COLLECTION)
-
         # Act
-        result = calculate_deployment_frequency(issues, extractor, time_period_days=30)
+        result = calculate_deployment_frequency(issues, time_period_days=30)
 
         # Assert
         assert "error_state" not in result
@@ -100,18 +96,14 @@ class TestDeploymentFrequencyClean:
             }
         ]
 
-        extractor = VariableExtractor(DEFAULT_VARIABLE_COLLECTION)
-
-        result = calculate_deployment_frequency(issues, extractor, time_period_days=30)
+        result = calculate_deployment_frequency(issues, time_period_days=30)
 
         assert result["error_state"] == "no_data"
         assert "error_message" in result
 
     def test_deployment_frequency_empty_issues(self):
         """Test deployment frequency with empty issue list."""
-        extractor = VariableExtractor(DEFAULT_VARIABLE_COLLECTION)
-
-        result = calculate_deployment_frequency([], extractor, time_period_days=30)
+        result = calculate_deployment_frequency([], time_period_days=30)
 
         assert result["error_state"] == "no_data"
 
@@ -145,9 +137,7 @@ class TestLeadTimeForChangesClean:
             }
         ]
 
-        extractor = VariableExtractor(DEFAULT_VARIABLE_COLLECTION)
-
-        result = calculate_lead_time_for_changes(issues, extractor, time_period_days=30)
+        result = calculate_lead_time_for_changes(issues, time_period_days=30)
 
         # Should have valid lead time (around 2 days)
         if "error_state" not in result:
@@ -167,9 +157,7 @@ class TestLeadTimeForChangesClean:
             }
         ]
 
-        extractor = VariableExtractor(DEFAULT_VARIABLE_COLLECTION)
-
-        result = calculate_lead_time_for_changes(issues, extractor, time_period_days=30)
+        result = calculate_lead_time_for_changes(issues, time_period_days=30)
 
         assert result["error_state"] == "no_data"
 
@@ -208,10 +196,8 @@ class TestChangeFailureRateClean:
             }
         ]
 
-        extractor = VariableExtractor(DEFAULT_VARIABLE_COLLECTION)
-
         result = calculate_change_failure_rate(
-            deployment_issues, incident_issues, extractor, time_period_days=30
+            deployment_issues, incident_issues, time_period_days=30
         )
 
         # Should have valid CFR (1 incident / 2 deployments = 50%)
@@ -224,9 +210,7 @@ class TestChangeFailureRateClean:
 
     def test_change_failure_rate_no_deployments(self):
         """Test CFR with no deployments."""
-        extractor = VariableExtractor(DEFAULT_VARIABLE_COLLECTION)
-
-        result = calculate_change_failure_rate([], [], extractor, time_period_days=30)
+        result = calculate_change_failure_rate([], [], time_period_days=30)
 
         assert result["error_state"] == "no_data"
 
@@ -248,11 +232,7 @@ class TestMeanTimeToRecoveryClean:
             }
         ]
 
-        extractor = VariableExtractor(DEFAULT_VARIABLE_COLLECTION)
-
-        result = calculate_mean_time_to_recovery(
-            incidents, extractor, time_period_days=30
-        )
+        result = calculate_mean_time_to_recovery(incidents, time_period_days=30)
 
         # Should have valid MTTR (around 4 hours)
         if "error_state" not in result:
@@ -263,9 +243,7 @@ class TestMeanTimeToRecoveryClean:
 
     def test_mttr_empty_incidents(self):
         """Test MTTR with no incident issues."""
-        extractor = VariableExtractor(DEFAULT_VARIABLE_COLLECTION)
-
-        result = calculate_mean_time_to_recovery([], extractor, time_period_days=30)
+        result = calculate_mean_time_to_recovery([], time_period_days=30)
 
         assert result["error_state"] == "no_data"
 

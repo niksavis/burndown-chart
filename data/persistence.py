@@ -11,6 +11,8 @@ It provides functions for managing settings and statistics using JSON files.
 # Standard library imports
 import json
 import os
+import tempfile
+import threading
 from datetime import datetime, timedelta
 from typing import Dict, Any, List
 
@@ -19,7 +21,6 @@ import pandas as pd
 
 # Application imports
 from configuration import (
-    APP_SETTINGS_FILE,
     DEFAULT_DATA_POINTS_COUNT,
     DEFAULT_DEADLINE,
     DEFAULT_ESTIMATED_ITEMS,
@@ -35,6 +36,67 @@ from data.profile_manager import (
     get_active_profile_workspace,
     get_active_query_workspace,
 )
+
+# File locking to prevent race conditions during concurrent writes
+_file_locks: Dict[str, threading.Lock] = {}
+_lock_manager = threading.Lock()
+
+
+def _get_file_lock(file_path: str) -> threading.Lock:
+    """Get or create a lock for a specific file path."""
+    with _lock_manager:
+        if file_path not in _file_locks:
+            _file_locks[file_path] = threading.Lock()
+        return _file_locks[file_path]
+
+
+#######################################################################
+# JSON SERIALIZATION HELPERS
+#######################################################################
+
+
+class DateTimeEncoder(json.JSONEncoder):
+    """Custom JSON encoder that handles datetime and pandas Timestamp objects."""
+
+    def default(self, obj):
+        """Convert non-serializable objects to JSON-compatible formats."""
+        # Handle pandas Timestamp
+        if hasattr(obj, "isoformat"):
+            return obj.isoformat()
+        # Handle pandas NaT (Not a Time)
+        if pd.isna(obj):
+            return None
+        # Handle numpy integers
+        if hasattr(obj, "item"):
+            return obj.item()
+        return super().default(obj)
+
+
+def convert_timestamps_to_strings(data: Any) -> Any:
+    """
+    Recursively convert pandas Timestamp objects to ISO format strings.
+
+    Args:
+        data: Data structure that may contain Timestamp objects
+
+    Returns:
+        Data with all Timestamps converted to strings
+    """
+    if isinstance(data, dict):
+        return {k: convert_timestamps_to_strings(v) for k, v in data.items()}
+    elif isinstance(data, list):
+        return [convert_timestamps_to_strings(item) for item in data]
+    elif hasattr(data, "isoformat"):
+        # pandas Timestamp or datetime
+        return data.isoformat()
+    elif pd.isna(data):
+        # pandas NaT or NaN
+        return None
+    elif hasattr(data, "item"):
+        # numpy scalar types
+        return data.item()
+    return data
+
 
 #######################################################################
 # DATA PERSISTENCE FUNCTIONS
@@ -581,6 +643,8 @@ def load_project_data() -> Dict[str, Any]:
     """
     Load project-specific data from JSON file.
 
+    Uses file locking to prevent reading during concurrent writes.
+
     Returns:
         Dictionary containing project data or default values if file not found
     """
@@ -596,10 +660,14 @@ def load_project_data() -> Dict[str, Any]:
         # Get profile-aware path
         workspace = get_active_query_workspace()
         project_file = workspace / "project_data.json"
+        file_path_str = str(project_file)
 
         if project_file.exists():
-            with open(str(project_file), "r") as f:
-                project_data = json.load(f)
+            # Use file lock to prevent reading during write
+            file_lock = _get_file_lock(file_path_str)
+            with file_lock:
+                with open(file_path_str, "r", encoding="utf-8") as f:
+                    project_data = json.load(f)
             logger.info(f"[Cache] Project data loaded from {project_file}")
 
             # Add default values for new fields if they don't exist
@@ -745,10 +813,15 @@ def save_statistics(data: List[Dict[str, Any]]) -> None:
         df = df.sort_values("date", ascending=True)
 
         # Convert back to string format for storage
-        df["date"] = df["date"].dt.strftime("%Y-%m-%d")
+        df.loc[:, "date"] = df["date"].apply(
+            lambda x: x.strftime("%Y-%m-%d") if pd.notna(x) else ""
+        )
 
         # Convert back to list of dictionaries
-        statistics_data = df.to_dict("records")
+        statistics_data = df.to_dict("records")  # type: ignore[assignment]
+
+        # Ensure any remaining Timestamp objects are converted to strings
+        statistics_data = convert_timestamps_to_strings(statistics_data)
 
         # Load current unified data
         unified_data = load_unified_project_data()
@@ -789,10 +862,12 @@ def save_statistics_from_csv_import(data: List[Dict[str, Any]]) -> None:
         df = df.sort_values("date", ascending=True)
 
         # Convert back to string format for storage
-        df["date"] = df["date"].dt.strftime("%Y-%m-%d")
+        df.loc[:, "date"] = df["date"].apply(
+            lambda x: x.strftime("%Y-%m-%d") if pd.notna(x) else ""
+        )
 
         # Convert back to list of dictionaries
-        statistics_data = df.to_dict("records")
+        statistics_data = df.to_dict("records")  # type: ignore[assignment]
 
         # Load current unified data
         unified_data = load_unified_project_data()
@@ -817,7 +892,7 @@ def save_statistics_from_csv_import(data: List[Dict[str, Any]]) -> None:
         logger.error(f"[Cache] Error saving CSV import statistics: {e}")
 
 
-def load_statistics() -> tuple[List[Dict[str, Any]], bool]:
+def load_statistics() -> tuple:
     """
     Load statistics data from unified project data JSON file.
 
@@ -840,9 +915,16 @@ def load_statistics() -> tuple[List[Dict[str, Any]], bool]:
                 statistics_df["date"], errors="coerce"
             )
             statistics_df = statistics_df.sort_values("date", ascending=True)
-            statistics_df["date"] = statistics_df["date"].dt.strftime("%Y-%m-%d")
+            # Convert date back to string format and ensure it's stored as string type
+            statistics_df["date"] = (
+                statistics_df["date"]
+                .apply(lambda x: x.strftime("%Y-%m-%d") if pd.notna(x) else "")
+                .astype(str)
+            )
 
-            data = statistics_df.to_dict("records")
+            data = statistics_df.to_dict("records")  # type: ignore[assignment]
+            # Ensure any remaining Timestamp objects are converted to strings
+            data = convert_timestamps_to_strings(data)
             logger.info(f"[Cache] Statistics loaded from {PROJECT_DATA_FILE}")
             return data, False  # Return data and flag that it's not sample data
         else:
@@ -1073,6 +1155,9 @@ def save_unified_project_data(data: Dict[str, Any]) -> None:
     QUERY-LEVEL DATA: Statistics and project scope are query-specific.
     Each query has its own project_data.json in its workspace.
 
+    Uses atomic write pattern (write to temp file, then rename) to prevent
+    race condition corruption when multiple callbacks fire concurrently.
+
     Args:
         data: Unified project data dictionary
     """
@@ -1080,10 +1165,36 @@ def save_unified_project_data(data: Dict[str, Any]) -> None:
         # Use QUERY-specific path (not profile)
         workspace = get_active_query_workspace()
         project_data_file = workspace / "project_data.json"
+        file_path_str = str(project_data_file)
 
-        with open(project_data_file, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
-        logger.info("[Cache] Saved unified project data")
+        # Convert any Timestamp objects to strings before serialization
+        serializable_data = convert_timestamps_to_strings(data)
+
+        # Use file lock to prevent concurrent writes
+        file_lock = _get_file_lock(file_path_str)
+        with file_lock:
+            # Atomic write: write to temp file, then rename
+            # This prevents partial writes from corrupting the file
+            temp_fd, temp_path = tempfile.mkstemp(
+                dir=str(workspace), suffix=".tmp", prefix="project_data_"
+            )
+            try:
+                with os.fdopen(temp_fd, "w", encoding="utf-8") as f:
+                    json.dump(
+                        serializable_data,
+                        f,
+                        indent=2,
+                        ensure_ascii=False,
+                        cls=DateTimeEncoder,
+                    )
+                # Atomic rename (on same filesystem)
+                os.replace(temp_path, project_data_file)
+                logger.info("[Cache] Saved unified project data")
+            except Exception:
+                # Clean up temp file if rename fails
+                if os.path.exists(temp_path):
+                    os.unlink(temp_path)
+                raise
     except ValueError as e:
         # Handle case where no active query exists (e.g., new profile with no queries)
         logger.warning(f"[Cache] Cannot save unified project data: {e}")
@@ -1157,10 +1268,37 @@ def update_project_scope(scope_data):
     """
     Update project scope in unified data structure.
 
+    CRITICAL: This function only updates project_scope, NOT statistics.
+    If unified data fails to load (returns defaults with empty statistics),
+    we must NOT save and overwrite any existing statistics.
+
     Args:
         scope_data: Dictionary with scope fields to update
     """
     unified_data = load_unified_project_data()
+
+    # CRITICAL SAFETY CHECK: If we loaded defaults (empty statistics) but the
+    # file exists, there might be data in it. Don't overwrite with empty data.
+    # Only proceed if we have statistics OR if this is a new file.
+    has_statistics = bool(unified_data.get("statistics"))
+    source = unified_data.get("metadata", {}).get("source", "")
+
+    if not has_statistics and source == "manual":
+        # Check if file actually exists with real data
+        try:
+            workspace = get_active_query_workspace()
+            project_file = workspace / "project_data.json"
+            if project_file.exists() and project_file.stat().st_size > 400:
+                # File exists and has significant content - don't overwrite
+                # 400 bytes is more than the empty default but catches corrupted files
+                logger.warning(
+                    "[Cache] update_project_scope: Skipping save - loaded empty defaults but file exists. "
+                    "This may indicate concurrent write corruption."
+                )
+                return
+        except Exception as e:
+            logger.warning(f"[Cache] update_project_scope: Error checking file: {e}")
+
     unified_data["project_scope"].update(scope_data)
     unified_data["metadata"]["last_updated"] = datetime.now().isoformat()
     save_unified_project_data(unified_data)
@@ -1334,8 +1472,8 @@ def load_project_data_legacy():
 def save_jira_data_unified(
     statistics_data: List[Dict[str, Any]],
     project_scope_data: Dict[str, Any],
-    jira_config: Dict[str, Any] = None,
-) -> None:
+    jira_config: Dict[str, Any] | None = None,
+) -> bool:
     """
     Save both JIRA statistics and project scope to unified data structure.
 
@@ -1345,6 +1483,9 @@ def save_jira_data_unified(
         statistics_data: List of dictionaries containing statistics data
         project_scope_data: Dictionary containing project scope data
         jira_config: Optional JIRA configuration dictionary for metadata
+
+    Returns:
+        True if save successful, False otherwise
     """
     try:
         # Load current unified data
@@ -1358,7 +1499,7 @@ def save_jira_data_unified(
 
         # Extract JQL query from config or fallback
         jql_query = ""
-        if jira_config:
+        if jira_config is not None:
             jql_query = jira_config.get(
                 "jql_query", ""
             )  # Update metadata with proper JIRA information

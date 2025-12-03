@@ -461,18 +461,6 @@ def create_field_mapping_form(
                 "Current work status | REQUIRED for Flow Load and Flow State | Typical field: status | Type: select",
             ),
             (
-                "work_started_date",
-                "Work Started Date",
-                "datetime",
-                "When work began | OPTIONAL - calculated from first WIP status if empty | Type: datetime",
-            ),
-            (
-                "work_completed_date",
-                "Work Completed Date",
-                "datetime",
-                "When work finished | REQUIRED for Flow Velocity, Flow Time, Flow Distribution | Typical field: resolutiondate | Type: datetime",
-            ),
-            (
                 "effort_category",
                 "Effort Category",
                 "select",
@@ -480,6 +468,9 @@ def create_field_mapping_form(
             ),
             # NOTE: Estimate/Story Points field is configured in JIRA Connection modal, not here
             # This avoids duplicate configuration and confusion
+            # NOTE: work_started_date and work_completed_date are obsolete.
+            # Flow Time now uses flow_start_statuses and completion_statuses lists
+            # from Project Classification to find status transitions in changelog.
         ],
         field_options,
         current_mappings.get("field_mappings", {}).get("flow", {}),  # type: ignore

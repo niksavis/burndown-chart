@@ -25,7 +25,6 @@ from configuration.logging_config import setup_logging, cleanup_old_logs
 # Application imports
 from ui import serve_layout
 from data.migration import migrate_to_profiles
-from data.auto_migrate_profiles import auto_migrate_on_startup
 from data.profile_manager import (
     get_active_profile,
     switch_profile,
@@ -69,27 +68,6 @@ except Exception as e:
         exc_info=True,
     )
     print(f"WARNING: Migration failed - {e}. See logs/app.log for details.")
-
-
-# Run automatic migration from field_mappings to variable_mappings
-# This upgrades existing profiles to use the new rule-based variable mapping system.
-# Migration is idempotent - safe to run multiple times.
-# Runs AFTER profile structure migration to ensure profiles exist.
-try:
-    logger.info("Running automatic variable mapping migration...")
-    auto_migrate_on_startup()
-    logger.info("Variable mapping migration completed successfully")
-except Exception as e:
-    # Log error but don't crash - profiles with field_mappings will still work
-    # via backward compatibility in the metric calculators
-    logger.error(
-        f"Variable mapping migration failed: {e}. "
-        "Profiles with field_mappings will continue to work via backward compatibility.",
-        exc_info=True,
-    )
-    print(
-        f"WARNING: Variable mapping migration failed - {e}. See logs/app.log for details."
-    )
 
 
 #######################################################################

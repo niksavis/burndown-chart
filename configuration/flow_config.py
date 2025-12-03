@@ -49,17 +49,21 @@ FLOW_EFFICIENCY_THRESHOLDS = {
 }
 
 # Required field mappings for each Flow metric
-# NOTE: flow_time and flow_efficiency can be calculated from changelog without field mappings
-# if status lists are configured (flow_start_statuses, completion_statuses, active_statuses)
+# NOTE: Most Flow metrics use status lists from project_classification:
+# - flow_start_statuses: Statuses that indicate work started (e.g., In Progress, In Review)
+# - completion_statuses: Statuses that indicate work completed (e.g., Done, Resolved, Closed)
+# - active_statuses: Statuses where active work happens (e.g., In Progress, In Review, Testing)
+# - wip_statuses: All work-in-progress statuses including waiting states
 REQUIRED_FLOW_FIELDS = {
-    "flow_velocity": ["flow_item_type", "work_completed_date"],
-    "flow_time": [
-        "work_started_date",
-        "work_completed_date",
-    ],  # Optional if using changelog
-    "flow_efficiency": [],  # Calculated from changelog (no field mappings needed)
-    "flow_load": ["status"],  # Current status
-    "flow_distribution": ["flow_item_type", "work_completed_date"],
+    "flow_velocity": [
+        "flow_item_type"
+    ],  # Uses completion_statuses from project_classification
+    "flow_time": [],  # Uses flow_start_statuses and completion_statuses from project_classification
+    "flow_efficiency": [],  # Uses active_statuses and wip_statuses from project_classification
+    "flow_load": ["status"],  # Uses wip_statuses from project_classification
+    "flow_distribution": [
+        "flow_item_type"
+    ],  # Uses completion_statuses from project_classification
 }
 
 # Metric display names
@@ -243,7 +247,7 @@ def get_wip_included_statuses() -> list:
 
     try:
         config = get_metrics_config()
-        return config.get_wip_included_statuses()
+        return config.get_wip_statuses()
     except Exception:
         # Fallback to defaults
         return ["In Progress", "In Review", "Testing"]
@@ -276,14 +280,10 @@ def get_wip_included_issue_types() -> list:
         List of issue type names
         Example: ["Task", "Story", "Bug"]
     """
-    from configuration.metrics_config import get_metrics_config
-
-    try:
-        config = get_metrics_config()
-        return config.get_wip_included_issue_types()
-    except Exception:
-        # Fallback to defaults
-        return ["Task", "Story", "Bug"]
+    # Note: MetricsConfig doesn't have issue type filtering for WIP
+    # This returns default issue types that are typically tracked
+    # Future: Could add wip_issue_types to project_classification in profile.json
+    return ["Task", "Story", "Bug"]
 
 
 def map_effort_category_to_flow_type(effort_category: str) -> str:
@@ -307,26 +307,22 @@ def map_effort_category_to_flow_type(effort_category: str) -> str:
         >>> map_effort_category_to_flow_type("New feature")
         "Feature"
     """
-    from configuration.metrics_config import get_metrics_config
+    # Direct effort category to flow type mapping
+    # MetricsConfig.get_flow_type_for_issue() handles issue_type + effort_category
+    # This function is for effort_category only mapping
+    if not effort_category or effort_category == "None":
+        return "Feature"
 
-    try:
-        config = get_metrics_config()
-        return config.map_effort_category_to_flow_type(effort_category)
-    except Exception:
-        # Fallback mapping
-        if not effort_category or effort_category == "None":
-            return "Feature"
+    effort_lower = effort_category.lower()
 
-        effort_lower = effort_category.lower()
-
-        if "technical debt" in effort_lower or "tech debt" in effort_lower:
-            return "Technical Debt"
-        elif any(
-            keyword in effort_lower
-            for keyword in ["security", "gdpr", "regulatory", "compliance"]
-        ):
-            return "Risk"
-        elif "spike" in effort_lower or "analysis" in effort_lower:
-            return "Risk"
-        else:
-            return "Feature"
+    if "technical debt" in effort_lower or "tech debt" in effort_lower:
+        return "Technical Debt"
+    elif any(
+        keyword in effort_lower
+        for keyword in ["security", "gdpr", "regulatory", "compliance"]
+    ):
+        return "Risk"
+    elif "spike" in effort_lower or "analysis" in effort_lower:
+        return "Risk"
+    else:
+        return "Feature"

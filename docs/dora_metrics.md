@@ -1,6 +1,6 @@
 # DORA Metrics Guide
 
-**Last Updated**: November 12, 2025  
+**Last Updated**: December 2, 2025  
 **Part of**: [Metrics Documentation Index](./metrics_index.md)
 
 ## What Are DORA Metrics?
@@ -36,26 +36,67 @@ Research-backed metrics developed by Google's DORA team measuring software deliv
 
 DORA metrics require mapping custom JIRA fields to standard metric fields. Configure via **Settings → Field Mappings → Fields tab**.
 
-> **See Also**: [Namespace Syntax](namespace_syntax.md) for advanced field path syntax (e.g., `*.Status:Deployed.DateTime`).
+> **Important**: DORA metrics use a combination of standard JIRA fields, custom fields, and **changelog-based status transitions**. Many timestamps are extracted from status change history rather than dedicated date fields.
+
+> **See Also**: [Namespace Syntax](namespace_syntax.md) for advanced field path syntax including:
+> - `status:StatusName.DateTime` - Extract timestamp from status changelog
+> - `customfield_12345=Value` - Filter by field value (e.g., `=PROD`, `=Yes`)
+
+### Field Mapping Syntax
+
+**=Value Filter Syntax**: Many fields support filtering by specific values:
+
+```
+customfield_11309=PROD      → Only match issues where field = "PROD"
+customfield_12708=Yes       → Only match issues where field = "Yes"
+status:In Progress.DateTime → Extract timestamp when status changed to "In Progress"
+```
 
 **Required Fields**:
 
-| Internal Field             | Purpose                         | JIRA Field Type | Example JIRA Field                            |
-| -------------------------- | ------------------------------- | --------------- | --------------------------------------------- |
-| **Deployment Date**        | When deployment occurred        | Date/DateTime   | `customfield_10100` ("Deployment Date")       |
-| **Deployment Successful**  | Deployment success/failure      | Checkbox        | `customfield_10101` ("Deployment Success")    |
-| **Code Commit Date**       | When code was committed         | Date/DateTime   | `customfield_10102` ("Code Commit Timestamp") |
-| **Deployed to Production** | Production deployment timestamp | Date/DateTime   | `customfield_10103` ("Prod Deploy Date")      |
-| **Incident Detected At**   | When production issue found     | Date/DateTime   | `created` (standard field)                    |
-| **Incident Resolved At**   | When issue fixed in production  | Date/DateTime   | `resolutiondate` (standard field)             |
+| Internal Field           | Purpose                           | JIRA Field/Syntax                                    | Example Configuration         |
+| ------------------------ | --------------------------------- | ---------------------------------------------------- | ----------------------------- |
+| **Deployment Date**      | When deployment occurred          | `fixVersions` (uses releaseDate)                     | `fixVersions`                 |
+| **Change Failure**       | Identify failed deployments       | Select field with =Value filter                      | `customfield_12708=Yes`       |
+| **Code Commit Date**     | When work started (for Lead Time) | Status changelog syntax                              | `status:In Progress.DateTime` |
+| **Incident Detected At** | When production bug found         | Standard field                                       | `created`                     |
+| **Incident Resolved At** | When bug fixed in production      | `fixVersions` (uses releaseDate) or `resolutiondate` | `fixVersions`                 |
+| **Affected Environment** | Filter production bugs for MTTR   | Select field with =Value filter                      | `customfield_11309=PROD`      |
 
 **Optional Fields** (Enhanced Metrics):
 
-| Internal Field         | Purpose                       | JIRA Field Type | Example JIRA Field                        |
-| ---------------------- | ----------------------------- | --------------- | ----------------------------------------- |
-| **Target Environment** | Deployment environment        | Select          | `customfield_10104` ("Environment")       |
-| **Production Impact**  | Severity of production issues | Select          | `customfield_10105` ("Production Impact") |
-| **Severity Level**     | Incident priority/severity    | Select          | `priority` (standard field)               |
+| Internal Field         | Purpose                       | JIRA Field Type | Example Configuration             |
+| ---------------------- | ----------------------------- | --------------- | --------------------------------- |
+| **Target Environment** | Deployment environment filter | Select + =Value | `customfield_11309=PROD`          |
+| **Severity Level**     | Incident priority/severity    | Select          | `customfield_11000` or `priority` |
+
+### How =Value Syntax Works
+
+The `=Value` syntax allows filtering issues by specific field values:
+
+**Example 1: Production Bug Filtering (MTTR)**
+```
+affected_environment: customfield_11309=PROD
+```
+- Field `customfield_11309` contains environment (DEV, SIT, PROD)
+- Only bugs where environment = "PROD" are counted for MTTR
+- Bugs in DEV or SIT environments are excluded
+
+**Example 2: Failed Deployment Detection (CFR)**
+```
+change_failure: customfield_12708=Yes
+```
+- Field `customfield_12708` is a checkbox/select for "Deployment Failed?"
+- Deployments where this field = "Yes" are counted as failures
+- Used to calculate Change Failure Rate
+
+**Example 3: Status Changelog Syntax (Lead Time)**
+```
+code_commit_date: status:In Progress.DateTime
+```
+- Extracts timestamp from JIRA changelog when issue transitioned to "In Progress"
+- No custom date field required - uses status history
+- More accurate than custom fields (can't be manually edited incorrectly)
 
 ### Field Mapping Process
 
@@ -63,47 +104,54 @@ DORA metrics require mapping custom JIRA fields to standard metric fields. Confi
 1. Open **Settings → Field Mappings**
 2. Click **Auto-Configure** button
 3. System detects JIRA fields by name patterns:
-   - "deployment", "deploy", "release" → Deployment Date
-   - "success", "failed", "failure" → Deployment Successful
-   - "commit", "code" → Code Commit Date
-   - "production", "prod" → Production-related fields
-   - "incident", "detected", "resolved" → Incident timestamps
+   - "environment", "affected" → Affected Environment
+   - "failure", "failed", "rollback" → Change Failure
+   - "severity", "priority", "impact" → Severity Level
 4. Review suggested mappings
 5. Click **Save Mappings**
 
-**Step 2: Manual Override** (If Auto-Configure Misses Fields)
+**Step 2: Configure =Value Filters** (Critical for MTTR and CFR)
 1. Navigate to **Fields** tab in Field Mappings modal
-2. For each unmapped field, select from dropdown:
-   - Dropdown shows: `customfield_10100 - Deployment Date`
-   - Only compatible field types shown (datetime fields for date mappings, etc.)
+2. For environment/failure fields, add the =Value suffix:
+   - Select field from dropdown: `customfield_11309`
+   - Add value filter: `=PROD` or `=Yes`
+   - Final mapping: `customfield_11309=PROD`
 3. Click **Save Mappings**
 
-**Step 3: Verify Configuration**
+**Step 3: Configure Status-Based Mappings** (For Lead Time)
+1. For Code Commit Date, use status changelog syntax:
+   - Enter: `status:In Progress.DateTime`
+   - This extracts the timestamp when work started
+2. Click **Save Mappings**
+
+**Step 4: Verify Configuration**
 1. Open **DORA Metrics** tab
 2. Click **Calculate Metrics** button (Settings panel, top right)
 3. Check for error states:
    - "Missing Required Field" → Return to Field Mappings, configure field
    - "No Data" → Check JIRA query includes issues with mapped fields
+   - "0 production bugs" → Verify =Value filter matches actual field values
 
 ### Field Type Compatibility
 
 **System validates field types automatically:**
 
 ✅ **Compatible Mappings**:
-- Deployment Date (datetime) ← JIRA Date field
-- Deployment Date (datetime) ← JIRA DateTime field
-- Deployment Successful (checkbox) ← JIRA Checkbox field
-- Target Environment (select) ← JIRA Select/Dropdown field
+- Deployment Date ← `fixVersions` (extracts releaseDate)
+- Change Failure ← Select field with =Value syntax
+- Affected Environment ← Select field with =Value syntax
+- Code Commit Date ← `status:StatusName.DateTime` syntax
 
-❌ **Incompatible Mappings**:
-- Deployment Date (datetime) ← JIRA Text field (will be hidden in dropdown)
-- Deployment Successful (checkbox) ← JIRA Number field (will be hidden)
+❌ **Common Mistakes**:
+- Using checkbox field without =Value (use `customfield_123=Yes`)
+- Forgetting =Value filter (counts ALL issues instead of filtered)
+- Case mismatch in =Value (use exact case: `=PROD` not `=prod`)
 
 **Fallback Strategy**:
 - If custom field not available, use standard JIRA fields:
   - Incident Detected At → `created`
-  - Incident Resolved At → `resolutiondate`
-  - Target Environment → `fixVersions[0].name`
+  - Incident Resolved At → `resolutiondate` or `fixVersions`
+  - Code Commit Date → `status:In Progress.DateTime`
 
 ### Status & Work Type Mappings
 
@@ -136,81 +184,91 @@ DORA metrics require mapping custom JIRA fields to standard metric fields. Confi
 
 ### DevOps Projects Configuration
 
-**Purpose**: Scope DORA metrics to deployment-focused projects
+**Purpose**: Separate deployment tracking from development work
 
 **Configuration**:
 1. Open **Settings → Field Mappings → Environment tab**
-2. Configure **Development Projects** field:
-   - Multi-select JIRA projects with deployments
-   - Example: ["DEVOPS", "INFRASTRUCTURE", "PLATFORM"]
-3. Click **Save Mappings**
-
-**Impact on Metrics**:
-- **Deployment Frequency**: Only counts deployments from DevOps projects
-- **Lead Time**: Only measures lead time for DevOps project issues
-- **CFR**: Only counts failures in DevOps projects
-- **MTTR**: Unaffected (uses production bugs from all projects)
-
-**When to Use**:
-- ✅ Large organization with separate DevOps team
-- ✅ Multiple JIRA projects, only some do deployments
-- ❌ Single project with all work (leave empty for all projects)
-
-### Production Identifiers Configuration
-
-**Purpose**: Identify production incidents for MTTR calculation
-
-**Configuration**:
-1. Open **Settings → Field Mappings → Environment tab**
-2. Map **Affected Environment Field** to JIRA custom field:
-   - Example: `customfield_10200` ("Affected Environment")
-3. Select **Production Identifiers** from dropdown:
-   - Values auto-populate from mapped field
-   - Example: ["Production", "PROD", "Live"]
+2. Configure **DevOps Projects** field:
+   - Multi-select JIRA projects that track deployments
+   - Example: ["RI"] (Release Infrastructure project)
+3. Configure **Development Projects** field:
+   - Multi-select JIRA projects with development work
+   - Example: ["A935"] (Main development project)
 4. Click **Save Mappings**
 
 **Impact on Metrics**:
-- **MTTR**: Only counts bugs where `affected_environment IN production_identifiers`
-- Other metrics: Unaffected
+- **Deployment Frequency**: Counts Operational Tasks from DevOps projects with matching fixVersions
+- **Lead Time**: Measures time from development issue start to operational task deployment
+- **CFR**: Counts failed deployments in DevOps projects
+- **MTTR**: Uses bugs from Development projects filtered by production environment
 
-**Troubleshooting**:
-- **Production Identifiers dropdown empty**: 
-  - Ensure **Affected Environment Field** is mapped first
-  - Refresh page to load field values from JIRA
-  - Check JIRA issues have values in mapped field
+**How It Works**:
+1. Operational Tasks (deployments) live in DevOps project (e.g., "RI")
+2. Development issues live in Development project (e.g., "A935")
+3. Both share `fixVersions` to link deployments to features
+4. Deployment date comes from Operational Task's fixVersion releaseDate
+
+### Production Environment Configuration
+
+**Purpose**: Filter production bugs for MTTR calculation
+
+**Configuration**:
+1. Open **Settings → Field Mappings → Fields tab**
+2. Map **Affected Environment** to JIRA custom field with =Value filter:
+   - Example: `customfield_11309=PROD`
+   - This ensures only bugs affecting production are counted
+3. Configure **Production Environment Values** in Environment tab:
+   - Example: ["PROD", "Production", "Live"]
+   - Used as fallback if =Value syntax not specified
+4. Click **Save Mappings**
+
+**Impact on Metrics**:
+- **MTTR**: Only counts bugs where affected environment matches production identifier
+- Bugs in DEV, SIT, UAT environments are excluded
+
+**Example**:
+```
+Affected Environment: customfield_11309=PROD
+
+JIRA Bug with customfield_11309 = "PROD" → Counted in MTTR
+JIRA Bug with customfield_11309 = "SIT"  → Excluded from MTTR
+JIRA Bug with customfield_11309 = null   → Excluded from MTTR
+```
 
 ### Common Configuration Issues
 
-**Issue**: "Missing Required Field: Deployment Date"
+**Issue**: "0 production bugs found" for MTTR
 **Solution**: 
-1. Check JIRA has custom field for deployment dates
-2. Map field via Settings → Field Mappings → Fields tab
-3. If no field exists, create in JIRA admin or use `resolutiondate` as fallback
+1. Verify Affected Environment field mapping includes =Value filter
+2. Check that JIRA bugs have values in the mapped field
+3. Ensure =Value matches exactly (case-sensitive): `=PROD` not `=prod`
+4. Check bugs exist in the Development projects (not DevOps projects)
 
 **Issue**: "No Data" despite having deployments
 **Solution**:
-1. Verify JQL query includes deployment issues: Settings → JIRA Configuration
-2. Check field mappings point to correct JIRA fields
-3. Verify JIRA issues have values in mapped fields (not null/empty)
-4. Check DevOps Projects filter isn't excluding issues
+1. Verify DevOps project is configured and contains Operational Tasks
+2. Check Operational Tasks have `fixVersions` with `releaseDate` populated
+3. Verify `completion_statuses` includes the task completion status (e.g., "Done")
+4. Check Development project issues share `fixVersions` with Operational Tasks
 
-**Issue**: Auto-Configure misses custom fields
+**Issue**: Lead Time shows very large values (e.g., 200+ days)
 **Solution**:
-1. JIRA field names don't match detection patterns
-2. Manually map via Fields tab
-3. Provide feedback on patterns to improve auto-detection
+1. Check Code Commit Date mapping uses status changelog: `status:In Progress.DateTime`
+2. Verify issues actually transitioned through "In Progress" status
+3. Check for issues stuck in workflow (never reached "Done")
+
+**Issue**: CFR always shows 0%
+**Solution**:
+1. Verify Change Failure field mapping includes =Value filter
+2. Check some deployments actually have failure flag set
+3. Example: `customfield_12708=Yes` - are any tasks marked "Yes"?
 
 **Issue**: Metrics show wrong performance tier
 **Solution**:
-1. Verify field mappings:
-   - Deployment Frequency: Check "Deployment Date" points to correct field
-   - Lead Time: Check "Code Commit Date" and "Deployed to Production" mappings
-   - CFR: Check "Deployment Successful" checkbox field
-   - MTTR: Check "Incident Detected At" and "Incident Resolved At" fields
-2. Check JIRA data quality:
-   - Are timestamps populated correctly?
-   - Are checkbox values set (Yes/No, true/false)?
-   - Are production bugs tagged with correct environment?
+1. Verify field mappings use correct =Value filters
+2. Check DevOps vs Development project separation is correct
+3. Verify `devops_task_types` includes your deployment task type (e.g., "Operational Task")
+4. Check `bug_types` includes your bug issue types
 
 ---
 
@@ -443,6 +501,17 @@ Card shows: "3.3%" with "→ 0.0% vs prev avg" if stable
 
 ### Common Issues & Solutions
 
+**Issue**: CFR shows 0% but you know there are production bugs
+**Possible Causes**:
+- Change failure field not mapped correctly (e.g., `customfield_12708=Yes`)
+- Environment filter not matching bug values (check exact value: `PROD` vs `Production`)
+- JIRA field values are different from expected (case sensitivity matters)
+
+**Diagnosis**:
+1. Check field mapping: `change_failure` should use `=Value` syntax like `customfield_12708=Yes`
+2. Run JQL in JIRA: `project = XXX AND customfield_12708 = Yes AND created >= -30d`
+3. Check logs for "Failed deployment issues count: X" messages
+
 **Issue**: CFR >30% (Medium/Low tier)
 **Possible Causes**:
 - Insufficient automated testing (bugs slip through)
@@ -535,6 +604,17 @@ Card Display:
 - Together they help identify both typical recovery time and worst-case scenarios
 
 ### Common Issues & Solutions
+
+**Issue**: MTTR shows "No data" but you have production bugs
+**Possible Causes**:
+- Environment filter not matching bug values (e.g., `=PROD` but bugs have `Production`)
+- Missing `fixVersions` release date on resolved bugs
+- Bug field extraction failing
+
+**Diagnosis**:
+1. Check field mapping syntax: Use `customfield_11309=PROD` with exact value match
+2. Verify JIRA field values: Run JQL `project = XXX AND customfield_11309 = PROD` in JIRA
+3. Check logs for "Environment filter: Found X bugs" messages
 
 **Issue**: MTTR >1 week (Low tier)
 **Possible Causes**:

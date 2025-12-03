@@ -1,6 +1,6 @@
 # Flow Metrics Guide
 
-**Last Updated**: November 12, 2025  
+**Last Updated**: December 2, 2025  
 **Part of**: [Metrics Documentation Index](./metrics_index.md)
 
 ## What Are Flow Metrics?
@@ -34,20 +34,40 @@ While DORA metrics tell you **WHAT** happened (deployment outcomes), Flow metric
 
 ## Field Configuration
 
-### Required JIRA Fields
+### Required Status Configurations
 
-Flow metrics require mapping custom JIRA fields to standard metric fields. Configure via **Settings → Field Mappings → Fields tab**.
+Flow metrics use **status-based calculations** from JIRA changelog history. Configure via **Settings → Field Mappings → Types tab**.
 
-> **See Also**: [Namespace Syntax](namespace_syntax.md) for advanced field path syntax (e.g., `DevOps|Platform.customfield_10016`).
+> **Important**: Flow metrics do NOT use custom date fields. Instead, they analyze status transitions from JIRA changelog to determine when work started and completed. This approach is more flexible and captures all valid statuses (In Progress, In Review, Done, Resolved, Closed, etc.).
+
+> **See Also**: [Namespace Syntax](namespace_syntax.md) for advanced field path syntax including:
+> - `status:StatusName.DateTime` - Extract timestamp from status changelog
+> - `customfield_12345=Value` - Filter by field value (e.g., `=PROD`)
+
+### Field Mapping Syntax
+
+**=Value Filter Syntax**: Some fields support filtering by specific values:
+
+```
+customfield_11309=PROD      → Only match issues where field = "PROD"
+effort_category: customfield_13204  → Map effort category to custom field
+```
+
+**Required Status Lists**:
+
+| Status List             | Purpose                                    | Example Statuses                                           |
+| ----------------------- | ------------------------------------------ | ---------------------------------------------------------- |
+| **Completion Statuses** | Identify when work finished                | `Done`, `Resolved`, `Closed`, `Canceled`                   |
+| **Flow Start Statuses** | Identify when work started (for Flow Time) | `In Progress`, `In Review`                                 |
+| **Active Statuses**     | Identify active work (for Flow Efficiency) | `In Progress`, `In Review`, `Testing`                      |
+| **WIP Statuses**        | Identify work in progress (for Flow Load)  | `In Progress`, `In Review`, `Testing`, `Ready for Testing` |
 
 **Required Fields**:
 
-| Internal Field          | Purpose             | JIRA Field Type | Example JIRA Field                     |
-| ----------------------- | ------------------- | --------------- | -------------------------------------- |
-| **Work Started Date**   | When work began     | Date/DateTime   | `customfield_10300` ("Dev Start Date") |
-| **Work Completed Date** | When work finished  | Date/DateTime   | `resolutiondate` (standard field)      |
-| **Status**              | Current work status | Select          | `status` (standard field)              |
-| **Flow Item Type**      | Work category       | Select          | `issuetype` (standard field)           |
+| Internal Field     | Purpose             | JIRA Field Type | Example JIRA Field           |
+| ------------------ | ------------------- | --------------- | ---------------------------- |
+| **Status**         | Current work status | Select          | `status` (standard field)    |
+| **Flow Item Type** | Work category       | Select          | `issuetype` (standard field) |
 
 **Optional Fields** (Enhanced Metrics):
 
@@ -56,41 +76,66 @@ Flow metrics require mapping custom JIRA fields to standard metric fields. Confi
 | **Effort Category** | Secondary work classification | Select          | `customfield_10301` ("Effort Type")  |
 | **Estimate**        | Story points or effort        | Number          | `customfield_10002` ("Story Points") |
 
+### How Flow Metrics Use Status Lists
+
+**Flow Time** (Cycle Time):
+- **Start**: First transition to ANY status in `flow_start_statuses` (from changelog)
+- **End**: First transition to ANY status in `completion_statuses` (from changelog)
+- **Example**: Issue moves To Do → In Progress → In Review → Done
+  - Start = timestamp of "In Progress" transition
+  - End = timestamp of "Done" transition
+  - Flow Time = End - Start
+
+**Flow Velocity**:
+- Counts issues with current status IN `completion_statuses`
+- AND `resolutiondate` in the measurement week
+
+**Flow Efficiency**:
+- **Active Time**: Sum of time spent in `active_statuses` (from changelog)
+- **Total WIP Time**: Sum of time spent in `wip_statuses` (from changelog)
+- **Efficiency** = Active Time / Total WIP Time × 100%
+
+**Flow Load (WIP)**:
+- Counts issues with current status IN `wip_statuses`
+- Reconstructs historical WIP by replaying changelog
+
 ### Field Mapping Process
 
 **Step 1: Auto-Configure** (Recommended)
 1. Open **Settings → Field Mappings**
 2. Click **Auto-Configure** button
-3. System detects JIRA fields by name patterns:
-   - "start", "began", "commenced" → Work Started Date
-   - "complete", "finish", "done" → Work Completed Date
+3. System detects status categories by name patterns:
+   - "done", "resolved", "closed", "canceled" → Completion Statuses
+   - "progress", "development", "review" → Flow Start Statuses / Active Statuses
+   - "progress", "review", "test", "ready" → WIP Statuses
    - "effort", "category", "type" → Effort Category
    - "points", "estimate", "size" → Estimate
 4. Review suggested mappings
 5. Click **Save Mappings**
 
-**Step 2: Manual Override** (If Auto-Configure Misses Fields)
-1. Navigate to **Fields** tab in Field Mappings modal
-2. For each unmapped field, select from dropdown:
-   - Dropdown shows: `customfield_10300 - Dev Start Date`
-   - Only compatible field types shown (datetime for dates, number for estimates)
-3. Click **Save Mappings**
-
-**Step 3: Configure Status Mappings**
+**Step 2: Configure Status Mappings** (Critical for Flow Time, Efficiency, Load)
 1. Navigate to **Types** tab in Field Mappings modal
 2. Configure status categories:
-   - **Completion Statuses**: Drag statuses like "Done", "Closed", "Resolved"
-   - **Active Statuses**: Drag statuses like "In Progress", "In Review", "Testing"
-   - **WIP Statuses**: Drag statuses like "Selected", "In Progress", "Ready"
+   - **Completion Statuses**: Drag statuses like "Done", "Closed", "Resolved", "Canceled"
+   - **Flow Start Statuses**: Drag statuses like "In Progress", "In Review" (when work begins)
+   - **Active Statuses**: Drag statuses like "In Progress", "In Review", "Testing" (actively working)
+   - **WIP Statuses**: Drag statuses like "In Progress", "In Review", "Ready for Testing" (work in progress)
 3. Click **Save Mappings**
 
-**Step 4: Configure Work Type Mappings**
+**Step 3: Configure Work Type Mappings**
 1. Still in **Types** tab
 2. Drag issue types to categories:
    - **Feature**: "Story", "Epic", "New Feature"
    - **Defect**: "Bug", "Defect", "Production Bug"
    - **Tech Debt**: "Technical Debt", "Refactoring", "Improvement"
    - **Risk**: "Spike", "Investigation", "Security Issue"
+3. Click **Save Mappings**
+
+**Step 4: Manual Field Override** (If Auto-Configure Misses Fields)
+1. Navigate to **Fields** tab in Field Mappings modal
+2. For optional fields (Effort Category, Estimate), select from dropdown:
+   - Dropdown shows: `customfield_10300 - Story Points`
+   - Only compatible field types shown (number for estimates)
 3. Click **Save Mappings**
 
 **Step 5: Verify Configuration**
@@ -196,23 +241,28 @@ Flow metrics require mapping custom JIRA fields to standard metric fields. Confi
 
 ### Common Configuration Issues
 
-**Issue**: "Missing Required Field: Work Started Date"
+**Issue**: Flow Time shows "No Data" or missing values
 **Solution**:
-1. Check JIRA has custom field for work start dates
-2. If no field exists, options:
-   - Create custom field in JIRA admin
-   - Use `created` as fallback (less accurate, measures from creation)
-   - Calculate from changelog: first transition to "In Progress" status
-3. Map field via Settings → Field Mappings → Fields tab
+1. Verify `flow_start_statuses` is configured:
+   - Must include statuses where work begins (e.g., "In Progress", "In Review")
+   - Configure via Settings → Field Mappings → Types tab
+2. Verify `completion_statuses` is configured:
+   - Must include final statuses (e.g., "Done", "Resolved", "Closed")
+3. Check JIRA changelog is available:
+   - Flow metrics require changelog history to detect status transitions
+   - Verify issues have status transition history in JIRA
 
 **Issue**: Flow Time shows unrealistic values (e.g., 200 days)
 **Solution**:
-1. Check WIP Status mapping:
-   - If "To Do" included in WIP → Measures from backlog entry, not work start
-   - If "Done" included in WIP → Never exits WIP, infinite cycle time
-2. Verify Work Started Date field:
-   - Should capture when work ACTUALLY started, not when created
-   - Review JIRA data: Are timestamps populated correctly?
+1. Check Flow Start Status mapping:
+   - If "To Do" or "Backlog" included → Measures from backlog entry, not work start
+   - Only include statuses where ACTUAL work begins
+2. Check WIP Status mapping:
+   - If "Done" included in WIP → Never exits WIP, causes issues
+   - WIP should only include active/queue statuses, NOT completion statuses
+3. Verify changelog data quality:
+   - Review JIRA issues: Do they have status transition history?
+   - Some old issues may lack changelog (imported data)
 
 **Issue**: Flow Efficiency shows 0% or 100%
 **Solution**:

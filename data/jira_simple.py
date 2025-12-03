@@ -44,6 +44,39 @@ CACHE_EXPIRATION_HOURS = 24  # Cache expires after 24 hours
 #######################################################################
 
 
+def _extract_jira_field_id(field_mapping: str) -> str:
+    """Extract clean JIRA field ID from a field mapping string.
+
+    Field mappings may include filter syntax that JIRA API doesn't understand:
+    - "customfield_11309=PROD" -> "customfield_11309" (strip =Value filter)
+    - "status:In Progress.DateTime" -> "" (changelog extraction, not a field)
+    - "customfield_10002" -> "customfield_10002" (no change needed)
+    - "fixVersions" -> "fixVersions" (standard field)
+
+    Args:
+        field_mapping: Field mapping string from profile configuration
+
+    Returns:
+        Clean field ID for JIRA API, or empty string if not a fetchable field
+    """
+    if not field_mapping or not isinstance(field_mapping, str):
+        return ""
+
+    field_mapping = field_mapping.strip()
+
+    # Skip changelog extraction syntax (e.g., "status:In Progress.DateTime")
+    # These are extracted from changelog, not fetched as fields
+    if ":" in field_mapping and ".DateTime" in field_mapping:
+        return ""
+
+    # Strip =Value filter syntax (e.g., "customfield_11309=PROD" -> "customfield_11309")
+    # The =Value part is our internal filter syntax, not understood by JIRA
+    if "=" in field_mapping:
+        return field_mapping.split("=")[0].strip()
+
+    return field_mapping
+
+
 def check_jira_issue_count(jql_query: str, config: Dict) -> Tuple[bool, int]:
     """
     Fast check: Get issue count from JIRA without fetching full issue data.
@@ -322,20 +355,16 @@ def fetch_jira_issues(
 
             # Add field mappings for DORA and Flow metrics
             # field_mappings has structure: {"dora": {"field_name": "field_id"}, "flow": {...}}
+            # CRITICAL: Strip =Value filter syntax (e.g., "customfield_11309=PROD" -> "customfield_11309")
+            # The =Value part is our internal filter syntax, JIRA API doesn't understand it
             field_mappings = config.get("field_mappings", {})
             for category, mappings in field_mappings.items():
                 if isinstance(mappings, dict):
                     for field_name, field_id in mappings.items():
-                        # Defensive: field_id must be a string (not dict)
-                        if (
-                            field_id
-                            and isinstance(field_id, str)
-                            and field_id.strip()
-                            and field_id not in base_fields
-                        ):
-                            # Add both custom fields (customfield_*) and standard fields
-                            # Skip if already in base_fields to avoid duplicates
-                            additional_fields.append(field_id)
+                        # Extract clean field ID (strips =Value filter, skips changelog syntax)
+                        clean_field_id = _extract_jira_field_id(field_id)
+                        if clean_field_id and clean_field_id not in base_fields:
+                            additional_fields.append(clean_field_id)
 
             # Combine base fields with additional fields
             # Sort additional fields to ensure consistent ordering for cache validation
@@ -661,19 +690,15 @@ def fetch_jira_issues_with_changelog(
 
         # Add field mappings for DORA and Flow metrics
         # field_mappings has structure: {"dora": {"field_name": "field_id"}, "flow": {...}}
+        # CRITICAL: Strip =Value filter syntax (e.g., "customfield_11309=PROD" -> "customfield_11309")
         field_mappings = config.get("field_mappings", {})
         for category, mappings in field_mappings.items():
             if isinstance(mappings, dict):
                 for field_name, field_id in mappings.items():
-                    # Defensive: field_id must be a string (not dict)
-                    if (
-                        field_id
-                        and isinstance(field_id, str)
-                        and field_id.strip()
-                        and field_id not in base_fields
-                    ):
-                        # Add both custom fields and standard fields (no filtering)
-                        additional_fields.append(field_id)
+                    # Extract clean field ID (strips =Value filter, skips changelog syntax)
+                    clean_field_id = _extract_jira_field_id(field_id)
+                    if clean_field_id and clean_field_id not in base_fields:
+                        additional_fields.append(clean_field_id)
 
         # Combine base fields with additional fields
         # Sort additional fields to ensure consistent ordering for cache validation
@@ -1461,18 +1486,15 @@ def sync_jira_scope_and_data(
 
         # Add field mappings for DORA and Flow metrics
         # field_mappings has structure: {"dora": {"field_name": "field_id"}, "flow": {...}}
+        # CRITICAL: Strip =Value filter syntax (e.g., "customfield_11309=PROD" -> "customfield_11309")
         field_mappings = config.get("field_mappings", {})
         for category, mappings in field_mappings.items():
             if isinstance(mappings, dict):
                 for field_name, field_id in mappings.items():
-                    # Defensive: field_id must be a string (not dict)
-                    if (
-                        field_id
-                        and isinstance(field_id, str)
-                        and field_id.strip()
-                        and field_id not in base_fields
-                    ):
-                        additional_fields.append(field_id)
+                    # Extract clean field ID (strips =Value filter, skips changelog syntax)
+                    clean_field_id = _extract_jira_field_id(field_id)
+                    if clean_field_id and clean_field_id not in base_fields:
+                        additional_fields.append(clean_field_id)
 
         # Build final fields string (must match fetch_jira_issues exactly)
         # Sort additional fields to ensure consistent ordering for cache validation

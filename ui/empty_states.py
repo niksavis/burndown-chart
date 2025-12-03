@@ -210,28 +210,6 @@ def create_no_metrics_state(metric_type: str = "Flow") -> html.Div:
                     ),
                 ],
             ),
-            dbc.Row(
-                [
-                    dbc.Col(
-                        [
-                            dbc.Alert(
-                                [
-                                    html.I(className="fas fa-info-circle me-2"),
-                                    html.Strong("Quick Start: "),
-                                    "1) Ensure JIRA data is loaded (Update Data button) → ",
-                                    "2) Configure field mappings if needed → ",
-                                    "3) Click Calculate Metrics → ",
-                                    "4) View your metrics dashboard",
-                                ],
-                                color="info",
-                                className="mb-0",
-                            ),
-                        ],
-                        width=12,
-                    ),
-                ],
-                className="mt-4",
-            ),
         ],
         className="p-5 empty-state-banner",  # Standard padding + animation class
     )

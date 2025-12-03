@@ -44,8 +44,6 @@ def sample_profile_data() -> Dict:
         "field_mappings": {
             "deployment_date": "customfield_10001",
             "deployment_successful": "customfield_10002",
-            "work_started_date": "customfield_10003",
-            "work_completed_date": "customfield_10004",
             "work_type": "customfield_10005",
             "work_item_size": "customfield_10002",
         },

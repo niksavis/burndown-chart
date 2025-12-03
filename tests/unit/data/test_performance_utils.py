@@ -126,7 +126,7 @@ class TestFieldMappingIndex:
         """Test bidirectional field mapping lookups."""
         field_mappings = {
             "deployment_date": "customfield_10001",
-            "work_started_date": "customfield_10002",
+            "flow_item_type": "customfield_10002",
             "work_type": "customfield_10003",
         }
 

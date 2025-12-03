@@ -42,9 +42,11 @@ def generate_smart_defaults(
     Default Field Mappings (Flow):
     - flow_item_type: issuetype
     - status: status
-    - work_started_date: status:{flow_start_status}.DateTime
-    - work_completed_date: status:{completion_status}.DateTime
+    - completed_date: resolutiondate
     - effort_category: (detected from issues if available)
+
+    Note: Flow Time uses flow_start_statuses and completion_statuses lists
+    from project_classification to find status transitions in changelog.
 
     Args:
         metadata: JIRA metadata dictionary with keys:
@@ -79,8 +81,8 @@ def generate_smart_defaults(
                         ...
                     },
                     "flow": {
-                        "work_started_date": "status:In Progress.DateTime",
-                        "work_completed_date": "status:Done.DateTime",
+                        "flow_item_type": "issuetype",
+                        "completed_date": "resolutiondate",
                         ...
                     }
                 },
@@ -203,7 +205,7 @@ def generate_smart_defaults(
         "severity_level": "priority",
     }
 
-    # === FLOW METRICS: Use namespace syntax for changelog-based extraction ===
+    # === FLOW METRICS: Use standard fields (status lists are in project_classification) ===
     flow_mappings = {
         # Flow Item Type: Issue type classification
         # Standard field - always available in JIRA
@@ -211,17 +213,14 @@ def generate_smart_defaults(
         # Status: Current status (for WIP calculations)
         # Standard field - always available
         "status": "status",
-        # Work Started Date: When work began (flow start status transition)
-        # Namespace: status:In Progress.DateTime - calculated from first WIP status
-        "work_started_date": f"status:{flow_start_status}.DateTime",
-        # Work Completed Date: When work was done (completion status transition)
-        # Namespace: status:Done.DateTime - calculated from completion status
-        "work_completed_date": f"status:{completion_status}.DateTime",
+        # Completed Date: Resolution date for completed items
+        # Standard field - always available
+        "completed_date": "resolutiondate",
     }
 
     logger.info(
-        f"[AutoConfigure] Using namespace syntax for changelog-based extraction: "
-        f"flow_start='{flow_start_status}', completion='{completion_status}'"
+        f"[AutoConfigure] Flow metrics use status lists from project_classification: "
+        f"flow_start_statuses, completion_statuses (configured separately)"
     )
 
     # === OPTIONAL: Detect custom fields to ADD to mappings (not override) ===

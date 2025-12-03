@@ -62,50 +62,14 @@ def calculate_and_save_weekly_metrics(
             if progress_callback:
                 progress_callback(message)
 
-        # Load profile configuration (FEATURE 012: Profile-based variable extraction)
-        # This replaces hardcoded status values with user-configured values from profile
-        # AND integrates auto-detected custom field mappings
+        # Load profile configuration for status lists and field mappings
         report_progress("Loading profile configuration...")
         from configuration.metrics_config import MetricsConfig
-        from configuration.metric_variables import (
-            build_variable_collection_from_profile,
-            build_variable_collection_from_field_mappings,
-        )
 
         try:
             # Load active profile or use specified profile_id
             metrics_config = MetricsConfig(profile_id=profile_id)
             logger.info(f"Loaded profile: {metrics_config.profile_id}")
-
-            # Build variable collection from profile configuration
-            # This integrates BOTH status configuration AND auto-detected custom fields
-            # Priority order: Custom fields (priority 1) → Changelog extraction → Standard fields
-
-            # Check if profile has field_mappings (from auto-configure)
-            field_mappings = metrics_config.profile_config.get("field_mappings", {})
-
-            if field_mappings:
-                logger.info(
-                    f"Found field_mappings in profile: {len(field_mappings.get('dora', {}))} DORA fields, {len(field_mappings.get('flow', {}))} Flow fields"
-                )
-                # Use the field_mappings-aware builder (includes status config + custom fields)
-                variable_collection = build_variable_collection_from_field_mappings(
-                    metrics_config.profile_config
-                )
-                logger.info(
-                    f"Built variable collection with custom field mappings: {len(variable_collection.mappings)} variables"
-                )
-            else:
-                logger.info(
-                    "No field_mappings found in profile, using status-based configuration only"
-                )
-                # Fall back to status-only builder (no custom fields detected yet)
-                variable_collection = build_variable_collection_from_profile(
-                    metrics_config.profile_config
-                )
-                logger.info(
-                    f"Built variable collection from profile statuses: {len(variable_collection.mappings)} variables"
-                )
 
         except Exception as e:
             logger.error(f"Failed to load profile configuration: {e}")
@@ -316,12 +280,10 @@ def calculate_and_save_weekly_metrics(
             + "..."
         )
 
-        # FEATURE 012: Use variable extraction to find completed issues
-        # This replaces hardcoded status checking with flexible variable extraction
-        # Variable collection is built from user's profile configuration (not hardcoded)
-        from data.variable_mapping.extractor import VariableExtractor
+        # Find completed issues using simple changelog scanning
+        # Uses completion_statuses from profile config (Done, Resolved, Closed, etc.)
+        from data.flow_metrics import _find_first_transition_to_statuses
 
-        extractor = VariableExtractor(variable_collection)
         issues_completed_this_week = []
 
         # DEBUG: Log extraction configuration
@@ -331,14 +293,18 @@ def calculate_and_save_weekly_metrics(
         extraction_stats = {"found": 0, "not_found": 0, "parse_errors": 0}
 
         for issue in all_issues:
-            # Extract completion timestamp using variable extraction
-            # This supports multiple sources: changelog transitions, resolutiondate field, etc.
+            # Find completion timestamp from changelog - when issue first transitioned
+            # to a completion status (Done, Resolved, Closed, etc.)
             changelog = issue.get("changelog", {}).get("histories", [])
-            result = extractor.extract_variable(
-                "work_completed_timestamp", issue, changelog
+            timestamp_str = _find_first_transition_to_statuses(
+                changelog, completion_statuses
             )
 
-            if not result["found"]:
+            if not timestamp_str:
+                # Fallback: try resolutiondate field
+                timestamp_str = issue.get("fields", {}).get("resolutiondate")
+
+            if not timestamp_str:
                 extraction_stats["not_found"] += 1
                 continue
 
@@ -349,7 +315,6 @@ def calculate_and_save_weekly_metrics(
                 # Handle different timestamp formats from JIRA changelog
                 # Format: "2025-11-24T01:54:33.997+0000" (from changelog)
                 # Need to convert +0000 to +00:00 for Python's fromisoformat
-                timestamp_str = result["value"]
                 if timestamp_str.endswith("+0000"):
                     timestamp_str = timestamp_str[:-5] + "+00:00"
                 elif timestamp_str.endswith("Z"):
@@ -365,7 +330,7 @@ def calculate_and_save_weekly_metrics(
             except (ValueError, AttributeError, TypeError) as e:
                 extraction_stats["parse_errors"] += 1
                 logger.warning(
-                    f"[DEBUG] Failed to parse timestamp '{result.get('value')}' for {issue.get('key')}: {e}"
+                    f"[DEBUG] Failed to parse timestamp '{timestamp_str}' for {issue.get('key')}: {e}"
                 )
                 continue
 
@@ -391,7 +356,6 @@ def calculate_and_save_weekly_metrics(
 
             flow_time_result = calculate_flow_time(
                 issues_completed_this_week,  # Only issues completed this week
-                extractor,  # Use profile-based extractor
                 time_period_days=7,  # Weekly calculation
             )
         else:
@@ -406,7 +370,6 @@ def calculate_and_save_weekly_metrics(
 
             efficiency_result = calculate_flow_efficiency(
                 issues_completed_this_week,  # Only issues completed this week
-                extractor,  # Use profile-based extractor
                 time_period_days=7,  # Weekly calculation
             )
         else:
@@ -853,9 +816,6 @@ def calculate_and_save_weekly_metrics(
         # UNIFIED DORA METRICS: Classify issues for DORA calculations
         # ========================================================================
 
-        # Create extractor instance for issue categorization
-        extractor_instance = VariableExtractor(variable_collection)
-
         # Get configuration from app_settings
         devops_task_types = app_settings.get("devops_task_types", [])
         bug_types = app_settings.get("bug_types", ["Bug"])
@@ -970,7 +930,6 @@ def calculate_and_save_weekly_metrics(
         # ========================================================================
         # Calculate DORA Metrics using field-based filtering
         # ========================================================================
-        # extractor_instance already created above for categorization
 
         # Calculate Lead Time for Changes
         # Uses development issues + shared fixversion_release_map for deployment dates
@@ -987,7 +946,6 @@ def calculate_and_save_weekly_metrics(
 
             lead_time_result = calculate_lead_time_for_changes(
                 week_dev_issues,
-                extractor=extractor_instance,
                 time_period_days=7,
                 fixversion_release_map=fixversion_release_map,
             )
@@ -1102,7 +1060,6 @@ def calculate_and_save_weekly_metrics(
             cfr_result = calculate_change_failure_rate(
                 operational_tasks,
                 production_bugs,  # Also pass bugs for incident correlation
-                extractor=extractor_instance,
                 time_period_days=7,  # Weekly calculation
                 valid_fix_versions=development_fix_versions,  # Filter by dev project fixVersions
             )
@@ -1184,7 +1141,6 @@ def calculate_and_save_weekly_metrics(
             # MTTR calculation - pass fixversion_release_map for deployment date lookup
             mttr_result = calculate_mean_time_to_recovery(
                 week_bugs,
-                extractor=extractor_instance,
                 time_period_days=7,  # Weekly calculation
                 fixversion_release_map=fixversion_release_map,
             )

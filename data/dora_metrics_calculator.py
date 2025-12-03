@@ -18,7 +18,6 @@ from data.dora_metrics import (
     calculate_change_failure_rate,
     calculate_mean_time_to_recovery,
 )
-from data.variable_mapping.extractor import VariableExtractor
 from data.metrics_snapshots import save_metric_snapshot, get_metric_snapshot
 from data.iso_week_bucketing import get_last_n_weeks
 
@@ -32,7 +31,6 @@ def calculate_and_save_dora_weekly_metrics(
     operational_tasks: List[Dict],
     development_issues: List[Dict],
     production_bugs: List[Dict],
-    variable_mappings: Dict[str, Any],  # Changed from field_mappings
     production_value: str,
 ) -> Tuple[bool, str]:
     """Calculate DORA metrics for a single week and save to cache.
@@ -44,20 +42,13 @@ def calculate_and_save_dora_weekly_metrics(
         operational_tasks: Filtered operational task issues
         development_issues: Filtered development issues
         production_bugs: Filtered production bug issues
-        variable_mappings: Variable mapping collection configuration
         production_value: Production environment identifier
 
     Returns:
         Tuple of (success, message)
     """
     try:
-        # Create VariableExtractor from configuration
-        from data.variable_mapping.models import VariableMappingCollection
-
-        collection = VariableMappingCollection(**variable_mappings)
-        extractor = VariableExtractor(collection)
-
-        # Combine all issues for extraction
+        # Combine all issues for calculation
         all_issues = operational_tasks + development_issues + production_bugs
 
         # Calculate Deployment Frequency
@@ -66,7 +57,6 @@ def calculate_and_save_dora_weekly_metrics(
         )
         deployment_freq = calculate_deployment_frequency(
             all_issues,
-            extractor,
             time_period_days=7,  # Weekly calculation
         )
         logger.info(
@@ -76,7 +66,6 @@ def calculate_and_save_dora_weekly_metrics(
         # Calculate Lead Time for Changes
         lead_time = calculate_lead_time_for_changes(
             all_issues,
-            extractor,
             time_period_days=7,  # Weekly calculation
         )
 
@@ -89,14 +78,12 @@ def calculate_and_save_dora_weekly_metrics(
         cfr = calculate_change_failure_rate(
             operational_tasks,
             production_bugs,
-            extractor,
             time_period_days=7,  # Weekly calculation
         )
 
         # Calculate MTTR
         mttr = calculate_mean_time_to_recovery(
             production_bugs,
-            extractor,
             time_period_days=7,  # Weekly calculation
         )
 
@@ -407,19 +394,17 @@ def calculate_and_save_dora_metrics_for_all_issues(
     monday,  # date object from get_last_n_weeks
     sunday,  # date object from get_last_n_weeks
     all_issues: List[Dict],
-    variable_mappings: Dict[str, Any],
 ) -> Tuple[bool, str]:
-    """Calculate DORA metrics from all issues using variable extraction.
+    """Calculate DORA metrics from all issues.
 
-    This function is simpler than the filtered version - it takes ALL issues
-    and uses the VariableExtractor to identify deployments, incidents, etc.
+    This function takes ALL issues and calculates DORA metrics using
+    field mappings from the user profile configuration.
 
     Args:
         week_label: ISO week label (e.g., "2025-45")
         monday: Week start date (date object)
         sunday: Week end date (date object)
         all_issues: ALL JIRA issues (not pre-filtered)
-        variable_mappings: Variable mapping collection configuration
 
     Returns:
         Tuple of (success, message)
@@ -434,42 +419,32 @@ def calculate_and_save_dora_metrics_for_all_issues(
         )
         time_period_days = (end_date - start_date).days
 
-        # Create VariableExtractor from configuration
-        from data.variable_mapping.models import VariableMappingCollection
-
-        collection = VariableMappingCollection(**variable_mappings)
-        extractor = VariableExtractor(collection)
-
         logger.info(
-            f"Week {week_label}: Calculating DORA metrics with variable extraction "
+            f"Week {week_label}: Calculating DORA metrics "
             f"({len(all_issues)} issues, {time_period_days} days)"
         )
 
         # Calculate all four DORA metrics
         deployment_freq = calculate_deployment_frequency(
             all_issues,
-            extractor,
             time_period_days=time_period_days,
         )
 
         lead_time = calculate_lead_time_for_changes(
             all_issues,
-            extractor,
             time_period_days=time_period_days,
         )
 
         # For CFR, we need to split issues into deployments and incidents
         # The extractor will handle identifying which is which
         cfr = calculate_change_failure_rate(
-            all_issues,  # Will extract deployments
-            all_issues,  # Will extract incidents
-            extractor,
+            all_issues,  # Deployments
+            all_issues,  # Incidents
             time_period_days=time_period_days,
         )
 
         mttr = calculate_mean_time_to_recovery(
             all_issues,
-            extractor,
             time_period_days=time_period_days,
         )
 

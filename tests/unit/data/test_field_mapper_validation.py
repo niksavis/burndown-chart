@@ -17,8 +17,6 @@ class TestDoraJiraCompatibilityValidation:
             "deployment_successful": "customfield_10101_deployment_status",
             "incident_detected_at": "customfield_10102_incident_start",
             "incident_resolved_at": "customfield_10103_incident_end",
-            "work_started_date": "customfield_10104_work_start",
-            "work_completed_date": "customfield_10105_work_complete",
         }
 
         result = validate_dora_jira_compatibility(field_mappings)
@@ -35,16 +33,14 @@ class TestDoraJiraCompatibilityValidation:
             "deployment_date": "resolutiondate",
             "incident_detected_at": "created",
             "incident_resolved_at": "resolutiondate",
-            "work_started_date": "created",
-            "work_completed_date": "resolutiondate",
         }
 
         result = validate_dora_jira_compatibility(field_mappings)
 
         assert result["validation_mode"] == "issue_tracker"
         assert result["compatibility_level"] == "unsuitable"
-        assert result["proxy_field_count"] >= 3
-        assert result["error_count"] >= 3
+        assert result["proxy_field_count"] >= 2
+        assert result["error_count"] >= 2
         assert result["alternative_metrics_available"] is True
 
         # Check for specific warnings
@@ -76,27 +72,10 @@ class TestDoraJiraCompatibilityValidation:
         )
         assert "Not Applicable" in interpretations["change_failure_rate"]
 
-    def test_work_started_date_proxy_warning(self):
-        """Test warning for using 'created' as work_started_date."""
-        field_mappings = {
-            "work_started_date": "created",
-            "work_completed_date": "resolutiondate",
-        }
-
-        result = validate_dora_jira_compatibility(field_mappings)
-
-        warnings = result["warnings"]
-        work_start_warning = next(
-            (w for w in warnings if w["field"] == "work_started_date"), None
-        )
-        assert work_start_warning is not None
-        assert work_start_warning["severity"] == "warning"
-        assert "status change" in work_start_warning["recommendation"]
-
     def test_missing_field_mappings(self):
         """Test validation with missing required fields."""
         field_mappings = {
-            "work_started_date": "created",
+            "flow_item_type": "issuetype",
             # Missing deployment and incident fields
         }
 
@@ -129,7 +108,7 @@ class TestDoraJiraCompatibilityValidation:
         """Test validation with custom fields that don't match DevOps patterns."""
         field_mappings = {
             "deployment_date": "customfield_10200",  # Custom but unclear
-            "work_started_date": "customfield_10201",
+            "flow_item_type": "customfield_10201",
         }
 
         result = validate_dora_jira_compatibility(field_mappings)

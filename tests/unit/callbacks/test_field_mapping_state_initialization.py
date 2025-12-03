@@ -21,7 +21,7 @@ class TestFieldMappingStateInitialization:
                     "deployment_successful": "customfield_10002",
                 },
                 "flow": {
-                    "work_completed_date": "resolutiondate",
+                    "completed_date": "resolutiondate",
                     "work_item_size": "customfield_10003",
                 },
             },
@@ -100,7 +100,7 @@ class TestFieldMappingStateInitialization:
             == "customfield_10002"
         )
         assert (
-            returned_state["field_mappings"]["flow"]["work_completed_date"]
+            returned_state["field_mappings"]["flow"]["completed_date"]
             == "resolutiondate"
         )
         assert (
@@ -134,7 +134,7 @@ class TestFieldMappingStateInitialization:
                     "deployment_date": "customfield_99999",  # User changed this
                 },
                 "flow": {
-                    "work_completed_date": "customfield_88888",  # User changed this
+                    "completed_date": "customfield_88888",  # User changed this
                 },
             },
             "development_projects": ["CHANGED"],

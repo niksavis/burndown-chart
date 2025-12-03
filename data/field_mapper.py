@@ -61,10 +61,10 @@ INTERNAL_FIELD_TYPES = {
     "target_environment": "select",  # Deployment target environment
     "severity_level": "select",  # Incident priority/severity
     # Flow Metrics fields (aligned with Flow Framework standards)
+    # Note: Flow Time now uses flow_start_statuses and completion_statuses
+    # from project_classification to find status transitions in changelog.
     "flow_item_type": "select",  # Work category (Feature/Defect/Tech Debt/Risk)
     "status": "select",  # Current work status
-    "work_started_date": "datetime",  # When work began (optional - can calculate from changelog)
-    "work_completed_date": "datetime",  # When work finished (typically resolutiondate)
     "effort_category": "select",  # Secondary work classification
     "estimate": "number",  # Story points or effort estimation
 }
@@ -349,8 +349,6 @@ def load_field_mappings() -> Dict:
         flow_fields = {
             "flow_item_type",
             "effort_category",
-            "work_started_date",
-            "work_completed_date",
             "status",
         }
 
@@ -637,19 +635,7 @@ def validate_dora_jira_compatibility(field_mappings: Dict[str, str]) -> Dict[str
                 }
             )
 
-    # Check work_started_date mapping
-    if "work_started_date" in field_mappings:
-        jira_field = field_mappings["work_started_date"]
-        if jira_field == "created":
-            warnings.append(
-                {
-                    "severity": "warning",
-                    "field": "work_started_date",
-                    "mapped_to": "created",
-                    "issue": "Using issue creation date instead of actual work start (e.g., 'In Progress' status change)",
-                    "recommendation": "Consider using status change timestamp or custom field for accurate Flow Time calculation",
-                }
-            )
+    # Note: work_started_date validation removed - Flow Time now uses status lists
 
     # Determine validation mode and compatibility
     error_count = sum(1 for w in warnings if w["severity"] == "error")

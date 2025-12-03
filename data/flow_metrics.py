@@ -22,8 +22,6 @@ from datetime import datetime
 from typing import List, Dict, Any, Optional
 import logging
 
-from data.variable_mapping.extractor import VariableExtractor
-
 logger = logging.getLogger(__name__)
 
 
@@ -103,6 +101,35 @@ def _extract_datetime_from_field_mapping(
     # Handle simple field paths
     fields = issue.get("fields", {})
     return fields.get(field_mapping)
+
+
+def _find_first_transition_to_statuses(
+    changelog: List[Dict], status_list: List[str]
+) -> Optional[str]:
+    """Find the first transition to any status in the given list.
+
+    Searches through changelog history to find the earliest timestamp when
+    the issue transitioned to any of the specified statuses.
+
+    Args:
+        changelog: Issue changelog history (list of history entries)
+        status_list: List of status names to look for (e.g., flow_start_statuses)
+
+    Returns:
+        ISO datetime string of first transition to any status in list, None if not found
+    """
+    if not changelog or not status_list:
+        return None
+
+    # Sort changelog chronologically to find FIRST transition
+    sorted_changelog = sorted(changelog, key=lambda h: h.get("created", ""))
+
+    for history in sorted_changelog:
+        for item in history.get("items", []):
+            if item.get("field") == "status" and item.get("toString") in status_list:
+                return history.get("created")
+
+    return None
 
 
 def _is_issue_completed(
@@ -254,9 +281,6 @@ def _normalize_work_type(work_type: Any) -> str:
 
 def calculate_flow_velocity(
     issues: List[Dict],
-    extractor: Optional[
-        VariableExtractor
-    ] = None,  # Deprecated, kept for backward compatibility
     time_period_days: int = 7,
     previous_period_value: Optional[float] = None,
 ) -> Dict[str, Any]:
@@ -267,7 +291,6 @@ def calculate_flow_velocity(
 
     Args:
         issues: List of JIRA issues (must include changelog)
-        extractor: Deprecated - no longer used, kept for backward compatibility
         time_period_days: Time period for velocity calculation (default: 7 days = 1 week)
         previous_period_value: Previous period velocity for trend calculation
 
@@ -372,9 +395,6 @@ def calculate_flow_velocity(
 
 def calculate_flow_time(
     issues: List[Dict],
-    extractor: Optional[
-        VariableExtractor
-    ] = None,  # Deprecated, kept for backward compatibility
     time_period_days: int = 7,
     previous_period_value: Optional[float] = None,
 ) -> Dict[str, Any]:
@@ -383,9 +403,11 @@ def calculate_flow_time(
     Flow Time measures how long work items take to complete from when work started
     to when they're done. Lower flow time indicates faster delivery.
 
+    Uses flow_start_statuses (e.g., In Progress, In Review) to find when work started,
+    and completion_statuses (e.g., Done, Resolved, Closed) to find when work completed.
+
     Args:
         issues: List of JIRA issues (must include changelog)
-        extractor: Deprecated - no longer used, kept for backward compatibility
         time_period_days: Time period for analysis (default: 7 days)
         previous_period_value: Previous period flow time for trend calculation
 
@@ -404,54 +426,65 @@ def calculate_flow_time(
         f"Calculating flow time for {len(issues)} issues over {time_period_days} days"
     )
 
-    # Load field mappings
-    flow_mappings, _ = _get_field_mappings()
+    # Load field mappings and status lists
+    flow_mappings, project_classification = _get_field_mappings()
 
-    work_started_field = flow_mappings.get(
-        "work_started_date", "status:In Progress.DateTime"
-    )
-    work_completed_field = flow_mappings.get(
-        "work_completed_date", "status:Done.DateTime"
-    )
+    flow_start_statuses = project_classification.get("flow_start_statuses", [])
+    completion_statuses = project_classification.get("completion_statuses", [])
     completed_date_field = flow_mappings.get("completed_date", "resolutiondate")
+
+    # Validate required configuration
+    if not flow_start_statuses:
+        logger.warning("Flow Time: Missing flow_start_statuses configuration")
+        return {
+            "value": 0.0,
+            "unit": "days",
+            "trend_direction": "stable",
+            "trend_percentage": 0.0,
+            "error_state": "missing_mapping",
+            "error_message": "Missing flow_start_statuses configuration",
+        }
+
+    if not completion_statuses:
+        logger.warning("Flow Time: Missing completion_statuses configuration")
+        return {
+            "value": 0.0,
+            "unit": "days",
+            "trend_direction": "stable",
+            "trend_percentage": 0.0,
+            "error_state": "missing_mapping",
+            "error_message": "Missing completion_statuses configuration",
+        }
 
     # Extract cycle times from completed issues
     cycle_times = []
 
     for issue in issues:
-        # Extract changelog for variable extraction
+        # Extract changelog for status transition detection
         changelog = issue.get("changelog", {}).get("histories", [])
 
         # Check if issue is completed using field mappings
         if not _is_issue_completed(issue, completed_date_field, changelog):
             continue
 
-        # Extract start and completion timestamps using field mappings
-        start_timestamp = _extract_datetime_from_field_mapping(
-            issue, work_started_field, changelog
+        # Find first transition to any flow_start_status (work started)
+        start_timestamp = _find_first_transition_to_statuses(
+            changelog, flow_start_statuses
         )
-        completion_timestamp = _extract_datetime_from_field_mapping(
-            issue, work_completed_field, changelog
+        # Find first transition to any completion_status (work completed)
+        completion_timestamp = _find_first_transition_to_statuses(
+            changelog, completion_statuses
         )
 
         if not start_timestamp or not completion_timestamp:
             continue
 
         try:
-            # Parse timestamps if they're strings
-            if isinstance(start_timestamp, str):
-                start_dt = datetime.fromisoformat(
-                    start_timestamp.replace("Z", "+00:00")
-                )
-            else:
-                start_dt = start_timestamp
-
-            if isinstance(completion_timestamp, str):
-                completion_dt = datetime.fromisoformat(
-                    completion_timestamp.replace("Z", "+00:00")
-                )
-            else:
-                completion_dt = completion_timestamp
+            # Parse timestamps
+            start_dt = datetime.fromisoformat(start_timestamp.replace("Z", "+00:00"))
+            completion_dt = datetime.fromisoformat(
+                completion_timestamp.replace("Z", "+00:00")
+            )
 
             # Calculate cycle time in days
             cycle_time_delta = completion_dt - start_dt
@@ -582,9 +615,6 @@ def _calculate_time_in_statuses(
 
 def calculate_flow_efficiency(
     issues: List[Dict],
-    extractor: Optional[
-        VariableExtractor
-    ] = None,  # Deprecated, kept for backward compatibility
     time_period_days: int = 7,
     previous_period_value: Optional[float] = None,
 ) -> Dict[str, Any]:
@@ -595,7 +625,6 @@ def calculate_flow_efficiency(
 
     Args:
         issues: List of JIRA issues (must include changelog)
-        extractor: Deprecated - no longer used, kept for backward compatibility
         time_period_days: Time period for analysis (default: 7 days)
         previous_period_value: Previous period efficiency for trend calculation
 
@@ -693,9 +722,6 @@ def calculate_flow_efficiency(
 
 def calculate_flow_load(
     issues: List[Dict],
-    extractor: Optional[
-        VariableExtractor
-    ] = None,  # Deprecated, kept for backward compatibility
     time_period_days: int = 7,
     previous_period_value: Optional[float] = None,
 ) -> Dict[str, Any]:
@@ -706,7 +732,6 @@ def calculate_flow_load(
 
     Args:
         issues: List of JIRA issues (must include changelog)
-        extractor: Deprecated - no longer used, kept for backward compatibility
         time_period_days: Time period for analysis (not used for WIP snapshot)
         previous_period_value: Previous period WIP for trend calculation
 
@@ -764,9 +789,6 @@ def calculate_flow_load(
 
 def calculate_flow_distribution(
     issues: List[Dict],
-    extractor: Optional[
-        VariableExtractor
-    ] = None,  # Deprecated, kept for backward compatibility
     time_period_days: int = 7,
     previous_period_value: Optional[Dict[str, float]] = None,
 ) -> Dict[str, Any]:
@@ -781,7 +803,6 @@ def calculate_flow_distribution(
 
     Args:
         issues: List of JIRA issues (must include changelog)
-        extractor: Deprecated - no longer used, kept for backward compatibility
         time_period_days: Time period for analysis (default: 7 days)
         previous_period_value: Previous period distribution for trend calculation
 

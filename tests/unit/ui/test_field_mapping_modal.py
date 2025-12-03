@@ -448,8 +448,6 @@ class TestFieldTypeRequirements:
             ("severity_level", "select"),
             ("flow_item_type", "select"),
             ("effort_category", "select"),
-            ("work_started_date", "datetime"),
-            ("work_completed_date", "datetime"),
             ("status", "select"),
         ],
     )

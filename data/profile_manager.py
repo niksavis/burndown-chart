@@ -102,7 +102,6 @@ class Profile:
         project_classification: DevOps/development project classification
         flow_type_mappings: Flow Framework type mappings
         queries: List of query IDs in this profile
-        active_query_id: Currently active query (None if no queries)
         show_milestone: Toggle milestone display on charts
         show_points: Toggle between points/items display
     """
@@ -120,7 +119,6 @@ class Profile:
         project_classification: Optional[Dict] = None,
         flow_type_mappings: Optional[Dict] = None,
         queries: Optional[list] = None,
-        active_query_id: Optional[str] = None,
         show_milestone: bool = False,
         show_points: bool = False,
     ):
@@ -139,7 +137,6 @@ class Profile:
         self.project_classification = project_classification or {}
         self.flow_type_mappings = flow_type_mappings or {}
         self.queries = queries or []
-        self.active_query_id = active_query_id
         self.show_milestone = show_milestone
         self.show_points = show_points
 
@@ -157,7 +154,6 @@ class Profile:
             "project_classification": self.project_classification,
             "flow_type_mappings": self.flow_type_mappings,
             "queries": self.queries,
-            "active_query_id": self.active_query_id,
             "show_milestone": self.show_milestone,
             "show_points": self.show_points,
         }
@@ -177,7 +173,6 @@ class Profile:
             project_classification=data.get("project_classification", {}),
             flow_type_mappings=data.get("flow_type_mappings", {}),
             queries=data.get("queries", []),
-            active_query_id=data.get("active_query_id"),
             show_milestone=data.get("show_milestone", False),
             show_points=data.get("show_points", False),
         )
@@ -615,7 +610,6 @@ def create_profile(name: str, settings: Dict) -> str:
             project_classification=settings.get("project_classification", {}),
             flow_type_mappings=settings.get("flow_type_mappings", {}),
             queries=settings.get("queries", []),
-            active_query_id=settings.get("active_query_id"),
             show_milestone=settings.get("show_milestone", False),
             show_points=settings.get("show_points", False),
         )

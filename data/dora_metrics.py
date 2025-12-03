@@ -22,7 +22,6 @@ from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 import logging
 
-from data.variable_mapping.extractor import VariableExtractor
 from data.performance_utils import log_performance
 
 logger = logging.getLogger(__name__)
@@ -406,7 +405,6 @@ def _calculate_trend(
 @log_performance
 def calculate_deployment_frequency(
     issues: List[Dict[str, Any]],
-    extractor: VariableExtractor,
     time_period_days: int = 30,
     previous_period_value: Optional[float] = None,
 ) -> Dict[str, Any]:
@@ -420,7 +418,6 @@ def calculate_deployment_frequency(
 
     Args:
         issues: List of JIRA issues (operational tasks) to analyze
-        extractor: VariableExtractor configured with deployment variable mappings
         time_period_days: Number of days in measurement period (default: 30)
         previous_period_value: Optional previous period value for trend calculation
 
@@ -562,7 +559,6 @@ def calculate_deployment_frequency(
 @log_performance
 def calculate_lead_time_for_changes(
     issues: List[Dict[str, Any]],
-    extractor: VariableExtractor,
     time_period_days: int = 30,
     previous_period_value: Optional[float] = None,
     fixversion_release_map: Optional[Dict[str, datetime]] = None,
@@ -579,7 +575,6 @@ def calculate_lead_time_for_changes(
 
     Args:
         issues: List of development issues to analyze
-        extractor: VariableExtractor configured with lead time variable mappings
         time_period_days: Number of days in measurement period (default: 30)
         previous_period_value: Optional previous period value for trend calculation
         fixversion_release_map: Map of fixVersion name → releaseDate datetime
@@ -796,7 +791,6 @@ def calculate_lead_time_for_changes(
 def calculate_change_failure_rate(
     deployment_issues: List[Dict[str, Any]],
     incident_issues: List[Dict[str, Any]],
-    extractor: VariableExtractor,
     time_period_days: int = 30,
     previous_period_value: Optional[float] = None,
     valid_fix_versions: Optional[set] = None,
@@ -809,7 +803,6 @@ def calculate_change_failure_rate(
     Args:
         deployment_issues: List of deployment/operational task issues
         incident_issues: List of incident/bug issues (kept for backward compatibility, not used)
-        extractor: VariableExtractor configured with field mappings
         time_period_days: Number of days in measurement period (default: 30)
         previous_period_value: Optional previous period value for trend calculation
         valid_fix_versions: Set of fixVersion names from development projects.
@@ -1013,7 +1006,6 @@ def calculate_change_failure_rate(
 @log_performance
 def calculate_mean_time_to_recovery(
     incident_issues: List[Dict[str, Any]],
-    extractor: VariableExtractor,
     time_period_days: int = 30,
     previous_period_value: Optional[float] = None,
     fixversion_release_map: Optional[Dict[str, datetime]] = None,
@@ -1032,7 +1024,6 @@ def calculate_mean_time_to_recovery(
 
     Args:
         incident_issues: List of incident/bug issues
-        extractor: VariableExtractor configured with incident variable mappings
         time_period_days: Number of days in measurement period (default: 30)
         previous_period_value: Optional previous period value for trend calculation
         fixversion_release_map: Map of fixVersion name → releaseDate datetime
