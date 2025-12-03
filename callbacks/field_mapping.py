@@ -288,7 +288,7 @@ def track_types_tab_changes(*args):
 def track_status_tab_changes(completion, active, flow_start, wip, current_state):
     """Track Status tab dropdown changes."""
     current_state = current_state or {}
-    current_state["completion_statuses"] = (
+    current_state["flow_end_statuses"] = (
         completion
         if isinstance(completion, list)
         else ([completion] if completion else [])
@@ -782,7 +782,7 @@ def render_tab_content(
             "flow_risk_effort_categories": safe_get_flow_mapping(
                 "Risk", "effort_categories"
             ),
-            "completion_statuses": settings.get("completion_statuses", []),
+            "flow_end_statuses": settings.get("flow_end_statuses", []),
             "active_statuses": settings.get("active_statuses", []),
             "flow_start_statuses": settings.get("flow_start_statuses", []),
             "wip_statuses": settings.get("wip_statuses", []),
@@ -901,7 +901,7 @@ def render_tab_content(
 
     elif active_tab == "tab-status":
         return create_status_config_form(
-            completion_statuses=display_settings.get("completion_statuses", []),
+            flow_end_statuses=display_settings.get("flow_end_statuses", []),
             active_statuses=display_settings.get("active_statuses", []),
             flow_start_statuses=display_settings.get("flow_start_statuses", []),
             wip_statuses=display_settings.get("wip_statuses", []),
@@ -1358,8 +1358,8 @@ def auto_configure_from_metadata(
 
         # CRITICAL: Store values in FLAT keys that the UI dropdowns read from
         # The render_tab_content callback reads from these flat keys to populate dropdowns
-        new_state["completion_statuses"] = defaults["project_classification"][
-            "completion_statuses"
+        new_state["flow_end_statuses"] = defaults["project_classification"][
+            "flow_end_statuses"
         ]
         new_state["active_statuses"] = defaults["project_classification"][
             "active_statuses"
@@ -1476,9 +1476,7 @@ def auto_configure_from_metadata(
                 )
 
         # Count what was configured
-        completion_count = len(
-            defaults["project_classification"]["completion_statuses"]
-        )
+        completion_count = len(defaults["project_classification"]["flow_end_statuses"])
         active_count = len(defaults["project_classification"]["active_statuses"])
         wip_count = len(defaults["project_classification"]["wip_statuses"])
         feature_count = len(defaults["flow_type_mappings"]["Feature"])
@@ -1601,10 +1599,10 @@ def _validate_all_tabs(state_data: Dict, field_validation_errors: list) -> Dict:
     # 2. STATUS TAB VALIDATION
     # =========================================================================
     # Get status values (check both flat and nested structure)
-    completion_statuses = state_data.get("completion_statuses", [])
-    if not completion_statuses and "project_classification" in state_data:
-        completion_statuses = state_data["project_classification"].get(
-            "completion_statuses", []
+    flow_end_statuses = state_data.get("flow_end_statuses", [])
+    if not flow_end_statuses and "project_classification" in state_data:
+        flow_end_statuses = state_data["project_classification"].get(
+            "flow_end_statuses", []
         )
 
     active_statuses = state_data.get("active_statuses", [])
@@ -1625,14 +1623,14 @@ def _validate_all_tabs(state_data: Dict, field_validation_errors: list) -> Dict:
 
     # Count total statuses
     summary["statuses"] = (
-        len(completion_statuses)
+        len(flow_end_statuses)
         + len(active_statuses)
         + len(wip_statuses)
         + len(flow_start_statuses)
     )
 
     # Validate: Completion statuses required
-    if not completion_statuses:
+    if not flow_end_statuses:
         warnings.append(
             {
                 "tab": "Status",
@@ -2118,7 +2116,7 @@ def save_or_validate_mappings(namespace_values, state_data):
                 "development_projects", []
             )
             settings["devops_projects"] = proj_class.get("devops_projects", [])
-            settings["completion_statuses"] = proj_class.get("completion_statuses", [])
+            settings["flow_end_statuses"] = proj_class.get("flow_end_statuses", [])
             settings["active_statuses"] = proj_class.get("active_statuses", [])
             settings["flow_start_statuses"] = proj_class.get("flow_start_statuses", [])
             settings["wip_statuses"] = proj_class.get("wip_statuses", [])
@@ -2132,8 +2130,8 @@ def save_or_validate_mappings(namespace_values, state_data):
             settings["development_projects"] = state_data["development_projects"]
         if "devops_projects" in state_data:
             settings["devops_projects"] = state_data["devops_projects"]
-        if "completion_statuses" in state_data:
-            settings["completion_statuses"] = state_data["completion_statuses"]
+        if "flow_end_statuses" in state_data:
+            settings["flow_end_statuses"] = state_data["flow_end_statuses"]
         if "active_statuses" in state_data:
             settings["active_statuses"] = state_data["active_statuses"]
         if "flow_start_statuses" in state_data:
@@ -2221,7 +2219,7 @@ def save_or_validate_mappings(namespace_values, state_data):
             story_types=settings.get("story_types"),
             task_types=settings.get("task_types"),
             production_environment_values=settings.get("production_environment_values"),
-            completion_statuses=settings.get("completion_statuses"),
+            flow_end_statuses=settings.get("flow_end_statuses"),
             active_statuses=settings.get("active_statuses"),
             flow_start_statuses=settings.get("flow_start_statuses"),
             wip_statuses=settings.get("wip_statuses"),

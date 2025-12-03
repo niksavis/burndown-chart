@@ -422,7 +422,7 @@ Click any DORA metric card to view detailed weekly breakdown:
 - **Per Week (Releases)**: COUNT of UNIQUE fixVersion names in that week
 - **Absolute Count**: Each week shows actual numbers
 - **Filtering**:
-  - Only tasks where `status IN completion_statuses` (Done, Closed, etc.)
+  - Only tasks where `status IN flow_end_statuses` (Done, Closed, etc.)
   - Only tasks with `fixVersion.releaseDate <= today` (excludes future deployments)
   - Uses **earliest releaseDate** if multiple fixVersions exist
 
@@ -613,7 +613,7 @@ Click any DORA metric card to view detailed weekly breakdown:
 **What it measures**: Number of work items completed per time period
 
 **Calculation Method**:
-- **Per Week**: COUNT of issues with `status IN completion_statuses` AND `resolutiondate` in that week
+- **Per Week**: COUNT of issues with `status IN flow_end_statuses` AND `resolutiondate` in that week
 - **Classification**: Two-tier system using `flow_type_mappings` from `app_settings.json`:
   - **Primary**: Issue type (Bug → Defect, Story/Task → Feature by default)
   - **Secondary**: Effort category (overrides primary for Task/Story only)
@@ -744,7 +744,7 @@ Issue DEV-123 (Task):
 Week-by-week WIP count for this issue:
 W10-W14: NOT counted (status = "To Do", not in wip_statuses)
 W15-W24: COUNTED (status in wip_statuses)
-W25+: NOT counted (status = "Done", in completion_statuses)
+W25+: NOT counted (status = "Done", in flow_end_statuses)
 ```
 
 **Issue Filtering**:
@@ -1600,7 +1600,7 @@ To verify metrics are correct:
    - `production_environment_values`: Values that identify production environment (e.g., ["PROD", "Production"])
 
 3. **Check Status Config**:
-   - `completion_statuses`: Statuses that indicate work is complete
+   - `flow_end_statuses`: Statuses that indicate work is complete
    - `wip_statuses`: Statuses that indicate work is in progress
    - `active_statuses`: Subset of WIP statuses where work is actively being worked on
 

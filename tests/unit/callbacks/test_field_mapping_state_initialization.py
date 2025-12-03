@@ -27,7 +27,7 @@ class TestFieldMappingStateInitialization:
             },
             "development_projects": ["PROJ1", "PROJ2"],
             "devops_projects": ["DEVOPS"],
-            "completion_statuses": ["Done", "Closed"],
+            "flow_end_statuses": ["Done", "Closed"],
             "active_statuses": ["In Progress"],
             "flow_start_statuses": ["To Do"],
             "wip_statuses": ["In Progress", "Review"],
@@ -111,7 +111,7 @@ class TestFieldMappingStateInitialization:
         # Verify other settings also initialized
         assert returned_state["development_projects"] == ["PROJ1", "PROJ2"]
         assert returned_state["devops_projects"] == ["DEVOPS"]
-        assert returned_state["completion_statuses"] == ["Done", "Closed"]
+        assert returned_state["flow_end_statuses"] == ["Done", "Closed"]
 
     @patch("data.persistence.load_app_settings")
     @patch("callbacks.field_mapping.callback_context")

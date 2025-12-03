@@ -237,8 +237,8 @@ def calculate_and_save_weekly_metrics(
             )
 
         # Get configuration
-        completion_statuses = app_settings.get(
-            "completion_statuses", ["Done", "Resolved", "Closed"]
+        flow_end_statuses = app_settings.get(
+            "flow_end_statuses", ["Done", "Resolved", "Closed"]
         )
         # Note: active_statuses and start_statuses were removed as unused
         wip_statuses = app_settings.get(
@@ -281,7 +281,7 @@ def calculate_and_save_weekly_metrics(
         )
 
         # Find completed issues using simple changelog scanning
-        # Uses completion_statuses from profile config (Done, Resolved, Closed, etc.)
+        # Uses flow_end_statuses from profile config (Done, Resolved, Closed, etc.)
         from data.flow_metrics import _find_first_transition_to_statuses
 
         issues_completed_this_week = []
@@ -297,7 +297,7 @@ def calculate_and_save_weekly_metrics(
             # to a completion status (Done, Resolved, Closed, etc.)
             changelog = issue.get("changelog", {}).get("histories", [])
             timestamp_str = _find_first_transition_to_statuses(
-                changelog, completion_statuses
+                changelog, flow_end_statuses
             )
 
             if not timestamp_str:
@@ -394,7 +394,7 @@ def calculate_and_save_weekly_metrics(
                     issue.get("fields", {}).get("status", {}).get("name", "")
                 )
                 is_in_wip_now = current_status in wip_statuses
-                is_completed = current_status in completion_statuses
+                is_completed = current_status in flow_end_statuses
 
                 if is_in_wip_now and not is_completed:
                     issues_in_wip_at_week_end.append(issue)
@@ -704,7 +704,7 @@ def calculate_and_save_weekly_metrics(
         # Helper: Count deployments per week (filters by releaseDate within week)
         def count_deployments_for_week(
             issues,
-            completion_statuses,
+            flow_end_statuses,
             week_label,
             week_start,
             week_end,
@@ -713,13 +713,13 @@ def calculate_and_save_weekly_metrics(
             """Count deployment issues with releaseDate in specified week.
 
             Filters issues by:
-            1. Status is in completion_statuses (Done, Resolved, etc.)
+            1. Status is in flow_end_statuses (Done, Resolved, etc.)
             2. fixVersion.releaseDate falls within week_start to week_end
             3. fixVersion.name is in valid_fix_versions (if provided)
 
             Args:
                 issues: List of Operational Task issues
-                completion_statuses: List of completed status names
+                flow_end_statuses: List of completed status names
                 week_label: Week identifier (e.g., "2025-W49")
                 week_start: Start of week (datetime)
                 week_end: End of week (datetime)
@@ -733,7 +733,7 @@ def calculate_and_save_weekly_metrics(
 
             for issue in issues:
                 status = issue.get("fields", {}).get("status", {}).get("name", "")
-                if status not in completion_statuses:
+                if status not in flow_end_statuses:
                     continue
 
                 fix_versions = issue.get("fields", {}).get("fixVersions", [])
@@ -820,8 +820,8 @@ def calculate_and_save_weekly_metrics(
         devops_task_types = app_settings.get("devops_task_types", [])
         bug_types = app_settings.get("bug_types", ["Bug"])
         production_env_values = app_settings.get("production_environment_values", [])
-        completion_statuses = app_settings.get(
-            "completion_statuses", ["Done", "Resolved", "Closed"]
+        flow_end_statuses = app_settings.get(
+            "flow_end_statuses", ["Done", "Resolved", "Closed"]
         )
 
         # Get field mappings for DORA metrics
@@ -920,7 +920,7 @@ def calculate_and_save_weekly_metrics(
         fixversion_release_map = build_fixversion_release_map(
             operational_tasks,
             valid_fix_versions=development_fix_versions,
-            completion_statuses=completion_statuses,
+            flow_end_statuses=flow_end_statuses,
         )
         logger.info(
             f"[DORA] Built fixVersion release map: {len(fixversion_release_map)} versions "
@@ -1006,13 +1006,13 @@ def calculate_and_save_weekly_metrics(
 
         # Calculate Deployment Frequency
         try:
-            completion_statuses = app_settings.get(
-                "completion_statuses", ["Done", "Resolved", "Closed"]
+            flow_end_statuses = app_settings.get(
+                "flow_end_statuses", ["Done", "Resolved", "Closed"]
             )
 
             weekly_deployments = count_deployments_for_week(
                 operational_tasks,
-                completion_statuses,
+                flow_end_statuses,
                 week_label,
                 week_start,
                 week_end,

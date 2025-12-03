@@ -6,8 +6,8 @@ Tests all five Flow Framework metrics with mocked profile configuration matching
 Each test is isolated and doesn't require running the app.
 
 Flow Metrics Tested:
-1. Flow Velocity - completed items per week (completion_statuses)
-2. Flow Time - time from flow_start_statuses to completion_statuses
+1. Flow Velocity - completed items per week (flow_end_statuses)
+2. Flow Time - time from flow_start_statuses to flow_end_statuses
 3. Flow Efficiency - active time / total time (active_statuses / wip_statuses)
 4. Flow Load - current WIP across wip_statuses
 5. Work Distribution - breakdown by flow_type_mappings
@@ -40,7 +40,7 @@ def mock_profile_config() -> Dict[str, Any]:
             "dora": {},
             "values": {},
         },
-        "completion_statuses": ["Done", "Resolved", "Closed", "Canceled"],
+        "flow_end_statuses": ["Done", "Resolved", "Closed", "Canceled"],
         "active_statuses": ["In Progress", "In Review", "Testing"],
         "wip_statuses": [
             "In Progress",
@@ -244,7 +244,7 @@ class TestFlowVelocity:
     """Test Flow Velocity metric calculation.
 
     Measures: Number of work items completed per week
-    Uses: completion_statuses (Done, Resolved, Closed, Canceled)
+    Uses: flow_end_statuses (Done, Resolved, Closed, Canceled)
     """
 
     def test_flow_velocity_basic_calculation(self, mock_load_app_settings):
@@ -344,10 +344,10 @@ class TestFlowTime:
     """Test Flow Time metric calculation.
 
     Measures: Time from first transition to flow_start_statuses to first
-    transition to completion_statuses.
+    transition to flow_end_statuses.
     Uses:
         - flow_start_statuses: ["In Progress", "In Review"]
-        - completion_statuses: ["Done", "Resolved", "Closed", "Canceled"]
+        - flow_end_statuses: ["Done", "Resolved", "Closed", "Canceled"]
     """
 
     def test_flow_time_basic_calculation(self, mock_load_app_settings):

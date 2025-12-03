@@ -373,7 +373,7 @@ def detect_fields_from_issues(
         )
 
     # Note: work_started_date and work_completed_date detection removed.
-    # Flow Time now uses flow_start_statuses and completion_statuses lists
+    # Flow Time now uses flow_start_statuses and flow_end_statuses lists
     # from project_classification to find status transitions in changelog.
 
     logger.info(f"[FieldDetector] Detected {len(detections)} custom fields total")

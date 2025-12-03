@@ -40,7 +40,7 @@ def _get_field_mappings():
     # Project classification is flattened to root level by load_app_settings
     # Reconstruct the nested structure for backward compatibility
     project_classification = {
-        "completion_statuses": app_settings.get("completion_statuses", []),
+        "flow_end_statuses": app_settings.get("flow_end_statuses", []),
         "active_statuses": app_settings.get("active_statuses", []),
         "wip_statuses": app_settings.get("wip_statuses", []),
         "flow_start_statuses": app_settings.get("flow_start_statuses", []),
@@ -404,7 +404,7 @@ def calculate_flow_time(
     to when they're done. Lower flow time indicates faster delivery.
 
     Uses flow_start_statuses (e.g., In Progress, In Review) to find when work started,
-    and completion_statuses (e.g., Done, Resolved, Closed) to find when work completed.
+    and flow_end_statuses (e.g., Done, Resolved, Closed) to find when work completed.
 
     Args:
         issues: List of JIRA issues (must include changelog)
@@ -430,7 +430,7 @@ def calculate_flow_time(
     flow_mappings, project_classification = _get_field_mappings()
 
     flow_start_statuses = project_classification.get("flow_start_statuses", [])
-    completion_statuses = project_classification.get("completion_statuses", [])
+    flow_end_statuses = project_classification.get("flow_end_statuses", [])
     completed_date_field = flow_mappings.get("completed_date", "resolutiondate")
 
     # Validate required configuration
@@ -445,15 +445,15 @@ def calculate_flow_time(
             "error_message": "Missing flow_start_statuses configuration",
         }
 
-    if not completion_statuses:
-        logger.warning("Flow Time: Missing completion_statuses configuration")
+    if not flow_end_statuses:
+        logger.warning("Flow Time: Missing flow_end_statuses configuration")
         return {
             "value": 0.0,
             "unit": "days",
             "trend_direction": "stable",
             "trend_percentage": 0.0,
             "error_state": "missing_mapping",
-            "error_message": "Missing completion_statuses configuration",
+            "error_message": "Missing flow_end_statuses configuration",
         }
 
     # Extract cycle times from completed issues
@@ -473,7 +473,7 @@ def calculate_flow_time(
         )
         # Find first transition to any completion_status (work completed)
         completion_timestamp = _find_first_transition_to_statuses(
-            changelog, completion_statuses
+            changelog, flow_end_statuses
         )
 
         if not start_timestamp or not completion_timestamp:

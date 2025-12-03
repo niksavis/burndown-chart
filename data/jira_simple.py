@@ -642,11 +642,11 @@ def fetch_jira_issues_with_changelog(
 
             # Load completion statuses from configuration
             try:
-                from configuration.dora_config import get_completion_status_names
+                from configuration.dora_config import get_flow_end_status_names
 
-                completion_statuses = get_completion_status_names()
-                if completion_statuses:
-                    statuses_str = ", ".join([f'"{s}"' for s in completion_statuses])
+                flow_end_statuses = get_flow_end_status_names()
+                if flow_end_statuses:
+                    statuses_str = ", ".join([f'"{s}"' for s in flow_end_statuses])
                     jql = (
                         f"({base_jql}) AND status IN ({statuses_str}){order_by_clause}"
                     )

@@ -591,7 +591,7 @@ def filter_operational_tasks_by_fixversion(
 def build_fixversion_release_map(
     operational_tasks: List[Dict],
     valid_fix_versions: Optional[set] = None,
-    completion_statuses: Optional[List[str]] = None,
+    flow_end_statuses: Optional[List[str]] = None,
 ) -> Dict[str, datetime]:
     """Build a map of fixVersion name → releaseDate from Operational Tasks.
 
@@ -602,7 +602,7 @@ def build_fixversion_release_map(
         operational_tasks: List of Operational Task issues
         valid_fix_versions: Optional set of fixVersion names to filter by
             (typically collected from development project issues)
-        completion_statuses: Optional list of completion statuses to filter by
+        flow_end_statuses: Optional list of completion statuses to filter by
             (e.g., ["Done", "Resolved", "Closed"])
 
     Returns:
@@ -618,9 +618,9 @@ def build_fixversion_release_map(
 
     for issue in operational_tasks:
         # Filter by completion status if provided
-        if completion_statuses:
+        if flow_end_statuses:
             status = issue.get("fields", {}).get("status", {}).get("name", "")
-            if status not in completion_statuses:
+            if status not in flow_end_statuses:
                 continue
 
         fix_versions = issue.get("fields", {}).get("fixVersions", [])

@@ -111,7 +111,7 @@ When user switches JQL query in UI:
    - **JIRA Connection**: base_url, token, API version
    - **Field Mappings**: DORA/Flow customfield_* mappings
    - **Project Classification**: devops_projects, development_projects
-   - **Issue Type Mappings**: bug_types, task_types, completion_statuses
+   - **Issue Type Mappings**: bug_types, task_types, flow_end_statuses
    - Multiple queries within profile
 
 2. **Query** = JQL variation with dedicated cache (minimal config)

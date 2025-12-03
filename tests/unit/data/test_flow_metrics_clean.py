@@ -121,7 +121,7 @@ class TestFlowTimeClean:
     def test_flow_time_with_valid_timestamps(self):
         """Test flow time calculation with valid start and end dates.
 
-        Note: Result depends on profile's completion_statuses and completed_date field.
+        Note: Result depends on profile's flow_end_statuses and completed_date field.
         Returns 'no_data' if profile config doesn't match test data.
         """
         issues = [
@@ -166,7 +166,7 @@ class TestFlowTimeClean:
             assert result["value"] > 0
             assert result["unit"] == "days"
         else:
-            # Profile may not have matching completion_statuses for test data
+            # Profile may not have matching flow_end_statuses for test data
             assert result["error_state"] == "no_data"
 
     def test_flow_time_no_valid_timestamps(self):
@@ -314,7 +314,7 @@ class TestFlowDistributionClean:
     def test_flow_distribution_with_mixed_types(self):
         """Test distribution calculation with various work types.
 
-        Note: Result depends on profile's completion_statuses and flow_type_mappings.
+        Note: Result depends on profile's flow_end_statuses and flow_type_mappings.
         Returns 'no_data' if profile config doesn't match test data.
         """
         issues = [
@@ -366,13 +366,13 @@ class TestFlowDistributionClean:
             total_percent = sum(result["value"].values())
             assert 99 <= total_percent <= 101  # Allow for rounding
         else:
-            # Profile may not have matching completion_statuses for test data
+            # Profile may not have matching flow_end_statuses for test data
             assert result["error_state"] == "no_data"
 
     def test_flow_distribution_all_features(self):
         """Test distribution with only feature work.
 
-        Note: Result depends on profile's completion_statuses and flow_type_mappings.
+        Note: Result depends on profile's flow_end_statuses and flow_type_mappings.
         """
         issues = [
             {
@@ -402,7 +402,7 @@ class TestFlowDistributionClean:
             if "Feature" in result["value"]:
                 assert result["value"]["Feature"] == 100.0
         else:
-            # Profile may not have matching completion_statuses for test data
+            # Profile may not have matching flow_end_statuses for test data
             assert result["error_state"] == "no_data"
 
     def test_flow_distribution_empty_issues(self):

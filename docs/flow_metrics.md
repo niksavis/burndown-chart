@@ -79,14 +79,14 @@ effort_category: customfield_13204  → Map effort category to custom field
 
 **Flow Time** (Cycle Time):
 - **Start**: First transition to ANY status in `flow_start_statuses` (from changelog)
-- **End**: First transition to ANY status in `completion_statuses` (from changelog)
+- **End**: First transition to ANY status in `flow_end_statuses` (from changelog)
 - **Example**: Issue moves To Do → In Progress → In Review → Done
   - Start = timestamp of "In Progress" transition
   - End = timestamp of "Done" transition
   - Flow Time = End - Start
 
 **Flow Velocity**:
-- Counts issues with current status IN `completion_statuses`
+- Counts issues with current status IN `flow_end_statuses`
 - AND `resolutiondate` in the measurement week
 
 **Flow Efficiency**:
@@ -245,7 +245,7 @@ effort_category: customfield_13204  → Map effort category to custom field
 1. Verify `flow_start_statuses` is configured:
    - Must include statuses where work begins (e.g., "In Progress", "In Review")
    - Configure via Settings → Field Mappings → Types tab
-2. Verify `completion_statuses` is configured:
+2. Verify `flow_end_statuses` is configured:
    - Must include final statuses (e.g., "Done", "Resolved", "Closed")
 3. Check JIRA changelog is available:
    - Flow metrics require changelog history to detect status transitions
@@ -324,7 +324,7 @@ Number of work items completed per week, classified by work type.
 ### Calculation Details
 
 **Per Week**:
-- COUNT of issues with `status IN completion_statuses` AND `resolutiondate` in that week
+- COUNT of issues with `status IN flow_end_statuses` AND `resolutiondate` in that week
 
 **Classification** (Two-tier system):
 - **Primary**: Issue type (Bug → Defect, Story/Task → Feature by default)

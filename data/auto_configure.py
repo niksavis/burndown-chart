@@ -45,7 +45,7 @@ def generate_smart_defaults(
     - completed_date: resolutiondate
     - effort_category: (detected from issues if available)
 
-    Note: Flow Time uses flow_start_statuses and completion_statuses lists
+    Note: Flow Time uses flow_start_statuses and flow_end_statuses lists
     from project_classification to find status transitions in changelog.
 
     Args:
@@ -61,7 +61,7 @@ def generate_smart_defaults(
         Dict with auto-configured profile settings:
             {
                 "project_classification": {
-                    "completion_statuses": [...],
+                    "flow_end_statuses": [...],
                     "active_statuses": [...],
                     "flow_start_statuses": [...],
                     "wip_statuses": [...],
@@ -101,7 +101,7 @@ def generate_smart_defaults(
     # Type: Dict can contain nested dicts (field_mappings), lists (project_classification), or strings (points_field)
     defaults: Dict[str, Any] = {
         "project_classification": {
-            "completion_statuses": [],
+            "flow_end_statuses": [],
             "active_statuses": [],
             "flow_start_statuses": [],
             "wip_statuses": [],
@@ -119,10 +119,10 @@ def generate_smart_defaults(
     }
 
     # 1. Map statuses by category
-    completion_statuses, active_statuses, wip_statuses = _map_statuses_by_category(
+    flow_end_statuses, active_statuses, wip_statuses = _map_statuses_by_category(
         statuses, auto_detected
     )
-    defaults["project_classification"]["completion_statuses"] = completion_statuses
+    defaults["project_classification"]["flow_end_statuses"] = flow_end_statuses
     defaults["project_classification"]["active_statuses"] = active_statuses
     defaults["project_classification"]["wip_statuses"] = wip_statuses
 
@@ -132,7 +132,7 @@ def generate_smart_defaults(
     )
 
     logger.info(
-        f"[AutoConfigure] Mapped {len(completion_statuses)} completion, {len(active_statuses)} active, {len(wip_statuses)} WIP statuses"
+        f"[AutoConfigure] Mapped {len(flow_end_statuses)} completion, {len(active_statuses)} active, {len(wip_statuses)} WIP statuses"
     )
 
     # 2. Map issue types to flow categories AND extract DevOps types
@@ -184,7 +184,7 @@ def generate_smart_defaults(
     )
 
     # Completion status = first completion status (typically "Done")
-    completion_status = completion_statuses[0] if completion_statuses else "Done"
+    completion_status = flow_end_statuses[0] if flow_end_statuses else "Done"
 
     # === DORA METRICS: Use namespace syntax for changelog-based extraction ===
     dora_mappings = {
@@ -220,7 +220,7 @@ def generate_smart_defaults(
 
     logger.info(
         f"[AutoConfigure] Flow metrics use status lists from project_classification: "
-        f"flow_start_statuses, completion_statuses (configured separately)"
+        f"flow_start_statuses, flow_end_statuses (configured separately)"
     )
 
     # === OPTIONAL: Detect custom fields to ADD to mappings (not override) ===
@@ -302,7 +302,7 @@ def _map_statuses_by_category(
     """Map JIRA statuses to completion, active, and WIP categories.
 
     Uses JIRA status categories as primary source:
-    - "done" category → completion_statuses
+    - "done" category → flow_end_statuses
     - "indeterminate" category → active_statuses + wip_statuses
     - "new" category → typically not used for metrics
 
@@ -311,21 +311,21 @@ def _map_statuses_by_category(
         auto_detected: Auto-detected configurations from metadata
 
     Returns:
-        Tuple of (completion_statuses, active_statuses, wip_statuses)
+        Tuple of (flow_end_statuses, active_statuses, wip_statuses)
     """
-    completion_statuses = []
+    flow_end_statuses = []
     active_statuses = []
     wip_statuses = []
 
     # Use auto-detected if available (already categorized by metadata fetcher)
     if auto_detected.get("statuses"):
         detected = auto_detected["statuses"]
-        completion_statuses = detected.get("completion_statuses", [])
+        flow_end_statuses = detected.get("flow_end_statuses", [])
         active_statuses = detected.get("active_statuses", [])
         wip_statuses = detected.get("wip_statuses", [])
 
         logger.info("[AutoConfigure] Using auto-detected statuses from metadata")
-        return completion_statuses, active_statuses, wip_statuses
+        return flow_end_statuses, active_statuses, wip_statuses
 
     # Fallback: Manual categorization by status category key
     for status in statuses:
@@ -335,7 +335,7 @@ def _map_statuses_by_category(
 
         if category_key == "done":
             # Done category = completion statuses
-            completion_statuses.append(status_name)
+            flow_end_statuses.append(status_name)
         elif category_key == "indeterminate":
             # Indeterminate = active work
             active_statuses.append(status_name)
@@ -348,7 +348,7 @@ def _map_statuses_by_category(
         # "new" category (To Do, Backlog) - not used for metrics
 
     logger.info("[AutoConfigure] Manually categorized statuses by JIRA category")
-    return completion_statuses, active_statuses, wip_statuses
+    return flow_end_statuses, active_statuses, wip_statuses
 
 
 def _select_flow_start_statuses(wip_statuses: List[str]) -> List[str]:

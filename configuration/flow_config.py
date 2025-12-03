@@ -51,19 +51,19 @@ FLOW_EFFICIENCY_THRESHOLDS = {
 # Required field mappings for each Flow metric
 # NOTE: Most Flow metrics use status lists from project_classification:
 # - flow_start_statuses: Statuses that indicate work started (e.g., In Progress, In Review)
-# - completion_statuses: Statuses that indicate work completed (e.g., Done, Resolved, Closed)
+# - flow_end_statuses: Statuses that indicate work completed (e.g., Done, Resolved, Closed)
 # - active_statuses: Statuses where active work happens (e.g., In Progress, In Review, Testing)
 # - wip_statuses: All work-in-progress statuses including waiting states
 REQUIRED_FLOW_FIELDS = {
     "flow_velocity": [
         "flow_item_type"
-    ],  # Uses completion_statuses from project_classification
-    "flow_time": [],  # Uses flow_start_statuses and completion_statuses from project_classification
+    ],  # Uses flow_end_statuses from project_classification
+    "flow_time": [],  # Uses flow_start_statuses and flow_end_statuses from project_classification
     "flow_efficiency": [],  # Uses active_statuses and wip_statuses from project_classification
     "flow_load": ["status"],  # Uses wip_statuses from project_classification
     "flow_distribution": [
         "flow_item_type"
-    ],  # Uses completion_statuses from project_classification
+    ],  # Uses flow_end_statuses from project_classification
 }
 
 # Metric display names

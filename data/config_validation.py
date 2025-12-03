@@ -135,7 +135,7 @@ def validate_comprehensive_config(config: Dict[str, Any]) -> Dict[str, List[str]
     # Field mappings validation - distinguish between required and optional
     # CRITICAL: Only Flow metrics baseline fields are truly required
     # DORA fields are optional since not all JIRA setups support them
-    # Note: Flow Time uses flow_start_statuses and completion_statuses lists
+    # Note: Flow Time uses flow_start_statuses and flow_end_statuses lists
     # from project_classification - no field mappings needed.
     required_flow_fields = [
         "flow_item_type",  # Required for Flow metrics
@@ -205,11 +205,11 @@ def validate_comprehensive_config(config: Dict[str, Any]) -> Dict[str, List[str]
         )
 
     # Status validation
-    completion_statuses = config.get("completion_statuses", [])
+    flow_end_statuses = config.get("flow_end_statuses", [])
     active_statuses = config.get("active_statuses", [])
     wip_statuses = config.get("wip_statuses", [])
 
-    if not completion_statuses:
+    if not flow_end_statuses:
         errors.append("At least one completion status is required")
 
     is_valid, warning_msg = validate_active_wip_subset(active_statuses, wip_statuses)

@@ -34,7 +34,7 @@ def mock_profile_config() -> Dict[str, Any]:
     - devops_task_types: ["Operational Task"]
     - development_projects: ["A935"]
     - bug_types: ["Bug"]
-    - completion_statuses: ["Done", "Resolved", "Closed", "Canceled"]
+    - flow_end_statuses: ["Done", "Resolved", "Closed", "Canceled"]
     """
     return {
         "field_mappings": {
@@ -56,7 +56,7 @@ def mock_profile_config() -> Dict[str, Any]:
             },
             "values": {},
         },
-        "completion_statuses": ["Done", "Resolved", "Closed", "Canceled"],
+        "flow_end_statuses": ["Done", "Resolved", "Closed", "Canceled"],
         "active_statuses": ["In Progress", "In Review", "Testing"],
         "wip_statuses": [
             "In Progress",
@@ -854,7 +854,7 @@ class TestFixVersionMatcher:
 
         result = build_fixversion_release_map(
             operational_tasks=op_tasks,
-            completion_statuses=["Done", "Resolved", "Closed"],
+            flow_end_statuses=["Done", "Resolved", "Closed"],
         )
 
         assert len(result) == 2

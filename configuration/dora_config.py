@@ -283,17 +283,17 @@ def get_operational_project_keys() -> list:
         return []
 
 
-def get_completion_status_names() -> list:
-    """Get list of completion status names from configuration.
+def get_flow_end_status_names() -> list:
+    """Get list of flow end status names from configuration.
 
     Returns:
-        List of completion status names (e.g., ["Done", "Resolved", "Closed"])
+        List of flow end status names (e.g., ["Done", "Resolved", "Closed"])
     """
     from configuration.metrics_config import get_metrics_config
 
     try:
         config = get_metrics_config()
-        return config.get_completion_statuses()
+        return config.get_flow_end_statuses()
     except Exception:
         # Fallback to defaults
         return ["Done", "Resolved", "Closed"]

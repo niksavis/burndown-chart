@@ -469,7 +469,7 @@ def create_field_mapping_form(
             # NOTE: Estimate/Story Points field is configured in JIRA Connection modal, not here
             # This avoids duplicate configuration and confusion
             # NOTE: work_started_date and work_completed_date are obsolete.
-            # Flow Time now uses flow_start_statuses and completion_statuses lists
+            # Flow Time now uses flow_start_statuses and flow_end_statuses lists
             # from Project Classification to find status transitions in changelog.
         ],
         field_options,

@@ -247,7 +247,7 @@ JIRA Bug with customfield_11309 = null   → Excluded from MTTR
 **Solution**:
 1. Verify DevOps project is configured and contains Operational Tasks
 2. Check Operational Tasks have `fixVersions` with `releaseDate` populated
-3. Verify `completion_statuses` includes the task completion status (e.g., "Done")
+3. Verify `flow_end_statuses` includes the task completion status (e.g., "Done")
 4. Check Development project issues share `fixVersions` with Operational Tasks
 
 **Issue**: Lead Time shows very large values (e.g., 200+ days)
@@ -288,7 +288,7 @@ How often deployments happen to production.
 - **Releases**: COUNT of UNIQUE fixVersion names in that week
 
 **Filtering**:
-- Only tasks where `status IN completion_statuses` (Done, Closed, etc.)
+- Only tasks where `status IN flow_end_statuses` (Done, Closed, etc.)
 - Only tasks with `fixVersion.releaseDate <= today` (excludes future deployments)
 - Uses **earliest releaseDate** if multiple fixVersions exist
 

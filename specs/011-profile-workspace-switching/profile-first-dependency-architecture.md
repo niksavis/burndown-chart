@@ -260,7 +260,7 @@ Step 6: EXECUTE "Calculate Metrics" (computes DORA/Flow, saves to query workspac
     "devops_task_types": ["Task", "Sub-task"],
     "bug_types": ["Bug"],
     "production_environment_values": [],
-    "completion_statuses": ["Resolved", "Closed"],
+    "flow_end_statuses": ["Resolved", "Closed"],
     "active_statuses": ["In Progress", "In Review"],
     "flow_start_statuses": ["In Progress"],
     "wip_statuses": ["In Progress", "In Review", "Testing"]

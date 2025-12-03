@@ -61,7 +61,7 @@ INTERNAL_FIELD_TYPES = {
     "target_environment": "select",  # Deployment target environment
     "severity_level": "select",  # Incident priority/severity
     # Flow Metrics fields (aligned with Flow Framework standards)
-    # Note: Flow Time now uses flow_start_statuses and completion_statuses
+    # Note: Flow Time now uses flow_start_statuses and flow_end_statuses
     # from project_classification to find status transitions in changelog.
     "flow_item_type": "select",  # Work category (Feature/Defect/Tech Debt/Risk)
     "status": "select",  # Current work status

@@ -113,7 +113,7 @@ class MetricsConfig:
             "id": self.profile_id,
             "name": "Default",
             "project_classification": {
-                "completion_statuses": [],
+                "flow_end_statuses": [],
                 "active_statuses": [],
                 "flow_start_statuses": [],
                 "wip_statuses": [],
@@ -201,15 +201,15 @@ class MetricsConfig:
             "active_statuses", []
         )
 
-    def get_completion_statuses(self) -> List[str]:
-        """Get list of statuses that indicate work is completed from profile.
+    def get_flow_end_statuses(self) -> List[str]:
+        """Get list of statuses that indicate work is completed (Flow End) from profile.
 
         Returns:
-            List of completion status names configured in profile
+            List of flow end status names configured in profile
             Example: ["Done", "Resolved", "Closed"]
         """
         return self.profile_config.get("project_classification", {}).get(
-            "completion_statuses", []
+            "flow_end_statuses", []
         )
 
     def get_flow_start_statuses(self) -> List[str]:
@@ -368,8 +368,8 @@ class MetricsConfig:
         warnings = []
 
         # Check for completion statuses
-        completion_statuses = self.get_completion_statuses()
-        if not completion_statuses:
+        flow_end_statuses = self.get_flow_end_statuses()
+        if not flow_end_statuses:
             warnings.append(
                 "No completion statuses configured. "
                 "Configure via 'Configure JIRA Mappings' → Status tab → Completion Statuses"
@@ -432,7 +432,7 @@ class MetricsConfig:
             "",
             f"DORA field mappings: {len(self.get_dora_field_mappings())} configured",
             f"Flow field mappings: {len(self.get_flow_field_mappings())} configured",
-            f"Completion statuses: {len(self.get_completion_statuses())} configured",
+            f"Flow End statuses: {len(self.get_flow_end_statuses())} configured",
             f"Active statuses: {len(self.get_active_statuses())} configured",
             f"WIP statuses: {len(self.get_wip_statuses())} configured",
             f"Flow start statuses: {len(self.get_flow_start_statuses())} configured",

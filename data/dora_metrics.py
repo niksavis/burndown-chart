@@ -42,7 +42,7 @@ def _get_field_mappings():
     # Project classification is flattened to root level by load_app_settings
     # Reconstruct the nested structure for backward compatibility
     project_classification = {
-        "completion_statuses": app_settings.get("completion_statuses", []),
+        "flow_end_statuses": app_settings.get("flow_end_statuses", []),
         "active_statuses": app_settings.get("active_statuses", []),
         "wip_statuses": app_settings.get("wip_statuses", []),
         "flow_start_statuses": app_settings.get("flow_start_statuses", []),
@@ -56,18 +56,18 @@ def _get_field_mappings():
     return dora_mappings, project_classification
 
 
-def _is_issue_completed(issue: Dict[str, Any], completion_statuses: List[str]) -> bool:
+def _is_issue_completed(issue: Dict[str, Any], flow_end_statuses: List[str]) -> bool:
     """Check if issue is in a completed status.
 
     Args:
         issue: JIRA issue dictionary
-        completion_statuses: List of status names that indicate completion
+        flow_end_statuses: List of status names that indicate completion
 
     Returns:
-        True if issue status is in completion_statuses
+        True if issue status is in flow_end_statuses
     """
     status = issue.get("fields", {}).get("status", {}).get("name", "")
-    return status in completion_statuses
+    return status in flow_end_statuses
 
 
 def _extract_datetime_from_field_mapping(
@@ -456,8 +456,8 @@ def calculate_deployment_frequency(
 
         # Get field mappings from profile
         dora_mappings, project_classification = _get_field_mappings()
-        completion_statuses = project_classification.get(
-            "completion_statuses", ["Done", "Resolved", "Closed"]
+        flow_end_statuses = project_classification.get(
+            "flow_end_statuses", ["Done", "Resolved", "Closed"]
         )
 
         # Count deployments (operational tasks) and releases (distinct fixVersions)
@@ -468,7 +468,7 @@ def calculate_deployment_frequency(
             fields = issue.get("fields", {})
 
             # Check if issue is completed
-            if not _is_issue_completed(issue, completion_statuses):
+            if not _is_issue_completed(issue, flow_end_statuses):
                 continue
 
             # Check if issue has fixVersion with releaseDate
@@ -867,8 +867,8 @@ def calculate_change_failure_rate(
                 f"[DORA CFR] Using configured failure values: {configured_failure_values}"
             )
 
-        completion_statuses = project_classification.get(
-            "completion_statuses", ["Done", "Resolved", "Closed"]
+        flow_end_statuses = project_classification.get(
+            "flow_end_statuses", ["Done", "Resolved", "Closed"]
         )
 
         # Count deployments and track which have change_failure flag set
@@ -882,7 +882,7 @@ def calculate_change_failure_rate(
             fields = issue.get("fields", {})
 
             # Check if issue is completed
-            if not _is_issue_completed(issue, completion_statuses):
+            if not _is_issue_completed(issue, flow_end_statuses):
                 continue
 
             # Check if issue has fixVersion with releaseDate (deployment date)

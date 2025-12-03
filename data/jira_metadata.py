@@ -658,7 +658,7 @@ class JiraMetadataFetcher:
             Dictionary with categorized status names
         """
         categories = {
-            "completion_statuses": [],
+            "flow_end_statuses": [],
             "active_statuses": [],
             "flow_start_statuses": [],
             "wip_statuses": [],
@@ -670,7 +670,7 @@ class JiraMetadataFetcher:
 
             # Map JIRA status categories to our categories
             if category_key == "done":
-                categories["completion_statuses"].append(name)
+                categories["flow_end_statuses"].append(name)
             elif category_key == "indeterminate":  # In Progress category
                 categories["active_statuses"].append(name)
                 categories["flow_start_statuses"].append(name)

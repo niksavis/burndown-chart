@@ -140,7 +140,7 @@ def save_app_settings(
     story_types=None,
     task_types=None,
     production_environment_values=None,
-    completion_statuses=None,
+    flow_end_statuses=None,
     active_statuses=None,
     flow_start_statuses=None,
     wip_statuses=None,
@@ -172,7 +172,7 @@ def save_app_settings(
         story_types: List of story type names
         task_types: List of task type names
         production_environment_values: List of production environment identifiers
-        completion_statuses: List of completion status names
+        flow_end_statuses: List of completion status names
         active_statuses: List of active status names
         flow_start_statuses: List of flow start status names
         wip_statuses: List of WIP status names
@@ -216,8 +216,8 @@ def save_app_settings(
         settings["task_types"] = task_types
     if production_environment_values is not None:
         settings["production_environment_values"] = production_environment_values
-    if completion_statuses is not None:
-        settings["completion_statuses"] = completion_statuses
+    if flow_end_statuses is not None:
+        settings["flow_end_statuses"] = flow_end_statuses
     if active_statuses is not None:
         settings["active_statuses"] = active_statuses
     if flow_start_statuses is not None:
@@ -250,7 +250,7 @@ def save_app_settings(
             "task_types",
             "production_environment_values",
             "production_environment_value",  # Legacy support
-            "completion_statuses",
+            "flow_end_statuses",
             "active_statuses",
             "flow_start_statuses",
             "wip_statuses",
@@ -352,10 +352,10 @@ def save_app_settings(
                         "production_environment_values", []
                     ),
                 ),
-                "completion_statuses": settings.get(
-                    "completion_statuses",
+                "flow_end_statuses": settings.get(
+                    "flow_end_statuses",
                     existing_profile.get("project_classification", {}).get(
-                        "completion_statuses", ["Resolved", "Closed"]
+                        "flow_end_statuses", ["Resolved", "Closed"]
                     ),
                 ),
                 "active_statuses": settings.get(
@@ -486,9 +486,9 @@ def load_app_settings() -> Dict[str, Any]:
                 "production_environment_values": profile_data.get(
                     "project_classification", {}
                 ).get("production_environment_values", []),
-                "completion_statuses": profile_data.get(
-                    "project_classification", {}
-                ).get("completion_statuses", []),
+                "flow_end_statuses": profile_data.get("project_classification", {}).get(
+                    "flow_end_statuses", []
+                ),
                 "active_statuses": profile_data.get("project_classification", {}).get(
                     "active_statuses", []
                 ),

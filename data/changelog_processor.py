@@ -290,7 +290,7 @@ def calculate_time_in_status(
 def calculate_flow_time(
     issue: Dict,
     start_statuses: List[str],
-    completion_statuses: List[str],
+    flow_end_statuses: List[str],
     active_statuses: Optional[List[str]] = None,
     case_sensitive: bool = False,
 ) -> Dict:
@@ -304,7 +304,7 @@ def calculate_flow_time(
     Args:
         issue: JIRA issue dictionary with expanded changelog
         start_statuses: Statuses that mark start of flow (e.g., ["In Progress"])
-        completion_statuses: Statuses that mark completion (e.g., ["Done", "Resolved", "Closed"])
+        flow_end_statuses: Statuses that mark completion (e.g., ["Done", "Resolved", "Closed"])
         active_statuses: Optional list of active statuses for active-time-only calculation
         case_sensitive: Whether to match status names case-sensitively (default: False)
 
@@ -342,7 +342,7 @@ def calculate_flow_time(
 
         # Find completion timestamp (first entry to any completion status)
         completion_result = get_first_status_transition_from_list(
-            issue, completion_statuses, case_sensitive
+            issue, flow_end_statuses, case_sensitive
         )
         if not completion_result:
             # Issue not yet completed

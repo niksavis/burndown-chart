@@ -274,7 +274,7 @@ Use these rules to verify your metrics are correctly configured:
 | Metric              | Start Point                            | End Point                                    | Source                       |
 | ------------------- | -------------------------------------- | -------------------------------------------- | ---------------------------- |
 | **Lead Time**       | First `flow_start_statuses` transition | `fixVersion.releaseDate`                     | Changelog + Operational Task |
-| **Flow Time**       | First `flow_start_statuses` transition | First `completion_statuses` transition       | Changelog only               |
+| **Flow Time**       | First `flow_start_statuses` transition | First `flow_end_statuses` transition         | Changelog only               |
 | **MTTR**            | `created` field                        | `fixVersion.releaseDate` or `resolutiondate` | Fields + Operational Task    |
 | **Flow Efficiency** | Time in `active_statuses`              | Time in `wip_statuses`                       | Changelog transitions        |
 
@@ -310,7 +310,7 @@ Use these rules to verify your metrics are correctly configured:
 **Symptoms**: Flow Time is greater than Lead Time
 **Likely Causes**:
 1. Different issues being measured (Flow uses all issues, Lead Time uses deployed only)
-2. `completion_statuses` doesn't match actual "Done" status names
+2. `flow_end_statuses` doesn't match actual "Done" status names
 3. Changelog missing for some issues
 
 **Fix**: Ensure both metrics use same status lists and all issues have changelog.
@@ -390,8 +390,8 @@ If your actual Flow Time shows 25 days, investigate:
 | **Lead Time**            | `code_commit_date` (changelog), `fixVersions`                          |
 | **CFR**                  | `change_failure` (with =Value filter), `fixVersions`                   |
 | **MTTR**                 | `incident_detected_at`, `incident_resolved_at`, `affected_environment` |
-| **Flow Velocity**        | `completed_date` or `completion_statuses`                              |
-| **Flow Time**            | `flow_start_statuses`, `completion_statuses` (changelog)               |
+| **Flow Velocity**        | `completed_date` or `flow_end_statuses`                                |
+| **Flow Time**            | `flow_start_statuses`, `flow_end_statuses` (changelog)                 |
 | **Flow Efficiency**      | `active_statuses`, `wip_statuses` (changelog)                          |
 | **Flow Load**            | `wip_statuses`                                                         |
 | **Flow Distribution**    | `flow_item_type`, `flow_type_mappings`                                 |
@@ -402,7 +402,7 @@ If your actual Flow Time shows 25 days, investigate:
 active_statuses ⊆ wip_statuses ⊆ all_statuses
 
 Example:
-- completion_statuses: [Done, Resolved, Closed, Canceled]
+- flow_end_statuses: [Done, Resolved, Closed, Canceled]
 - flow_start_statuses: [In Progress, In Review]
 - active_statuses: [In Progress, In Review, Testing]
 - wip_statuses: [In Progress, In Review, Testing, Ready for Testing, In Deployment]
