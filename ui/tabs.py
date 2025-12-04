@@ -101,22 +101,22 @@ TAB_CONFIG: List[TabConfig] = [
         "help_content_id": "help-bug-analysis",
     },
     {
-        "id": "tab-dora-metrics",
-        "label": "DORA Metrics",
-        "icon": "fa-rocket",
-        "color": get_color("primary"),
-        "order": 6,
-        "requires_data": False,  # Has its own data loading
-        "help_content_id": "help-dora",
-    },
-    {
         "id": "tab-flow-metrics",
         "label": "Flow Metrics",
         "icon": "fa-stream",
         "color": get_color("success"),
-        "order": 7,
+        "order": 6,
         "requires_data": False,  # Has its own data loading
         "help_content_id": "help-flow",
+    },
+    {
+        "id": "tab-dora-metrics",
+        "label": "DORA Metrics",
+        "icon": "fa-rocket",
+        "color": get_color("primary"),
+        "order": 7,
+        "requires_data": False,  # Has its own data loading
+        "help_content_id": "help-dora",
     },
 ]
 
@@ -235,8 +235,8 @@ def create_tab_content(active_tab, charts, statistics_df=None, pert_data=None):
         "tab-points",
         "tab-scope-tracking",
         "tab-bug-analysis",
-        "tab-dora-metrics",
         "tab-flow-metrics",
+        "tab-dora-metrics",
     ]:
         active_tab = "tab-burndown"
 

@@ -279,8 +279,8 @@ class TestTabConfigIntegration:
             "tab-points",
             "tab-scope-tracking",
             "tab-bug-analysis",
-            "tab-dora-metrics",  # Added in Feature 007 Phase 7
-            "tab-flow-metrics",  # Added in Feature 007 Phase 7
+            "tab-flow-metrics",  # Flow before DORA - better workflow
+            "tab-dora-metrics",
         ]
 
         actual_order = [tab["id"] for tab in sorted_tabs]
