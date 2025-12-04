@@ -521,9 +521,9 @@ class JiraMetadataFetcher:
             # If JQL with IS NOT EMPTY fails, try simpler query (just fetch recent issues)
             if response.status_code != 200:
                 logger.warning(
-                    f"[JIRA] JQL with IS NOT EMPTY failed ({response.status_code}), trying simpler query with development projects"
+                    f"[JIRA] JQL with IS NOT EMPTY failed ({response.status_code}), trying simpler query"
                 )
-                # Fallback: get recent issues from development projects only
+                # Fallback: get recent issues from development projects if configured
                 settings = load_app_settings()
                 # development_projects can be at root level or under project_classification
                 dev_projects = settings.get("development_projects", [])
@@ -535,14 +535,15 @@ class JiraMetadataFetcher:
                     simple_jql = (
                         f"project IN ({','.join(dev_projects)}) ORDER BY created DESC"
                     )
+                    logger.info(f"[JIRA] Fallback JQL with projects: {simple_jql}")
                 else:
-                    logger.warning(
-                        "[JIRA] No development projects configured, cannot fetch field values"
+                    # No projects configured - try unscoped query (all recent issues)
+                    simple_jql = "ORDER BY created DESC"
+                    logger.info(
+                        "[JIRA] No development projects configured, trying unscoped fallback JQL"
                     )
-                    return []
 
                 params["jql"] = simple_jql
-                logger.info(f"[JIRA] Fallback JQL: {simple_jql}")
                 response = requests.get(
                     url, headers=self.headers, params=params, timeout=30
                 )

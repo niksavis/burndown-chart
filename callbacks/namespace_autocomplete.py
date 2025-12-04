@@ -38,10 +38,10 @@ clientside_callback(
 )
 
 
-# Collect namespace input values from DOM when save or validate button is clicked
+# Collect namespace input values from DOM when save, validate, or tab switch
 # Since we use DOM manipulation for autocomplete, this clientside callback
 # reads directly from DOM and stores the result for Python to process
-# The trigger type ("save" or "validate") is detected by the JS function
+# The trigger type ("save", "validate", or "tab_switch") is detected by the JS function
 clientside_callback(
     ClientsideFunction(
         namespace="namespace_autocomplete", function_name="collectNamespaceValues"
@@ -50,6 +50,7 @@ clientside_callback(
     [
         Input("field-mapping-save-button", "n_clicks"),
         Input("validate-mappings-button", "n_clicks"),
+        Input("mappings-tabs", "active_tab"),  # Also collect when switching tabs
     ],
     prevent_initial_call=True,
 )

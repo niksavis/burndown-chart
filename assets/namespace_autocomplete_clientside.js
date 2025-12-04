@@ -602,22 +602,17 @@ window.dash_clientside.namespace_autocomplete = {
 
   /**
    * Collect all namespace input values from the DOM
-   * Called when save or validate button is clicked to gather values.
+   * Called when save/validate button is clicked or when switching tabs.
    *
    * Since we use dcc.Input with DOM manipulation for autocomplete,
    * this function reads directly from DOM to get the actual values
    * (including those set by autocomplete selection).
    *
-   * Input: n_clicks from save button, n_clicks from validate button
-   * Output: Dict with {trigger: "save"|"validate", values: {...}, validationErrors: [...]}
+   * Input: n_clicks from save button, n_clicks from validate button, active_tab string
+   * Output: Dict with {trigger: "save"|"validate"|"tab_switch", values: {...}, validationErrors: [...]}
    */
-  collectNamespaceValues: function (saveClicks, validateClicks) {
-    // Check if any trigger is active
-    if (!saveClicks && !validateClicks) {
-      return window.dash_clientside.no_update;
-    }
-
-    // Determine which button triggered this
+  collectNamespaceValues: function (saveClicks, validateClicks, activeTab) {
+    // Determine which input triggered this callback
     const ctx = window.dash_clientside.callback_context;
     let trigger = "unknown";
     if (ctx && ctx.triggered && ctx.triggered.length > 0) {
@@ -626,15 +621,28 @@ window.dash_clientside.namespace_autocomplete = {
         trigger = "save";
       } else if (triggeredId === "validate-mappings-button") {
         trigger = "validate";
+      } else if (triggeredId === "mappings-tabs") {
+        trigger = "tab_switch";
       }
+    }
+
+    // For tab switches, only collect if we're leaving the Fields tab
+    // (inputs must exist in DOM to be collected)
+    const inputs = document.querySelectorAll(
+      '.namespace-input-container input[type="text"]'
+    );
+
+    // If no namespace inputs found (not on Fields tab or modal closed), skip
+    if (inputs.length === 0) {
+      console.log(
+        "[Autocomplete] No namespace inputs found, skipping collection"
+      );
+      return window.dash_clientside.no_update;
     }
 
     const values = {};
     const validationErrors = [];
     const autocompleteData = window._namespaceAutocompleteData || null;
-    const inputs = document.querySelectorAll(
-      '.namespace-input-container input[type="text"]'
-    );
 
     inputs.forEach((input) => {
       try {
@@ -648,7 +656,7 @@ window.dash_clientside.namespace_autocomplete = {
           const value = input.value ? input.value.trim() : "";
 
           if (value) {
-            // Validate on save OR validate trigger
+            // Only validate on save or validate triggers (not tab switches)
             if (trigger === "save" || trigger === "validate") {
               const error =
                 window.dash_clientside.namespace_autocomplete.isValidForSave(

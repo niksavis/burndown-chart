@@ -105,6 +105,7 @@ from callbacks import (
     dashboard,  # Dashboard metrics and PERT timeline callbacks (Feature 006, User Story 2)
     dora_flow_metrics,  # DORA/Flow metrics callbacks (Feature 007, auto-registers via @callback)  # noqa: F401
     field_mapping,  # Field mapping callbacks (Feature 007, auto-registers via @callback)  # noqa: F401
+    field_value_fetch,  # Auto-fetch field values for dropdowns (Feature 012, auto-registers via @callback)  # noqa: F401
     integrated_query_management,  # Integrated query management callbacks (Feature 011, auto-registers via @callback)  # noqa: F401
     jira_config,  # JIRA config modal callbacks (auto-registers via @callback)  # noqa: F401
     jira_data_store,  # JIRA issues store population (Feature 007, auto-registers via @callback)  # noqa: F401

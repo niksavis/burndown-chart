@@ -422,6 +422,7 @@ def validate_flow_start_wip_subset(flow_start_statuses, wip_statuses):
 
 @callback(
     Output("field-mapping-modal", "is_open"),
+    Output("fetched-field-values-store", "data", allow_duplicate=True),
     Input("open-field-mapping-modal", "n_clicks"),
     Input(
         {"type": "open-field-mapping", "index": ALL}, "n_clicks"
@@ -437,7 +438,7 @@ def toggle_field_mapping_modal(
     cancel_clicks: int | None,
     save_success: bool | None,
     is_open: bool,
-) -> bool:
+) -> tuple[bool, Any]:  # Second element is dict or no_update
     """Toggle field mapping modal open/closed.
 
     Args:
@@ -448,11 +449,13 @@ def toggle_field_mapping_modal(
         is_open: Current modal state
 
     Returns:
-        New modal state (True = open, False = closed)
+        Tuple of (new modal state, fetched values store data)
+        - Modal state: True = open, False = closed
+        - Store data: Empty dict {} when opening (clears stale data), no_update otherwise
     """
     ctx = callback_context
     if not ctx.triggered:
-        return is_open
+        return is_open, no_update
 
     trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
     trigger_value = ctx.triggered[0]["value"]
@@ -462,13 +465,13 @@ def toggle_field_mapping_modal(
         f"[FieldMapping] Modal toggle - trigger_id: {trigger_id}, value: {trigger_value}"
     )
 
-    # Close on cancel
+    # Close on cancel - don't clear store (user might reopen)
     if trigger_id == "field-mapping-cancel-button":
-        return False
+        return False, no_update
 
     # Close ONLY on successful save (when save_success is True)
     if trigger_id == "field-mapping-save-success" and save_success is True:
-        return False
+        return False, no_update
 
     # Open when open button clicked (from settings panel or metric cards)
     # Must verify it's an actual click (value > 0), not just a button being added to DOM (value = None or 0)
@@ -478,15 +481,16 @@ def toggle_field_mapping_modal(
         # Only open if there was an actual click (not None, not 0, not empty list)
         if trigger_value and trigger_value != 0:
             logger.info(f"[FieldMapping] Opening modal from trigger: {trigger_id}")
-            return True
+            # Clear fetched field values when opening to prevent stale data from other profiles
+            return True, {}
         else:
             logger.info(
                 f"[FieldMapping] Ignoring button render/initial state - trigger: {trigger_id}, value: {trigger_value}"
             )
-            return is_open
+            return is_open, no_update
 
     logger.warning(f"[FieldMapping] Modal toggle - unhandled trigger: {trigger_id}")
-    return is_open
+    return is_open, no_update
 
 
 # OLD CALLBACK REMOVED - Now using render_tab_content() for 5-tab system
@@ -637,6 +641,9 @@ def _get_mock_mappings() -> Dict[str, Dict[str, str]]:
     Input("jira-metadata-store", "data"),
     Input("field-mapping-modal", "is_open"),
     Input("auto-configure-refresh-trigger", "data"),  # Trigger from auto-configure
+    Input(
+        "fetched-field-values-store", "data"
+    ),  # Trigger re-render when field values fetched (for Types/Environment tabs)
     State("field-mapping-state-store", "data"),  # Read-only state access
     State("namespace-collected-values", "data"),  # Collected namespace values from DOM
     prevent_initial_call="initial_duplicate",
@@ -646,6 +653,7 @@ def render_tab_content(
     metadata: dict,
     is_open: bool,
     refresh_trigger: int,
+    fetched_field_values: dict,
     state_data: dict,
     collected_namespace_values: dict,
 ):
@@ -659,25 +667,40 @@ def render_tab_content(
         metadata: Cached JIRA metadata from store
         is_open: Whether modal is open
         refresh_trigger: Trigger value from auto-configure
+        fetched_field_values: Dynamically fetched field values (triggers re-render for Types/Env tabs)
         state_data: Current form state from state store
         collected_namespace_values: Values collected from namespace inputs (DOM)
 
     Returns:
         Tuple of (form component, updated state)
     """
+    from dash import ctx
     from data.persistence import load_app_settings
     from ui.project_config_form import create_project_config_form
     from ui.issue_type_config_form import create_issue_type_config_form
     from ui.status_config_form import create_status_config_form
     from ui.environment_config_form import create_environment_config_form
 
+    # Check what triggered this callback
+    triggered_id = ctx.triggered_id if ctx.triggered else None
+
     # Debug logging
     logger.info(
         f"[FieldMapping] render_tab_content: tab={active_tab}, is_open={is_open}, "
         f"has_metadata={bool(metadata and metadata.get('fields'))}, "
         f"field_count={len(metadata.get('fields', [])) if metadata else 0}, "
-        f"collected_values={bool(collected_namespace_values)}"
+        f"collected_values={bool(collected_namespace_values)}, "
+        f"fetched_values={list((fetched_field_values or {}).keys())}, "
+        f"triggered_by={triggered_id}"
     )
+
+    # If triggered by fetched-field-values-store and we're on Fields tab, don't re-render
+    # This prevents losing namespace input values when field values are fetched
+    if triggered_id == "fetched-field-values-store" and active_tab == "tab-fields":
+        logger.info(
+            "[FieldMapping] Skipping Fields tab re-render on fetched values change"
+        )
+        return no_update, no_update
 
     # Don't render if modal is closed (but allow initial empty state)
     if not is_open and callback_context.triggered:
@@ -687,9 +710,13 @@ def render_tab_content(
     settings = load_app_settings()
     metadata = metadata or {}
 
+    # Ensure state_data is a dict
+    state_data = state_data or {}
+
     # Merge collected namespace values into state_data field_mappings
-    # This preserves values when switching modes (simple <-> advanced)
-    if collected_namespace_values and state_data:
+    # This preserves values when switching tabs
+    # IMPORTANT: Do this BEFORE checking for empty state
+    if collected_namespace_values:
         state_data = state_data.copy()  # Don't mutate original
         field_mappings = (
             state_data.get("field_mappings", {}).copy()
@@ -734,14 +761,17 @@ def render_tab_content(
             f"[FieldMapping] Merged {len(collected_namespace_values)} metric groups from collected values"
         )
 
-    # Check if state is empty or only contains profile tracking metadata
-    # (state_data with only "_profile_id" key should be re-initialized)
-    is_empty_state = not state_data or (
-        len(state_data) == 1 and "_profile_id" in state_data
-    )
+    # Check if state is empty or only contains profile tracking metadata and/or field_mappings
+    # (state_data with only "_profile_id" and/or "field_mappings" keys should be re-initialized with other settings)
+    essential_keys = {"_profile_id", "field_mappings"}
+    is_partial_state = not state_data or set(state_data.keys()).issubset(essential_keys)
 
-    # If state is empty, initialize it from saved settings
-    if is_empty_state:
+    # If state is partial, initialize other fields from saved settings
+    # BUT preserve any field_mappings that were just merged from collected values
+    if is_partial_state:
+        # Preserve existing field_mappings from merge
+        existing_field_mappings = state_data.get("field_mappings", {})
+
         # Helper to safely extract flow type mappings
         flow_mappings = settings.get("flow_type_mappings", {}) or {}
 
@@ -755,6 +785,7 @@ def render_tab_content(
         # Preserve profile ID if it exists
         profile_id = (state_data or {}).get("_profile_id")
 
+        # Initialize state with saved settings
         state_data = {
             "_profile_id": profile_id,  # Track current profile for switch detection
             "field_mappings": settings.get("field_mappings", {}),
@@ -790,6 +821,20 @@ def render_tab_content(
                 "production_environment_values", []
             ),
         }
+
+        # Merge in any field_mappings collected from namespace inputs
+        # These take precedence over saved settings (user just typed them)
+        if existing_field_mappings:
+            if "field_mappings" not in state_data:
+                state_data["field_mappings"] = {}
+            for metric, fields in existing_field_mappings.items():
+                if isinstance(fields, dict):
+                    if metric not in state_data["field_mappings"]:
+                        state_data["field_mappings"][metric] = {}
+                    for field, value in fields.items():
+                        if value:  # Only merge non-empty values
+                            state_data["field_mappings"][metric][field] = value
+
         logger.info("[FieldMapping] Initialized state store from saved settings")
 
     # Use state data for rendering (preserves user changes across tabs)
@@ -869,14 +914,29 @@ def render_tab_content(
         }
 
         # Get effort category options
-        # Note: effort_category is under field_mappings.flow, not at root level
-        flow_field_mappings = settings.get("field_mappings", {}).get("flow", {})
-        effort_category_field = flow_field_mappings.get("effort_category")
+        # Priority 1: Use dynamically fetched values (from field_value_fetch callback)
+        # Priority 2: Use metadata field_options (from modal open)
         available_effort_categories = []
-        if effort_category_field and metadata.get("field_options"):
-            available_effort_categories = metadata.get("field_options", {}).get(
-                effort_category_field, []
+
+        # Check fetched_field_values first (dynamic fetch when field changes)
+        if fetched_field_values and fetched_field_values.get("effort_category"):
+            available_effort_categories = fetched_field_values["effort_category"].get(
+                "values", []
             )
+            logger.info(
+                f"[FieldMapping] Using {len(available_effort_categories)} dynamically fetched effort categories"
+            )
+        else:
+            # Fallback to metadata field_options
+            flow_field_mappings = settings.get("field_mappings", {}).get("flow", {})
+            effort_category_field = flow_field_mappings.get("effort_category")
+            if effort_category_field and metadata.get("field_options"):
+                available_effort_categories = metadata.get("field_options", {}).get(
+                    effort_category_field, []
+                )
+                logger.info(
+                    f"[FieldMapping] Using {len(available_effort_categories)} effort categories from metadata"
+                )
 
         available_issue_types_list = metadata.get("issue_types", [])
         logger.info(
@@ -916,15 +976,29 @@ def render_tab_content(
         affected_env_field = dora_mappings.get("affected_environment")
 
         available_env_values = []
+        metadata_env_values = []
+        fetched_env_values = []
 
         # Priority 1: Use field options from metadata (if field was already mapped when modal opened)
         if affected_env_field and metadata.get("field_options"):
-            available_env_values = metadata.get("field_options", {}).get(
+            metadata_env_values = metadata.get("field_options", {}).get(
                 affected_env_field, []
             )
             logger.debug(
-                f"[FieldMapping] Loaded {len(available_env_values)} values from metadata.field_options[{affected_env_field}]"
+                f"[FieldMapping] Loaded {len(metadata_env_values)} values from metadata.field_options[{affected_env_field}]"
             )
+
+        # Priority 1b: Use fetched field values from store (auto-fetched when field mapping changed)
+        if fetched_field_values and fetched_field_values.get("affected_environment"):
+            fetched_env_values = fetched_field_values["affected_environment"].get(
+                "values", []
+            )
+            logger.debug(
+                f"[FieldMapping] Loaded {len(fetched_env_values)} values from fetched-field-values-store"
+            )
+
+        # Combine metadata and fetched values
+        available_env_values = list(set(metadata_env_values + fetched_env_values))
 
         # Priority 2: Use field_values from state (populated by auto-configure from issue analysis)
         if not available_env_values:
@@ -1989,14 +2063,15 @@ def _build_no_fields_alert():
     prevent_initial_call=True,
 )
 def save_or_validate_mappings(namespace_values, state_data):
-    """Save or validate comprehensive configuration from state store.
+    """Save, validate, or update state from collected namespace values.
 
-    This callback handles both "save" and "validate" triggers from the
+    This callback handles "save", "validate", and "tab_switch" triggers from the
     clientside collectNamespaceValues function. The trigger type determines
-    whether to save the mappings or just validate them.
+    the action:
 
     - trigger="validate": Validates and shows results in modal (no save)
     - trigger="save": Validates, then saves if valid
+    - trigger="tab_switch": Updates state store with collected values (preserves them)
 
     Values are collected by a clientside callback (collectNamespaceValues)
     that reads directly from the DOM and stores them in namespace-collected-values.
@@ -2010,7 +2085,7 @@ def save_or_validate_mappings(namespace_values, state_data):
     """
     from data.persistence import save_app_settings, load_app_settings
 
-    # namespace_values has structure: {trigger: "save"|"validate", values: {...}, validationErrors: [...]}
+    # namespace_values has structure: {trigger: "save"|"validate"|"tab_switch", values: {...}, validationErrors: [...]}
     if not namespace_values or not isinstance(namespace_values, dict):
         return no_update, no_update, no_update
 
@@ -2018,10 +2093,29 @@ def save_or_validate_mappings(namespace_values, state_data):
     collected_values = namespace_values.get("values", {})
     validation_errors = namespace_values.get("validationErrors", [])
 
-    # Count total configured fields
-    total_fields = sum(
-        len(fields) for metric, fields in collected_values.items() if fields
-    )
+    # Handle TAB_SWITCH trigger - just update state store with collected values
+    if trigger == "tab_switch":
+        if not collected_values:
+            return no_update, no_update, no_update
+
+        # Merge collected namespace values into state_data
+        state_data = (state_data or {}).copy()
+        if "field_mappings" not in state_data:
+            state_data["field_mappings"] = {}
+
+        for metric, fields in collected_values.items():
+            if not isinstance(fields, dict):
+                continue
+            if metric not in state_data["field_mappings"]:
+                state_data["field_mappings"][metric] = {}
+            for field, value in fields.items():
+                if value and str(value).strip():
+                    state_data["field_mappings"][metric][field] = str(value).strip()
+
+        logger.info(
+            f"[FieldMapping] Tab switch - saved {len(collected_values)} metric groups to state"
+        )
+        return no_update, no_update, state_data
 
     # Handle VALIDATE trigger - comprehensive validation across all tabs
     if trigger == "validate":

@@ -1,6 +1,6 @@
 """Test field mapping state initialization in render callback."""
 
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 from callbacks.field_mapping import render_tab_content
 
 
@@ -9,8 +9,9 @@ class TestFieldMappingStateInitialization:
 
     @patch("data.persistence.load_app_settings")
     @patch("callbacks.field_mapping.callback_context")
+    @patch("dash.ctx")
     def test_render_initializes_state_from_saved_settings(
-        self, mock_ctx, mock_load_settings
+        self, mock_dash_ctx, mock_callback_ctx, mock_load_settings
     ):
         """Test that opening modal initializes state store from profile.json."""
         # Arrange: Mock saved settings with field mappings
@@ -43,7 +44,9 @@ class TestFieldMappingStateInitialization:
             },
         }
 
-        mock_ctx.triggered = []  # Simulate initial render
+        mock_callback_ctx.triggered = []  # Simulate initial render
+        mock_dash_ctx.triggered = []
+        mock_dash_ctx.triggered_id = None
 
         # Empty state (modal opening for first time)
         empty_state = {}
@@ -84,6 +87,7 @@ class TestFieldMappingStateInitialization:
             metadata=metadata,
             is_open=True,
             refresh_trigger=0,
+            fetched_field_values={},  # No fetched values in test
             state_data=empty_state,
             collected_namespace_values={},  # No collected DOM values in test
         )
@@ -115,8 +119,9 @@ class TestFieldMappingStateInitialization:
 
     @patch("data.persistence.load_app_settings")
     @patch("callbacks.field_mapping.callback_context")
+    @patch("dash.ctx")
     def test_render_preserves_state_when_already_initialized(
-        self, mock_ctx, mock_load_settings
+        self, mock_dash_ctx, mock_callback_ctx, mock_load_settings
     ):
         """Test that switching tabs preserves state (doesn't reinitialize)."""
         # Arrange: Mock saved settings (won't be used because state already exists)
@@ -124,7 +129,9 @@ class TestFieldMappingStateInitialization:
             "field_mappings": {"dora": {}, "flow": {}},
         }
 
-        mock_ctx.triggered = [{"prop_id": "mappings-tabs.active_tab"}]
+        mock_callback_ctx.triggered = [{"prop_id": "mappings-tabs.active_tab"}]
+        mock_dash_ctx.triggered = [{"prop_id": "mappings-tabs.active_tab"}]
+        mock_dash_ctx.triggered_id = "mappings-tabs"
 
         # State already initialized with user changes
         existing_state = {
@@ -146,6 +153,7 @@ class TestFieldMappingStateInitialization:
             metadata={},
             is_open=True,
             refresh_trigger=0,
+            fetched_field_values={},  # No fetched values in test
             state_data=existing_state,
             collected_namespace_values={},  # No collected DOM values in test
         )
@@ -162,8 +170,9 @@ class TestFieldMappingStateInitialization:
 
     @patch("data.persistence.load_app_settings")
     @patch("callbacks.field_mapping.callback_context")
+    @patch("dash.ctx")
     def test_render_reinitializes_when_profile_tracking_only(
-        self, mock_ctx, mock_load_settings
+        self, mock_dash_ctx, mock_callback_ctx, mock_load_settings
     ):
         """Test that state with only _profile_id is considered empty and gets reinitialized."""
         # Arrange: This happens after profile switch cleared state
@@ -174,7 +183,9 @@ class TestFieldMappingStateInitialization:
             },
         }
 
-        mock_ctx.triggered = []
+        mock_callback_ctx.triggered = []
+        mock_dash_ctx.triggered = []
+        mock_dash_ctx.triggered_id = None
 
         # State cleared by profile switch (only profile tracking remains)
         cleared_state = {"_profile_id": "p_new_profile"}
@@ -187,6 +198,7 @@ class TestFieldMappingStateInitialization:
             metadata=metadata,
             is_open=True,
             refresh_trigger=0,
+            fetched_field_values={},  # No fetched values in test
             state_data=cleared_state,
             collected_namespace_values={},  # No collected DOM values in test
         )
