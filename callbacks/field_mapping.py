@@ -431,7 +431,9 @@ def validate_flow_start_wip_subset(flow_start_statuses, wip_statuses):
         {"type": "open-field-mapping", "index": ALL}, "n_clicks"
     ),  # Pattern-matching for metric cards
     Input("field-mapping-cancel-button", "n_clicks"),
-    Input("field-mapping-save-success", "data"),  # Close only on successful save
+    Input(
+        "field-mapping-save-button", "n_clicks"
+    ),  # Close on save click (toast shows result)
     State("field-mapping-modal", "is_open"),
     prevent_initial_call=True,
 )
@@ -439,7 +441,7 @@ def toggle_field_mapping_modal(
     open_clicks: int | None,
     open_clicks_pattern: list,  # List of clicks from pattern-matched buttons
     cancel_clicks: int | None,
-    save_success: bool | None,
+    save_clicks: int | None,
     is_open: bool,
 ) -> tuple[bool, Any]:  # Second element is dict or no_update
     """Toggle field mapping modal open/closed.
@@ -448,7 +450,7 @@ def toggle_field_mapping_modal(
         open_clicks: Open button clicks (from settings panel)
         open_clicks_pattern: List of clicks from pattern-matched metric card buttons
         cancel_clicks: Cancel button clicks
-        save_success: True when save is successful (triggers close)
+        save_clicks: Save button clicks (closes modal, toast shows result)
         is_open: Current modal state
 
     Returns:
@@ -472,8 +474,9 @@ def toggle_field_mapping_modal(
     if trigger_id == "field-mapping-cancel-button":
         return False, no_update
 
-    # Close ONLY on successful save (when save_success is True)
-    if trigger_id == "field-mapping-save-success" and save_success is True:
+    # Close on save button click - toast notification will show result
+    if trigger_id == "field-mapping-save-button" and save_clicks:
+        logger.info("[FieldMapping] Closing modal after save click")
         return False, no_update
 
     # Open when open button clicked (from settings panel or metric cards)
@@ -2119,9 +2122,42 @@ def save_or_validate_mappings(namespace_values, state_data):
             no_update,
         )
 
+    # Check JIRA configuration exists before allowing save
+    settings = load_app_settings()
+    jira_config = settings.get("jira_config", {})
+    has_jira_config = bool(jira_config.get("base_url") and jira_config.get("token"))
+
+    if not has_jira_config:
+        logger.warning("[FieldMapping] Save rejected - JIRA configuration not set up")
+        toast = create_error_toast(
+            "Please configure JIRA connection first (URL and token) in the Settings panel.",
+            header="JIRA Not Configured",
+        )
+        return False, "", no_update, toast
+
+    # Check if there's at least one meaningful field mapping in CURRENT form values
+    # We check only collected_values (from DOM), not state_data (which may have stale data)
+    total_mapped_fields = 0
+    if collected_values and isinstance(collected_values, dict):
+        for metric in ["dora", "flow"]:
+            if metric in collected_values:
+                for value in collected_values[metric].values():
+                    if value and str(value).strip():
+                        total_mapped_fields += 1
+
+    if total_mapped_fields == 0:
+        logger.warning(
+            "[FieldMapping] Save rejected - no field mappings configured in current form"
+        )
+        toast = create_error_toast(
+            "Please configure at least one field mapping before saving.",
+            header="No Mappings Configured",
+        )
+        return False, "", no_update, toast
+
     try:
-        # Load current settings
-        settings = load_app_settings()
+        # Settings already loaded above
+        state_data = state_data or {}
 
         # Use values collected by clientside callback from namespace inputs
         if collected_values and isinstance(collected_values, dict):
