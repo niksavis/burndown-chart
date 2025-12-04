@@ -8,9 +8,9 @@ Implements Option 5 (Hybrid Auto-Fetch with Visual Indicator) for field mapping 
 """
 
 import logging
-from dash import callback, Output, Input, State, no_update, html, ctx
-import dash_bootstrap_components as dbc
+from dash import callback, Output, Input, State, no_update, ctx
 from typing import Dict, Any, List, Optional
+from ui.toast_notifications import create_success_toast, create_warning_toast
 
 logger = logging.getLogger(__name__)
 
@@ -97,7 +97,7 @@ def _fetch_field_values(field_id: str, jira_config: Dict[str, Any]) -> List[str]
 @callback(
     [
         Output("fetched-field-values-store", "data"),
-        Output("field-mapping-toast-container", "children"),
+        Output("app-notifications", "children", allow_duplicate=True),
     ],
     [
         Input(
@@ -196,28 +196,15 @@ def fetch_field_values_on_blur(
             }
 
             if values:
-                toast = dbc.Toast(
-                    [
-                        html.I(className="fas fa-check-circle me-2 text-success"),
-                        f"Found {len(values)} effort categories",
-                    ],
+                toast = create_success_toast(
+                    f"Found {len(values)} effort categories",
                     header="Field Values Loaded",
-                    icon="success",
-                    duration=3000,
-                    is_open=True,
-                    style={"minWidth": "250px"},
                 )
             else:
-                toast = dbc.Toast(
-                    [
-                        html.I(className="fas fa-info-circle me-2 text-warning"),
-                        "No effort category values found in recent issues",
-                    ],
+                toast = create_warning_toast(
+                    "No effort category values found in recent issues",
                     header="Field Values",
-                    icon="warning",
                     duration=4000,
-                    is_open=True,
-                    style={"minWidth": "250px"},
                 )
 
     elif field_type == "affected_environment" and affected_environment_value:
@@ -243,28 +230,15 @@ def fetch_field_values_on_blur(
             }
 
             if values:
-                toast = dbc.Toast(
-                    [
-                        html.I(className="fas fa-check-circle me-2 text-success"),
-                        f"Found {len(values)} environment values",
-                    ],
+                toast = create_success_toast(
+                    f"Found {len(values)} environment values",
                     header="Field Values Loaded",
-                    icon="success",
-                    duration=3000,
-                    is_open=True,
-                    style={"minWidth": "250px"},
                 )
             else:
-                toast = dbc.Toast(
-                    [
-                        html.I(className="fas fa-info-circle me-2 text-warning"),
-                        "No environment values found in recent issues",
-                    ],
+                toast = create_warning_toast(
+                    "No environment values found in recent issues",
                     header="Field Values",
-                    icon="warning",
                     duration=4000,
-                    is_open=True,
-                    style={"minWidth": "250px"},
                 )
 
     return updated_store, toast if toast else no_update

@@ -208,16 +208,6 @@ def create_field_mapping_modal() -> dbc.Modal:
                     ),
                     # Status messages
                     html.Div(id="field-mapping-status"),
-                    # Toast container for field value fetch notifications
-                    html.Div(
-                        id="field-mapping-toast-container",
-                        style={
-                            "position": "fixed",
-                            "bottom": "20px",
-                            "right": "20px",
-                            "zIndex": "9999",
-                        },
-                    ),
                     # Hidden stores (jira-metadata-store moved to app level in layout.py)
                     dcc.Store(id="field-mapping-save-success", data=None),
                     dcc.Store(

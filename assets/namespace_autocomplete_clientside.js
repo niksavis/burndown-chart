@@ -632,12 +632,22 @@ window.dash_clientside.namespace_autocomplete = {
       '.namespace-input-container input[type="text"]'
     );
 
-    // If no namespace inputs found (not on Fields tab or modal closed), skip
+    // If no namespace inputs found (not on Fields tab or modal closed)
+    // - For tab switches: skip (nothing to preserve)
+    // - For save/validate: continue with empty values (validate other tabs)
     if (inputs.length === 0) {
+      if (trigger === "tab_switch") {
+        console.log(
+          "[Autocomplete] No namespace inputs found, skipping tab switch collection"
+        );
+        return window.dash_clientside.no_update;
+      }
+      // For save/validate, continue with empty field values
+      // so other tabs (Status, Project, Issue Types) can still be validated
       console.log(
-        "[Autocomplete] No namespace inputs found, skipping collection"
+        "[Autocomplete] No namespace inputs found, continuing with empty field values for " +
+          trigger
       );
-      return window.dash_clientside.no_update;
     }
 
     const values = {};

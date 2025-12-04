@@ -62,7 +62,7 @@ def _render_bug_analysis_content(data_points_count: int):
         from data.persistence import load_jira_configuration
 
         jira_config = load_jira_configuration()
-        points_field = jira_config.get("points_field", "customfield_10016")
+        points_field = jira_config.get("points_field", "")
 
         # Get JIRA issues from cache with ALL fields (don't specify fields to avoid validation mismatch)
         # By passing empty string for fields, load_jira_cache won't validate fields

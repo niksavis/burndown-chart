@@ -22,6 +22,7 @@ from data.persistence import (
 )
 from data.jira_simple import test_jira_connection
 from configuration import logger
+from ui.toast_notifications import create_success_toast, create_error_toast
 
 
 #######################################################################
@@ -89,12 +90,12 @@ def load_jira_config(is_open):
             config.get("token", ""),
             config.get("cache_size_mb", 100),
             config.get("max_results_per_call", 100),
-            config.get("points_field", "customfield_10016"),
+            config.get("points_field", ""),
         )
     except Exception as e:
         logger.error(f"Error loading JIRA configuration: {e}")
         # Return defaults on error
-        return ("", "v3", "", 100, 100, "customfield_10016")
+        return ("", "v3", "", 100, 100, "")
 
 
 #######################################################################
@@ -103,7 +104,10 @@ def load_jira_config(is_open):
 
 
 @callback(
-    Output("jira-connection-status", "children"),
+    [
+        Output("jira-connection-status", "children"),
+        Output("app-notifications", "children", allow_duplicate=True),
+    ],
     Input("jira-test-connection-button", "n_clicks"),
     [
         State("jira-base-url-input", "value"),
@@ -123,30 +127,20 @@ def test_jira_connection_callback(n_clicks, base_url, api_version, token):
         token: Personal access token
 
     Returns:
-        Alert component with success or error message
+        Tuple of (inline_status, toast_notification)
     """
     if not n_clicks:
         raise PreventUpdate
 
     # Validate required fields (only base_url is required, token is optional for public servers)
     if not base_url:
-        return dbc.Alert(
-            html.Div(
-                [
-                    html.I(className="fas fa-exclamation-triangle me-2"),
-                    html.Span(
-                        [
-                            html.Strong("Missing Required Field"),
-                            html.Br(),
-                            "Please fill in the JIRA Base URL before testing the connection.",
-                        ]
-                    ),
-                ],
-                className="d-flex align-items-start",
-            ),
-            color="warning",
-            dismissable=True,
+        from ui.toast_notifications import create_warning_toast
+
+        toast = create_warning_toast(
+            "Please fill in the JIRA Base URL before testing.",
+            header="Missing Required Field",
         )
+        return "", toast
 
     # Call test function (token is optional)
     logger.info(f"Testing JIRA connection to {base_url} (authenticated: {bool(token)})")
@@ -169,75 +163,43 @@ def test_jira_connection_callback(n_clicks, base_url, api_version, token):
     if result["success"]:
         server_info = result.get("server_info", {})
         message = result.get("message", "Connection successful")
-        return dbc.Alert(
-            html.Div(
-                [
-                    html.I(className="fas fa-check-circle me-2"),
-                    html.Div(
-                        [
-                            html.Strong(message),
-                            html.Br(),
-                            html.Small(
-                                [
-                                    f"Server: {server_info.get('serverTitle', 'JIRA Server')}",
-                                    html.Br(),
-                                    f"Version: {server_info.get('version', 'unknown')}",
-                                    html.Br(),
-                                    f"Response time: {result.get('response_time_ms', 0)}ms",
-                                ],
-                                className="d-block mb-2",
-                                style={"opacity": "0.85"},
-                            ),
-                            html.Small(
-                                [
-                                    html.I(className="fas fa-info-circle me-1"),
-                                    "Click ",
-                                    html.Strong('"Save Configuration"'),
-                                    " below to persist these settings.",
-                                ],
-                                className="text-muted fst-italic",
-                                style={"fontSize": "0.85rem"},
-                            ),
-                        ]
-                    ),
-                ],
-                className="d-flex align-items-start",
-            ),
-            color="success",
-            dismissable=True,
-            duration=8000,  # Extended to 8 seconds to give time to read the save reminder
+        server_title = server_info.get("serverTitle", "JIRA Server")
+        version = server_info.get("version", "unknown")
+        response_time = result.get("response_time_ms", 0)
+
+        # Toast notification with key details
+        toast = create_success_toast(
+            f"Server: {server_title} | Version: {version} | Response: {response_time}ms. "
+            "Click 'Save Configuration' to persist.",
+            header=message,
+            duration=6000,
         )
+
+        return "", toast
     else:
         # Check if this is an API version mismatch error
         error_code = result.get("error_code", "")
         is_version_mismatch = error_code == "api_version_mismatch"
 
-        return dbc.Alert(
-            html.Div(
-                [
-                    html.I(
-                        className="fas fa-exclamation-triangle me-2"
-                        if is_version_mismatch
-                        else "fas fa-exclamation-circle me-2"
-                    ),
-                    html.Span(
-                        [
-                            html.Strong(result.get("message", "Connection Failed")),
-                            html.Br(),
-                            html.Small(
-                                result.get(
-                                    "error_details", "No additional details available"
-                                ),
-                                style={"opacity": "0.85"},
-                            ),
-                        ]
-                    ),
-                ],
-                className="d-flex align-items-start",
-            ),
-            color="warning" if is_version_mismatch else "danger",
-            dismissable=True,
-        )
+        error_message = result.get("message", "Connection Failed")
+        error_details = result.get("error_details", "No additional details available")
+
+        if is_version_mismatch:
+            from ui.toast_notifications import create_warning_toast
+
+            toast = create_warning_toast(
+                error_details,
+                header=error_message,
+                duration=6000,
+            )
+        else:
+            toast = create_error_toast(
+                error_details,
+                header=error_message,
+                duration=6000,
+            )
+
+        return "", toast
 
 
 #######################################################################
@@ -250,6 +212,7 @@ def test_jira_connection_callback(n_clicks, base_url, api_version, token):
         Output("jira-config-modal", "is_open", allow_duplicate=True),
         Output("jira-save-status", "children"),
         Output("jira-config-save-trigger", "data"),  # Trigger metadata refresh
+        Output("app-notifications", "children", allow_duplicate=True),
     ],
     Input("jira-config-save-button", "n_clicks"),
     [
@@ -300,9 +263,7 @@ def save_jira_configuration_callback(
             "token": token.strip() if token else "",
             "cache_size_mb": int(cache_size) if cache_size else 100,
             "max_results_per_call": int(max_results) if max_results else 100,
-            "points_field": points_field.strip()
-            if points_field
-            else "customfield_10016",
+            "points_field": points_field.strip() if points_field else "",
             "configured": True,
         }
 
@@ -312,50 +273,20 @@ def save_jira_configuration_callback(
             logger.warning(f"Invalid JIRA configuration: {error_msg}")
             return (
                 no_update,
-                dbc.Alert(
-                    html.Div(
-                        [
-                            html.I(className="fas fa-exclamation-circle me-2"),
-                            html.Span(
-                                [
-                                    html.Strong("Validation Error"),
-                                    html.Br(),
-                                    html.Small(error_msg, style={"opacity": "0.85"}),
-                                ]
-                            ),
-                        ],
-                        className="d-flex align-items-start",
-                    ),
-                    color="danger",
-                    dismissable=True,
-                ),
+                "",
                 no_update,  # Don't trigger metadata refresh on validation error
+                create_error_toast(error_msg, header="Validation Error"),
             )
 
         # Warn about high cache sizes (T026 - User Story 2)
-        cache_warning = None
+        cache_warning_toast = None
         if config["cache_size_mb"] > 500:
-            cache_warning = dbc.Alert(
-                html.Div(
-                    [
-                        html.I(className="fas fa-exclamation-triangle me-2"),
-                        html.Span(
-                            [
-                                html.Strong("High Cache Size"),
-                                html.Br(),
-                                html.Small(
-                                    f"{config['cache_size_mb']}MB may impact disk space. "
-                                    "Consider reducing if you experience storage issues.",
-                                    style={"opacity": "0.85"},
-                                ),
-                            ]
-                        ),
-                    ],
-                    className="d-flex align-items-start",
-                ),
-                color="warning",
-                dismissable=True,
-                className="mb-2",
+            from ui.toast_notifications import create_warning_toast
+
+            cache_warning_toast = create_warning_toast(
+                f"{config['cache_size_mb']}MB may impact disk space. "
+                "Consider reducing if you experience storage issues.",
+                header="High Cache Size",
             )
             logger.info(
                 f"Warning: High cache size configured: {config['cache_size_mb']}MB"
@@ -376,91 +307,45 @@ def save_jira_configuration_callback(
 
         if success:
             logger.info("JIRA configuration saved successfully")
-            # Keep modal open, show success message with auto-dismiss
-            success_message = dbc.Alert(
-                html.Div(
-                    [
-                        html.I(className="fas fa-check-circle me-2"),
-                        html.Span(
-                            [
-                                html.Strong("Configuration Saved"),
-                                html.Br(),
-                                html.Small(
-                                    "JIRA settings have been saved successfully.",
-                                    style={"opacity": "0.85"},
-                                ),
-                            ]
-                        ),
-                    ],
-                    className="d-flex align-items-start",
-                ),
-                color="success",
-                dismissable=True,
-                duration=4000,  # Auto-dismiss after 4 seconds
+            # Show success toast notification
+            toast = create_success_toast(
+                "JIRA settings have been saved successfully.",
+                header="Configuration Saved",
             )
 
-            # Combine success message with cache warning if present
             # Trigger metadata refresh by incrementing counter
             new_trigger = (current_trigger or 0) + 1
-            if cache_warning:
+
+            # Show cache warning toast if present (will appear after success toast)
+            if cache_warning_toast:
+                # Return both toasts in a div
                 return (
                     no_update,
-                    html.Div([success_message, cache_warning]),
+                    "",
                     new_trigger,
+                    html.Div([toast, cache_warning_toast]),
                 )
             else:
-                return (no_update, success_message, new_trigger)
+                return (no_update, "", new_trigger, toast)
         else:
             logger.error("Failed to save JIRA configuration")
             return (
                 no_update,
-                dbc.Alert(
-                    html.Div(
-                        [
-                            html.I(className="fas fa-exclamation-circle me-2"),
-                            html.Span(
-                                [
-                                    html.Strong("Save Failed"),
-                                    html.Br(),
-                                    html.Small(
-                                        "An error occurred while saving the configuration. Please try again.",
-                                        style={"opacity": "0.85"},
-                                    ),
-                                ]
-                            ),
-                        ],
-                        className="d-flex align-items-start",
-                    ),
-                    color="danger",
-                    dismissable=True,
-                ),
+                "",
                 no_update,  # Don't trigger metadata refresh on save failure
+                create_error_toast(
+                    "An error occurred while saving the configuration. Please try again.",
+                    header="Save Failed",
+                ),
             )
 
     except Exception as e:
         logger.error(f"Exception while saving JIRA configuration: {e}")
         return (
             no_update,
-            dbc.Alert(
-                html.Div(
-                    [
-                        html.I(className="fas fa-exclamation-circle me-2"),
-                        html.Span(
-                            [
-                                html.Strong("Unexpected Error"),
-                                html.Br(),
-                                html.Small(
-                                    f"Error: {str(e)}", style={"opacity": "0.85"}
-                                ),
-                            ]
-                        ),
-                    ],
-                    className="d-flex align-items-start",
-                ),
-                color="danger",
-                dismissable=True,
-            ),
+            "",
             no_update,  # Don't trigger metadata refresh on exception
+            create_error_toast(f"Error: {str(e)}", header="Unexpected Error"),
         )
 
 

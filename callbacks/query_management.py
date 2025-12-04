@@ -18,6 +18,8 @@ from typing import Tuple
 from dash import callback, Input, Output, State, no_update, html
 from dash.exceptions import PreventUpdate
 
+from ui.toast_notifications import create_success_toast, create_error_toast
+
 logger = logging.getLogger(__name__)
 
 
@@ -292,6 +294,7 @@ def auto_generate_query_name(
         Output("query-save-status", "children", allow_duplicate=True),
         Output("query-selector", "options", allow_duplicate=True),
         Output("query-selector", "value", allow_duplicate=True),
+        Output("app-notifications", "children", allow_duplicate=True),
     ],
     Input("save-query-btn", "n_clicks"),
     [
@@ -321,7 +324,7 @@ def save_query_overwrite(
         selected_query_id: Selected query ID to overwrite
 
     Returns:
-        Tuple of (status_message, updated_options, updated_value)
+        Tuple of (status_message, updated_options, updated_value, toast_notification)
     """
     if not n_clicks:
         raise PreventUpdate
@@ -331,10 +334,11 @@ def save_query_overwrite(
         if not selected_query_id:
             # Creating first query - treat like "Save As" with auto-generated name
             if not query_jql or not query_jql.strip():
-                feedback = html.Div(
-                    "JQL query cannot be empty", className="alert alert-danger"
+                feedback = create_error_toast(
+                    "JQL query cannot be empty",
+                    header="Validation Error",
                 )
-                return feedback, no_update, no_update
+                return "", no_update, no_update, feedback
 
             # Auto-generate name if empty
             if not query_name or not query_name.strip():
@@ -371,24 +375,22 @@ def save_query_overwrite(
                     label += " [Active]"
                 options.append({"label": label, "value": value})
 
-            feedback = html.Div(
-                [
-                    html.I(className="fas fa-check-circle me-2"),
-                    f"Query '{query_name}' created successfully!",
-                ],
-                className="alert alert-success",
+            toast = create_success_toast(
+                f"Query '{query_name}' created successfully!",
+                header="Query Created",
             )
 
-            return feedback, options, new_query_id
+            return "", options, new_query_id, toast
 
         # Handle "Create New Query" mode - same logic as "no selection"
         if selected_query_id == "__create_new__":
             # Creating new query - treat like first query
             if not query_jql or not query_jql.strip():
-                feedback = html.Div(
-                    "JQL query cannot be empty", className="alert alert-danger"
+                feedback = create_error_toast(
+                    "JQL query cannot be empty",
+                    header="Validation Error",
                 )
-                return feedback, no_update, no_update
+                return "", no_update, no_update, feedback
 
             # Auto-generate name if empty
             if not query_name or not query_name.strip():
@@ -413,14 +415,13 @@ def save_query_overwrite(
             queries = list_queries_for_profile(profile_id)
             for query in queries:
                 if query.get("name", "").strip() == query_name.strip():
-                    feedback = html.Div(
-                        [
-                            html.I(className="fas fa-exclamation-triangle me-2"),
-                            f"Query name '{query_name}' already exists. Please choose a different name.",
-                        ],
-                        className="alert alert-warning",
+                    from ui.toast_notifications import create_warning_toast
+
+                    feedback = create_warning_toast(
+                        f"Query name '{query_name}' already exists. Please choose a different name.",
+                        header="Name Collision",
                     )
-                    return feedback, no_update, no_update
+                    return "", no_update, no_update, feedback
 
             new_query_id = create_query(profile_id, query_name, query_jql.strip())
             switch_query(new_query_id)
@@ -439,28 +440,27 @@ def save_query_overwrite(
                     label += " [Active]"
                 options.append({"label": label, "value": value})
 
-            feedback = html.Div(
-                [
-                    html.I(className="fas fa-check-circle me-2"),
-                    f"Query '{query_name}' created successfully!",
-                ],
-                className="alert alert-success",
+            toast = create_success_toast(
+                f"Query '{query_name}' created successfully!",
+                header="Query Created",
             )
 
-            return feedback, options, new_query_id
+            return "", options, new_query_id, toast
 
         # Validate inputs for existing query update
         if not query_name or not query_name.strip():
-            feedback = html.Div(
-                "Query name cannot be empty", className="alert alert-danger"
+            feedback = create_error_toast(
+                "Query name cannot be empty",
+                header="Validation Error",
             )
-            return feedback, no_update, no_update
+            return "", no_update, no_update, feedback
 
         if not query_jql or not query_jql.strip():
-            feedback = html.Div(
-                "JQL query cannot be empty", className="alert alert-danger"
+            feedback = create_error_toast(
+                "JQL query cannot be empty",
+                header="Validation Error",
             )
-            return feedback, no_update, no_update
+            return "", no_update, no_update, feedback
 
         # Update query
         from data.query_manager import (
@@ -478,14 +478,13 @@ def save_query_overwrite(
                 query.get("id") != selected_query_id
                 and query.get("name", "").strip() == query_name.strip()
             ):
-                feedback = html.Div(
-                    [
-                        html.I(className="fas fa-exclamation-triangle me-2"),
-                        f"Query name '{query_name}' already exists. Please choose a different name.",
-                    ],
-                    className="alert alert-warning",
+                from ui.toast_notifications import create_warning_toast
+
+                feedback = create_warning_toast(
+                    f"Query name '{query_name}' already exists. Please choose a different name.",
+                    header="Name Collision",
                 )
-                return feedback, no_update, no_update
+                return "", no_update, no_update, feedback
 
         update_query(
             profile_id, selected_query_id, query_name.strip(), query_jql.strip()
@@ -503,25 +502,22 @@ def save_query_overwrite(
                 label += " [Active]"
             options.append({"label": label, "value": value})
 
-        feedback = html.Div(
-            [
-                html.I(className="fas fa-check-circle me-2"),
-                f"Query '{query_name}' saved successfully!",
-            ],
-            className="alert alert-success",
+        toast = create_success_toast(
+            f"Query '{query_name}' saved successfully!",
+            header="Query Saved",
         )
 
-        return feedback, options, selected_query_id
+        return "", options, selected_query_id, toast
 
     except ValueError as e:
         logger.warning(f"Query save validation failed: {e}")
-        feedback = html.Div(str(e), className="alert alert-danger")
-        return feedback, no_update, no_update
+        feedback = create_error_toast(str(e), header="Validation Error")
+        return "", no_update, no_update, feedback
 
     except Exception as e:
         logger.error(f"Failed to save query: {e}")
-        feedback = html.Div(f"Error saving query: {e}", className="alert alert-danger")
-        return feedback, no_update, no_update
+        feedback = create_error_toast(f"Error saving query: {e}", header="Save Failed")
+        return "", no_update, no_update, feedback
 
 
 # ============================================================================
@@ -534,6 +530,7 @@ def save_query_overwrite(
         Output("query-save-status", "children", allow_duplicate=True),
         Output("query-selector", "options", allow_duplicate=True),
         Output("query-selector", "value", allow_duplicate=True),
+        Output("app-notifications", "children", allow_duplicate=True),
     ],
     Input("save-as-query-btn", "n_clicks"),
     [
@@ -561,7 +558,7 @@ def save_query_as_new(
         query_jql: JQL query from editor
 
     Returns:
-        Tuple of (status_message, updated_options, new_query_id)
+        Tuple of (status_message, updated_options, new_query_id, toast_notification)
     """
     if not n_clicks:
         raise PreventUpdate
@@ -569,16 +566,18 @@ def save_query_as_new(
     try:
         # Validate inputs
         if not query_name or not query_name.strip():
-            feedback = html.Div(
-                "Query name cannot be empty", className="alert alert-danger"
+            feedback = create_error_toast(
+                "Query name cannot be empty",
+                header="Validation Error",
             )
-            return feedback, no_update, no_update
+            return "", no_update, no_update, feedback
 
         if not query_jql or not query_jql.strip():
-            feedback = html.Div(
-                "JQL query cannot be empty", className="alert alert-danger"
+            feedback = create_error_toast(
+                "JQL query cannot be empty",
+                header="Validation Error",
             )
-            return feedback, no_update, no_update
+            return "", no_update, no_update, feedback
 
         # Create new query
         from data.query_manager import (
@@ -593,14 +592,13 @@ def save_query_as_new(
         queries = list_queries_for_profile(profile_id)
         for query in queries:
             if query.get("name", "").strip() == query_name.strip():
-                feedback = html.Div(
-                    [
-                        html.I(className="fas fa-exclamation-triangle me-2"),
-                        f"Query name '{query_name}' already exists. Please choose a different name.",
-                    ],
-                    className="alert alert-warning",
+                from ui.toast_notifications import create_warning_toast
+
+                feedback = create_warning_toast(
+                    f"Query name '{query_name}' already exists. Please choose a different name.",
+                    header="Name Collision",
                 )
-                return feedback, no_update, no_update
+                return "", no_update, no_update, feedback
 
         query_id = create_query(profile_id, query_name.strip(), query_jql.strip())
 
@@ -616,27 +614,25 @@ def save_query_as_new(
                 label += " [Active]"
             options.append({"label": label, "value": value})
 
-        feedback = html.Div(
-            [
-                html.I(className="fas fa-check-circle me-2"),
-                f"New query '{query_name}' created successfully!",
-            ],
-            className="alert alert-success",
+        toast = create_success_toast(
+            f"New query '{query_name}' created successfully!",
+            header="Query Created",
         )
 
-        return feedback, options, query_id
+        return "", options, query_id, toast
 
     except ValueError as e:
         logger.warning(f"Query creation validation failed: {e}")
-        feedback = html.Div(str(e), className="alert alert-danger")
-        return feedback, no_update, no_update
+        feedback = create_error_toast(str(e), header="Validation Error")
+        return "", no_update, no_update, feedback
 
     except Exception as e:
         logger.error(f"Failed to create query: {e}")
-        feedback = html.Div(
-            f"Error creating query: {e}", className="alert alert-danger"
+        feedback = create_error_toast(
+            f"Error creating query: {e}",
+            header="Creation Failed",
         )
-        return feedback, no_update, no_update
+        return "", no_update, no_update, feedback
 
 
 # ============================================================================

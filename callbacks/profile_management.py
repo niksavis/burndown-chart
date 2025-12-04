@@ -14,6 +14,10 @@ from data.profile_manager import (
     list_profiles,
     get_active_profile,
 )
+from ui.toast_notifications import (
+    create_success_toast,
+    create_error_toast,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -393,24 +397,12 @@ def handle_delete_profile(n_clicks, profile_id, confirmation):
         )
 
     try:
-        from dash import html
-        import dash_bootstrap_components as dbc
-
         profiles = list_profiles()
         profile_to_delete = next((p for p in profiles if p["id"] == profile_id), None)
         if not profile_to_delete:
-            error_notification = dbc.Toast(
-                html.Div(
-                    [
-                        html.I(className="fas fa-exclamation-triangle me-2"),
-                        "Profile not found.",
-                    ]
-                ),
+            error_notification = create_error_toast(
+                "Profile not found.",
                 header="Delete Failed",
-                icon="danger",
-                is_open=True,
-                dismissable=True,
-                duration=4000,
             )
             # No modal error - just toast and let modal close
             return (
@@ -445,21 +437,10 @@ def handle_delete_profile(n_clicks, profile_id, confirmation):
         # Return success with no error message
         # The modal will close (no error to keep it open)
         # Show toast notification for successful deletion
-        from dash import html
-        import dash_bootstrap_components as dbc
-
-        notification = dbc.Toast(
-            html.Div(
-                [
-                    html.I(className="fas fa-trash me-2"),
-                    f"Deleted profile: {profile_to_delete['name']}",
-                ]
-            ),
+        notification = create_success_toast(
+            f"Deleted profile: {profile_to_delete['name']}",
             header="Profile Deleted",
-            icon="success",
-            is_open=True,
-            dismissable=True,
-            duration=3000,
+            icon="trash",
         )
 
         return (
@@ -505,21 +486,9 @@ def handle_profile_switch(selected_profile_id):
         profile_name = active_profile.name if active_profile else selected_profile_id
 
         # Show success notification
-        from dash import html
-        import dash_bootstrap_components as dbc
-
-        notification = dbc.Toast(
-            html.Div(
-                [
-                    html.I(className="fas fa-check-circle me-2"),
-                    f"Switched to profile: {profile_name}",
-                ]
-            ),
+        notification = create_success_toast(
+            f"Switched to profile: {profile_name}",
             header="Profile Switched",
-            icon="success",
-            is_open=True,
-            dismissable=True,
-            duration=3000,
         )
 
         # Don't update options - let refresh_profile_dropdown handle that to avoid race condition

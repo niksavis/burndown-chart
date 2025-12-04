@@ -16,6 +16,10 @@ from ui.field_mapping_modal import (
     create_field_mapping_form,
     create_field_mapping_error_alert,
 )
+from ui.toast_notifications import (
+    create_success_toast,
+    create_error_toast,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -1043,6 +1047,7 @@ def render_tab_content(
         Output("field-mapping-save-button", "disabled"),
         Output("validate-mappings-button", "disabled"),
         Output("metadata-loading-overlay", "style"),
+        Output("app-notifications", "children", allow_duplicate=True),
     ],
     [
         Input("field-mapping-modal", "is_open"),
@@ -1083,7 +1088,7 @@ def manage_modal_loading_state(is_open: bool, metadata: dict):
 
     # Only process when modal is open
     if not is_open:
-        return no_update, no_update, no_update, no_update, overlay_hidden
+        return no_update, no_update, no_update, no_update, overlay_hidden, no_update
 
     # Metadata still loading (None) - show loading overlay, disable buttons
     if metadata is None:
@@ -1094,41 +1099,26 @@ def manage_modal_loading_state(is_open: bool, metadata: dict):
             True,  # Disable save
             True,  # Disable validate
             overlay_visible,  # Show loading overlay
+            no_update,  # No toast
         )
 
     # Metadata has error - show error message, disable auto-configure
     if metadata.get("error"):
         error_msg = metadata.get("error", "Unknown error")
         logger.warning(f"[FieldMapping] Metadata has error: {error_msg}")
-        error_alert = dbc.Alert(
-            html.Div(
-                [
-                    html.I(className="fas fa-exclamation-circle me-2"),
-                    html.Span(
-                        [
-                            html.Strong("JIRA Not Configured"),
-                            html.Br(),
-                            html.Small(
-                                "Please configure JIRA connection first in the Connect tab.",
-                                style={"opacity": "0.85"},
-                            ),
-                        ]
-                    ),
-                ],
-                className="d-flex align-items-start",
-            ),
-            color="danger",
-            dismissable=True,
-        )
         return (
-            error_alert,
+            "",  # Clear inline status
             True,  # Disable auto-configure
             False,  # Keep save enabled (user might want to save partial config)
             True,  # Disable validate (needs metadata)
             overlay_hidden,  # Hide loading overlay
+            create_error_toast(
+                "Please configure JIRA connection first in the Connect tab.",
+                header="JIRA Not Configured",
+            ),
         )
 
-    # Metadata loaded successfully - enable buttons, show success briefly
+    # Metadata loaded successfully - enable buttons, show success toast
     fields = metadata.get("fields", [])
     projects = metadata.get("projects", [])
     issue_types = metadata.get("issue_types", [])
@@ -1139,36 +1129,20 @@ def manage_modal_loading_state(is_open: bool, metadata: dict):
         f"{len(projects)} projects, {len(issue_types)} issue types, {len(statuses)} statuses"
     )
 
-    # Show brief success message (will auto-dismiss)
-    success_alert = dbc.Alert(
-        html.Div(
-            [
-                html.I(className="fas fa-check-circle me-2"),
-                html.Span(
-                    [
-                        html.Strong("Metadata Ready"),
-                        html.Br(),
-                        html.Small(
-                            f"{len(fields)} fields, {len(projects)} projects, "
-                            f"{len(issue_types)} issue types available.",
-                            style={"opacity": "0.85"},
-                        ),
-                    ]
-                ),
-            ],
-            className="d-flex align-items-start",
-        ),
-        color="success",
-        dismissable=True,
-        duration=3000,  # Auto-dismiss after 3 seconds
+    # Show brief success toast notification
+    toast = create_success_toast(
+        f"{len(fields)} fields, {len(projects)} projects, "
+        f"{len(issue_types)} issue types available.",
+        header="Metadata Ready",
     )
 
     return (
-        success_alert,
+        "",  # Clear inline status
         False,  # Enable auto-configure
         False,  # Enable save
         False,  # Enable validate
         overlay_hidden,  # Hide loading overlay
+        toast,
     )
 
 
@@ -1219,6 +1193,7 @@ def toggle_auto_configure_warning(auto_click, cancel_click, is_open):
         Output("auto-configure-refresh-trigger", "data"),  # Trigger tab re-render
         Output("auto-configure-confirm-button", "disabled"),
         Output("auto-configure-confirm-button", "children"),
+        Output("app-notifications", "children", allow_duplicate=True),
     ],
     Input("auto-configure-confirm-button", "n_clicks"),
     [
@@ -1268,46 +1243,39 @@ def auto_configure_from_metadata(
             no_update,  # Don't trigger refresh
             no_update,  # Button disabled state
             no_update,  # Button children
+            no_update,  # Toast notification
         )
 
     try:
         # Validate metadata is available
         if not metadata or metadata.get("error"):
-            error_alert = dbc.Alert(
-                [
-                    html.I(className="fas fa-exclamation-circle me-2"),
-                    "Cannot auto-configure: JIRA metadata not available. Please ensure JIRA is connected.",
-                ],
-                color="danger",
-                dismissable=True,
-            )
             return (
                 no_update,
-                error_alert,
+                "",  # Clear inline status
                 False,  # Close confirmation modal
                 no_update,  # Don't trigger refresh on error
                 False,  # Re-enable button
                 [html.I(className="fas fa-check me-2"), "Yes, Auto-Configure Now"],
+                create_error_toast(
+                    "JIRA metadata not available. Please ensure JIRA is connected.",
+                    header="Cannot Auto-Configure",
+                ),
             )
 
         # Get active profile to extract JQL query
         active_profile = get_active_profile()
         if not active_profile:
-            error_alert = dbc.Alert(
-                [
-                    html.I(className="fas fa-exclamation-circle me-2"),
-                    "Cannot auto-configure: No active profile found.",
-                ],
-                color="danger",
-                dismissable=True,
-            )
             return (
                 no_update,
-                error_alert,
+                "",  # Clear inline status
                 False,  # Close confirmation modal
                 no_update,  # Don't trigger refresh on error
                 False,  # Re-enable button
                 [html.I(className="fas fa-check me-2"), "Yes, Auto-Configure Now"],
+                create_error_toast(
+                    "No active profile found.",
+                    header="Cannot Auto-Configure",
+                ),
             )
 
         profile_id = active_profile.id
@@ -1563,63 +1531,41 @@ def auto_configure_from_metadata(
             f"{feature_count} features, {defect_count} defects, {project_count} projects"
         )
 
-        # Create compact success message
-        success_alert = dbc.Alert(
-            [
-                html.Div(
-                    [
-                        html.I(className="fas fa-check-circle me-2"),
-                        html.Strong("Auto-Configuration Complete: "),
-                        f"{completion_count + active_count + wip_count} statuses, ",
-                        f"{feature_count + defect_count} work types, ",
-                        f"{project_count} project{'s' if project_count != 1 else ''}. ",
-                        html.Strong(
-                            "Click 'Save Mappings' to apply.", className="ms-2"
-                        ),
-                    ],
-                ),
-            ],
-            color="success",
-            dismissable=True,
-            duration=6000,
+        # Create success toast notification
+        total_statuses = completion_count + active_count + wip_count
+        total_types = feature_count + defect_count
+        toast = create_success_toast(
+            f"{total_statuses} statuses, {total_types} work types, "
+            f"{project_count} project{'s' if project_count != 1 else ''}. "
+            "Click 'Save Mappings' to apply.",
+            header="Auto-Configuration Complete",
+            duration=5000,
         )
 
         # Increment refresh trigger to force tab re-render with new state
         new_trigger = (current_trigger or 0) + 1
         return (
             new_state,
-            success_alert,
+            "",  # Clear inline status
             False,
             new_trigger,
             False,  # Re-enable button
             [html.I(className="fas fa-check me-2"), "Yes, Auto-Configure Now"],
+            toast,
         )  # Close modal, trigger refresh
 
     except Exception as e:
         logger.error(
             f"[AutoConfigure] Error during auto-configuration: {e}", exc_info=True
         )
-        error_alert = dbc.Alert(
-            [
-                html.I(className="fas fa-exclamation-circle me-2"),
-                html.Div(
-                    [
-                        html.Strong("Auto-Configuration Failed"),
-                        html.Br(),
-                        html.Small(f"Error: {str(e)}", style={"opacity": "0.85"}),
-                    ]
-                ),
-            ],
-            color="danger",
-            dismissable=True,
-        )
         return (
             no_update,
-            error_alert,
+            "",  # Clear inline status
             False,
             no_update,
             False,  # Re-enable button
             [html.I(className="fas fa-check me-2"), "Yes, Auto-Configure Now"],
+            create_error_toast(f"Error: {str(e)}", header="Auto-Configuration Failed"),
         )  # Close modal, don't trigger refresh
 
 
@@ -2055,9 +2001,12 @@ def _build_no_fields_alert():
 
 
 @callback(
-    Output("field-mapping-save-success", "data", allow_duplicate=True),
-    Output("field-mapping-status", "children", allow_duplicate=True),
-    Output("field-mapping-state-store", "data", allow_duplicate=True),
+    [
+        Output("field-mapping-save-success", "data", allow_duplicate=True),
+        Output("field-mapping-status", "children", allow_duplicate=True),
+        Output("field-mapping-state-store", "data", allow_duplicate=True),
+        Output("app-notifications", "children", allow_duplicate=True),
+    ],
     Input("namespace-collected-values", "data"),
     State("field-mapping-state-store", "data"),
     prevent_initial_call=True,
@@ -2081,13 +2030,13 @@ def save_or_validate_mappings(namespace_values, state_data):
         state_data: Current form state from state store
 
     Returns:
-        Tuple of (save_success, status_message, updated_state)
+        Tuple of (save_success, status_message, updated_state, toast_notification)
     """
     from data.persistence import save_app_settings, load_app_settings
 
     # namespace_values has structure: {trigger: "save"|"validate"|"tab_switch", values: {...}, validationErrors: [...]}
     if not namespace_values or not isinstance(namespace_values, dict):
-        return no_update, no_update, no_update
+        return no_update, no_update, no_update, no_update
 
     trigger = namespace_values.get("trigger", "")
     collected_values = namespace_values.get("values", {})
@@ -2096,7 +2045,7 @@ def save_or_validate_mappings(namespace_values, state_data):
     # Handle TAB_SWITCH trigger - just update state store with collected values
     if trigger == "tab_switch":
         if not collected_values:
-            return no_update, no_update, no_update
+            return no_update, no_update, no_update, no_update
 
         # Merge collected namespace values into state_data
         state_data = (state_data or {}).copy()
@@ -2115,7 +2064,7 @@ def save_or_validate_mappings(namespace_values, state_data):
         logger.info(
             f"[FieldMapping] Tab switch - saved {len(collected_values)} metric groups to state"
         )
-        return no_update, no_update, state_data
+        return no_update, no_update, state_data, no_update
 
     # Handle VALIDATE trigger - comprehensive validation across all tabs
     if trigger == "validate":
@@ -2146,6 +2095,7 @@ def save_or_validate_mappings(namespace_values, state_data):
             no_update,
             _build_comprehensive_validation_alert(validation_result),
             no_update,
+            no_update,  # Validation uses inline alert (keeps validation in modal)
         )
 
     # Handle SAVE trigger
@@ -2154,14 +2104,19 @@ def save_or_validate_mappings(namespace_values, state_data):
         logger.info(
             f"[FieldMapping] Unknown trigger detected, ignoring (trigger={trigger})"
         )
-        return no_update, no_update, no_update
+        return no_update, no_update, no_update, no_update
 
     # Check for validation errors - reject save if any invalid values
     if validation_errors:
         logger.warning(
             f"[FieldMapping] Save rejected due to validation errors: {validation_errors}"
         )
-        return False, _build_validation_error_alert(validation_errors), no_update
+        return (
+            False,
+            _build_validation_error_alert(validation_errors),
+            no_update,
+            no_update,
+        )
 
     try:
         # Load current settings
@@ -2323,55 +2278,22 @@ def save_or_validate_mappings(namespace_values, state_data):
 
         logger.info("[FieldMapping] Mappings saved successfully from state store")
 
-        # Success alert
-        success_alert = dbc.Alert(
-            html.Div(
-                [
-                    html.I(className="fas fa-check-circle me-2"),
-                    html.Span(
-                        [
-                            html.Strong("Configuration Saved Successfully!"),
-                            html.Br(),
-                            html.Small(
-                                "Your field mappings and configurations have been saved.",
-                                style={"opacity": "0.85"},
-                            ),
-                        ]
-                    ),
-                ],
-                className="d-flex align-items-start",
-            ),
-            color="success",
-            dismissable=True,
-            duration=4000,
+        # Success toast notification
+        toast = create_success_toast(
+            "Your field mappings and configurations have been saved.",
+            header="Configuration Saved",
         )
 
         # Keep state store intact so UI remains populated
-        return True, success_alert, no_update
+        return True, "", no_update, toast
 
     except Exception as e:
         logger.error(f"[FieldMapping] Error saving mappings: {e}")
-        error_alert = dbc.Alert(
-            html.Div(
-                [
-                    html.I(className="fas fa-exclamation-circle me-2"),
-                    html.Span(
-                        [
-                            html.Strong("Save Failed"),
-                            html.Br(),
-                            html.Small(
-                                f"Error saving mappings: {str(e)}",
-                                style={"opacity": "0.85"},
-                            ),
-                        ]
-                    ),
-                ],
-                className="d-flex align-items-start",
-            ),
-            color="danger",
-            dismissable=True,
+        toast = create_error_toast(
+            f"Error saving mappings: {str(e)}",
+            header="Save Failed",
         )
-        return False, error_alert, no_update
+        return False, "", no_update, toast
 
 
 @callback(

@@ -184,7 +184,6 @@ def create_jira_config_modal():
                                         id="jira-points-field-input",
                                         type="text",
                                         placeholder="customfield_10016",
-                                        value="customfield_10016",
                                     ),
                                     dbc.FormText(
                                         "JIRA custom field ID for story points or effort estimate (e.g., customfield_10016)",

@@ -1615,7 +1615,7 @@ def get_default_jira_config() -> Dict[str, Any]:
         "token": "",
         "cache_size_mb": 100,
         "max_results_per_call": 100,
-        "points_field": "customfield_10016",
+        "points_field": "",
         "configured": False,
         "last_test_timestamp": None,
         "last_test_success": None,

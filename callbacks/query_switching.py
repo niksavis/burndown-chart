@@ -8,6 +8,8 @@ from dash import callback, Output, Input, State, no_update, ctx, html
 from dash.exceptions import PreventUpdate
 import logging
 
+from ui.toast_notifications import create_success_toast, create_error_toast
+
 logger = logging.getLogger(__name__)
 
 
@@ -380,6 +382,7 @@ def toggle_create_query_modal(create_clicks, save_clicks, cancel_clicks, is_open
         Output("workspace-query-creation-feedback", "children"),
         Output("query-selector", "options", allow_duplicate=True),
         Output("query-selector", "value", allow_duplicate=True),
+        Output("app-notifications", "children", allow_duplicate=True),
     ],
     Input("workspace-save-create-query-button", "n_clicks"),
     [
@@ -397,7 +400,7 @@ def create_new_query_callback(save_clicks, query_name, query_jql):
         query_jql: JQL string from input
 
     Returns:
-        Tuple of (cleared_name, cleared_jql, feedback_message, feedback_color)
+        Tuple of (cleared_name, cleared_jql, feedback_message, options, query_id, toast)
     """
     if not save_clicks:
         raise PreventUpdate
@@ -412,14 +415,18 @@ def create_new_query_callback(save_clicks, query_name, query_jql):
 
         # Validate inputs
         if not query_name or not query_name.strip():
-            feedback = html.Div(
-                "Query name is required", className="alert alert-danger"
+            feedback = create_error_toast(
+                "Query name is required",
+                header="Validation Error",
             )
-            return no_update, no_update, feedback, no_update, no_update
+            return no_update, no_update, "", no_update, no_update, feedback
 
         if not query_jql or not query_jql.strip():
-            feedback = html.Div("JQL query is required", className="alert alert-danger")
-            return no_update, no_update, feedback, no_update, no_update
+            feedback = create_error_toast(
+                "JQL query is required",
+                header="Validation Error",
+            )
+            return no_update, no_update, "", no_update, no_update, feedback
 
         # Get active profile
         profile_id = get_active_profile_id()
@@ -433,24 +440,25 @@ def create_new_query_callback(save_clicks, query_name, query_jql):
         queries = list_queries_for_profile(profile_id)
         options = get_query_dropdown_options(queries)
 
-        # Clear inputs and show success
-        feedback = html.Div(
+        # Clear inputs and show success toast
+        toast = create_success_toast(
             f"Query '{query_name}' created successfully!",
-            className="alert alert-success",
+            header="Query Created",
         )
-        return "", "", feedback, options, query_id
+        return "", "", "", options, query_id, toast
 
     except ValueError as e:
         logger.warning(f"Query creation validation failed: {e}")
-        feedback = html.Div(str(e), className="alert alert-danger")
-        return no_update, no_update, feedback, no_update, no_update
+        feedback = create_error_toast(str(e), header="Validation Error")
+        return no_update, no_update, "", no_update, no_update, feedback
 
     except Exception as e:
         logger.error(f"Failed to create query: {e}")
-        feedback = html.Div(
-            f"Error creating query: {e}", className="alert alert-danger"
+        feedback = create_error_toast(
+            f"Error creating query: {e}",
+            header="Creation Failed",
         )
-        return no_update, no_update, feedback, no_update, no_update
+        return no_update, no_update, "", no_update, no_update, feedback
 
 
 # Query deletion moved to settings.py to use modal confirmation system
