@@ -338,10 +338,10 @@ def create_app_layout(settings, statistics, is_sample_data):
                 create_statistics_data_card(statistics),
                 row_class="mb-4",
             ),
-            # Modern footer with clean design matching DORA/Flow style
+            # Compact footer with clean design
             html.Div(
                 [
-                    html.Hr(className="my-4", style={"borderColor": "#dee2e6"}),
+                    html.Hr(className="my-2", style={"borderColor": "#dee2e6"}),
                     dbc.Row(
                         [
                             # Left column - app info
@@ -349,7 +349,7 @@ def create_app_layout(settings, statistics, is_sample_data):
                                 html.Small(
                                     [
                                         html.I(
-                                            className="fas fa-chart-line me-2 text-primary"
+                                            className="fas fa-chart-line me-1 text-primary"
                                         ),
                                         html.Span(
                                             "Burndown Chart ", className="fw-medium"
@@ -368,8 +368,8 @@ def create_app_layout(settings, statistics, is_sample_data):
                                 html.Small(
                                     html.A(
                                         [
-                                            html.I(className="fab fa-github me-2"),
-                                            "View on GitHub",
+                                            html.I(className="fab fa-github me-1"),
+                                            "GitHub",
                                         ],
                                         href="https://github.com/niksavis/burndown-chart",
                                         target="_blank",
@@ -385,9 +385,9 @@ def create_app_layout(settings, statistics, is_sample_data):
                                 html.Small(
                                     [
                                         html.I(
-                                            className="fas fa-clock me-2 text-muted"
+                                            className="fas fa-clock me-1 text-muted"
                                         ),
-                                        f"Updated {datetime.now().strftime('%b %d, %Y')}",
+                                        f"{datetime.now().strftime('%b %d, %Y')}",
                                     ],
                                     className="text-muted text-end",
                                 ),
@@ -395,14 +395,14 @@ def create_app_layout(settings, statistics, is_sample_data):
                                 className="d-flex align-items-center",
                             ),
                         ],
-                        className="d-flex justify-content-between align-items-center g-3",
+                        className="d-flex justify-content-between align-items-center g-2",
                     ),
                 ],
-                className="mt-5 mb-3",
+                className="mt-3 mb-2",
                 style={
                     "backgroundColor": "#f8f9fa",
-                    "borderRadius": "8px",
-                    "padding": "1rem 1.5rem",
+                    "borderRadius": "6px",
+                    "padding": "0.5rem 1rem",
                 },
             ),
         ],

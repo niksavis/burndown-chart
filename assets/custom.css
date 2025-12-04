@@ -4198,5 +4198,216 @@ input[id*="namespace-field-input"]::placeholder {
 }
 
 /* ================================================================
+   GENERAL VISUAL POLISH
+   Small improvements that make the app look more refined
+   ================================================================ */
+
+/* Smooth font rendering for crisp text */
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Better focus states for accessibility - visible but subtle */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--border-radius-sm);
+}
+
+/* Remove default focus outline, use focus-visible instead */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Smoother button transitions */
+.btn {
+  transition: all var(--transition-fast) var(--easing-default);
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
+}
+
+.btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Subtle button press effect for primary buttons */
+.btn-primary:active,
+.btn-success:active,
+.btn-danger:active {
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+/* Card hover effects - subtle lift */
+.card {
+  transition: box-shadow var(--transition-fast) var(--easing-default),
+    transform var(--transition-fast) var(--easing-default);
+}
+
+.card:hover {
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+}
+
+/* Clickable cards get more lift on hover */
+.card[style*="cursor: pointer"]:hover,
+.card.clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0.75rem 1.5rem rgba(0, 0, 0, 0.12);
+}
+
+/* Better tab styling */
+.nav-tabs .nav-link {
+  transition: all var(--transition-fast) var(--easing-default);
+  border-radius: var(--border-radius-md) var(--border-radius-md) 0 0;
+}
+
+.nav-tabs .nav-link:hover:not(.active) {
+  background-color: var(--color-gray-100);
+  border-color: var(--color-gray-200) var(--color-gray-200) transparent;
+}
+
+.nav-tabs .nav-link.active {
+  font-weight: 500;
+  border-bottom: 2px solid var(--color-primary);
+  margin-bottom: -1px;
+}
+
+/* Pills nav - more rounded and modern */
+.nav-pills .nav-link {
+  border-radius: 2rem;
+  transition: all var(--transition-fast) var(--easing-default);
+}
+
+.nav-pills .nav-link:hover:not(.active) {
+  background-color: var(--color-gray-100);
+}
+
+/* Badge polish - slightly more padding and rounded */
+.badge {
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  padding: 0.4em 0.7em;
+}
+
+/* Alert polish - softer borders */
+.alert {
+  border-width: 0;
+  border-left-width: 4px;
+  border-radius: var(--border-radius-md);
+}
+
+/* Input focus glow effect */
+.form-control:focus,
+.form-select:focus {
+  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.15);
+  border-color: var(--color-primary);
+}
+
+/* Dropdown menu polish */
+.dropdown-menu {
+  border: none;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  border-radius: var(--border-radius-md);
+  padding: 0.5rem;
+}
+
+.dropdown-item {
+  border-radius: var(--border-radius-sm);
+  transition: background-color var(--transition-fast);
+}
+
+.dropdown-item:hover {
+  background-color: var(--color-gray-100);
+}
+
+/* Table polish - subtle row hover */
+.table > tbody > tr {
+  transition: background-color var(--transition-fast);
+}
+
+.table-hover > tbody > tr:hover {
+  background-color: rgba(13, 110, 253, 0.04);
+}
+
+/* Progress bar polish */
+.progress {
+  border-radius: 1rem;
+  overflow: hidden;
+}
+
+.progress-bar {
+  transition: width var(--transition-slow) var(--easing-default);
+}
+
+/* Tooltip polish */
+.tooltip-inner {
+  border-radius: var(--border-radius-md);
+  padding: 0.5rem 0.75rem;
+  font-size: var(--font-size-sm);
+}
+
+/* Toast notifications polish */
+.toast {
+  border: none;
+  border-radius: var(--border-radius-md);
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.toast-header {
+  border-radius: var(--border-radius-md) var(--border-radius-md) 0 0;
+}
+
+/* Accordion polish */
+.accordion-button {
+  font-weight: 500;
+  transition: all var(--transition-fast);
+}
+
+.accordion-button:not(.collapsed) {
+  background-color: rgba(13, 110, 253, 0.05);
+  color: var(--color-primary);
+}
+
+.accordion-button:focus {
+  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.15);
+}
+
+/* Loading spinner enhancement */
+.spinner-border {
+  animation-duration: 0.75s;
+}
+
+/* Scrollbar styling (webkit browsers) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-gray-100);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-gray-400);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-gray-500);
+}
+
+/* Selection highlight color */
+::selection {
+  background-color: rgba(13, 110, 253, 0.2);
+  color: inherit;
+}
+
+/* ================================================================
    End of Custom Styles
    ================================================================ */

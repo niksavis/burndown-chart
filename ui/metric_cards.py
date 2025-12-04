@@ -313,6 +313,8 @@ def _get_metric_relationship_hint(
             return "Low efficiency indicates high wait times between work stages"
         elif value > 60:
             return "Very high efficiency may indicate team overload - check WIP"
+        else:
+            return "Efficiency = active work time / total time. 25-40% is typical for healthy teams"
 
     return None
 
