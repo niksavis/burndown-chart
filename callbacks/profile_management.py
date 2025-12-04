@@ -141,41 +141,96 @@ def refresh_profile_selector(create_open, duplicate_open, delete_open):
     [
         Input("create-profile-btn", "n_clicks"),
         Input("cancel-create-profile", "n_clicks"),
-        Input("confirm-create-profile", "n_clicks"),
+        # Note: confirm-create-profile is NOT listed here because
+        # handle_create_profile controls modal close on success.
+        # This prevents race condition where modal closes before creation completes.
     ],
     [State("create-profile-modal", "is_open")],
     prevent_initial_call=True,
 )
-def toggle_create_profile_modal(create_btn, cancel_btn, confirm_btn, is_open):
-    """Toggle create profile modal open/close."""
+def toggle_create_profile_modal(create_btn, cancel_btn, is_open):
+    """Toggle create profile modal open/close (open and cancel only)."""
     return _toggle_modal(
         "create-profile-btn",
-        ["cancel-create-profile", "confirm-create-profile"],
+        ["cancel-create-profile"],
         is_open,
     )
 
 
 @callback(
     [
-        Output("create-profile-error", "children"),
-        Output("create-profile-error", "className"),
         Output("new-profile-name", "valid"),
         Output("new-profile-name", "invalid"),
         Output("profile-name-feedback", "children"),
+        Output("profile-name-feedback-valid", "children"),
+    ],
+    [
+        Input("new-profile-name", "value"),
+        Input("create-profile-modal", "is_open"),
+    ],
+    prevent_initial_call=True,
+)
+def validate_profile_name_realtime(name, modal_is_open):
+    """Real-time validation of profile name as user types.
+
+    This provides immediate feedback without waiting for confirm button.
+    """
+    # Reset validation when modal opens/closes
+    if not modal_is_open:
+        return False, False, "", ""
+
+    # If empty, show neither valid nor invalid (neutral state)
+    if not name or not name.strip():
+        return False, False, "", ""
+
+    # Use shared validation logic
+    is_valid, _, valid_flag, invalid_flag, feedback = _validate_profile_name(name)
+
+    if is_valid:
+        return True, False, "", "Profile name is available"
+    else:
+        return False, True, feedback, ""
+
+
+@callback(
+    [
+        Output("create-profile-error", "children"),
+        Output("create-profile-error", "className"),
+        Output("new-profile-name", "valid", allow_duplicate=True),
+        Output("new-profile-name", "invalid", allow_duplicate=True),
+        Output("profile-name-feedback", "children", allow_duplicate=True),
+        Output("profile-name-feedback-valid", "children", allow_duplicate=True),
+        Output("create-profile-modal", "is_open", allow_duplicate=True),
+        Output("app-notifications", "children", allow_duplicate=True),
     ],
     [Input("confirm-create-profile", "n_clicks")],
     [State("new-profile-name", "value"), State("new-profile-description", "value")],
+    prevent_initial_call=True,
 )
 def handle_create_profile(n_clicks, name, description):
-    """Handle profile creation."""
+    """Handle profile creation.
+
+    This callback controls modal close on success to ensure profile is created
+    and switched to BEFORE refresh_profile_selector fires. Prevents race condition.
+    """
     if not n_clicks:
-        return "", "alert alert-danger d-none", None, None, ""
+        return "", "alert alert-danger d-none", None, None, "", "", no_update, no_update
 
     is_valid, validated_name, valid_flag, invalid_flag, feedback = (
         _validate_profile_name(name)
     )
     if not is_valid:
-        return "", "alert alert-danger d-none", valid_flag, invalid_flag, feedback
+        # Keep modal open on validation error
+        return (
+            "",
+            "alert alert-danger d-none",
+            valid_flag,
+            invalid_flag,
+            feedback,
+            "",
+            no_update,
+            no_update,
+        )
 
     name = validated_name
 
@@ -197,11 +252,29 @@ def handle_create_profile(n_clicks, name, description):
         logger.info(
             f"Created new profile: {name} (ID: {profile_id}) and switched to it"
         )
-        return "", "alert alert-danger d-none", True, False, ""
+
+        # Show success toast notification
+        toast = create_success_toast(
+            f"Profile '{name}' created and activated.",
+            header="Profile Created",
+        )
+
+        # Close modal on success
+        return "", "alert alert-danger d-none", True, False, "", "", False, toast
     except Exception as e:
         error_msg = str(e)
         logger.error(f"Failed to create profile: {error_msg}")
-        return error_msg, "alert alert-danger", False, True, "Failed to create profile"
+        # Keep modal open on error
+        return (
+            error_msg,
+            "alert alert-danger",
+            False,
+            True,
+            "Failed to create profile",
+            "",
+            no_update,
+            no_update,
+        )
 
 
 @callback(

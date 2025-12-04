@@ -32,6 +32,13 @@ def create_profile_creation_modal() -> dbc.Modal:
                                         placeholder="Enter profile name...",
                                         className="mb-3",
                                         maxLength=100,
+                                        valid=False,
+                                        invalid=False,
+                                    ),
+                                    dbc.FormFeedback(
+                                        "Profile name is valid",
+                                        id="profile-name-feedback-valid",
+                                        type="valid",
                                     ),
                                     dbc.FormFeedback(
                                         "", id="profile-name-feedback", type="invalid"
