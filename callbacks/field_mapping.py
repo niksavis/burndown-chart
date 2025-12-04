@@ -14,7 +14,6 @@ from data.field_mapper import (
 )
 from ui.field_mapping_modal import (
     create_field_mapping_form,
-    create_field_mapping_error_alert,
 )
 from ui.toast_notifications import (
     create_success_toast,
@@ -877,7 +876,9 @@ def render_tab_content(
             ), state_data
         except Exception as e:
             logger.error(f"[FieldMapping] Error loading field mappings: {e}")
-            return create_field_mapping_error_alert(str(e)), state_data
+            # Return empty form with placeholder - error will be shown via toast
+            # This keeps UI functional even when JIRA is not configured
+            return create_field_mapping_form([], {}), state_data
 
     elif active_tab == "tab-projects":
         return create_project_config_form(

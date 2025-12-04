@@ -766,6 +766,9 @@ def delete_profile(profile_id: str) -> None:
                 f"[Profiles] Auto-switching from '{profile_id}' to '{other_profile_id}' before deletion"
             )
             switch_profile(other_profile_id)
+            # CRITICAL: Reload metadata after switch_profile saved it
+            # Otherwise we'd overwrite the new active_profile_id when saving later
+            metadata = load_profiles_metadata()
         else:
             # Last profile - set active to None
             logger.info(
@@ -811,6 +814,177 @@ def delete_profile(profile_id: str) -> None:
     except Exception as e:
         logger.error(f"[Profiles] Error deleting profile '{profile_id}': {e}")
         raise OSError(f"Failed to delete profile: {e}") from e
+
+
+def duplicate_profile(
+    source_profile_id: str, new_name: str, description: str = ""
+) -> str:
+    """
+    Duplicate a profile with all its settings, queries, and data files.
+
+    Creates a complete copy of the source profile including:
+    - profile.json (JIRA config, field mappings, forecast settings, etc.)
+    - All queries with their query.json files
+    - All query data files (jira_cache.json, project_data.json, metrics_snapshots.json, etc.)
+
+    Args:
+        source_profile_id: Profile ID to duplicate
+        new_name: Name for the new profile
+        description: Optional description for the new profile
+
+    Returns:
+        str: New profile ID
+
+    Raises:
+        ValueError: If source profile doesn't exist, name is invalid/duplicate, or max profiles reached
+        OSError: If file operations fail
+
+    Example:
+        >>> new_id = duplicate_profile("p_abc123", "Production Copy", "Backup of production")
+        >>> # Creates complete copy with new ID and timestamps
+    """
+    from data.query_manager import _generate_unique_query_id
+
+    # Validate inputs
+    if not new_name or not new_name.strip():
+        raise ValueError("Profile name cannot be empty")
+
+    new_name = new_name.strip()
+    if len(new_name) > 100:
+        raise ValueError("Profile name cannot exceed 100 characters")
+
+    # Load current metadata
+    metadata = load_profiles_metadata()
+
+    # Validate source profile exists
+    profiles_dict = metadata.get("profiles", {})
+    if source_profile_id not in profiles_dict:
+        raise ValueError(f"Source profile '{source_profile_id}' does not exist")
+
+    # Check for duplicate names (case-insensitive)
+    existing_names = [p["name"].lower() for p in profiles_dict.values()]
+    if new_name.lower() in existing_names:
+        raise ValueError(f"Profile name '{new_name}' already exists")
+
+    # Check max profiles limit
+    if len(profiles_dict) >= MAX_PROFILES:
+        raise ValueError(f"Maximum {MAX_PROFILES} profiles allowed")
+
+    # Generate unique profile ID
+    new_profile_id = _generate_unique_profile_id()
+
+    # Source and destination directories
+    source_profile_dir = PROFILES_DIR / source_profile_id
+    new_profile_dir = PROFILES_DIR / new_profile_id
+
+    # Initialize variables that will be set from profile.json
+    profile_data: Dict = {}
+    new_query_ids: List[str] = []
+
+    try:
+        # Step 1: Copy entire profile directory tree
+        shutil.copytree(source_profile_dir, new_profile_dir)
+        logger.info(
+            f"[Profiles] Copied directory tree from '{source_profile_id}' to '{new_profile_id}'"
+        )
+
+        # Step 2: Update profile.json with new ID, name, description, timestamps
+        new_profile_config_file = new_profile_dir / "profile.json"
+        if new_profile_config_file.exists():
+            with open(new_profile_config_file, "r", encoding="utf-8") as f:
+                profile_data = json.load(f)
+
+            # Update profile metadata
+            now = datetime.now(timezone.utc).isoformat()
+            profile_data["id"] = new_profile_id
+            profile_data["name"] = new_name
+            profile_data["description"] = description
+            profile_data["created_at"] = now
+            profile_data["last_used"] = now
+
+            # Step 3: Rename query directories and update query.json files
+            queries_dir = new_profile_dir / "queries"
+            if queries_dir.exists():
+                for old_query_dir in list(queries_dir.iterdir()):
+                    if old_query_dir.is_dir():
+                        old_query_id = old_query_dir.name
+
+                        # Generate new query ID
+                        new_query_id = _generate_unique_query_id()
+
+                        # Rename directory
+                        new_query_dir = queries_dir / new_query_id
+                        old_query_dir.rename(new_query_dir)
+
+                        # Update query.json with new ID and timestamps
+                        query_file = new_query_dir / "query.json"
+                        if query_file.exists():
+                            with open(query_file, "r", encoding="utf-8") as f:
+                                query_data = json.load(f)
+
+                            query_data["id"] = new_query_id
+                            query_data["created_at"] = now
+                            query_data["last_used"] = now
+
+                            with open(query_file, "w", encoding="utf-8") as f:
+                                json.dump(query_data, f, indent=2, ensure_ascii=False)
+
+                        new_query_ids.append(new_query_id)
+                        logger.debug(
+                            f"[Profiles] Renamed query '{old_query_id}' to '{new_query_id}'"
+                        )
+
+            profile_data["queries"] = new_query_ids
+            profile_data["active_query_id"] = (
+                new_query_ids[0] if new_query_ids else None
+            )
+
+            # Save updated profile.json
+            with open(new_profile_config_file, "w", encoding="utf-8") as f:
+                json.dump(profile_data, f, indent=2, ensure_ascii=False)
+
+        # Step 4: Add to profiles registry
+        # Create registry entry from profile data
+        registry_entry = {
+            "id": new_profile_id,
+            "name": new_name,
+            "description": description,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "last_used": datetime.now(timezone.utc).isoformat(),
+            "jira_config": {},  # Summary only - full config in profile.json
+            "field_mappings": {},  # Summary only - full mappings in profile.json
+            "forecast_settings": profile_data.get(
+                "forecast_settings",
+                {
+                    "pert_factor": 1.2,
+                    "deadline": "",
+                    "data_points_count": 20,
+                },
+            ),
+            "project_classification": {},
+            "flow_type_mappings": {},
+            "queries": new_query_ids,
+            "show_milestone": profile_data.get("show_milestone", False),
+            "show_points": profile_data.get("show_points", False),
+        }
+
+        metadata["profiles"][new_profile_id] = registry_entry
+
+        # Save updated metadata
+        if not save_profiles_metadata(metadata):
+            raise OSError("Failed to update profiles registry")
+
+        logger.info(
+            f"[Profiles] Duplicated profile '{source_profile_id}' to '{new_name}' ({new_profile_id}) with {len(new_query_ids)} queries"
+        )
+        return new_profile_id
+
+    except Exception as e:
+        # Cleanup on failure
+        if new_profile_dir.exists():
+            shutil.rmtree(new_profile_dir, ignore_errors=True)
+        logger.error(f"[Profiles] Error duplicating profile: {e}")
+        raise OSError(f"Failed to duplicate profile: {e}") from e
 
 
 def list_profiles() -> List[Dict]:

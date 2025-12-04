@@ -11,6 +11,7 @@ from data.profile_manager import (
     create_profile,
     switch_profile,
     delete_profile,
+    duplicate_profile,
     list_profiles,
     get_active_profile,
 )
@@ -108,8 +109,9 @@ def refresh_profile_selector(create_open, duplicate_open, delete_open):
     """Refresh profile dropdown when modals close and manage button states."""
     profiles = list_profiles()
     active_profile = get_active_profile()
+    active_profile_id = active_profile.id if active_profile else None
 
-    # Build dropdown options (no star needed - dropdown always shows active profile)
+    # Build dropdown options with Active indicator for current profile
     options = []
     for profile in profiles:
         # Create label with metadata
@@ -117,7 +119,9 @@ def refresh_profile_selector(create_open, duplicate_open, delete_open):
         if profile.get("jira_url"):
             jira_info = f" • {profile['jira_url']}"
 
-        label = f"{profile['name']}{jira_info}"
+        # Add Active indicator for the currently active profile
+        active_indicator = " (Active)" if profile["id"] == active_profile_id else ""
+        label = f"{profile['name']}{active_indicator}{jira_info}"
         options.append({"label": label, "value": profile["id"]})
 
     # Determine current value
@@ -205,15 +209,17 @@ def handle_create_profile(n_clicks, name, description):
     [
         Input("duplicate-profile-btn", "n_clicks"),
         Input("cancel-duplicate-profile", "n_clicks"),
-        Input("confirm-duplicate-profile", "n_clicks"),
+        # Note: confirm-duplicate-profile is NOT listed here because
+        # handle_duplicate_profile controls modal close on success.
+        # This prevents race condition where modal closes before profile creation completes.
     ],
     [State("duplicate-profile-modal", "is_open")],
 )
-def toggle_duplicate_profile_modal(duplicate_btn, cancel_btn, confirm_btn, is_open):
-    """Toggle duplicate profile modal open/close."""
+def toggle_duplicate_profile_modal(duplicate_btn, cancel_btn, is_open):
+    """Toggle duplicate profile modal open/close (open and cancel only)."""
     return _toggle_modal(
         "duplicate-profile-btn",
-        ["cancel-duplicate-profile", "confirm-duplicate-profile"],
+        ["cancel-duplicate-profile"],
         is_open,
     )
 
@@ -252,6 +258,8 @@ def populate_duplicate_modal(is_open, selected_profile_id):
         Output("duplicate-profile-name", "valid"),
         Output("duplicate-profile-name", "invalid"),
         Output("duplicate-name-feedback", "children"),
+        Output("duplicate-profile-modal", "is_open", allow_duplicate=True),
+        Output("app-notifications", "children", allow_duplicate=True),
     ],
     [Input("confirm-duplicate-profile", "n_clicks")],
     [
@@ -259,41 +267,84 @@ def populate_duplicate_modal(is_open, selected_profile_id):
         State("duplicate-profile-description", "value"),
         State("profile-selector", "value"),
     ],
+    prevent_initial_call=True,
 )
 def handle_duplicate_profile(n_clicks, name, description, source_profile_id):
-    """Handle profile duplication."""
+    """Handle profile duplication - creates complete copy of source profile.
+
+    This callback controls modal close on success to ensure profile is created
+    BEFORE refresh_profile_selector fires. Prevents race condition.
+    """
     if not n_clicks:
-        return "", "alert alert-danger d-none", None, None, ""
+        return "", "alert alert-danger d-none", None, None, "", no_update, no_update
+
+    if not source_profile_id:
+        # Keep modal open on validation error
+        return (
+            "No source profile selected",
+            "alert alert-danger",
+            False,
+            True,
+            "Select a profile to duplicate",
+            no_update,
+            no_update,
+        )
 
     is_valid, validated_name, valid_flag, invalid_flag, feedback = (
         _validate_profile_name(name)
     )
     if not is_valid:
-        return "", "alert alert-danger d-none", valid_flag, invalid_flag, feedback
+        # Keep modal open on validation error
+        return (
+            "",
+            "alert alert-danger d-none",
+            valid_flag,
+            invalid_flag,
+            feedback,
+            no_update,
+            no_update,
+        )
 
     name = validated_name
 
     try:
-        settings = {
-            "description": description or "",
-            "pert_factor": 1.2,
-            "deadline": "",
-            "data_points_count": 20,
-            "jira_config": {},
-            "field_mappings": {},
-        }
-        profile_id = create_profile(name, settings)
-        logger.info(f"Duplicated profile to: {name} (ID: {profile_id})")
-        return "", "alert alert-danger d-none", True, False, ""
+        # Use duplicate_profile to create a complete copy
+        profile_id = duplicate_profile(source_profile_id, name, description or "")
+
+        # Switch to newly duplicated profile automatically
+        switch_profile(profile_id)
+
+        logger.info(
+            f"Duplicated profile '{source_profile_id}' to: {name} (ID: {profile_id}) and switched to it"
+        )
+
+        # Show success toast notification
+        toast = create_success_toast(
+            f"Profile '{name}' created and activated.",
+            header="Profile Duplicated",
+        )
+
+        # Close modal on success - triggers refresh_profile_selector
+        return "", "alert alert-danger d-none", True, False, "", False, toast
     except Exception as e:
         error_msg = str(e)
         logger.error(f"Failed to duplicate profile: {error_msg}")
+
+        # Show error toast notification
+        error_toast = create_error_toast(
+            f"Failed to duplicate profile: {error_msg}",
+            header="Duplication Failed",
+        )
+
+        # Keep modal open on error
         return (
             error_msg,
             "alert alert-danger",
             False,
             True,
             "Failed to duplicate profile",
+            no_update,
+            error_toast,
         )
 
 
@@ -302,15 +353,17 @@ def handle_duplicate_profile(n_clicks, name, description, source_profile_id):
     [
         Input("delete-profile-btn", "n_clicks"),
         Input("cancel-delete-profile", "n_clicks"),
-        Input("confirm-delete-profile", "n_clicks"),
+        # Note: confirm-delete-profile is NOT listed here because
+        # handle_delete_profile controls modal close on success.
+        # This prevents race condition where modal closes before deletion completes.
     ],
     [State("delete-profile-modal", "is_open")],
 )
-def toggle_delete_profile_modal(delete_btn, cancel_btn, confirm_btn, is_open):
-    """Toggle delete profile modal open/close."""
+def toggle_delete_profile_modal(delete_btn, cancel_btn, is_open):
+    """Toggle delete profile modal open/close (open and cancel only)."""
     return _toggle_modal(
         "delete-profile-btn",
-        ["cancel-delete-profile", "confirm-delete-profile"],
+        ["cancel-delete-profile"],
         is_open,
     )
 
@@ -377,15 +430,27 @@ def enable_delete_button(confirmation_text, modal_open):
         Output("profile-selector", "options", allow_duplicate=True),
         Output("profile-selector", "value", allow_duplicate=True),
         Output("app-notifications", "children", allow_duplicate=True),
+        Output("delete-profile-modal", "is_open", allow_duplicate=True),
     ],
     [Input("confirm-delete-profile", "n_clicks")],
     [State("profile-selector", "value"), State("delete-confirmation-input", "value")],
     prevent_initial_call=True,
 )
 def handle_delete_profile(n_clicks, profile_id, confirmation):
-    """Handle profile deletion."""
+    """Handle profile deletion.
+
+    This callback controls modal close on success to ensure profile is deleted
+    BEFORE refresh_profile_selector fires. Prevents race condition.
+    """
     if not n_clicks or confirmation != "DELETE":
-        return "", "alert alert-danger d-none", no_update, no_update, no_update
+        return (
+            "",
+            "alert alert-danger d-none",
+            no_update,
+            no_update,
+            no_update,
+            no_update,
+        )
 
     if not profile_id:
         return (
@@ -394,6 +459,7 @@ def handle_delete_profile(n_clicks, profile_id, confirmation):
             no_update,
             no_update,
             no_update,
+            no_update,  # Keep modal open
         )
 
     try:
@@ -404,13 +470,13 @@ def handle_delete_profile(n_clicks, profile_id, confirmation):
                 "Profile not found.",
                 header="Delete Failed",
             )
-            # No modal error - just toast and let modal close
             return (
                 "",
                 "alert alert-danger d-none",
                 no_update,
                 no_update,
                 error_notification,
+                False,  # Close modal
             )
 
         delete_profile(profile_id)
@@ -424,15 +490,15 @@ def handle_delete_profile(n_clicks, profile_id, confirmation):
             else (updated_profiles[0]["id"] if updated_profiles else "")
         )
 
-        profile_options = [
-            {
-                "label": f"{p['name']} [Active]"
-                if p["id"] == new_active_id
-                else p["name"],
-                "value": p["id"],
-            }
-            for p in updated_profiles
-        ]
+        # Build options with consistent format (Active indicator + JIRA info)
+        profile_options = []
+        for p in updated_profiles:
+            jira_info = ""
+            if p.get("jira_url"):
+                jira_info = f" • {p['jira_url']}"
+            active_indicator = " (Active)" if p["id"] == new_active_id else ""
+            label = f"{p['name']}{active_indicator}{jira_info}"
+            profile_options.append({"label": label, "value": p["id"]})
 
         # Return success with no error message
         # The modal will close (no error to keep it open)
@@ -443,17 +509,26 @@ def handle_delete_profile(n_clicks, profile_id, confirmation):
             icon="trash",
         )
 
+        # Close modal on success
         return (
             "",
             "alert alert-danger d-none",
             profile_options,
             new_active_id,
             notification,
+            False,  # Close modal
         )
     except Exception as e:
         error_msg = str(e)
         logger.error(f"Failed to delete profile: {error_msg}")
-        return error_msg, "alert alert-danger", no_update, no_update, no_update
+        return (
+            error_msg,
+            "alert alert-danger",
+            no_update,
+            no_update,
+            no_update,
+            no_update,
+        )  # Keep modal open on error
 
 
 @callback(
@@ -491,8 +566,19 @@ def handle_profile_switch(selected_profile_id):
             header="Profile Switched",
         )
 
-        # Don't update options - let refresh_profile_dropdown handle that to avoid race condition
-        return notification, no_update
+        # Update dropdown options to reflect new Active indicator
+        profiles = list_profiles()
+        active_profile_id = active_profile.id if active_profile else None
+        profile_options = []
+        for p in profiles:
+            jira_info = ""
+            if p.get("jira_url"):
+                jira_info = f" • {p['jira_url']}"
+            active_indicator = " (Active)" if p["id"] == active_profile_id else ""
+            label = f"{p['name']}{active_indicator}{jira_info}"
+            profile_options.append({"label": label, "value": p["id"]})
+
+        return notification, profile_options
     except Exception as e:
         logger.error(f"Failed to switch profile: {e}")
         return no_update, no_update

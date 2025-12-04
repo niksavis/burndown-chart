@@ -933,11 +933,13 @@ def register(app):
         ui_state["last_tab"] = active_tab
 
         try:
-            # Get values from settings
-            pert_factor = settings["pert_factor"]
-            total_items = settings["total_items"]
-            total_points = calc_results.get("total_points", settings["total_points"])
-            deadline = settings["deadline"]
+            # Get values from settings with safe defaults
+            pert_factor = settings.get("pert_factor", 1.2)
+            total_items = settings.get("total_items", 0)
+            total_points = calc_results.get(
+                "total_points", settings.get("total_points", 0)
+            )
+            deadline = settings.get("deadline", "")
             data_points_count = int(
                 settings.get("data_points_count", 12)
             )  # Ensure int, default 12
