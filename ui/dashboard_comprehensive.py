@@ -496,11 +496,16 @@ def _create_executive_summary(statistics_df, settings, forecast_data):
                                                             ),
                                                         ]
                                                     )
-                                                    if total_points > 0
+                                                    if (
+                                                        total_points > 0
+                                                        and settings.get(
+                                                            "show_points", True
+                                                        )
+                                                    )
                                                     else html.Div(
                                                         [
                                                             html.H5(
-                                                                "N/A",
+                                                                "--",
                                                                 className="mb-0 text-muted",
                                                             ),
                                                             html.Small(
@@ -561,12 +566,18 @@ def _create_executive_summary(statistics_df, settings, forecast_data):
     )
 
 
-def _create_throughput_section(statistics_df, forecast_data):
+def _create_throughput_section(statistics_df, forecast_data, settings):
     """Create throughput analytics section.
 
     Note: statistics_df is already filtered by data_points_count in the callback,
     so we use the entire dataframe for calculations.
+
+    Args:
+        statistics_df: DataFrame with filtered statistics
+        forecast_data: Dictionary with forecast data
+        settings: Settings dictionary containing show_points flag
     """
+    show_points = settings.get("show_points", True)
     if statistics_df.empty:
         return html.Div()
 
@@ -651,13 +662,19 @@ def _create_throughput_section(statistics_df, forecast_data):
                         [
                             _create_metric_card(
                                 "Points per Week",
-                                f"{avg_points:.1f}",
-                                "Average story points",
+                                f"{avg_points:.1f}" if show_points else "--",
+                                "Average story points"
+                                if show_points
+                                else "Points tracking disabled",
                                 "fa-chart-bar",
-                                COLOR_PALETTE["points"],
-                                trend=points_trend,
-                                sparkline_data=list(statistics_df["completed_points"]),
-                                tooltip_text="Average story points completed per week. Story points represent work complexity and effort. Higher values indicate faster delivery of larger work items.",
+                                COLOR_PALETTE["points"] if show_points else "#6c757d",
+                                trend=points_trend if show_points else None,
+                                sparkline_data=list(statistics_df["completed_points"])
+                                if show_points
+                                else None,
+                                tooltip_text="Average story points completed per week. Story points represent work complexity and effort. Higher values indicate faster delivery of larger work items."
+                                if show_points
+                                else "Enable Points Tracking in the parameter panel to view this metric.",
                                 tooltip_id="throughput-points-per-week",
                             )
                         ],
@@ -670,12 +687,18 @@ def _create_throughput_section(statistics_df, forecast_data):
                         [
                             _create_metric_card(
                                 "Avg Item Size",
-                                f"{_safe_divide(avg_points, avg_items):.1f} pts",
-                                "Points per item",
+                                f"{_safe_divide(avg_points, avg_items):.1f} pts"
+                                if show_points
+                                else "--",
+                                "Points per item"
+                                if show_points
+                                else "Points tracking disabled",
                                 "fa-weight-hanging",
-                                "#17a2b8",
+                                "#17a2b8" if show_points else "#6c757d",
                                 sparkline_data=None,
-                                tooltip_text="Average story points per completed work item. Shows typical item complexity. Higher values mean larger items taking longer to complete. Use this to understand capacity: fewer large items or more small items per sprint.",
+                                tooltip_text="Average story points per completed work item. Shows typical item complexity. Higher values mean larger items taking longer to complete. Use this to understand capacity: fewer large items or more small items per sprint."
+                                if show_points
+                                else "Enable Points Tracking in the parameter panel to view this metric.",
                                 tooltip_id="throughput-item-size",
                             )
                         ],
@@ -964,12 +987,16 @@ def _create_forecast_section(pert_data, confidence_data):
     )
 
 
-def _create_recent_activity_section(statistics_df):
+def _create_recent_activity_section(statistics_df, show_points=True):
     """Create compact recent performance section showing completed items clearly.
 
     Note: This section ALWAYS shows the last 4 weeks of data, regardless of
     the data_points_count slider. This provides a consistent "current status" view.
     Other dashboard sections respect the data_points_count filter.
+
+    Args:
+        statistics_df: DataFrame with statistics data
+        show_points: Whether to show points-related metrics (default: True)
     """
     if statistics_df.empty:
         return html.Div()
@@ -1092,8 +1119,10 @@ def _create_recent_activity_section(statistics_df):
                                 className="align-items-center mb-3",
                             ),
                             # Divider
-                            html.Hr(className="my-2") if has_points_data else None,
-                            # Points Row (only show if points data exists)
+                            html.Hr(className="my-2")
+                            if (has_points_data and show_points)
+                            else None,
+                            # Points Row (only show if points data exists AND show_points is enabled)
                             dbc.Row(
                                 [
                                     dbc.Col(
@@ -1169,7 +1198,7 @@ def _create_recent_activity_section(statistics_df):
                                 ],
                                 className="align-items-center",
                             )
-                            if has_points_data
+                            if (has_points_data and show_points)
                             else None,
                         ]
                     )
@@ -1772,11 +1801,11 @@ def create_comprehensive_dashboard(
             # Executive Summary
             _create_executive_summary(statistics_df, settings, forecast_data),
             # Throughput Analytics
-            _create_throughput_section(statistics_df, forecast_data),
+            _create_throughput_section(statistics_df, forecast_data, settings),
             # Forecast Section
             _create_forecast_section(forecast_data, confidence_data),
             # Recent Activity Section - uses unfiltered data for consistent 4-week view
-            _create_recent_activity_section(statistics_df_unfiltered),
+            _create_recent_activity_section(statistics_df_unfiltered, show_points),
             # Quality & Scope Section
             _create_quality_scope_section(statistics_df, settings),
             # Insights Section
