@@ -250,9 +250,9 @@ def create_metric_trend_sparkline(
         "height": height,
         "margin": {
             "t": 10,
-            "r": 10,
-            "b": 40 if show_axes else 5,  # Consistent with chart_config.py (was 60)
-            "l": 45 if show_axes else 5,
+            "r": 20,
+            "b": 50 if show_axes else 5,  # Consistent bottom margin for date labels
+            "l": 50 if show_axes else 5,
         },
         "xaxis": {
             "type": "category",  # Force categorical axis to prevent date interpretation
@@ -410,8 +410,8 @@ def create_metric_trend_full(
         "hovermode": "x unified",
         "showlegend": False,  # Cleaner for trend charts
         "margin": dict(
-            l=50, r=20, t=10, b=60
-        ),  # More space for rotated labels, less for title
+            l=50, r=20, t=10, b=50
+        ),  # Consistent margins across all metric charts
         "plot_bgcolor": "white",  # CRITICAL: White plot area
         "paper_bgcolor": "white",  # CRITICAL: White outer background
         "font": {"size": 12},

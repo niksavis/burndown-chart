@@ -85,7 +85,9 @@ def get_mobile_first_layout(
     """
     return {
         "height": height,
-        "margin": dict(l=50, r=20, t=10, b=40),  # Reduced bottom margin (was 60)
+        "margin": dict(
+            l=50, r=20, t=10, b=50
+        ),  # Consistent bottom margin for date labels
         "plot_bgcolor": "white",  # CRITICAL: Clean white plot area
         "paper_bgcolor": "white",  # CRITICAL: Clean white outer background
         "hovermode": "x unified",
