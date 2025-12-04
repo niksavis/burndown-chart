@@ -1,4 +1,12 @@
-"""Test field mapping state initialization in render callback."""
+"""Test field mapping state initialization in render callback.
+
+CRITICAL: All tests MUST mock functions that read/write to profile files:
+- data.persistence.load_app_settings
+- data.persistence.load_jira_configuration
+- data.field_mapper.fetch_available_jira_fields (calls load_jira_configuration)
+
+Without proper mocks, tests will modify real user data in profiles/ directory!
+"""
 
 from unittest.mock import patch, MagicMock
 from callbacks.field_mapping import render_tab_content
@@ -7,13 +15,17 @@ from callbacks.field_mapping import render_tab_content
 class TestFieldMappingStateInitialization:
     """Test that render_tab_content properly initializes state from saved settings."""
 
+    @patch("callbacks.field_mapping.fetch_available_jira_fields")
     @patch("data.persistence.load_app_settings")
     @patch("callbacks.field_mapping.callback_context")
     @patch("dash.ctx")
     def test_render_initializes_state_from_saved_settings(
-        self, mock_dash_ctx, mock_callback_ctx, mock_load_settings
+        self, mock_dash_ctx, mock_callback_ctx, mock_load_settings, mock_fetch_fields
     ):
         """Test that opening modal initializes state store from profile.json."""
+        # Arrange: Mock fetch_available_jira_fields to prevent real API calls
+        mock_fetch_fields.return_value = []
+
         # Arrange: Mock saved settings with field mappings
         mock_load_settings.return_value = {
             "field_mappings": {
@@ -117,13 +129,17 @@ class TestFieldMappingStateInitialization:
         assert returned_state["devops_projects"] == ["DEVOPS"]
         assert returned_state["flow_end_statuses"] == ["Done", "Closed"]
 
+    @patch("callbacks.field_mapping.fetch_available_jira_fields")
     @patch("data.persistence.load_app_settings")
     @patch("callbacks.field_mapping.callback_context")
     @patch("dash.ctx")
     def test_render_preserves_state_when_already_initialized(
-        self, mock_dash_ctx, mock_callback_ctx, mock_load_settings
+        self, mock_dash_ctx, mock_callback_ctx, mock_load_settings, mock_fetch_fields
     ):
         """Test that switching tabs preserves state (doesn't reinitialize)."""
+        # Arrange: Mock fetch_available_jira_fields to prevent real API calls
+        mock_fetch_fields.return_value = []
+
         # Arrange: Mock saved settings (won't be used because state already exists)
         mock_load_settings.return_value = {
             "field_mappings": {"dora": {}, "flow": {}},
@@ -168,13 +184,19 @@ class TestFieldMappingStateInitialization:
         )
         assert returned_state["development_projects"] == ["CHANGED"]
 
+    @patch("callbacks.field_mapping.fetch_available_jira_fields")
     @patch("data.persistence.load_app_settings")
     @patch("callbacks.field_mapping.callback_context")
     @patch("dash.ctx")
     def test_render_reinitializes_when_profile_tracking_only(
-        self, mock_dash_ctx, mock_callback_ctx, mock_load_settings
+        self, mock_dash_ctx, mock_callback_ctx, mock_load_settings, mock_fetch_fields
     ):
         """Test that state with only _profile_id is considered empty and gets reinitialized."""
+        # Arrange: Mock fetch_available_jira_fields to prevent real JIRA API calls
+        # CRITICAL: Without this mock, fetch_available_jira_fields() calls load_jira_configuration()
+        # which triggers migration code that WRITES to the real profile.json!
+        mock_fetch_fields.return_value = []
+
         # Arrange: This happens after profile switch cleared state
         mock_load_settings.return_value = {
             "field_mappings": {
