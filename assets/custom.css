@@ -4103,5 +4103,100 @@ input[id*="namespace-field-input"]::placeholder {
 }
 
 /* ================================================================
+   PANEL DISTINCTION STYLES
+   Visual separation between modals/panels and page content
+   ================================================================ */
+
+/* Much darker backdrop with strong blur - makes background clearly "behind" */
+.modal-backdrop.show {
+  opacity: 0.75 !important;
+  backdrop-filter: blur(8px) grayscale(30%);
+  -webkit-backdrop-filter: blur(8px) grayscale(30%);
+  background-color: rgba(0, 0, 0, 0.85) !important;
+}
+
+/* Enhanced modal panel styling - clear floating appearance */
+.modal-content {
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 0.75rem;
+  box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.3), 0 0.5rem 1rem rgba(0, 0, 0, 0.2),
+    0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+  transform: translateY(0);
+  animation: modalSlideIn 0.2s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0.8;
+    transform: translateY(-10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Accent border on left side of modal header */
+.modal-header {
+  border-bottom: 1px solid var(--color-gray-200);
+  background: linear-gradient(
+    to right,
+    var(--color-primary) 5px,
+    var(--color-white) 5px
+  );
+  padding-left: calc(var(--spacing-md) + 8px);
+  border-radius: 0.75rem 0.75rem 0 0;
+}
+
+/* Modal title styling */
+.modal-title {
+  font-weight: 600;
+  color: var(--color-gray-800);
+}
+
+/* Modal body - ensure white background */
+.modal-body {
+  background-color: var(--color-white);
+}
+
+/* Modal footer styling */
+.modal-footer {
+  border-top: 1px solid var(--color-gray-200);
+  background-color: var(--color-gray-100);
+  border-radius: 0 0 0.75rem 0.75rem;
+}
+
+/* Offcanvas (slide-out panels) styling */
+.offcanvas {
+  border-left: 5px solid var(--color-primary) !important;
+  box-shadow: -1rem 0 3rem rgba(0, 0, 0, 0.3), -0.5rem 0 1rem rgba(0, 0, 0, 0.2);
+}
+
+.offcanvas-header {
+  border-bottom: 1px solid var(--color-gray-200);
+  background-color: var(--color-gray-100);
+}
+
+.offcanvas-title {
+  font-weight: 600;
+  color: var(--color-gray-800);
+}
+
+/* Offcanvas backdrop - same strong blur */
+.offcanvas-backdrop.show {
+  opacity: 0.7 !important;
+  backdrop-filter: blur(8px) grayscale(30%);
+  -webkit-backdrop-filter: blur(8px) grayscale(30%);
+  background-color: rgba(0, 0, 0, 0.8) !important;
+}
+
+/* Large modal specific styling (field mapping, etc.) */
+.modal-xl .modal-content,
+.modal-lg .modal-content {
+  box-shadow: 0 1.5rem 4rem rgba(0, 0, 0, 0.35),
+    0 0.75rem 2rem rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+}
+
+/* ================================================================
    End of Custom Styles
    ================================================================ */
