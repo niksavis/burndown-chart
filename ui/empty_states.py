@@ -275,28 +275,79 @@ def create_no_data_state() -> html.Div:
                     ),
                 ],
             ),
+        ],
+        className="p-5 empty-state-banner",  # Standard padding + animation class
+    )
+
+
+def create_no_bugs_state() -> html.Div:
+    """Create empty state when data is loaded but no bugs are found.
+
+    This is a positive state - data loaded successfully, just no bugs to show.
+
+    Returns:
+        html.Div with celebratory empty state UI
+    """
+    return html.Div(
+        [
             dbc.Row(
                 [
                     dbc.Col(
                         [
-                            dbc.Alert(
+                            html.Div(
                                 [
-                                    html.I(className="fas fa-lightbulb me-2"),
-                                    html.Strong("Tip: "),
-                                    "The first data load may take a few minutes depending on your project size. "
-                                    "Subsequent updates are incremental and faster.",
+                                    html.I(
+                                        className="fas fa-check-circle fa-4x text-success mb-4",
+                                        style={"opacity": "0.7"},
+                                    ),
+                                    html.H4(
+                                        "No Bugs Found",
+                                        className="text-dark mb-3",
+                                    ),
+                                    html.P(
+                                        "Great news! No bugs were found in the current dataset.",
+                                        className="text-muted mb-2",
+                                    ),
+                                    html.P(
+                                        "This could mean your project has excellent quality, or bug tracking uses different issue types.",
+                                        className="text-muted small",
+                                    ),
                                 ],
-                                color="info",
-                                className="mb-0",
+                                className="text-center mb-4",
                             ),
                         ],
                         width=12,
                     ),
                 ],
-                className="mt-4",
+            ),
+            dbc.Row(
+                [
+                    dbc.Col(
+                        _create_info_card_row(
+                            [
+                                {
+                                    "icon": "cog",
+                                    "icon_color": "info",
+                                    "title": "Check Bug Types",
+                                    "description": "Verify bug issue types are configured in Settings → Field Mappings → Types tab.",
+                                },
+                                {
+                                    "icon": "filter",
+                                    "icon_color": "secondary",
+                                    "title": "Check Query Scope",
+                                    "description": "Ensure your JQL query includes projects that contain bug issues.",
+                                },
+                            ]
+                        ),
+                        xs=12,
+                        lg=10,
+                        xl=8,
+                        className="mx-auto",
+                    ),
+                ],
             ),
         ],
-        className="p-5 empty-state-banner",  # Standard padding + animation class
+        className="p-5 empty-state-banner",
     )
 
 

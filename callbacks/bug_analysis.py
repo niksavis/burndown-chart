@@ -137,13 +137,13 @@ def _render_bug_analysis_content(data_points_count: int):
 
         # Check if there are no bugs at all - show helpful placeholder
         if len(all_bug_issues) == 0:
-            from ui.empty_states import create_no_data_state
+            from ui.empty_states import create_no_bugs_state
 
             # Return empty state in fluid container to match DORA/Flow dashboards
             # Wrap in div with ID for fade-in animation
             return html.Div(
                 dbc.Container(
-                    create_no_data_state(),
+                    create_no_bugs_state(),
                     fluid=True,
                     className="py-4",
                 ),
