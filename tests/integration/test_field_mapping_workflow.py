@@ -7,6 +7,8 @@ Ensures proper isolation using tempfile and mocking.
 import json
 import os
 import tempfile
+import shutil
+from pathlib import Path
 from unittest.mock import patch, MagicMock
 import pytest
 
@@ -15,24 +17,41 @@ from data.field_mapper import (
     save_field_mappings,
     load_field_mappings,
 )
+from data.profile_manager import create_profile, switch_profile
 
 
 class TestFieldMappingWorkflow:
     """Test complete field mapping configuration workflow."""
 
-    @pytest.fixture
-    def temp_settings_file(self):
-        """Create temporary settings file for test isolation."""
-        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".json") as f:
-            temp_file = f.name
-            # Initialize with empty structure
-            json.dump({"field_mappings": {}}, f)
+    @pytest.fixture(autouse=True)
+    def isolate_profiles(self):
+        """Create isolated profile environment for field mapping tests."""
+        temp_dir = tempfile.mkdtemp(prefix="field_mapping_test_")
+        temp_profiles_dir = Path(temp_dir) / "profiles"
+        temp_profiles_dir.mkdir(parents=True, exist_ok=True)
+        temp_profiles_file = temp_profiles_dir / "profiles.json"
 
-        yield temp_file
+        # Patch all modules that import PROFILES_DIR/PROFILES_FILE
+        patches = [
+            patch("data.profile_manager.PROFILES_DIR", temp_profiles_dir),
+            patch("data.profile_manager.PROFILES_FILE", temp_profiles_file),
+            patch("data.query_manager.PROFILES_DIR", temp_profiles_dir),
+            patch("data.query_manager.PROFILES_FILE", temp_profiles_file),
+        ]
 
-        # Cleanup
-        if os.path.exists(temp_file):
-            os.unlink(temp_file)
+        for p in patches:
+            p.start()
+
+        # Create and switch to a test profile
+        profile_id = create_profile("Field Mapping Test", {})
+        switch_profile(profile_id)
+
+        yield temp_dir
+
+        for p in patches:
+            p.stop()
+
+        shutil.rmtree(temp_dir, ignore_errors=True)
 
     @pytest.fixture
     def mock_jira_fields(self):
@@ -60,17 +79,15 @@ class TestFieldMappingWorkflow:
             },
         }
 
-    def test_empty_mappings_handling(self, temp_settings_file):
+    def test_empty_mappings_handling(self):
         """Test that system handles empty/no mappings gracefully."""
-        with patch("data.field_mapper.APP_SETTINGS_FILE", temp_settings_file):
-            with patch("data.persistence.SETTINGS_FILE", temp_settings_file):
-                # Save empty mappings
-                success = save_field_mappings({})
-                assert success is True
+        # Save empty mappings
+        success = save_field_mappings({})
+        assert success is True
 
-                # Verify can still load
-                loaded_again = load_field_mappings()
-                assert isinstance(loaded_again, dict)
+        # Verify can still load
+        loaded_again = load_field_mappings()
+        assert isinstance(loaded_again, dict)
 
 
 class TestFieldMappingIntegrationWithCalculator:

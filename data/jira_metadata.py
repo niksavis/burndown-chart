@@ -420,14 +420,13 @@ class JiraMetadataFetcher:
         except Exception as e:
             logger.warning(f"[JIRA] Failed to extract from cache: {e}")
 
-        # Fallback 2: Extract from live issues via JQL (search ALL projects for field values)
-        # Use scoped=False to ensure we find values even if development_projects not configured yet
+        # Fallback 2: Extract from live issues via JQL (scoped to development projects)
         logger.info(
-            f"[JIRA] Fetching {field_id} values via JQL query (sampling up to 1000 issues across ALL projects)"
+            f"[JIRA] Fetching {field_id} values via JQL query (sampling up to 1000 issues from development projects)"
         )
         try:
             values = self._fetch_field_values_from_issues(
-                field_id, scoped=False, max_results=1000
+                field_id, scoped=True, max_results=1000
             )
 
             if values:
@@ -510,12 +509,43 @@ class JiraMetadataFetcher:
             params = {
                 "jql": jql_with_order,
                 "fields": field_id,
-                "maxResults": min(max_results, 100),  # Hard cap at 100 for safety
+                "maxResults": min(
+                    max_results, 1000
+                ),  # Cap at 1000 for field value extraction
             }
 
             response = requests.get(
                 url, headers=self.headers, params=params, timeout=30
             )
+
+            # If JQL with IS NOT EMPTY fails, try simpler query (just fetch recent issues)
+            if response.status_code != 200:
+                logger.warning(
+                    f"[JIRA] JQL with IS NOT EMPTY failed ({response.status_code}), trying simpler query with development projects"
+                )
+                # Fallback: get recent issues from development projects only
+                settings = load_app_settings()
+                # development_projects can be at root level or under project_classification
+                dev_projects = settings.get("development_projects", [])
+                if not dev_projects:
+                    dev_projects = settings.get("project_classification", {}).get(
+                        "development_projects", []
+                    )
+                if dev_projects:
+                    simple_jql = (
+                        f"project IN ({','.join(dev_projects)}) ORDER BY created DESC"
+                    )
+                else:
+                    logger.warning(
+                        "[JIRA] No development projects configured, cannot fetch field values"
+                    )
+                    return []
+
+                params["jql"] = simple_jql
+                logger.info(f"[JIRA] Fallback JQL: {simple_jql}")
+                response = requests.get(
+                    url, headers=self.headers, params=params, timeout=30
+                )
 
             if response.status_code != 200:
                 logger.warning(
@@ -534,7 +564,12 @@ class JiraMetadataFetcher:
             # Extract unique values
             unique_values = set()
             for issue in issues:
-                field_value = issue.get("fields", {}).get(field_id)
+                if issue is None:
+                    continue
+                fields = issue.get("fields")
+                if fields is None:
+                    continue
+                field_value = fields.get(field_id)
 
                 if field_value is None:
                     continue

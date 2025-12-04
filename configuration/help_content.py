@@ -973,9 +973,9 @@ FORECAST_HELP_DETAILED = {
 # DORA METRICS HELP CONTENT - Tooltips for DORA metrics
 DORA_METRICS_TOOLTIPS = {
     "deployment_frequency": "How often code is deployed to production. Measures release cadence and automation maturity. Elite performers deploy multiple times per day, high performers deploy weekly. More frequent deployments enable faster feedback and lower change risk.",
-    "lead_time_for_changes": "Time from code commit to production deployment in days. Measures end-to-end delivery speed from development to operations. Elite performers achieve <1 day, high performers <1 week. Shorter lead times enable faster value delivery and market response.",
+    "lead_time_for_changes": "Median time from code commit to production deployment in days. Measures end-to-end delivery speed from development to operations. Elite performers achieve <1 day, high performers <1 week. Shorter lead times enable faster value delivery and market response.",
     "change_failure_rate": "Percentage of deployments causing production failures requiring remediation (rollback, hotfix, etc.). Measures deployment quality and testing effectiveness. Elite performers maintain <15% failure rate. Lower rates indicate mature testing and deployment practices.",
-    "mean_time_to_recovery": "Average time to restore service after production incident in hours. Measures operational resilience and incident response capability. Elite performers recover in <1 hour. Faster recovery reduces customer impact and business risk.",
+    "mean_time_to_recovery": "Median time to restore service after production incident in hours. Measures operational resilience and incident response capability. Elite performers recover in <1 hour. Faster recovery reduces customer impact and business risk.",
 }
 
 # SETTINGS PANEL HELP CONTENT - Tooltips for settings panel features

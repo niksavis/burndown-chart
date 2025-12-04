@@ -94,9 +94,10 @@ def _fetch_jira_metadata(
         env_field_to_fetch = None
 
         if affected_env_field:
-            env_field_to_fetch = affected_env_field
+            # Strip =Value suffix if present (e.g., "customfield_11309=PROD" -> "customfield_11309")
+            env_field_to_fetch = affected_env_field.split("=")[0]
         elif target_env_field:
-            env_field_to_fetch = target_env_field
+            env_field_to_fetch = target_env_field.split("=")[0]
 
         if env_field_to_fetch:
             env_options = fetcher.fetch_field_options(env_field_to_fetch)
@@ -105,9 +106,9 @@ def _fetch_jira_metadata(
             auto_detected_prod = []
 
         # Fetch effort category field options if mapped
-        effort_category_field = settings.get("field_mappings", {}).get(
-            "effort_category"
-        )
+        # Note: effort_category is under field_mappings.flow, not at root level
+        flow_mappings = settings.get("field_mappings", {}).get("flow", {})
+        effort_category_field = flow_mappings.get("effort_category")
         effort_category_options = []
         if effort_category_field:
             effort_category_options = fetcher.fetch_field_options(effort_category_field)

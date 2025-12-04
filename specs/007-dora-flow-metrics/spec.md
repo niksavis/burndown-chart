@@ -142,11 +142,11 @@ As a stakeholder, I want to export metrics data to CSV or JSON format so that I 
 #### Data Processing Requirements
 
 - **FR-014**: System MUST calculate Deployment Frequency as: Count(Deployments to Production) / Time Period
-- **FR-015**: System MUST calculate Lead Time for Changes as: Average(Deployed_to_Production_Date - Code_Commit_Date) for all completed deployments
+- **FR-015**: System MUST calculate Lead Time for Changes as: Median(Deployed_to_Production_Date - Code_Commit_Date) for all completed deployments
 - **FR-016**: System MUST calculate Change Failure Rate as: Count(Failed Deployments) / Count(Total Deployments) × 100
-- **FR-017**: System MUST calculate MTTR as: Average(Incident_Resolved_At - Incident_Detected_At) for all resolved incidents
+- **FR-017**: System MUST calculate MTTR as: Median(Incident_Resolved_At - Incident_Detected_At) for all resolved incidents
 - **FR-018**: System MUST calculate Flow Velocity as: Count(Completed Work Items) / Time Period, segmented by work type
-- **FR-019**: System MUST calculate Flow Time as: Average(Work_Completed_Date - Work_Started_Date) for all completed items
+- **FR-019**: System MUST calculate Flow Time as: Median(Work_Completed_Date - Work_Started_Date) for all completed items
 - **FR-020**: System MUST calculate Flow Efficiency as: (Active Working Time / Total Flow Time) × 100
 - **FR-021**: System MUST calculate Flow Load as: Count(Issues with active status) at the current point in time
 - **FR-022**: System MUST calculate Flow Distribution as: Percentage breakdown of work types based on Flow_Item_Type field values

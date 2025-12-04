@@ -869,9 +869,9 @@ def render_tab_content(
         }
 
         # Get effort category options
-        effort_category_field = settings.get("field_mappings", {}).get(
-            "effort_category"
-        )
+        # Note: effort_category is under field_mappings.flow, not at root level
+        flow_field_mappings = settings.get("field_mappings", {}).get("flow", {})
+        effort_category_field = flow_field_mappings.get("effort_category")
         available_effort_categories = []
         if effort_category_field and metadata.get("field_options"):
             available_effort_categories = metadata.get("field_options", {}).get(

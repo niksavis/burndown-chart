@@ -2,10 +2,13 @@
 
 Calculates the five Flow Framework metrics:
 - Flow Velocity: Number of work items completed per time period
-- Flow Time: Average cycle time from start to completion
+- Flow Time: Median cycle time from start to completion
 - Flow Efficiency: Ratio of active time to total time
 - Flow Load: Number of work items currently in progress (WIP)
 - Flow Distribution: Breakdown of work by type (Feature, Bug, Tech Debt, Risk)
+
+Note: Flow Time uses median for outlier resistance (consistent with DORA methodology).
+Flow Efficiency uses mean since it's already a ratio/percentage.
 
 This implementation uses field_mappings from user profile configuration.
 
@@ -39,11 +42,18 @@ def _get_field_mappings():
 
     # Project classification is flattened to root level by load_app_settings
     # Reconstruct the nested structure for backward compatibility
+    # Provide sensible defaults if not configured (for testing and new installations)
+    default_flow_end_statuses = ["Done", "Resolved", "Closed"]
+    default_flow_start_statuses = ["In Progress", "In Review"]
+    default_wip_statuses = ["In Progress", "In Review", "In Development"]
+
     project_classification = {
-        "flow_end_statuses": app_settings.get("flow_end_statuses", []),
+        "flow_end_statuses": app_settings.get("flow_end_statuses")
+        or default_flow_end_statuses,
         "active_statuses": app_settings.get("active_statuses", []),
-        "wip_statuses": app_settings.get("wip_statuses", []),
-        "flow_start_statuses": app_settings.get("flow_start_statuses", []),
+        "wip_statuses": app_settings.get("wip_statuses") or default_wip_statuses,
+        "flow_start_statuses": app_settings.get("flow_start_statuses")
+        or default_flow_start_statuses,
         "bug_types": app_settings.get("bug_types", []),
         "devops_task_types": app_settings.get("devops_task_types", []),
         "production_environment_values": app_settings.get(
@@ -398,10 +408,11 @@ def calculate_flow_time(
     time_period_days: int = 7,
     previous_period_value: Optional[float] = None,
 ) -> Dict[str, Any]:
-    """Calculate Flow Time - average cycle time from start to completion.
+    """Calculate Flow Time - median cycle time from start to completion.
 
     Flow Time measures how long work items take to complete from when work started
     to when they're done. Lower flow time indicates faster delivery.
+    Uses median for outlier resistance (consistent with DORA methodology).
 
     Uses flow_start_statuses (e.g., In Progress, In Review) to find when work started,
     and flow_end_statuses (e.g., Done, Resolved, Closed) to find when work completed.
@@ -414,7 +425,7 @@ def calculate_flow_time(
     Returns:
         Dictionary with:
         {
-            "value": float (average days),
+            "value": float (median days),
             "unit": "days",
             "trend_direction": "up" | "down" | "stable",
             "trend_percentage": float,
@@ -425,6 +436,18 @@ def calculate_flow_time(
     logger.info(
         f"Calculating flow time for {len(issues)} issues over {time_period_days} days"
     )
+
+    # Check for empty input first (before configuration check)
+    if not issues:
+        logger.info("Flow Time: No issues provided")
+        return {
+            "value": 0.0,
+            "unit": "days",
+            "trend_direction": "stable",
+            "trend_percentage": 0.0,
+            "error_state": "no_data",
+            "error_message": "No issues provided",
+        }
 
     # Load field mappings and status lists
     flow_mappings, project_classification = _get_field_mappings()
@@ -512,23 +535,28 @@ def calculate_flow_time(
             "error_message": "No completed issues with valid cycle times found",
         }
 
-    # Calculate average flow time
-    average_flow_time = sum(cycle_times) / len(cycle_times)
+    # Use MEDIAN for outlier resistance (consistent with DORA methodology)
+    import statistics
+
+    median_flow_time = statistics.median(cycle_times)
+    mean_flow_time = sum(cycle_times) / len(cycle_times)  # Keep for reference
 
     # Calculate trend
-    trend = _calculate_trend(average_flow_time, previous_period_value)
+    trend = _calculate_trend(median_flow_time, previous_period_value)
 
     logger.info(
-        f"Flow Time: {average_flow_time:.1f} days average ({len(cycle_times)} issues analyzed)"
+        f"Flow Time: {median_flow_time:.1f} days median ({len(cycle_times)} issues analyzed)"
     )
 
     return {
-        "value": round(average_flow_time, 1),
+        "value": round(median_flow_time, 1),
         "unit": "days",
         "trend_direction": trend["trend_direction"],
         "trend_percentage": trend["trend_percentage"],
         "error_state": None,
         "error_message": None,
+        # Additional statistics for analysis
+        "mean_days": round(mean_flow_time, 1),
     }
 
 

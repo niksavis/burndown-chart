@@ -5,10 +5,14 @@ Tests:
 - US4: WIP health with forecast ranges (Flow Load bidirectional)
 - US5: Baseline building (<4 weeks of data)
 
-Run: .\\.venv\\Scripts\\activate; python test_user_stories_3_5.py
+Run: .\\.venv\\Scripts\\activate; pytest tests/integration/test_forecast_user_stories.py -v
 """
 
 import pytest
+import tempfile
+import shutil
+from pathlib import Path
+from unittest.mock import patch
 
 from data.metrics_snapshots import (
     save_metric_snapshot,
@@ -21,6 +25,24 @@ from data.metrics_calculator import (
     calculate_flow_load_range,
 )
 from ui.metric_cards import create_forecast_section
+
+
+@pytest.fixture(autouse=True)
+def isolated_metrics_snapshots():
+    """Isolate metrics snapshots tests from real data."""
+    # Create temporary directory for metrics snapshots
+    temp_dir = tempfile.mkdtemp(prefix="forecast_test_")
+    temp_snapshots_file = Path(temp_dir) / "metrics_snapshots.json"
+
+    # Patch the function that returns the snapshots file path
+    with patch(
+        "data.metrics_snapshots._get_snapshots_file_path",
+        return_value=temp_snapshots_file,
+    ):
+        yield temp_snapshots_file
+
+    # Cleanup
+    shutil.rmtree(temp_dir, ignore_errors=True)
 
 
 def test_user_story_3_historical_review():

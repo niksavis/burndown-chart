@@ -6,6 +6,10 @@ Calculates the four DORA (DevOps Research and Assessment) metrics:
 - Change Failure Rate: Percentage of deployments causing incidents
 - Mean Time to Recovery: Time to restore service after incidents
 
+Note: Per official DORA methodology (Google Four Keys), Lead Time and MTTR
+use MEDIAN calculations for outlier resistance, even though MTTR's name
+contains "Mean" for historical reasons.
+
 This implementation uses field_mappings from user profile configuration.
 
 Architecture:
@@ -41,11 +45,18 @@ def _get_field_mappings():
 
     # Project classification is flattened to root level by load_app_settings
     # Reconstruct the nested structure for backward compatibility
+    # Provide sensible defaults if not configured (for testing and new installations)
+    default_flow_end_statuses = ["Done", "Resolved", "Closed"]
+    default_flow_start_statuses = ["In Progress", "In Review"]
+    default_wip_statuses = ["In Progress", "In Review", "In Development"]
+
     project_classification = {
-        "flow_end_statuses": app_settings.get("flow_end_statuses", []),
+        "flow_end_statuses": app_settings.get("flow_end_statuses")
+        or default_flow_end_statuses,
         "active_statuses": app_settings.get("active_statuses", []),
-        "wip_statuses": app_settings.get("wip_statuses", []),
-        "flow_start_statuses": app_settings.get("flow_start_statuses", []),
+        "wip_statuses": app_settings.get("wip_statuses") or default_wip_statuses,
+        "flow_start_statuses": app_settings.get("flow_start_statuses")
+        or default_flow_start_statuses,
         "bug_types": app_settings.get("bug_types", []),
         "devops_task_types": app_settings.get("devops_task_types", []),
         "production_environment_values": app_settings.get(
@@ -739,25 +750,24 @@ def calculate_lead_time_for_changes(
             else mean_hours
         )
 
-        # Calculate average lead time
-        avg_lead_time_days = sum(lead_times) / len(lead_times)
+        # Use MEDIAN per official DORA methodology (outlier resistant)
+        median_lead_time_days = median_hours / 24
 
         # Determine display unit
-        avg_lead_time_hours = avg_lead_time_days * 24
-        if avg_lead_time_days < 1:
+        if median_lead_time_days < 1:
             unit = "hours"
-            display_value = avg_lead_time_hours
+            display_value = median_hours
         else:
             unit = "days"
-            display_value = avg_lead_time_days
+            display_value = median_lead_time_days
 
         # Classify performance tier (lower is better)
         performance_tier = _classify_performance_tier(
-            avg_lead_time_days, LEAD_TIME_TIERS, higher_is_better=False
+            median_lead_time_days, LEAD_TIME_TIERS, higher_is_better=False
         )
 
         # Calculate trend
-        trend = _calculate_trend(avg_lead_time_days, previous_period_value)
+        trend = _calculate_trend(median_lead_time_days, previous_period_value)
 
         logger.info(
             f"[DORA] Lead Time for Changes: {display_value:.1f} {unit} "
@@ -767,12 +777,12 @@ def calculate_lead_time_for_changes(
         return {
             "value": display_value,
             "unit": unit,
-            "value_hours": avg_lead_time_hours,
-            "value_days": avg_lead_time_days,
+            "value_hours": median_hours,
+            "value_days": median_lead_time_days,
             "performance_tier": performance_tier,
             "sample_count": len(lead_times),
             "period_days": time_period_days,
-            # Backward compatibility fields for metrics_calculator
+            # Additional statistics for analysis
             "median_hours": median_hours,
             "mean_hours": mean_hours,
             "p95_hours": p95_hours,
@@ -837,6 +847,15 @@ def calculate_change_failure_rate(
         }
     """
     try:
+        # Check for empty input first (before configuration check)
+        if not deployment_issues:
+            return {
+                "error_state": "no_data",
+                "error_message": "No deployment issues provided",
+                "trend_direction": "stable",
+                "trend_percentage": 0.0,
+            }
+
         # Get field mappings from profile
         dora_mappings, project_classification = _get_field_mappings()
 
@@ -1180,39 +1199,47 @@ def calculate_mean_time_to_recovery(
                 "trend_percentage": 0.0,
             }
 
-        # Calculate average MTTR
-        avg_mttr_hours = sum(recovery_times) / len(recovery_times)
-        avg_mttr_days = avg_mttr_hours / 24
+        # Use MEDIAN per official DORA methodology (outlier resistant)
+        # Note: MTTR name contains "Mean" for historical reasons, but DORA uses median
+        import statistics
+
+        median_mttr_hours = statistics.median(recovery_times)
+        median_mttr_days = median_mttr_hours / 24
+        mean_mttr_hours = sum(recovery_times) / len(
+            recovery_times
+        )  # Keep for reference
 
         # Determine display unit
-        if avg_mttr_hours >= 24:
+        if median_mttr_hours >= 24:
             unit = "days"
-            display_value = avg_mttr_days
+            display_value = median_mttr_days
         else:
             unit = "hours"
-            display_value = avg_mttr_hours
+            display_value = median_mttr_hours
 
         # Classify performance tier (lower is better)
         performance_tier = _classify_performance_tier(
-            avg_mttr_hours, MTTR_TIERS, higher_is_better=False
+            median_mttr_hours, MTTR_TIERS, higher_is_better=False
         )
 
         # Calculate trend
-        trend = _calculate_trend(avg_mttr_hours, previous_period_value)
+        trend = _calculate_trend(median_mttr_hours, previous_period_value)
 
         logger.info(
-            f"[DORA] Mean Time to Recovery: {display_value:.1f} {unit} "
+            f"[DORA] Mean Time to Recovery (median): {display_value:.1f} {unit} "
             f"({len(recovery_times)} incidents) - {performance_tier}"
         )
 
         return {
             "value": display_value,
             "unit": unit,
-            "value_hours": avg_mttr_hours,
-            "value_days": avg_mttr_days,
+            "value_hours": median_mttr_hours,
+            "value_days": median_mttr_days,
             "performance_tier": performance_tier,
             "incident_count": len(recovery_times),
             "period_days": time_period_days,
+            # Additional statistics for analysis
+            "mean_hours": mean_mttr_hours,
             **trend,
         }
 

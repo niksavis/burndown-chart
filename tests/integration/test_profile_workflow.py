@@ -1,30 +1,60 @@
 """
 Integration Tests for Profile Workflow (Feature 011)
 
-Tests the complete profile lifecycle using the ACTUAL profile system.
+Tests the complete profile lifecycle using isolated temp directories.
 - Profile creation, configuration, and deletion
 - Data isolation between profiles
 - Error scenarios
 
 **IMPORTANT**: These are TRUE integration tests that:
-- Work with the real profiles/ directory
-- Create actual profiles and queries
-- Clean up after themselves in try/finally blocks
+- Work with an isolated temp profiles/ directory (NOT real data)
+- Create actual profiles and queries in temp space
+- Clean up automatically after each test
 - Verify end-to-end functionality
 
-This approach provides realistic testing of the full system rather than
-mocked behavior. Each test is isolated through careful cleanup.
+This approach provides realistic testing of the full system without
+polluting the real profiles directory.
 
-Run with: pytest tests/integration/test_profile_workflow_simple.py -v
+Run with: pytest tests/integration/test_profile_workflow.py -v
 """
 
 import pytest
+import tempfile
+import shutil
+from pathlib import Path
 from unittest.mock import patch
 
 
 # ==============================================================================
 # FIXTURES
 # ==============================================================================
+
+
+@pytest.fixture(autouse=True)
+def isolate_profiles_directory():
+    """Isolate all profile tests from real data."""
+    temp_dir = tempfile.mkdtemp(prefix="profile_workflow_test_")
+    temp_profiles_dir = Path(temp_dir) / "profiles"
+    temp_profiles_dir.mkdir(parents=True, exist_ok=True)
+    temp_profiles_file = temp_profiles_dir / "profiles.json"
+
+    # Patch ALL modules that import PROFILES_DIR/PROFILES_FILE
+    patches = [
+        patch("data.profile_manager.PROFILES_DIR", temp_profiles_dir),
+        patch("data.profile_manager.PROFILES_FILE", temp_profiles_file),
+        patch("data.query_manager.PROFILES_DIR", temp_profiles_dir),
+        patch("data.query_manager.PROFILES_FILE", temp_profiles_file),
+    ]
+
+    for p in patches:
+        p.start()
+
+    yield temp_profiles_dir
+
+    for p in patches:
+        p.stop()
+
+    shutil.rmtree(temp_dir, ignore_errors=True)
 
 
 @pytest.fixture

@@ -29,6 +29,8 @@ from data.persistence import (
 from data.profile_manager import (
     create_profile,
     switch_profile,
+    delete_profile,
+    PROFILES_DIR,
 )
 from data.query_manager import create_query
 
@@ -37,18 +39,45 @@ class TestEmptyPointsFieldCachingWorkflow(unittest.TestCase):
     """Test empty points field caching workflow scenarios."""
 
     def setUp(self):
-        """Set up temporary project data file and profile context."""
+        """Set up temporary directories for complete test isolation."""
+        # Create temporary directories for profiles AND project data
+        self.temp_dir = tempfile.mkdtemp(prefix="empty_points_test_")
+        self.temp_profiles_dir = Path(self.temp_dir) / "profiles"
+        self.temp_profiles_dir.mkdir(parents=True, exist_ok=True)
+        self.temp_profiles_file = self.temp_profiles_dir / "profiles.json"
+
         # Create temporary project data file
         self.temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".json")
         self.temp_file.close()
 
-        # Mock the project data file path (but NOT the profiles directory)
+        # Patch the profiles directory to use temp location (CRITICAL for isolation)
+        # MUST patch BOTH profile_manager AND query_manager (which imports PROFILES_DIR)
+        self.patcher_profiles_dir = patch(
+            "data.profile_manager.PROFILES_DIR", self.temp_profiles_dir
+        )
+        self.patcher_profiles_file = patch(
+            "data.profile_manager.PROFILES_FILE", self.temp_profiles_file
+        )
+        self.patcher_query_profiles_dir = patch(
+            "data.query_manager.PROFILES_DIR", self.temp_profiles_dir
+        )
+        self.patcher_query_profiles_file = patch(
+            "data.query_manager.PROFILES_FILE", self.temp_profiles_file
+        )
+
+        # Mock the project data file path
         self.patcher_data = patch(
             "data.persistence.PROJECT_DATA_FILE", self.temp_file.name
         )
+
+        # Start all patchers
+        self.patcher_profiles_dir.start()
+        self.patcher_profiles_file.start()
+        self.patcher_query_profiles_dir.start()
+        self.patcher_query_profiles_file.start()
         self.patcher_data.start()
 
-        # Create test profile and query (uses real profiles/ directory)
+        # Create test profile and query (now uses temp profiles directory)
         self.test_profile_id = create_profile(
             "Empty Points Test Profile",
             {"jira_config": {"configured": True}},  # Required for query creation
@@ -62,17 +91,23 @@ class TestEmptyPointsFieldCachingWorkflow(unittest.TestCase):
         switch_profile(self.test_profile_id)
 
     def tearDown(self):
-        """Clean up temporary files and test profile."""
+        """Clean up temporary files and directories."""
+        # Stop all patchers first
+        self.patcher_profiles_dir.stop()
+        self.patcher_profiles_file.stop()
+        self.patcher_query_profiles_dir.stop()
+        self.patcher_query_profiles_file.stop()
         self.patcher_data.stop()
+
+        # Clean up temp project data file
         if os.path.exists(self.temp_file.name):
             os.unlink(self.temp_file.name)
-        # Clean up test profile (uses real profiles/ directory)
-        from data.profile_manager import delete_profile
 
-        try:
-            delete_profile(self.test_profile_id)
-        except Exception:
-            pass  # Ignore cleanup errors
+        # Clean up entire temp directory (includes temp profiles)
+        import shutil
+
+        if os.path.exists(self.temp_dir):
+            shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     def test_empty_points_field_workflow_fix(self):
         """

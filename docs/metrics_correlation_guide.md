@@ -349,7 +349,7 @@ Flow Time = ─────────────────
 Where:
 - WIP (Work in Progress) = Flow Load
 - Throughput = Flow Velocity
-- Flow Time = Average cycle time
+- Flow Time = Median cycle time
 ```
 
 ### Practical Application

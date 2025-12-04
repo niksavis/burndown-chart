@@ -23,9 +23,9 @@ Based on the Technical Context analysis, the following areas require research to
 
 **Key Findings**:
 - **Deployment Frequency**: `Count(Deployments to Production) / Time Period`
-- **Lead Time for Changes**: `Average(Deployed_to_Production_Date - Code_Commit_Date)`
+- **Lead Time for Changes**: `Median(Deployed_to_Production_Date - Code_Commit_Date)`
 - **Change Failure Rate**: `Count(Failed Deployments) / Count(Total Deployments) × 100`
-- **MTTR**: `Average(Incident_Resolved_At - Incident_Detected_At)`
+- **MTTR**: `Median(Incident_Resolved_At - Incident_Detected_At)`
 
 **Performance Benchmarks** (from DORA research):
 - Elite: Lead Time < 1 hour, MTTR < 1 hour, CFR < 15%, DF = on-demand
@@ -53,7 +53,7 @@ Based on the Technical Context analysis, the following areas require research to
 
 **Key Findings**:
 - **Flow Velocity**: `Count(Completed Work Items) / Time Period`, segmented by type
-- **Flow Time**: `Average(Work_Completed_Date - Work_Started_Date)`
+- **Flow Time**: `Median(Work_Completed_Date - Work_Started_Date)`
 - **Flow Efficiency**: `(Active Working Time / Total Flow Time) × 100`
 - **Flow Load**: `Count(Issues with active status)` at point in time
 - **Flow Distribution**: Percentage breakdown by work type

@@ -41,7 +41,11 @@ def test_field_aware_caching():
         },
     ]
 
-    test_cache_file = "test_cache.json"
+    # Use temporary file to avoid polluting project root
+    import tempfile
+
+    temp_dir = tempfile.mkdtemp(prefix="jira_cache_test_")
+    test_cache_file = os.path.join(temp_dir, "test_cache.json")
 
     print("\n1. Test Cache Creation with 'Votes' field...")
 
@@ -147,15 +151,17 @@ def test_field_aware_caching():
         f"   [X] Old cache + story points field should invalidate: {not cache_loaded}"
     )
 
-    # Cleanup
-    if os.path.exists(test_cache_file):
-        os.remove(test_cache_file)
+    # Cleanup temp directory
+    import shutil
+
+    if os.path.exists(temp_dir):
+        shutil.rmtree(temp_dir)
 
     print(f"\n[Tip] Test Summary:")
     print(f"   [OK] Cache invalidation works for field changes")
     print(f"   [OK] Backward compatibility maintained")
     print(f"   [OK] Base fields vs story points detection works")
-    print(f"   🔥 Your field configuration caching issue is SOLVED!")
+    print(f"   Test completed - temporary files cleaned up")
 
 
 if __name__ == "__main__":
