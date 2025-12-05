@@ -159,15 +159,15 @@ def enhance_data_table(table_component, options=None):
 
         # Add appropriate role based on element type
         if isinstance(element, html.Thead):
-            element.role = "rowgroup"
+            element.role = "rowgroup"  # type: ignore[attr-defined]
         elif isinstance(element, html.Tbody):
-            element.role = "rowgroup"
+            element.role = "rowgroup"  # type: ignore[attr-defined]
         elif isinstance(element, html.Tr):
-            element.role = "row"
+            element.role = "row"  # type: ignore[attr-defined]
         elif isinstance(element, html.Th):
-            element.role = "columnheader"
+            element.role = "columnheader"  # type: ignore[attr-defined]
         elif isinstance(element, html.Td):
-            element.role = "cell"
+            element.role = "cell"  # type: ignore[attr-defined]
 
         # Process children recursively
         if hasattr(element, "children"):

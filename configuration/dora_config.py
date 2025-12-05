@@ -277,7 +277,7 @@ def get_operational_project_keys() -> list:
 
     try:
         config = get_metrics_config()
-        return config.get_operational_projects()
+        return config.get_devops_projects()
     except Exception:
         # Fallback to empty list if config not available
         return []

@@ -58,18 +58,18 @@ def _get_file_lock(file_path: str) -> threading.Lock:
 class DateTimeEncoder(json.JSONEncoder):
     """Custom JSON encoder that handles datetime and pandas Timestamp objects."""
 
-    def default(self, obj):
+    def default(self, o):
         """Convert non-serializable objects to JSON-compatible formats."""
         # Handle pandas Timestamp
-        if hasattr(obj, "isoformat"):
-            return obj.isoformat()
+        if hasattr(o, "isoformat"):
+            return o.isoformat()
         # Handle pandas NaT (Not a Time)
-        if pd.isna(obj):
+        if pd.isna(o):
             return None
         # Handle numpy integers
-        if hasattr(obj, "item"):
-            return obj.item()
-        return super().default(obj)
+        if hasattr(o, "item"):
+            return o.item()
+        return super().default(o)
 
 
 def convert_timestamps_to_strings(data: Any) -> Any:

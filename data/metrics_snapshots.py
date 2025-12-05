@@ -112,7 +112,7 @@ def save_snapshots(snapshots: Dict[str, Dict[str, Any]]) -> bool:
                 f"Saved {len(snapshots)} weeks of metric snapshots to {snapshot_path}"
             )
             return True
-        except Exception as e:
+        except Exception:
             # Clean up temp file on error
             if os.path.exists(temp_path):
                 os.unlink(temp_path)
@@ -323,7 +323,7 @@ def get_snapshot_stats() -> Dict[str, Any]:
         }
     """
     snapshots = load_snapshots()
-    snapshot_path = Path(SNAPSHOTS_FILE)
+    snapshot_path = _get_snapshots_file_path()
 
     # Collect all unique metric names
     all_metrics = set()

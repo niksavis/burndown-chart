@@ -118,12 +118,13 @@ def export_profile_enhanced(
     """
     try:
         # Load profile data
-        from data.profile_manager import load_profile, profile_exists
+        from data.profile_manager import get_profile, get_profile_file_path
 
-        if not profile_exists(profile_id):
+        profile_path = get_profile_file_path(profile_id)
+        if not profile_path.exists():
             return False, f"Profile '{profile_id}' not found"
 
-        profile_data = load_profile(profile_id)
+        profile_data = get_profile(profile_id)
         if not profile_data:
             return False, f"Failed to load profile '{profile_id}'"
 
@@ -318,7 +319,8 @@ def import_profile_enhanced(
 
             with open(manifest_file) as f:
                 manifest_data = json.load(f)
-                manifest = ExportManifest(**manifest_data)
+                # Validate manifest structure
+                _ = ExportManifest(**manifest_data)
 
             # Load profile data
             profile_file = temp_path / "profile.json"
@@ -363,7 +365,7 @@ def import_profile_enhanced(
 
 def _generate_unique_profile_id(base_name: str) -> str:
     """Generate unique profile ID for import."""
-    from data.profile_manager import profile_exists
+    from data.profile_manager import get_profile_file_path
 
     # Create base ID from name
     base_id = base_name.lower().replace(" ", "-")
@@ -371,11 +373,11 @@ def _generate_unique_profile_id(base_name: str) -> str:
     base_id = base_id.strip("-") or "imported-profile"
 
     # Find unique ID
-    if not profile_exists(base_id):
+    if not get_profile_file_path(base_id).exists():
         return base_id
 
     counter = 2
-    while profile_exists(f"{base_id}-{counter}"):
+    while get_profile_file_path(f"{base_id}-{counter}").exists():
         counter += 1
 
     return f"{base_id}-{counter}"
@@ -419,10 +421,25 @@ def _create_profile_from_import(
 ) -> Tuple[bool, str]:
     """Create profile from imported data."""
     try:
-        from data.profile_manager import create_profile_from_dict
+        from data.profile_manager import (
+            get_profile_file_path,
+            PROFILES_DIR,
+            load_profiles_metadata,
+            save_profiles_metadata,
+        )
 
-        # Update profile data with new ID
+        # Extract profile name for creation
+        profile_name = profile_data.get("name", f"Imported Profile {profile_id}")
+
+        # Create profile directory manually since we need to preserve all imported data
+        profile_dir = PROFILES_DIR / profile_id
+        queries_dir = profile_dir / "queries"
+        profile_dir.mkdir(parents=True, exist_ok=True)
+        queries_dir.mkdir(exist_ok=True)
+
+        # Update profile data with new ID and timestamp
         profile_data["id"] = profile_id
+        profile_data["name"] = profile_name
         profile_data["created_at"] = datetime.now(timezone.utc).isoformat()
 
         # Remove sensitive data that needs re-entry
@@ -431,10 +448,17 @@ def _create_profile_from_import(
             if jira_config.get("token") == "<REDACTED_FOR_EXPORT>":
                 jira_config["token"] = ""  # Clear redacted token
 
-        # Create the profile
-        success, message, profile = create_profile_from_dict(profile_data)
-        if not success:
-            return False, message
+        # Write profile.json with all imported data
+        profile_path = get_profile_file_path(profile_id)
+        with open(profile_path, "w", encoding="utf-8") as f:
+            json.dump(profile_data, f, indent=2)
+
+        # Register profile in metadata
+        metadata = load_profiles_metadata()
+        if "profiles" not in metadata:
+            metadata["profiles"] = {}
+        metadata["profiles"][profile_id] = profile_data
+        save_profiles_metadata(metadata)
 
         # Import queries if available
         queries_dir = import_path / "queries"
@@ -463,12 +487,11 @@ def _import_profile_queries(profile_id: str, queries_dir: Path) -> int:
             with open(query_file) as f:
                 query_data = json.load(f)
 
-            # Create query with validation disabled (imported data should be trusted)
+            # Create query (imported data should be trusted)
             create_query(
                 profile_id,
                 query_data["name"],
                 query_data["jql"],
-                validate_dependencies=False,  # Skip validation for imports
             )
             imported += 1
 
@@ -664,7 +687,8 @@ def restore_from_system_backup(
 
             with open(manifest_file) as f:
                 manifest_data = json.load(f)
-                manifest = ExportManifest(**manifest_data)
+                # Validate system manifest structure
+                _ = ExportManifest(**manifest_data)
 
             # Restore profiles
             profiles_dir = temp_path / "profiles"

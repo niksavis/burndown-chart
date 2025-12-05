@@ -11,6 +11,7 @@ It implements consistent patterns for form validation, empty states, error bound
 # Standard library imports
 import datetime
 import json
+import logging
 import traceback
 import uuid
 from typing import Dict
@@ -29,6 +30,8 @@ from ui.styles import (
     get_font_size,
     get_font_weight,
 )
+
+logger = logging.getLogger(__name__)
 
 #######################################################################
 # ERROR STYLING FUNCTIONS

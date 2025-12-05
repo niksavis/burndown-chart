@@ -99,7 +99,7 @@ def read_and_clean_data(df: pd.DataFrame) -> pd.DataFrame:
     df["date"] = pd.to_datetime(df["date"], errors="coerce")
     df.dropna(subset=["date"], inplace=True)
     df.sort_values("date", inplace=True)
-    df["date"] = df["date"].dt.strftime("%Y-%m-%d")
+    df["date"] = df["date"].dt.strftime("%Y-%m-%d")  # type: ignore[attr-defined]
     df["completed_items"] = pd.to_numeric(df["completed_items"], errors="coerce")
     df["completed_points"] = pd.to_numeric(df["completed_points"], errors="coerce")
     df.dropna(subset=["completed_items", "completed_points"], inplace=True)
@@ -201,7 +201,7 @@ def calculate_velocity_from_dataframe(
     # Count actual number of distinct weeks with data
     df_with_week = df.copy()
     # Use ISO week format: YYYY-WW (Monday-based weeks)
-    df_with_week["week_year"] = df_with_week["date"].dt.strftime("%Y-%U")
+    df_with_week["week_year"] = df_with_week["date"].dt.strftime("%Y-%U")  # type: ignore[attr-defined]
     unique_weeks = df_with_week["week_year"].nunique()
 
     if unique_weeks == 0:
@@ -223,8 +223,8 @@ def compute_weekly_throughput(df: pd.DataFrame) -> pd.DataFrame:
     """
     df = df.copy()
     df["date"] = pd.to_datetime(df["date"])
-    df["week"] = df["date"].dt.isocalendar().week
-    df["year"] = df["date"].dt.year
+    df["week"] = df["date"].dt.isocalendar().week  # type: ignore[attr-defined]
+    df["year"] = df["date"].dt.year  # type: ignore[attr-defined]
     df["year_week"] = df.apply(lambda r: f"{r['year']}-{r['week']}", axis=1)
 
     grouped = (
@@ -764,8 +764,8 @@ def calculate_weekly_averages(
     df = df.sort_values("date", ascending=True)
 
     # Group by week to ensure consistent weekly aggregation
-    df["week"] = df["date"].dt.isocalendar().week
-    df["year"] = df["date"].dt.year
+    df["week"] = df["date"].dt.isocalendar().week  # type: ignore[attr-defined]
+    df["year"] = df["date"].dt.year  # type: ignore[attr-defined]
     df["year_week"] = df.apply(lambda r: f"{r['year']}-W{r['week']:02d}", axis=1)
 
     # Aggregate by week
@@ -873,8 +873,8 @@ def generate_weekly_forecast(
     df = df.sort_values("date", ascending=True)
 
     # Add week and year columns for grouping
-    df["week"] = df["date"].dt.isocalendar().week
-    df["year"] = df["date"].dt.year
+    df["week"] = df["date"].dt.isocalendar().week  # type: ignore[attr-defined]
+    df["year"] = df["date"].dt.year  # type: ignore[attr-defined]
     df["year_week"] = df.apply(lambda r: f"{r['year']}-W{r['week']:02d}", axis=1)
 
     # Aggregate by week
@@ -1080,8 +1080,8 @@ def calculate_performance_trend(
     df[metric] = pd.to_numeric(df[metric], errors="coerce").fillna(0)
 
     # Group by week for consistent weekly aggregation
-    df["week"] = df["date"].dt.isocalendar().week
-    df["year"] = df["date"].dt.year
+    df["week"] = df["date"].dt.isocalendar().week  # type: ignore[attr-defined]
+    df["year"] = df["date"].dt.year  # type: ignore[attr-defined]
     df["year_week"] = df.apply(lambda r: f"{r['year']}-W{r['week']:02d}", axis=1)
 
     # Aggregate by week
@@ -1412,7 +1412,7 @@ def calculate_pert_timeline(statistics: list, settings: dict) -> dict:
         >>> print(timeline['pert_estimate_date'])
         '2025-12-18'
     """
-    from datetime import datetime, timedelta
+    from datetime import timedelta
 
     # Initialize default timeline
     timeline = {
