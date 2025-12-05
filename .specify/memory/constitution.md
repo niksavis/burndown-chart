@@ -1,12 +1,11 @@
 <!--
 Sync Impact Report:
-- Version: 1.3.0 → 1.4.0 (Added Core Principle VI: Defensive Refactoring)
-- Principles: 5 → 6 core architectural principles
-- Updated: Added refactoring governance for code maintenance
-- Updated: Added verification criteria for safe code removal
-- Rationale: Formalize defensive refactoring practices to prevent technical debt accumulation
+- Version: 1.4.0 → 1.4.1 (Enhanced Principle IV with explicit outcomes)
+- Principles: 6 core architectural principles (unchanged)
+- Updated: Principle IV now explicitly states maintainability and extensibility as outcomes
+- Rationale: Clarify that KISS/DRY principles directly produce maintainable and extensible code
 - Templates requiring updates: None
-- Follow-up: Apply refactoring guide from copilot-instructions.md for initial cleanup
+- Follow-up: None
 -->
 
 # Burndown Chart Generator Constitution
@@ -42,6 +41,8 @@ Sync Impact Report:
 **Rule**: Keep implementations simple (KISS). Avoid duplication - extract shared logic to reusable functions (DRY).
 
 **Rationale**: Complex code is harder to test and maintain. Duplication creates multiple sources of truth and increases bug surface area.
+
+**Outcomes**: Adherence to KISS and DRY principles produces **maintainable** code (easy to understand, modify, and debug) and **extensible** architecture (new features integrate cleanly without widespread changes).
 
 **Verification**: Code review MUST reject over-engineered solutions or copy-pasted logic. Shared utilities MUST be extracted to appropriate modules with unit tests.
 
@@ -129,4 +130,4 @@ Amendments MUST increment version per semantic versioning: MAJOR (principle remo
 
 Reference `docs/` folder for operational guides and standards. Developers may optionally create `.github/copilot-instructions.md` as a personal workspace file with project-specific patterns and AI agent context.
 
-**Version**: 1.4.0 | **Ratified**: 2025-10-27 | **Last Amended**: 2025-11-12
+**Version**: 1.4.1 | **Ratified**: 2025-10-27 | **Last Amended**: 2025-12-05
