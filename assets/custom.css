@@ -2618,32 +2618,32 @@ div[class*="__menu"] {
 /* ===== REUSABLE BLUE ACCENT STYLING (DRY) ===== */
 /* Shared styling for flyout panels only - consistent blue accent border */
 .blue-accent-panel {
-  border: 2px solid rgba(13, 110, 253, 0.3); /* Subtle blue border all around */
-  border-radius: 8px; /* Rounded corners */
-  background: #f8f9fb; /* Light gray-blue background for distinction from page */
-  overflow: hidden; /* Clip content to border radius - prevent overflow */
+  border: 2px solid rgba(13, 110, 253, 0.4); /* Slightly stronger blue border */
+  border-radius: 0; /* Sharp corners for clean edge */
+  background: #f8fafc; /* Very light gray background for subtle distinction */
+  overflow: hidden; /* Clip content to prevent overflow */
 }
 
 /* Unified panel styling for all flyouts */
 .parameter-panel-expanded,
 .import-export-panel-expanded {
-  background: #f8f9fb; /* Light gray-blue background */
-  border-radius: 8px;
+  background: #f8fafc; /* Very light gray background */
+  border-radius: 0; /* Sharp corners */
   padding: 1rem;
 }
 
 .tabbed-settings-panel {
-  padding: 0; /* Tabs have their own padding */
-  background: #f8f9fb; /* Light gray-blue background for distinction */
-  border-radius: 8px; /* Rounded corners */
-  overflow: hidden; /* Clip content to border radius */
+  padding: 0; /* No padding - tabs handle their own spacing */
+  background: #f8fafc; /* Very light gray background */
+  border-radius: 0; /* Sharp corners */
+  overflow: hidden; /* Clip content */
 }
 
 .settings-tabs {
   border-bottom: 2px solid #dee2e6;
-  background: #f8f9fb; /* Match panel background */
-  border-radius: 8px 8px 0 0; /* Rounded top corners only */
-  padding-top: 0.5rem; /* Add some space at top */
+  background: #f8fafc; /* Match panel background */
+  margin: 0; /* No margin */
+  padding: 0; /* No extra padding at top */
 }
 
 .settings-tabs .nav-link {
@@ -2670,14 +2670,20 @@ div[class*="__menu"] {
 
 .settings-tab-content {
   min-height: 200px; /* Reduced from 400px for more compact layout */
-  padding: 0.5rem;
-  overflow-x: hidden !important; /* Clip horizontal overflow at border radius */
+  padding: 0.5rem; /* Minimal padding */
+  padding-bottom: 0; /* No bottom padding - content ends at border */
+  overflow-x: hidden !important; /* Clip horizontal overflow */
   overflow-y: visible !important; /* Allow dropdowns to overflow vertically */
-  border: none !important; /* Prevent border inheritance - only outer panel should have blue accent */
+  border: none !important; /* Prevent border inheritance */
+  border-radius: 0; /* Sharp corners */
 }
 
 /* CRITICAL: Bootstrap tab-pane must allow overflow */
 .tab-pane,
+.tab-content,
+.settings-tab-content .tab-pane {
+  border-radius: 0; /* Sharp corners */
+}
 .tab-content,
 #settings-tabs .tab-pane,
 #settings-tabs .tab-content,
