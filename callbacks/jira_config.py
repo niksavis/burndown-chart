@@ -255,6 +255,11 @@ def save_jira_configuration_callback(
     if not n_clicks:
         raise PreventUpdate
 
+    # Prevent race condition from multiple rapid clicks
+    ctx_triggered = ctx.triggered_id
+    if ctx_triggered != "jira-config-save-button":
+        raise PreventUpdate
+
     try:
         # Build configuration object
         config = {
@@ -318,15 +323,15 @@ def save_jira_configuration_callback(
 
             # Show cache warning toast if present (will appear after success toast)
             if cache_warning_toast:
-                # Return both toasts in a div
+                # Return both toasts in a div, close modal on success
                 return (
-                    no_update,
+                    False,  # Close modal
                     "",
                     new_trigger,
                     html.Div([toast, cache_warning_toast]),
                 )
             else:
-                return (no_update, "", new_trigger, toast)
+                return (False, "", new_trigger, toast)  # Close modal
         else:
             logger.error("Failed to save JIRA configuration")
             return (

@@ -346,11 +346,11 @@ def handle_profile_form_submit(n_clicks, mode, source_id, name, description):
             return (
                 "",
                 "alert alert-danger d-none",
-                False,  # close modal
+                False,  # Close modal on success
                 create_success_toast(
                     f"Profile '{validated_name}' created successfully"
                 ),
-                trigger_value,  # trigger dropdown refresh
+                trigger_value,  # Trigger dropdown refresh
             )
 
         elif mode == "rename":
@@ -367,11 +367,11 @@ def handle_profile_form_submit(n_clicks, mode, source_id, name, description):
             return (
                 "",
                 "alert alert-danger d-none",
-                False,  # close modal
+                False,  # Close modal on success
                 create_success_toast(
                     f"Profile renamed to '{validated_name}' successfully"
                 ),
-                trigger_value,  # trigger dropdown refresh to show new name
+                trigger_value,  # Trigger dropdown refresh to show new name
             )
 
         elif mode == "duplicate":
@@ -393,11 +393,11 @@ def handle_profile_form_submit(n_clicks, mode, source_id, name, description):
             return (
                 "",
                 "alert alert-danger d-none",
-                False,  # close modal
+                False,  # Close modal on success
                 create_success_toast(
                     f"Profile '{validated_name}' duplicated successfully"
                 ),
-                trigger_value,  # trigger dropdown refresh
+                trigger_value,  # Trigger dropdown refresh
             )
 
         else:

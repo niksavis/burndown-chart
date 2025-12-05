@@ -3120,18 +3120,16 @@ label.fw-medium {
     height: auto !important;
   }
 
-  /* Ensure body allows natural scrolling */
+  /* Ensure body allows natural scrolling - no min-height to prevent excess scroll space */
   body {
     overflow-y: auto !important;
     height: auto !important;
-    min-height: 100vh !important;
   }
 
-  /* Ensure main app container doesn't constrain height */
+  /* Ensure main app container doesn't constrain height - no min-height to prevent excess scroll space */
   #react-entry-point,
   #react-entry-point > div {
     height: auto !important;
-    min-height: 100vh !important;
   }
 }
 

@@ -1919,10 +1919,8 @@ def save_jira_configuration(config: Dict[str, Any]) -> bool:
         with open(str(temp_file), "w") as f:
             json.dump(profile_data, f, indent=2)
 
-        # Rename temp file to final file (atomic on POSIX, near-atomic on Windows)
-        if profile_file.exists():
-            profile_file.unlink()
-        temp_file.rename(profile_file)
+        # Atomic rename (on Windows, replace() handles existing files)
+        temp_file.replace(profile_file)
 
         logger.info(f"[Config] JIRA configuration saved to {profile_file}")
         return True

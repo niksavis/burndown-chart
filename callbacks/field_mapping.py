@@ -340,9 +340,10 @@ def track_environment_tab_changes(prod_env, current_state):
     Output("active-wip-subset-warning", "children"),
     Input("active-statuses-dropdown", "value"),
     Input("wip-statuses-dropdown", "value"),
+    State("active-wip-subset-warning", "children"),
     prevent_initial_call=True,
 )
-def validate_active_wip_subset(active_statuses, wip_statuses):
+def validate_active_wip_subset(active_statuses, wip_statuses, current_warning):
     """Validate that Active statuses are a subset of WIP statuses.
 
     Shows a warning alert only when Active contains statuses not in WIP.
@@ -350,9 +351,10 @@ def validate_active_wip_subset(active_statuses, wip_statuses):
     Args:
         active_statuses: List of selected active status names
         wip_statuses: List of selected WIP status names
+        current_warning: Current warning content (to avoid unnecessary updates)
 
     Returns:
-        Warning alert if validation fails, empty div otherwise
+        Warning alert if validation fails, empty div otherwise, or no_update if unchanged
     """
     active_set = set(active_statuses or [])
     wip_set = set(wip_statuses or [])
@@ -363,7 +365,7 @@ def validate_active_wip_subset(active_statuses, wip_statuses):
     if not_in_wip:
         # Show warning with specific statuses
         status_list = ", ".join(sorted(not_in_wip))
-        return dbc.Alert(
+        new_warning = dbc.Alert(
             [
                 html.I(className="fas fa-exclamation-triangle me-2"),
                 html.Strong("Warning: "),
@@ -373,17 +375,34 @@ def validate_active_wip_subset(active_statuses, wip_statuses):
             className="py-2 px-3 mb-0 small",
         )
 
-    # No issues - return empty
-    return html.Div()
+        # Only update if warning changed (prevents focus loss on dropdown)
+        if current_warning and hasattr(current_warning, "children"):
+            # Warning already shown - check if message is the same
+            try:
+                current_msg = str(current_warning.children)
+                new_msg = str(new_warning.children)
+                if current_msg == new_msg:
+                    return no_update
+            except (AttributeError, TypeError):
+                pass  # If comparison fails, update anyway
+
+        return new_warning
+
+    # No issues - only clear if there was a warning before
+    if current_warning and hasattr(current_warning, "children"):
+        return html.Div()
+
+    return no_update
 
 
 @callback(
     Output("flow-start-wip-subset-warning", "children"),
     Input("flow-start-statuses-dropdown", "value"),
     Input("wip-statuses-dropdown", "value"),
+    State("flow-start-wip-subset-warning", "children"),
     prevent_initial_call=True,
 )
-def validate_flow_start_wip_subset(flow_start_statuses, wip_statuses):
+def validate_flow_start_wip_subset(flow_start_statuses, wip_statuses, current_warning):
     """Validate that Flow Start statuses are a subset of WIP statuses.
 
     Shows a warning alert only when Flow Start contains statuses not in WIP.
@@ -391,9 +410,10 @@ def validate_flow_start_wip_subset(flow_start_statuses, wip_statuses):
     Args:
         flow_start_statuses: List of selected flow start status names
         wip_statuses: List of selected WIP status names
+        current_warning: Current warning content (to avoid unnecessary updates)
 
     Returns:
-        Warning alert if validation fails, empty div otherwise
+        Warning alert if validation fails, empty div otherwise, or no_update if unchanged
     """
     flow_start_set = set(flow_start_statuses or [])
     wip_set = set(wip_statuses or [])
@@ -404,7 +424,7 @@ def validate_flow_start_wip_subset(flow_start_statuses, wip_statuses):
     if not_in_wip:
         # Show warning with specific statuses
         status_list = ", ".join(sorted(not_in_wip))
-        return dbc.Alert(
+        new_warning = dbc.Alert(
             [
                 html.I(className="fas fa-exclamation-triangle me-2"),
                 html.Strong("Warning: "),
@@ -414,8 +434,24 @@ def validate_flow_start_wip_subset(flow_start_statuses, wip_statuses):
             className="py-2 px-3 mb-0 small",
         )
 
-    # No issues - return empty
-    return html.Div()
+        # Only update if warning changed (prevents focus loss on dropdown)
+        if current_warning and hasattr(current_warning, "children"):
+            # Warning already shown - check if message is the same
+            try:
+                current_msg = str(current_warning.children)
+                new_msg = str(new_warning.children)
+                if current_msg == new_msg:
+                    return no_update
+            except (AttributeError, TypeError):
+                pass  # If comparison fails, update anyway
+
+        return new_warning
+
+    # No issues - only clear if there was a warning before
+    if current_warning and hasattr(current_warning, "children"):
+        return html.Div()
+
+    return no_update
 
 
 # ============================================================================
@@ -2136,14 +2172,50 @@ def save_or_validate_mappings(namespace_values, state_data):
         return False, "", no_update, toast
 
     # Check if there's at least one meaningful field mapping in CURRENT form values
-    # We check only collected_values (from DOM), not state_data (which may have stale data)
+    # Check BOTH collected_values (namespace inputs) AND state_data (dropdown configs)
     total_mapped_fields = 0
+
+    # Check namespace field mappings (Fields tab)
     if collected_values and isinstance(collected_values, dict):
         for metric in ["dora", "flow"]:
             if metric in collected_values:
                 for value in collected_values[metric].values():
                     if value and str(value).strip():
                         total_mapped_fields += 1
+
+    # Check state_data for dropdown-based configurations (Types, Status, Projects, Environment tabs)
+    if state_data and isinstance(state_data, dict):
+        # Count projects (development and devops)
+        dev_projects = state_data.get("development_projects", [])
+        devops_projects = state_data.get("devops_projects", [])
+        total_mapped_fields += len([p for p in (dev_projects + devops_projects) if p])
+
+        # Count issue types (DORA)
+        devops_types = state_data.get("devops_task_types", [])
+        bug_types = state_data.get("bug_types", [])
+        total_mapped_fields += len([t for t in (devops_types + bug_types) if t])
+
+        # Count flow type mappings
+        flow_type_mappings = state_data.get("flow_type_mappings", {})
+        for flow_type, config in flow_type_mappings.items():
+            if config and isinstance(config, dict):
+                issue_types = config.get("issue_types", [])
+                effort_cats = config.get("effort_categories", [])
+                total_mapped_fields += len([t for t in issue_types if t])
+                total_mapped_fields += len([c for c in effort_cats if c])
+
+        # Count statuses
+        flow_end = state_data.get("flow_end_statuses", [])
+        active = state_data.get("active_statuses", [])
+        flow_start = state_data.get("flow_start_statuses", [])
+        wip = state_data.get("wip_statuses", [])
+        total_mapped_fields += len(
+            [s for s in (flow_end + active + flow_start + wip) if s]
+        )
+
+        # Count environment values
+        prod_env = state_data.get("production_environment_values", [])
+        total_mapped_fields += len([e for e in prod_env if e])
 
     if total_mapped_fields == 0:
         logger.warning(
@@ -2154,6 +2226,29 @@ def save_or_validate_mappings(namespace_values, state_data):
             header="No Mappings Configured",
         )
         return False, "", no_update, toast
+
+    logger.info(
+        f"[FieldMapping] Validation passed with {total_mapped_fields} configured values"
+    )
+
+    # DEBUG: Log what we're about to save
+    logger.info(
+        f"[FieldMapping] state_data keys: {list(state_data.keys()) if state_data else 'None'}"
+    )
+    logger.info(
+        f"[FieldMapping] collected_values keys: {list(collected_values.keys()) if collected_values else 'None'}"
+    )
+    if state_data:
+        logger.info(
+            f"[FieldMapping] development_projects: {state_data.get('development_projects')}"
+        )
+        logger.info(
+            f"[FieldMapping] devops_task_types: {state_data.get('devops_task_types')}"
+        )
+        logger.info(
+            f"[FieldMapping] flow_end_statuses: {state_data.get('flow_end_statuses')}"
+        )
+        logger.info(f"[FieldMapping] wip_statuses: {state_data.get('wip_statuses')}")
 
     try:
         # Settings already loaded above
