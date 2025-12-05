@@ -816,6 +816,86 @@ def delete_profile(profile_id: str) -> None:
         raise OSError(f"Failed to delete profile: {e}") from e
 
 
+def rename_profile(profile_id: str, new_name: str) -> None:
+    """
+    Rename an existing profile (updates name in metadata only).
+
+    This is a lightweight operation that only updates the profile name
+    in profile.json and the profiles registry. The profile ID remains
+    unchanged, so all queries and data files stay in place.
+
+    Args:
+        profile_id: ID of profile to rename
+        new_name: New name for the profile
+
+    Raises:
+        ValueError: If profile doesn't exist, name is empty/invalid, or duplicate
+        OSError: If metadata update fails
+
+    Example:
+        >>> rename_profile("p_abc123", "Production Environment")
+        >>> # Updates name in both profile.json and profiles registry
+    """
+    # Validate inputs
+    if not new_name or not new_name.strip():
+        raise ValueError("Profile name cannot be empty")
+
+    new_name = new_name.strip()
+    if len(new_name) > 100:
+        raise ValueError("Profile name cannot exceed 100 characters")
+
+    # Load current metadata
+    metadata = load_profiles_metadata()
+    profiles_dict = metadata.get("profiles", {})
+
+    # Validate profile exists
+    if profile_id not in profiles_dict:
+        raise ValueError(f"Profile '{profile_id}' does not exist")
+
+    current_name = profiles_dict[profile_id]["name"]
+
+    # Check if name actually changed
+    if new_name.lower() == current_name.lower():
+        logger.info(
+            f"[Profiles] Rename skipped - new name '{new_name}' same as current"
+        )
+        return
+
+    # Check for duplicate names (case-insensitive)
+    for pid, profile_data in profiles_dict.items():
+        if pid != profile_id and profile_data["name"].lower() == new_name.lower():
+            raise ValueError(f"Profile name '{new_name}' already exists")
+
+    try:
+        # Step 1: Update profile.json
+        profile_file = get_profile_file_path(profile_id)
+        if profile_file.exists():
+            with open(profile_file, "r", encoding="utf-8") as f:
+                profile_data = json.load(f)
+
+            profile_data["name"] = new_name
+
+            with open(profile_file, "w", encoding="utf-8") as f:
+                json.dump(profile_data, f, indent=2, ensure_ascii=False)
+
+            logger.info(f"[Profiles] Updated profile.json for '{profile_id}'")
+
+        # Step 2: Update profiles registry
+        metadata["profiles"][profile_id]["name"] = new_name
+
+        # Save updated metadata
+        if not save_profiles_metadata(metadata):
+            raise OSError("Failed to update profiles registry")
+
+        logger.info(
+            f"[Profiles] Renamed profile '{current_name}' to '{new_name}' ({profile_id})"
+        )
+
+    except Exception as e:
+        logger.error(f"[Profiles] Error renaming profile '{profile_id}': {e}")
+        raise OSError(f"Failed to rename profile: {e}") from e
+
+
 def duplicate_profile(
     source_profile_id: str, new_name: str, description: str = ""
 ) -> str:

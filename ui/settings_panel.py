@@ -17,8 +17,7 @@ from ui.button_utils import create_button
 from ui.jira_config_modal import create_jira_config_button
 from ui.help_system import create_settings_tooltip
 from ui.profile_modals import (
-    create_profile_creation_modal,
-    create_profile_duplication_modal,
+    create_profile_form_modal,
     create_profile_deletion_modal,
 )
 from ui.integrated_query_management import create_integrated_query_management
@@ -470,8 +469,7 @@ def create_settings_panel(is_open: bool = False, id_suffix: str = "") -> html.Di
                 style={"marginTop": "-1rem"},
             ),
             # Profile management modals
-            create_profile_creation_modal(),
-            create_profile_duplication_modal(),
+            create_profile_form_modal(),
             create_profile_deletion_modal(),
             # Integrated query management modals
             create_save_query_modal(),

@@ -46,6 +46,8 @@ def create_profile_dropdown(id_suffix: str = "") -> dbc.Col:
 
     return dbc.Col(
         [
+            # Hidden store to trigger dropdown refresh after profile switches
+            dcc.Store(id="profile-switch-trigger", data=0),
             html.Label(
                 "Profile",
                 htmlFor=f"profile-selector{id_suffix}",
@@ -67,7 +69,7 @@ def create_profile_dropdown(id_suffix: str = "") -> dbc.Col:
 
 
 def create_profile_actions(id_suffix: str = "") -> dbc.Col:
-    """Create profile action buttons (create, duplicate, delete).
+    """Create profile action buttons (create, rename, duplicate, delete).
 
     Args:
         id_suffix: Optional suffix for component IDs
@@ -86,10 +88,19 @@ def create_profile_actions(id_suffix: str = "") -> dbc.Col:
                     className="me-1",
                 ),
                 dbc.Button(
+                    [html.I(className="fas fa-edit me-1"), "Rename"],
+                    id=f"rename-profile-btn{id_suffix}",
+                    color="secondary",
+                    size="sm",
+                    outline=True,
+                    className="me-1",
+                ),
+                dbc.Button(
                     [html.I(className="fas fa-copy me-1"), "Duplicate"],
                     id=f"duplicate-profile-btn{id_suffix}",
                     color="secondary",
                     size="sm",
+                    outline=True,
                     className="me-1",
                 ),
                 dbc.Button(

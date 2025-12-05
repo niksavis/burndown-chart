@@ -1,33 +1,49 @@
 """
 Profile creation and management modals.
 
-Contains modals for creating, duplicating, and confirming deletion of profiles.
+Contains unified modal for create/duplicate/rename and deletion confirmation modal.
 """
 
-from dash import html
+from dash import html, dcc
 import dash_bootstrap_components as dbc
 
 
-def create_profile_creation_modal() -> dbc.Modal:
-    """Create modal for profile creation.
+def create_profile_form_modal() -> dbc.Modal:
+    """Create unified modal for profile create/duplicate/rename operations.
+
+    Modal behavior controlled by dcc.Store component with mode value:
+    - "create": Empty fields, "Create Profile" button
+    - "duplicate": Pre-filled with source profile, "Duplicate Profile" button
+    - "rename": Pre-filled with current name, "Rename Profile" button
 
     Returns:
-        Bootstrap modal for creating new profiles
+        Bootstrap modal with dynamic title and button based on mode
     """
     return dbc.Modal(
         [
-            dbc.ModalHeader(dbc.ModalTitle("Create New Profile")),
+            dbc.ModalHeader(dbc.ModalTitle(id="profile-form-modal-title")),
             dbc.ModalBody(
                 [
+                    # Hidden store to track operation mode
+                    dcc.Store(id="profile-form-mode", data="create"),
+                    # Hidden store to track source profile ID for duplicate/rename
+                    dcc.Store(id="profile-form-source-id", data=None),
+                    # Context info (visible for duplicate/rename only)
+                    html.Div(
+                        id="profile-form-context-info",
+                        className="mb-3 text-muted",
+                    ),
+                    # Name input (shared across all modes)
                     dbc.Row(
                         [
                             dbc.Col(
                                 [
                                     dbc.Label(
-                                        "Profile Name", html_for="new-profile-name"
+                                        id="profile-form-name-label",
+                                        html_for="profile-form-name-input",
                                     ),
                                     dbc.Input(
-                                        id="new-profile-name",
+                                        id="profile-form-name-input",
                                         type="text",
                                         placeholder="Enter profile name...",
                                         className="mb-3",
@@ -36,40 +52,49 @@ def create_profile_creation_modal() -> dbc.Modal:
                                         invalid=False,
                                     ),
                                     dbc.FormFeedback(
-                                        "Profile name is valid",
-                                        id="profile-name-feedback-valid",
+                                        "Profile name is available",
+                                        id="profile-form-name-feedback-valid",
                                         type="valid",
                                     ),
                                     dbc.FormFeedback(
-                                        "", id="profile-name-feedback", type="invalid"
+                                        "",
+                                        id="profile-form-name-feedback-invalid",
+                                        type="invalid",
                                     ),
                                 ],
                                 width=12,
                             ),
                         ]
                     ),
-                    dbc.Row(
-                        [
-                            dbc.Col(
-                                [
-                                    dbc.Label(
-                                        "Description (Optional)",
-                                        html_for="new-profile-description",
-                                    ),
-                                    dbc.Textarea(
-                                        id="new-profile-description",
-                                        placeholder="Describe this profile's purpose...",
-                                        rows=3,
-                                        maxLength=500,
-                                        className="mb-3",
-                                    ),
-                                ],
-                                width=12,
-                            ),
-                        ]
-                    ),
+                    # Description textarea (visible for create/duplicate only)
                     html.Div(
-                        id="create-profile-error",
+                        id="profile-form-description-container",
+                        children=[
+                            dbc.Row(
+                                [
+                                    dbc.Col(
+                                        [
+                                            dbc.Label(
+                                                "Description (Optional)",
+                                                html_for="profile-form-description-input",
+                                            ),
+                                            dbc.Textarea(
+                                                id="profile-form-description-input",
+                                                placeholder="Describe this profile's purpose...",
+                                                rows=3,
+                                                maxLength=500,
+                                                className="mb-3",
+                                            ),
+                                        ],
+                                        width=12,
+                                    ),
+                                ]
+                            ),
+                        ],
+                    ),
+                    # Error alert (shared)
+                    html.Div(
+                        id="profile-form-error",
                         className="alert alert-danger d-none",
                         role="alert",
                     ),
@@ -79,117 +104,23 @@ def create_profile_creation_modal() -> dbc.Modal:
                 [
                     dbc.Button(
                         "Cancel",
-                        id="cancel-create-profile",
+                        id="profile-form-cancel-btn",
                         color="secondary",
                         className="me-2",
                         n_clicks=0,
                     ),
                     dbc.Button(
-                        [html.I(className="fas fa-plus me-2"), "Create Profile"],
-                        id="confirm-create-profile",
+                        id="profile-form-confirm-btn",
                         color="primary",
                         n_clicks=0,
                     ),
                 ]
             ),
         ],
-        id="create-profile-modal",
+        id="profile-form-modal",
         is_open=False,
         size="md",
         backdrop="static",
-        keyboard=False,
-        centered=True,
-    )
-
-
-def create_profile_duplication_modal() -> dbc.Modal:
-    """Create modal for profile duplication.
-
-    Returns:
-        Bootstrap modal for duplicating existing profiles
-    """
-    return dbc.Modal(
-        [
-            dbc.ModalHeader(dbc.ModalTitle("Duplicate Profile")),
-            dbc.ModalBody(
-                [
-                    html.P(
-                        id="duplicate-profile-info",
-                        className="mb-3 text-muted",
-                    ),
-                    dbc.Row(
-                        [
-                            dbc.Col(
-                                [
-                                    dbc.Label(
-                                        "New Profile Name",
-                                        html_for="duplicate-profile-name",
-                                    ),
-                                    dbc.Input(
-                                        id="duplicate-profile-name",
-                                        type="text",
-                                        placeholder="Enter new profile name...",
-                                        className="mb-3",
-                                        maxLength=100,
-                                    ),
-                                    dbc.FormFeedback(
-                                        "", id="duplicate-name-feedback", type="invalid"
-                                    ),
-                                ],
-                                width=12,
-                            ),
-                        ]
-                    ),
-                    dbc.Row(
-                        [
-                            dbc.Col(
-                                [
-                                    dbc.Label(
-                                        "Description (Optional)",
-                                        html_for="duplicate-profile-description",
-                                    ),
-                                    dbc.Textarea(
-                                        id="duplicate-profile-description",
-                                        placeholder="Describe this profile's purpose...",
-                                        rows=3,
-                                        maxLength=500,
-                                        className="mb-3",
-                                    ),
-                                ],
-                                width=12,
-                            ),
-                        ]
-                    ),
-                    html.Div(
-                        id="duplicate-profile-error",
-                        className="alert alert-danger d-none",
-                        role="alert",
-                    ),
-                ]
-            ),
-            dbc.ModalFooter(
-                [
-                    dbc.Button(
-                        "Cancel",
-                        id="cancel-duplicate-profile",
-                        color="secondary",
-                        className="me-2",
-                        n_clicks=0,
-                    ),
-                    dbc.Button(
-                        [html.I(className="fas fa-copy me-2"), "Duplicate Profile"],
-                        id="confirm-duplicate-profile",
-                        color="primary",
-                        n_clicks=0,
-                    ),
-                ]
-            ),
-        ],
-        id="duplicate-profile-modal",
-        is_open=False,
-        size="md",
-        backdrop="static",
-        keyboard=False,
         centered=True,
     )
 
@@ -205,6 +136,8 @@ def create_profile_deletion_modal() -> dbc.Modal:
             dbc.ModalHeader(dbc.ModalTitle("[!] Delete Profile")),
             dbc.ModalBody(
                 [
+                    # Store profile ID when modal opens to prevent wrong profile deletion
+                    dcc.Store(id="delete-profile-target-id", data=None),
                     html.P(
                         id="delete-profile-warning",
                         className="mb-3",
@@ -266,6 +199,5 @@ def create_profile_deletion_modal() -> dbc.Modal:
         is_open=False,
         size="md",
         backdrop="static",
-        keyboard=False,
         centered=True,
     )

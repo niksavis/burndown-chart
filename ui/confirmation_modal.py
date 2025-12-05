@@ -150,7 +150,6 @@ def create_confirmation_modal(
         is_open=False,
         size="md",
         backdrop="static",
-        keyboard=False,
         centered=True,
     )
 

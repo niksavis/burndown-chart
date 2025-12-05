@@ -24,8 +24,7 @@ from ui.query_selector import create_query_selector_panel
 from ui.profile_selector import create_profile_selector_panel
 from ui.unsaved_changes_warning import create_unsaved_changes_warning
 from ui.profile_modals import (
-    create_profile_creation_modal,
-    create_profile_duplication_modal,
+    create_profile_form_modal,
     create_profile_deletion_modal,
 )
 
@@ -68,8 +67,7 @@ def create_improved_settings_panel(is_open: bool = False):
                 is_open=is_open,
             ),
             # Modals
-            create_profile_creation_modal(),
-            create_profile_duplication_modal(),
+            create_profile_form_modal(),
             create_profile_deletion_modal(),
         ],
         id="settings-panel",
