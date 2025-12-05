@@ -1,11 +1,18 @@
-# Feature 012: Rule-Based Variable Mapping System
+# Extension 012: Rule-Based Variable Mapping System
+
+**Parent Feature**: [011-profile-workspace-switching](./spec.md)  
+**Status**: ✅ **COMPLETE** - All phases implemented and tested  
+**Branch**: Merged to `main` (originally `012-rule-based-variable-mapping`)  
+**Dependencies**: Feature 011 (Profile Workspace Switching) - Core feature must be implemented first  
+**Release**: v3.0-stable  
+**Created**: 2025-11-18  
+**Completed**: 2025-11-28
+
+---
 
 ## Overview
 
-**Status**: ✅ **COMPLETE** - All phases implemented and tested  
-**Branch**: `012-rule-based-variable-mapping`  
-**Dependencies**: Feature 011 (Profile Workspace Switching)  
-**Release**: v3.0-stable
+This extension enhances Feature 011's field mapping capabilities with a powerful namespace syntax that enables conditional logic, multi-source fallbacks, and changelog extraction.
 
 ## Problem Statement
 

@@ -2,8 +2,13 @@
 
 **Feature Branch**: `011-profile-workspace-switching`  
 **Created**: 2025-11-13  
-**Status**: Draft  
+**Status**: ✅ **COMPLETE** - Merged to main  
 **Input**: User description: "Multiple profiles feature that allows switching between profiles without having to get new data regardless if from JIRA or from CSV/JSON import"
+
+**Extensions**:
+- [Extension 012: Rule-Based Variable Mapping System](./extension-012-rule-based-variable-mapping.md) - Namespace syntax for advanced field mapping
+
+---
 
 ## User Scenarios & Testing *(mandatory)*
 
