@@ -24,7 +24,6 @@ from configuration.logging_config import setup_logging, cleanup_old_logs
 
 # Application imports
 from ui import serve_layout
-from data.migration import migrate_to_profiles
 from data.profile_manager import (
     get_active_profile,
     switch_profile,
@@ -43,31 +42,6 @@ cleanup_old_logs(max_age_days=30)
 # Get logger for this module
 logger = logging.getLogger(__name__)
 logger.info("Starting Burndown Chart application")
-
-# Run one-time migration to profiles structure (if needed)
-# This protects existing users by automatically migrating their data
-# to the new profiles/default/queries/main/ structure on first startup.
-# Migration is idempotent - safe to run multiple times.
-try:
-    logger.info("Checking for migration requirements...")
-    migration_performed = migrate_to_profiles()
-
-    if migration_performed:
-        logger.info(
-            "Migration completed successfully - data moved to profiles/default/queries/main/"
-        )
-    else:
-        logger.info("No migration needed - profiles structure already exists")
-
-except Exception as e:
-    # Log error but don't crash - allow app to continue
-    # Users can manually migrate or continue in legacy mode
-    logger.error(
-        f"Migration failed: {e}. Application will continue in legacy mode. "
-        "You can manually run migration or continue with root-level data files.",
-        exc_info=True,
-    )
-    print(f"WARNING: Migration failed - {e}. See logs/app.log for details.")
 
 
 #######################################################################
