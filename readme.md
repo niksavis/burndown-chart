@@ -37,11 +37,17 @@ Interactive web app for agile project forecasting with JIRA integration and comp
 
 ### Profile-Based Workspaces
 
-Each profile stores independent configuration for different projects/teams:
+Each profile stores independent configuration for different projects/teams with support for multiple JQL queries:
 
 1. **Create Profile**: Settings → Profile Management → "Create New Profile"
 2. **Switch Profiles**: Use profile dropdown in top navigation
-3. **Profile Storage**: All settings saved in `profiles/{profile_id}/profile.json`
+3. **Manage Queries**: Each profile can have multiple saved JQL queries
+   - Save queries with custom names for quick switching
+   - Each query maintains its own data cache and metrics
+4. **Profile Storage**: All settings saved in `profiles/{profile_id}/`
+   - Profile config: `profile.json`
+   - Query data: `queries/{query_id}/project_data.json`
+   - JIRA cache: `queries/{query_id}/jira_cache.json`
 
 ### JIRA Integration (Recommended)
 
@@ -53,7 +59,10 @@ Each profile stores independent configuration for different projects/teams:
 
 **Step 2: Configure Field Mappings**
 1. Settings → Configure JIRA Mappings (modal opens)
-2. Click **Auto-Configure** - system detects fields automatically
+2. Click **Auto-Configure** - system automatically detects fields by name patterns:
+   - Standard fields: Story Points, Status, Issue Type, Project
+   - Custom fields: Deployment Date, Environment, Severity, etc.
+   - Smart matching: Handles variations like "Story Points", "Estimate", "Points"
 3. Review and adjust mappings across 5 tabs:
    - **Projects**: Development vs. DevOps projects
    - **Fields**: Map JIRA custom fields to metrics
@@ -61,6 +70,8 @@ Each profile stores independent configuration for different projects/teams:
    - **Status**: Workflow statuses (completion, active, WIP)
    - **Environment**: Production identifiers
 4. Click **Save Mappings**
+
+**💡 Tip**: Auto-Configure typically finds 80-90% of required fields. Review suggestions and manually map any remaining fields.
 
 **Step 3: Load Data**
 1. Click **Update Data** button
@@ -116,8 +127,12 @@ Track project health, delivery performance, and process efficiency.
   - Flow metrics: Check Types tab for work type classifications
 
 **Profile Issues:**
-- **Lost settings?** Each profile stores independent config in `profiles/{profile_id}/profile.json`
+- **Lost settings?** Each profile stores independent config in `profiles/{profile_id}/`
 - **Switch profiles:** Use profile dropdown in top navigation
+- **Manage queries:** Settings → Query Management to create, rename, or delete saved queries
+- **Export/Import:** Settings → Import/Export to backup or transfer profiles
+  - Export creates `.json` file with all profile data (config, queries, field mappings)
+  - Import restores profile with all settings and data
 - **Reset profile:** Settings → Profile Management → Delete profile and recreate
 
 **Complete Reset:** Delete `profiles` folder
