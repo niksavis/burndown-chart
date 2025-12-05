@@ -200,7 +200,7 @@ def create_import_export_flyout(is_open: bool = False):
                             className="settings-tabs",
                         ),
                     ],
-                    className="tabbed-settings-panel",
+                    className="tabbed-settings-panel blue-accent-panel",
                 ),
                 id="import-export-collapse",
                 is_open=is_open,

@@ -191,6 +191,8 @@
   background-color: var(--color-white);
   box-shadow: var(--shadow-sm);
   margin-bottom: var(--spacing-xs);
+  /* Subtle blue accent to indicate interactive panel area */
+  border-bottom: 2px solid rgba(13, 110, 253, 0.1); /* Very subtle blue hint */
 }
 
 /* Parameter panel container spacing */
@@ -2613,23 +2615,35 @@ div[class*="__menu"] {
 /* ===== TABBED SETTINGS PANEL (REPLACES ACCORDION) ===== */
 /* Simple horizontal tabs layout - NO CUSTOM OVERFLOW FIXES */
 
+/* ===== REUSABLE BLUE ACCENT STYLING (DRY) ===== */
+/* Shared styling for flyout panels only - consistent blue accent border */
+.blue-accent-panel {
+  border: 2px solid rgba(13, 110, 253, 0.3); /* Subtle blue border all around */
+  border-radius: 8px; /* Rounded corners */
+  background: #f8f9fb; /* Light gray-blue background for distinction from page */
+  overflow: hidden; /* Clip content to border radius - prevent overflow */
+}
+
 /* Unified panel styling for all flyouts */
-.tabbed-settings-panel,
 .parameter-panel-expanded,
 .import-export-panel-expanded {
-  background: #f8f9fb; /* Very pale blue background */
+  background: #f8f9fb; /* Light gray-blue background */
   border-radius: 8px;
   padding: 1rem;
-  border: 2px solid #dee2e6;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .tabbed-settings-panel {
   padding: 0; /* Tabs have their own padding */
+  background: #f8f9fb; /* Light gray-blue background for distinction */
+  border-radius: 8px; /* Rounded corners */
+  overflow: hidden; /* Clip content to border radius */
 }
 
 .settings-tabs {
   border-bottom: 2px solid #dee2e6;
+  background: #f8f9fb; /* Match panel background */
+  border-radius: 8px 8px 0 0; /* Rounded top corners only */
+  padding-top: 0.5rem; /* Add some space at top */
 }
 
 .settings-tabs .nav-link {
@@ -2657,7 +2671,9 @@ div[class*="__menu"] {
 .settings-tab-content {
   min-height: 200px; /* Reduced from 400px for more compact layout */
   padding: 0.5rem;
-  overflow: visible !important; /* CRITICAL: Allow dropdown to overflow */
+  overflow-x: hidden !important; /* Clip horizontal overflow at border radius */
+  overflow-y: visible !important; /* Allow dropdowns to overflow vertically */
+  border: none !important; /* Prevent border inheritance - only outer panel should have blue accent */
 }
 
 /* CRITICAL: Bootstrap tab-pane must allow overflow */
@@ -4115,8 +4131,8 @@ input[id*="namespace-field-input"]::placeholder {
 
 /* Enhanced modal panel styling - clear floating appearance */
 .modal-content {
-  border: 1px solid rgba(0, 0, 0, 0.15);
   border-radius: 0.75rem;
+  /* Strong shadow for floating effect */
   box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.3), 0 0.5rem 1rem rgba(0, 0, 0, 0.2),
     0 0 0 1px rgba(255, 255, 255, 0.1) inset;
   transform: translateY(0);

@@ -390,5 +390,5 @@ def create_tabbed_settings_panel() -> html.Div:
             # Hidden textarea for legacy jira-jql-query references in settings.py
             dcc.Textarea(id="jira-jql-query", value="", style={"display": "none"}),
         ],
-        className="tabbed-settings-panel",
+        className="tabbed-settings-panel blue-accent-panel",
     )

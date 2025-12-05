@@ -3295,7 +3295,7 @@ def create_parameter_panel_expanded(
                         className="settings-tabs",
                     ),
                 ],
-                className="tabbed-settings-panel",
+                className="tabbed-settings-panel blue-accent-panel",
             ),
         ],
         id=panel_id,

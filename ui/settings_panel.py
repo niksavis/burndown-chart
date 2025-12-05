@@ -436,7 +436,7 @@ def create_settings_panel_expanded(id_suffix: str = "") -> html.Div:
                 className="shadow-sm",
             )
         ],
-        className="settings-panel-expanded",
+        className="settings-panel-expanded blue-accent-panel",
     )
 
 
