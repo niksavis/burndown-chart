@@ -1056,9 +1056,19 @@ def calculate_and_save_weekly_metrics(
         try:
             from data.dora_metrics import calculate_change_failure_rate
 
+            # Filter operational tasks to only those with fixVersions deployed in this week
+            # (same approach as Lead Time and Deployment Frequency)
+            week_operational_tasks = filter_issues_deployed_in_week(
+                operational_tasks, fixversion_release_map, week_start, week_end
+            )
+            logger.info(
+                f"Week {week_label}: {len(week_operational_tasks)} operational tasks deployed "
+                f"(from {len(operational_tasks)} total) for CFR calculation"
+            )
+
             # CFR calculation filters Operational Tasks by matching fixVersions from dev projects
             cfr_result = calculate_change_failure_rate(
-                operational_tasks,
+                week_operational_tasks,  # NOW FILTERED BY WEEK
                 production_bugs,  # Also pass bugs for incident correlation
                 time_period_days=7,  # Weekly calculation
                 valid_fix_versions=development_fix_versions,  # Filter by dev project fixVersions
