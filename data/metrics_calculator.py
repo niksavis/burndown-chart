@@ -32,7 +32,10 @@ def get_current_iso_week() -> str:
 
 
 def calculate_and_save_weekly_metrics(
-    week_label: str = "", progress_callback=None, profile_id: Optional[str] = None
+    week_label: str = "",
+    progress_callback=None,
+    profile_id: Optional[str] = None,
+    affected_weeks: Optional[set] = None,
 ) -> Tuple[bool, str]:
     """
     Calculate all Flow/DORA metrics for current week and save to snapshots.
@@ -45,6 +48,7 @@ def calculate_and_save_weekly_metrics(
         week_label: ISO week (e.g., "2025-44"). Defaults to current week.
         progress_callback: Optional callback function(message: str) for progress updates
         profile_id: Optional profile ID. Defaults to active profile from profiles/profiles.json.
+        affected_weeks: Optional set of week labels affected by delta fetch. None = check all weeks.
 
     Returns:
         Tuple of (success: bool, message: str)
@@ -99,8 +103,8 @@ def calculate_and_save_weekly_metrics(
         # OPTIMIZATION: Check if metrics already exist and are up-to-date
         # Skip recalculation if:
         # 1. Metrics snapshot exists for this week
-        # 2. JIRA cache hasn't been updated since snapshot was created
-        # 3. This is NOT the current week (current week is a running total that changes)
+        # 2. This is NOT the current week (current week is a running total that changes)
+        # 3. Week is not affected by delta fetch changes (if delta fetch was used)
         from data.metrics_snapshots import get_metric_snapshot
 
         # Determine if this is the current week
@@ -111,28 +115,51 @@ def calculate_and_save_weekly_metrics(
         if not is_current_week_check:
             existing_snapshot = get_metric_snapshot(week_label, "flow_velocity")
             if existing_snapshot:
-                # Check if cache file is newer than snapshot
-                cache_mtime = os.path.getmtime(cache_file)
-                snapshot_timestamp_str = existing_snapshot.get("timestamp")
+                # DELTA CALCULATE OPTIMIZATION: Check if this week is affected by recent changes
+                try:
+                    # If affected_weeks was pre-calculated (delta fetch scenario)
+                    if affected_weeks is not None:
+                        if week_label not in affected_weeks:
+                            logger.debug(
+                                f"[OK] Week {week_label} not affected by delta changes - using cached metrics"
+                            )
+                            return (
+                                True,
+                                f"[OK] Week {week_label} not affected by changes",
+                            )
+                        else:
+                            logger.info(
+                                f"[Delta Calculate] Week {week_label} affected by changes - recalculating"
+                            )
+                    else:
+                        # No pre-calculated affected_weeks - check mtime fallback
+                        cache_mtime = os.path.getmtime(cache_file)
+                        snapshot_timestamp_str = existing_snapshot.get("timestamp")
 
-                if snapshot_timestamp_str:
-                    snapshot_timestamp = datetime.fromisoformat(
-                        snapshot_timestamp_str.replace("Z", "+00:00")
+                        if snapshot_timestamp_str:
+                            snapshot_timestamp = datetime.fromisoformat(
+                                snapshot_timestamp_str.replace("Z", "+00:00")
+                            )
+                            snapshot_mtime = snapshot_timestamp.timestamp()
+
+                            if cache_mtime < snapshot_mtime:
+                                # Cache is older than snapshot - metrics are up-to-date
+                                logger.info(
+                                    f"[OK] Metrics for week {week_label} already exist and are up-to-date. Skipping recalculation."
+                                )
+                                report_progress(
+                                    f"[OK] Week {week_label} already calculated - using cached metrics"
+                                )
+                                return (
+                                    True,
+                                    f"[OK] Metrics for week {week_label} already up-to-date",
+                                )
+
+                except Exception as opt_error:
+                    # If optimization check fails, fall through to recalculation
+                    logger.debug(
+                        f"[Delta Calculate] Optimization check failed: {opt_error}"
                     )
-                    snapshot_mtime = snapshot_timestamp.timestamp()
-
-                    if cache_mtime < snapshot_mtime:
-                        # Cache is older than snapshot - metrics are up-to-date
-                        logger.info(
-                            f"[OK] Metrics for week {week_label} already exist and are up-to-date. Skipping recalculation."
-                        )
-                        report_progress(
-                            f"[OK] Week {week_label} already calculated - using cached metrics"
-                        )
-                        return (
-                            True,
-                            f"[OK] Metrics for week {week_label} already up-to-date",
-                        )
         else:
             logger.info(
                 f"[Stats] Week {week_label} is current week - will recalculate (running total)"
@@ -1253,6 +1280,7 @@ def calculate_metrics_for_last_n_weeks(
         Tuple of (success: bool, summary_message: str)
     """
     from data.iso_week_bucketing import get_last_n_weeks
+    from data.metrics_snapshots import batch_write_mode
 
     try:
         # Use custom weeks if provided, otherwise generate last N weeks from today
@@ -1269,36 +1297,106 @@ def calculate_metrics_for_last_n_weeks(
 
         successful_weeks = []
         failed_weeks = []
+        skipped_weeks = []
 
-        for week_label, monday, sunday in weeks:
-            # Use ISO week format (YYYY-Wxx) consistently - DO NOT normalize/strip the 'W'
-            # This ensures saved data keys match what loaders expect
+        # DELTA CALCULATE OPTIMIZATION: Calculate affected weeks once before loop
+        affected_weeks = None  # None = recalculate all (full fetch or no cache)
+        try:
+            from data.profile_manager import get_active_query_workspace
+            import json
 
-            logger.info(f"Processing week {week_label} ({monday} to {sunday})")
+            query_workspace = get_active_query_workspace()
+            cache_file = query_workspace / "jira_cache.json"
 
-            if progress_callback:
-                progress_callback(
-                    f"[Date] Calculating metrics for week {week_label} ({monday} to {sunday})..."
-                )
+            if cache_file.exists():
+                with open(cache_file, "r", encoding="utf-8") as f:
+                    cache_metadata = json.load(f)
 
-            success, message = calculate_and_save_weekly_metrics(
-                week_label=week_label, progress_callback=progress_callback
+                changed_keys = cache_metadata.get("changed_keys", [])
+
+                # Only use delta optimization if changed_keys is a non-empty list
+                if isinstance(changed_keys, list) and len(changed_keys) > 0:
+                    from data.jira_simple import get_affected_weeks_from_changed_issues
+
+                    affected_weeks = get_affected_weeks_from_changed_issues(
+                        changed_keys
+                    )
+                    logger.info(
+                        f"[Delta Calculate] {len(changed_keys)} changed issues affect {len(affected_weeks)} weeks"
+                    )
+                else:
+                    logger.info(
+                        "[Delta Calculate] No changed_keys in cache - will check mtime for each week"
+                    )
+        except Exception as opt_error:
+            logger.debug(
+                f"[Delta Calculate] Failed to pre-calculate affected weeks: {opt_error}"
             )
 
-            if success:
-                successful_weeks.append(week_label)
-            else:
-                failed_weeks.append((week_label, message))
+        # Use batch write mode to accumulate all changes and write once
+        with batch_write_mode():
+            week_number = 0
+            for week_label, monday, sunday in weeks:
+                # Use ISO week format (YYYY-Wxx) consistently - DO NOT normalize/strip the 'W'
+                # This ensures saved data keys match what loaders expect
+
+                logger.info(f"Processing week {week_label} ({monday} to {sunday})")
+
+                # Report calculation progress
+                week_number += 1
+                try:
+                    from data.task_progress import TaskProgress
+
+                    TaskProgress.update_progress(
+                        "update_data",
+                        "calculate",
+                        current=week_number,
+                        total=n_weeks,
+                        message=f"Week {week_label}",
+                    )
+                except Exception as e:
+                    logger.debug(f"Progress update failed: {e}")
+
+                if progress_callback:
+                    progress_callback(
+                        f"[Date] Calculating metrics for week {week_label} ({monday} to {sunday})..."
+                    )
+
+                success, message = calculate_and_save_weekly_metrics(
+                    week_label=week_label,
+                    progress_callback=progress_callback,
+                    affected_weeks=affected_weeks,
+                )
+
+                if success:
+                    # Check if it was actually calculated or skipped
+                    if "not affected" in message:
+                        skipped_weeks.append(week_label)
+                    else:
+                        successful_weeks.append(week_label)
+                else:
+                    failed_weeks.append((week_label, message))
 
         # Summary
-        if failed_weeks:
+        if skipped_weeks:
+            summary = f"[Delta] Calculated {len(successful_weeks)} weeks, skipped {len(skipped_weeks)} unaffected weeks"
+            if failed_weeks:
+                summary += f", {len(failed_weeks)} failures"
+            logger.info(summary)
+        elif failed_weeks:
             summary = f"[!] Calculated metrics for {len(successful_weeks)}/{n_weeks} weeks. Failures:\n"
             for week, msg in failed_weeks[:3]:  # Show first 3 failures
                 summary += f"  {week}: {msg[:100]}...\n"
+            logger.info(summary)
         else:
-            summary = f"[OK] Successfully calculated metrics for all {n_weeks} weeks ({successful_weeks[0]} to {successful_weeks[-1]})"
+            if successful_weeks:
+                summary = f"[OK] Successfully calculated metrics for all {n_weeks} weeks ({successful_weeks[0]} to {successful_weeks[-1]})"
+            else:
+                summary = (
+                    f"[OK] All {n_weeks} weeks up-to-date (no recalculation needed)"
+                )
+            logger.info(summary)
 
-        logger.info(summary)
         return len(failed_weeks) == 0, summary
 
     except Exception as e:

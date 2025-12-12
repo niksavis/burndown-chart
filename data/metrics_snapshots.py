@@ -35,6 +35,10 @@ logger = logging.getLogger(__name__)
 # Thread lock for file access
 _snapshots_lock = threading.Lock()
 
+# Batch mode context - prevents writes until flush
+_batch_mode_active = False
+_batch_snapshots = None
+
 
 def _get_snapshots_file_path() -> Path:
     """Get the path to metrics_snapshots.json in the active query workspace."""
@@ -131,6 +135,9 @@ def save_metric_snapshot(
 
     Thread-safe operation using file lock.
 
+    In batch mode, accumulates changes in memory without writing to disk.
+    Use batch_write_mode() context manager to batch multiple saves into one write.
+
     Args:
         week_label: ISO week label (e.g., "2025-44")
         metric_name: Name of the metric (e.g., "flow_load", "deployment_frequency")
@@ -145,7 +152,32 @@ def save_metric_snapshot(
         ...     "by_status": {"In Progress": 10, "In Review": 2}
         ... })
     """
+    global _batch_mode_active, _batch_snapshots
+
     with _snapshots_lock:  # Prevent concurrent access
+        # In batch mode, use in-memory snapshot cache
+        if _batch_mode_active:
+            if _batch_snapshots is None:
+                raise RuntimeError("Batch mode active but _batch_snapshots is None")
+
+            # Initialize week if not exists
+            if week_label not in _batch_snapshots:
+                _batch_snapshots[week_label] = {}
+
+            # Add timestamp to metric data
+            metric_data_with_timestamp = {
+                **metric_data,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+
+            # Store metric snapshot in memory
+            _batch_snapshots[week_label][metric_name] = metric_data_with_timestamp
+            logger.debug(
+                f"[Batch] Queued snapshot for {metric_name} in week {week_label}"
+            )
+            return True
+
+        # Normal mode: load, modify, save immediately
         snapshots = load_snapshots()
 
         # Initialize week if not exists
@@ -163,6 +195,66 @@ def save_metric_snapshot(
 
         logger.info(f"Saving snapshot for {metric_name} in week {week_label}")
         return save_snapshots(snapshots)
+
+
+class batch_write_mode:
+    """
+    Context manager for batch writing multiple metrics snapshots.
+
+    Accumulates all save_metric_snapshot() calls in memory and writes once on exit.
+    Dramatically improves performance when saving many metrics (e.g., 52 weeks × 8 metrics).
+
+    Example:
+        >>> with batch_write_mode():
+        ...     for week in weeks:
+        ...         save_metric_snapshot(week, "flow_velocity", data)
+        ...         save_metric_snapshot(week, "flow_load", data)
+        ...     # Writes once here on exit
+    """
+
+    def __enter__(self):
+        global _batch_mode_active, _batch_snapshots
+
+        with _snapshots_lock:
+            if _batch_mode_active:
+                raise RuntimeError("Cannot nest batch_write_mode contexts")
+
+            _batch_mode_active = True
+            # Load existing snapshots into memory
+            _batch_snapshots = load_snapshots()
+            logger.info(
+                "[Batch] Started batch write mode - accumulating changes in memory"
+            )
+
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        global _batch_mode_active, _batch_snapshots
+
+        with _snapshots_lock:
+            if not _batch_mode_active:
+                return False
+
+            try:
+                if exc_type is None and _batch_snapshots is not None:
+                    # No exception - flush to disk
+                    num_weeks = len(_batch_snapshots)
+                    logger.info(f"[Batch] Flushing {num_weeks} weeks to disk...")
+                    save_snapshots(_batch_snapshots)
+                    logger.info(
+                        f"[Batch] ✅ Batch write complete: {num_weeks} weeks saved in single write"
+                    )
+                else:
+                    # Exception occurred - discard changes
+                    logger.warning(
+                        f"[Batch] Exception occurred, discarding batched changes: {exc_val}"
+                    )
+            finally:
+                # Always reset batch mode
+                _batch_mode_active = False
+                _batch_snapshots = None
+
+        return False  # Don't suppress exceptions
 
 
 def get_metric_snapshot(week_label: str, metric_name: str) -> Optional[Dict[str, Any]]:

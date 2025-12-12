@@ -114,6 +114,7 @@ from callbacks import (
     mobile_navigation,  # Add mobile navigation callbacks
     namespace_autocomplete,  # Namespace syntax autocomplete callbacks (Feature 012, auto-registers via @callback)  # noqa: F401
     profile_management,  # Profile management callbacks (Feature 011, auto-registers via @callback)  # noqa: F401
+    progress_bar,  # Progress bar callbacks for Update Data operation (auto-registers via @callback)  # noqa: F401
     query_management,  # Query management callbacks (Feature 011 Phase 3, auto-registers via @callback)  # noqa: F401
     query_switching,  # Query switching callbacks (Feature 011, auto-registers via @callback)  # noqa: F401
     # The 'export' module doesn't seem to exist and is causing an error

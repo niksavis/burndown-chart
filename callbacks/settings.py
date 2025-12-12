@@ -24,6 +24,7 @@ from dash import (
 from dash.exceptions import PreventUpdate
 
 # Application imports
+from ui.toast_notifications import create_success_toast
 from configuration import (
     DEFAULT_ESTIMATED_ITEMS,
     DEFAULT_ESTIMATED_POINTS,
@@ -380,6 +381,9 @@ def register(app):
             Output(
                 "update-data-status", "children", allow_duplicate=True
             ),  # Loading spinner + status
+            Output(
+                "app-notifications", "children", allow_duplicate=True
+            ),  # Toast notifications
         ],
         [Input("update-data-unified", "n_clicks")],
         [
@@ -433,6 +437,7 @@ def register(app):
                 False,  # button disabled
                 button_normal,  # button children with icon
                 "",  # update-data-status (empty)
+                "",  # toast notification (empty)
             )
 
         try:
@@ -486,7 +491,7 @@ def register(app):
                     "[Settings] Attempted to update data without JIRA configuration"
                 )
                 # Clear task progress
-                TaskProgress.complete_task("update_data")
+                TaskProgress.complete_task("update_data", "❌ JIRA not configured")
                 return (
                     None,
                     None,
@@ -501,6 +506,7 @@ def register(app):
                     False,  # Enable button
                     button_normal,  # Reset button text
                     cache_status_message,  # Show error in status area
+                    "",  # Toast notification (empty)
                 )
 
             # Use JQL query from input or fall back to active query's JQL
@@ -891,8 +897,15 @@ def register(app):
                     f"[Settings] Before: total_items={current_settings.get('total_items')}, after: {updated_settings.get('total_items')}"
                 )
 
-                # Clear task progress
-                TaskProgress.complete_task("update_data")
+                # Mark task complete with success message
+                TaskProgress.complete_task("update_data", f"✓ {success_details}")
+
+                # Create success toast notification
+                success_toast = create_success_toast(
+                    success_details,
+                    header="Data Updated",
+                    duration=5000,
+                )
 
                 # Return updated statistics AND scope values to refresh inputs AND settings store
                 return (
@@ -908,7 +921,8 @@ def register(app):
                     False,  # Reset force refresh store
                     False,  # Enable button
                     button_normal,  # Reset button text
-                    status_message,  # Show success in status area
+                    "",  # Clear status area (toast shows message now)
+                    success_toast,  # Toast notification
                 )
             else:
                 # Create detailed error message
@@ -934,7 +948,7 @@ def register(app):
                 )
                 logger.error(f"[JIRA] Data import failed: {message}")
                 # Clear task progress
-                TaskProgress.complete_task("update_data")
+                TaskProgress.complete_task("update_data", f"❌ {message}")
                 # Return no table update on failure, keep scope values unchanged
                 return (
                     None,
@@ -950,6 +964,7 @@ def register(app):
                     False,  # Enable button
                     button_normal,  # Reset button text
                     error_status_message,  # Show error in status area
+                    "",  # Toast notification (empty)
                 )
 
         except ImportError:
@@ -988,6 +1003,7 @@ def register(app):
                 False,  # Reset force refresh store
                 False,  # Enable button
                 button_normal,  # Reset button text
+                "",  # Toast notification (empty)
             )
         except Exception as e:
             logger.error(f"[Settings] Error in unified data update: {e}")
@@ -1023,6 +1039,7 @@ def register(app):
                 False,  # Enable button
                 button_normal,  # Reset button text
                 cache_status_message,  # Show error in status area
+                "",  # Toast notification (empty)
             )
 
     #######################################################################

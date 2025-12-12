@@ -32,12 +32,33 @@ class TaskProgress:
             task_name: Human-readable task name
             **metadata: Additional task metadata to store
         """
+        # Delete any existing file first to clear stale state
+        if TASK_STATE_FILE.exists():
+            try:
+                TASK_STATE_FILE.unlink()
+                logger.debug("Cleared stale task progress file")
+            except Exception as e:
+                logger.warning(f"Failed to clear stale progress file: {e}")
+
         state = {
             "task_id": task_id,
             "task_name": task_name,
             "status": "in_progress",
+            "phase": "fetch",
             "start_time": datetime.now().isoformat(),
             "metadata": metadata,
+            "fetch_progress": {
+                "current": 0,
+                "total": 0,
+                "percent": 0,
+                "message": "Preparing...",
+            },
+            "calculate_progress": {
+                "current": 0,
+                "total": 0,
+                "percent": 0,
+                "message": "Waiting...",
+            },
         }
 
         try:
@@ -48,25 +69,39 @@ class TaskProgress:
             logger.error(f"Failed to save task progress: {e}")
 
     @staticmethod
-    def complete_task(task_id: str) -> None:
-        """Mark a task as completed and clear state.
+    def complete_task(task_id: str, message: str = "Task completed") -> None:
+        """Mark a task as completed with success message.
 
         Args:
             task_id: Task identifier
+            message: Success message to display
         """
         try:
-            if TASK_STATE_FILE.exists():
-                TASK_STATE_FILE.unlink()
-                logger.info(f"Task completed: {task_id}")
+            if not TASK_STATE_FILE.exists():
+                logger.warning(f"Task file not found for {task_id}")
+                return
+
+            with open(TASK_STATE_FILE, "r") as f:
+                state = json.load(f)
+
+            # Update to complete status
+            state["status"] = "complete"
+            state["complete_time"] = datetime.now().isoformat()
+            state["message"] = message
+
+            with open(TASK_STATE_FILE, "w") as f:
+                json.dump(state, f, indent=2)
+
+            logger.info(f"Task completed: {task_id}")
         except Exception as e:
-            logger.error(f"Failed to clear task progress: {e}")
+            logger.error(f"Failed to mark task complete: {e}")
 
     @staticmethod
     def get_active_task() -> Optional[Dict]:
         """Get currently active task if any.
 
         Returns:
-            Task state dict if task is active, None otherwise
+            Task state dict if task is in_progress, None otherwise
         """
         if not TASK_STATE_FILE.exists():
             return None
@@ -74,6 +109,10 @@ class TaskProgress:
         try:
             with open(TASK_STATE_FILE, "r") as f:
                 state = json.load(f)
+
+            # Only return if status is in_progress (fixes button stuck bug)
+            if state.get("status") != "in_progress":
+                return None
 
             # Check if task has timed out
             start_time = datetime.fromisoformat(state["start_time"])
@@ -83,7 +122,9 @@ class TaskProgress:
                 logger.warning(
                     f"Task {state['task_id']} timed out after {elapsed.total_seconds():.0f}s"
                 )
-                TaskProgress.complete_task(state["task_id"])
+                # Delete stale file
+                if TASK_STATE_FILE.exists():
+                    TASK_STATE_FILE.unlink()
                 return None
 
             return state
@@ -121,3 +162,58 @@ class TaskProgress:
             elapsed_str = f"{int(elapsed.total_seconds())}s"
             return f"{active_task['task_name']} in progress... ({elapsed_str})"
         return None
+
+    @staticmethod
+    def update_progress(
+        task_id: str,
+        phase: str,
+        current: int = 0,
+        total: int = 0,
+        message: str = "",
+    ) -> None:
+        """Update progress information for a running task.
+
+        Args:
+            task_id: Task identifier
+            phase: Current phase ('fetch' or 'calculate')
+            current: Current progress value
+            total: Total items to process
+            message: Optional progress message
+        """
+        try:
+            # Read current state
+            if not TASK_STATE_FILE.exists():
+                logger.warning(
+                    f"Task progress file not found for {task_id}, cannot update progress"
+                )
+                return
+
+            with open(TASK_STATE_FILE, "r") as f:
+                state = json.load(f)
+
+            # Only update if task IDs match
+            if state.get("task_id") != task_id:
+                logger.warning(
+                    f"Task ID mismatch: expected {task_id}, got {state.get('task_id')}"
+                )
+                return
+
+            # Calculate percentage
+            percent = (current / total * 100) if total > 0 else 0
+
+            # Update phase-specific progress
+            progress_key = f"{phase}_progress"
+            state[progress_key] = {
+                "current": current,
+                "total": total,
+                "percent": percent,
+                "message": message,
+            }
+            state["phase"] = phase
+
+            # Write updated state
+            with open(TASK_STATE_FILE, "w") as f:
+                json.dump(state, f, indent=2)
+
+        except Exception as e:
+            logger.error(f"Failed to update task progress: {e}")

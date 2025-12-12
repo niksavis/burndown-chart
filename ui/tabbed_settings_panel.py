@@ -60,10 +60,11 @@ def create_connect_tab_content() -> html.Div:
                             ),
                             # Configure button
                             create_jira_config_button(compact=False),
+                            # Status divs with minimal space (hidden when empty)
                             html.Div(
-                                id="jira-connection-test-status", className="mt-2"
+                                id="jira-connection-test-status",
+                                style={"minHeight": "0px", "marginTop": "4px"},
                             ),
-                            # Hidden div for legacy callback compatibility
                             html.Div(id="jira-cache-status", style={"display": "none"}),
                         ],
                         xs=12,
@@ -293,20 +294,37 @@ def create_queries_and_data_tab_content() -> html.Div:
             ),
             # Hidden store for force refresh functionality (long-press)
             dcc.Store(id="force-refresh-store", data=False),
-            # Loading spinner + status message
+            # Progress bar (hidden when not in use, fixed height to prevent layout shift)
             html.Div(
-                dcc.Loading(
-                    id="update-data-loading",
-                    type="default",
-                    children=html.Div(id="update-data-status"),
-                ),
-                style={
-                    "minHeight": "36px",  # Compact height for status message
-                    "marginTop": "6px",  # Small gap below button
-                    "display": "flex",
-                    "justifyContent": "center",  # Center horizontally
-                    "alignItems": "center",  # Center vertically for consistent positioning
-                },
+                id="update-data-progress-container",
+                className="mb-2",
+                style={"display": "none", "minHeight": "60px"},
+                children=[
+                    html.Div(
+                        id="progress-label",
+                        className="small text-muted mb-1",
+                        children="Processing: 0%",
+                    ),
+                    dbc.Progress(
+                        id="progress-bar",
+                        value=0,
+                        striped=True,
+                        animated=True,
+                        color="primary",
+                        style={"height": "24px"},
+                    ),
+                ],
+            ),
+            # Interval for polling progress
+            dcc.Interval(
+                id="progress-poll-interval",
+                interval=500,  # Poll every 500ms
+                disabled=True,  # Disabled by default
+            ),
+            # Status message (hidden - progress bar shows status now)
+            html.Div(
+                html.Div(id="update-data-status"),
+                style={"display": "none"},  # Hidden - progress bar handles all status
             ),
         ],
         className="settings-tab-content",
