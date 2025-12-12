@@ -471,12 +471,42 @@ def calculate_deployment_frequency(
             "flow_end_statuses", ["Done", "Resolved", "Closed"]
         )
 
+        # Get DevOps configuration for filtering
+        from data.persistence import load_app_settings
+
+        app_settings = load_app_settings()
+        devops_projects = app_settings.get("devops_projects", [])
+        devops_task_types = project_classification.get("devops_task_types", [])
+
+        # Log configuration for debugging
+        logger.debug(
+            f"[DORA] Deployment Frequency config: "
+            f"devops_projects={devops_projects}, "
+            f"devops_task_types={devops_task_types}, "
+            f"analyzing {len(issues)} issues"
+        )
+
         # Count deployments (operational tasks) and releases (distinct fixVersions)
         deployment_count = 0
         all_releases = set()  # Track distinct fixVersion names
 
         for issue in issues:
             fields = issue.get("fields", {})
+
+            # CRITICAL: Filter for operational tasks from DevOps projects
+            # Only count issues that are:
+            # 1. From a DevOps project (if devops_projects configured)
+            # 2. Of type "Operational Task" or other DevOps task types (if devops_task_types configured)
+            project_key = fields.get("project", {}).get("key", "")
+            issue_type = fields.get("issuetype", {}).get("name", "")
+
+            # Skip if DevOps projects configured and issue is not from DevOps project
+            if devops_projects and project_key not in devops_projects:
+                continue
+
+            # Skip if DevOps task types configured and issue is not a DevOps task
+            if devops_task_types and issue_type not in devops_task_types:
+                continue
 
             # Check if issue is completed
             if not _is_issue_completed(issue, flow_end_statuses):
@@ -497,7 +527,8 @@ def calculate_deployment_frequency(
                 deployment_count += 1
                 logger.debug(
                     f"[DORA] Issue {issue.get('key')} counted as deployment: "
-                    f"type={fields.get('issuetype', {}).get('name')}, "
+                    f"project={project_key}, "
+                    f"type={issue_type}, "
                     f"fixVersions={[v.get('name') for v in fix_versions if v.get('releaseDate')]}"
                 )
 

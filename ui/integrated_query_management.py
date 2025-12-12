@@ -78,6 +78,24 @@ def create_integrated_query_management() -> dbc.Card:
                                 placeholder="Enter JQL query (e.g., project = KAFKA AND status = Done ORDER BY created DESC)",
                                 rows=5,
                             ),
+                            # Performance tip about DevOps projects
+                            html.Div(
+                                [
+                                    html.I(className="fas fa-rocket text-success me-2"),
+                                    html.Strong(
+                                        "Performance Tip: ",
+                                        className="text-success",
+                                    ),
+                                    html.Span(
+                                        "For faster queries, query only development projects here. "
+                                        "Configure DevOps projects in Field Mappings → Environment → DevOps Projects, "
+                                        "and they'll be fetched automatically with optimized filtering.",
+                                        className="text-muted",
+                                    ),
+                                ],
+                                className="alert alert-success border-success mt-2 mb-2 py-2 px-3",
+                                style={"fontSize": "0.875rem"},
+                            ),
                             # Keyboard shortcuts hint
                             html.Small(
                                 [

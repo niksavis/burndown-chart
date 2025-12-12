@@ -198,6 +198,10 @@ def switch_query_callback(selected_query_id, current_options):
 
         logger.info(f"Query switched to '{selected_query_id}' in {elapsed_ms:.2f}ms")
 
+        # CRITICAL: Trigger data refresh for new query workspace
+        # The statistics table and charts will auto-update via other callbacks
+        # that listen to query changes
+
         # Refresh dropdown to update active indicator and get JQL + name
         profile_id = get_active_profile_id()
         queries = list_queries_for_profile(profile_id)
@@ -464,6 +468,10 @@ def create_new_query_callback(save_clicks, query_name, query_jql):
 # Query deletion moved to settings.py to use modal confirmation system
 # This prevents accidental deletion by requiring user confirmation
 
+# NOTE: Data is NOT automatically loaded when switching queries.
+# User must explicitly click "Load Query Data" button to populate UI with query data.
+# This allows creating/editing queries without triggering data loads.
+
 
 # ============================================================================
 # Query Deletion Modal Trigger
@@ -573,6 +581,8 @@ def trigger_delete_query_modal_from_selector(delete_clicks, selected_query_id):
         Output("estimated-points-input", "value", allow_duplicate=True),
         Output("current-settings", "data", allow_duplicate=True),
         Output("update-data-status", "children", allow_duplicate=True),
+        Output("current-statistics", "data", allow_duplicate=True),
+        Output("jira-cache-status", "children", allow_duplicate=True),
     ],
     Input("load-query-data-btn", "n_clicks"),
     State("query-selector", "value"),
@@ -651,6 +661,15 @@ def load_query_cached_data(n_clicks, selected_query_id):
             f"{data_points_count} data points, {total_items} items"
         )
 
+        # Create cache status message to trigger dashboard refresh
+        cache_status = html.Div(
+            [
+                html.I(className="fas fa-database me-2 text-muted"),
+                html.Span("Cached data loaded", className="small"),
+            ],
+            className="text-muted small mt-2",
+        )
+
         return (
             statistics,
             total_items,
@@ -659,6 +678,8 @@ def load_query_cached_data(n_clicks, selected_query_id):
             estimated_points,
             settings,
             status_message,
+            statistics,  # Update current-statistics store to trigger dashboard/charts
+            cache_status,  # Update jira-cache-status to trigger dashboard refresh
         )
 
     except Exception as e:
@@ -680,4 +701,6 @@ def load_query_cached_data(n_clicks, selected_query_id):
             no_update,
             no_update,
             error_message,
+            no_update,  # Don't update current-statistics on error
+            no_update,  # Don't update jira-cache-status on error
         )

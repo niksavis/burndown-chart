@@ -133,6 +133,19 @@ def create_query_management_card() -> html.Div:
                         placeholder="project = EXAMPLE AND created >= -12w",
                         rows=4,
                     ),
+                    # Performance tip about DevOps projects
+                    html.Div(
+                        [
+                            html.I(className="fas fa-info-circle text-info me-2"),
+                            html.Span(
+                                "Tip: Query development projects only. "
+                                "Configure DevOps projects in Field Mappings for optimized fetching.",
+                                className="small text-muted",
+                            ),
+                        ],
+                        className="alert alert-info border-info mt-2 py-2 px-3",
+                        style={"fontSize": "0.8rem"},
+                    ),
                     html.Div(id="jql-validation-feedback", className="mt-2"),
                 ],
                 className="mb-3",

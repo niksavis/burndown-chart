@@ -535,6 +535,58 @@ def get_settings_file_path(filename: str) -> Path:
     return get_data_file_path(filename)  # Same logic as data files
 
 
+def get_active_profile_and_query_display_names() -> dict:
+    """
+    Get display names for currently active profile and query.
+
+    Returns:
+        dict: Dictionary with profile_name and query_name (or None if not in profiles mode)
+            Example: {"profile_name": "Apache Kafka", "query_name": "Development Sprint"}
+
+    Example:
+        >>> names = get_active_profile_and_query_display_names()
+        >>> if names["profile_name"]:
+        ...     print(f"Profile: {names['profile_name']}, Query: {names['query_name']}")
+    """
+    if not is_profiles_mode_enabled():
+        return {"profile_name": None, "query_name": None}
+
+    try:
+        # Get active profile
+        profile = get_active_profile()
+        profile_name = profile.name if profile else None
+
+        # Get active query
+        from data.query_manager import get_active_query_id
+
+        query_id = get_active_query_id()
+        query_name = None
+
+        if profile and query_id:
+            # Load query metadata from query.json
+            query_dir = PROFILES_DIR / profile.id / "queries" / query_id
+            query_file = query_dir / "query.json"
+
+            if query_file.exists():
+                try:
+                    with open(query_file, "r", encoding="utf-8") as f:
+                        query_data = json.load(f)
+                    query_name = query_data.get(
+                        "name", query_id.replace("_", " ").title()
+                    )
+                except (json.JSONDecodeError, IOError) as e:
+                    logger.warning(f"Failed to load query name from {query_file}: {e}")
+                    query_name = query_id.replace("_", " ").title()
+            else:
+                query_name = query_id.replace("_", " ").title()
+
+        return {"profile_name": profile_name, "query_name": query_name}
+
+    except Exception as e:
+        logger.warning(f"Failed to get active profile/query names: {e}")
+        return {"profile_name": None, "query_name": None}
+
+
 # ============================================================================
 # Profile Operations (T008-T009)
 # ============================================================================

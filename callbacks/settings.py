@@ -610,6 +610,9 @@ def register(app):
                 "devops_projects": app_settings.get(
                     "devops_projects", []
                 ),  # Add DevOps filtering config
+                "devops_task_types": app_settings.get(
+                    "devops_task_types", []
+                ),  # Add DevOps task types for two-phase fetch
                 "field_mappings": app_settings.get(
                     "field_mappings", {}
                 ),  # Add field mappings for DORA/Flow metrics
@@ -2378,6 +2381,13 @@ def register(app):
             f"Banner callback - remaining_items: {remaining_items}, remaining_points: {remaining_points}"
         )
 
+        # Get active profile and query names for display
+        from data.profile_manager import get_active_profile_and_query_display_names
+
+        display_names = get_active_profile_and_query_display_names()
+        profile_name = display_names.get("profile_name")
+        query_name = display_names.get("query_name")
+
         # Use the shared function to create the banner - no more duplicate code!
         banner_content = create_parameter_bar_collapsed(
             pert_factor=pert_factor,
@@ -2390,6 +2400,8 @@ def register(app):
             else None,  # Convert to int
             show_points=show_points,
             data_points=data_points,
+            profile_name=profile_name,
+            query_name=query_name,
         )
 
         # Extract just the Row children from the returned html.Div

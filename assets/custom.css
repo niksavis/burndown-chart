@@ -210,6 +210,57 @@
   box-shadow: var(--shadow-md);
 }
 
+/* Ensure parameter items wrap gracefully but buttons never wrap */
+.parameter-bar-collapsed > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+}
+
+/* On very small screens, reduce margins to maximize space */
+@media (max-width: 490px) {
+  /* Prevent wrapping of outer container */
+  .parameter-bar-collapsed > div > div:first-child {
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+  }
+
+  .parameter-bar-collapsed > div > div:first-child::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
+  }
+
+  .param-summary-item {
+    margin-right: 0.15rem !important;
+    font-size: 0.7rem !important;
+  }
+
+  /* Make window/data indicators even more compact on tiny screens */
+  .param-summary-item .d-none.d-sm-inline {
+    display: none !important;
+  }
+
+  /* Tighter button spacing on mobile - make buttons smaller */
+  .parameter-bar-collapsed .btn-sm {
+    margin-right: 0.1rem !important;
+    padding: 0 5px !important;
+    min-width: 32px !important;
+    height: 32px !important;
+    font-size: 0.85rem !important;
+  }
+
+  /* Reduce gap in flex container */
+  .parameter-bar-collapsed > div > div {
+    gap: 0.1rem !important;
+  }
+
+  /* Ensure buttons container never wraps */
+  .parameter-bar-collapsed > div {
+    flex-wrap: nowrap !important;
+  }
+}
+
 /* Parameter summary items */
 .param-summary-item {
   display: inline-flex;
@@ -222,6 +273,40 @@
 .param-summary-item i {
   color: var(--color-primary);
   opacity: 0.8;
+  font-size: 1rem !important; /* Consistent icon size across all breakpoints */
+}
+
+/* Profile and query display styling */
+.profile-query-display {
+  border-right: 1px solid var(--color-gray-300);
+  padding-right: var(--spacing-md);
+  margin-right: var(--spacing-sm) !important;
+}
+
+/* Hide profile/query at 490px to prevent button wrapping */
+@media (max-width: 490px) {
+  .profile-query-display {
+    display: none !important;
+  }
+}
+
+/* Hide profile/query separator on small screens between 491px-576px */
+@media (min-width: 491px) and (max-width: 576px) {
+  .profile-query-display {
+    border-right: none;
+    padding-right: var(--spacing-sm);
+    margin-right: 0 !important;
+    /* Allow wrapping on very small screens to prevent overflow */
+    white-space: normal;
+    max-width: 100%;
+  }
+}
+
+/* On medium screens, make profile/query more compact */
+@media (max-width: 991px) {
+  .profile-query-display {
+    font-size: var(--font-size-xs);
+  }
 }
 
 /* Parameter, Settings, and Data button styling */
@@ -3095,20 +3180,14 @@ label.fw-medium {
       font-size: 0.75rem !important;
       white-space: nowrap !important;
     }
-
-    .param-summary-item i {
-      font-size: 0.85rem !important;
-    }
+    /* Icons remain 1rem as defined globally - no override */
 
     /* Reduce button text on small mobile */
     .parameter-bar-collapsed .btn-sm {
       font-size: 0.75rem !important;
-      padding: 0.3rem 0.6rem !important;
+      padding: 0.25rem 0.5rem !important;
     }
-
-    .parameter-bar-collapsed .btn-sm i {
-      font-size: 0.85rem !important;
-    }
+    /* Button icons remain 1rem as defined globally - no override */
   }
 
   /* Medium mobile/tablet (576px - 768px) - keep normal size */

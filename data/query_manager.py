@@ -336,6 +336,24 @@ def create_query(profile_id: str, name: str, jql: str, description: str = "") ->
     with open(query_file, "w", encoding="utf-8") as f:
         json.dump(query_data, f, indent=2)
 
+    # Initialize empty project_data.json to prevent data leaks
+    project_data = {
+        "statistics": [],
+        "project_scope": {
+            "total_items": 0,
+            "estimated_items": 0,
+            "total_points": 0,
+            "estimated_points": 0,
+        },
+        "last_updated": datetime.now(timezone.utc).isoformat(),
+        "version": "1.0",
+    }
+    project_data_file = query_dir / "project_data.json"
+    with open(project_data_file, "w", encoding="utf-8") as f:
+        json.dump(project_data, f, indent=2)
+
+    logger.info(f"Initialized empty project_data.json for new query '{query_id}'")
+
     # Update profiles.json to add query to profile's queries list
     if PROFILES_FILE.exists():
         with open(PROFILES_FILE, "r", encoding="utf-8") as f:

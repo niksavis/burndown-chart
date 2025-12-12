@@ -2257,6 +2257,8 @@ def create_parameter_bar_collapsed(
     remaining_points: int | None = None,
     show_points: bool = True,
     data_points: int | None = None,
+    profile_name: str | None = None,
+    query_name: str | None = None,
 ) -> html.Div:
     """
     Create collapsed parameter bar showing key values and expand button.
@@ -2274,6 +2276,9 @@ def create_parameter_bar_collapsed(
         remaining_items: Number of items remaining to complete (preferred display)
         remaining_points: Number of points remaining to complete (preferred display)
         show_points: Whether to show points data
+        data_points: Number of weeks of data used for forecasting
+        profile_name: Name of active profile (if in profiles mode)
+        query_name: Name of active query (if in profiles mode)
 
     Returns:
         html.Div: Collapsed parameter bar component
@@ -2304,17 +2309,44 @@ def create_parameter_bar_collapsed(
                     html.I(className="fas fa-chart-bar me-1"),
                     html.Span(
                         f"{items_label}: ",
-                        className="text-muted d-none d-sm-inline",
+                        className="text-muted d-none d-lg-inline",
                         style={"fontSize": "0.85em"},
                     ),
-                    f"{display_points_rounded:,}",
                     html.Span(
-                        " points",  # Space is inside the span
-                        className="d-none d-sm-inline",
+                        f"{display_points_rounded:,}", style={"fontSize": "0.85em"}
                     ),
                 ],
                 className="param-summary-item",
                 title=f"{items_label}: {display_points_rounded:,} points",
+            ),
+        ]
+
+    # Build profile/query display section if in profiles mode
+    profile_query_display = []
+    if profile_name and query_name:
+        profile_query_display = [
+            html.Span(
+                [
+                    html.I(className="fas fa-folder me-1"),
+                    html.Span(
+                        profile_name,
+                        className="text-muted d-none d-lg-inline",
+                        style={"fontSize": "0.85em"},
+                    ),
+                    html.Span(
+                        " / ",
+                        className="text-muted d-none d-lg-inline",
+                        style={"fontSize": "0.85em"},
+                    ),
+                    html.I(className="fas fa-search me-1"),
+                    html.Span(
+                        query_name,
+                        className="text-muted d-none d-lg-inline",
+                        style={"fontSize": "0.85em"},
+                    ),
+                ],
+                className="param-summary-item me-1 me-sm-2 profile-query-display",
+                title=f"Profile: {profile_name} | Query: {query_name}",
             ),
         ]
 
@@ -2325,17 +2357,21 @@ def create_parameter_bar_collapsed(
                 [
                     # Summary items (left side)
                     html.Div(
-                        [
+                        profile_query_display
+                        + [
                             html.Span(
                                 [
                                     html.I(className="fas fa-sliders-h me-1"),
                                     html.Span(
                                         "Window: ",
-                                        className="d-none d-sm-inline",
+                                        className="text-muted d-none d-lg-inline",
+                                        style={"fontSize": "0.85em"},
                                     ),
-                                    f"{pert_factor}w",
+                                    html.Span(
+                                        f"{pert_factor}w", style={"fontSize": "0.85em"}
+                                    ),
                                 ],
-                                className="param-summary-item me-2 me-sm-3",
+                                className="param-summary-item me-1 me-sm-2",
                                 title=f"Confidence Window: {pert_factor} weeks (samples best/worst case from your velocity history)",
                             ),
                             html.Span(
@@ -2343,11 +2379,14 @@ def create_parameter_bar_collapsed(
                                     html.I(className="fas fa-chart-line me-1"),
                                     html.Span(
                                         "Data: ",
-                                        className="d-none d-sm-inline",
+                                        className="text-muted d-none d-lg-inline",
+                                        style={"fontSize": "0.85em"},
                                     ),
-                                    f"{data_points}w",
+                                    html.Span(
+                                        f"{data_points}w", style={"fontSize": "0.85em"}
+                                    ),
                                 ],
-                                className="param-summary-item me-2 me-sm-3",
+                                className="param-summary-item me-1 me-sm-2",
                                 title=f"Data Points: {data_points} weeks of historical data used for forecasting",
                                 style={"display": "inline" if data_points else "none"},
                             )
@@ -2362,15 +2401,10 @@ def create_parameter_bar_collapsed(
                                         style={"fontSize": "0.85em"},
                                     ),
                                     html.Span(
-                                        f"{deadline}",
-                                        className="d-none d-sm-inline",
-                                    ),
-                                    html.Span(
-                                        f"{deadline[5:]}",  # Show only MM-DD on mobile
-                                        className="d-inline d-sm-none",
+                                        f"{deadline}", style={"fontSize": "0.85em"}
                                     ),
                                 ],
-                                className="param-summary-item me-2 me-md-3",
+                                className="param-summary-item me-1 me-sm-2",
                                 title=f"Project deadline: {deadline}",
                             ),
                             html.Span(
@@ -2378,16 +2412,15 @@ def create_parameter_bar_collapsed(
                                     html.I(className="fas fa-tasks me-1"),
                                     html.Span(
                                         f"{items_label}: ",
-                                        className="text-muted d-none d-sm-inline",
+                                        className="text-muted d-none d-lg-inline",
                                         style={"fontSize": "0.85em"},
                                     ),
-                                    f"{display_items:,}",
                                     html.Span(
-                                        " items",  # Space is inside the span
-                                        className="d-none d-sm-inline",  # Hide on smallest screens
+                                        f"{display_items:,}",
+                                        style={"fontSize": "0.85em"},
                                     ),
                                 ],
-                                className="param-summary-item me-2 me-sm-3",
+                                className="param-summary-item me-1 me-sm-2",
                                 title=f"{items_label}: {display_items:,} items",
                             ),
                         ]
@@ -2401,10 +2434,11 @@ def create_parameter_bar_collapsed(
                                 [
                                     html.I(
                                         className="fas fa-sliders-h",
+                                        style={"fontSize": "1rem"},
                                     ),
                                     html.Span(
                                         "Parameters",
-                                        className="d-none d-xl-inline",
+                                        className="d-none d-xxl-inline",
                                         style={"marginLeft": "0.5rem"},
                                     ),
                                 ],
@@ -2420,6 +2454,7 @@ def create_parameter_bar_collapsed(
                                     "display": "flex",
                                     "alignItems": "center",
                                     "justifyContent": "center",
+                                    "flexShrink": "0",
                                 },
                                 title="Adjust project parameters",
                             ),
@@ -2427,10 +2462,11 @@ def create_parameter_bar_collapsed(
                                 [
                                     html.I(
                                         className="fas fa-cog",
+                                        style={"fontSize": "1rem"},
                                     ),
                                     html.Span(
                                         "Settings",
-                                        className="d-none d-xl-inline",
+                                        className="d-none d-xxl-inline",
                                         style={"marginLeft": "0.5rem"},
                                     ),
                                 ],
@@ -2453,10 +2489,11 @@ def create_parameter_bar_collapsed(
                                 [
                                     html.I(
                                         className="fas fa-exchange-alt",
+                                        style={"fontSize": "1rem"},
                                     ),
                                     html.Span(
                                         "Data",
-                                        className="d-none d-xl-inline",
+                                        className="d-none d-xxl-inline",
                                         style={"marginLeft": "0.5rem"},
                                     ),
                                 ],
@@ -2477,6 +2514,7 @@ def create_parameter_bar_collapsed(
                             ),
                         ],
                         className="d-flex justify-content-end align-items-center flex-nowrap flex-shrink-0",
+                        style={"minWidth": "fit-content"},
                     ),
                 ],
                 className="d-flex align-items-center justify-content-between flex-wrap",
@@ -3347,6 +3385,14 @@ def create_parameter_panel(
     # The serve_layout() calculates these as remaining work at START of window,
     # so we should display them as "Remaining" not "Scope"
     # This ensures the initial banner matches the callback-updated banner
+
+    # Get active profile and query names for display
+    from data.profile_manager import get_active_profile_and_query_display_names
+
+    display_names = get_active_profile_and_query_display_names()
+    profile_name = display_names.get("profile_name")
+    query_name = display_names.get("query_name")
+
     return html.Div(
         [
             # Collapsed bar (always visible)
@@ -3364,6 +3410,8 @@ def create_parameter_panel(
                 show_points=show_points,  # Respect Points Tracking toggle
                 id_suffix=id_suffix,
                 data_points=data_points,
+                profile_name=profile_name,
+                query_name=query_name,
             ),
             # Expanded panel (toggleable)
             dbc.Collapse(
