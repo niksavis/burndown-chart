@@ -2719,32 +2719,33 @@ def fetch_changelog_on_demand(config: Dict, progress_callback=None) -> Tuple[boo
 
                     total_histories_after += len(status_histories)
 
-                    if status_histories:
-                        # CRITICAL: Include ALL fields needed for DORA and Flow metrics
-                        # - project: Filter Development vs DevOps projects
-                        # - fixVersions: Match dev issues with operational tasks
-                        # - status: Filter completed/deployed issues
-                        # - issuetype: Filter "Operational Task" issues
-                        # - created: Used in some calculations
-                        # - resolutiondate: Fallback for deployment dates
-                        fields = issue.get("fields", {})
-                        changelog_cache[issue_key] = {
-                            "key": issue_key,
-                            "fields": {
-                                "project": fields.get("project"),
-                                "fixVersions": fields.get("fixVersions"),
-                                "status": fields.get("status"),
-                                "issuetype": fields.get("issuetype"),
-                                "created": fields.get("created"),
-                                "resolutiondate": fields.get("resolutiondate"),
-                            },
-                            "changelog": {
-                                "histories": status_histories,
-                                "total": len(status_histories),
-                            },
-                            "last_updated": datetime.now().isoformat(),
-                        }
-                        issues_processed += 1
+                    # CRITICAL: Include ALL fields needed for DORA and Flow metrics
+                    # - project: Filter Development vs DevOps projects
+                    # - fixVersions: Match dev issues with operational tasks
+                    # - status: Filter completed/deployed issues
+                    # - issuetype: Filter "Operational Task" issues
+                    # - created: Used in some calculations
+                    # - resolutiondate: Fallback for deployment dates
+                    # IMPORTANT: Always cache issues even if they have no status histories
+                    # to prevent re-fetching them on every Update Data
+                    fields = issue.get("fields", {})
+                    changelog_cache[issue_key] = {
+                        "key": issue_key,
+                        "fields": {
+                            "project": fields.get("project"),
+                            "fixVersions": fields.get("fixVersions"),
+                            "status": fields.get("status"),
+                            "issuetype": fields.get("issuetype"),
+                            "created": fields.get("created"),
+                            "resolutiondate": fields.get("resolutiondate"),
+                        },
+                        "changelog": {
+                            "histories": status_histories,
+                            "total": len(status_histories),
+                        },
+                        "last_updated": datetime.now().isoformat(),
+                    }
+                    issues_processed += 1
 
                     # LOG PROGRESS: Every 50 issues to show activity without impacting performance
                     if issues_processed > 0 and issues_processed % 50 == 0:

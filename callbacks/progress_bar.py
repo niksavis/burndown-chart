@@ -53,7 +53,7 @@ def update_progress_bars(n_intervals):
 
         status = progress_data.get("status", "idle")
 
-        # Handle complete status - show success for 3 seconds then cleanup
+        # Handle complete status - show success for 3 seconds then hide (but don't delete)
         if status == "complete":
             complete_time = progress_data.get("complete_time")
             if complete_time:
@@ -61,12 +61,9 @@ def update_progress_bars(n_intervals):
                     datetime.now() - datetime.fromisoformat(complete_time)
                 ).total_seconds()
                 if elapsed >= 3:
-                    # 3 seconds elapsed - cleanup and hide
-                    try:
-                        progress_file.unlink()
-                        logger.info("[Progress] Cleaned up completed task file")
-                    except Exception as e:
-                        logger.error(f"[Progress] Failed to cleanup: {e}")
+                    # 3 seconds elapsed - hide progress bar but DON'T delete file
+                    # Let the next task's start_task() handle cleanup to avoid race condition
+                    # where calculate_metrics starts while we're deleting the file
                     return (
                         {"display": "none"},
                         "Processing: 0%",
@@ -84,7 +81,7 @@ def update_progress_bars(n_intervals):
                         100,
                         "success",
                         False,  # Not animated when complete
-                        False,  # Keep polling for cleanup
+                        False,  # Keep polling to hide after 3s
                     )
             # No complete_time, hide immediately
             return (

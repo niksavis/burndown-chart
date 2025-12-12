@@ -372,7 +372,7 @@ def load_and_display_dora_metrics(
             if forecast_data:
                 metrics_data[metric_name]["forecast_data"] = forecast_data
                 logger.info(
-                    f"[Feature 009] Calculated forecast for {metric_name}: {forecast_data.get('forecast_value')}"
+                    f"Calculated forecast for {metric_name}: {forecast_data.get('forecast_value')}"
                 )
             if trend_vs_forecast:
                 metrics_data[metric_name]["trend_vs_forecast"] = trend_vs_forecast
@@ -1058,18 +1058,14 @@ def calculate_metrics_from_settings(
 
             current_week_label = get_week_label(datetime.now())
             logger.info(
-                f"[Feature 009] Adding forecasts to week {current_week_label} after metrics calculation"
+                f"Adding forecasts to week {current_week_label} after metrics calculation"
             )
 
             forecast_success = add_forecasts_to_week(current_week_label)
             if forecast_success:
-                logger.info(
-                    f"[Feature 009] Successfully added forecasts to {current_week_label}"
-                )
+                logger.info(f"Successfully added forecasts to {current_week_label}")
             else:
-                logger.warning(
-                    f"[Feature 009] Failed to add forecasts to {current_week_label}"
-                )
+                logger.warning(f"Failed to add forecasts to {current_week_label}")
 
         # Mark task as completed
         TaskProgress.complete_task("calculate_metrics")

@@ -249,17 +249,8 @@ def register(app):
         # Load existing settings to preserve last_used_data_source and active_jql_profile_id
         existing_settings = load_app_settings()
 
-        # Check if JQL query changed for cache invalidation (T054)
-        jql_changed = False
-        old_jql = existing_settings.get("jql_query", "")
-        new_jql = (
-            jql_query.strip()
-            if jql_query and jql_query.strip()
-            else "project = JRASERVER"
-        )
-        if old_jql != new_jql:
-            jql_changed = True
-            logger.info(f"[Settings] JQL query changed: '{old_jql}' → '{new_jql}'")
+        # JQL query change detection removed - JQL is now managed per-query in query.json
+        # Cache invalidation based on JQL changes is handled in handle_unified_data_update
 
         save_app_settings(
             pert_factor,
@@ -306,26 +297,6 @@ def register(app):
                 "[Settings] Preserving JIRA project scope data - UI input changes do not override JIRA calculations"
             )
             # JIRA project scope should ONLY be updated by JIRA operations, never by UI inputs
-
-        # T054: Invalidate cache when JQL query changes
-        if jql_changed:
-            try:
-                import glob
-                import os
-
-                cache_files = glob.glob("cache/*.json")
-                for cache_file in cache_files:
-                    try:
-                        os.remove(cache_file)
-                    except Exception as e:
-                        logger.debug(
-                            f"[Settings] Could not remove cache file {cache_file}: {e}"
-                        )
-                logger.info(
-                    f"[Settings] Invalidated {len(cache_files)} cache files due to JQL change"
-                )
-            except Exception as e:
-                logger.warning(f"[Settings] Cache invalidation failed: {e}")
 
         logger.info(f"[Settings] Updated and saved: {settings}")
         return settings, int(datetime.now().timestamp() * 1000)
@@ -685,38 +656,29 @@ def register(app):
                 )
                 logger.info("=" * 60)
 
-            # CRITICAL FIX: Clear metrics cache to prevent mixed data
-            # This ensures old metrics from previous queries don't contaminate new data
-            #
-            # OPTIMIZATION: Changelog cache is kept on normal refresh (only cleared on force refresh)
+            # CRITICAL FIX: Clear changelog cache only on force refresh
             # Changelog is issue-specific (keyed by issue key), not query-specific
-            # Reusing changelog saves 1-2 minutes on subsequent "Calculate Metrics" clicks
+            # Reusing changelog saves 1-2 minutes on subsequent operations
             import os
             from data.profile_manager import get_data_file_path
 
-            # Always clear metrics (query-specific, will be recalculated)
-            files_to_clear = [get_data_file_path("metrics_snapshots.json")]
-
             # Only clear changelog on FORCE REFRESH (expensive to re-fetch)
             if force_refresh_bool:
-                files_to_clear.append(get_data_file_path("jira_changelog_cache.json"))
-                logger.info(
-                    "[Settings] Force refresh: Will clear changelog cache and re-fetch from JIRA"
-                )
+                changelog_cache = get_data_file_path("jira_changelog_cache.json")
+                if os.path.exists(changelog_cache):
+                    try:
+                        os.remove(changelog_cache)
+                        logger.info(
+                            "[Settings] Force refresh: Cleared changelog cache, will re-fetch from JIRA"
+                        )
+                    except Exception as e:
+                        logger.warning(
+                            f"[Settings] Could not remove changelog cache: {e}"
+                        )
             else:
                 logger.info(
                     "[Settings] Normal refresh: Keeping changelog cache for reuse (saves 1-2 minutes)"
                 )
-
-            for file_path in files_to_clear:
-                if os.path.exists(file_path):
-                    try:
-                        os.remove(file_path)
-                        logger.info(
-                            f"[Settings] Cleared {file_path} to prevent data contamination"
-                        )
-                    except Exception as e:
-                        logger.warning(f"[Settings] Could not remove {file_path}: {e}")
 
             success, message, scope_data = sync_jira_scope_and_data(
                 settings_jql, jira_config_for_sync, force_refresh=force_refresh_bool
@@ -752,66 +714,105 @@ def register(app):
                     ],
                     className="text-success small text-center mt-2",
                 )
-                status_message = html.Div(
-                    [
-                        html.I(className="fas fa-check-circle me-2 text-success"),
-                        html.Span(success_details, className="fw-medium"),
-                    ],
-                    className="text-success small",
-                )
                 logger.info(
                     f"[JIRA] Data import successful: {issues_count} issues loaded, {weekly_count} weekly data points created"
                 )
 
                 # AUTOMATIC METRICS CALCULATION
-                # After fetching JIRA data and changelog, automatically calculate DORA/Flow metrics
-                logger.info(
-                    "[Settings] Auto-calculating DORA/Flow metrics after data update..."
-                )
-                try:
-                    from data.metrics_calculator import (
-                        calculate_metrics_for_last_n_weeks,
-                    )
-                    from data.iso_week_bucketing import get_weeks_from_date_range
-                    from datetime import datetime
+                # Check if data actually changed before recalculating metrics
+                # Only skip if: NOT force refresh AND delta fetch returned 0 changes
+                from data.profile_manager import get_active_query_workspace
+                import json
 
-                    # Calculate metrics for the actual data range (not just last N weeks from today)
-                    # This ensures we calculate metrics for all the data we just fetched
-                    if updated_statistics and len(updated_statistics) > 0:
-                        # Extract date range from statistics
-                        dates = [
-                            datetime.fromisoformat(stat["date"])
-                            for stat in updated_statistics
-                        ]
-                        start_date = min(dates)
-                        end_date = max(dates)
+                should_calculate = True
 
-                        # Get weeks covering the actual data range
-                        custom_weeks = get_weeks_from_date_range(start_date, end_date)
+                # If force refresh, always calculate (full re-fetch)
+                if not force_refresh_bool:
+                    query_workspace = get_active_query_workspace()
+                    cache_file = query_workspace / "jira_cache.json"
 
-                        metrics_success, metrics_message = (
-                            calculate_metrics_for_last_n_weeks(
-                                custom_weeks=custom_weeks,
-                                progress_callback=None,  # No progress updates during auto-calc
-                            )
+                    try:
+                        if cache_file.exists():
+                            with open(cache_file, "r", encoding="utf-8") as f:
+                                cache_data = json.load(f)
+
+                            # Only skip if changed_keys exists and is empty (delta fetch with no changes)
+                            changed_keys = cache_data.get("changed_keys", [])
+
+                            if len(changed_keys) == 0:
+                                should_calculate = False
+                                logger.info(
+                                    "[Settings] No data changes detected (changed_keys=0), skipping metrics calculation"
+                                )
+                    except Exception as e:
+                        logger.warning(
+                            f"[Settings] Could not check changed_keys, will calculate: {e}"
                         )
-                        if metrics_success:
+
+                if should_calculate:
+                    # Clear metrics cache before recalculating (query-specific data)
+                    metrics_cache = get_data_file_path("metrics_snapshots.json")
+                    if os.path.exists(metrics_cache):
+                        try:
+                            os.remove(metrics_cache)
                             logger.info(
-                                f"[Settings] Auto-calculated metrics: {metrics_message}"
+                                "[Settings] Cleared metrics cache before recalculation"
                             )
-                        else:
+                        except Exception as e:
                             logger.warning(
-                                f"[Settings] Metrics calculation had issues: {metrics_message}"
+                                f"[Settings] Could not remove metrics cache: {e}"
                             )
-                    else:
-                        logger.info(
-                            "[Settings] No statistics data to calculate metrics from"
-                        )
-                except Exception as e:
-                    # Don't fail the entire Update Data if metrics calculation fails
-                    logger.warning(
-                        f"[Settings] Auto-metrics calculation failed (non-critical): {e}"
+
+                    # After fetching JIRA data and changelog, automatically calculate DORA/Flow metrics
+                    logger.info(
+                        "[Settings] Auto-calculating DORA/Flow metrics after data update..."
                     )
+                    try:
+                        from data.metrics_calculator import (
+                            calculate_metrics_for_last_n_weeks,
+                        )
+                        from data.iso_week_bucketing import get_weeks_from_date_range
+                        from datetime import datetime
+
+                        # Calculate metrics for the actual data range (not just last N weeks from today)
+                        # This ensures we calculate metrics for all the data we just fetched
+                        if updated_statistics and len(updated_statistics) > 0:
+                            # Extract date range from statistics
+                            dates = [
+                                datetime.fromisoformat(stat["date"])
+                                for stat in updated_statistics
+                            ]
+                            start_date = min(dates)
+                            end_date = max(dates)
+
+                            # Get weeks covering the actual data range
+                            custom_weeks = get_weeks_from_date_range(
+                                start_date, end_date
+                            )
+
+                            metrics_success, metrics_message = (
+                                calculate_metrics_for_last_n_weeks(
+                                    custom_weeks=custom_weeks,
+                                    progress_callback=None,  # No progress updates during auto-calc
+                                )
+                            )
+                            if metrics_success:
+                                logger.info(
+                                    f"[Settings] Auto-calculated metrics: {metrics_message}"
+                                )
+                            else:
+                                logger.warning(
+                                    f"[Settings] Metrics calculation had issues: {metrics_message}"
+                                )
+                        else:
+                            logger.info(
+                                "[Settings] No statistics data to calculate metrics from"
+                            )
+                    except Exception as e:
+                        # Don't fail the entire Update Data if metrics calculation fails
+                        logger.warning(
+                            f"[Settings] Auto-metrics calculation failed (non-critical): {e}"
+                        )
 
                 # Extract scope values from scope_data to update input fields
                 # CRITICAL: Use "remaining_*" fields, NOT "total_*" fields
