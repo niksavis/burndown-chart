@@ -835,79 +835,138 @@ def fetch_jira_issues(
         else:
             logger.info("[JIRA] Checking if data has changed (incremental fetch)")
 
-            # Try to load cached data first
-            # CRITICAL FIX: Use generate_jira_data_cache_key() which excludes field_mappings
-            # This allows field mapping changes (like WIP states) to reuse cached JIRA data
-            # without requiring expensive re-download
-            is_valid, cached_data = load_cache_with_validation(
-                cache_key=cache_key,
-                config_hash=config_hash,
-                max_age_hours=CACHE_EXPIRATION_HOURS,
-                cache_dir="cache",
-            )
+            # Try to load cached data from profile-based cache
+            # Use the same cache file that delta fetch saves to
+            from data.profile_manager import get_active_query_workspace
+
+            query_workspace = get_active_query_workspace()
+            cache_file = query_workspace / "jira_cache.json"
+
+            is_valid = False
+            cached_data = None
+
+            if cache_file.exists():
+                try:
+                    import json
+
+                    with open(cache_file, "r") as f:
+                        cache_metadata = json.load(f)
+
+                    # Validate cache structure
+                    if "timestamp" in cache_metadata and "issues" in cache_metadata:
+                        # Check age
+                        from datetime import datetime, timezone
+
+                        cache_timestamp = datetime.fromisoformat(
+                            cache_metadata["timestamp"]
+                        )
+                        if cache_timestamp.tzinfo is None:
+                            cache_timestamp = cache_timestamp.replace(
+                                tzinfo=timezone.utc
+                            )
+
+                        now_utc = datetime.now(timezone.utc)
+                        age_hours = (now_utc - cache_timestamp).total_seconds() / 3600
+
+                        if age_hours <= CACHE_EXPIRATION_HOURS:
+                            cached_data = cache_metadata["issues"]
+                            is_valid = True
+                            logger.info(
+                                f"[JIRA] Cache valid: {len(cached_data)} issues ({age_hours:.1f}h old)"
+                            )
+                        else:
+                            logger.debug(
+                                f"[JIRA] Cache expired: {age_hours:.1f}h old (max: {CACHE_EXPIRATION_HOURS}h)"
+                            )
+                    else:
+                        logger.warning("[JIRA] Cache invalid: missing required fields")
+                except Exception as e:
+                    logger.warning(f"[JIRA] Cache read error: {e}")
+            else:
+                logger.debug("[JIRA] No cache file found")
 
         if is_valid and cached_data:
             logger.info(
                 f"[JIRA] Cache valid, checking for changes ({len(cached_data)} cached issues)"
             )
-            # We have valid cache, now check if JIRA data changed
-            # Use fast count check (maxResults=0, returns only total count)
-            success, current_count = check_jira_issue_count(jql, config)
 
-            if success:
-                cached_count = len(cached_data)
-                count_diff = abs(current_count - cached_count)
-
-                # If count differs by more than 5%, likely deletions or major changes
-                if count_diff > max(cached_count * 0.05, 5):
-                    logger.info(
-                        f"[JIRA] Significant count change: {cached_count} -> {current_count} ({count_diff} diff), full fetch"
-                    )
-                elif current_count == cached_count:
-                    # Try delta fetch - only get issues updated since last cache
-                    delta_success, merged_issues, changed_keys = _try_delta_fetch(
-                        jql, config, cached_data, api_endpoint, start_time
-                    )
-                    if delta_success:
-                        # Save merged issues with changed keys metadata
-                        _save_delta_fetch_result(
-                            merged_issues, changed_keys, jql, fields
-                        )
-                        return True, merged_issues
-                    # Delta fetch failed, fall through to full fetch
-                else:
-                    # Small count difference, might be few new/deleted issues
-                    # Try delta fetch first
-                    logger.info(
-                        f"[JIRA] Small count change: {cached_count} -> {current_count}, trying delta fetch"
-                    )
-                    delta_success, merged_issues, changed_keys = _try_delta_fetch(
-                        jql, config, cached_data, api_endpoint, start_time
-                    )
-                    if delta_success:
-                        # Save merged issues with changed keys metadata
-                        _save_delta_fetch_result(
-                            merged_issues, changed_keys, jql, fields
-                        )
-                        return True, merged_issues
-                    # Delta fetch failed, fall through to full fetch
-            else:
-                # Count check failed - but we can still try delta fetch with cached data
-                logger.warning("[JIRA] Count check failed, trying delta fetch anyway")
+            # CRITICAL: When two-phase fetch is active, skip count check
+            # The count check uses user's JQL (dev issues only), but two-phase fetches dev+devops
+            # This causes false "count mismatch" and unnecessary full fetches
+            if use_two_phase:
+                logger.info(
+                    "[JIRA] Two-phase fetch active, skipping count check, trying delta fetch"
+                )
                 delta_success, merged_issues, changed_keys = _try_delta_fetch(
                     jql, config, cached_data, api_endpoint, start_time
                 )
                 if delta_success:
-                    # Save merged issues with changed keys metadata
                     _save_delta_fetch_result(merged_issues, changed_keys, jql, fields)
-                    logger.info(
-                        "[JIRA] Delta fetch succeeded despite count check failure"
-                    )
                     return True, merged_issues
-                # Delta fetch also failed, fall through to full fetch
-                logger.warning(
-                    "[JIRA] Count check and delta fetch failed, proceeding with full fetch"
-                )
+                # Delta fetch failed, fall through to full fetch
+            else:
+                # We have valid cache, now check if JIRA data changed
+                # Use fast count check (maxResults=0, returns only total count)
+                success, current_count = check_jira_issue_count(jql, config)
+
+                if success:
+                    cached_count = len(cached_data)
+                    count_diff = abs(current_count - cached_count)
+
+                    # If count differs by more than 5%, likely deletions or major changes
+                    if count_diff > max(cached_count * 0.05, 5):
+                        logger.info(
+                            f"[JIRA] Significant count change: {cached_count} -> {current_count} ({count_diff} diff), full fetch"
+                        )
+                    elif current_count == cached_count:
+                        # Try delta fetch - only get issues updated since last cache
+                        delta_success, merged_issues, changed_keys = _try_delta_fetch(
+                            jql, config, cached_data, api_endpoint, start_time
+                        )
+                        if delta_success:
+                            # Save merged issues with changed keys metadata
+                            _save_delta_fetch_result(
+                                merged_issues, changed_keys, jql, fields
+                            )
+                            return True, merged_issues
+                        # Delta fetch failed, fall through to full fetch
+                    else:
+                        # Small count difference, might be few new/deleted issues
+                        # Try delta fetch first
+                        logger.info(
+                            f"[JIRA] Small count change: {cached_count} -> {current_count}, trying delta fetch"
+                        )
+                        delta_success, merged_issues, changed_keys = _try_delta_fetch(
+                            jql, config, cached_data, api_endpoint, start_time
+                        )
+                        if delta_success:
+                            # Save merged issues with changed keys metadata
+                            _save_delta_fetch_result(
+                                merged_issues, changed_keys, jql, fields
+                            )
+                            return True, merged_issues
+                        # Delta fetch failed, fall through to full fetch
+                else:
+                    # Count check failed - but we can still try delta fetch with cached data
+                    logger.warning(
+                        "[JIRA] Count check failed, trying delta fetch anyway"
+                    )
+                    delta_success, merged_issues, changed_keys = _try_delta_fetch(
+                        jql, config, cached_data, api_endpoint, start_time
+                    )
+                    if delta_success:
+                        # Save merged issues with changed keys metadata
+                        _save_delta_fetch_result(
+                            merged_issues, changed_keys, jql, fields
+                        )
+                        logger.info(
+                            "[JIRA] Delta fetch succeeded despite count check failure"
+                        )
+                        return True, merged_issues
+                    # Delta fetch also failed, fall through to full fetch
+                    logger.warning(
+                        "[JIRA] Count check and delta fetch failed, proceeding with full fetch"
+                    )
         else:
             if not is_valid:
                 logger.warning(
