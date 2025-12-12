@@ -99,7 +99,10 @@ def create_field_mapping_card() -> html.Div:
                 color="info",
                 size="md",
             ),
-            html.Div(id="field-mapping-section-status", className="mt-2"),
+            html.Div(
+                id="field-mapping-section-status",
+                style={"minHeight": "0px", "marginTop": "4px"},
+            ),
         ]
     )
 
@@ -170,7 +173,10 @@ def create_query_management_card() -> html.Div:
                 ],
                 className="mt-3",
             ),
-            html.Div(id="query-save-status", className="mt-2"),
+            html.Div(
+                id="query-save-status",
+                style={"minHeight": "0px", "marginTop": "4px"},
+            ),
         ]
     )
 

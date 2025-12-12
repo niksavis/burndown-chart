@@ -63,7 +63,7 @@ def create_profile_dropdown(id_suffix: str = "") -> dbc.Col:
         ],
         xs=12,
         lg=6,
-        className="mb-3",
+        className="mb-2",
         id="profile-selector-container",  # ID for CSS z-index stacking context
     )
 
@@ -84,14 +84,12 @@ def create_profile_actions(id_suffix: str = "") -> dbc.Col:
                     [html.I(className="fas fa-plus me-1"), "New"],
                     id=f"create-profile-btn{id_suffix}",
                     color="primary",
-                    size="sm",
                     className="me-1",
                 ),
                 dbc.Button(
                     [html.I(className="fas fa-edit me-1"), "Rename"],
                     id=f"rename-profile-btn{id_suffix}",
                     color="secondary",
-                    size="sm",
                     outline=True,
                     className="me-1",
                 ),
@@ -99,7 +97,6 @@ def create_profile_actions(id_suffix: str = "") -> dbc.Col:
                     [html.I(className="fas fa-copy me-1"), "Duplicate"],
                     id=f"duplicate-profile-btn{id_suffix}",
                     color="secondary",
-                    size="sm",
                     outline=True,
                     className="me-1",
                 ),
@@ -107,16 +104,15 @@ def create_profile_actions(id_suffix: str = "") -> dbc.Col:
                     [html.I(className="fas fa-trash me-1"), "Delete"],
                     id=f"delete-profile-btn{id_suffix}",
                     color="danger",
-                    size="sm",
                     outline=True,
                 ),
             ],
             className="w-100",
-            style={"marginTop": "2rem"},  # Push buttons down to align with dropdown
+            style={"marginTop": "1.71rem"},  # Align with dropdown (label height + mb-1)
         ),
         xs=12,
         lg=6,
-        className="mb-3",
+        className="mb-2",
     )
 
 

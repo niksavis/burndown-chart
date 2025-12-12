@@ -46,7 +46,7 @@ def create_connect_tab_content() -> html.Div:
                             ),
                             html.Div(
                                 id="jira-config-status-indicator",
-                                className="mb-3",
+                                className="mb-2",
                                 children=[
                                     html.I(
                                         className="fas fa-exclamation-triangle text-warning me-2"
@@ -69,7 +69,7 @@ def create_connect_tab_content() -> html.Div:
                         ],
                         xs=12,
                         md=6,
-                        className="mb-3 mb-md-0 pe-md-3",
+                        className="pe-md-3 mb-3 mb-md-0",
                     ),
                     # Field Mapping Column
                     dbc.Col(
@@ -85,7 +85,7 @@ def create_connect_tab_content() -> html.Div:
                             ),
                             html.Div(
                                 id="field-mapping-status-indicator",
-                                className="mb-3",
+                                className="mb-2",
                                 children=[
                                     html.I(
                                         className="fas fa-exclamation-triangle text-warning me-2"
@@ -110,14 +110,13 @@ def create_connect_tab_content() -> html.Div:
                         ],
                         xs=12,
                         md=6,
-                        className="ps-md-3",
+                        className="ps-md-3 mb-3",
                     ),
                 ],
                 className="gx-0",
             ),
         ],
         className="settings-tab-content",
-        style={"paddingBottom": "0.5rem"},
     )
 
 
@@ -158,12 +157,12 @@ def create_queries_and_data_tab_content() -> html.Div:
                                 id="query-selector",
                                 placeholder="Select a query or create new...",
                                 clearable=False,
-                                className="mb-2",
+                                className="mb-1",
                             ),
                         ],
                         xs=12,
                         lg=6,
-                        className="mb-3",
+                        className="mb-2",
                     ),
                     dbc.Col(
                         dbc.ButtonGroup(
@@ -171,37 +170,33 @@ def create_queries_and_data_tab_content() -> html.Div:
                                 dbc.Button(
                                     [
                                         html.I(className="fas fa-folder-open me-1"),
-                                        html.Span(
-                                            "Load", className="d-none d-md-inline"
-                                        ),
+                                        "Load",
                                     ],
                                     id="load-query-data-btn",
                                     color="primary",
                                     outline=True,
-                                    size="sm",
                                     className="me-1",
                                     title="Load cached data for selected query",
                                 ),
                                 dbc.Button(
                                     [
                                         html.I(className="fas fa-trash-alt me-1"),
-                                        html.Span(
-                                            "Delete", className="d-none d-md-inline"
-                                        ),
+                                        "Delete",
                                     ],
                                     id="delete-query-btn",
                                     color="danger",
                                     outline=True,
-                                    size="sm",
                                     title="Delete query",
                                 ),
                             ],
                             className="w-100",
-                            style={"marginTop": "2rem"},  # Align with dropdown
+                            style={
+                                "marginTop": "1.71rem"
+                            },  # Align with dropdown (label height + mb-1)
                         ),
                         xs=12,
                         lg=6,
-                        className="mb-3",
+                        className="mb-2",
                     ),
                 ],
                 className="g-2",
@@ -264,7 +259,10 @@ def create_queries_and_data_tab_content() -> html.Div:
                 ],
                 className="mb-3 w-100",
             ),
-            html.Div(id="query-save-status", className="mb-3"),
+            html.Div(
+                id="query-save-status",
+                style={"minHeight": "0px", "marginBottom": "4px"},
+            ),
             # Alert for query save requirement (shown when needed)
             dbc.Alert(
                 [
@@ -289,8 +287,7 @@ def create_queries_and_data_tab_content() -> html.Div:
                 color="primary",
                 size="lg",
                 disabled=True,  # Enabled when query is saved
-                className="long-press-button w-100",
-                style={"marginBottom": "2px"},
+                className="long-press-button w-100 mb-3",
             ),
             # Hidden store for force refresh functionality (long-press)
             dcc.Store(id="force-refresh-store", data=False),

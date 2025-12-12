@@ -2784,9 +2784,9 @@ div[class*="__menu"] {
 }
 
 .settings-tab-content {
-  min-height: 200px;
+  min-height: 120px;
   padding: 1rem; /* Comfortable padding */
-  padding-bottom: 0.75rem; /* Slight bottom padding */
+  padding-bottom: 0.25rem; /* Minimal bottom padding */
   overflow-x: hidden !important;
   overflow-y: visible !important;
   border: none !important;
@@ -2902,6 +2902,11 @@ div[class*="__menu"] {
 .settings-tab-content .card,
 .tabbed-settings-panel .card {
   margin-bottom: 0.5rem !important; /* Reduced from 1rem (mb-3) */
+}
+
+/* Remove bottom margin from rows in settings tabs */
+.settings-tab-content .row {
+  margin-bottom: 0 !important;
 }
 
 /* ===== ACCORDION SETTINGS PANEL DROPDOWN FIX ===== */

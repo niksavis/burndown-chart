@@ -32,8 +32,11 @@ def create_jira_config_modal():
             dbc.ModalHeader(dbc.ModalTitle("JIRA Configuration"), close_button=True),
             dbc.ModalBody(
                 [
-                    # Connection status feedback area
-                    html.Div(id="jira-connection-status", className="mb-3"),
+                    # Connection status feedback area (minimal space - toasts used for messages)
+                    html.Div(
+                        id="jira-connection-status",
+                        style={"minHeight": "0px", "marginBottom": "4px"},
+                    ),
                     # Last test timestamp display (T025 - User Story 2)
                     html.Div(id="jira-last-test-display", className="mb-3"),
                     # Connection Settings (Base URL + API Version in one row)
