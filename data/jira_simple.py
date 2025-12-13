@@ -2460,6 +2460,18 @@ def sync_jira_scope_and_data(
 
         # Step 4: Fetch from JIRA if cache is invalid or force refresh
         if not cache_loaded or not issues:
+            # Get query-specific cache file path BEFORE fetch
+            from data.profile_manager import get_active_query_workspace
+            import os
+
+            query_workspace = get_active_query_workspace()
+            jira_cache_file = query_workspace / "jira_cache.json"
+
+            # Get cache file modification time before fetch (to detect if delta fetch saved it)
+            cache_mtime_before = (
+                os.path.getmtime(jira_cache_file) if jira_cache_file.exists() else None
+            )
+
             # Fetch fresh data from JIRA
             fetch_success, issues = fetch_jira_issues(
                 config, force_refresh=force_refresh
@@ -2467,21 +2479,33 @@ def sync_jira_scope_and_data(
             if not fetch_success:
                 return False, "Failed to fetch JIRA data", {}
 
-            # Get query-specific cache file path
-            from data.profile_manager import get_active_query_workspace
+            # Check if cache was updated during fetch (delta fetch saves internally)
+            cache_mtime_after = (
+                os.path.getmtime(jira_cache_file) if jira_cache_file.exists() else None
+            )
+            cache_updated_by_fetch = (
+                cache_mtime_after is not None
+                and cache_mtime_before is not None
+                and cache_mtime_after > cache_mtime_before
+            )
 
-            query_workspace = get_active_query_workspace()
-            jira_cache_file = str(query_workspace / "jira_cache.json")
-
-            # Cache the response with the JQL query and fields used
-            if not cache_jira_response(
-                issues,
-                config["jql_query"],
-                current_fields,
-                jira_cache_file,
-                config,  # Pass config for new cache system
-            ):
-                logger.warning("[Cache] Failed to save response")
+            # Only save cache if fetch didn't already save it (e.g., full fetch needs explicit save)
+            if not cache_updated_by_fetch:
+                logger.debug(
+                    "[JIRA] Cache not updated by fetch, saving explicitly (full fetch path)"
+                )
+                if not cache_jira_response(
+                    issues,
+                    config["jql_query"],
+                    current_fields,
+                    str(jira_cache_file),
+                    config,  # Pass config for new cache system
+                ):
+                    logger.warning("[Cache] Failed to save response")
+            else:
+                logger.debug(
+                    "[JIRA] Cache already updated by fetch (delta fetch path), skipping duplicate save"
+                )
 
             # CRITICAL: Invalidate changelog cache ONLY when we fetch fresh data from JIRA
             # If we used the issue cache, changelog cache is still valid
