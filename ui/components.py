@@ -2309,7 +2309,7 @@ def create_parameter_bar_collapsed(
                     html.I(className="fas fa-chart-bar me-1"),
                     html.Span(
                         f"{items_label}: ",
-                        className="text-muted d-none d-lg-inline",
+                        className="text-muted d-none d-xl-inline",
                         style={"fontSize": "0.85em"},
                     ),
                     html.Span(
@@ -2321,32 +2321,69 @@ def create_parameter_bar_collapsed(
             ),
         ]
 
+    # Detect initial icon state from task_progress.json to avoid flash on page load
+    profile_icon_class = "fas fa-folder me-1"
+    query_icon_class = "fas fa-search me-1"
+
+    try:
+        from pathlib import Path
+        import json
+
+        progress_file = Path("task_progress.json")
+        if progress_file.exists():
+            with open(progress_file, "r", encoding="utf-8") as f:
+                progress_data = json.load(f)
+
+            status = progress_data.get("status", "idle")
+            phase = progress_data.get("phase", "fetch")
+            cancelled = progress_data.get("cancelled", False)
+
+            # Apply same logic as banner_status_icons callback
+            if status == "in_progress" and not cancelled:
+                profile_icon_class = "fas fa-folder me-1 text-warning"
+                if phase == "fetch":
+                    query_icon_class = "fas fa-spinner fa-spin me-1 text-warning"
+                elif phase == "calculate":
+                    query_icon_class = "fas fa-calculator fa-pulse me-1 text-success"
+                else:
+                    query_icon_class = "fas fa-search fa-pulse me-1 text-warning"
+    except Exception:
+        # Silently fail - will use defaults and callback will update shortly
+        pass
+
     # Build profile/query display section if in profiles mode
     profile_query_display = []
     if profile_name and query_name:
         profile_query_display = [
             html.Span(
                 [
-                    html.I(className="fas fa-folder me-1"),
+                    html.I(
+                        id="profile-status-icon",
+                        className=profile_icon_class,
+                    ),
                     html.Span(
                         profile_name,
-                        className="text-muted d-none d-lg-inline",
-                        style={"fontSize": "0.85em"},
-                    ),
-                    html.Span(
-                        " / ",
-                        className="text-muted d-none d-lg-inline",
-                        style={"fontSize": "0.85em"},
-                    ),
-                    html.I(className="fas fa-search me-1"),
-                    html.Span(
-                        query_name,
-                        className="text-muted d-none d-lg-inline",
+                        className="text-muted d-none d-xl-inline",
                         style={"fontSize": "0.85em"},
                     ),
                 ],
-                className="param-summary-item me-1 me-sm-2 profile-query-display",
-                title=f"Profile: {profile_name} | Query: {query_name}",
+                className="param-summary-item me-2",
+                title=f"Profile: {profile_name}",
+            ),
+            html.Span(
+                [
+                    html.I(
+                        id="query-status-icon",
+                        className=query_icon_class,
+                    ),
+                    html.Span(
+                        query_name,
+                        className="text-muted d-none d-xl-inline",
+                        style={"fontSize": "0.85em"},
+                    ),
+                ],
+                className="param-summary-item me-3",
+                title=f"Query: {query_name}",
             ),
         ]
 
@@ -2364,7 +2401,7 @@ def create_parameter_bar_collapsed(
                                     html.I(className="fas fa-sliders-h me-1"),
                                     html.Span(
                                         "Window: ",
-                                        className="text-muted d-none d-lg-inline",
+                                        className="text-muted d-none d-xl-inline",
                                         style={"fontSize": "0.85em"},
                                     ),
                                     html.Span(
@@ -2379,7 +2416,7 @@ def create_parameter_bar_collapsed(
                                     html.I(className="fas fa-chart-line me-1"),
                                     html.Span(
                                         "Data: ",
-                                        className="text-muted d-none d-lg-inline",
+                                        className="text-muted d-none d-xl-inline",
                                         style={"fontSize": "0.85em"},
                                     ),
                                     html.Span(
@@ -2397,7 +2434,7 @@ def create_parameter_bar_collapsed(
                                     html.I(className="fas fa-calendar me-1"),
                                     html.Span(
                                         "Deadline: ",
-                                        className="text-muted d-none d-lg-inline",
+                                        className="text-muted d-none d-xl-inline",
                                         style={"fontSize": "0.85em"},
                                     ),
                                     html.Span(
@@ -2412,7 +2449,7 @@ def create_parameter_bar_collapsed(
                                     html.I(className="fas fa-tasks me-1"),
                                     html.Span(
                                         f"{items_label}: ",
-                                        className="text-muted d-none d-lg-inline",
+                                        className="text-muted d-none d-xl-inline",
                                         style={"fontSize": "0.85em"},
                                     ),
                                     html.Span(

@@ -1002,7 +1002,8 @@ def register(app):
                 # Trigger metrics calculation if needed
                 import time
 
-                metrics_trigger = int(time.time() * 1000) if should_calculate else None
+                # Use timestamp for calculate, 0 for skip (not None - None is default/uninitialized)
+                metrics_trigger = int(time.time() * 1000) if should_calculate else 0
 
                 # Return updated statistics AND scope values to refresh inputs AND settings store
                 return (
@@ -1182,24 +1183,23 @@ def register(app):
             raise PreventUpdate
 
         if trigger_timestamp is None:
-            # No metrics calculation needed - but only complete if fetch is actually done
-            # Check both status and phase to ensure fetch completed
-            if active_task.get("status") == "in_progress":
-                phase = active_task.get("phase", "fetch")
-                if phase == "calculate":
-                    # Fetch completed, no metrics needed - safe to complete
-                    logger.info(
-                        "[Settings] Trigger timestamp is None, no metrics calculation needed"
-                    )
-                    TaskProgress.complete_task(
-                        "update_data",
-                        "✓ Data updated (no metrics recalculation needed)",
-                    )
-                else:
-                    # Still in fetch phase - do NOT complete the task
-                    logger.info(
-                        "[Settings] Trigger is None but task still in fetch phase, ignoring"
-                    )
+            # None means no trigger - this is the initial/default store state
+            # Don't take any action
+            logger.info(
+                "[Settings] Trigger timestamp is None (initial store state), ignoring"
+            )
+            return None, None
+
+        if trigger_timestamp == 0:
+            # 0 means fetch completed but explicitly skipped metrics calculation
+            # Complete the task without calculating metrics
+            logger.info(
+                "[Settings] Trigger timestamp is 0 - fetch completed, no metrics calculation needed"
+            )
+            TaskProgress.complete_task(
+                "update_data",
+                "✓ Data updated (no metrics recalculation needed)",
+            )
             return None, None
 
         logger.info(
@@ -1207,6 +1207,22 @@ def register(app):
         )
 
         try:
+            # Load statistics first to verify fetch completed successfully
+            from data.persistence import load_statistics
+
+            statistics, _ = load_statistics()
+
+            # If no statistics exist, the fetch was interrupted - fail the task
+            if not statistics or len(statistics) == 0:
+                logger.error(
+                    "[Settings] No statistics found - fetch was likely interrupted during app restart"
+                )
+                TaskProgress.fail_task(
+                    "update_data",
+                    "Fetch incomplete - please restart the Update Data operation",
+                )
+                return None, None
+
             # Phase transition already done by the fetch callback before it returned
             # Just update the message to show we're starting calculation
             TaskProgress.update_progress(
@@ -1229,76 +1245,51 @@ def register(app):
                 except Exception as e:
                     logger.warning(f"[Settings] Could not remove metrics cache: {e}")
 
-            # Load statistics to get date range
-            from data.persistence import load_statistics
+            # Statistics already validated above - proceed with calculation
+            from data.metrics_calculator import calculate_metrics_for_last_n_weeks
+            from data.iso_week_bucketing import get_weeks_from_date_range
+            from datetime import datetime
 
-            statistics, _ = load_statistics()
+            # Extract date range from statistics
+            dates = [datetime.fromisoformat(stat["date"]) for stat in statistics]
+            start_date = min(dates)
+            end_date = max(dates)
 
-            if statistics and len(statistics) > 0:
-                from data.metrics_calculator import calculate_metrics_for_last_n_weeks
-                from data.iso_week_bucketing import get_weeks_from_date_range
-                from datetime import datetime
+            # Get weeks covering the actual data range
+            custom_weeks = get_weeks_from_date_range(start_date, end_date)
 
-                # Extract date range from statistics
-                dates = [datetime.fromisoformat(stat["date"]) for stat in statistics]
-                start_date = min(dates)
-                end_date = max(dates)
+            # Create progress callback
+            def metrics_progress_callback(message: str):
+                logger.debug(f"[Metrics Progress] {message}")
 
-                # Get weeks covering the actual data range
-                custom_weeks = get_weeks_from_date_range(start_date, end_date)
+            metrics_success, metrics_message = calculate_metrics_for_last_n_weeks(
+                custom_weeks=custom_weeks,
+                progress_callback=metrics_progress_callback,
+            )
 
-                # Create progress callback
-                def metrics_progress_callback(message: str):
-                    logger.debug(f"[Metrics Progress] {message}")
-
-                metrics_success, metrics_message = calculate_metrics_for_last_n_weeks(
-                    custom_weeks=custom_weeks,
-                    progress_callback=metrics_progress_callback,
-                )
-
-                if metrics_success:
-                    logger.info(
-                        f"[Settings] Auto-calculated metrics: {metrics_message}"
-                    )
-                    TaskProgress.complete_task(
-                        "update_data", "✓ Data and metrics updated successfully"
-                    )
-                else:
-                    logger.warning(
-                        f"[Settings] Metrics calculation had issues: {metrics_message}"
-                    )
-                    TaskProgress.complete_task(
-                        "update_data", "⚠ Data updated, metrics calculation had issues"
-                    )
-            else:
-                logger.info("[Settings] No statistics data to calculate metrics from")
+            if metrics_success:
+                logger.info(f"[Settings] Auto-calculated metrics: {metrics_message}")
                 TaskProgress.complete_task(
-                    "update_data", "✓ Data updated (no metrics to calculate)"
+                    "update_data", "✓ Data and metrics updated successfully"
+                )
+            else:
+                logger.warning(
+                    f"[Settings] Metrics calculation had issues: {metrics_message}"
+                )
+                TaskProgress.complete_task(
+                    "update_data", "⚠ Data updated, metrics calculation had issues"
                 )
 
         except Exception as e:
             logger.error(f"[Settings] Auto-metrics calculation failed: {e}")
-            TaskProgress.complete_task(
+            TaskProgress.fail_task(
                 "update_data", "⚠ Data updated, metrics calculation failed"
             )
 
-        # Return None to reset the trigger, and timestamp to refresh DORA/Flow tabs
-        import time
-
-        return None, int(time.time() * 1000)
-
-    #######################################################################
-    # JIRA SCOPE CALCULATION CALLBACK
-    #######################################################################
+        return None, None
 
     @app.callback(
-        [
-            Output("jira-scope-status", "children"),
-            Output("jira-scope-update-time", "children"),
-            Output("estimated-items-input", "value"),
-            Output("total-items-input", "value"),
-            Output("estimated-points-input", "value"),
-        ],
+        [],
         [Input("jira-scope-calculate-btn", "n_clicks")],
         [
             State(
