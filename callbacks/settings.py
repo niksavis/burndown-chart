@@ -971,6 +971,16 @@ def register(app):
                 # DON'T mark task complete yet if metrics calculation is needed
                 # The separate metrics callback will mark it complete
                 if not should_calculate:
+                    # CRITICAL: Update fetch progress to 100% before completing
+                    # When delta fetch finds 0 changes, fetch never updates progress
+                    # Must show fetch complete before calling complete_task()
+                    TaskProgress.update_progress(
+                        "update_data",
+                        "fetch",
+                        issues_count,
+                        issues_count,
+                        "Delta check complete - no changes",
+                    )
                     TaskProgress.complete_task("update_data", f"✓ {success_details}")
                 else:
                     # Transition to calculate phase BEFORE returning so progress bar doesn't hide
@@ -2940,12 +2950,97 @@ def register(app):
 
             # Check if we're in calculate phase and need to trigger metrics
             metrics_trigger = None
-            if active_task.get("phase") == "calculate":
+            phase = active_task.get("phase")
+            fetch_progress = active_task.get("fetch_progress", {})
+            fetch_percent = fetch_progress.get("percent", 0)
+
+            logger.info(
+                f"[Settings] Recovery check: phase={phase}, fetch_percent={fetch_percent}"
+            )
+
+            if phase == "calculate":
                 # Page was refreshed during or after fetch - trigger metrics calculation
                 logger.info(
                     "Task in calculate phase on page load - triggering metrics calculation"
                 )
                 metrics_trigger = int(time.time() * 1000)
+            elif phase == "fetch" and fetch_percent == 0:
+                # RECOVERY: Stuck in fetch phase with 0% progress
+                # This happens when delta fetch found 0 changes and tried to complete,
+                # but validation failed because fetch never progressed beyond 0%
+                # Check if cached data exists - if so, the fetch already completed
+                from data.profile_manager import get_active_query_workspace
+                import json
+
+                query_workspace = get_active_query_workspace()
+                cache_file = query_workspace / "jira_cache.json"
+
+                if cache_file.exists():
+                    logger.warning(
+                        "[Settings] Recovery: Task stuck at fetch 0% but cache exists. "
+                        "This indicates delta fetch completed with 0 changes. Checking if metrics needed..."
+                    )
+
+                    try:
+                        with open(cache_file, "r", encoding="utf-8") as f:
+                            cache_data = json.load(f)
+
+                        # Check if there were any changes
+                        changed_keys = cache_data.get("changed_keys", [])
+
+                        if len(changed_keys) == 0:
+                            # No changes - complete the task immediately
+                            logger.info(
+                                "[Settings] Recovery: 0 changes detected, completing task immediately"
+                            )
+                            TaskProgress.update_progress(
+                                "update_data",
+                                "fetch",
+                                395,  # Use issue count from cache
+                                395,
+                                "Delta check complete - no changes",
+                            )
+                            TaskProgress.complete_task(
+                                "update_data",
+                                "✓ Data loaded: 395 issues from JIRA (no changes detected)",
+                            )
+                            # Return completed state
+                            return (
+                                "",  # No status message
+                                True,  # Disable progress polling
+                                {"display": "none"},  # Hide progress bar
+                                {},  # Show Update Data button
+                                {"display": "none"},  # Hide Cancel button
+                                0,  # Skip metrics (0 = no calculation needed)
+                            )
+                        else:
+                            # Changes detected - trigger metrics calculation
+                            logger.info(
+                                f"[Settings] Recovery: {len(changed_keys)} changes detected, triggering metrics"
+                            )
+                            # Update progress to show fetch complete
+                            TaskProgress.update_progress(
+                                "update_data",
+                                "calculate",
+                                0,
+                                0,
+                                "Preparing metrics calculation...",
+                            )
+                            metrics_trigger = int(time.time() * 1000)
+                    except Exception as e:
+                        logger.error(f"[Settings] Recovery failed: {e}")
+                        # Fail the task to allow user to retry
+                        TaskProgress.fail_task(
+                            "update_data", f"Recovery error: {str(e)}"
+                        )
+                        return (
+                            "",  # No status message
+                            True,  # Disable progress polling
+                            {"display": "none"},  # Hide progress bar
+                            {},  # Show Update Data button
+                            {"display": "none"},  # Hide Cancel button
+                            no_update,  # No metrics trigger
+                        )
 
             # Read button visibility from ui_state (immediate restore on page load)
             ui_state = active_task.get("ui_state", {})
