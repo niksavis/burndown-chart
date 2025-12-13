@@ -74,8 +74,12 @@ Each profile stores independent configuration for different projects/teams with 
 **💡 Tip**: Auto-Configure typically finds 80-90% of required fields. Review suggestions and manually map any remaining fields.
 
 **Step 3: Load Data**
-1. Click **Update Data** button
-2. Data cached in `jira_cache.json` (24hr TTL)
+1. Click **Update Data** button (fetches only changed issues since last update)
+2. **Long-press Update Data** for Force Refresh (fetches all data, ignores cache)
+3. Click **Cancel Operation** during fetch to stop operation
+4. Data cached in `jira_cache.json` (smart delta updates)
+
+**💡 Tip**: Operations continue if you refresh the page - Cancel Operation button appears when resuming.
 
 **Quick Test**: Public JIRA instance `https://jira.atlassian.com` with JQL `project = JRASERVER` (no token needed)
 
@@ -143,7 +147,6 @@ Track project health, delivery performance, and process efficiency.
 - **[Project Dashboard Metrics](docs/dashboard_metrics.md)** - Health score, velocity, forecasting
 - **[DORA Metrics](docs/dora_metrics.md)** - Deployment frequency, lead time, CFR, MTTR
 - **[Flow Metrics](docs/flow_metrics.md)** - Velocity, time, efficiency, load, distribution
-- **[License](LICENSE)** - MIT License
 
 ---
 

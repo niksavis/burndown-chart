@@ -99,23 +99,44 @@ Example:
 
 ---
 
-### Scenario 2: Refresh Within 24 Hours
+### Scenario 2: Update Data (Delta Fetch)
 
 ```
-1. User refreshes page → Same profile, same query
+1. User clicks "Update Data" button
 2. Check profile cache: jira_cache.json
-   → Exists, age = 2 hours, valid ✓
-3. Load data from profile cache instantly
-4. Background check: Query global cache to see if JIRA issue count changed
-5. If count unchanged → Keep using cache
-   If count changed → Fetch new data, update both caches
+   → Exists, last_updated = 2 hours ago
+3. Delta fetch: Query JIRA for "updated >= last_cache_timestamp"
+   → Returns only issues changed in last 2 hours (e.g., 5 issues)
+4. Merge changed issues with cached data
+5. Identify affected weeks from changed issues
+6. Recalculate metrics only for affected weeks
+7. Save merged data to cache with updated timestamp
 ```
 
-**Result**: Instant load from profile cache, background validation via global cache.
+**Result**: Fast incremental update, only changed data fetched and processed.
+
+**Special cases**:
+- **0 changes**: Skip metrics calculation entirely
+- **>20% changed**: Fall back to full fetch (too many changes)
+- **JQL changed**: Treat as Force Refresh
 
 ---
 
-### Scenario 3: Switch Between Profiles
+### Scenario 3: Force Refresh (Long-Press)
+
+```
+1. User long-presses "Update Data" button
+2. Clear all caches (profile + global)
+3. Fetch ALL issues from JIRA (ignoring cache)
+4. Recalculate ALL metrics from scratch
+5. Save fresh data to both caches
+```
+
+**Result**: Complete data refresh, bypasses all caching.
+
+---
+
+### Scenario 4: Switch Between Profiles
 
 ```
 1. User switches from "Team Alpha" to "Team Beta"
@@ -132,7 +153,7 @@ Example:
 
 ---
 
-### Scenario 4: Change Field Mappings
+### Scenario 5: Change Field Mappings
 
 ```
 1. User changes story points field:
@@ -158,13 +179,17 @@ Example:
 **Triggers**:
 - JQL query modified (e.g., add filter, change project)
 - Time period changed (e.g., -12w → -8w)
-- Cache file older than 24 hours
-- User clicks "Force Refresh"
+- User clicks "Force Refresh" (long-press Update Data button)
 - App version upgrade with cache format changes
 
-**What happens**: 
+**Normal "Update Data" behavior**:
+- Cache NOT invalidated - uses delta fetch for changed issues only
+- Fetches issues with `updated >= last_cache_timestamp`
+- Merges changes into existing cache
+
+**What happens on Force Refresh**: 
 - Old cache file deleted
-- Fresh data fetched from JIRA
+- Fresh data fetched from JIRA (all issues)
 - New cache file created
 
 ---
