@@ -228,6 +228,8 @@ def create_app_layout(settings, statistics, is_sample_data):
             dcc.Store(id="jira-config-hash", data=None),
             # Trigger for metadata refresh when JIRA config is saved
             dcc.Store(id="jira-config-save-trigger", data=0),
+            # Trigger metrics calculation after data fetch completes
+            dcc.Store(id="trigger-auto-metrics-calc", data=None),
             # Store for calculation results
             dcc.Store(
                 id="calculation-results",

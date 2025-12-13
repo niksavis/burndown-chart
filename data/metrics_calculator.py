@@ -1354,8 +1354,15 @@ def calculate_metrics_for_last_n_weeks(
                         total=n_weeks,
                         message=f"Week {week_label}",
                     )
+                    # Log every 10th week to avoid log spam
+                    if week_number % 10 == 0 or week_number == n_weeks:
+                        logger.info(
+                            f"[Progress] Calculation progress: {week_number}/{n_weeks} weeks ({week_number / n_weeks * 100:.0f}%)"
+                        )
                 except Exception as e:
-                    logger.debug(f"Progress update failed: {e}")
+                    logger.warning(
+                        f"[Progress] Failed to update progress for week {week_label}: {e}"
+                    )
 
                 if progress_callback:
                     progress_callback(
@@ -1367,6 +1374,12 @@ def calculate_metrics_for_last_n_weeks(
                     progress_callback=progress_callback,
                     affected_weeks=affected_weeks,
                 )
+
+                # Yield control to allow other Dash callbacks (like progress bar polling) to execute
+                # This prevents the long-running calculation from blocking the UI
+                import time
+
+                time.sleep(0.001)  # 1ms sleep to yield to event loop
 
                 if success:
                     # Check if it was actually calculated or skipped

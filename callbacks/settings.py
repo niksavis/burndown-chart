@@ -355,6 +355,9 @@ def register(app):
             Output(
                 "app-notifications", "children", allow_duplicate=True
             ),  # Toast notifications
+            Output(
+                "trigger-auto-metrics-calc", "data", allow_duplicate=True
+            ),  # Trigger separate metrics calc
         ],
         [Input("update-data-unified", "n_clicks")],
         [
@@ -409,6 +412,7 @@ def register(app):
                 button_normal,  # button children with icon
                 "",  # update-data-status (empty)
                 "",  # toast notification (empty)
+                None,  # metrics trigger
             )
 
         try:
@@ -478,6 +482,7 @@ def register(app):
                     button_normal,  # Reset button text
                     cache_status_message,  # Show error in status area
                     "",  # Toast notification (empty)
+                    None,  # metrics trigger
                 )
 
             # Use JQL query from input or fall back to active query's JQL
@@ -633,6 +638,9 @@ def register(app):
                     False,  # Reset force refresh
                     False,  # Enable button
                     button_normal,  # Reset button text
+                    cache_status_message,  # Show error in status area
+                    "",  # Toast notification
+                    None,  # metrics trigger
                 )
 
             # Use sync_jira_scope_and_data to get both scope data and message
@@ -645,6 +653,20 @@ def register(app):
             logger.info(
                 f"[Settings] force_refresh value = {force_refresh}, bool = {force_refresh_bool}"
             )
+
+            # CRITICAL FIX: For NEW queries with no existing data, treat Update Data as Force Refresh
+            # Check if JIRA cache exists BEFORE fetching - this is the definitive indicator of a new query
+            if not force_refresh_bool:
+                from data.profile_manager import get_active_query_workspace
+
+                query_workspace = get_active_query_workspace()
+                cache_file = query_workspace / "jira_cache.json"
+
+                if not cache_file.exists():
+                    logger.info(
+                        "[Settings] New query detected (no jira_cache.json), treating Update Data as Force Refresh"
+                    )
+                    force_refresh_bool = True
 
             if force_refresh_bool:
                 logger.info("=" * 60)
@@ -730,89 +752,49 @@ def register(app):
                 if not force_refresh_bool:
                     query_workspace = get_active_query_workspace()
                     cache_file = query_workspace / "jira_cache.json"
+                    logger.info(
+                        f"[Settings] Checking cache file: {cache_file}, exists={cache_file.exists()}"
+                    )
 
                     try:
                         if cache_file.exists():
                             with open(cache_file, "r", encoding="utf-8") as f:
                                 cache_data = json.load(f)
 
-                            # Only skip if changed_keys exists and is empty (delta fetch with no changes)
-                            changed_keys = cache_data.get("changed_keys", [])
-
-                            if len(changed_keys) == 0:
-                                should_calculate = False
+                            # Check changed_keys to determine if calculation is needed:
+                            # - changed_keys = [] → Delta fetch with NO changes → skip calculation
+                            # - changed_keys = [keys...] → Full fetch or delta with changes → calculate
+                            # - changed_keys missing → Old cache format → calculate (be safe)
+                            if "changed_keys" in cache_data:
+                                changed_keys = cache_data["changed_keys"]
+                                if len(changed_keys) == 0:
+                                    should_calculate = False
+                                    logger.info(
+                                        "[Settings] Delta fetch found 0 changes, skipping metrics calculation"
+                                    )
+                                else:
+                                    logger.info(
+                                        f"[Settings] {len(changed_keys)} issues changed/fetched, will calculate metrics"
+                                    )
+                            else:
+                                # Old cache format without changed_keys field - calculate to be safe
                                 logger.info(
-                                    "[Settings] No data changes detected (changed_keys=0), skipping metrics calculation"
+                                    "[Settings] Old cache format (no changed_keys field), will calculate metrics"
                                 )
+                        else:
+                            logger.info(
+                                "[Settings] No cache file exists, this is first fetch, will calculate metrics"
+                            )
                     except Exception as e:
                         logger.warning(
                             f"[Settings] Could not check changed_keys, will calculate: {e}"
                         )
 
-                if should_calculate:
-                    # Clear metrics cache before recalculating (query-specific data)
-                    metrics_cache = get_data_file_path("metrics_snapshots.json")
-                    if os.path.exists(metrics_cache):
-                        try:
-                            os.remove(metrics_cache)
-                            logger.info(
-                                "[Settings] Cleared metrics cache before recalculation"
-                            )
-                        except Exception as e:
-                            logger.warning(
-                                f"[Settings] Could not remove metrics cache: {e}"
-                            )
-
-                    # After fetching JIRA data and changelog, automatically calculate DORA/Flow metrics
-                    logger.info(
-                        "[Settings] Auto-calculating DORA/Flow metrics after data update..."
-                    )
-                    try:
-                        from data.metrics_calculator import (
-                            calculate_metrics_for_last_n_weeks,
-                        )
-                        from data.iso_week_bucketing import get_weeks_from_date_range
-                        from datetime import datetime
-
-                        # Calculate metrics for the actual data range (not just last N weeks from today)
-                        # This ensures we calculate metrics for all the data we just fetched
-                        if updated_statistics and len(updated_statistics) > 0:
-                            # Extract date range from statistics
-                            dates = [
-                                datetime.fromisoformat(stat["date"])
-                                for stat in updated_statistics
-                            ]
-                            start_date = min(dates)
-                            end_date = max(dates)
-
-                            # Get weeks covering the actual data range
-                            custom_weeks = get_weeks_from_date_range(
-                                start_date, end_date
-                            )
-
-                            metrics_success, metrics_message = (
-                                calculate_metrics_for_last_n_weeks(
-                                    custom_weeks=custom_weeks,
-                                    progress_callback=None,  # No progress updates during auto-calc
-                                )
-                            )
-                            if metrics_success:
-                                logger.info(
-                                    f"[Settings] Auto-calculated metrics: {metrics_message}"
-                                )
-                            else:
-                                logger.warning(
-                                    f"[Settings] Metrics calculation had issues: {metrics_message}"
-                                )
-                        else:
-                            logger.info(
-                                "[Settings] No statistics data to calculate metrics from"
-                            )
-                    except Exception as e:
-                        # Don't fail the entire Update Data if metrics calculation fails
-                        logger.warning(
-                            f"[Settings] Auto-metrics calculation failed (non-critical): {e}"
-                        )
+                # Metrics calculation will happen in separate callback triggered by store
+                # This allows the Update Data callback to return quickly, enabling progress bar updates
+                logger.info(
+                    f"[Settings] Metrics calculation decision: should_calculate={should_calculate}, force_refresh={force_refresh_bool}"
+                )
 
                 # Extract scope values from scope_data to update input fields
                 # CRITICAL: Use "remaining_*" fields, NOT "total_*" fields
@@ -898,8 +880,29 @@ def register(app):
                     f"[Settings] Before: total_items={current_settings.get('total_items')}, after: {updated_settings.get('total_items')}"
                 )
 
-                # Mark task complete with success message
-                TaskProgress.complete_task("update_data", f"✓ {success_details}")
+                # DON'T mark task complete yet if metrics calculation is needed
+                # The separate metrics callback will mark it complete
+                if not should_calculate:
+                    TaskProgress.complete_task("update_data", f"✓ {success_details}")
+                else:
+                    # Transition to calculate phase BEFORE returning so progress bar doesn't hide
+                    # The separate callback will start calculating immediately after this returns
+                    TaskProgress.update_progress(
+                        "update_data",
+                        "calculate",
+                        0,
+                        0,
+                        "Preparing metrics calculation...",
+                    )
+                    # Delay to ensure progress bar polls and sees the phase change (polling interval is 500ms)
+                    import time
+
+                    time.sleep(
+                        0.6
+                    )  # 600ms delay - longer than polling interval to guarantee visibility
+                    logger.info(
+                        "[Settings] Transitioned to calculate phase, waited for polling, returning to trigger metrics callback"
+                    )
 
                 # Create success toast notification
                 success_toast = create_success_toast(
@@ -907,6 +910,11 @@ def register(app):
                     header="Data Updated",
                     duration=5000,
                 )
+
+                # Trigger metrics calculation if needed
+                import time
+
+                metrics_trigger = int(time.time() * 1000) if should_calculate else None
 
                 # Return updated statistics AND scope values to refresh inputs AND settings store
                 return (
@@ -924,6 +932,7 @@ def register(app):
                     button_normal,  # Reset button text
                     "",  # Clear status area (toast shows message now)
                     success_toast,  # Toast notification
+                    metrics_trigger,  # Trigger separate metrics calculation
                 )
             else:
                 # Create detailed error message
@@ -1004,7 +1013,9 @@ def register(app):
                 False,  # Reset force refresh store
                 False,  # Enable button
                 button_normal,  # Reset button text
+                cache_status_message,  # Show error in status area
                 "",  # Toast notification (empty)
+                None,  # metrics trigger
             )
         except Exception as e:
             logger.error(f"[Settings] Error in unified data update: {e}")
@@ -1041,7 +1052,125 @@ def register(app):
                 button_normal,  # Reset button text
                 cache_status_message,  # Show error in status area
                 "",  # Toast notification (empty)
+                None,  # metrics trigger
             )
+
+    #######################################################################
+    # AUTO METRICS CALCULATION CALLBACK (Triggered after data fetch)
+    #######################################################################
+
+    @app.callback(
+        [
+            Output("trigger-auto-metrics-calc", "data", allow_duplicate=True),
+            Output(
+                "metrics-refresh-trigger", "data", allow_duplicate=True
+            ),  # Refresh DORA/Flow tabs
+        ],
+        Input("trigger-auto-metrics-calc", "data"),
+        prevent_initial_call=True,
+    )
+    def auto_calculate_metrics_after_fetch(trigger_timestamp):
+        """
+        Automatically calculate DORA/Flow metrics after data fetch completes.
+
+        This runs in a separate callback to allow the Update Data callback to return quickly,
+        enabling progress bar updates during the calculation phase.
+        """
+        logger.info(
+            f"[Settings] Auto-metrics callback triggered with timestamp: {trigger_timestamp}"
+        )
+
+        if trigger_timestamp is None:
+            logger.info("[Settings] Trigger timestamp is None, raising PreventUpdate")
+            raise PreventUpdate
+
+        logger.info(
+            "[Settings] Auto-metrics calculation triggered by data fetch completion"
+        )
+
+        # Import TaskProgress before try block so it's available in except handler
+        from data.task_progress import TaskProgress
+
+        try:
+            # Phase transition already done by the fetch callback before it returned
+            # Just update the message to show we're starting calculation
+            TaskProgress.update_progress(
+                "update_data",
+                "calculate",
+                0,
+                0,
+                "Starting metrics calculation...",
+            )
+
+            # Clear metrics cache before recalculating
+            from data.profile_manager import get_data_file_path
+            import os
+
+            metrics_cache = get_data_file_path("metrics_snapshots.json")
+            if os.path.exists(metrics_cache):
+                try:
+                    os.remove(metrics_cache)
+                    logger.info("[Settings] Cleared metrics cache before recalculation")
+                except Exception as e:
+                    logger.warning(f"[Settings] Could not remove metrics cache: {e}")
+
+            # Load statistics to get date range
+            from data.persistence import load_statistics
+
+            statistics, _ = load_statistics()
+
+            if statistics and len(statistics) > 0:
+                from data.metrics_calculator import calculate_metrics_for_last_n_weeks
+                from data.iso_week_bucketing import get_weeks_from_date_range
+                from datetime import datetime
+
+                # Extract date range from statistics
+                dates = [datetime.fromisoformat(stat["date"]) for stat in statistics]
+                start_date = min(dates)
+                end_date = max(dates)
+
+                # Get weeks covering the actual data range
+                custom_weeks = get_weeks_from_date_range(start_date, end_date)
+
+                # Create progress callback
+                def metrics_progress_callback(message: str):
+                    logger.debug(f"[Metrics Progress] {message}")
+
+                metrics_success, metrics_message = calculate_metrics_for_last_n_weeks(
+                    custom_weeks=custom_weeks,
+                    progress_callback=metrics_progress_callback,
+                )
+
+                if metrics_success:
+                    logger.info(
+                        f"[Settings] Auto-calculated metrics: {metrics_message}"
+                    )
+                    TaskProgress.complete_task(
+                        "update_data", "✓ Data and metrics updated successfully"
+                    )
+                else:
+                    logger.warning(
+                        f"[Settings] Metrics calculation had issues: {metrics_message}"
+                    )
+                    TaskProgress.complete_task(
+                        "update_data", "⚠ Data updated, metrics calculation had issues"
+                    )
+            else:
+                logger.info("[Settings] No statistics data to calculate metrics from")
+                TaskProgress.complete_task(
+                    "update_data", "✓ Data updated (no metrics to calculate)"
+                )
+
+        except Exception as e:
+            logger.error(f"[Settings] Auto-metrics calculation failed: {e}")
+            TaskProgress.complete_task(
+                "update_data", "⚠ Data updated, metrics calculation failed"
+            )
+
+        # Return None to reset the trigger, and timestamp to refresh DORA/Flow tabs
+        import time
+
+        return None, int(time.time() * 1000)
 
     #######################################################################
     # JIRA SCOPE CALCULATION CALLBACK
@@ -1213,8 +1342,8 @@ def register(app):
                     selected_data = df.head(data_points_count)
 
                     # Calculate completed work in the window
-                    completed_in_window_items = selected_data["completed_items"].sum()
-                    completed_in_window_points = selected_data["completed_points"].sum()
+                    completed_in_window_items = selected_data["completed_items"].sum()  # type: ignore[attr-defined]
+                    completed_in_window_points = selected_data["completed_points"].sum()  # type: ignore[attr-defined]
 
                     # Remaining at START = Current remaining + Completed in window
                     total_items = int(total_items + completed_in_window_items)
@@ -2526,8 +2655,8 @@ def register(app):
             selected_data = df.head(data_points_count)
 
             # Calculate cumulative completed items/points in the selected time window
-            completed_in_window_items = selected_data["completed_items"].sum()
-            completed_in_window_points = selected_data["completed_points"].sum()
+            completed_in_window_items = selected_data["completed_items"].sum()  # type: ignore[attr-defined]
+            completed_in_window_points = selected_data["completed_points"].sum()  # type: ignore[attr-defined]
 
             # Get current remaining work from project scope
             current_remaining_items = project_scope.get("remaining_items", 0)
@@ -2544,8 +2673,8 @@ def register(app):
             # Calculate estimated items/points based on the data window
             estimated_items_in_window = selected_data[
                 selected_data["completed_points"] > 0
-            ]["completed_items"].sum()
-            estimated_points_in_window = selected_data["completed_points"].sum()
+            ]["completed_items"].sum()  # type: ignore[attr-defined]
+            estimated_points_in_window = selected_data["completed_points"].sum()  # type: ignore[attr-defined]
 
             # Calculate ratio of estimated to total items
             current_total_items = project_scope.get("total_items", 1)
@@ -2643,22 +2772,29 @@ def register(app):
             Output("update-data-unified", "disabled", allow_duplicate=True),
             Output("update-data-unified", "children", allow_duplicate=True),
             Output("jira-cache-status", "children", allow_duplicate=True),
+            Output(
+                "progress-poll-interval", "disabled", allow_duplicate=True
+            ),  # Enable progress polling
+            Output(
+                "update-data-progress-container", "style", allow_duplicate=True
+            ),  # Show progress bar
         ],
         Input("url", "pathname"),
         prevent_initial_call="initial_duplicate",  # Run on initial page load with duplicates
     )
     def restore_update_data_progress(pathname):
-        """Restore Update Data button state if task is in progress.
+        """Restore Update Data button state AND progress bar if task is in progress.
 
         This callback runs on page load to check if an Update Data task
         was in progress before the page was refreshed or app restarted.
-        If so, it restores the loading state and status message.
+        If so, it restores the loading state, status message, and enables
+        the progress bar polling so users can see the progress.
 
         Args:
             pathname: Current URL pathname (triggers on page load)
 
         Returns:
-            Tuple of (button disabled state, button children, status message)
+            Tuple of (button disabled, button children, status message, polling enabled, progress bar style)
         """
         from data.task_progress import TaskProgress
 
@@ -2666,8 +2802,10 @@ def register(app):
         active_task = TaskProgress.get_active_task()
 
         if active_task and active_task.get("task_id") == "update_data":
-            # Task is in progress - restore loading state
-            logger.info("Restoring Update Data progress state on page load")
+            # Task is in progress - restore loading state AND enable progress bar
+            logger.info(
+                "[Settings] Restoring Update Data progress state on page load - enabling progress bar polling"
+            )
 
             button_loading = [
                 html.I(
@@ -2688,7 +2826,14 @@ def register(app):
                 className="text-primary small text-center mt-2",
             )
 
-            return True, button_loading, status_message
+            # Enable progress polling and show progress bar
+            return (
+                True,  # Disable button
+                button_loading,  # Show loading state
+                status_message,  # Show status
+                False,  # Enable progress polling
+                {"display": "block", "minHeight": "60px"},  # Show progress bar
+            )
 
         # No active task - return normal state
         button_normal = [
@@ -2696,4 +2841,10 @@ def register(app):
             html.Span("Update Data"),
         ]
 
-        return False, button_normal, ""
+        return (
+            False,  # Enable button
+            button_normal,  # Normal button state
+            "",  # No status message
+            True,  # Disable progress polling
+            {"display": "none"},  # Hide progress bar
+        )

@@ -31,8 +31,6 @@ def update_progress_bars(n_intervals):
     Returns:
         Tuple of (container_style, label, value, color, animated, interval_disabled)
     """
-    from datetime import datetime
-
     # Read task progress file
     progress_file = Path("task_progress.json")
 
@@ -52,18 +50,47 @@ def update_progress_bars(n_intervals):
             progress_data = json.load(f)
 
         status = progress_data.get("status", "idle")
+        phase = progress_data.get("phase", "fetch")
+        fetch_progress = progress_data.get("fetch_progress", {})
+        calc_progress = progress_data.get("calculate_progress", {})
+        complete_time = progress_data.get("complete_time")
+        logger.info(
+            f"[Progress] Polling: status={status}, phase={phase}, "
+            f"fetch={fetch_progress.get('percent', 0):.0f}%, "
+            f"calc={calc_progress.get('percent', 0):.0f}%, "
+            f"complete_time={complete_time}, "
+            f"n_intervals={n_intervals}"
+        )
 
-        # Handle complete status - show success for 3 seconds then hide (but don't delete)
+        # Handle complete status - show success for 3 seconds then hide
         if status == "complete":
+            from datetime import datetime
+
             complete_time = progress_data.get("complete_time")
             if complete_time:
+                # CRITICAL: Check if this is a stale completion from an old task
+                # If complete_time is > 10 seconds old, treat as stale and hide immediately
                 elapsed = (
                     datetime.now() - datetime.fromisoformat(complete_time)
                 ).total_seconds()
-                if elapsed >= 3:
+
+                if elapsed > 10:
+                    # Very old completion - hide immediately without showing message
+                    logger.info(
+                        f"[Progress] Stale completion detected ({elapsed:.0f}s old), hiding immediately"
+                    )
+                    return (
+                        {"display": "none"},
+                        "Processing: 0%",
+                        0,
+                        "primary",
+                        True,
+                        True,
+                    )
+                elif elapsed >= 3:
                     # 3 seconds elapsed - hide progress bar but DON'T delete file
                     # Let the next task's start_task() handle cleanup to avoid race condition
-                    # where calculate_metrics starts while we're deleting the file
+                    logger.info("[Progress] Auto-hiding progress bar after 3s")
                     return (
                         {"display": "none"},
                         "Processing: 0%",
@@ -75,6 +102,9 @@ def update_progress_bars(n_intervals):
                 else:
                     # Show success message
                     message = progress_data.get("message", "✓ Complete")
+                    logger.info(
+                        f"[Progress] Task complete: {message}, hiding in {3 - elapsed:.1f}s"
+                    )
                     return (
                         {"display": "block", "minHeight": "60px"},
                         message,
@@ -84,6 +114,7 @@ def update_progress_bars(n_intervals):
                         False,  # Keep polling to hide after 3s
                     )
             # No complete_time, hide immediately
+            logger.info("[Progress] Task complete (no timestamp), hiding immediately")
             return (
                 {"display": "none"},
                 "Processing: 0%",
@@ -110,23 +141,30 @@ def update_progress_bars(n_intervals):
         # Get current phase
         phase = progress_data.get("phase", "fetch")
 
-        # Get progress for current phase
+        # Get both progress objects
+        fetch_progress = progress_data.get("fetch_progress", {})
+        calc_progress = progress_data.get("calculate_progress", {})
+
+        # Each phase shows 0-100% independently
+        # Fetch phase = 0-100% (blue bar)
+        # Calculate phase = 0-100% (green bar, resets from fetch)
         if phase == "fetch":
-            progress = progress_data.get("fetch_progress", {})
             phase_label = "Fetching"
             color = "primary"  # Blue
+            phase_percent = fetch_progress.get("percent", 0)
+            current = fetch_progress.get("current", 0)
+            total = fetch_progress.get("total", 0)
+            message = fetch_progress.get("message", "")
         else:  # calculate
-            progress = progress_data.get("calculate_progress", {})
             phase_label = "Calculating"
             color = "success"  # Green
-
-        percent = progress.get("percent", 0)
-        current = progress.get("current", 0)
-        total = progress.get("total", 0)
-        message = progress.get("message", "")
+            phase_percent = calc_progress.get("percent", 0)
+            current = calc_progress.get("current", 0)
+            total = calc_progress.get("total", 0)
+            message = calc_progress.get("message", "")
 
         if total > 0:
-            label = f"{phase_label}: {percent:.0f}% ({current}/{total})"
+            label = f"{phase_label}: {current}/{total} ({phase_percent:.0f}%)"
             if message:
                 label += f" - {message}"
         else:
@@ -135,12 +173,19 @@ def update_progress_bars(n_intervals):
         return (
             container_style,
             label,
-            percent,
+            phase_percent,  # Show phase-specific percentage (0-100 for each phase)
             color,
             True,  # Animated during progress
             False,  # Keep polling enabled
         )
 
+    except json.JSONDecodeError as e:
+        logger.warning(
+            f"[Progress] JSON parse error (file may be mid-write): {e} - keeping progress visible"
+        )
+        # Don't hide progress bar on JSON errors - file is being written
+        # Return a generic "Processing..." state to avoid flickering
+        raise PreventUpdate
     except Exception as e:
         logger.error(f"[Progress] Error reading progress file: {e}")
         return (

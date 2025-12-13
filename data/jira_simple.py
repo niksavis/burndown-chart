@@ -1484,6 +1484,21 @@ def fetch_jira_issues_with_changelog(
             # Move to next page
             start_at += page_size
 
+        # Final progress update to show 100% completion
+        if total_issues:
+            try:
+                from data.task_progress import TaskProgress
+
+                TaskProgress.update_progress(
+                    "update_data",
+                    "fetch",
+                    current=len(all_issues),
+                    total=total_issues,
+                    message="Fetching changelog",
+                )
+            except Exception as e:
+                logger.debug(f"Final progress update failed: {e}")
+
         return True, all_issues
 
     except requests.exceptions.RequestException as e:
@@ -1851,6 +1866,13 @@ def cache_jira_response(
         utc_now = datetime.now(timezone.utc)
         last_updated = utc_now.isoformat()
 
+        # For full fetches, mark all issues as "changed" to trigger metrics calculation
+        # This ensures that:
+        # - Full fetches always calculate metrics (all keys in changed_keys)
+        # - Delta fetches with changes calculate metrics (changed keys in changed_keys)
+        # - Delta fetches without changes skip calculation (empty changed_keys)
+        all_keys = [issue["key"] for issue in data]
+
         cache_data = {
             "cache_version": CACHE_VERSION,
             "timestamp": utc_now.isoformat(),
@@ -1860,7 +1882,7 @@ def cache_jira_response(
             "total_issues": len(data),
             "last_updated": last_updated,  # For delta fetch (UTC)
             "jql_hash": jql_hash,  # For query change detection
-            "changed_keys": [],  # Will be populated by delta fetch
+            "changed_keys": all_keys,  # Full fetch = all issues are "new" → always calculate
         }
 
         with open(cache_file, "w") as f:

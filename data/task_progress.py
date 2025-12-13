@@ -64,6 +64,10 @@ class TaskProgress:
         try:
             with open(TASK_STATE_FILE, "w") as f:
                 json.dump(state, f, indent=2)
+                f.flush()
+                import os
+
+                os.fsync(f.fileno())  # Force immediate write to disk
             logger.info(f"Task started: {task_name} (ID: {task_id})")
         except Exception as e:
             logger.error(f"Failed to save task progress: {e}")
@@ -91,6 +95,10 @@ class TaskProgress:
 
             with open(TASK_STATE_FILE, "w") as f:
                 json.dump(state, f, indent=2)
+                f.flush()
+                import os
+
+                os.fsync(f.fileno())  # Force immediate write to disk
 
             logger.info(f"Task completed: {task_id}")
         except Exception as e:
@@ -211,9 +219,13 @@ class TaskProgress:
             }
             state["phase"] = phase
 
-            # Write updated state
+            # Write updated state with explicit flush to ensure immediate visibility
             with open(TASK_STATE_FILE, "w") as f:
                 json.dump(state, f, indent=2)
+                f.flush()  # Ensure data is written to disk immediately
+                import os
+
+                os.fsync(f.fileno())  # Force OS to write to disk (not just buffer)
 
         except Exception as e:
             logger.error(f"Failed to update task progress: {e}")

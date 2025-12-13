@@ -85,7 +85,9 @@ class MetricsConfig:
             FileNotFoundError: If profile doesn't exist
             json.JSONDecodeError: If profile is invalid JSON
         """
-        profile_path = Path(f"profiles/{self.profile_id}/profile.json")
+        # Normalize profile_id to handle any escaped backslashes
+        normalized_profile_id = self.profile_id.replace("\\\\", "\\")
+        profile_path = Path(f"profiles/{normalized_profile_id}/profile.json")
 
         if not profile_path.exists():
             logger.warning(
