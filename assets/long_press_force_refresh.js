@@ -86,31 +86,19 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
         function handleRelease(e) {
           // If force refresh is ready, trigger it
           if (isReadyForForceRefresh) {
-            // PREVENT the natural click from firing
-            e.preventDefault();
-            e.stopPropagation();
-
             console.log("🔄 Force refresh activated!");
 
-            // Store flag globally so the callback can read it
+            // Store flag globally BEFORE allowing the click to propagate
             window._forceRefreshPending = true;
             console.log("✅ Set global _forceRefreshPending flag");
 
-            // Trigger button click - the callback will check the global flag
-            setTimeout(function () {
-              console.log("🖱️ Clicking button");
-              button.click();
-              console.log("✅ Click dispatched");
+            // Don't prevent the event - let it propagate naturally
+            // This ensures clientside callbacks see the flag before server callbacks execute
 
-              // Reset visual state
-              cancelPress();
+            // Reset visual state immediately
+            cancelPress();
 
-              // Clear flag after a delay
-              setTimeout(function () {
-                window._forceRefreshPending = false;
-              }, 1000);
-            }, 50);
-
+            // Note: Flag is cleared by the clientside callback after it reads it
             return;
           }
 
@@ -184,6 +172,8 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
         console.log(
           "✅ Clientside callback: Force refresh detected, returning TRUE"
         );
+        // Clear flag immediately after reading to prevent interference with next click
+        window._forceRefreshPending = false;
         return true;
       }
       console.log("✅ Clientside callback: Normal click, returning FALSE");

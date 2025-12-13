@@ -1342,11 +1342,29 @@ def calculate_metrics_for_last_n_weeks(
 
                 logger.info(f"Processing week {week_label} ({monday} to {sunday})")
 
-                # Report calculation progress
+                # Check for cancellation request
                 week_number += 1
                 try:
                     from data.task_progress import TaskProgress
 
+                    # Check if task was cancelled
+                    is_cancelled = TaskProgress.is_task_cancelled()
+                    logger.debug(
+                        f"[Metrics] Cancellation check: is_cancelled={is_cancelled}"
+                    )
+                    if is_cancelled:
+                        logger.info(
+                            f"[Metrics] Calculation cancelled by user at week {week_number}/{n_weeks}"
+                        )
+                        TaskProgress.fail_task(
+                            "update_data", "Operation cancelled by user"
+                        )
+                        return (
+                            False,
+                            f"Cancelled after calculating {week_number - 1}/{n_weeks} weeks",
+                        )
+
+                    # Report calculation progress
                     TaskProgress.update_progress(
                         "update_data",
                         "calculate",

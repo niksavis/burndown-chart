@@ -9,7 +9,7 @@ import json
 import logging
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -24,21 +24,173 @@ class TaskProgress:
     """Track progress of long-running background tasks."""
 
     @staticmethod
-    def start_task(task_id: str, task_name: str, **metadata) -> None:
+    def is_task_running() -> Tuple[bool, Optional[str]]:
+        """Check if a task is currently running.
+
+        Returns:
+            Tuple of (is_running, task_name)
+            - Checks for orphaned tasks (started > TASK_TIMEOUT_MINUTES ago)
+            - Returns False if task is stale/orphaned
+        """
+        if not TASK_STATE_FILE.exists():
+            return False, None
+
+        try:
+            with open(TASK_STATE_FILE, "r") as f:
+                state = json.load(f)
+
+            status = state.get("status")
+            if status != "in_progress":
+                return False, None
+
+            # Check if task is orphaned (started too long ago)
+            start_time_str = state.get("start_time")
+            if start_time_str:
+                start_time = datetime.fromisoformat(start_time_str)
+                elapsed = datetime.now() - start_time
+                if elapsed > timedelta(minutes=TASK_TIMEOUT_MINUTES):
+                    logger.warning(
+                        f"Orphaned task detected: {state.get('task_name')} "
+                        f"(started {elapsed.total_seconds() / 60:.1f} minutes ago)"
+                    )
+                    # Mark as failed and return False
+                    TaskProgress._mark_task_failed(
+                        state.get("task_id", "unknown"),
+                        f"Task timed out after {TASK_TIMEOUT_MINUTES} minutes",
+                    )
+                    return False, None
+
+            return True, state.get("task_name")
+        except Exception as e:
+            logger.error(f"Failed to check task status: {e}")
+            return False, None
+
+    @staticmethod
+    def is_task_cancelled() -> bool:
+        """Check if current task has been cancelled.
+
+        Returns:
+            True if cancel flag is set in task state
+        """
+        if not TASK_STATE_FILE.exists():
+            logger.debug("[TaskProgress] is_task_cancelled: state file does not exist")
+            return False
+
+        try:
+            with open(TASK_STATE_FILE, "r") as f:
+                state = json.load(f)
+            cancelled = state.get("cancelled", False)
+            logger.debug(
+                f"[TaskProgress] is_task_cancelled: cancelled={cancelled}, state={state}"
+            )
+            return cancelled
+        except Exception as e:
+            logger.debug(f"[TaskProgress] is_task_cancelled: exception {e}")
+            return False
+
+    @staticmethod
+    def cancel_task() -> bool:
+        """Request cancellation of the running task.
+
+        Returns:
+            True if cancellation flag was set successfully
+        """
+        if not TASK_STATE_FILE.exists():
+            return False
+
+        try:
+            with open(TASK_STATE_FILE, "r") as f:
+                state = json.load(f)
+
+            state["cancelled"] = True
+            state["cancel_time"] = datetime.now().isoformat()
+
+            logger.info(
+                f"[TaskProgress] Setting cancelled=True for task: {state.get('task_name')}"
+            )
+            logger.debug(f"[TaskProgress] State before write: {state}")
+
+            with open(TASK_STATE_FILE, "w") as f:
+                json.dump(state, f, indent=2)
+                f.flush()
+                import os
+
+                os.fsync(f.fileno())
+
+            logger.info(
+                f"[TaskProgress] Cancellation flag written to disk for task: {state.get('task_name')}"
+            )
+            return True
+        except Exception as e:
+            logger.error(f"Failed to cancel task: {e}")
+            return False
+
+    @staticmethod
+    def fail_task(task_id: str, error_message: str) -> None:
+        """Mark a task as failed (used for cancellations and errors).
+
+        Args:
+            task_id: Task identifier
+            error_message: Error description
+        """
+        try:
+            if TASK_STATE_FILE.exists():
+                with open(TASK_STATE_FILE, "r") as f:
+                    state = json.load(f)
+            else:
+                state = {"task_id": task_id}
+
+            state["status"] = "error"
+            state["error_time"] = datetime.now().isoformat()
+            state["message"] = error_message
+            # Update UI state to show Update Data button (operation failed/cancelled)
+            state["ui_state"] = {  # type: ignore[assignment]
+                "operation_in_progress": False,
+            }
+
+            with open(TASK_STATE_FILE, "w") as f:
+                json.dump(state, f, indent=2)
+                f.flush()
+                import os
+
+                os.fsync(f.fileno())
+
+            logger.error(f"Task failed: {error_message}")
+        except Exception as e:
+            logger.error(f"Failed to mark task as failed: {e}")
+
+    @staticmethod
+    def _mark_task_failed(task_id: str, error_message: str) -> None:
+        """Internal wrapper for backwards compatibility."""
+        TaskProgress.fail_task(task_id, error_message)
+
+    @staticmethod
+    def start_task(task_id: str, task_name: str, **metadata) -> bool:
         """Mark a task as started and save state.
 
         Args:
             task_id: Unique identifier for the task (e.g., "calculate_metrics")
             task_name: Human-readable task name
             **metadata: Additional task metadata to store
+
+        Returns:
+            True if task started successfully, False if another task is running
         """
-        # Delete any existing file first to clear stale state
+        # Check if another task is already running
+        is_running, existing_task_name = TaskProgress.is_task_running()
+        if is_running:
+            logger.warning(
+                f"Cannot start '{task_name}' - task already running: {existing_task_name}"
+            )
+            return False
+
+        # Delete any existing file to clear stale state
         if TASK_STATE_FILE.exists():
             try:
                 TASK_STATE_FILE.unlink()
-                logger.debug("Cleared stale task progress file")
+                logger.debug("Cleared previous task progress file")
             except Exception as e:
-                logger.warning(f"Failed to clear stale progress file: {e}")
+                logger.warning(f"Failed to clear previous progress file: {e}")
 
         state = {
             "task_id": task_id,
@@ -46,6 +198,7 @@ class TaskProgress:
             "status": "in_progress",
             "phase": "fetch",
             "start_time": datetime.now().isoformat(),
+            "cancelled": False,
             "metadata": metadata,
             "fetch_progress": {
                 "current": 0,
@@ -59,6 +212,9 @@ class TaskProgress:
                 "percent": 0,
                 "message": "Waiting...",
             },
+            "ui_state": {
+                "operation_in_progress": True,
+            },
         }
 
         try:
@@ -69,8 +225,10 @@ class TaskProgress:
 
                 os.fsync(f.fileno())  # Force immediate write to disk
             logger.info(f"Task started: {task_name} (ID: {task_id})")
+            return True
         except Exception as e:
             logger.error(f"Failed to save task progress: {e}")
+            return False
 
     @staticmethod
     def complete_task(task_id: str, message: str = "Task completed") -> None:
@@ -88,10 +246,27 @@ class TaskProgress:
             with open(TASK_STATE_FILE, "r") as f:
                 state = json.load(f)
 
+            # CRITICAL: Only mark complete if actually done
+            # Do NOT complete if still in fetch phase with incomplete progress
+            phase = state.get("phase", "fetch")
+            fetch_progress = state.get("fetch_progress", {})
+            fetch_percent = fetch_progress.get("percent", 0)
+
+            if phase == "fetch" and fetch_percent < 100:
+                logger.warning(
+                    f"Attempted to complete task {task_id} while fetch still in progress "
+                    f"(phase={phase}, progress={fetch_percent:.1f}%). Ignoring completion request."
+                )
+                return
+
             # Update to complete status
             state["status"] = "complete"
             state["complete_time"] = datetime.now().isoformat()
             state["message"] = message
+            # Update UI state to show Update Data button (operation complete)
+            state["ui_state"] = {  # type: ignore[assignment]
+                "operation_in_progress": False,
+            }
 
             with open(TASK_STATE_FILE, "w") as f:
                 json.dump(state, f, indent=2)
@@ -100,7 +275,7 @@ class TaskProgress:
 
                 os.fsync(f.fileno())  # Force immediate write to disk
 
-            logger.info(f"Task completed: {task_id}")
+            logger.info(f"Task completed: {task_id} (phase={phase})")
         except Exception as e:
             logger.error(f"Failed to mark task complete: {e}")
 
@@ -140,19 +315,6 @@ class TaskProgress:
         except Exception as e:
             logger.error(f"Failed to read task progress: {e}")
             return None
-
-    @staticmethod
-    def is_task_running(task_id: str) -> bool:
-        """Check if a specific task is currently running.
-
-        Args:
-            task_id: Task identifier
-
-        Returns:
-            True if task is running, False otherwise
-        """
-        active_task = TaskProgress.get_active_task()
-        return active_task is not None and active_task.get("task_id") == task_id
 
     @staticmethod
     def get_task_status_message(task_id: str) -> Optional[str]:

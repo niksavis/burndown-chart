@@ -8,6 +8,7 @@ This module handles callbacks related to application settings and parameters.
 # IMPORTS
 #######################################################################
 # Standard library imports
+import time
 from datetime import datetime
 
 # Third-party library imports
@@ -359,34 +360,40 @@ def register(app):
                 "trigger-auto-metrics-calc", "data", allow_duplicate=True
             ),  # Trigger separate metrics calc
         ],
-        [Input("update-data-unified", "n_clicks")],
+        [
+            Input("update-data-unified", "n_clicks"),
+            Input("force-refresh-store", "data"),  # Force refresh from long-press store
+        ],
         [
             State(
                 "jira-jql-query", "value"
             ),  # JQL textarea uses standard "value" property
-            State("force-refresh-store", "data"),  # Force refresh from long-press store
         ],
         prevent_initial_call="initial_duplicate",  # Run on initial load with duplicate outputs
     )
     def handle_unified_data_update(
         n_clicks,
-        jql_query,
         force_refresh,
+        jql_query,
     ):
         """
         Handle unified data update button click (JIRA data source only).
 
         Args:
             n_clicks (int): Number of clicks on unified update button
+            force_refresh (bool): Force cache refresh flag from clientside store
             jql_query (str): JQL query for JIRA data source
-            force_refresh (bool): Force cache refresh flag
 
         Returns:
             Tuple: Upload contents, filename, cache status, statistics table data,
                    scope values, settings, button state
         """
+        # Detect which input triggered the callback
+        from dash import ctx
+
+        triggered_id = ctx.triggered_id if ctx.triggered else None
         logger.info(
-            f"[UPDATE DATA] Callback triggered - n_clicks={n_clicks}, force_refresh={force_refresh}"
+            f"[UPDATE DATA] Callback triggered by: {triggered_id} - n_clicks={n_clicks}, force_refresh={force_refresh}"
         )
 
         # Normal button state
@@ -394,6 +401,10 @@ def register(app):
             html.I(className="fas fa-sync-alt", style={"marginRight": "0.5rem"}),
             html.Span("Update Data"),
         ]
+
+        # If triggered by force-refresh-store changing but button wasn't clicked, ignore
+        if triggered_id == "force-refresh-store" and not n_clicks:
+            raise PreventUpdate
 
         if not n_clicks:
             # Initial page load - return normal button state with icon
@@ -419,7 +430,75 @@ def register(app):
             # Track task progress
             from data.task_progress import TaskProgress
 
-            TaskProgress.start_task("update_data", "Updating data from JIRA")
+            # Check if another task is already running
+            is_running, existing_task = TaskProgress.is_task_running()
+            if is_running:
+                logger.warning(
+                    f"Update Data clicked but task already running: {existing_task}"
+                )
+                return (
+                    None,  # upload-data contents
+                    None,  # upload-data filename
+                    html.Div(
+                        [
+                            html.I(className="fas fa-info-circle me-2"),
+                            f"Operation already in progress: {existing_task}",
+                        ],
+                        className="text-warning small",
+                    ),  # jira-cache-status
+                    no_update,  # statistics-table
+                    no_update,  # total-items-input
+                    no_update,  # estimated-items-input
+                    no_update,  # total-points-display
+                    no_update,  # estimated-points-input
+                    no_update,  # current-settings
+                    False,  # force-refresh-store (reset)
+                    False,  # update-data-unified disabled (enable button)
+                    button_normal,  # update-data-unified children
+                    html.Div(
+                        [
+                            html.I(className="fas fa-info-circle me-2"),
+                            f"Operation already in progress: {existing_task}",
+                        ],
+                        className="text-warning small",
+                    ),  # update-data-status
+                    "",  # app-notifications (no toast)
+                    None,  # trigger-auto-metrics-calc
+                )
+
+            # Start the task - returns False if can't start
+            if not TaskProgress.start_task("update_data", "Updating data from JIRA"):
+                logger.error("Failed to start Update Data task")
+                return (
+                    None,  # upload-data contents
+                    None,  # upload-data filename
+                    html.Div(
+                        [
+                            html.I(className="fas fa-exclamation-triangle me-2"),
+                            "Failed to start operation",
+                        ],
+                        className="text-danger small",
+                    ),  # jira-cache-status
+                    no_update,  # statistics-table
+                    no_update,  # total-items-input
+                    no_update,  # estimated-items-input
+                    no_update,  # total-points-display
+                    no_update,  # estimated-points-input
+                    no_update,  # current-settings
+                    False,  # force-refresh-store (reset)
+                    False,  # update-data-unified disabled (enable button)
+                    button_normal,  # update-data-unified children
+                    html.Div(
+                        [
+                            html.I(className="fas fa-exclamation-triangle me-2"),
+                            "Failed to start operation",
+                        ],
+                        className="text-danger small",
+                    ),  # update-data-status
+                    "",  # app-notifications (no toast)
+                    None,  # trigger-auto-metrics-calc
+                )
+
             # Handle JIRA data import (settings panel only uses JIRA)
             from data.jira_simple import validate_jira_config
             from data.persistence import load_app_settings
@@ -647,12 +726,21 @@ def register(app):
             from data.jira_simple import sync_jira_scope_and_data
 
             # Convert checkbox value to boolean (None = False)
+            # The force_refresh comes from the clientside callback that reads _forceRefreshPending flag
             force_refresh_bool = bool(force_refresh)
 
             # DEBUG: Log what we received from the store
             logger.info(
                 f"[Settings] force_refresh value = {force_refresh}, bool = {force_refresh_bool}"
             )
+
+            # IMPORTANT: If force_refresh is still False, the clientside callback might not have fired yet
+            # This can happen if callbacks execute in parallel - log a warning
+            if not force_refresh_bool and n_clicks:
+                logger.debug(
+                    f"[Settings] Force refresh flag is False on click #{n_clicks}. "
+                    "If long-press was used, this might indicate a timing issue."
+                )
 
             # CRITICAL FIX: For NEW queries with no existing data, treat Update Data as Force Refresh
             # Check if JIRA cache exists BEFORE fetching - this is the definitive indicator of a new query
@@ -975,6 +1063,7 @@ def register(app):
                     button_normal,  # Reset button text
                     error_status_message,  # Show error in status area
                     "",  # Toast notification (empty)
+                    None,  # trigger-auto-metrics-calc
                 )
 
         except ImportError:
@@ -1080,16 +1169,42 @@ def register(app):
             f"[Settings] Auto-metrics callback triggered with timestamp: {trigger_timestamp}"
         )
 
-        if trigger_timestamp is None:
-            logger.info("[Settings] Trigger timestamp is None, raising PreventUpdate")
+        # Import TaskProgress before checking trigger
+        from data.task_progress import TaskProgress
+
+        # Check if there's actually an active task in calculate phase
+        # This prevents spurious triggers from page refreshes or store resets
+        active_task = TaskProgress.get_active_task()
+        if not active_task or active_task.get("task_id") != "update_data":
+            logger.info(
+                "[Settings] No active update_data task, ignoring metrics trigger"
+            )
             raise PreventUpdate
+
+        if trigger_timestamp is None:
+            # No metrics calculation needed - but only complete if fetch is actually done
+            # Check both status and phase to ensure fetch completed
+            if active_task.get("status") == "in_progress":
+                phase = active_task.get("phase", "fetch")
+                if phase == "calculate":
+                    # Fetch completed, no metrics needed - safe to complete
+                    logger.info(
+                        "[Settings] Trigger timestamp is None, no metrics calculation needed"
+                    )
+                    TaskProgress.complete_task(
+                        "update_data",
+                        "✓ Data updated (no metrics recalculation needed)",
+                    )
+                else:
+                    # Still in fetch phase - do NOT complete the task
+                    logger.info(
+                        "[Settings] Trigger is None but task still in fetch phase, ignoring"
+                    )
+            return None, None
 
         logger.info(
             "[Settings] Auto-metrics calculation triggered by data fetch completion"
         )
-
-        # Import TaskProgress before try block so it's available in except handler
-        from data.task_progress import TaskProgress
 
         try:
             # Phase transition already done by the fetch callback before it returned
@@ -2769,8 +2884,6 @@ def register(app):
 
     @app.callback(
         [
-            Output("update-data-unified", "disabled", allow_duplicate=True),
-            Output("update-data-unified", "children", allow_duplicate=True),
             Output("jira-cache-status", "children", allow_duplicate=True),
             Output(
                 "progress-poll-interval", "disabled", allow_duplicate=True
@@ -2778,41 +2891,49 @@ def register(app):
             Output(
                 "update-data-progress-container", "style", allow_duplicate=True
             ),  # Show progress bar
+            Output(
+                "update-data-unified", "style", allow_duplicate=True
+            ),  # Button visibility
+            Output(
+                "cancel-operation-btn", "style", allow_duplicate=True
+            ),  # Button visibility
+            Output(
+                "trigger-auto-metrics-calc", "data", allow_duplicate=True
+            ),  # Trigger metrics if in calculate phase
         ],
         Input("url", "pathname"),
         prevent_initial_call="initial_duplicate",  # Run on initial page load with duplicates
     )
     def restore_update_data_progress(pathname):
-        """Restore Update Data button state AND progress bar if task is in progress.
+        """Restore progress bar, button visibility, and polling if task is in progress on page load.
 
         This callback runs on page load to check if an Update Data task
         was in progress before the page was refreshed or app restarted.
-        If so, it restores the loading state, status message, and enables
-        the progress bar polling so users can see the progress.
+        If so, it restores button visibility from ui_state and enables progress bar polling.
 
         Args:
             pathname: Current URL pathname (triggers on page load)
 
         Returns:
-            Tuple of (button disabled, button children, status message, polling enabled, progress bar style)
+            Tuple of (status message, polling enabled, progress bar style, update button style, cancel button style, metrics trigger)
         """
         from data.task_progress import TaskProgress
 
         # Check if Update Data task is active
         active_task = TaskProgress.get_active_task()
 
-        if active_task and active_task.get("task_id") == "update_data":
-            # Task is in progress - restore loading state AND enable progress bar
+        # CRITICAL: get_active_task() only returns in_progress tasks, filters out complete/error
+        # This prevents restoring stale completed tasks after page refresh
+        if (
+            active_task
+            and active_task.get("task_id") == "update_data"
+            and active_task.get("status") == "in_progress"
+        ):
+            # Task is in progress - enable progress bar polling
+            # Button visibility will be automatically restored by polling callback reading ui_state
             logger.info(
                 "[Settings] Restoring Update Data progress state on page load - enabling progress bar polling"
             )
-
-            button_loading = [
-                html.I(
-                    className="fas fa-spinner fa-spin", style={"marginRight": "0.5rem"}
-                ),
-                "Updating...",
-            ]
 
             status_message = html.Div(
                 [
@@ -2826,25 +2947,42 @@ def register(app):
                 className="text-primary small text-center mt-2",
             )
 
-            # Enable progress polling and show progress bar
+            # Check if we're in calculate phase and need to trigger metrics
+            metrics_trigger = None
+            if active_task.get("phase") == "calculate":
+                # Page was refreshed during or after fetch - trigger metrics calculation
+                logger.info(
+                    "Task in calculate phase on page load - triggering metrics calculation"
+                )
+                metrics_trigger = int(time.time() * 1000)
+
+            # Read button visibility from ui_state (immediate restore on page load)
+            ui_state = active_task.get("ui_state", {})
+            operation_in_progress = ui_state.get("operation_in_progress", True)
+
+            update_data_style = {"display": "none"} if operation_in_progress else {}
+            cancel_button_style = {} if operation_in_progress else {"display": "none"}
+
+            logger.info(
+                f"[Settings] Restoring button visibility: operation_in_progress={operation_in_progress}"
+            )
+
+            # Enable progress polling and show progress bar with correct button visibility
             return (
-                True,  # Disable button
-                button_loading,  # Show loading state
                 status_message,  # Show status
                 False,  # Enable progress polling
                 {"display": "block", "minHeight": "60px"},  # Show progress bar
+                update_data_style,  # Button visibility from ui_state
+                cancel_button_style,  # Button visibility from ui_state
+                metrics_trigger,  # Trigger metrics if in calculate phase
             )
 
         # No active task - return normal state
-        button_normal = [
-            html.I(className="fas fa-sync-alt", style={"marginRight": "0.5rem"}),
-            html.Span("Update Data"),
-        ]
-
         return (
-            False,  # Enable button
-            button_normal,  # Normal button state
             "",  # No status message
             True,  # Disable progress polling
             {"display": "none"},  # Hide progress bar
+            {},  # Show Update Data button
+            {"display": "none"},  # Hide Cancel button
+            no_update,  # No metrics trigger
         )

@@ -16,7 +16,9 @@ logger = logging.getLogger(__name__)
         Output("progress-bar", "value"),
         Output("progress-bar", "color"),
         Output("progress-bar", "animated"),
-        Output("progress-poll-interval", "disabled"),
+        Output("progress-poll-interval", "disabled", allow_duplicate=True),
+        Output("update-data-unified", "style", allow_duplicate=True),
+        Output("cancel-operation-btn", "style", allow_duplicate=True),
     ],
     [Input("progress-poll-interval", "n_intervals")],
     prevent_initial_call=True,
@@ -43,6 +45,8 @@ def update_progress_bars(n_intervals):
             "primary",
             True,
             True,
+            {},  # Show Update Data button
+            {"display": "none"},  # Hide Cancel button
         )
 
     try:
@@ -86,6 +90,8 @@ def update_progress_bars(n_intervals):
                         "primary",
                         True,
                         True,
+                        {},  # Show Update Data button
+                        {"display": "none"},  # Hide Cancel button
                     )
                 elif elapsed >= 3:
                     # 3 seconds elapsed - hide progress bar but DON'T delete file
@@ -98,6 +104,8 @@ def update_progress_bars(n_intervals):
                         "primary",
                         True,
                         True,
+                        {},  # Show Update Data button
+                        {"display": "none"},  # Hide Cancel button
                     )
                 else:
                     # Show success message
@@ -112,6 +120,8 @@ def update_progress_bars(n_intervals):
                         "success",
                         False,  # Not animated when complete
                         False,  # Keep polling to hide after 3s
+                        {},  # Show Update Data button
+                        {"display": "none"},  # Hide Cancel button
                     )
             # No complete_time, hide immediately
             logger.info("[Progress] Task complete (no timestamp), hiding immediately")
@@ -122,10 +132,50 @@ def update_progress_bars(n_intervals):
                 "primary",
                 True,
                 True,
+                {},  # Show Update Data button
+                {"display": "none"},  # Hide Cancel button
             )
 
-        # If task is idle or error, hide progress bar
-        if status in ["idle", "error"]:
+        # Handle error status - show error message briefly then hide
+        if status == "error":
+            error_time = progress_data.get("error_time")
+            if error_time:
+                from datetime import datetime
+
+                elapsed = (
+                    datetime.now() - datetime.fromisoformat(error_time)
+                ).total_seconds()
+
+                if elapsed >= 3:
+                    # Hide after 3 seconds
+                    logger.info("[Progress] Auto-hiding error message after 3s")
+                    return (
+                        {"display": "none"},
+                        "Processing: 0%",
+                        0,
+                        "primary",
+                        True,
+                        True,
+                        {},  # Show Update Data button
+                        {"display": "none"},  # Hide Cancel button
+                    )
+                else:
+                    # Show error message
+                    message = progress_data.get("message", "Operation failed")
+                    logger.info(
+                        f"[Progress] Showing error: {message}, hiding in {3 - elapsed:.1f}s"
+                    )
+                    return (
+                        {"display": "block", "minHeight": "60px"},
+                        message,
+                        0,
+                        "danger",  # Red color for errors/cancellations
+                        False,
+                        False,  # Keep polling to hide after 3s
+                        {},  # Show Update Data button
+                        {"display": "none"},  # Hide Cancel button
+                    )
+            # No error time, hide immediately
             return (
                 {"display": "none"},
                 "Processing: 0%",
@@ -133,6 +183,21 @@ def update_progress_bars(n_intervals):
                 "primary",
                 True,
                 True,
+                {},  # Show Update Data button
+                {"display": "none"},  # Hide Cancel button
+            )
+
+        # If task is idle, hide progress bar
+        if status == "idle":
+            return (
+                {"display": "none"},
+                "Processing: 0%",
+                0,
+                "primary",
+                True,
+                True,
+                {},  # Show Update Data button
+                {"display": "none"},  # Hide Cancel button
             )
 
         # Show progress container with fixed height
@@ -170,6 +235,17 @@ def update_progress_bars(n_intervals):
         else:
             label = f"{phase_label}: {message or 'Preparing...'}"
 
+        # Read button visibility from ui_state (persisted across page refreshes)
+        # operation_in_progress=True -> Show Cancel, Hide Update Data
+        # operation_in_progress=False -> Show Update Data, Hide Cancel
+        ui_state = progress_data.get("ui_state", {})
+        operation_in_progress = ui_state.get(
+            "operation_in_progress", True
+        )  # Default to in-progress for safety
+
+        update_data_style = {"display": "none"} if operation_in_progress else {}
+        cancel_button_style = {} if operation_in_progress else {"display": "none"}
+
         return (
             container_style,
             label,
@@ -177,6 +253,8 @@ def update_progress_bars(n_intervals):
             color,
             True,  # Animated during progress
             False,  # Keep polling enabled
+            update_data_style,  # Button visibility from ui_state
+            cancel_button_style,  # Button visibility from ui_state
         )
 
     except json.JSONDecodeError as e:
@@ -195,6 +273,8 @@ def update_progress_bars(n_intervals):
             "primary",
             True,
             True,
+            {},  # Show Update Data button
+            {"display": "none"},  # Hide Cancel button
         )
 
 
@@ -205,16 +285,130 @@ def update_progress_bars(n_intervals):
 )
 def start_progress_polling(n_clicks):
     """
-    Enable progress polling when Update Data button is clicked.
+    Enable progress polling when Update Data is clicked.
+
+    Button visibility is automatically managed by the polling callback
+    reading ui_state from task_progress.json.
 
     Args:
         n_clicks: Number of button clicks
 
     Returns:
-        False to enable polling
+        bool: False to enable polling
     """
     if not n_clicks:
         raise PreventUpdate
 
     logger.info("[Progress] Update Data clicked - enabling progress polling")
     return False  # Enable polling
+
+
+@callback(
+    Output("progress-label", "children", allow_duplicate=True),
+    Input("cancel-operation-btn", "n_clicks"),
+    prevent_initial_call=True,
+)
+def cancel_operation(n_clicks):
+    """
+    Cancel the running operation when Cancel button is clicked.
+
+    Args:
+        n_clicks: Number of button clicks
+
+    Returns:
+        Cancellation message
+    """
+    if not n_clicks:
+        raise PreventUpdate
+
+    from data.task_progress import TaskProgress
+
+    logger.info("[Progress] Cancel button clicked")
+
+    if TaskProgress.cancel_task():
+        logger.info("[Progress] Cancellation request sent successfully")
+        # Just update the progress label text
+        # Progress polling will continue to update this
+        return "Cancelling operation..."
+    else:
+        logger.warning("[Progress] Failed to cancel task")
+        raise PreventUpdate
+
+
+@callback(
+    Output("progress-poll-interval", "disabled"),
+    Input("url", "pathname"),
+    prevent_initial_call="initial_duplicate",
+)
+def cleanup_stale_tasks_on_load(pathname):
+    """
+    Check for stale task progress on page load and enable polling if needed.
+    This ensures orphaned/cancelled tasks get cleaned up after page refresh.
+
+    Args:
+        pathname: URL pathname (triggers on initial page load)
+
+    Returns:
+        bool: False to enable polling if stale task exists, True to keep disabled
+    """
+    from datetime import datetime
+
+    progress_file = Path("task_progress.json")
+
+    if not progress_file.exists():
+        # No task file, keep polling disabled
+        return True
+
+    try:
+        with open(progress_file, "r", encoding="utf-8") as f:
+            state = json.load(f)
+
+        status = state.get("status", "idle")
+
+        # If task is in error or complete status, check if it's stale
+        if status in ["error", "complete"]:
+            time_key = "error_time" if status == "error" else "complete_time"
+            timestamp = state.get(time_key)
+
+            if timestamp:
+                elapsed = (
+                    datetime.now() - datetime.fromisoformat(timestamp)
+                ).total_seconds()
+
+                if elapsed > 10:
+                    # Very stale task - delete file immediately
+                    logger.info(
+                        f"[Progress] Deleting stale {status} task file ({elapsed:.0f}s old)"
+                    )
+                    progress_file.unlink()
+                    return True  # Keep polling disabled
+                else:
+                    # Recent error/complete - enable polling to show and auto-hide
+                    logger.info(
+                        f"[Progress] Enabling polling for recent {status} task ({elapsed:.0f}s old)"
+                    )
+                    return False  # Enable polling
+            else:
+                # No timestamp - delete stale file
+                logger.info(f"[Progress] Deleting {status} task file with no timestamp")
+                progress_file.unlink()
+                return True
+
+        # Task is in_progress or idle - enable polling to update UI
+        if status == "in_progress":
+            logger.info(
+                "[Progress] Found in_progress task on page load, enabling polling"
+            )
+            return False  # Enable polling
+
+        # Idle status - delete file
+        if status == "idle":
+            logger.info("[Progress] Deleting idle task file")
+            progress_file.unlink()
+            return True
+
+        return True  # Keep polling disabled by default
+
+    except Exception as e:
+        logger.error(f"[Progress] Error checking stale tasks: {e}")
+        return True

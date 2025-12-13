@@ -1040,11 +1040,22 @@ def fetch_jira_issues(
                 f"[JIRA] Page at {start_at} (fetched {len(all_issues)} so far)"
             )
 
-            # Report progress
-            if total_issues:
-                try:
-                    from data.task_progress import TaskProgress
+            # Check for cancellation BEFORE making API call
+            try:
+                from data.task_progress import TaskProgress
 
+                # Check if task was cancelled
+                is_cancelled = TaskProgress.is_task_cancelled()
+                logger.debug(f"[JIRA] Cancellation check: is_cancelled={is_cancelled}")
+                if is_cancelled:
+                    logger.info(
+                        f"[JIRA] Fetch cancelled by user after {len(all_issues)} issues"
+                    )
+                    TaskProgress.fail_task("update_data", "Operation cancelled by user")
+                    return False, []
+
+                # Report progress if we know total
+                if total_issues:
                     TaskProgress.update_progress(
                         "update_data",
                         "fetch",
@@ -1052,8 +1063,8 @@ def fetch_jira_issues(
                         total=total_issues,
                         message="Fetching issues from JIRA",
                     )
-                except Exception as e:
-                    logger.debug(f"Progress update failed: {e}")
+            except Exception as e:
+                logger.debug(f"Progress update/cancellation check failed: {e}")
 
             # T052: Rate limiting - wait for token before request
             rate_limiter.wait_for_token()
@@ -1326,11 +1337,24 @@ def fetch_jira_issues_with_changelog(
             )
             logger.debug(progress_msg)
 
-            # Update progress bar
-            if total_issues:
-                try:
-                    from data.task_progress import TaskProgress
+            # Check for cancellation BEFORE making API call
+            try:
+                from data.task_progress import TaskProgress
 
+                # Check if task was cancelled
+                is_cancelled = TaskProgress.is_task_cancelled()
+                logger.debug(
+                    f"[JIRA] Changelog cancellation check: is_cancelled={is_cancelled}"
+                )
+                if is_cancelled:
+                    logger.info(
+                        f"[JIRA] Changelog fetch cancelled by user after {len(all_issues)} issues"
+                    )
+                    TaskProgress.fail_task("update_data", "Operation cancelled by user")
+                    return False, []
+
+                # Update progress bar if we know total
+                if total_issues:
                     TaskProgress.update_progress(
                         "update_data",
                         "fetch",
@@ -1338,8 +1362,8 @@ def fetch_jira_issues_with_changelog(
                         total=total_issues,
                         message="Fetching changelog",
                     )
-                except Exception as e:
-                    logger.debug(f"Progress update failed: {e}")
+            except Exception as e:
+                logger.debug(f"Progress update/cancellation check failed: {e}")
 
             if progress_callback:
                 if total_issues:

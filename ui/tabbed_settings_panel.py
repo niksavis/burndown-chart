@@ -275,19 +275,48 @@ def create_queries_and_data_tab_content() -> html.Div:
                 dismissable=False,
                 className="mb-3",
             ),
-            # Update Data button (activates query)
-            dbc.Button(
+            # Button container - Update Data and Cancel buttons in same position
+            html.Div(
                 [
-                    html.I(
-                        className="fas fa-sync-alt", style={"marginRight": "0.5rem"}
+                    # Update Data button (activates query)
+                    dbc.Button(
+                        [
+                            html.I(
+                                className="fas fa-sync-alt",
+                                style={"marginRight": "0.5rem"},
+                            ),
+                            "Update Data",
+                        ],
+                        id="update-data-unified",
+                        color="primary",
+                        size="lg",
+                        disabled=True,  # Enabled when query is saved
+                        className="long-press-button w-100",
+                        style={},  # Visible by default, controlled by progress_bar callback
                     ),
-                    "Update Data",
+                    # Cancel button (shown during operation, replaces Update Data button)
+                    dbc.Button(
+                        [
+                            html.I(
+                                className="fas fa-times-circle",
+                                style={"marginRight": "0.5rem"},
+                            ),
+                            "Cancel Operation",
+                        ],
+                        id="cancel-operation-btn",
+                        color="danger",
+                        size="lg",
+                        className="w-100",
+                        style={
+                            "display": "none",
+                            "position": "absolute",
+                            "top": 0,
+                            "left": 0,
+                            "right": 0,
+                        },  # Overlays Update Data button
+                    ),
                 ],
-                id="update-data-unified",
-                color="primary",
-                size="lg",
-                disabled=True,  # Enabled when query is saved
-                className="long-press-button w-100 mb-3",
+                style={"position": "relative", "marginBottom": "1rem"},
             ),
             # Hidden store for force refresh functionality (long-press)
             dcc.Store(id="force-refresh-store", data=False),
