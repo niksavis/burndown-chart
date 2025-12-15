@@ -678,14 +678,14 @@ REQUIRED_PROFILE_DATA = [
 ```
 
 **Offline Capability Matrix**:
-| Feature | Requires | Works Without JIRA? |
-|---------|----------|---------------------|
-| Burndown charts | project_data.json | ✅ YES |
-| DORA metrics | metrics_snapshots.json | ✅ YES |
-| Flow metrics | metrics_snapshots.json | ✅ YES |
-| Issue drill-down | jira_cache.json | ✅ YES |
-| Metric recalculation | jira_changelog_cache.json + JIRA API | ❌ NO |
-| Fetch new data | JIRA API | ❌ NO |
+| Feature              | Requires                             | Works Without JIRA? |
+| -------------------- | ------------------------------------ | ------------------- |
+| Burndown charts      | project_data.json                    | ✅ YES               |
+| DORA metrics         | metrics_snapshots.json               | ✅ YES               |
+| Flow metrics         | metrics_snapshots.json               | ✅ YES               |
+| Issue drill-down     | jira_cache.json                      | ✅ YES               |
+| Metric recalculation | jira_changelog_cache.json + JIRA API | ❌ NO                |
+| Fetch new data       | JIRA API                             | ❌ NO                |
 
 ---
 
@@ -894,13 +894,13 @@ REQUIRED_PROFILE_DATA = [
 
 ## Implementation Estimates
 
-| Phase | Tasks | Estimated Hours | Complexity |
-|-------|-------|-----------------|------------|
-| Phase 1: Enhanced Export | T001-T006 | 6-8 hours | Medium |
-| Phase 2: Enhanced Import | T007-T012 | 6-8 hours | Medium |
-| Phase 3: HTML Reports | T013-T020 | 10-12 hours | High |
-| Phase 4: UI Polish | T021-T027 | 8-10 hours | Low |
-| **Total** | **27 tasks** | **30-38 hours** | **3-5 days** |
+| Phase                    | Tasks        | Estimated Hours | Complexity   |
+| ------------------------ | ------------ | --------------- | ------------ |
+| Phase 1: Enhanced Export | T001-T006    | 6-8 hours       | Medium       |
+| Phase 2: Enhanced Import | T007-T012    | 6-8 hours       | Medium       |
+| Phase 3: HTML Reports    | T013-T020    | 10-12 hours     | High         |
+| Phase 4: UI Polish       | T021-T027    | 8-10 hours      | Low          |
+| **Total**                | **27 tasks** | **30-38 hours** | **3-5 days** |
 
 ---
 
