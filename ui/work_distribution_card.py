@@ -149,7 +149,7 @@ def create_work_distribution_card(
             # Week label (above metrics) - full width on all screens
             dbc.Col(
                 html.Small(
-                    f"Week {week_label}",
+                    week_label,
                     className="text-muted text-center d-block mb-2",
                     style={"fontWeight": "600"},
                 ),

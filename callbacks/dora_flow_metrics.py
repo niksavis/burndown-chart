@@ -780,7 +780,7 @@ def calculate_and_display_flow_metrics(
 
         dist_card = create_work_distribution_card(
             distribution_data=distribution_data,
-            week_label=f"{n_weeks}w aggregate",
+            week_label=f"{n_weeks} weeks aggregate",
             distribution_history=distribution_history,
             card_id="work-distribution-card",
         )
