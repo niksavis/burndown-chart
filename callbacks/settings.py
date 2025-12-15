@@ -87,6 +87,7 @@ def register(app):
         [
             State("current-statistics", "data"),
             State("calculation-results", "data"),
+            State("total-points-display", "value"),  # Check if already set by slider
         ],
     )
     def update_total_points_calculation(
@@ -96,10 +97,34 @@ def register(app):
         stats_ts,
         statistics,
         calc_results,
+        current_total_points_display,
     ):
         """
         Update the total points calculation based on estimated items and points or historical data.
+
+        Uses the same extrapolation formula as JIRA scope calculator:
+        remaining_total_points = estimated_points + (avg_points_per_item × unestimated_items)
+
+        This ensures consistency between JIRA and manual data entry workflows.
+
+        CRITICAL: For JIRA data, the total_points comes from window calculation
+        (slider callback or serve_layout), NOT from extrapolation.
         """
+        # Check data source - skip extrapolation for JIRA data
+        from data.persistence import load_unified_project_data
+
+        try:
+            unified_data = load_unified_project_data()
+            data_source = unified_data.get("metadata", {}).get("source", "")
+
+            # For JIRA data, preserve the window-based value set by slider/serve_layout
+            if data_source == "jira_calculated":
+                if current_total_points_display:
+                    return current_total_points_display, calc_results or {}
+                raise PreventUpdate
+        except Exception:
+            pass  # If load fails, continue with calculation (manual data)
+
         # Input validation
         if None in [total_items, estimated_items, estimated_points]:
             # Use .get() method for dictionary lookups - this is the Python idiomatic way
@@ -123,6 +148,7 @@ def register(app):
             )
 
         # Calculate total points and average - use_fallback=False to respect user's explicit input
+        # This is for MANUAL data entry workflow only
         estimated_total_points, avg_points_per_item = calculate_total_points(
             total_items,
             estimated_items,
@@ -2797,32 +2823,40 @@ def register(app):
                 current_remaining_points + completed_in_window_points
             )
 
-            # Calculate estimated items/points based on the data window
-            estimated_items_in_window = selected_data[
-                selected_data["completed_points"] > 0
-            ]["completed_items"].sum()  # type: ignore[attr-defined]
-            estimated_points_in_window = selected_data["completed_points"].sum()  # type: ignore[attr-defined]
-
-            # Calculate ratio of estimated to total items
-            current_total_items = project_scope.get("total_items", 1)
+            # Calculate estimated items/points - NOT USED for total_points calculation
+            # These are just for display in the estimated fields
+            # The total_points comes from remaining_points_at_start calculated above
+            current_remaining_items_value = project_scope.get("remaining_items", 1)
             current_estimated_items = project_scope.get("estimated_items", 0)
+            current_estimated_points = project_scope.get("estimated_points", 0)
 
-            if current_total_items > 0:
-                estimate_ratio = current_estimated_items / current_total_items
+            if current_remaining_items_value > 0:
+                # Scale estimated items proportionally
+                estimate_ratio = current_estimated_items / current_remaining_items_value
                 estimated_items_at_start = int(
                     remaining_items_at_start * estimate_ratio
                 )
+
+                # Scale estimated points proportionally
+                if current_estimated_items > 0:
+                    avg_points_per_estimated_item = (
+                        current_estimated_points / current_estimated_items
+                    )
+                    estimated_points_at_start = int(
+                        estimated_items_at_start * avg_points_per_estimated_item
+                    )
+                else:
+                    estimated_points_at_start = 0
             else:
                 estimated_items_at_start = current_estimated_items
+                estimated_points_at_start = current_estimated_points
 
-            # Calculate estimated points
-            if estimated_items_at_start > 0 and estimated_points_in_window > 0:
-                avg_points = estimated_points_in_window / max(
-                    estimated_items_in_window, 1
-                )
-                estimated_points_at_start = int(estimated_items_at_start * avg_points)
-            else:
-                estimated_points_at_start = project_scope.get("estimated_points", 0)
+            # CRITICAL: Do NOT let extrapolation callback recalculate total_points
+            # The correct value is remaining_points_at_start calculated above
+            # We need to also set calculation_results to prevent override
+            logger.info(
+                f"Estimated values at start: Items={estimated_items_at_start}, Points={estimated_points_at_start}"
+            )
 
             logger.info(
                 f"Calculated remaining work for {data_points_count} week window: "
@@ -2830,11 +2864,24 @@ def register(app):
                 f"Remaining Points: {current_remaining_points:.0f} → {remaining_points_at_start:.0f}"
             )
 
+            # Calculate avg points per item for calculation_results
+            avg_points_per_item = 0
+            if remaining_items_at_start > 0:
+                avg_points_per_item = (
+                    remaining_points_at_start / remaining_items_at_start
+                )
+
+            calc_results = {
+                "total_points": remaining_points_at_start,
+                "avg_points_per_item": avg_points_per_item,
+            }
+
             return (
                 estimated_items_at_start,
                 int(remaining_items_at_start),
                 estimated_points_at_start,
                 f"{remaining_points_at_start:.0f}",
+                calc_results,
             )
 
         except Exception as e:
@@ -2852,6 +2899,7 @@ def register(app):
             Output("total-items-input", "value", allow_duplicate=True),
             Output("estimated-points-input", "value", allow_duplicate=True),
             Output("total-points-display", "value", allow_duplicate=True),
+            Output("calculation-results", "data", allow_duplicate=True),
         ],
         [Input("data-points-input", "value")],
         [

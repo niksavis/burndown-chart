@@ -2255,6 +2255,8 @@ def create_parameter_bar_collapsed(
     id_suffix: str = "",
     remaining_items: int | None = None,
     remaining_points: int | None = None,
+    total_items: int | None = None,
+    total_points: int | None = None,
     show_points: bool = True,
     data_points: int | None = None,
     profile_name: str | None = None,
@@ -2273,8 +2275,10 @@ def create_parameter_bar_collapsed(
         scope_items: Total number of items in scope (fallback)
         scope_points: Total story points in scope (fallback)
         id_suffix: Suffix for generating unique IDs
-        remaining_items: Number of items remaining to complete (preferred display)
-        remaining_points: Number of points remaining to complete (preferred display)
+        remaining_items: Number of items remaining currently (not displayed in bar)
+        remaining_points: Number of points remaining currently (not displayed in bar)
+        total_items: Total items at window start (displayed as "Window Start")
+        total_points: Total points at window start (displayed as "Window Start")
         show_points: Whether to show points data
         data_points: Number of weeks of data used for forecasting
         profile_name: Name of active profile (if in profiles mode)
@@ -2291,12 +2295,23 @@ def create_parameter_bar_collapsed(
     bar_id = f"parameter-bar-collapsed{'-' + id_suffix if id_suffix else ''}"
     expand_btn_id = f"btn-expand-parameters{'-' + id_suffix if id_suffix else ''}"
 
-    # Use remaining values if available, otherwise fall back to scope values
-    display_items = remaining_items if remaining_items is not None else scope_items
-    display_points = remaining_points if remaining_points is not None else scope_points
+    # Display the total items/points (window start) for Window Start label
+    # Use remaining values only if total values not available (fallback to current scope)
+    display_items = (
+        total_items
+        if total_items is not None and total_items > 0
+        else (remaining_items if remaining_items is not None else scope_items)
+    )
+    display_points = (
+        total_points
+        if total_points is not None and total_points > 0
+        else (remaining_points if remaining_points is not None else scope_points)
+    )
 
     # Determine label based on what we're showing
-    items_label = "Remaining" if remaining_items is not None else "Scope"
+    items_label = (
+        "Window Start" if (total_items is not None and total_items > 0) else "Scope"
+    )
 
     # Create points display only if enabled
     points_display = []
@@ -2400,7 +2415,7 @@ def create_parameter_bar_collapsed(
                                 [
                                     html.I(className="fas fa-sliders-h me-1"),
                                     html.Span(
-                                        "Window: ",
+                                        "Range: ",
                                         className="text-muted d-none d-xl-inline",
                                         style={"fontSize": "0.85em"},
                                     ),
@@ -2409,7 +2424,7 @@ def create_parameter_bar_collapsed(
                                     ),
                                 ],
                                 className="param-summary-item me-1 me-sm-2",
-                                title=f"Confidence Window: {pert_factor} weeks (samples best/worst case from your velocity history)",
+                                title=f"Forecast Range: {pert_factor} weeks (samples best/worst case velocity from your history)",
                             ),
                             html.Span(
                                 [
@@ -3015,12 +3030,12 @@ def create_parameter_panel_expanded(
                                                                 lg=3,
                                                                 className="mb-3",
                                                             ),
-                                                            # Confidence Window Slider (formerly PERT Factor)
+                                                            # Forecast Range Slider (formerly PERT Factor)
                                                             dbc.Col(
                                                                 [
                                                                     html.Label(
                                                                         [
-                                                                            "Confidence Window",
+                                                                            "Forecast Range",
                                                                             html.Span(
                                                                                 create_parameter_tooltip(
                                                                                     "pert_factor",
@@ -3235,7 +3250,11 @@ def create_parameter_panel_expanded(
                                                                 [
                                                                     html.Label(
                                                                         [
-                                                                            "Remaining Items",
+                                                                            "Window Start Items",
+                                                                            html.Span(
+                                                                                " (remaining at period start)",
+                                                                                className="text-muted small",
+                                                                            ),
                                                                             html.Span(
                                                                                 create_parameter_tooltip(
                                                                                     "total_items",
@@ -3323,12 +3342,17 @@ def create_parameter_panel_expanded(
                                                                 [
                                                                     html.Label(
                                                                         [
-                                                                            "Remaining Points ",
+                                                                            "Window Start Points",
                                                                             html.Span(
-                                                                                "(auto)",
+                                                                                " (remaining at period start)",
+                                                                                className="text-muted small",
+                                                                            ),
+                                                                            html.Span(
+                                                                                " auto",
                                                                                 className="badge bg-secondary",
                                                                                 style={
-                                                                                    "fontSize": "0.65rem"
+                                                                                    "fontSize": "0.65rem",
+                                                                                    "marginLeft": "0.25rem",
                                                                                 },
                                                                             ),
                                                                         ],

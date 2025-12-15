@@ -94,11 +94,11 @@ def serve_layout():
             )
 
             # Calculate estimated items/points using ratio
-            current_total_items = project_scope.get("total_items", 1)
+            current_remaining_items_value = project_scope.get("remaining_items", 1)
             current_estimated_items = project_scope.get("estimated_items", 0)
 
-            if current_total_items > 0:
-                estimate_ratio = current_estimated_items / current_total_items
+            if current_remaining_items_value > 0:
+                estimate_ratio = current_estimated_items / current_remaining_items_value
                 estimated_items_at_start = int(
                     remaining_items_at_start * estimate_ratio
                 )
@@ -129,6 +129,11 @@ def serve_layout():
                     "estimated_points": estimated_points_at_start,
                 }
             )
+
+            # CRITICAL: Save calculated values to disk so dashboard can read them
+            from data.persistence import save_app_settings
+
+            save_app_settings(settings)
         except Exception as e:
             logger.error(f"Error calculating initial window values: {e}")
             # Fallback to current scope values

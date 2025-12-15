@@ -79,8 +79,12 @@ def calculate_total_points(
     # Calculate average points per item based on estimates
     avg_points_per_item = estimated_points / estimated_items
 
-    # Calculate total points using the average
-    estimated_total_points = total_items * avg_points_per_item
+    # Calculate total points using JIRA scope calculator formula:
+    # remaining_total_points = estimated_points + (avg × unestimated_items)
+    unestimated_items = max(0, total_items - estimated_items)
+    estimated_total_points = estimated_points + (
+        avg_points_per_item * unestimated_items
+    )
 
     return estimated_total_points, avg_points_per_item
 

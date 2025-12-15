@@ -705,16 +705,16 @@ DASHBOARD_METRICS_TOOLTIPS = {
 
 # PARAMETER INPUTS HELP CONTENT - Tooltips for parameter panel controls
 PARAMETER_INPUTS_TOOLTIPS = {
-    "pert_factor": "Controls how many weeks to sample for best/worst case forecasts. Higher values (8-12) provide conservative estimates using sustained performance patterns. Lower values (3-6) reflect recent variability. Minimum 6 weeks of data recommended for reliability.",
+    "pert_factor": "Forecast Range: Controls how many weeks to sample for best/worst case forecasts. Higher values (8-12) provide conservative estimates using sustained performance patterns. Lower values (3-6) reflect recent variability. Minimum 6 weeks of data recommended for reliability.",
     "pert_factor_detail": "This parameter determines how many of your best and worst performing weeks are averaged to calculate optimistic and pessimistic scenarios. For example, with a value of 6, your forecast uses the average of your 6 best weeks as the optimistic case and your 6 worst weeks as the pessimistic case. The most likely scenario always uses the average of all available data. This approach provides data-driven forecasts based on your team's actual historical performance, which is more reliable than simple averages or gut feelings. Recommended: 20-30% of your total history (e.g., 6 weeks if you have 30 weeks of data).",
     "deadline": "Target completion date for your project. Used to calculate timeline pressure and whether current velocity will meet the deadline. Shown as a vertical line on forecast charts.",
     "deadline_detail": "Set your desired or committed project deadline. The forecast will compare this date against velocity-based predictions to show if you're on track, ahead, or behind schedule.",
-    "total_items": "Complete project scope: all work items planned for delivery. This is the denominator for calculating completion percentage and remaining work.",
-    "completed_items": "Number of work items finished and accepted. Used to calculate completion percentage and determine remaining work: Total Items - Completed Items.",
-    "total_points": "Complete project effort: all story points estimated for the project. Represents the full effort required independent of item count.",
-    "completed_points": "Story points for all finished work items. Used to calculate effort-based completion percentage: Completed Points ÷ Total Points × 100%.",
+    "total_items": "Baseline Items (at window start): Total work items that needed to be completed at the start of your selected time window. This baseline is used for tracking progress and calculating completion percentage within the window. Currently Open = Baseline - Completed.",
+    "completed_items": "Number of work items finished within the selected time window. Used to calculate completion percentage and determine currently open work: Baseline Items - Completed Items.",
+    "total_points": "Baseline Points (at window start): Total story points that needed to be completed at the start of your selected time window. This baseline includes both estimated and extrapolated points for items without estimates. Currently Open = Baseline - Completed.",
+    "completed_points": "Story points for work items finished within the selected time window. Used to calculate effort-based completion percentage: Completed Points ÷ Baseline Points × 100%.",
     "scope_buffer": "Optional reserve capacity for scope changes and unknowns. Adding a buffer (e.g., 10-20% of total scope) provides contingency for new requirements.",
-    "data_points": "Number of historical weeks to include in velocity calculations. Minimum 4-6 weeks recommended; 8-12 weeks optimal for stable forecasts.",
+    "data_points": "Time Period: Number of historical weeks to include for baseline and velocity calculations. Minimum 4-6 weeks recommended; 8-12 weeks optimal for stable forecasts. This defines your analysis window.",
     "data_points_detail": "More data points provide stability but may miss recent trends. Fewer points are more responsive to changes but can be volatile. Balance based on your project's stability.",
 }
 

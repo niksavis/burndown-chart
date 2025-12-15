@@ -368,16 +368,25 @@ def _calculate_dashboard_metrics(project_data: Dict, statistics: List[Dict]) -> 
     """Calculate dashboard overview metrics."""
     project_scope = project_data.get("project_scope", {})
 
-    # Calculate velocity
-    weeks_count = len(statistics)
-    total_completed_items = sum(row.get("completed_items", 0) for row in statistics)
-    total_completed_points = sum(row.get("completed_points", 0) for row in statistics)
-    avg_items_per_week = (
-        round(total_completed_items / weeks_count, 1) if weeks_count else 0
-    )
-    avg_points_per_week = (
-        round(total_completed_points / weeks_count, 1) if weeks_count else 0
-    )
+    # Calculate velocity using unique ISO weeks (matches UI calculation)
+    if statistics:
+        df = pd.DataFrame(statistics)
+        df["date"] = pd.to_datetime(df["date"])
+        df["iso_week"] = df["date"].dt.strftime("%Y-%U")  # type: ignore[attr-defined]
+        unique_weeks = df["iso_week"].nunique()
+
+        total_completed_items = df["completed_items"].sum()
+        total_completed_points = df["completed_points"].sum()
+
+        avg_items_per_week = (
+            round(total_completed_items / unique_weeks, 1) if unique_weeks else 0
+        )
+        avg_points_per_week = (
+            round(total_completed_points / unique_weeks, 1) if unique_weeks else 0
+        )
+    else:
+        avg_items_per_week = 0
+        avg_points_per_week = 0
 
     return {
         "total_items": project_scope.get("total_items", 0),
@@ -395,20 +404,36 @@ def _calculate_dashboard_metrics(project_data: Dict, statistics: List[Dict]) -> 
 
 def _calculate_burndown_metrics(statistics: List[Dict], project_data: Dict) -> Dict:
     """Calculate burndown and velocity metrics."""
-    total_completed_items = sum(row.get("completed_items", 0) for row in statistics)
-    total_completed_points = sum(row.get("completed_points", 0) for row in statistics)
-    total_created_items = sum(row.get("created_items", 0) for row in statistics)
-    total_created_points = sum(row.get("created_points", 0) for row in statistics)
+    if not statistics:
+        return {}
 
-    weeks_count = len(statistics)
-    avg_items_per_week = total_completed_items / weeks_count if weeks_count else 0
-    avg_points_per_week = total_completed_points / weeks_count if weeks_count else 0
+    # Use DataFrame for proper velocity calculation with unique ISO weeks
+    df = pd.DataFrame(statistics)
+    df["date"] = pd.to_datetime(df["date"])
+    df["iso_week"] = df["date"].dt.strftime("%Y-%U")  # type: ignore[attr-defined]
+
+    # Ensure all required columns exist
+    if "created_items" not in df.columns:
+        df["created_items"] = 0
+    if "created_points" not in df.columns:
+        df["created_points"] = 0
+
+    total_completed_items = df["completed_items"].sum()
+    total_completed_points = df["completed_points"].sum()
+    total_created_items = df["created_items"].sum()
+    total_created_points = df["created_points"].sum()
+
+    # Calculate velocity using unique weeks (not row count)
+    unique_weeks = df["iso_week"].nunique()
+    avg_items_per_week = total_completed_items / unique_weeks if unique_weeks else 0
+    avg_points_per_week = total_completed_points / unique_weeks if unique_weeks else 0
 
     # Last 4 weeks velocity
-    recent_stats = statistics[-4:] if len(statistics) >= 4 else statistics
-    recent_items = sum(row.get("completed_items", 0) for row in recent_stats)
-    recent_points = sum(row.get("completed_points", 0) for row in recent_stats)
-    recent_weeks_count = len(recent_stats)
+    recent_df = df.tail(min(len(df), 28))  # Approximately 4 weeks of daily data
+    recent_unique_weeks = recent_df["iso_week"].nunique()
+    recent_items = recent_df["completed_items"].sum()
+    recent_points = recent_df["completed_points"].sum()
+    recent_weeks_count = max(recent_unique_weeks, 1)  # Avoid division by zero
 
     # Get CURRENT remaining work from project scope
     project_scope = project_data.get("project_scope", {})
@@ -417,9 +442,15 @@ def _calculate_burndown_metrics(statistics: List[Dict], project_data: Dict) -> D
         "remaining_total_points", project_scope.get("remaining_points", 0)
     )
 
+    # Get actual weeks count for reporting
+    weeks_count = unique_weeks
+
     # Weekly breakdown with pre-calculated bar heights for chart
+    recent_weeks_df = df.tail(min(len(df), 84)).copy()  # Approximately 12 weeks
+    # Convert date to string before converting to dict to avoid Timestamp issues
+    recent_weeks_df["date"] = recent_weeks_df["date"].dt.strftime("%Y-%m-%d")  # type: ignore[attr-defined]
     weekly_data = []
-    recent_weeks = statistics[-12:] if len(statistics) >= 12 else statistics
+    recent_weeks = recent_weeks_df.to_dict("records")
 
     # Calculate max values for scaling bars - separate scales for items and points
     items_values = []
@@ -441,10 +472,8 @@ def _calculate_burndown_metrics(statistics: List[Dict], project_data: Dict) -> D
     max_points = max(points_values) if points_values else 1
 
     for row in recent_weeks:
-        # Format date nicely - strip timestamp if present
+        # Date is already formatted as YYYY-MM-DD string
         date_str = row.get("date", "")
-        if "T" in date_str:
-            date_str = date_str.split("T")[0]
 
         # Get raw values
         completed_items = row.get("completed_items", 0)
@@ -758,25 +787,39 @@ def _calculate_flow_metrics(snapshots: Dict, jira_issues: List[Dict]) -> Dict:
         if load_val is not None:
             loads.append(load_val)
 
-    # Calculate work distribution from JIRA issues
-    work_distribution = {"Feature": 0, "Bug": 0, "Technical Debt": 0, "Risk": 0}
-    if jira_issues:
+    # Calculate work distribution from metrics snapshots (matches UI approach)
+    work_distribution = {"Feature": 0, "Defect": 0, "Technical Debt": 0, "Risk": 0}
+    if snapshots:
         try:
-            from data.flow_metrics import calculate_flow_distribution
+            # Aggregate distribution counts from all snapshot weeks (same as UI)
+            total_feature = 0
+            total_defect = 0
+            total_tech_debt = 0
+            total_risk = 0
+            total_completed = 0
 
-            # Use 84 days (12 weeks) for distribution calculation
-            dist_result = calculate_flow_distribution(jira_issues, time_period_days=84)
-            if dist_result.get("value"):
+            for snapshot in snapshots.values():
+                velocity_data = snapshot.get("flow_velocity", {})
+                distribution = velocity_data.get("distribution", {})
+
+                total_feature += distribution.get("feature", 0)
+                total_defect += distribution.get("defect", 0)
+                total_tech_debt += distribution.get("tech_debt", 0)
+                total_risk += distribution.get("risk", 0)
+                total_completed += velocity_data.get("completed_count", 0)
+
+            # Calculate percentages (matches UI calculation)
+            if total_completed > 0:
                 work_distribution = {
-                    "Feature": round(dist_result["value"].get("Feature", 0), 1),
-                    "Bug": round(dist_result["value"].get("Bug", 0), 1),
+                    "Feature": round((total_feature / total_completed) * 100, 1),
+                    "Defect": round((total_defect / total_completed) * 100, 1),
                     "Technical Debt": round(
-                        dist_result["value"].get("Technical Debt", 0), 1
+                        (total_tech_debt / total_completed) * 100, 1
                     ),
-                    "Risk": round(dist_result["value"].get("Risk", 0), 1),
+                    "Risk": round((total_risk / total_completed) * 100, 1),
                 }
         except Exception as e:
-            logger.warning(f"Failed to calculate work distribution: {e}")
+            logger.warning(f"Failed to calculate work distribution from snapshots: {e}")
 
     return {
         "has_data": True,
