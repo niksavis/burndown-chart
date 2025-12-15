@@ -153,6 +153,53 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.15);
         }
         
+        /* Weekly breakdown bar chart - using inline styles for simplicity */
+        .chart-week {
+            position: relative;
+            width: 7%;
+        }
+        .chart-week::before,
+        .chart-week::after {
+            content: '';
+            position: absolute;
+            width: 45%;
+        }
+        /* Created items (blue, above) */
+        .chart-week::before {
+            bottom: 50%;
+            left: 0;
+            height: var(--ci);
+            background: #0d6efd;
+            border-radius: 3px 3px 0 0;
+        }
+        /* Completed items (blue, below) */
+        .chart-week::after {
+            top: 50%;
+            left: 0;
+            height: var(--xi);
+            background: #0d6efd;
+            border-radius: 0 0 3px 3px;
+        }
+        /* Points bars using child elements */
+        .chart-week-cp,
+        .chart-week-xp {
+            position: absolute;
+            width: 45%;
+            right: 0;
+        }
+        .chart-week-cp {
+            bottom: 50%;
+            height: var(--cp);
+            background: #fd7e14;
+            border-radius: 3px 3px 0 0;
+        }
+        .chart-week-xp {
+            top: 50%;
+            height: var(--xp);
+            background: #fd7e14;
+            border-radius: 0 0 3px 3px;
+        }
+        
         @media print {
             body { background-color: white; }
             .section { page-break-inside: avoid; }
@@ -319,30 +366,37 @@
                 </div>
             </div>
             
-            <h5 class="mt-4 mb-3">Weekly Breakdown (Last 12 Weeks)</h5>
-            <div class="table-responsive">
-                <table class="table table-sm table-striped">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Week</th>
-                            <th class="text-end">Completed Items</th>
-                            <th class="text-end">Completed Points</th>
-                            <th class="text-end">Created Items</th>
-                            <th class="text-end">Created Points</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+            <h5 class="mt-4 mb-3">Weekly Breakdown</h5>
+            <div style="background: white; border-radius: 8px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <!-- Legend -->
+                <div style="display: flex; justify-content: center; gap: 2rem; margin-bottom: 0.5rem; font-size: 0.85rem;">
+                    <div><span style="display: inline-block; width: 12px; height: 12px; background: #0d6efd; border-radius: 2px; margin-right: 0.5rem;"></span>Items</div>
+                    <div><span style="display: inline-block; width: 12px; height: 12px; background: #fd7e14; border-radius: 2px; margin-right: 0.5rem;"></span>Points</div>
+                    <div style="color: #6c757d; font-size: 0.8rem;">Above: Created | Below: Completed</div>
+                </div>
+                
+                <!-- Bar Chart -->
+                <div style="position: relative; height: 250px;">
+                    <!-- X-axis at y=0 -->
+                    <div style="position: absolute; left: 0; right: 0; top: 50%; height: 2px; background: #6c757d;"></div>
+                    
+                    <!-- Bars container -->
+                    <div style="display: flex; justify-content: space-around; height: 100%;">
                         {% for week in metrics.burndown.weekly_data %}
-                        <tr>
-                            <td>{{ week.date }}</td>
-                            <td class="text-end">{{ week.completed_items }}</td>
-                            <td class="text-end">{{ week.completed_points }}</td>
-                            <td class="text-end">{{ week.created_items }}</td>
-                            <td class="text-end">{{ week.created_points }}</td>
-                        </tr>
+                        <div class="chart-week" style="--ci: {{ week.created_items_pct }}%; --cp: {{ week.created_points_pct }}%; --xi: {{ week.completed_items_pct }}%; --xp: {{ week.completed_points_pct }}%;">
+                            <div class="chart-week-cp"></div>
+                            <div class="chart-week-xp"></div>
+                        </div>
                         {% endfor %}
-                    </tbody>
-                </table>
+                    </div>
+                </div>
+                
+                <!-- Date labels -->
+                <div style="display: flex; justify-content: space-around; margin-top: 0.5rem;">
+                    {% for week in metrics.burndown.weekly_data %}
+                    <div style="width: 7%; font-size: 0.65rem; color: #6c757d; text-align: center; transform: rotate(-45deg); transform-origin: top center;">{{ week.date }}</div>
+                    {% endfor %}
+                </div>
             </div>
         </div>
         {% endif %}

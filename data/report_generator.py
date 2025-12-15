@@ -266,7 +266,7 @@ def _calculate_burndown_metrics(statistics: List[Dict], project_data: Dict) -> D
     recent_stats = statistics[-4:] if len(statistics) >= 4 else statistics
     recent_items = sum(row.get("completed_items", 0) for row in recent_stats)
     recent_points = sum(row.get("completed_points", 0) for row in recent_stats)
-    recent_weeks = len(recent_stats)
+    recent_weeks_count = len(recent_stats)
 
     # Get CURRENT remaining work from project scope
     project_scope = project_data.get("project_scope", {})
@@ -275,21 +275,56 @@ def _calculate_burndown_metrics(statistics: List[Dict], project_data: Dict) -> D
         "remaining_total_points", project_scope.get("remaining_points", 0)
     )
 
-    # Weekly breakdown
+    # Weekly breakdown with pre-calculated bar heights for chart
     weekly_data = []
-    for row in statistics[-12:]:  # Last 12 weeks
+    recent_weeks = statistics[-12:] if len(statistics) >= 12 else statistics
+
+    # Calculate max value for scaling bars
+    all_values = []
+    for row in recent_weeks:
+        all_values.extend(
+            [
+                row.get("completed_items", 0),
+                row.get("completed_points", 0),
+                row.get("created_items", 0),
+                row.get("created_points", 0),
+            ]
+        )
+    max_value = max(all_values) if all_values else 1
+
+    for row in recent_weeks:
         # Format date nicely - strip timestamp if present
         date_str = row.get("date", "")
         if "T" in date_str:
             date_str = date_str.split("T")[0]
 
+        # Get raw values
+        completed_items = row.get("completed_items", 0)
+        completed_points = row.get("completed_points", 0)
+        created_items = row.get("created_items", 0)
+        created_points = row.get("created_points", 0)
+
+        # Calculate bar heights as percentages (0-50 for half-height chart)
         weekly_data.append(
             {
                 "date": date_str,
-                "completed_items": row.get("completed_items", 0),
-                "completed_points": row.get("completed_points", 0),
-                "created_items": row.get("created_items", 0),
-                "created_points": row.get("created_points", 0),
+                "completed_items": completed_items,
+                "completed_points": completed_points,
+                "created_items": created_items,
+                "created_points": created_points,
+                # Pre-calculated percentages for CSS (halved for above/below y=0)
+                "completed_items_pct": round(
+                    (completed_items / max_value * 50) if max_value > 0 else 0, 1
+                ),
+                "completed_points_pct": round(
+                    (completed_points / max_value * 50) if max_value > 0 else 0, 1
+                ),
+                "created_items_pct": round(
+                    (created_items / max_value * 50) if max_value > 0 else 0, 1
+                ),
+                "created_points_pct": round(
+                    (created_points / max_value * 50) if max_value > 0 else 0, 1
+                ),
             }
         )
 
@@ -300,11 +335,11 @@ def _calculate_burndown_metrics(statistics: List[Dict], project_data: Dict) -> D
         "total_created_points": total_created_points,
         "avg_items_per_week": round(avg_items_per_week, 1),
         "avg_points_per_week": round(avg_points_per_week, 1),
-        "recent_items_velocity": round(recent_items / recent_weeks, 1)
-        if recent_weeks
+        "recent_items_velocity": round(recent_items / recent_weeks_count, 1)
+        if recent_weeks_count
         else 0,
-        "recent_points_velocity": round(recent_points / recent_weeks, 1)
-        if recent_weeks
+        "recent_points_velocity": round(recent_points / recent_weeks_count, 1)
+        if recent_weeks_count
         else 0,
         "remaining_items": int(remaining_items),
         "remaining_points": round(remaining_points),
