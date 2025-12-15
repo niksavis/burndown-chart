@@ -492,14 +492,18 @@ def calculate_and_display_flow_metrics(
             f"Flow: Reading snapshots for {len(week_labels)} weeks: {week_labels[:3]}...{week_labels[-3:]}"
         )
 
-        # Check if current week has snapshots (use flow_velocity as it's always saved)
-        if not current_week_label or not has_metric_snapshot(
-            current_week_label, "flow_velocity"
-        ):
+        # Check if ANY week has snapshots (not just current week)
+        # This prevents "No Metrics" message when historical data exists but current week is missing
+        from data.metrics_snapshots import get_available_weeks
+
+        available_weeks = get_available_weeks()
+        has_any_data = any(week in available_weeks for week in week_labels)
+
+        if not has_any_data:
             from ui.empty_states import create_no_metrics_state
 
             logger.warning(
-                f"No Flow metrics snapshot found for week {current_week_label or 'unknown'}"
+                f"No Flow metrics snapshots found for any of the {len(week_labels)} weeks"
             )
 
             # Return no_metrics state for metrics + HIDE Work Distribution card (like other cards)
@@ -557,7 +561,17 @@ def calculate_and_display_flow_metrics(
         )
 
         # Flow Load (WIP): Current week snapshot ONLY (WIP is a point-in-time metric)
+        # If current week missing, use most recent available week
         flow_load_snapshot = get_metric_snapshot(current_week_label, "flow_load")
+        if not flow_load_snapshot and available_weeks:
+            # Find most recent week with data
+            for week in week_labels[::-1]:  # Start from most recent
+                flow_load_snapshot = get_metric_snapshot(week, "flow_load")
+                if flow_load_snapshot:
+                    logger.info(
+                        f"Flow: Using WIP data from {week} (current week {current_week_label} not available)"
+                    )
+                    break
         wip_count = flow_load_snapshot.get("wip_count", 0) if flow_load_snapshot else 0
 
         # Collect distribution data across ALL weeks for aggregated totals
