@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ profile_name }} - {{ query_name }} | Project Report</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f8f9fa;
+            font-size: 14px;
+        }
+        
+        .report-header {
+            background: linear-gradient(135deg, #0d6efd 0%, #0dcaf0 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .project-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.3rem;
+        }
+        
+        .query-title {
+            font-size: 1.3rem;
+            opacity: 0.9;
+            font-weight: 500;
+        }
+        
+        .section {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #212529;
+            border-bottom: 2px solid #0d6efd;
+            padding-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.75rem;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .metric-row:last-child {
+            border-bottom: none;
+        }
+        
+        .metric-label {
+            font-weight: 500;
+            color: #6c757d;
+        }
+        
+        .metric-value {
+            font-weight: 600;
+            color: #212529;
+            font-size: 1.1rem;
+        }
+        
+        table {
+            font-size: 0.9rem;
+        }
+        
+        .table-sm td, .table-sm th {
+            padding: 0.5rem;
+        }
+        
+        .badge-metric {
+            font-size: 0.9rem;
+            padding: 0.4rem 0.8rem;
+        }
+        
+        /* Mini sparkline charts */
+        .sparkline {
+            display: inline-block;
+            height: 30px;
+            width: 100px;
+            position: relative;
+        }
+        
+        .sparkline-bar {
+            position: absolute;
+            bottom: 0;
+            width: 8px;
+            background: linear-gradient(180deg, #0d6efd 0%, #0dcaf0 100%);
+            border-radius: 2px 2px 0 0;
+            transition: all 0.3s ease;
+        }
+        
+        .sparkline-bar:hover {
+            opacity: 0.7;
+        }
+        
+        /* Burndown forecast chart */
+        .burndown-chart {
+            width: 100%;
+            height: 300px;
+            position: relative;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            background: linear-gradient(to bottom, #f8f9fa 0%, white 100%);
+        }
+        
+        .chart-line {
+            stroke-width: 2;
+            fill: none;
+        }
+        
+        .chart-area {
+            opacity: 0.1;
+        }
+        
+        .chart-point {
+            r: 3;
+            fill: white;
+            stroke-width: 2;
+        }
+        
+        /* Work distribution pie */
+        .work-pie {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: conic-gradient(
+                from 0deg,
+                #198754 0deg calc(var(--feature-pct) * 3.6deg),
+                #dc3545 calc(var(--feature-pct) * 3.6deg) calc((var(--feature-pct) + var(--bug-pct)) * 3.6deg),
+                #ffc107 calc((var(--feature-pct) + var(--bug-pct)) * 3.6deg) calc((var(--feature-pct) + var(--bug-pct) + var(--debt-pct)) * 3.6deg),
+                #6c757d calc((var(--feature-pct) + var(--bug-pct) + var(--debt-pct)) * 3.6deg) 360deg
+            );
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        
+        @media print {
+            body { background-color: white; }
+            .section { page-break-inside: avoid; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Report Header -->
+    <header class="report-header">
+        <div class="container">
+            <div class="project-title">{{ profile_name }}</div>
+            <div class="query-title">{{ query_name }}</div>
+            <div style="margin-top: 0.75rem; font-size: 1rem;">
+                <div style="margin-bottom: 0.25rem;">
+                    <i class="fas fa-calendar-check me-2"></i><strong>Generated:</strong> {{ generated_at }}
+                </div>
+                <div style="opacity: 0.85; font-size: 0.9rem;">
+                    <i class="fas fa-clock me-2"></i>Data Period: Last {{ time_period_weeks }} weeks
+                    <span class="ms-3" style="opacity: 0.7;">
+                        <i class="fas fa-info-circle me-1"></i>DORA & Flow metrics are calculated weekly
+                    </span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        {% if not metrics.has_data %}
+        <div class="section">
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                No data available for the selected time period. Please check your data source or adjust the time range.
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Dashboard Overview Section -->
+        {% if metrics.dashboard %}
+        <div class="section">
+            <h2 class="section-title">
+                <i class="fas fa-tachometer-alt text-primary"></i>
+                Project Dashboard
+            </h2>
+            
+            <div class="row mb-3">
+                <div class="col-md-3 col-sm-6 mb-2">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body text-center">
+                            <div class="text-muted small">Total Items</div>
+                            <div class="h3 mb-0">{{ metrics.dashboard.total_items }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6 mb-2">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body text-center">
+                            <div class="text-muted small">Total Points</div>
+                            <div class="h3 mb-0">{{ metrics.dashboard.total_points }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6 mb-2">
+                    <div class="card border-0 shadow-sm bg-success bg-opacity-10">
+                        <div class="card-body text-center">
+                            <div class="text-muted small">Completed Items</div>
+                            <div class="h3 mb-0 text-success">{{ metrics.dashboard.completed_items }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6 mb-2">
+                    <div class="card border-0 shadow-sm bg-success bg-opacity-10">
+                        <div class="card-body text-center">
+                            <div class="text-muted small">Completed Points</div>
+                            <div class="h3 mb-0 text-success">{{ metrics.dashboard.completed_points }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row mb-3">
+                <div class="col-md-3 col-sm-6 mb-2">
+                    <div class="card border-0 shadow-sm bg-warning bg-opacity-10">
+                        <div class="card-body text-center">
+                            <div class="text-muted small">Remaining Items</div>
+                            <div class="h3 mb-0 text-warning">{{ metrics.dashboard.remaining_items }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6 mb-2">
+                    <div class="card border-0 shadow-sm bg-warning bg-opacity-10">
+                        <div class="card-body text-center">
+                            <div class="text-muted small">Remaining Points</div>
+                            <div class="h3 mb-0 text-warning">{{ metrics.dashboard.remaining_points }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6 mb-2">
+                    <div class="card border-0 shadow-sm bg-primary bg-opacity-10">
+                        <div class="card-body text-center">
+                            <div class="text-muted small">Velocity (Items/Week)</div>
+                            <div class="h3 mb-0 text-primary">{{ metrics.dashboard.avg_items_per_week }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6 mb-2">
+                    <div class="card border-0 shadow-sm bg-primary bg-opacity-10">
+                        <div class="card-body text-center">
+                            <div class="text-muted small">Velocity (Points/Week)</div>
+                            <div class="h3 mb-0 text-primary">{{ metrics.dashboard.avg_points_per_week }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Burndown & Velocity Section -->
+        {% if 'burndown' in sections and metrics.burndown %}
+        <div class="section">
+            <h2 class="section-title">
+                <i class="fas fa-chart-line text-primary"></i>
+                Burndown & Velocity Metrics
+            </h2>
+            
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <h5 class="mb-3">Completion Summary</h5>
+                    <div class="metric-row">
+                        <span class="metric-label">Total Completed Items</span>
+                        <span class="metric-value text-primary">{{ metrics.burndown.total_completed_items }}</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Total Completed Points</span>
+                        <span class="metric-value text-primary">{{ metrics.burndown.total_completed_points }}</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Remaining Items</span>
+                        <span class="metric-value text-warning">{{ metrics.burndown.remaining_items }}</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Remaining Points</span>
+                        <span class="metric-value text-warning">{{ metrics.burndown.remaining_points }}</span>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <h5 class="mb-3">Velocity</h5>
+                    <div class="metric-row">
+                        <span class="metric-label">Average Items/Week</span>
+                        <span class="metric-value">{{ metrics.burndown.avg_items_per_week }}</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Average Points/Week</span>
+                        <span class="metric-value">{{ metrics.burndown.avg_points_per_week }}</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Recent Items Velocity (4 weeks)</span>
+                        <span class="metric-value text-success">{{ metrics.burndown.recent_items_velocity }}</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Recent Points Velocity (4 weeks)</span>
+                        <span class="metric-value text-success">{{ metrics.burndown.recent_points_velocity }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <h5 class="mt-4 mb-3">Weekly Breakdown (Last 12 Weeks)</h5>
+            <div class="table-responsive">
+                <table class="table table-sm table-striped">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Week</th>
+                            <th class="text-end">Completed Items</th>
+                            <th class="text-end">Completed Points</th>
+                            <th class="text-end">Created Items</th>
+                            <th class="text-end">Created Points</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for week in metrics.burndown.weekly_data %}
+                        <tr>
+                            <td>{{ week.date }}</td>
+                            <td class="text-end">{{ week.completed_items }}</td>
+                            <td class="text-end">{{ week.completed_points }}</td>
+                            <td class="text-end">{{ week.created_items }}</td>
+                            <td class="text-end">{{ week.created_points }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Bug Analysis Section -->
+        {% if 'burndown' in sections and metrics.bug_analysis %}
+        <div class="section">
+            <h2 class="section-title">
+                <i class="fas fa-bug text-danger"></i>
+                Bug Analysis
+            </h2>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <div class="metric-row">
+                        <span class="metric-label">Total Bugs</span>
+                        <span class="metric-value">{{ metrics.bug_analysis.total_bugs }}</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Open Bugs</span>
+                        <span class="metric-value text-danger">{{ metrics.bug_analysis.open_bugs }}</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Closed Bugs</span>
+                        <span class="metric-value text-success">{{ metrics.bug_analysis.closed_bugs }}</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Bug Rate (%)</span>
+                        <span class="metric-value">{{ metrics.bug_analysis.bug_rate }}%</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Avg Resolution Time</span>
+                        <span class="metric-value">{{ metrics.bug_analysis.avg_resolution_time }} days</span>
+                    </div>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    {% if metrics.bug_analysis.priority_breakdown %}
+                    <h6>Priority Breakdown</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead class="table-light">
+                                <tr><th>Priority</th><th class="text-end">Count</th></tr>
+                            </thead>
+                            <tbody>
+                                {% for priority, count in metrics.bug_analysis.priority_breakdown.items() %}
+                                <tr><td>{{ priority }}</td><td class="text-end">{{ count }}</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Scope Analysis Section -->
+        {% if 'burndown' in sections and metrics.scope %}
+        <div class="section">
+            <h2 class="section-title">
+                <i class="fas fa-crosshairs text-info"></i>
+                Scope Analysis
+            </h2>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <h5 class="mb-3">Remaining Work Snapshot</h5>
+                    <div class="alert alert-info" style="font-size: 0.85rem; padding: 0.5rem; margin-bottom: 1rem;">
+                        <i class="fas fa-info-circle"></i> Showing scope at <strong>start of {{ weeks_count }}-week window</strong> for burndown baseline
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">At Window Start (Items)</span>
+                        <span class="metric-value">{{ metrics.scope.remaining_at_start_items }}</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">At Window Start (Points)</span>
+                        <span class="metric-value">{{ metrics.scope.remaining_at_start_points }}</span>
+                    </div>
+                    <div class="metric-row" style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid #dee2e6;">
+                        <span class="metric-label">Current Remaining (Items)</span>
+                        <span class="metric-value text-success">{{ metrics.scope.remaining_current_items }}</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Current Remaining (Points)</span>
+                        <span class="metric-value text-success">{{ metrics.scope.remaining_current_points }}</span>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <h5 class="mb-3">Progress in Window</h5>
+                    <div class="metric-row">
+                        <span class="metric-label">Completed Items</span>
+                        <span class="metric-value text-success">{{ metrics.scope.completed_in_window_items }}</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Completed Points</span>
+                        <span class="metric-value text-success">{{ metrics.scope.completed_in_window_points }}</span>
+                    </div>
+                    <div class="metric-row" style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid #dee2e6;">
+                        <span class="metric-label">Items Progress</span>
+                        <span class="metric-value text-info">{{ ((metrics.scope.completed_in_window_items / metrics.scope.initial_scope_items * 100) if metrics.scope.initial_scope_items > 0 else 0)|round(1) }}%</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Points Progress</span>
+                        <span class="metric-value text-info">{{ ((metrics.scope.completed_in_window_points / metrics.scope.initial_scope_points * 100) if metrics.scope.initial_scope_points > 0 else 0)|round(1) }}%</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Removed Items</span>
+                        <span class="metric-value text-secondary">-{{ metrics.scope.removed_items }}</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Removed Points</span>
+                        <span class="metric-value text-secondary">-{{ metrics.scope.removed_points }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Flow Metrics Section -->
+        {% if 'flow' in sections and metrics.flow and metrics.flow.has_data %}
+        <div class="section">
+            <h2 class="section-title">
+                <i class="fas fa-stream text-primary"></i>
+                Flow Metrics
+            </h2>
+            <p class="text-muted small mb-3">
+                Flow Framework metrics track work movement through the development pipeline
+            </p>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <h5 class="mb-3">Latest Metrics</h5>
+                    <div class="metric-row">
+                        <span class="metric-label">Flow Velocity</span>
+                        <span class="metric-value">{{ metrics.flow.latest_flow_velocity }} items/week</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Flow Time</span>
+                        <span class="metric-value">{{ metrics.flow.latest_flow_time }} days</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Flow Efficiency</span>
+                        <span class="metric-value">{{ metrics.flow.latest_flow_efficiency }}%</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Flow Load</span>
+                        <span class="metric-value">{{ metrics.flow.latest_flow_load }} items</span>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <h5 class="mb-3">Period Averages ({{ metrics.flow.snapshots_count }} weeks)</h5>
+                    <div class="metric-row">
+                        <span class="metric-label">Avg Flow Velocity</span>
+                        <span class="metric-value">{{ metrics.flow.avg_flow_velocity }} items/week</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Avg Flow Time</span>
+                        <span class="metric-value">{{ metrics.flow.avg_flow_time }} days</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Avg Flow Efficiency</span>
+                        <span class="metric-value">{{ metrics.flow.avg_flow_efficiency }}%</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Avg Flow Load</span>
+                        <span class="metric-value">{{ metrics.flow.avg_flow_load }} items</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Work Distribution Section -->
+        {% if 'flow' in sections and metrics.flow and metrics.flow.work_distribution %}
+        <div class="section">
+            <h2 class="section-title">
+                <i class="fas fa-chart-pie text-success"></i>
+                Work Distribution
+            </h2>
+            <p class="text-muted small mb-3">
+                Breakdown of work by type shows team focus and balance
+            </p>
+            
+            <div class="row align-items-center">
+                <div class="col-md-4 text-center">
+                    <div class="work-pie mx-auto" style="
+                        --feature-pct: {{ metrics.flow.work_distribution.Feature }};
+                        --bug-pct: {{ metrics.flow.work_distribution.Bug }};
+                        --debt-pct: {{ metrics.flow.work_distribution['Technical Debt'] }};
+                    "></div>
+                </div>
+                <div class="col-md-8">
+                    <div class="metric-row">
+                        <span class="metric-label">
+                            <i class="fas fa-circle text-success me-2"></i>Feature
+                        </span>
+                        <span class="metric-value">{{ metrics.flow.work_distribution.Feature }}%</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">
+                            <i class="fas fa-circle text-danger me-2"></i>Bug
+                        </span>
+                        <span class="metric-value">{{ metrics.flow.work_distribution.Bug }}%</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">
+                            <i class="fas fa-circle text-warning me-2"></i>Technical Debt
+                        </span>
+                        <span class="metric-value">{{ metrics.flow.work_distribution['Technical Debt'] }}%</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">
+                            <i class="fas fa-circle text-secondary me-2"></i>Risk
+                        </span>
+                        <span class="metric-value">{{ metrics.flow.work_distribution.Risk }}%</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="alert alert-info mt-3 small">
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>Recommended balance:</strong> Features 40-70%, Bugs &lt;10%, Technical Debt 10-20%, Risk 10-20%
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- DORA Metrics Section -->
+        {% if 'dora' in sections and metrics.dora and metrics.dora.has_data %}
+        <div class="section">
+            <h2 class="section-title">
+                <i class="fas fa-rocket text-success"></i>
+                DORA Metrics
+            </h2>
+            <p class="text-muted small mb-3">
+                DevOps Research and Assessment metrics measure software delivery performance
+            </p>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <h5 class="mb-3">Latest Metrics</h5>
+                    <div class="metric-row">
+                        <span class="metric-label">Deployment Frequency</span>
+                        <span class="metric-value">{{ metrics.dora.latest_deployment_frequency }}/week</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Lead Time for Changes</span>
+                        <span class="metric-value">{{ metrics.dora.latest_lead_time }} days</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Change Failure Rate</span>
+                        <span class="metric-value">{{ metrics.dora.latest_change_failure_rate }}%</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Time to Restore Service</span>
+                        <span class="metric-value">{{ metrics.dora.latest_mttr }} hours</span>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <h5 class="mb-3">Period Averages ({{ metrics.dora.snapshots_count }} weeks)</h5>
+                    <div class="metric-row">
+                        <span class="metric-label">Avg Deployment Frequency</span>
+                        <span class="metric-value">{{ metrics.dora.avg_deployment_frequency }}/week</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Avg Lead Time</span>
+                        <span class="metric-value">{{ metrics.dora.avg_lead_time }} days</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Avg Change Failure Rate</span>
+                        <span class="metric-value">{{ metrics.dora.avg_change_failure_rate }}%</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Avg Time to Restore</span>
+                        <span class="metric-value">{{ metrics.dora.avg_mttr }} hours</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="text-center text-muted py-4">
+        <p class="mb-0">
+            This report was generated automatically from project data<br>
+            Data snapshot as of {{ generated_at }}
+        </p>
+    </footer>
+    
+    <script>
+    // Simple burndown forecast chart using CSS
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add sparklines to weekly data if present
+        const tables = document.querySelectorAll('.table-striped');
+        tables.forEach(table => {
+            const rows = table.querySelectorAll('tbody tr');
+            if (rows.length > 0) {
+                const values = Array.from(rows).map(row => {
+                    const cells = row.querySelectorAll('td');
+                    return cells.length > 1 ? parseInt(cells[1].textContent) || 0 : 0;
+                });
+                
+                const max = Math.max(...values);
+                if (max > 0) {
+                    rows.forEach((row, i) => {
+                        const lastCell = row.querySelector('td:last-child');
+                        if (lastCell && values[i] !== undefined) {
+                            const height = (values[i] / max) * 30;
+                            const sparkbar = document.createElement('div');
+                            sparkbar.className = 'sparkline-bar';
+                            sparkbar.style.height = height + 'px';
+                            sparkbar.style.left = (i * 10) + 'px';
+                            sparkbar.title = values[i];
+                        }
+                    });
+                }
+            }
+        });
+    });
+    </script>
+</body>
+</html>

@@ -1263,6 +1263,10 @@ def register(app):
         """
         Export complete project data as JSON when the export button is clicked.
 
+        Includes:
+        - project_data: Statistics, issues, burndown calculations
+        - metrics_snapshots: DORA/Flow metrics pre-calculated snapshots
+
         Args:
             n_clicks: Number of button clicks
 
@@ -1274,17 +1278,33 @@ def register(app):
 
         try:
             from data.persistence import load_unified_project_data
+            from data.metrics_snapshots import load_snapshots
 
             current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
 
             # Load the complete unified project data
             project_data = load_unified_project_data()
 
+            # Load metrics snapshots (DORA/Flow metrics)
+            metrics_snapshots = load_snapshots()
+
+            # Combine into single export package
+            export_package = {
+                "export_timestamp": current_time,
+                "project_data": project_data,
+                "metrics_snapshots": metrics_snapshots,
+                "format_version": "1.0",
+            }
+
             # Create filename with timestamp
             filename = f"project_data_{current_time}.json"
 
             # Convert to JSON string with pretty formatting
-            json_content = json.dumps(project_data, indent=2, ensure_ascii=False)
+            json_content = json.dumps(export_package, indent=2, ensure_ascii=False)
+
+            logger.info(
+                f"Exported project data with {len(metrics_snapshots)} metric snapshots"
+            )
 
             # Return JSON data for download
             return dict(
