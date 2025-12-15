@@ -22,10 +22,10 @@ Research-backed metrics developed by Google's DORA team measuring software deliv
 
 | Metric                    | Time Unit        | Aggregation              | Elite Tier | Code Location                                                   |
 | ------------------------- | ---------------- | ------------------------ | ---------- | --------------------------------------------------------------- |
-| **Deployment Frequency**  | deployments/week | Average of weekly counts | ≥30/month  | `data/dora_calculator.py::calculate_deployment_frequency_v2()`  |
-| **Lead Time for Changes** | days             | Median of all lead times | <1 hour    | `data/dora_calculator.py::calculate_lead_time_for_changes_v2()` |
-| **Change Failure Rate**   | percentage       | Aggregate across weeks   | 0-15%      | `data/dora_calculator.py::calculate_change_failure_rate_v2()`   |
-| **MTTR**                  | hours            | Median of recovery times | <1 hour    | `data/dora_calculator.py::calculate_mttr_v2()`                  |
+| **Deployment Frequency**  | deployments/week | Average per week         | ≥30/month  | `data/dora_calculator.py::calculate_deployment_frequency_v2()`  |
+| **Lead Time for Changes** | days             | Median of weekly medians | <1 hour    | `data/dora_calculator.py::calculate_lead_time_for_changes_v2()` |
+| **Change Failure Rate**   | percentage       | Overall rate (all weeks) | 0-15%      | `data/dora_calculator.py::calculate_change_failure_rate_v2()`   |
+| **MTTR**                  | hours            | Median of weekly medians | <1 hour    | `data/dora_calculator.py::calculate_mttr_v2()`                  |
 
 ---
 

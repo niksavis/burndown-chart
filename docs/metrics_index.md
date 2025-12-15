@@ -109,6 +109,14 @@ Most metrics use tier-based performance indicators:
 ### Weekly Calculations
 All metrics are calculated weekly (Monday-Sunday, ISO 8601 standard) and cached for performance.
 
+**Aggregation Methods**: Metrics displayed on cards use different statistical methods:
+- **Median of weekly medians**: Lead Time, MTTR, Flow Time (robust to outliers)
+- **Average**: Deployment Frequency, Velocity, Efficiency (natural for rates)
+- **Overall rate**: Change Failure Rate (true percentage across all deployments)
+- **Current snapshot**: Flow Load/WIP (point-in-time, not historical)
+
+See card footers for aggregation method and time period (e.g., "Median of weekly medians • 1,234 issues • 12 weeks").
+
 ### Common Pitfalls
 - ❌ Gaming metrics (e.g., deploying tiny changes to boost frequency)
 - ❌ Comparing across teams (context matters)

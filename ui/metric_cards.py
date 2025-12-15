@@ -816,11 +816,10 @@ def _create_success_card(
 
     # Format value - special handling for deployment_frequency with release count
     value = metric_data.get("value")
-    release_value = metric_data.get("release_value")  # NEW: for deployment_frequency
+    # Note: release_value, task_value, p95_value available in metric_data for future use
     task_value = metric_data.get(
         "task_value"
     )  # NEW: deployment count (operational tasks)
-    p95_value = metric_data.get("p95_value")  # NEW: for lead_time and mttr
 
     if value is not None:
         formatted_value = f"{value:.1f}" if value >= 10 else f"{value:.2f}"
@@ -828,12 +827,7 @@ def _create_success_card(
         formatted_value = "N/A"
 
     # Format release value if present (deployment_frequency metric)
-    if release_value is not None:
-        formatted_release_value = (
-            f"{release_value:.1f}" if release_value >= 10 else f"{release_value:.2f}"
-        )
-    else:
-        formatted_release_value = None
+    # Currently not used in display but calculated for potential future use
 
     # Format task value if present (deployment_frequency - operational task count)
     if task_value is not None:
@@ -844,12 +838,7 @@ def _create_success_card(
         formatted_task_value = None
 
     # Format P95 value if present (lead_time and mttr metrics)
-    if p95_value is not None:
-        formatted_p95_value = (
-            f"{p95_value:.1f}" if p95_value >= 10 else f"{p95_value:.2f}"
-        )
-    else:
-        formatted_p95_value = None
+    # Currently not used in display but calculated for potential future use
 
     # Build card with h-100 for consistent heights with error cards
     card_props = {"className": "metric-card mb-3 h-100"}
@@ -1423,14 +1412,14 @@ def _format_additional_info(metric_data: dict) -> str:
 
     # Determine aggregation method label
     aggregation_labels = {
-        "lead_time_for_changes": f"Median of weekly medians",
-        "mean_time_to_recovery": f"Median of weekly medians",
-        "flow_time": f"Median of weekly medians",
-        "flow_velocity": f"Average per week",
-        "flow_efficiency": f"Average of weekly values",
-        "flow_load": f"Current week snapshot",
-        "deployment_frequency": f"Average per week",
-        "change_failure_rate": f"Overall rate",
+        "lead_time_for_changes": "Median of weekly medians",
+        "mean_time_to_recovery": "Median of weekly medians",
+        "flow_time": "Median of weekly medians",
+        "flow_velocity": "Average per week",
+        "flow_efficiency": "Average of weekly values",
+        "flow_load": "Current week snapshot",
+        "deployment_frequency": "Average per week",
+        "change_failure_rate": "Overall rate",
     }
 
     aggregation_label = aggregation_labels.get(metric_name, "")

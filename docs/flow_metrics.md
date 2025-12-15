@@ -21,13 +21,13 @@ While DORA metrics tell you **WHAT** happened (deployment outcomes), Flow metric
 
 ## Quick Reference
 
-| Metric                | Time Unit  | Aggregation            | Healthy Target                | Code Location                                                   |
-| --------------------- | ---------- | ---------------------- | ----------------------------- | --------------------------------------------------------------- |
-| **Flow Velocity**     | items/week | Current week count     | Stable, predictable           | `data/flow_calculator.py::calculate_flow_velocity_v2()`         |
-| **Flow Time**         | days       | Median of cycle times  | Consistent cycle time         | `data/flow_calculator.py::calculate_flow_time_v2()`             |
-| **Flow Efficiency**   | percentage | Current week aggregate | 25-40%                        | `data/flow_calculator.py::calculate_flow_efficiency_v2()`       |
-| **Flow Load (WIP)**   | items      | Current week snapshot  | <P25 threshold (green)        | `data/flow_calculator.py::calculate_flow_load_v2()`             |
-| **Flow Distribution** | percentage | Current week breakdown | Feature 40-50%, Defect 15-25% | `data/flow_calculator.py::aggregate_flow_distribution_weekly()` |
+| Metric                | Time Unit  | Aggregation             | Healthy Target                | Code Location                                                   |
+| --------------------- | ---------- | ----------------------- | ----------------------------- | --------------------------------------------------------------- |
+| **Flow Velocity**     | items/week | Average per week        | Stable, predictable           | `data/flow_calculator.py::calculate_flow_velocity_v2()`         |
+| **Flow Time**         | days       | Median of weekly median | Consistent cycle time         | `data/flow_calculator.py::calculate_flow_time_v2()`             |
+| **Flow Efficiency**   | percentage | Average of weekly value | 25-40%                        | `data/flow_calculator.py::calculate_flow_efficiency_v2()`       |
+| **Flow Load (WIP)**   | items      | Current week snapshot   | <P25 threshold (green)        | `data/flow_calculator.py::calculate_flow_load_v2()`             |
+| **Flow Distribution** | percentage | Sum across all weeks    | Feature 40-50%, Defect 15-25% | `data/flow_calculator.py::aggregate_flow_distribution_weekly()` |
 
 ---
 
