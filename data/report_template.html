@@ -1,3 +1,5 @@
+<!-- @ts-nocheck -->
+<!-- This is a Jinja2 template file, JavaScript linting errors related to template syntax are expected -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9,6 +11,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     
     <style>
         body {
@@ -138,66 +142,17 @@
             stroke-width: 2;
         }
         
-        /* Work distribution pie */
-        .work-pie {
-            width: 120px;
-            height: 120px;
-            border-radius: 50%;
-            background: conic-gradient(
-                from 0deg,
-                #198754 0deg calc(var(--feature-pct) * 3.6deg),
-                #dc3545 calc(var(--feature-pct) * 3.6deg) calc((var(--feature-pct) + var(--bug-pct)) * 3.6deg),
-                #ffc107 calc((var(--feature-pct) + var(--bug-pct)) * 3.6deg) calc((var(--feature-pct) + var(--bug-pct) + var(--debt-pct)) * 3.6deg),
-                #6c757d calc((var(--feature-pct) + var(--bug-pct) + var(--debt-pct)) * 3.6deg) 360deg
-            );
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        /* Work distribution chart container */
+        .work-chart-container {
+            width: 200px;
+            height: 200px;
+            position: relative;
         }
         
-        /* Weekly breakdown bar chart - using inline styles for simplicity */
-        .chart-week {
+        /* Weekly breakdown chart container */
+        .weekly-chart-container {
+            height: 350px;
             position: relative;
-            width: 7%;
-        }
-        .chart-week::before,
-        .chart-week::after {
-            content: '';
-            position: absolute;
-            width: 45%;
-        }
-        /* Created items (blue, above) */
-        .chart-week::before {
-            bottom: 50%;
-            left: 0;
-            height: var(--ci);
-            background: #0d6efd;
-            border-radius: 3px 3px 0 0;
-        }
-        /* Completed items (blue, below) */
-        .chart-week::after {
-            top: 50%;
-            left: 0;
-            height: var(--xi);
-            background: #0d6efd;
-            border-radius: 0 0 3px 3px;
-        }
-        /* Points bars using child elements */
-        .chart-week-cp,
-        .chart-week-xp {
-            position: absolute;
-            width: 45%;
-            right: 0;
-        }
-        .chart-week-cp {
-            bottom: 50%;
-            height: var(--cp);
-            background: #fd7e14;
-            border-radius: 3px 3px 0 0;
-        }
-        .chart-week-xp {
-            top: 50%;
-            height: var(--xp);
-            background: #fd7e14;
-            border-radius: 0 0 3px 3px;
         }
         
         @media print {
@@ -368,91 +323,20 @@
             
             <h5 class="mt-4 mb-3">Weekly Breakdown</h5>
             <div style="background: white; border-radius: 8px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                <!-- Legend -->
-                <div style="display: flex; justify-content: center; gap: 2rem; margin-bottom: 0.5rem; font-size: 0.85rem;">
-                    <div><span style="display: inline-block; width: 12px; height: 12px; background: #0d6efd; border-radius: 2px; margin-right: 0.5rem;"></span>Items</div>
-                    <div><span style="display: inline-block; width: 12px; height: 12px; background: #fd7e14; border-radius: 2px; margin-right: 0.5rem;"></span>Points</div>
-                    <div style="color: #6c757d; font-size: 0.8rem;">Above: Created | Below: Completed</div>
+                <div class="mb-3 text-muted small">
+                    <span class="me-3"><i class="fas fa-square text-primary"></i> Items</span>
+                    <span><i class="fas fa-square" style="color: #fd7e14;"></i> Points</span>
+                    <span class="ms-3">Above: Created | Below: Closed</span>
                 </div>
                 
-                <!-- Bar Chart -->
-                <div style="position: relative; height: 250px;">
-                    <!-- X-axis at y=0 -->
-                    <div style="position: absolute; left: 0; right: 0; top: 50%; height: 2px; background: #6c757d;"></div>
-                    
-                    <!-- Bars container -->
-                    <div style="display: flex; justify-content: space-around; height: 100%;">
-                        {% for week in metrics.burndown.weekly_data %}
-                        <div class="chart-week" style="--ci: {{ week.created_items_pct }}%; --cp: {{ week.created_points_pct }}%; --xi: {{ week.completed_items_pct }}%; --xp: {{ week.completed_points_pct }}%;">
-                            <div class="chart-week-cp"></div>
-                            <div class="chart-week-xp"></div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-                
-                <!-- Date labels -->
-                <div style="display: flex; justify-content: space-around; margin-top: 0.5rem;">
-                    {% for week in metrics.burndown.weekly_data %}
-                    <div style="width: 7%; font-size: 0.65rem; color: #6c757d; text-align: center; transform: rotate(-45deg); transform-origin: top center;">{{ week.date }}</div>
-                    {% endfor %}
+                <div class="weekly-chart-container">
+                    <canvas id="weeklyBreakdownChart"></canvas>
                 </div>
             </div>
         </div>
         {% endif %}
 
-        <!-- Bug Analysis Section -->
-        {% if 'burndown' in sections and metrics.bug_analysis %}
-        <div class="section">
-            <h2 class="section-title">
-                <i class="fas fa-bug text-danger"></i>
-                Bug Analysis
-            </h2>
-            
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <div class="metric-row">
-                        <span class="metric-label">Total Bugs</span>
-                        <span class="metric-value">{{ metrics.bug_analysis.total_bugs }}</span>
-                    </div>
-                    <div class="metric-row">
-                        <span class="metric-label">Open Bugs</span>
-                        <span class="metric-value text-danger">{{ metrics.bug_analysis.open_bugs }}</span>
-                    </div>
-                    <div class="metric-row">
-                        <span class="metric-label">Closed Bugs</span>
-                        <span class="metric-value text-success">{{ metrics.bug_analysis.closed_bugs }}</span>
-                    </div>
-                    <div class="metric-row">
-                        <span class="metric-label">Bug Rate (%)</span>
-                        <span class="metric-value">{{ metrics.bug_analysis.bug_rate }}%</span>
-                    </div>
-                    <div class="metric-row">
-                        <span class="metric-label">Avg Resolution Time</span>
-                        <span class="metric-value">{{ metrics.bug_analysis.avg_resolution_time }} days</span>
-                    </div>
-                </div>
-                
-                <div class="col-md-6 mb-3">
-                    {% if metrics.bug_analysis.priority_breakdown %}
-                    <h6>Priority Breakdown</h6>
-                    <div class="table-responsive">
-                        <table class="table table-sm">
-                            <thead class="table-light">
-                                <tr><th>Priority</th><th class="text-end">Count</th></tr>
-                            </thead>
-                            <tbody>
-                                {% for priority, count in metrics.bug_analysis.priority_breakdown.items() %}
-                                <tr><td>{{ priority }}</td><td class="text-end">{{ count }}</td></tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-        {% endif %}
+
 
         <!-- Scope Analysis Section -->
         {% if 'burndown' in sections and metrics.scope %}
@@ -512,6 +396,59 @@
                         <span class="metric-label">Removed Points</span>
                         <span class="metric-value text-secondary">-{{ metrics.scope.removed_points }}</span>
                     </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Bug Analysis Section -->
+        {% if 'burndown' in sections and metrics.bug_analysis %}
+        <div class="section">
+            <h2 class="section-title">
+                <i class="fas fa-bug text-danger"></i>
+                Bug Analysis
+            </h2>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <div class="metric-row">
+                        <span class="metric-label">Total Bugs</span>
+                        <span class="metric-value">{{ metrics.bug_analysis.total_bugs }}</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Open Bugs</span>
+                        <span class="metric-value text-danger">{{ metrics.bug_analysis.open_bugs }}</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Closed Bugs</span>
+                        <span class="metric-value text-success">{{ metrics.bug_analysis.closed_bugs }}</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Bug Rate (%)</span>
+                        <span class="metric-value">{{ metrics.bug_analysis.bug_rate }}%</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Avg Resolution Time</span>
+                        <span class="metric-value">{{ metrics.bug_analysis.avg_resolution_time }} days</span>
+                    </div>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    {% if metrics.bug_analysis.priority_breakdown %}
+                    <h6>Priority Breakdown</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead class="table-light">
+                                <tr><th>Priority</th><th class="text-end">Count</th></tr>
+                            </thead>
+                            <tbody>
+                                {% for priority, count in metrics.bug_analysis.priority_breakdown.items() %}
+                                <tr><td>{{ priority }}</td><td class="text-end">{{ count }}</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -585,11 +522,9 @@
             
             <div class="row align-items-center">
                 <div class="col-md-4 text-center">
-                    <div class="work-pie mx-auto" style="
-                        --feature-pct: {{ metrics.flow.work_distribution.Feature }};
-                        --bug-pct: {{ metrics.flow.work_distribution.Bug }};
-                        --debt-pct: {{ metrics.flow.work_distribution['Technical Debt'] }};
-                    "></div>
+                    <div class="work-chart-container mx-auto">
+                        <canvas id="workDistributionChart"></canvas>
+                    </div>
                 </div>
                 <div class="col-md-8">
                     <div class="metric-row">
@@ -721,5 +656,10 @@
         });
     });
     </script>
+    
+    <!-- Weekly Breakdown Chart -->
+    {% if chart_script %}
+    <script>{{ chart_script | safe }}</script>
+    {% endif %}
 </body>
 </html>

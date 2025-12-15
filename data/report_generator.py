@@ -1,5 +1,6 @@
 """HTML report generator for burndown charts and metrics."""
 
+import json
 import logging
 from datetime import datetime
 from pathlib import Path
@@ -59,13 +60,154 @@ def generate_html_report(
     with open(template_path, "r", encoding="utf-8") as f:
         template = Template(f.read())
 
+    # Prepare chart JavaScript code (avoids Jinja2 in JS which triggers linter errors)
+    chart_scripts = []
+
+    # Weekly breakdown chart
+    if "burndown" in sections and metrics.get("burndown", {}).get("weekly_data"):
+        weekly = metrics["burndown"]["weekly_data"]
+        dates_js = json.dumps([w["date"] for w in weekly])
+        items_created_js = json.dumps([w["created_items"] for w in weekly])
+        items_closed_js = json.dumps([w["completed_items"] for w in weekly])
+        points_created_js = json.dumps([w["created_points"] for w in weekly])
+        points_closed_js = json.dumps([w["completed_points"] for w in weekly])
+
+        chart_script = f"""
+        (function() {{
+            const ctx = document.getElementById('weeklyBreakdownChart');
+            if (ctx) {{
+                new Chart(ctx, {{
+                    type: 'bar',
+                    data: {{
+                        labels: {dates_js},
+                        datasets: [
+                            {{
+                                label: 'Items Created',
+                                data: {items_created_js},
+                                backgroundColor: '#6ea8fe',
+                                stack: 'items'
+                            }},
+                            {{
+                                label: 'Items Closed',
+                                data: {items_closed_js}.map(v => -v),
+                                backgroundColor: '#0a58ca',
+                                stack: 'items'
+                            }},
+                            {{
+                                label: 'Points Created',
+                                data: {points_created_js},
+                                backgroundColor: '#ffb347',
+                                stack: 'points'
+                            }},
+                            {{
+                                label: 'Points Closed',
+                                data: {points_closed_js}.map(v => -v),
+                                backgroundColor: '#dc6502',
+                                stack: 'points'
+                            }}
+                        ]
+                    }},
+                    options: {{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {{
+                            x: {{
+                                grid: {{ display: false }}
+                            }},
+                            y: {{
+                                beginAtZero: true,
+                                grid: {{ color: '#e9ecef' }},
+                                ticks: {{
+                                    callback: function(value) {{
+                                        return Math.abs(value);
+                                    }}
+                                }}
+                            }}
+                        }},
+                        plugins: {{
+                            legend: {{
+                                display: true,
+                                position: 'bottom'
+                            }},
+                            tooltip: {{
+                                callbacks: {{
+                                    label: function(context) {{
+                                        return context.dataset.label + ': ' + Math.abs(context.parsed.y);
+                                    }}
+                                }}
+                            }}
+                        }}
+                    }}
+                }});
+            }}
+        }})();
+        """
+        chart_scripts.append(chart_script)
+
+    # Work distribution pie chart
+    if "flow" in sections and metrics.get("flow", {}).get("work_distribution"):
+        work_dist = metrics["flow"]["work_distribution"]
+        labels_js = json.dumps(list(work_dist.keys()))
+        values_js = json.dumps(list(work_dist.values()))
+        colors = [
+            "#198754",
+            "#dc3545",
+            "#ffc107",
+            "#6c757d",
+        ]  # Feature, Bug, Debt, Risk
+        colors_js = json.dumps(colors[: len(work_dist)])
+
+        work_chart_script = f"""
+        (function() {{
+            const ctx = document.getElementById('workDistributionChart');
+            if (ctx) {{
+                new Chart(ctx, {{
+                    type: 'doughnut',
+                    data: {{
+                        labels: {labels_js},
+                        datasets: [{{
+                            data: {values_js},
+                            backgroundColor: {colors_js},
+                            borderWidth: 2,
+                            borderColor: '#fff'
+                        }}]
+                    }},
+                    options: {{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {{
+                            legend: {{
+                                display: false
+                            }},
+                            tooltip: {{
+                                callbacks: {{
+                                    label: function(context) {{
+                                        return context.label + ': ' + context.parsed + '%';
+                                    }}
+                                }}
+                            }}
+                        }}
+                    }}
+                }});
+            }}
+        }})();
+        """
+        chart_scripts.append(work_chart_script)
+
+    combined_chart_script = "\n".join(chart_scripts)
+
+    # Generate timestamp with day of week
+    now = datetime.now()
+    generated_at = now.strftime("%A, %Y-%m-%d %H:%M:%S")
+
     html = template.render(
         profile_name=profile_name,
         query_name=query_name,
-        generated_at=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        generated_at=generated_at,
         time_period_weeks=time_period_weeks,
         sections=sections,
         metrics=metrics,
+        chart_script=combined_chart_script,
     )
 
     logger.info(f"Report generated successfully: {len(html)} bytes")
@@ -279,18 +421,24 @@ def _calculate_burndown_metrics(statistics: List[Dict], project_data: Dict) -> D
     weekly_data = []
     recent_weeks = statistics[-12:] if len(statistics) >= 12 else statistics
 
-    # Calculate max value for scaling bars
-    all_values = []
+    # Calculate max values for scaling bars - separate scales for items and points
+    items_values = []
+    points_values = []
     for row in recent_weeks:
-        all_values.extend(
+        items_values.extend(
             [
                 row.get("completed_items", 0),
-                row.get("completed_points", 0),
                 row.get("created_items", 0),
+            ]
+        )
+        points_values.extend(
+            [
+                row.get("completed_points", 0),
                 row.get("created_points", 0),
             ]
         )
-    max_value = max(all_values) if all_values else 1
+    max_items = max(items_values) if items_values else 1
+    max_points = max(points_values) if points_values else 1
 
     for row in recent_weeks:
         # Format date nicely - strip timestamp if present
@@ -313,17 +461,18 @@ def _calculate_burndown_metrics(statistics: List[Dict], project_data: Dict) -> D
                 "created_items": created_items,
                 "created_points": created_points,
                 # Pre-calculated percentages for CSS (halved for above/below y=0)
+                # Items and points use separate scales for better visibility
                 "completed_items_pct": round(
-                    (completed_items / max_value * 50) if max_value > 0 else 0, 1
+                    (completed_items / max_items * 50) if max_items > 0 else 0, 1
                 ),
                 "completed_points_pct": round(
-                    (completed_points / max_value * 50) if max_value > 0 else 0, 1
+                    (completed_points / max_points * 50) if max_points > 0 else 0, 1
                 ),
                 "created_items_pct": round(
-                    (created_items / max_value * 50) if max_value > 0 else 0, 1
+                    (created_items / max_items * 50) if max_items > 0 else 0, 1
                 ),
                 "created_points_pct": round(
-                    (created_points / max_value * 50) if max_value > 0 else 0, 1
+                    (created_points / max_points * 50) if max_points > 0 else 0, 1
                 ),
             }
         )

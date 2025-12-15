@@ -1661,6 +1661,14 @@ def _save_delta_fetch_result(
 
         with open(cache_file, "w") as f:
             json.dump(cache_data, f, indent=2)
+            # CRITICAL: Flush file buffers to disk before returning
+            # The settings callback immediately reads this file after fetch returns
+            # Without explicit flush, there's a race condition where the read happens
+            # before the write completes, causing calculation to start with stale/partial data
+            f.flush()
+            import os
+
+            os.fsync(f.fileno())  # Force OS to write to disk (not just Python buffer)
 
         logger.info(
             f"[Delta] Saved {len(merged_issues)} issues ({len(changed_keys)} changed) to cache"
@@ -1911,6 +1919,14 @@ def cache_jira_response(
 
         with open(cache_file, "w") as f:
             json.dump(cache_data, f, indent=2)
+            # CRITICAL: Flush file buffers to disk before returning
+            # The settings callback immediately reads this file after fetch returns
+            # Without explicit flush, there's a race condition where the read happens
+            # before the write completes, causing calculation to start with stale/partial data
+            f.flush()
+            import os
+
+            os.fsync(f.fileno())  # Force OS to write to disk (not just Python buffer)
 
         logger.debug(
             f"[Cache] Saved {len(data)} issues to legacy cache (v{CACHE_VERSION})"
