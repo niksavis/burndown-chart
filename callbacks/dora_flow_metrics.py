@@ -49,18 +49,63 @@ def _calculate_dynamic_forecast(
     """
     from data.metrics_calculator import calculate_forecast, calculate_trend_vs_forecast
 
-    # Need at least 4 weeks for meaningful forecast
+    # Need at least 4 weeks total for meaningful forecast
     if not weekly_values or len(weekly_values) < 4:
         logger.debug(
             f"Insufficient data for forecast: {metric_name} has {len(weekly_values) if weekly_values else 0} weeks"
         )
         return None, None
 
-    # Calculate forecast using filtered historical data
+    # Define metric categories for zero-handling
+    # Duration metrics: 0 = missing data (no deployments/completions to measure)
+    # Count/rate metrics: 0 = valid data (no activity that period)
+    DURATION_METRICS = {
+        "lead_time_for_changes",
+        "mean_time_to_recovery",
+        "flow_time",
+        "flow_efficiency",
+    }
+
+    is_duration_metric = metric_name in DURATION_METRICS
+
+    if is_duration_metric:
+        # Duration metrics: Find last 4 NON-ZERO weeks (reach back through entire dataset)
+        # Can't forecast cycle time/recovery time from weeks with no completions/incidents
+        non_zero_weeks = [w for w in weekly_values if w > 0]
+
+        # Take last 4 non-zero weeks (or fewer if not available)
+        weeks_to_use = (
+            non_zero_weeks[-4:] if len(non_zero_weeks) >= 4 else non_zero_weeks
+        )
+
+        # Need at least 2 non-zero weeks for meaningful forecast
+        if len(weeks_to_use) < 2:
+            logger.debug(
+                f"Insufficient non-zero data for forecast: {metric_name} has {len(weeks_to_use)} weeks with data"
+            )
+            return None, None
+
+        logger.info(
+            f"[Forecast] {metric_name}: Using last {len(weeks_to_use)} non-zero weeks from {len(weekly_values)} total weeks"
+        )
+    else:
+        # Count/rate metrics: Use last 4 weeks AS-IS (zeros are valid)
+        # 0 deployments, 0% failure rate, 0 velocity, 0 WIP are all meaningful data points
+        weeks_to_use = weekly_values[-4:]
+
+        logger.info(
+            f"[Forecast] {metric_name}: Using last 4 weeks (including zeros if present)"
+        )
+
+    # Calculate forecast using selected weeks
     try:
-        forecast_data = calculate_forecast(weekly_values)
+        forecast_data = calculate_forecast(weeks_to_use)
         if not forecast_data:
             return None, None
+
+        # Add metadata for display transparency
+        forecast_data["weeks_with_data"] = len(weeks_to_use)
+        forecast_data["used_non_zero_filter"] = is_duration_metric
 
         # Calculate trend vs forecast
         trend_vs_forecast = None

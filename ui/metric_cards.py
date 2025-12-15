@@ -149,6 +149,10 @@ def create_forecast_section(
 
     forecast_value = forecast_data.get("forecast_value")
     confidence = forecast_data.get("confidence", "building")
+    weeks_with_data = forecast_data.get("weeks_with_data")  # Actual weeks used
+    used_non_zero_filter = forecast_data.get(
+        "used_non_zero_filter", False
+    )  # Whether zeros were filtered
 
     # Format forecast value - standard formatting for all metrics
     if forecast_value is not None:
@@ -161,8 +165,21 @@ def create_forecast_section(
     # Build forecast section children
     forecast_children = []
 
-    # Confidence badge (building baseline vs established)
-    if confidence == "building":
+    # Build forecast label based on metric type and data availability
+    # Duration metrics (filtered zeros): "(3w with data)" - emphasizes found non-zero weeks
+    # Count/rate metrics (kept zeros): "(4w)" - standard label
+    if weeks_with_data:
+        if used_non_zero_filter:
+            # Duration metric - filtered out zero weeks, always show "with data"
+            weeks_label = f" ({weeks_with_data}w with data)"
+        else:
+            # Count/rate metric - used all weeks including zeros
+            weeks_label = f" ({weeks_with_data}w)"
+    else:
+        weeks_label = ""
+
+    # Confidence badge (building baseline vs established) - only show if building
+    if confidence == "building" and weeks_with_data and weeks_with_data < 4:
         confidence_badge = dbc.Badge(
             "Building baseline",
             color="secondary",
@@ -190,6 +207,11 @@ def create_forecast_section(
                     f" {unit}",
                     className="text-muted",
                     style={"fontSize": "0.75rem"},
+                ),
+                html.Span(
+                    weeks_label,
+                    className="text-muted",
+                    style={"fontSize": "0.7rem"},
                 ),
                 confidence_badge if confidence_badge else html.Span(),
             ],
