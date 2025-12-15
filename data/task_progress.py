@@ -381,6 +381,11 @@ class TaskProgress:
             }
             state["phase"] = phase
 
+            # CRITICAL: Ensure ui_state is preserved and defaults to operation_in_progress=True
+            # This prevents buttons from flipping during long calculations
+            if "ui_state" not in state:
+                state["ui_state"] = {"operation_in_progress": True}
+
             # Write updated state with explicit flush to ensure immediate visibility
             with open(TASK_STATE_FILE, "w") as f:
                 json.dump(state, f, indent=2)

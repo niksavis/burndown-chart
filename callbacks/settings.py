@@ -983,6 +983,16 @@ def register(app):
                     )
                     TaskProgress.complete_task("update_data", f"✓ {success_details}")
                 else:
+                    # Mark fetch as 100% complete BEFORE transitioning to calculate phase
+                    # This ensures progress tracking shows fetch completed and prevents "stuck" detection
+                    TaskProgress.update_progress(
+                        "update_data",
+                        "fetch",
+                        issues_count,
+                        issues_count,
+                        "Fetch complete, preparing metrics...",
+                    )
+
                     # Transition to calculate phase BEFORE returning so progress bar doesn't hide
                     # The separate callback will start calculating immediately after this returns
                     TaskProgress.update_progress(
@@ -992,6 +1002,7 @@ def register(app):
                         0,
                         "Preparing metrics calculation...",
                     )
+
                     # Delay to ensure progress bar polls and sees the phase change (polling interval is 500ms)
                     import time
 

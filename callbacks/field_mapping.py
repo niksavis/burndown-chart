@@ -1735,6 +1735,21 @@ def _validate_all_tabs(state_data: Dict, field_validation_errors: list) -> Dict:
                 }
             )
 
+    # CRITICAL: Validate WIP statuses don't include completion statuses
+    if wip_statuses and flow_end_statuses:
+        wip_set = set(wip_statuses)
+        end_set = set(flow_end_statuses)
+        completion_in_wip = wip_set & end_set
+        if completion_in_wip:
+            errors.append(
+                {
+                    "tab": "Status",
+                    "field": "WIP Statuses",
+                    "error": f"WIP statuses MUST NOT include completion statuses. Found: {', '.join(completion_in_wip)}. "
+                    "This causes Flow Load to incorrectly count completed items as WIP.",
+                }
+            )
+
     # =========================================================================
     # 3. PROJECT TAB VALIDATION
     # =========================================================================
@@ -2146,16 +2161,56 @@ def save_or_validate_mappings(namespace_values, state_data):
         )
         return no_update, no_update, no_update, no_update
 
-    # Check for validation errors - reject save if any invalid values
+    # Check for clientside validation errors - reject save if any invalid values
     if validation_errors:
         logger.warning(
-            f"[FieldMapping] Save rejected due to validation errors: {validation_errors}"
+            f"[FieldMapping] Save rejected due to clientside validation errors: {validation_errors}"
         )
         return (
             False,
             _build_validation_error_alert(validation_errors),
             no_update,
             no_update,
+        )
+
+    # CRITICAL: Run comprehensive server-side validation before save
+    # This includes checks for WIP/completion overlap and other logical errors
+    state_with_fields = (state_data or {}).copy()
+    if collected_values:
+        if "field_mappings" not in state_with_fields:
+            state_with_fields["field_mappings"] = {}
+        for metric, fields in collected_values.items():
+            if metric not in state_with_fields["field_mappings"]:
+                state_with_fields["field_mappings"][metric] = {}
+            for field, value in fields.items():
+                if value:
+                    state_with_fields["field_mappings"][metric][field] = value
+
+    validation_result = _validate_all_tabs(state_with_fields, validation_errors)
+
+    # Block save if there are server-side errors
+    if not validation_result["is_valid"]:
+        logger.warning(
+            f"[FieldMapping] Save rejected due to server-side validation errors: "
+            f"{len(validation_result['errors'])} error(s)"
+        )
+        toast = create_error_toast(
+            f"Configuration has {len(validation_result['errors'])} error(s) that must be fixed before saving. "
+            f"Click 'Validate' to see details.",
+            header="Validation Failed",
+            duration=8000,
+        )
+        return (
+            False,
+            _build_comprehensive_validation_alert(validation_result),
+            no_update,
+            toast,
+        )
+
+    # Log warnings but allow save
+    if validation_result["warnings"]:
+        logger.info(
+            f"[FieldMapping] Saving with {len(validation_result['warnings'])} warning(s)"
         )
 
     # Check JIRA configuration exists before allowing save

@@ -435,7 +435,13 @@ def calculate_and_save_weekly_metrics(
                 )
 
                 # If issue existed and was in WIP status at week end, count it
-                if status_at_week_end and status_at_week_end in wip_statuses:
+                # CRITICAL: Exclude completion statuses even if they're in wip_statuses configuration
+                is_completed_at_week_end = status_at_week_end in flow_end_statuses
+                if (
+                    status_at_week_end
+                    and status_at_week_end in wip_statuses
+                    and not is_completed_at_week_end
+                ):
                     issues_in_wip_at_week_end.append(issue)
 
         # Calculate breakdowns for WIP
@@ -1334,6 +1340,9 @@ def calculate_metrics_for_last_n_weeks(
             )
 
         # Use batch write mode to accumulate all changes and write once
+        # Import TaskProgress once before loop for progress updates
+        from data.task_progress import TaskProgress
+
         with batch_write_mode():
             week_number = 0
             for week_label, monday, sunday in weeks:
@@ -1342,11 +1351,9 @@ def calculate_metrics_for_last_n_weeks(
 
                 logger.info(f"Processing week {week_label} ({monday} to {sunday})")
 
-                # Check for cancellation request
+                # Check for cancellation request BEFORE processing
                 week_number += 1
                 try:
-                    from data.task_progress import TaskProgress
-
                     # Check if task was cancelled
                     is_cancelled = TaskProgress.is_task_cancelled()
                     logger.debug(
@@ -1363,8 +1370,25 @@ def calculate_metrics_for_last_n_weeks(
                             False,
                             f"Cancelled after calculating {week_number - 1}/{n_weeks} weeks",
                         )
+                except Exception as e:
+                    logger.warning(
+                        f"[Progress] Failed to check cancellation for week {week_label}: {e}"
+                    )
 
-                    # Report calculation progress
+                if progress_callback:
+                    progress_callback(
+                        f"[Date] Calculating metrics for week {week_label} ({monday} to {sunday})..."
+                    )
+
+                success, message = calculate_and_save_weekly_metrics(
+                    week_label=week_label,
+                    progress_callback=progress_callback,
+                    affected_weeks=affected_weeks,
+                )
+
+                # Report calculation progress AFTER week is calculated (not before)
+                # This ensures 100% means "all work done", not "starting last week"
+                try:
                     TaskProgress.update_progress(
                         "update_data",
                         "calculate",
@@ -1381,17 +1405,6 @@ def calculate_metrics_for_last_n_weeks(
                     logger.warning(
                         f"[Progress] Failed to update progress for week {week_label}: {e}"
                     )
-
-                if progress_callback:
-                    progress_callback(
-                        f"[Date] Calculating metrics for week {week_label} ({monday} to {sunday})..."
-                    )
-
-                success, message = calculate_and_save_weekly_metrics(
-                    week_label=week_label,
-                    progress_callback=progress_callback,
-                    affected_weeks=affected_weeks,
-                )
 
                 # Yield control to allow other Dash callbacks (like progress bar polling) to execute
                 # This prevents the long-running calculation from blocking the UI

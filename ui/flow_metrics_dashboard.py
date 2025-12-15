@@ -27,9 +27,6 @@ def create_flow_dashboard() -> dbc.Container:
     """
     # Check if JIRA data exists AND if metrics are calculated
     from data.profile_manager import get_data_file_path
-    from data.metrics_snapshots import has_metric_snapshot
-    from data.time_period_calculator import get_iso_week, format_year_week
-    from datetime import datetime
     import json
     import os
 
@@ -45,11 +42,12 @@ def create_flow_dashboard() -> dbc.Container:
                 cached_issues = cache_data.get("issues", [])
                 has_jira_data = len(cached_issues) > 0
 
-        # Check if metrics are calculated (check current week)
+        # Check if metrics are calculated (check if ANY week has metrics)
         if has_jira_data:
-            year, week = get_iso_week(datetime.now())
-            current_week_label = format_year_week(year, week)
-            has_metrics = has_metric_snapshot(current_week_label, "flow_velocity")
+            from data.metrics_snapshots import get_available_weeks
+
+            available_weeks = get_available_weeks()
+            has_metrics = len(available_weeks) > 0
     except Exception:
         pass  # No data available
 

@@ -119,6 +119,39 @@ def validate_active_wip_subset(
     )
 
 
+def validate_wip_excludes_completion(
+    wip_statuses: List[str], flow_end_statuses: List[str]
+) -> Tuple[bool, str]:
+    """
+    Validate that WIP statuses don't include completion statuses.
+
+    This is critical for Flow Load accuracy - completed items should not count as WIP.
+
+    Args:
+        wip_statuses: List of WIP status names
+        flow_end_statuses: List of completion status names
+
+    Returns:
+        Tuple of (is_valid, warning_message)
+    """
+    if not wip_statuses or not flow_end_statuses:
+        return True, ""
+
+    wip_set = set(wip_statuses)
+    end_set = set(flow_end_statuses)
+
+    overlap = wip_set & end_set
+
+    if overlap:
+        return (
+            False,
+            f"WIP statuses should NOT include completion statuses. Found: {', '.join(overlap)}. "
+            "This causes Flow Load (WIP count) to incorrectly include completed items.",
+        )
+
+    return True, ""
+
+
 def validate_comprehensive_config(config: Dict[str, Any]) -> Dict[str, List[str]]:
     """
     Comprehensive validation of all configuration elements.
@@ -217,6 +250,13 @@ def validate_comprehensive_config(config: Dict[str, Any]) -> Dict[str, List[str]
         warnings.append(
             f"Active statuses should be subset of WIP statuses. {warning_msg}"
         )
+
+    # CRITICAL: Check that WIP doesn't include completion statuses
+    is_valid, warning_msg = validate_wip_excludes_completion(
+        wip_statuses, flow_end_statuses
+    )
+    if not is_valid:
+        errors.append(warning_msg)  # This is an ERROR, not just a warning
 
     # Environment validation
     prod_env_values = config.get("production_environment_values", [])

@@ -366,43 +366,204 @@ def create_metrics_skeleton(num_cards: int = 4) -> dbc.Row:
     skeleton_card = dbc.Card(
         [
             dbc.CardHeader(
+                # Header with title and badge placeholder
                 html.Div(
-                    style={"height": "24px", "backgroundColor": "#e9ecef"},
-                    className="skeleton-shimmer",
+                    [
+                        html.Div(
+                            style={
+                                "height": "20px",
+                                "width": "60%",
+                                "backgroundColor": "#e9ecef",
+                                "display": "inline-block",
+                            },
+                            className="skeleton-shimmer",
+                        ),
+                        html.Div(
+                            style={
+                                "height": "20px",
+                                "width": "60px",
+                                "backgroundColor": "#e9ecef",
+                                "display": "inline-block",
+                                "float": "right",
+                            },
+                            className="skeleton-shimmer",
+                        ),
+                    ],
+                    className="d-flex align-items-center justify-content-between w-100",
                 ),
             ),
             dbc.CardBody(
                 [
-                    # Large metric value placeholder
-                    html.Div(
-                        style={
-                            "height": "48px",
-                            "backgroundColor": "#e9ecef",
-                            "marginBottom": "16px",
-                        },
-                        className="skeleton-shimmer",
+                    # H2 metric value placeholder (text-center metric-value mb-2)
+                    html.H2(
+                        html.Div(
+                            style={
+                                "height": "38px",
+                                "width": "100px",
+                                "backgroundColor": "#e9ecef",
+                                "margin": "0 auto",
+                            },
+                            className="skeleton-shimmer",
+                        ),
+                        className="text-center metric-value mb-2",
                     ),
-                    # Performance tier badge placeholder
-                    html.Div(
-                        style={
-                            "height": "24px",
-                            "width": "120px",
-                            "margin": "0 auto 16px",
-                            "backgroundColor": "#e9ecef",
-                        },
-                        className="skeleton-shimmer",
+                    # P unit text placeholder (text-muted text-center metric-unit mb-1)
+                    html.P(
+                        html.Div(
+                            style={
+                                "height": "16px",
+                                "width": "180px",
+                                "backgroundColor": "#e9ecef",
+                                "margin": "0 auto",
+                            },
+                            className="skeleton-shimmer",
+                        ),
+                        className="text-muted text-center metric-unit mb-1",
                     ),
-                    # Chart placeholder
+                    # P relationship hint placeholder (optional, small mb-2)
+                    html.P(
+                        html.Div(
+                            style={
+                                "height": "14px",
+                                "width": "250px",
+                                "backgroundColor": "#e9ecef",
+                                "margin": "0 auto",
+                            },
+                            className="skeleton-shimmer",
+                        ),
+                        className="text-muted text-center small mb-2",
+                        style={"fontSize": "0.8rem"},
+                    ),
+                    # Div deployment count placeholder (text-center text-muted small mb-2)
                     html.Div(
-                        style={"height": "200px", "backgroundColor": "#e9ecef"},
-                        className="skeleton-shimmer",
+                        html.Div(
+                            style={
+                                "height": "14px",
+                                "width": "160px",
+                                "backgroundColor": "#e9ecef",
+                                "margin": "0 auto",
+                            },
+                            className="skeleton-shimmer",
+                        ),
+                        className="text-center text-muted small mb-2",
+                    ),
+                    # Forecast section placeholder (mt-2 mb-2 with border-top)
+                    html.Div(
+                        [
+                            # Forecast value line
+                            html.Div(
+                                html.Div(
+                                    style={
+                                        "height": "16px",
+                                        "width": "200px",
+                                        "backgroundColor": "#e9ecef",
+                                        "margin": "0 auto",
+                                    },
+                                    className="skeleton-shimmer",
+                                ),
+                                className="text-center mb-1",
+                            ),
+                            # Trend vs forecast line
+                            html.Div(
+                                html.Div(
+                                    style={
+                                        "height": "14px",
+                                        "width": "140px",
+                                        "backgroundColor": "#e9ecef",
+                                        "margin": "0 auto",
+                                    },
+                                    className="skeleton-shimmer",
+                                ),
+                                className="text-center small",
+                                style={"fontSize": "0.8rem"},
+                            ),
+                        ],
+                        className="mt-2 mb-2",
+                        style={
+                            "borderTop": "1px solid #dee2e6",
+                            "paddingTop": "0.5rem",
+                        },
+                    ),
+                    # Div metric-trend-section
+                    html.Div(
+                        [
+                            # HR (my-2)
+                            html.Hr(className="my-2"),
+                            # Trend label
+                            html.Div(
+                                html.Small(
+                                    html.Div(
+                                        style={
+                                            "height": "12px",
+                                            "width": "150px",
+                                            "backgroundColor": "#e9ecef",
+                                            "margin": "0 auto",
+                                        },
+                                        className="skeleton-shimmer",
+                                    ),
+                                    className="text-muted d-block mb-1",
+                                ),
+                                className="text-center",
+                            ),
+                            # Sparkline bars placeholder (d-flex align-items-end justify-content-center, height: 40px)
+                            html.Div(
+                                html.Div(
+                                    style={
+                                        "height": "40px",
+                                        "width": "200px",
+                                        "backgroundColor": "#e9ecef",
+                                        "margin": "0 auto",
+                                    },
+                                    className="skeleton-shimmer",
+                                ),
+                                className="d-flex align-items-end justify-content-center",
+                                style={"height": "40px", "gap": "1px"},
+                            ),
+                            # "Show Details" button placeholder (mt-2 p-0)
+                            html.Div(
+                                html.Div(
+                                    style={
+                                        "height": "20px",
+                                        "width": "110px",
+                                        "backgroundColor": "#e9ecef",
+                                        "margin": "0 auto",
+                                    },
+                                    className="skeleton-shimmer",
+                                ),
+                                className="text-center",
+                                style={"marginTop": "0.5rem"},
+                            ),
+                        ],
+                        className="metric-trend-section",
+                    ),
+                    # HR (my-2)
+                    html.Hr(className="my-2"),
+                    # Bottom info placeholder (text-muted d-block text-center)
+                    html.Small(
+                        html.Div(
+                            style={
+                                "height": "12px",
+                                "width": "100px",
+                                "backgroundColor": "#e9ecef",
+                                "margin": "0 auto",
+                            },
+                            className="skeleton-shimmer",
+                        ),
+                        className="text-muted d-block text-center",
                     ),
                 ],
-                className="text-center",
+            ),
+            # Card footer (matches real card footer structure)
+            dbc.CardFooter(
+                html.Div(
+                    "\u00a0",  # Non-breaking space to maintain minimal height
+                    className="text-center text-muted",
+                    style={"fontSize": "0.75rem", "opacity": "0"},
+                ),
+                className="bg-light border-top py-2",  # Same padding and styling as real cards
             ),
         ],
-        className="metric-card mb-3",
-        # Removed opacity: 0 - skeleton should be visible
+        className="metric-card mb-3 h-100",  # Added h-100 for consistent height
     )
 
     # Create 2-column grid with specified number of cards
