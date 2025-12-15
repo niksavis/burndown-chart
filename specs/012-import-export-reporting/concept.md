@@ -678,6 +678,7 @@ REQUIRED_PROFILE_DATA = [
 ```
 
 **Offline Capability Matrix**:
+
 | Feature              | Requires                             | Works Without JIRA? |
 | -------------------- | ------------------------------------ | ------------------- |
 | Burndown charts      | project_data.json                    | ✅ YES               |
