@@ -1418,14 +1418,38 @@ def _format_additional_info(metric_data: dict) -> str:
     """Format additional information text for metric card."""
     total_issues = metric_data.get("total_issue_count", 0)
     excluded_issues = metric_data.get("excluded_issue_count", 0)
+    metric_name = metric_data.get("metric_name", "")
+    n_weeks = metric_data.get("_n_weeks", 12)  # Get selected time period
+
+    # Determine aggregation method label
+    aggregation_labels = {
+        "lead_time_for_changes": f"Median of weekly medians",
+        "mean_time_to_recovery": f"Median of weekly medians",
+        "flow_time": f"Median of weekly medians",
+        "flow_velocity": f"Average per week",
+        "flow_efficiency": f"Average of weekly values",
+        "flow_load": f"Current week snapshot",
+        "deployment_frequency": f"Average per week",
+        "change_failure_rate": f"Overall rate",
+    }
+
+    aggregation_label = aggregation_labels.get(metric_name, "")
 
     if excluded_issues > 0:
-        return (
-            f"Based on {total_issues - excluded_issues} of {total_issues} issues. "
-            f"{excluded_issues} excluded due to missing data."
-        )
+        base_text = f"{total_issues - excluded_issues} of {total_issues} issues"
     else:
-        return f"Based on {total_issues} issues"
+        base_text = f"{total_issues} issues" if total_issues > 0 else ""
+
+    # Format: "Aggregation method • Based on X issues • Y weeks"
+    parts = []
+    if aggregation_label:
+        parts.append(aggregation_label)
+    if base_text:
+        parts.append(base_text)
+    if metric_name != "flow_load" and n_weeks:  # Don't show weeks for WIP
+        parts.append(f"{n_weeks} weeks")
+
+    return " • ".join(parts)
 
 
 def create_loading_card(metric_name: str) -> dbc.Card:

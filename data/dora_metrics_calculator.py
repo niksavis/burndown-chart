@@ -295,19 +295,18 @@ def load_dora_metrics_from_cache(n_weeks: int = 12) -> Optional[Dict[str, Any]]:
         )  # NEW
 
         logger.info(f"[LOAD_CACHE] all_lead_times list: {all_lead_times}")
+        # Use MEDIAN of weekly medians (more robust than mean of medians)
+        import statistics
+
         overall_lead_time = (
-            sum(all_lead_times) / len(all_lead_times) if all_lead_times else None
+            statistics.median(all_lead_times) if all_lead_times else None
         )
         # NEW: Calculate P95 and mean for lead time
         overall_lead_time_p95 = (
-            sum(all_lead_times_p95) / len(all_lead_times_p95)
-            if all_lead_times_p95
-            else None
+            statistics.median(all_lead_times_p95) if all_lead_times_p95 else None
         )
         overall_lead_time_mean = (
-            sum(all_lead_times_mean) / len(all_lead_times_mean)
-            if all_lead_times_mean
-            else None
+            statistics.median(all_lead_times_mean) if all_lead_times_mean else None
         )
         logger.info(f"[LOAD_CACHE] overall_lead_time (hours): {overall_lead_time}")
         overall_cfr = (
@@ -321,16 +320,11 @@ def load_dora_metrics_from_cache(n_weeks: int = 12) -> Optional[Dict[str, Any]]:
             if total_cfr_total_releases > 0
             else 0
         )
-        overall_mttr = (
-            sum(all_mttr_values) / len(all_mttr_values) if all_mttr_values else None
-        )
+        # Use MEDIAN of weekly medians (more robust than mean of medians)
+        overall_mttr = statistics.median(all_mttr_values) if all_mttr_values else None
         # NEW: Calculate P95 and mean for MTTR
-        overall_mttr_p95 = (
-            sum(all_mttr_p95) / len(all_mttr_p95) if all_mttr_p95 else None
-        )
-        overall_mttr_mean = (
-            sum(all_mttr_mean) / len(all_mttr_mean) if all_mttr_mean else None
-        )
+        overall_mttr_p95 = statistics.median(all_mttr_p95) if all_mttr_p95 else None
+        overall_mttr_mean = statistics.median(all_mttr_mean) if all_mttr_mean else None
 
         # If no cache data exists, return None
         if not has_any_data:

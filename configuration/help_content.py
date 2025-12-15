@@ -720,11 +720,11 @@ PARAMETER_INPUTS_TOOLTIPS = {
 
 # FLOW METRICS HELP CONTENT - Tooltips for Flow Framework metrics
 FLOW_METRICS_TOOLTIPS = {
-    "flow_velocity": "Number of work items completed per week. Measures delivery throughput across all Flow types (Feature, Defect, Risk, Tech Debt). Higher velocity indicates faster value delivery.",
-    "flow_time": "Median time from work start to completion in days. Includes both active work time and wait time. Lower flow time indicates faster delivery cycles and better predictability.",
-    "flow_efficiency": "Percentage of time spent actively working vs waiting. Calculated as active time divided by total flow time. Higher efficiency (>40%) indicates less waste and smoother workflows.",
-    "flow_load": "Current work in progress (WIP) across all active statuses. Health thresholds calculated using Little's Law (L=λ×W): Optimal WIP = Throughput × Cycle Time. Thresholds derived from historical percentiles (P25, P50, P75, P90) with 20% buffers. Lower WIP reduces context switching and improves focus. Team-specific thresholds adapt to your actual capacity and cycle time.",
-    "flow_distribution": "Breakdown of completed work by type: Features (new value), Defects (quality issues), Risk (security/compliance), and Tech Debt (maintenance). Balanced distribution indicates healthy development practices.",
+    "flow_velocity": "Number of work items completed per week. Averaged across the selected time period. Measures delivery throughput across all Flow types (Feature, Defect, Risk, Tech Debt). Higher velocity indicates faster value delivery.",
+    "flow_time": "Time from work start to completion. Calculated as median of weekly medians across the selected period - each week's median is calculated separately, then the median of those values is shown. Includes both active work time and wait time. Lower flow time indicates faster delivery cycles and better predictability.",
+    "flow_efficiency": "Percentage of time spent actively working vs waiting. Averaged across weeks with completed work in the selected period. Calculated as active time divided by total flow time. Higher efficiency (>40%) indicates less waste and smoother workflows.",
+    "flow_load": "Current work in progress (WIP) across all active statuses. Shows most recent week's snapshot. Health thresholds calculated using Little's Law (L=λ×W): Optimal WIP = Throughput × Cycle Time. Thresholds derived from historical percentiles (P25, P50, P75, P90) with 20% buffers. Lower WIP reduces context switching and improves focus. Team-specific thresholds adapt to your actual capacity and cycle time.",
+    "flow_distribution": "Breakdown of completed work by type: Features (new value), Defects (quality issues), Risk (security/compliance), and Tech Debt (maintenance). Aggregated totals across the selected period. Balanced distribution indicates healthy development practices.",
 }
 
 # 4-WEEK FORECAST HELP CONTENT - Tooltips and detailed help for forecasting feature (Feature 009)
@@ -972,10 +972,10 @@ FORECAST_HELP_DETAILED = {
 
 # DORA METRICS HELP CONTENT - Tooltips for DORA metrics
 DORA_METRICS_TOOLTIPS = {
-    "deployment_frequency": "How often code is deployed to production. Measures release cadence and automation maturity. Elite performers deploy multiple times per day, high performers deploy weekly. More frequent deployments enable faster feedback and lower change risk.",
-    "lead_time_for_changes": "Median time from code commit to production deployment in days. Measures end-to-end delivery speed from development to operations. Elite performers achieve <1 day, high performers <1 week. Shorter lead times enable faster value delivery and market response.",
-    "change_failure_rate": "Percentage of deployments causing production failures requiring remediation (rollback, hotfix, etc.). Measures deployment quality and testing effectiveness. Elite performers maintain <15% failure rate. Lower rates indicate mature testing and deployment practices.",
-    "mean_time_to_recovery": "Median time to restore service after production incident in hours. Measures operational resilience and incident response capability. Elite performers recover in <1 hour. Faster recovery reduces customer impact and business risk.",
+    "deployment_frequency": "How often code is deployed to production. Averaged across the selected time period. Measures release cadence and automation maturity. Elite performers deploy multiple times per day, high performers deploy weekly. More frequent deployments enable faster feedback and lower change risk.",
+    "lead_time_for_changes": "Time from code commit to production deployment. Calculated as median of weekly medians across the selected period - each week's median is calculated separately, then the median of those values is shown. This approach is robust to outliers while reflecting typical performance. Elite performers achieve <1 day, high performers <1 week. Shorter lead times enable faster value delivery and market response.",
+    "change_failure_rate": "Percentage of deployments causing production failures requiring remediation (rollback, hotfix, etc.). Calculated as overall rate across all deployments in the selected period. Measures deployment quality and testing effectiveness. Elite performers maintain <15% failure rate. Lower rates indicate mature testing and deployment practices.",
+    "mean_time_to_recovery": "Time to restore service after production incident. Calculated as median of weekly medians across the selected period - each week's median is calculated separately, then the median of those values is shown. This approach is robust to outliers while reflecting typical recovery performance. Elite performers recover in <1 hour. Faster recovery reduces customer impact and business risk.",
 }
 
 # SETTINGS PANEL HELP CONTENT - Tooltips for settings panel features

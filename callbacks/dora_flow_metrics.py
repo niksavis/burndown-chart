@@ -229,6 +229,7 @@ def load_and_display_dora_metrics(
                 "release_value": cached_metrics.get("deployment_frequency", {}).get(
                     "release_value", 0
                 ),
+                "_n_weeks": n_weeks_display,  # For card footer display
                 "unit": f"releases/week (avg {n_weeks_display}w)",  # Changed label from deployments to releases
                 "error_state": "success",
                 "performance_tier": deployment_freq_tier["tier"],
@@ -265,6 +266,7 @@ def load_and_display_dora_metrics(
                 "mean_value": cached_metrics.get("lead_time_for_changes", {}).get(
                     "mean_value"
                 ),  # NEW: Mean lead time
+                "_n_weeks": n_weeks_display,  # For card footer display
                 "unit": f"days ({n_weeks_display}w median avg)",
                 "error_state": "success"
                 if cached_metrics.get("lead_time_for_changes", {}).get("value")
@@ -289,6 +291,7 @@ def load_and_display_dora_metrics(
                 "release_value": cached_metrics.get("change_failure_rate", {}).get(
                     "release_value", 0
                 ),  # NEW: Release-based CFR
+                "_n_weeks": n_weeks_display,  # For card footer display
                 "unit": f"% (agg {n_weeks_display}w)",
                 "error_state": "success",
                 "performance_tier": cfr_tier["tier"],
@@ -322,6 +325,7 @@ def load_and_display_dora_metrics(
                 "mean_value": cached_metrics.get("mean_time_to_recovery", {}).get(
                     "mean_value"
                 ),  # NEW: Mean MTTR
+                "_n_weeks": n_weeks_display,  # For card footer display
                 "unit": f"hours ({n_weeks_display}w median avg)",
                 "error_state": "success"
                 if cached_metrics.get("mean_time_to_recovery", {}).get("value")
@@ -749,6 +753,7 @@ def calculate_and_display_flow_metrics(
             "flow_velocity": {
                 "metric_name": "flow_velocity",
                 "value": round(avg_velocity, 1),  # Average items/week over period
+                "_n_weeks": n_weeks,  # For card footer display
                 "unit": f"items/week (avg {n_weeks}w)",
                 "error_state": "success",  # Always valid - 0 velocity is acceptable
                 "performance_tier": _get_flow_performance_tier(
@@ -772,6 +777,7 @@ def calculate_and_display_flow_metrics(
                 "value": round(median_flow_time, 1)
                 if median_flow_time is not None
                 else 0,
+                "_n_weeks": n_weeks,  # For card footer display
                 "unit": f"days (median {n_weeks}w)",
                 "error_state": "success",  # Always success - 0 is valid for weeks with no completions
                 "performance_tier": _get_flow_performance_tier(
@@ -787,6 +793,7 @@ def calculate_and_display_flow_metrics(
             "flow_efficiency": {
                 "metric_name": "flow_efficiency",
                 "value": round(avg_efficiency, 1) if avg_efficiency is not None else 0,
+                "_n_weeks": n_weeks,  # For card footer display
                 "unit": f"% (avg {n_weeks}w)",
                 "error_state": "success",  # Always success - 0 is valid for weeks with no completions
                 "performance_tier": _get_flow_performance_tier(
@@ -804,6 +811,7 @@ def calculate_and_display_flow_metrics(
             "flow_load": {
                 "metric_name": "flow_load",
                 "value": wip_count if wip_count is not None else 0,
+                "_n_weeks": n_weeks,  # For card footer display
                 "unit": f"items (current WIP)",  # WIP is always current snapshot
                 "error_state": "success" if flow_load_snapshot else "no_data",
                 "performance_tier": _get_flow_performance_tier(
