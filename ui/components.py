@@ -2275,10 +2275,10 @@ def create_parameter_bar_collapsed(
         scope_items: Total number of items in scope (fallback)
         scope_points: Total story points in scope (fallback)
         id_suffix: Suffix for generating unique IDs
-        remaining_items: Number of items remaining currently (not displayed in bar)
-        remaining_points: Number of points remaining currently (not displayed in bar)
-        total_items: Total items at window start (displayed as "Window Start")
-        total_points: Total points at window start (displayed as "Window Start")
+        remaining_items: Number of items remaining currently (displayed in bar)
+        remaining_points: Number of points remaining currently (displayed in bar)
+        total_items: Total remaining items (used for display)
+        total_points: Total remaining points (used for display)
         show_points: Whether to show points data
         data_points: Number of weeks of data used for forecasting
         profile_name: Name of active profile (if in profiles mode)
@@ -2295,7 +2295,7 @@ def create_parameter_bar_collapsed(
     bar_id = f"parameter-bar-collapsed{'-' + id_suffix if id_suffix else ''}"
     expand_btn_id = f"btn-expand-parameters{'-' + id_suffix if id_suffix else ''}"
 
-    # Display the total items/points (window start) for Window Start label
+    # Display the total items/points (remaining scope) for Remaining label
     # Use remaining values only if total values not available (fallback to current scope)
     display_items = (
         total_items
@@ -2310,7 +2310,7 @@ def create_parameter_bar_collapsed(
 
     # Determine label based on what we're showing
     items_label = (
-        "Window Start" if (total_items is not None and total_items > 0) else "Scope"
+        "Remaining" if (total_items is not None and total_items > 0) else "Scope"
     )
 
     # Create points display only if enabled
@@ -3210,7 +3210,7 @@ def create_parameter_panel_expanded(
                                                                             ),
                                                                             html.Span(
                                                                                 create_parameter_tooltip(
-                                                                                    "completed_items",
+                                                                                    "estimated_items",
                                                                                     "estimated-items-help",
                                                                                 ),
                                                                                 style={
@@ -3233,7 +3233,16 @@ def create_parameter_panel_expanded(
                                                                         className="form-control-sm",
                                                                     ),
                                                                     html.Small(
-                                                                        "Items with effort estimates. Leave 0 if unavailable.",
+                                                                        [
+                                                                            "Items with effort estimates. Leave 0 if unavailable. ",
+                                                                            html.Span(
+                                                                                "(Overwritten by JIRA updates)",
+                                                                                style={
+                                                                                    "color": "#856404",
+                                                                                    "fontStyle": "italic",
+                                                                                },
+                                                                            ),
+                                                                        ],
                                                                         className="text-muted d-block mt-1",
                                                                         style={
                                                                             "fontSize": "0.75rem"
@@ -3250,14 +3259,14 @@ def create_parameter_panel_expanded(
                                                                 [
                                                                     html.Label(
                                                                         [
-                                                                            "Window Start Items",
+                                                                            "Remaining Items",
                                                                             html.Span(
-                                                                                " (remaining at period start)",
+                                                                                " (currently open)",
                                                                                 className="text-muted small",
                                                                             ),
                                                                             html.Span(
                                                                                 create_parameter_tooltip(
-                                                                                    "total_items",
+                                                                                    "remaining_items",
                                                                                     "remaining-items-help",
                                                                                 ),
                                                                                 style={
@@ -3277,6 +3286,22 @@ def create_parameter_panel_expanded(
                                                                         min=0,
                                                                         step=1,
                                                                         className="form-control-sm",
+                                                                    ),
+                                                                    html.Small(
+                                                                        [
+                                                                            "All open/unresolved issues. ",
+                                                                            html.Span(
+                                                                                "(Overwritten by JIRA updates)",
+                                                                                style={
+                                                                                    "color": "#856404",
+                                                                                    "fontStyle": "italic",
+                                                                                },
+                                                                            ),
+                                                                        ],
+                                                                        className="text-muted d-block mt-1",
+                                                                        style={
+                                                                            "fontSize": "0.75rem"
+                                                                        },
                                                                     ),
                                                                     html.Div(
                                                                         id="total-items-feedback",
@@ -3300,7 +3325,7 @@ def create_parameter_panel_expanded(
                                                                             ),
                                                                             html.Span(
                                                                                 create_parameter_tooltip(
-                                                                                    "completed_points",
+                                                                                    "estimated_points",
                                                                                     "estimated-points-help",
                                                                                 ),
                                                                                 style={
@@ -3324,7 +3349,16 @@ def create_parameter_panel_expanded(
                                                                         className="form-control-sm",
                                                                     ),
                                                                     html.Small(
-                                                                        "Items with story point estimates. Leave 0 if unavailable.",
+                                                                        [
+                                                                            "Items with story point estimates. Leave 0 if unavailable. ",
+                                                                            html.Span(
+                                                                                "(Overwritten by JIRA updates)",
+                                                                                style={
+                                                                                    "color": "#856404",
+                                                                                    "fontStyle": "italic",
+                                                                                },
+                                                                            ),
+                                                                        ],
                                                                         className="text-muted d-block mt-1",
                                                                         style={
                                                                             "fontSize": "0.75rem"
@@ -3342,10 +3376,19 @@ def create_parameter_panel_expanded(
                                                                 [
                                                                     html.Label(
                                                                         [
-                                                                            "Window Start Points",
+                                                                            "Remaining Points",
                                                                             html.Span(
-                                                                                " (remaining at period start)",
+                                                                                " (auto-calculated)",
                                                                                 className="text-muted small",
+                                                                            ),
+                                                                            html.Span(
+                                                                                create_parameter_tooltip(
+                                                                                    "remaining_points",
+                                                                                    "remaining-points-help",
+                                                                                ),
+                                                                                style={
+                                                                                    "marginLeft": "0.25rem"
+                                                                                },
                                                                             ),
                                                                             html.Span(
                                                                                 " auto",
@@ -3369,6 +3412,26 @@ def create_parameter_panel_expanded(
                                                                         className="form-control-sm",
                                                                         style={
                                                                             "backgroundColor": "#e9ecef"
+                                                                        },
+                                                                    ),
+                                                                    html.Small(
+                                                                        [
+                                                                            html.Span(
+                                                                                id="remaining-points-formula",
+                                                                                children="Calculated: Estimated Points + (avg × unestimated items).",
+                                                                            ),
+                                                                            " ",
+                                                                            html.Strong(
+                                                                                "Note: ",
+                                                                                style={
+                                                                                    "color": "#856404"
+                                                                                },
+                                                                            ),
+                                                                            "Manual changes will be overwritten by 'Update Data from JIRA'.",
+                                                                        ],
+                                                                        className="text-muted d-block mt-1",
+                                                                        style={
+                                                                            "fontSize": "0.75rem"
                                                                         },
                                                                     ),
                                                                 ],
@@ -3460,14 +3523,18 @@ def create_parameter_panel(
             create_parameter_bar_collapsed(
                 pert_factor=pert_factor,
                 deadline=deadline,
-                scope_items=total_items,  # Fallback if remaining_items is None
-                scope_points=total_points,  # Fallback if remaining_points is None
+                scope_items=total_items,
+                scope_points=total_points,
                 remaining_items=total_items
                 if total_items > 0
-                else None,  # Display as "Remaining"
+                else None,  # Display as Remaining
                 remaining_points=total_points
                 if total_points > 0
-                else None,  # Display as "Remaining"
+                else None,  # Display as Remaining
+                total_items=total_items if total_items > 0 else None,  # Remaining Items
+                total_points=total_points
+                if total_points > 0
+                else None,  # Remaining Points
                 show_points=show_points,  # Respect Points Tracking toggle
                 id_suffix=id_suffix,
                 data_points=data_points,

@@ -16,7 +16,7 @@ import dash_bootstrap_components as dbc
 from dash import dcc, html
 
 # Application imports
-from configuration import __version__, logger
+from configuration import __version__
 from data import (
     calculate_total_points,
     load_app_settings,
@@ -39,7 +39,6 @@ from ui.save_query_modal import create_save_query_modal
 from ui.unsaved_changes_modal import create_unsaved_changes_modal
 from ui.delete_query_modal import create_delete_query_modal
 from ui.improved_settings_panel import create_improved_settings_panel
-from ui.accordion_settings_panel import create_accordion_settings_panel
 from ui.import_export_panel import create_import_export_flyout
 
 # Feature flag for new accordion-based settings panel (Feature 011)
@@ -61,104 +60,22 @@ def serve_layout():
     app_settings = load_app_settings()
     statistics, is_sample_data = load_statistics()
 
-    # Calculate initial parameter values based on selected time window
-    # This ensures consistency between app load and slider interaction
+    # Get project scope and use actual remaining values (no window calculations)
     from data.persistence import get_project_scope
-    import pandas as pd
 
     project_scope = get_project_scope()
-    data_points_count = app_settings.get("data_points_count", 16)
 
-    # Calculate remaining work at START of selected time window (same logic as slider callback)
-    if project_scope and statistics and len(statistics) >= data_points_count:
-        try:
-            df = pd.DataFrame(statistics)
-            df["date"] = pd.to_datetime(df["date"])
-            df = df.sort_values("date", ascending=False)
-            selected_data = df.head(data_points_count)
-
-            # Calculate completed work in the selected window
-            completed_in_window_items = selected_data["completed_items"].sum()
-            completed_in_window_points = selected_data["completed_points"].sum()
-
-            # Get current remaining work
-            current_remaining_items = project_scope.get("remaining_items", 0)
-            current_remaining_points = project_scope.get("remaining_total_points", 0)
-
-            # Calculate remaining work at START of window
-            remaining_items_at_start = (
-                current_remaining_items + completed_in_window_items
-            )
-            remaining_points_at_start = (
-                current_remaining_points + completed_in_window_points
-            )
-
-            # Calculate estimated items/points using ratio
-            current_remaining_items_value = project_scope.get("remaining_items", 1)
-            current_estimated_items = project_scope.get("estimated_items", 0)
-
-            if current_remaining_items_value > 0:
-                estimate_ratio = current_estimated_items / current_remaining_items_value
-                estimated_items_at_start = int(
-                    remaining_items_at_start * estimate_ratio
-                )
-            else:
-                estimated_items_at_start = current_estimated_items
-
-            # Calculate estimated points
-            estimated_items_in_window = selected_data[
-                selected_data["completed_points"] > 0
-            ]["completed_items"].sum()
-            estimated_points_in_window = selected_data["completed_points"].sum()
-
-            if estimated_items_at_start > 0 and estimated_points_in_window > 0:
-                avg_points = estimated_points_in_window / max(
-                    estimated_items_in_window, 1
-                )
-                estimated_points_at_start = int(estimated_items_at_start * avg_points)
-            else:
-                estimated_points_at_start = project_scope.get("estimated_points", 0)
-
-            # Set calculated values in settings
-            settings = {**app_settings}
-            settings.update(
-                {
-                    "total_items": int(remaining_items_at_start),
-                    "total_points": remaining_points_at_start,
-                    "estimated_items": estimated_items_at_start,
-                    "estimated_points": estimated_points_at_start,
-                }
-            )
-
-            # CRITICAL: Save calculated values to disk so dashboard can read them
-            from data.persistence import save_app_settings
-
-            save_app_settings(settings)
-        except Exception as e:
-            logger.error(f"Error calculating initial window values: {e}")
-            # Fallback to current scope values
-            settings = {**app_settings}
-            if project_scope:
-                settings.update(
-                    {
-                        "total_items": project_scope.get("remaining_items", 0),
-                        "total_points": project_scope.get("remaining_total_points", 0),
-                        "estimated_items": project_scope.get("estimated_items", 0),
-                        "estimated_points": project_scope.get("estimated_points", 0),
-                    }
-                )
-    else:
-        # Fallback: use current scope values if calculation not possible
-        settings = {**app_settings}
-        if project_scope:
-            settings.update(
-                {
-                    "total_items": project_scope.get("remaining_items", 0),
-                    "total_points": project_scope.get("remaining_total_points", 0),
-                    "estimated_items": project_scope.get("estimated_items", 0),
-                    "estimated_points": project_scope.get("estimated_points", 0),
-                }
-            )
+    # Use actual remaining values from project scope (no window calculations)
+    settings = {**app_settings}
+    if project_scope:
+        settings.update(
+            {
+                "total_items": project_scope.get("remaining_items", 0),
+                "total_points": project_scope.get("remaining_total_points", 0),
+                "estimated_items": project_scope.get("estimated_items", 0),
+                "estimated_points": project_scope.get("estimated_points", 0),
+            }
+        )
 
     app_layout = create_app_layout(settings, statistics, is_sample_data)
     return app_layout

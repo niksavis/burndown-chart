@@ -106,25 +106,9 @@ def register(app):
         remaining_total_points = estimated_points + (avg_points_per_item × unestimated_items)
 
         This ensures consistency between JIRA and manual data entry workflows.
-
-        CRITICAL: For JIRA data, the total_points comes from window calculation
-        (slider callback or serve_layout), NOT from extrapolation.
+        Manual changes to inputs will always trigger recalculation, allowing users to
+        adjust forecasts even when working with JIRA data.
         """
-        # Check data source - skip extrapolation for JIRA data
-        from data.persistence import load_unified_project_data
-
-        try:
-            unified_data = load_unified_project_data()
-            data_source = unified_data.get("metadata", {}).get("source", "")
-
-            # For JIRA data, preserve the window-based value set by slider/serve_layout
-            if data_source == "jira_calculated":
-                if current_total_points_display:
-                    return current_total_points_display, calc_results or {}
-                raise PreventUpdate
-        except Exception:
-            pass  # If load fails, continue with calculation (manual data)
-
         # Input validation
         if None in [total_items, estimated_items, estimated_points]:
             # Use .get() method for dictionary lookups - this is the Python idiomatic way
@@ -168,6 +152,21 @@ def register(app):
             f"{estimated_total_points:.0f}",
             updated_calc_results,
         )
+
+    @app.callback(
+        Output("remaining-points-formula", "children"),
+        Input("calculation-results", "data"),
+    )
+    def update_remaining_points_formula(calc_results):
+        """Update the formula display to show the actual avg coefficient being used."""
+        if not calc_results:
+            return "Calculated: Estimated Points + (avg × unestimated items)."
+
+        avg = calc_results.get("avg_points_per_item", 0)
+        if avg > 0:
+            return f"Calculated: Estimated Points + ({avg:.2f} × unestimated items)."
+        else:
+            return "Calculated: Estimated Points + (avg × unestimated items)."
 
     # REMOVED: The Python callback for data-points-info that was causing the duplicate output error
     # This functionality is now handled by the clientside callback below
@@ -926,45 +925,10 @@ def register(app):
                     scope_data.get("estimated_points", 0) if scope_data else 0
                 )
 
-                # After getting CURRENT remaining work from JIRA, calculate window-based scope
-                # This ensures consistency with serve_layout() and slider callback
-                # Use the updated_statistics we just loaded above (line 488), not load_statistics() again
-                from data.persistence import load_app_settings
-
-                app_settings = load_app_settings()
-                data_points_count = app_settings.get("data_points_count", 16)
-
-                if updated_statistics and len(updated_statistics) >= data_points_count:
-                    import pandas as pd
-
-                    # Calculate remaining work at START of selected data window
-                    df = pd.DataFrame(updated_statistics)
-                    df["date"] = pd.to_datetime(df["date"])
-                    df = df.sort_values("date", ascending=False)
-                    selected_data = df.head(data_points_count)
-
-                    # Calculate completed work in the window
-                    completed_in_window_items = selected_data["completed_items"].sum()
-                    completed_in_window_points = selected_data["completed_points"].sum()
-
-                    # Remaining at START = Current remaining + Completed in window
-                    total_items_window_based = int(
-                        total_items + completed_in_window_items
-                    )
-                    total_points_window_based = (
-                        total_points + completed_in_window_points
-                    )
-
-                    logger.info(
-                        f"[Settings] Scope from JIRA (current): {total_items} items, {total_points:.1f} points"
-                    )
-                    logger.info(
-                        f"[Settings] Adjusted for {data_points_count}-week window: {total_items_window_based} items, {total_points_window_based:.1f} points"
-                    )
-
-                    # Use window-based values for UI
-                    total_items = total_items_window_based
-                    total_points = total_points_window_based
+                # Use actual remaining values from JIRA scope (no window adjustments)
+                logger.info(
+                    f"[Settings] Using JIRA scope values: {total_items} items, {total_points:.1f} points"
+                )
 
                 # Format total_points as string since it's a text display field
                 total_points_display = f"{total_points:.0f}"
@@ -1477,34 +1441,10 @@ def register(app):
                     f"Last updated: {current_time}", className="text-muted"
                 )
 
-                # After getting CURRENT remaining work from JIRA, calculate window-based scope
-                # This ensures consistency with serve_layout() and slider callback
-                from data.persistence import load_app_settings, load_statistics
-
-                app_settings = load_app_settings()
-                data_points_count = app_settings.get("data_points_count", 16)
-                statistics = load_statistics()
-
-                if statistics and len(statistics) >= data_points_count:
-                    import pandas as pd
-
-                    # Calculate remaining work at START of selected data window
-                    df = pd.DataFrame(statistics)
-                    df["date"] = pd.to_datetime(df["date"])
-                    df = df.sort_values("date", ascending=False)
-                    selected_data = df.head(data_points_count)
-
-                    # Calculate completed work in the window
-                    completed_in_window_items = selected_data["completed_items"].sum()  # type: ignore[attr-defined]
-                    completed_in_window_points = selected_data["completed_points"].sum()  # type: ignore[attr-defined]
-
-                    # Remaining at START = Current remaining + Completed in window
-                    total_items = int(total_items + completed_in_window_items)
-                    estimated_points = estimated_points + completed_in_window_points
-
-                    logger.info(
-                        f"[Settings] Adjusted scope for {data_points_count}-week window: {total_items} items, {estimated_points:.1f} points"
-                    )
+                # Use actual remaining values from JIRA scope (no window adjustments)
+                logger.info(
+                    f"[Settings] Using JIRA scope values: {total_items} items, {estimated_points:.1f} points"
+                )
 
                 return (
                     status_content,
@@ -2693,11 +2633,11 @@ def register(app):
             pert_factor=pert_factor,
             deadline=deadline,
             scope_items=scope_items,
-            scope_points=int(scope_points),  # Convert to int
-            remaining_items=remaining_items,
-            remaining_points=int(remaining_points)
-            if remaining_points is not None
-            else None,  # Convert to int
+            scope_points=int(scope_points),
+            remaining_items=scope_items,  # Display as Remaining
+            remaining_points=int(scope_points),  # Display as Remaining
+            total_items=scope_items,  # Remaining Items
+            total_points=int(scope_points),  # Remaining Points
             show_points=show_points,
             data_points=data_points,
             profile_name=profile_name,
@@ -2792,11 +2732,23 @@ def register(app):
                 remaining_items = project_scope.get("remaining_items", 0)
                 estimated_points = project_scope.get("estimated_points", 0)
                 remaining_points = project_scope.get("remaining_total_points", 0)
+
+                # Calculate avg points per item for calc_results
+                avg_points_per_item = 0
+                if remaining_items > 0:
+                    avg_points_per_item = remaining_points / remaining_items
+
+                calc_results = {
+                    "total_points": remaining_points,
+                    "avg_points_per_item": avg_points_per_item,
+                }
+
                 return (
                     estimated_items,
                     remaining_items,
                     estimated_points,
                     f"{remaining_points:.0f}",
+                    calc_results,
                 )
 
             # Convert statistics to DataFrame for easier manipulation
@@ -2804,83 +2756,27 @@ def register(app):
             df["date"] = pd.to_datetime(df["date"])
             df = df.sort_values("date", ascending=False)  # Most recent first
 
-            # Get the most recent N data points (based on slider value)
-            selected_data = df.head(data_points_count)
-
-            # Calculate cumulative completed items/points in the selected time window
-            completed_in_window_items = selected_data["completed_items"].sum()  # type: ignore[attr-defined]
-            completed_in_window_points = selected_data["completed_points"].sum()  # type: ignore[attr-defined]
-
-            # Get current remaining work from project scope
-            current_remaining_items = project_scope.get("remaining_items", 0)
-            current_remaining_points = project_scope.get("remaining_total_points", 0)
-
-            # Calculate remaining work at the START of the selected time window
-            remaining_items_at_start = (
-                current_remaining_items + completed_in_window_items
-            )
-            remaining_points_at_start = (
-                current_remaining_points + completed_in_window_points
-            )
-
-            # Calculate estimated items/points - NOT USED for total_points calculation
-            # These are just for display in the estimated fields
-            # The total_points comes from remaining_points_at_start calculated above
-            current_remaining_items_value = project_scope.get("remaining_items", 1)
-            current_estimated_items = project_scope.get("estimated_items", 0)
-            current_estimated_points = project_scope.get("estimated_points", 0)
-
-            if current_remaining_items_value > 0:
-                # Scale estimated items proportionally
-                estimate_ratio = current_estimated_items / current_remaining_items_value
-                estimated_items_at_start = int(
-                    remaining_items_at_start * estimate_ratio
-                )
-
-                # Scale estimated points proportionally
-                if current_estimated_items > 0:
-                    avg_points_per_estimated_item = (
-                        current_estimated_points / current_estimated_items
-                    )
-                    estimated_points_at_start = int(
-                        estimated_items_at_start * avg_points_per_estimated_item
-                    )
-                else:
-                    estimated_points_at_start = 0
-            else:
-                estimated_items_at_start = current_estimated_items
-                estimated_points_at_start = current_estimated_points
-
-            # CRITICAL: Do NOT let extrapolation callback recalculate total_points
-            # The correct value is remaining_points_at_start calculated above
-            # We need to also set calculation_results to prevent override
-            logger.info(
-                f"Estimated values at start: Items={estimated_items_at_start}, Points={estimated_points_at_start}"
-            )
-
-            logger.info(
-                f"Calculated remaining work for {data_points_count} week window: "
-                f"Remaining Items: {current_remaining_items} → {remaining_items_at_start}, "
-                f"Remaining Points: {current_remaining_points:.0f} → {remaining_points_at_start:.0f}"
-            )
+            # Use actual remaining values from project scope (no window calculations)
+            remaining_items = project_scope.get("remaining_items", 0)
+            remaining_points = project_scope.get("remaining_total_points", 0)
+            estimated_items = project_scope.get("estimated_items", 0)
+            estimated_points = project_scope.get("estimated_points", 0)
 
             # Calculate avg points per item for calculation_results
             avg_points_per_item = 0
-            if remaining_items_at_start > 0:
-                avg_points_per_item = (
-                    remaining_points_at_start / remaining_items_at_start
-                )
+            if remaining_items > 0:
+                avg_points_per_item = remaining_points / remaining_items
 
             calc_results = {
-                "total_points": remaining_points_at_start,
+                "total_points": remaining_points,
                 "avg_points_per_item": avg_points_per_item,
             }
 
             return (
-                estimated_items_at_start,
-                int(remaining_items_at_start),
-                estimated_points_at_start,
-                f"{remaining_points_at_start:.0f}",
+                estimated_items,
+                int(remaining_items),
+                estimated_points,
+                f"{remaining_points:.0f}",
                 calc_results,
             )
 

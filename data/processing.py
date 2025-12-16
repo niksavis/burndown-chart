@@ -139,15 +139,14 @@ def compute_cumulative_values(
         df["completed_points"], errors="coerce"
     ).fillna(0)
 
-    # Calculate cumulative sums from the end to the beginning
-    # This gives us the remaining items/points at each data point
-    # We reverse the dataframe, calculate cumulative sum, then reverse back
-    reversed_items = df["completed_items"][::-1].cumsum()[::-1]
-    reversed_points = df["completed_points"][::-1].cumsum()[::-1]
+    # Calculate cumulative completed from beginning to each point
+    df["cumulative_completed_items"] = df["completed_items"].cumsum()
+    df["cumulative_completed_points"] = df["completed_points"].cumsum()
 
-    # Calculate remaining items and points by adding the total to the reverse cumsum
-    df["cum_items"] = reversed_items + total_items
-    df["cum_points"] = reversed_points + total_points
+    # Calculate remaining at each point = Current remaining + Work completed in time window
+    # This gives us the burndown: starting scope minus progress
+    df["cum_items"] = total_items + df["cumulative_completed_items"]
+    df["cum_points"] = total_points + df["cumulative_completed_points"]
 
     return df
 

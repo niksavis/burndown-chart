@@ -337,22 +337,17 @@ def _create_executive_summary(statistics_df, settings, forecast_data):
         statistics_df["completed_points"].sum() if not statistics_df.empty else 0
     )
 
-    # Use settings which are calculated in serve_layout() and slider callback
-    # These represent the total scope at the START of the data window
-    total_items = settings.get("total_items", 0)
-    total_points = settings.get("total_points", 0)
+    # Get current remaining from project_data.json
+    from data.persistence import load_unified_project_data
 
-    # FALLBACK: If settings are 0 or missing, calculate from current scope
-    if total_items == 0 or total_points == 0:
-        from data.persistence import load_unified_project_data
+    unified_data = load_unified_project_data()
+    project_scope = unified_data.get("project_scope", {})
+    current_remaining_items = project_scope.get("remaining_items", 0)
+    current_remaining_points = project_scope.get("remaining_total_points", 0)
 
-        unified_data = load_unified_project_data()
-        project_scope = unified_data.get("scope", {})
-        current_remaining_items = project_scope.get("remaining_items", 0)
-        current_remaining_points = project_scope.get("remaining_total_points", 0)
-
-        total_items = current_remaining_items + completed_items
-        total_points = current_remaining_points + completed_points
+    # Calculate scope at START of time window = current remaining + completed in window
+    total_items = current_remaining_items + completed_items
+    total_points = current_remaining_points + completed_points
 
     deadline = settings.get("deadline")
 

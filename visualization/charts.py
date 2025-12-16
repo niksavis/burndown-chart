@@ -463,7 +463,7 @@ def add_metrics_annotations(fig, metrics_data, data_points_count=None):
             "value": metrics_data["days_to_deadline"],
             "format": "{:,} days",
         },
-        # Row 3 - Remaining and estimates
+        # Row 3 - Remaining items and points
         {
             "label": "Remaining Items",
             "value": metrics_data["total_items"],

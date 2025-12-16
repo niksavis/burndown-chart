@@ -935,14 +935,14 @@ def register(app):
         try:
             # Get values from settings with safe defaults
             pert_factor = settings.get("pert_factor", 1.2)
-            total_items = settings.get("total_items", 0)
-            total_points = calc_results.get(
-                "total_points", settings.get("total_points", 0)
-            )
             deadline = settings.get("deadline", "")
             data_points_count = int(
                 settings.get("data_points_count", 12)
             )  # Ensure int, default 12
+
+            # Get remaining items/points from settings (loaded from project_data.json)
+            total_items = settings.get("total_items", 0)
+            total_points = settings.get("total_points", 0)
 
             # Convert statistics to DataFrame
             df = pd.DataFrame(statistics)
