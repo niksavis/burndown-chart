@@ -200,6 +200,25 @@
   margin-bottom: var(--spacing-xs);
 }
 
+/* CRITICAL: Allow parameter collapse to overflow when expanded (not during animation) */
+/* This allows datepicker calendars to extend beyond the panel */
+#parameter-collapse.collapse.show {
+  overflow: visible !important;
+}
+
+/* During animation, keep overflow hidden to prevent content from jumping */
+#parameter-collapse.collapsing {
+  overflow: hidden !important;
+}
+
+/* Ensure the tabbed settings panel inside allows overflow when expanded */
+#parameter-collapse.show .tabbed-settings-panel,
+#parameter-collapse.show .settings-tab-content,
+#parameter-collapse.show .card,
+#parameter-collapse.show .card-body {
+  overflow: visible !important;
+}
+
 /* Collapsed bar styling */
 .parameter-bar-collapsed {
   cursor: default;
