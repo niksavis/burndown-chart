@@ -3234,9 +3234,9 @@ def create_parameter_panel_expanded(
                                                                     ),
                                                                     html.Small(
                                                                         [
-                                                                            "Items with effort estimates. Leave 0 if unavailable. ",
+                                                                            "Items with estimates (0 if none). ",
                                                                             html.Span(
-                                                                                "(Overwritten by JIRA updates)",
+                                                                                "JIRA overwrites.",
                                                                                 style={
                                                                                     "color": "#856404",
                                                                                     "fontStyle": "italic",
@@ -3289,9 +3289,9 @@ def create_parameter_panel_expanded(
                                                                     ),
                                                                     html.Small(
                                                                         [
-                                                                            "All open/unresolved issues. ",
+                                                                            "All open issues. ",
                                                                             html.Span(
-                                                                                "(Overwritten by JIRA updates)",
+                                                                                "JIRA overwrites.",
                                                                                 style={
                                                                                     "color": "#856404",
                                                                                     "fontStyle": "italic",
@@ -3350,9 +3350,9 @@ def create_parameter_panel_expanded(
                                                                     ),
                                                                     html.Small(
                                                                         [
-                                                                            "Items with story point estimates. Leave 0 if unavailable. ",
+                                                                            "Story points sum (0 if none). ",
                                                                             html.Span(
-                                                                                "(Overwritten by JIRA updates)",
+                                                                                "JIRA overwrites.",
                                                                                 style={
                                                                                     "color": "#856404",
                                                                                     "fontStyle": "italic",
@@ -3390,14 +3390,6 @@ def create_parameter_panel_expanded(
                                                                                     "marginLeft": "0.25rem"
                                                                                 },
                                                                             ),
-                                                                            html.Span(
-                                                                                " auto",
-                                                                                className="badge bg-secondary",
-                                                                                style={
-                                                                                    "fontSize": "0.65rem",
-                                                                                    "marginLeft": "0.25rem",
-                                                                                },
-                                                                            ),
                                                                         ],
                                                                         className="form-label fw-medium",
                                                                         style={
@@ -3418,16 +3410,16 @@ def create_parameter_panel_expanded(
                                                                         [
                                                                             html.Span(
                                                                                 id="remaining-points-formula",
-                                                                                children="Calculated: Estimated Points + (avg × unestimated items).",
+                                                                                children="= Est. Points + (avg × unestimated).",
                                                                             ),
                                                                             " ",
-                                                                            html.Strong(
-                                                                                "Note: ",
+                                                                            html.Span(
+                                                                                "JIRA overwrites.",
                                                                                 style={
-                                                                                    "color": "#856404"
+                                                                                    "color": "#856404",
+                                                                                    "fontStyle": "italic",
                                                                                 },
                                                                             ),
-                                                                            "Manual changes will be overwritten by 'Update Data from JIRA'.",
                                                                         ],
                                                                         className="text-muted d-block mt-1",
                                                                         style={

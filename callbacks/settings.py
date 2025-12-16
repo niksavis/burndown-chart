@@ -160,13 +160,13 @@ def register(app):
     def update_remaining_points_formula(calc_results):
         """Update the formula display to show the actual avg coefficient being used."""
         if not calc_results:
-            return "Calculated: Estimated Points + (avg × unestimated items)."
+            return "= Est. Points + (avg × unestimated)."
 
         avg = calc_results.get("avg_points_per_item", 0)
         if avg > 0:
-            return f"Calculated: Estimated Points + ({avg:.2f} × unestimated items)."
+            return f"= Est. Points + ({avg:.2f} × unestimated)."
         else:
-            return "Calculated: Estimated Points + (avg × unestimated items)."
+            return "= Est. Points + (avg × unestimated)."
 
     # REMOVED: The Python callback for data-points-info that was causing the duplicate output error
     # This functionality is now handled by the clientside callback below
