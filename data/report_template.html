@@ -248,6 +248,11 @@
                         <div class="card-body text-center">
                             <div class="text-muted small">Remaining Points</div>
                             <div class="h3 mb-0 text-warning">{{ metrics.dashboard.remaining_points }}</div>
+                            {% if metrics.dashboard.unestimated_items > 0 %}
+                            <div class="small text-muted" style="margin-top: 0.25rem; font-size: 0.75rem;">
+                                <i class="fas fa-calculator"></i> {{ metrics.dashboard.estimated_points }} + ({{ metrics.dashboard.avg_points_per_item }} × {{ metrics.dashboard.unestimated_items }})
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -354,11 +359,11 @@
                     </div>
                     <div class="metric-row">
                         <span class="metric-label">At Window Start (Items)</span>
-                        <span class="metric-value">{{ metrics.scope.remaining_at_start_items }}</span>
+                        <span class="metric-value">{{ metrics.scope.scope_at_start_items }}</span>
                     </div>
                     <div class="metric-row">
                         <span class="metric-label">At Window Start (Points)</span>
-                        <span class="metric-value">{{ metrics.scope.remaining_at_start_points }}</span>
+                        <span class="metric-value">{{ metrics.scope.scope_at_start_points }}</span>
                     </div>
                     <div class="metric-row" style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid #dee2e6;">
                         <span class="metric-label">Current Remaining (Items)</span>

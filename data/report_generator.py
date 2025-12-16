@@ -397,6 +397,8 @@ def _calculate_dashboard_metrics(project_data: Dict, statistics: List[Dict]) -> 
         "remaining_points": round(project_scope.get("remaining_total_points", 0)),
         "estimated_items": project_scope.get("estimated_items", 0),
         "estimated_points": project_scope.get("estimated_points", 0),
+        "unestimated_items": project_scope.get("unestimated_items", 0),
+        "avg_points_per_item": round(project_scope.get("avg_points_per_item", 0), 2),
         "avg_items_per_week": avg_items_per_week,
         "avg_points_per_week": avg_points_per_week,
     }
@@ -438,9 +440,7 @@ def _calculate_burndown_metrics(statistics: List[Dict], project_data: Dict) -> D
     # Get CURRENT remaining work from project scope
     project_scope = project_data.get("project_scope", {})
     remaining_items = project_scope.get("remaining_items", 0)
-    remaining_points = project_scope.get(
-        "remaining_total_points", project_scope.get("remaining_points", 0)
-    )
+    remaining_points = project_scope.get("remaining_total_points", 0)
 
     # Get actual weeks count for reporting
     weeks_count = unique_weeks
@@ -614,33 +614,34 @@ def _calculate_scope_metrics(statistics: List[Dict], project_data: Dict) -> Dict
             "scope_change_pct": 0,
         }
 
-    # Calculate remaining work at START of selected time window
+    # Get current remaining work from project scope (CURRENT state)
     project_scope = project_data.get("project_scope", {})
     current_remaining_items = project_scope.get("remaining_items", 0)
-    current_remaining_points = project_scope.get(
-        "remaining_total_points", project_scope.get("remaining_points", 0)
-    )
+    current_remaining_points = project_scope.get("remaining_total_points", 0)
 
-    # Add back completed work to get scope at window start
+    # Calculate completed work in the selected time window
     completed_in_window_items = sum(row.get("completed_items", 0) for row in statistics)
     completed_in_window_points = sum(
         row.get("completed_points", 0) for row in statistics
     )
 
-    remaining_items = current_remaining_items + completed_in_window_items
-    remaining_points = current_remaining_points + completed_in_window_points
+    # Calculate scope at START of window = current remaining + completed in window
+    scope_at_start_items = current_remaining_items + completed_in_window_items
+    scope_at_start_points = current_remaining_points + completed_in_window_points
 
-    # Calculate initial scope (baseline)
+    # Calculate initial scope at START of window (before any work in this window)
     df = pd.DataFrame(statistics)
-    initial_scope = calculate_total_project_scope(df, remaining_items, remaining_points)
+    initial_scope = calculate_total_project_scope(
+        df, scope_at_start_items, scope_at_start_points
+    )
     initial_items = initial_scope["total_items"]
     initial_points = initial_scope["total_points"]
 
-    # Calculate created items/points
+    # Calculate created items/points during the window
     added_items = sum(row.get("created_items", 0) for row in statistics)
     added_points = sum(row.get("created_points", 0) for row in statistics)
 
-    # Current scope = initial + created
+    # Current scope = initial + created during window
     current_items = initial_items + added_items
     current_points = initial_points + added_points
 
@@ -649,17 +650,17 @@ def _calculate_scope_metrics(statistics: List[Dict], project_data: Dict) -> Dict
 
     return {
         "initial_scope_items": initial_items,
-        "initial_scope_points": initial_points,
+        "initial_scope_points": round(initial_points),
         "current_scope_items": current_items,
-        "current_scope_points": current_points,
-        "remaining_at_start_items": remaining_items,
-        "remaining_at_start_points": round(remaining_points),
+        "current_scope_points": round(current_points),
+        "scope_at_start_items": scope_at_start_items,
+        "scope_at_start_points": round(scope_at_start_points),
         "remaining_current_items": current_remaining_items,
         "remaining_current_points": round(current_remaining_points),
         "completed_in_window_items": completed_in_window_items,
         "completed_in_window_points": round(completed_in_window_points),
         "added_items": added_items,
-        "added_points": added_points,
+        "added_points": round(added_points),
         "removed_items": 0,  # Not tracked in statistics
         "removed_points": 0,  # Not tracked in statistics
         "scope_change_pct": round(scope_change_pct, 1),
