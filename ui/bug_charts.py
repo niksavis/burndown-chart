@@ -123,7 +123,7 @@ def BugInvestmentChart(
                 html.Div(
                     [
                         html.I(className="fas fa-coins me-2"),
-                        "Bug Investment: Items vs Story Points",
+                        "Bug Investment: Items vs Points",
                     ],
                     className="mb-3 border-bottom pb-2 d-flex align-items-center fw-bold",
                 ),
@@ -136,7 +136,7 @@ def BugInvestmentChart(
                 html.Small(
                     [
                         html.I(className="fas fa-info-circle me-1"),
-                        "Bar chart shows bug item counts (left axis), line chart shows story points (right axis).",
+                        "Bars show bug item counts (left axis), lines show complexity in points (right axis). Compare created vs resolved to track bug investment trends.",
                     ],
                     className="text-muted d-block mt-2",
                 ),
