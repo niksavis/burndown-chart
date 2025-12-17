@@ -181,17 +181,19 @@ def generate_report(n_clicks, sections, data_points):
             f"Generating report: sections={sections}, period={time_period} weeks"
         )
 
-        # Generate report HTML
-        html_content = generate_html_report(
+        # Generate report HTML (returns HTML content and metadata with display names)
+        html_content, metadata = generate_html_report(
             sections=sections,
             time_period_weeks=time_period,
             profile_id=profile_id,
         )
 
-        # Generate filename
+        # Generate filename: YYYYMMDD_HHMMSS_ProfileName_QueryName_Xw.html
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        profile_name = profile_id.replace(" ", "_").replace("/", "_")
-        filename = f"report_{profile_name}_{timestamp}.html"
+        profile_name = metadata["profile_name"].replace(" ", "_").replace("/", "_")
+        query_name = metadata["query_name"].replace(" ", "_").replace("/", "_")
+        weeks = metadata["time_period_weeks"]
+        filename = f"{timestamp}_{profile_name}_{query_name}_{weeks}w.html"
 
         logger.info(f"Report generated: {len(html_content)} bytes, {filename}")
 

@@ -2,7 +2,7 @@
 
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 from jinja2 import Template
@@ -15,7 +15,7 @@ def generate_html_report(
     sections: List[str],
     time_period_weeks: int = 12,
     profile_id: Optional[str] = None,
-) -> str:
+) -> tuple[str, Dict[str, str]]:
     """
     Generate a self-contained HTML report with project metrics snapshot.
 
@@ -25,7 +25,7 @@ def generate_html_report(
         profile_id: Profile ID (defaults to active profile)
 
     Returns:
-        HTML string containing the complete report
+        Tuple of (HTML string, metadata dict with 'profile_name' and 'query_name')
 
     Raises:
         ValueError: If no sections selected or invalid data
@@ -211,7 +211,14 @@ def generate_html_report(
     )
 
     logger.info(f"Report generated successfully: {len(html)} bytes")
-    return html
+
+    # Return HTML content and metadata for filename generation
+    metadata = {
+        "profile_name": profile_name,
+        "query_name": query_name,
+        "time_period_weeks": time_period_weeks,
+    }
+    return html, metadata
 
 
 def _load_report_data(profile_id: str, weeks: int) -> Dict[str, Any]:
@@ -365,47 +372,67 @@ def _calculate_all_metrics(
 
 
 def _calculate_dashboard_metrics(project_data: Dict, statistics: List[Dict]) -> Dict:
-    """Calculate dashboard overview metrics."""
+    """Calculate dashboard overview metrics using existing function for DRY compliance.
+
+    This delegates to calculate_dashboard_metrics() from data.processing to avoid
+    code duplication and ensure consistency between UI and reports.
+    """
+    from data.processing import (
+        calculate_dashboard_metrics,
+        calculate_velocity_from_dataframe,
+    )
+
     project_scope = project_data.get("project_scope", {})
 
-    # Calculate velocity using unique ISO weeks (matches UI calculation)
+    # Use existing calculate_dashboard_metrics for core velocity calculations
+    # Build settings dict that the function expects
+    settings = {
+        "estimated_total_items": project_scope.get("total_items", 0),
+        "estimated_total_points": project_scope.get("total_points", 0),
+        "data_points_count": len(statistics) if statistics else 0,
+    }
+
+    # Get core metrics from existing function (DRY)
+    core_metrics = calculate_dashboard_metrics(statistics, settings)
+
+    # Calculate average velocity across ALL filtered statistics (for report overview)
+    # This is different from "current velocity" which uses recent N data points
     if statistics:
         df = pd.DataFrame(statistics)
         df["date"] = pd.to_datetime(df["date"])
-        df["iso_week"] = df["date"].dt.strftime("%Y-%U")  # type: ignore[attr-defined]
-        unique_weeks = df["iso_week"].nunique()
-
-        total_completed_items = df["completed_items"].sum()
-        total_completed_points = df["completed_points"].sum()
-
-        avg_items_per_week = (
-            round(total_completed_items / unique_weeks, 1) if unique_weeks else 0
-        )
-        avg_points_per_week = (
-            round(total_completed_points / unique_weeks, 1) if unique_weeks else 0
-        )
+        avg_items_per_week = calculate_velocity_from_dataframe(df, "completed_items")
+        avg_points_per_week = calculate_velocity_from_dataframe(df, "completed_points")
     else:
         avg_items_per_week = 0
         avg_points_per_week = 0
 
+    # Return report-specific dashboard metrics
     return {
         "total_items": project_scope.get("total_items", 0),
         "total_points": project_scope.get("total_points", 0),
         "completed_items": project_scope.get("completed_items", 0),
         "completed_points": project_scope.get("completed_points", 0),
-        "remaining_items": project_scope.get("remaining_items", 0),
-        "remaining_points": round(project_scope.get("remaining_total_points", 0)),
+        "remaining_items": core_metrics["remaining_items"],
+        "remaining_points": round(core_metrics["remaining_points"]),
         "estimated_items": project_scope.get("estimated_items", 0),
         "estimated_points": project_scope.get("estimated_points", 0),
         "unestimated_items": project_scope.get("unestimated_items", 0),
         "avg_points_per_item": round(project_scope.get("avg_points_per_item", 0), 2),
         "avg_items_per_week": avg_items_per_week,
         "avg_points_per_week": avg_points_per_week,
+        "current_velocity_items": core_metrics[
+            "current_velocity_items"
+        ],  # From UI function
+        "current_velocity_points": core_metrics[
+            "current_velocity_points"
+        ],  # From UI function
     }
 
 
 def _calculate_burndown_metrics(statistics: List[Dict], project_data: Dict) -> Dict:
     """Calculate burndown and velocity metrics."""
+    from data.processing import calculate_velocity_from_dataframe
+
     if not statistics:
         return {}
 
@@ -425,17 +452,23 @@ def _calculate_burndown_metrics(statistics: List[Dict], project_data: Dict) -> D
     total_created_items = df["created_items"].sum()
     total_created_points = df["created_points"].sum()
 
-    # Calculate velocity using unique weeks (not row count)
+    # Calculate average velocity using unique weeks (matches UI calculation)
     unique_weeks = df["iso_week"].nunique()
     avg_items_per_week = total_completed_items / unique_weeks if unique_weeks else 0
     avg_points_per_week = total_completed_points / unique_weeks if unique_weeks else 0
 
-    # Last 4 weeks velocity
-    recent_df = df.tail(min(len(df), 28))  # Approximately 4 weeks of daily data
-    recent_unique_weeks = recent_df["iso_week"].nunique()
-    recent_items = recent_df["completed_items"].sum()
-    recent_points = recent_df["completed_points"].sum()
-    recent_weeks_count = max(recent_unique_weeks, 1)  # Avoid division by zero
+    # Calculate recent velocity (last 4 weeks) using time-based filtering
+    # Use date-based filtering instead of .tail() to handle sparse/weekly data correctly
+    cutoff_date = datetime.now() - timedelta(weeks=4)
+    recent_df = df[df["date"] >= cutoff_date]
+
+    # Use the same helper function as UI for consistency
+    recent_items_velocity = calculate_velocity_from_dataframe(
+        recent_df, "completed_items"
+    )
+    recent_points_velocity = calculate_velocity_from_dataframe(
+        recent_df, "completed_points"
+    )
 
     # Get CURRENT remaining work from project scope
     project_scope = project_data.get("project_scope", {})
@@ -513,12 +546,8 @@ def _calculate_burndown_metrics(statistics: List[Dict], project_data: Dict) -> D
         "total_created_points": total_created_points,
         "avg_items_per_week": round(avg_items_per_week, 1),
         "avg_points_per_week": round(avg_points_per_week, 1),
-        "recent_items_velocity": round(recent_items / recent_weeks_count, 1)
-        if recent_weeks_count
-        else 0,
-        "recent_points_velocity": round(recent_points / recent_weeks_count, 1)
-        if recent_weeks_count
-        else 0,
+        "recent_items_velocity": recent_items_velocity,
+        "recent_points_velocity": recent_points_velocity,
         "remaining_items": int(remaining_items),
         "remaining_points": round(remaining_points),
         "weeks_count": weeks_count,
