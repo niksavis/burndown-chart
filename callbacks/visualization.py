@@ -732,9 +732,46 @@ def register(app):
         # Ensure datetime format for date
         df["date"] = pd.to_datetime(df["date"])
 
-        # Get baseline values
-        baseline_items = settings.get("total_items", 100)
-        baseline_points = settings.get("total_points", 500)
+        # Calculate baseline values using the correct method (same as report)
+        # Baseline = current remaining + total completed in filtered period
+        # This gives us the initial backlog at the start of the data window
+        from data.scope_metrics import calculate_total_project_scope
+
+        # Filter to data_points_count if specified
+        df_filtered = (
+            df.tail(data_points_count)
+            if data_points_count and data_points_count > 0
+            else df
+        )
+
+        # Get current remaining from project_data.json (not from settings)
+        from data.persistence import load_project_data
+
+        try:
+            project_data = load_project_data()
+            project_scope = project_data.get("project_scope", {})
+            current_remaining_items = project_scope.get("remaining_items", 0)
+            current_remaining_points = project_scope.get("remaining_total_points", 0)
+        except Exception as e:
+            logger.error(f"[SCOPE BASELINE APP] Failed to load project_data: {e}")
+            current_remaining_items = 0
+            current_remaining_points = 0
+
+        # Calculate baseline as: current remaining + sum of completed in period
+        total_completed_items = df_filtered["completed_items"].sum()
+        total_completed_points = df_filtered["completed_points"].sum()
+
+        baseline_items = int(current_remaining_items + total_completed_items)
+        baseline_points = current_remaining_points + total_completed_points
+
+        # Debug logging to verify baseline calculation
+        logger.error(
+            f"[SCOPE BASELINE APP] data_points_count={data_points_count}, "
+            f"filtered_rows={len(df_filtered)}, "
+            f"current_remaining={current_remaining_items}/{current_remaining_points}, "
+            f"completed_sum={total_completed_items}/{total_completed_points}, "
+            f"calculated_baseline={baseline_items}/{baseline_points}"
+        )
 
         # Ensure required columns exist with default values of 0 if they don't
         if "created_items" not in df.columns:
@@ -791,11 +828,14 @@ def register(app):
         )
 
         # Create the scope metrics dashboard
+        # Pass the correctly calculated baseline values
         return create_scope_metrics_dashboard(
             scope_creep_rate,
             weekly_growth_data,
             stability_index,
             scope_creep_threshold,
+            total_items_scope=baseline_items,
+            total_points_scope=baseline_points,
             show_points=show_points,
         )
 

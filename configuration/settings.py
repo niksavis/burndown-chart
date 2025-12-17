@@ -208,15 +208,15 @@ PROJECT_HELP_TEXTS = {
 # Scope Change and Stability Help Texts - Phase 9.1 Simplified
 # Note: Comprehensive content moved to configuration/help_content.py for Phase 9.2 help system
 SCOPE_HELP_TEXTS = {
-    "scope_change_rate": "Percentage of new work discovered vs original baseline.",
+    "scope_change_rate": "Percentage of new work discovered vs initial backlog. Baseline = remaining items at start of tracking period (current remaining + total completed).",
     "throughput_ratio": "Ratio comparing discovery rate vs completion velocity.",
     "threshold_color_coding": "Visual indicators showing velocity impact of scope changes.",
-    "adaptability_index": "Measures team adaptation to new requirements while maintaining velocity.",
+    "adaptability_index": "Scope Stability Index: Measures how stable the scope is relative to total work. Calculated as 1 - (created / total_scope). Higher values (0.7+) = stable, predictable scope with few additions. Lower values (0.3-0.6) = dynamic, evolving scope with frequent additions (normal for responsive agile teams).",
     "weekly_scope_patterns": "Week-by-week tracking of requirement discovery patterns.",
     "agile_scope_philosophy": "Scope changes are expected and valuable in agile projects.",
     "scope_metrics_explanation": "Comprehensive tracking of project scope evolution over time.",
     "jira_scope_calculation": "Intelligent extrapolation for items without story points.",
-    "cumulative_chart": "Cumulative scope changes compared to original baseline.",
+    "cumulative_chart": "Shows cumulative net scope change from start of period. Positive values = scope grew (scope creep). Negative values = backlog reduced faster than additions. Starting from zero makes scope trends clearer.",
     "weekly_growth": "Week-by-week scope additions and reductions showing discovery patterns.",
 }
 
