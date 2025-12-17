@@ -57,9 +57,13 @@ def generate_html_report(
 
     # Load and filter data for the time period
     report_data = _load_report_data(profile_id, time_period_weeks)
+    report_data["profile_id"] = profile_id  # Add for DORA metrics
 
     # Calculate all metrics for requested sections
     metrics = _calculate_all_metrics(report_data, sections, time_period_weeks)
+
+    # Add statistics to metrics for chart generation
+    metrics["statistics"] = report_data["statistics"]
 
     # Generate Chart.js scripts for visualizations
     chart_scripts = _generate_chart_scripts(metrics, sections)
@@ -235,7 +239,7 @@ def _calculate_all_metrics(
     # DORA metrics
     if "dora" in sections:
         metrics["dora"] = _calculate_dora_metrics(
-            report_data["snapshots"], report_data["weeks_count"]
+            report_data["profile_id"], report_data["weeks_count"]
         )
 
     return metrics
@@ -806,10 +810,10 @@ def _calculate_scope_metrics(
     current_points = project_scope.get("remaining_total_points", 0)
 
     # Calculate initial scope at window start
-    # Match burndown calculation: work backwards from current by adding completed
-    # (Created items are already in current remaining, so don't subtract them)
-    initial_items = current_items + total_completed_items
-    initial_points = current_points + total_completed_points
+    # Work backwards from current: Initial = Current + Completed - Created
+    # This accounts for both work completed and new work added during the period
+    initial_items = current_items + total_completed_items - total_created_items
+    initial_points = current_points + total_completed_points - total_created_points
 
     logger.error(
         f"[SCOPE BASELINE] Current: {current_items} items, {current_points:.2f} points"
@@ -824,7 +828,7 @@ def _calculate_scope_metrics(
         f"[SCOPE BASELINE] Calculated initial: {initial_items} items, {initial_points:.2f} points"
     )
 
-    # Calculate net change
+    # Calculate net change: Current - Initial = (Current) - (Current + Completed - Created) = Created - Completed
     items_change = current_items - initial_items
     points_change = current_points - initial_points
 
@@ -862,219 +866,235 @@ def _calculate_flow_metrics(
     snapshots: Dict[str, Dict], weeks_count: int
 ) -> Dict[str, Any]:
     """
-    Calculate Flow metrics from weekly snapshots.
+    Load Flow metrics from snapshots (matches app implementation).
+
+    Uses the same snapshot reading logic as callbacks/dora_flow_metrics.py
+    to ensure identical calculations with aggregation across the period.
 
     Args:
-        snapshots: Filtered weekly snapshots (current week already excluded)
-        weeks_count: Number of weeks with data
+        snapshots: Filtered weekly snapshots (NOT USED - we read directly from cache)
+        weeks_count: Number of weeks to load from snapshots
 
     Returns:
-        Dictionary with Flow metrics
+        Dictionary with Flow metrics matching app display
     """
-    if not snapshots:
+    from data.time_period_calculator import get_iso_week, format_year_week
+    from data.metrics_snapshots import get_metric_snapshot, get_available_weeks
+
+    logger.info(f"Loading Flow metrics from snapshots for {weeks_count} weeks")
+
+    # Generate week labels (same as app)
+    weeks = []
+    current_date = datetime.now()
+    for i in range(weeks_count):
+        year, week = get_iso_week(current_date)
+        week_label = format_year_week(year, week)
+        weeks.append(week_label)
+        current_date = current_date - timedelta(days=7)
+
+    week_labels = list(reversed(weeks))  # Oldest to newest
+    current_week_label = week_labels[-1] if week_labels else ""
+
+    # Check if any data exists
+    available_weeks = get_available_weeks()
+    has_any_data = any(week in available_weeks for week in week_labels)
+
+    if not has_any_data:
+        logger.warning("No Flow metrics snapshots found")
         return {"has_data": False, "weeks_count": weeks_count}
 
-    # Sort snapshots by week
-    sorted_weeks = sorted(snapshots.keys())
+    # Load weekly values from snapshots (same as app)
+    from data.metrics_snapshots import get_metric_weekly_values
 
-    # Get current week (most recent complete week)
-    current_week_label = sorted_weeks[-1] if sorted_weeks else None
-    current_week_data = (
-        snapshots.get(current_week_label, {}) if current_week_label else {}
+    flow_load_values = get_metric_weekly_values(week_labels, "flow_load", "wip_count")
+    flow_time_values = get_metric_weekly_values(week_labels, "flow_time", "median_days")
+    flow_efficiency_values = get_metric_weekly_values(
+        week_labels, "flow_efficiency", "overall_pct"
+    )
+    velocity_values = get_metric_weekly_values(
+        week_labels, "flow_velocity", "completed_count"
     )
 
-    # Calculate period averages
-    velocity_values = []
-    cycle_time_values = []
-    wip_values = []
-    efficiency_values = []
-
-    for week_label in sorted_weeks:
-        week_data = snapshots[week_label]
-        # Extract from flow_velocity snapshot
-        flow_velocity_snap = week_data.get("flow_velocity", {})
-        velocity_values.append(flow_velocity_snap.get("completed_count", 0))
-        # Extract from flow_time snapshot
-        flow_time_snap = week_data.get("flow_time", {})
-        cycle_time_values.append(flow_time_snap.get("median_days", 0))
-        # Extract from flow_load snapshot
-        flow_load_snap = week_data.get("flow_load", {})
-        wip_values.append(flow_load_snap.get("wip_count", 0))
-        # Extract from flow_efficiency snapshot
-        flow_efficiency_snap = week_data.get("flow_efficiency", {})
-        efficiency_values.append(flow_efficiency_snap.get("overall_pct", 0))
-
-    # Calculate averages
+    # AGGREGATE metrics across period (same as app)
+    # Flow Velocity: Average items/week
     avg_velocity = (
         round(sum(velocity_values) / len(velocity_values), 1) if velocity_values else 0
     )
-    avg_cycle_time = (
-        round(sum(cycle_time_values) / len(cycle_time_values), 1)
-        if cycle_time_values
-        else 0
-    )
-    avg_wip = round(sum(wip_values) / len(wip_values), 1) if wip_values else 0
-    # Flow Efficiency: exclude zeros (weeks with no completions)
-    non_zero_efficiency = [v for v in efficiency_values if v > 0]
+
+    # Flow Time: Median of weekly medians (exclude zeros = weeks with no completions)
+    non_zero_flow_times = [v for v in flow_time_values if v > 0]
+    if non_zero_flow_times:
+        sorted_times = sorted(non_zero_flow_times)
+        mid = len(sorted_times) // 2
+        median_flow_time = (
+            sorted_times[mid]
+            if len(sorted_times) % 2 == 1
+            else (sorted_times[mid - 1] + sorted_times[mid]) / 2
+        )
+    else:
+        median_flow_time = 0
+
+    # Flow Efficiency: Average efficiency across period (exclude zeros)
+    non_zero_efficiency = [v for v in flow_efficiency_values if v > 0]
     avg_efficiency = (
         round(sum(non_zero_efficiency) / len(non_zero_efficiency), 1)
         if non_zero_efficiency
         else 0
     )
 
-    # Get current week metrics
-    current_flow_velocity = current_week_data.get("flow_velocity", {})
-    current_flow_time = current_week_data.get("flow_time", {})
-    current_flow_load = current_week_data.get("flow_load", {})
+    # Flow Load (WIP): Current week snapshot (point-in-time metric)
+    flow_load_snapshot = get_metric_snapshot(current_week_label, "flow_load")
+    if not flow_load_snapshot and available_weeks:
+        # Find most recent week with data
+        for week in week_labels[::-1]:  # Start from most recent
+            flow_load_snapshot = get_metric_snapshot(week, "flow_load")
+            if flow_load_snapshot:
+                logger.info(
+                    f"Using WIP from {week} (current {current_week_label} not available)"
+                )
+                break
+    wip_count = flow_load_snapshot.get("wip_count", 0) if flow_load_snapshot else 0
 
-    current_velocity = current_flow_velocity.get("completed_count", 0)
-    current_cycle_time = current_flow_time.get("median_days", 0)
-    current_wip = current_flow_load.get("wip_count", 0)
-    current_throughput = current_velocity  # Same as velocity
-
-    # Calculate work distribution (aggregate over filtered weeks only - data range)
-    total_work_states = {}
+    # Collect distribution data across ALL weeks for aggregated totals
+    total_feature = 0
+    total_defect = 0
+    total_tech_debt = 0
+    total_risk = 0
+    total_completed = 0
     distribution_history = []
 
-    for week_label in sorted_weeks:
-        week_data = snapshots[week_label]
-        flow_velocity_snap = week_data.get("flow_velocity", {})
-        work_dist = flow_velocity_snap.get("distribution", {})
+    for week in week_labels:
+        week_snapshot = get_metric_snapshot(week, "flow_velocity")
+        if week_snapshot:
+            week_dist = week_snapshot.get("distribution", {})
+            week_feature = week_dist.get("feature", 0)
+            week_defect = week_dist.get("defect", 0)
+            week_tech_debt = week_dist.get("tech_debt", 0)
+            week_risk = week_dist.get("risk", 0)
+            week_total = week_snapshot.get("completed_count", 0)
 
-        # Aggregate totals for period summary
-        for state, count in work_dist.items():
-            total_work_states[state] = total_work_states.get(state, 0) + count
+            # Accumulate totals
+            total_feature += week_feature
+            total_defect += week_defect
+            total_tech_debt += week_tech_debt
+            total_risk += week_risk
+            total_completed += week_total
 
-        # Build weekly history for stacked bar chart
-        week_total = sum(work_dist.values()) if work_dist else 0
-        distribution_history.append(
-            {
-                "week": week_label,
-                "feature": work_dist.get("feature", 0),
-                "defect": work_dist.get("defect", 0),
-                "tech_debt": work_dist.get("tech_debt", 0),
-                "risk": work_dist.get("risk", 0),
-                "total": week_total,
-            }
-        )
+            distribution_history.append(
+                {
+                    "week": week,
+                    "feature": week_feature,
+                    "defect": week_defect,
+                    "tech_debt": week_tech_debt,
+                    "risk": week_risk,
+                    "total": week_total,
+                }
+            )
+        else:
+            distribution_history.append(
+                {
+                    "week": week,
+                    "feature": 0,
+                    "defect": 0,
+                    "tech_debt": 0,
+                    "risk": 0,
+                    "total": 0,
+                }
+            )
 
-    # Get current week work distribution
-    current_work_dist = current_flow_velocity.get("distribution", {})
+    logger.info(
+        f"Flow metrics loaded: Velocity={avg_velocity:.1f} items/week, "
+        f"Flow Time={median_flow_time:.1f}d, Efficiency={avg_efficiency:.1f}%, WIP={wip_count}"
+    )
 
     return {
         "has_data": True,
-        "current": {
-            "velocity": current_velocity,
-            "cycle_time": current_cycle_time,
-            "wip": current_wip,
-            "throughput": current_throughput,
-            "work_distribution": current_work_dist,
-        },
-        "period": {
-            "velocity": avg_velocity,
-            "cycle_time": avg_cycle_time,
-            "wip": avg_wip,
-            "efficiency": avg_efficiency,
-            "work_distribution": total_work_states,
+        "velocity": avg_velocity,  # Average items/week
+        "flow_time": round(median_flow_time, 1),  # Median days
+        "efficiency": avg_efficiency,  # Average percentage
+        "wip": wip_count,  # Current WIP count
+        "work_distribution": {
+            "feature": total_feature,
+            "defect": total_defect,
+            "tech_debt": total_tech_debt,
+            "risk": total_risk,
+            "total": total_completed,
         },
         "distribution_history": distribution_history,
         "weeks_count": weeks_count,
     }
 
 
-def _calculate_dora_metrics(
-    snapshots: Dict[str, Dict], weeks_count: int
-) -> Dict[str, Any]:
+def _calculate_dora_metrics(profile_id: str, weeks_count: int) -> Dict[str, Any]:
     """
-    Calculate DORA metrics from weekly snapshots.
+    Load DORA metrics from cache (matches app implementation).
+
+    Uses the same load_dora_metrics_from_cache() function as the app's
+    callbacks/dora_flow_metrics.py to ensure identical calculations.
 
     Args:
-        snapshots: Filtered weekly snapshots (current week already excluded)
-        weeks_count: Number of weeks with data
+        profile_id: Active profile ID for cache access (not currently used by load function)
+        weeks_count: Number of weeks to load from cache
 
     Returns:
-        Dictionary with DORA metrics
+        Dictionary with DORA metrics matching app display
     """
-    if not snapshots:
+    from data.dora_metrics_calculator import load_dora_metrics_from_cache
+
+    logger.info(f"Loading DORA metrics from cache for {weeks_count} weeks")
+
+    # Load from cache using the same function as the app
+    cached_metrics = load_dora_metrics_from_cache(n_weeks=weeks_count)
+
+    if not cached_metrics:
+        logger.warning("No DORA metrics found in cache")
         return {"has_data": False, "weeks_count": weeks_count}
 
-    # Sort snapshots by week
-    sorted_weeks = sorted(snapshots.keys())
+    # Extract values matching app structure
+    # Deployment Frequency: Use release count (unique fixVersions) as primary
+    deploy_data = cached_metrics.get("deployment_frequency", {})
+    deployment_freq = deploy_data.get("release_value", 0)  # Primary: unique releases
+    deployment_freq_tasks = deploy_data.get("value", 0)  # Secondary: task count
 
-    # Get current week (most recent complete week)
-    current_week_label = sorted_weeks[-1] if sorted_weeks else None
-    current_week_data = (
-        snapshots.get(current_week_label, {}) if current_week_label else {}
+    # Lead Time: value is already in days, value_hours is in hours
+    lead_time_data = cached_metrics.get("lead_time_for_changes", {})
+    lead_time_days = lead_time_data.get(
+        "value"
+    )  # Already in days (median of weekly medians)
+    lead_time_hours = lead_time_data.get(
+        "value_hours"
+    )  # In hours for secondary display
+
+    # Change Failure Rate: Percentage
+    cfr_data = cached_metrics.get("change_failure_rate", {})
+    change_failure_rate = cfr_data.get("value", 0)  # Percentage
+
+    # MTTR: value is already in hours (median of weekly medians), convert to days
+    mttr_data = cached_metrics.get("mean_time_to_recovery", {})
+    mttr_hours = mttr_data.get("value")  # Already in hours (median of weekly medians)
+    mttr_days = round(mttr_hours / 24, 1) if mttr_hours else None
+
+    # Get weekly values for trend analysis
+    weekly_labels = deploy_data.get("weekly_labels", [])
+
+    logger.info(
+        f"DORA metrics loaded: DF={deployment_freq} releases/week, "
+        f"LT={lead_time_days}d, CFR={change_failure_rate}%, MTTR={mttr_days}d"
     )
-
-    # Calculate period averages
-    deployment_freq_values = []
-    lead_time_values = []
-    mttr_values = []
-    change_fail_values = []
-
-    for week_label in sorted_weeks:
-        week_data = snapshots[week_label]
-        # Extract from DORA snapshots (use correct keys with dora_ prefix)
-        deploy_snap = week_data.get("dora_deployment_frequency", {})
-        deployment_freq_values.append(deploy_snap.get("deployments_per_week") or 0)
-        # Extract from lead_time snapshot
-        lead_time_snap = week_data.get("dora_lead_time", {})
-        lead_time_values.append(lead_time_snap.get("median_hours") or 0)
-        # MTTR and Change Failure Rate
-        mttr_snap = week_data.get("dora_mttr", {})
-        mttr_values.append(mttr_snap.get("median_hours") or 0)
-        change_fail_snap = week_data.get("dora_change_failure_rate", {})
-        change_fail_values.append(change_fail_snap.get("aggregate_rate") or 0)
-
-    # Calculate averages (filter out zeros for metrics that should exclude no-data weeks)
-    avg_deployment_freq = (
-        round(sum(deployment_freq_values) / len(deployment_freq_values), 1)
-        if deployment_freq_values
-        else 0
-    )
-    # Lead time: exclude zeros (weeks with no deployments to measure)
-    non_zero_lead_time = [v for v in lead_time_values if v > 0]
-    avg_lead_time = (
-        round(sum(non_zero_lead_time) / len(non_zero_lead_time), 1)
-        if non_zero_lead_time
-        else 0
-    )
-    # MTTR: exclude zeros (weeks with no incidents to measure)
-    non_zero_mttr = [v for v in mttr_values if v > 0]
-    avg_mttr = round(sum(non_zero_mttr) / len(non_zero_mttr), 1) if non_zero_mttr else 0
-    avg_change_fail = (
-        round(sum(change_fail_values) / len(change_fail_values), 1)
-        if change_fail_values
-        else 0
-    )
-
-    # Get current week metrics (use correct snapshot keys)
-    current_deploy_snap = current_week_data.get("dora_deployment_frequency", {})
-    current_lead_time_snap = current_week_data.get("dora_lead_time", {})
-    current_mttr_snap = current_week_data.get("dora_mttr", {})
-    current_change_fail_snap = current_week_data.get("dora_change_failure_rate", {})
-
-    current_deployment_freq = current_deploy_snap.get("deployments_per_week") or 0
-    current_lead_time = current_lead_time_snap.get("median_hours") or 0
-    current_mttr = current_mttr_snap.get("median_hours") or 0
-    current_change_fail = current_change_fail_snap.get("aggregate_rate") or 0
 
     return {
         "has_data": True,
-        "current": {
-            "deployment_frequency": current_deployment_freq,
-            "lead_time": current_lead_time,
-            "mttr": current_mttr,
-            "change_failure_rate": current_change_fail,
-        },
-        "period": {
-            "deployment_frequency": avg_deployment_freq,
-            "lead_time": avg_lead_time,
-            "mttr": avg_mttr,
-            "change_failure_rate": avg_change_fail,
-        },
+        "deployment_frequency": deployment_freq,  # Releases per week
+        "deployment_frequency_tasks": deployment_freq_tasks,  # Tasks per week
+        "lead_time_days": lead_time_days,  # Days (None if no data)
+        "lead_time_hours": lead_time_hours,  # Hours (None if no data)
+        "change_failure_rate": change_failure_rate,  # Percentage
+        "mttr_days": mttr_days,  # Days (None if no data)
+        "mttr_hours": mttr_hours,  # Hours (None if no data)
+        "weekly_labels": weekly_labels,  # For charts
         "weeks_count": weeks_count,
+        # Include full cached data for detailed reporting
+        "_raw": cached_metrics,
     }
 
 
@@ -1196,6 +1216,10 @@ def _generate_chart_scripts(metrics: Dict[str, Any], sections: List[str]) -> Lis
         scripts.append(
             _generate_weekly_breakdown_chart(metrics["burndown"]["weekly_data"])
         )
+
+    # Scope changes chart
+    if "burndown" in sections and metrics.get("scope", {}).get("has_data"):
+        scripts.append(_generate_scope_changes_chart(metrics))
 
     # Bug trends chart
     if (
@@ -1425,6 +1449,95 @@ def _generate_weekly_breakdown_chart(weekly_data: List[Dict]) -> str:
                             callbacks: {{
                                 label: function(context) {{
                                     return context.dataset.label + ': ' + Math.abs(context.parsed.y);
+                                }}
+                            }}
+                        }}
+                    }}
+                }}
+            }});
+        }}
+    }})();
+    """
+
+
+def _generate_scope_changes_chart(metrics: Dict[str, Any]) -> str:
+    """Generate Chart.js script for scope changes over time chart."""
+    statistics = metrics.get("statistics", [])
+    if not statistics:
+        return ""
+
+    df = pd.DataFrame(statistics)
+
+    # Convert date to datetime and generate week labels
+    df["date"] = pd.to_datetime(df["date"])  # type: ignore
+    df["week"] = df["date"].dt.isocalendar().week  # type: ignore
+    df["year"] = df["date"].dt.isocalendar().year  # type: ignore
+    df["week_label"] = df.apply(lambda r: f"{r['year']}-W{r['week']:02d}", axis=1)
+
+    # Group by week to aggregate daily data
+    weekly_df = (
+        df.groupby("week_label")
+        .agg({"created_items": "sum", "completed_items": "sum"})
+        .reset_index()
+    )
+
+    weeks_js = json.dumps(weekly_df["week_label"].tolist())
+    created_items_js = json.dumps(weekly_df["created_items"].tolist())
+    completed_items_js = json.dumps(weekly_df["completed_items"].tolist())
+
+    return f"""
+    (function() {{
+        const ctx = document.getElementById('scopeChangesChart');
+        if (ctx) {{
+            new Chart(ctx, {{
+                type: 'bar',
+                data: {{
+                    labels: {weeks_js},
+                    datasets: [
+                        {{
+                            label: 'Items Created',
+                            data: {created_items_js},
+                            backgroundColor: 'rgba(220, 53, 69, 0.6)',
+                            borderColor: 'rgba(220, 53, 69, 1)',
+                            borderWidth: 1
+                        }},
+                        {{
+                            label: 'Items Completed',
+                            data: {completed_items_js},
+                            backgroundColor: 'rgba(25, 135, 84, 0.6)',
+                            borderColor: 'rgba(25, 135, 84, 1)',
+                            borderWidth: 1
+                        }}
+                    ]
+                }},
+                options: {{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {{
+                        mode: 'index',
+                        intersect: false
+                    }},
+                    scales: {{
+                        x: {{ 
+                            grid: {{ display: false }},
+                            ticks: {{ maxRotation: 45, minRotation: 45 }}
+                        }},
+                        y: {{ 
+                            beginAtZero: true,
+                            grid: {{ color: '#e9ecef' }},
+                            title: {{ display: true, text: 'Items' }}
+                        }}
+                    }},
+                    plugins: {{
+                        legend: {{ display: true, position: 'bottom' }},
+                        tooltip: {{
+                            callbacks: {{
+                                afterBody: function(context) {{
+                                    const idx = context[0].dataIndex;
+                                    const created = context[0].chart.data.datasets[0].data[idx];
+                                    const completed = context[0].chart.data.datasets[1].data[idx];
+                                    const net = created - completed;
+                                    return 'Net Change: ' + (net > 0 ? '+' : '') + net + ' items';
                                 }}
                             }}
                         }}

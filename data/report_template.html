@@ -495,7 +495,7 @@
         <div class="section">
             <h2 class="section-title">
                 <i class="fas fa-chart-line"></i>
-                Project Dashboard
+                Project Health Overview
             </h2>
             
             {% if metrics.dashboard.has_data %}
@@ -656,73 +656,7 @@
         </div>
         {% endif %}
 
-        <!-- Bug Analysis Section -->
-        {% if 'burndown' in sections and metrics.bug_analysis.has_data %}
-        <div class="section">
-            <h2 class="section-title">
-                <i class="fas fa-bug"></i>
-                Bug Analysis
-            </h2>
-            
-            <div class="metric-cards">
-                <div class="metric-card">
-                    <div class="metric-card-label"><i class="fas fa-exclamation-circle"></i> Open Bugs</div>
-                    <div class="metric-card-value" style="color: var(--color-red);">
-                        {{ metrics.bug_analysis.open_bugs|int }}
-                    </div>
-                    <div class="metric-card-sublabel">Current state (all time)</div>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-card-label"><i class="fas fa-check-circle"></i> Resolution Rate</div>
-                    <div class="metric-card-value" style="color: var(--color-green);">
-                        {{ metrics.bug_analysis.resolution_rate|dec1 }}%
-                    </div>
-                    <div class="metric-card-sublabel">{{ metrics.bug_analysis.closed_bugs|int }} closed / {{ metrics.bug_analysis.total_bugs|int }} total</div>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-card-label"><i class="fas fa-clock"></i> Avg Resolution Time</div>
-                    <div class="metric-card-value">
-                        {{ metrics.bug_analysis.avg_age_days|dec1 }} days
-                    </div>
-                    <div class="metric-card-sublabel">{% if metrics.bug_analysis.date_from %}{{ metrics.bug_analysis.date_from }} - {{ metrics.bug_analysis.date_to }}{% endif %}</div>
-                </div>
-            </div>
-            
-            {% if metrics.bug_analysis.forecast_weeks %}
-            <div class="info-box mt-4">
-                <strong><i class="fas fa-crystal-ball"></i> Expected Resolution:</strong>
-                ~<strong>{{ metrics.bug_analysis.forecast_weeks }} weeks</strong>
-                {% if metrics.bug_analysis.forecast_date %}
-                by {{ metrics.bug_analysis.forecast_date }}
-                {% endif %}
-                {% if metrics.bug_analysis.avg_closure_rate %}
-                • {{ metrics.bug_analysis.avg_closure_rate|dec1 }} bugs/week
-                {% endif %}
-                <br>
-                <small class="text-muted">
-                    {% if metrics.bug_analysis.weeks_analyzed %}
-                    Based on {{ metrics.bug_analysis.weeks_analyzed }} weeks of data
-                    {% endif %}
-                </small>
-            </div>
-            {% endif %}
-            
-            {% if metrics.bug_analysis.weekly_stats %}
-            <div class="mt-4">
-                <h4 class="mb-3">Bug Trends Over Time</h4>
-                <div class="chart-container">
-                    <canvas id="bugTrendsChart"></canvas>
-                </div>
-                <p class="text-muted mt-2 mb-0">
-                    <i class="fas fa-info-circle me-1"></i>
-                    <small>Orange highlighted areas indicate 3+ consecutive weeks of bugs created exceeding bugs closed.</small>
-                </p>
-            </div>
-            {% endif %}
-        </div>
-        {% endif %}
-
-        <!-- Scope Changes Section (moved after Burndown) -->
+        <!-- Scope Changes Section (before Bug Analysis) -->
         {% if 'burndown' in sections and metrics.scope.has_data %}
         <div class="section">
             <h2 class="section-title">
@@ -736,28 +670,28 @@
                     <table class="table table-sm table-striped">
                         <tbody>
                             <tr>
-                                <td class="metric-card-label">Initial Scope ({{ weeks_count }}w ago)</td>
+                                <td class="metric-card-label">Initial Backlog ({{ weeks_count }}w ago)</td>
                                 <td class="text-end"><strong>{{ metrics.scope.initial_items }}</strong></td>
                             </tr>
                             <tr>
-                                <td class="metric-card-label">Current Scope</td>
+                                <td class="metric-card-label">Current Backlog</td>
                                 <td class="text-end"><strong>{{ metrics.scope.final_items }}</strong></td>
                             </tr>
-                            <tr>
-                                <td class="metric-card-label">Net Change</td>
-                                <td class="text-end">
-                                    <strong class="{% if metrics.scope.items_change > 0 %}text-danger{% elif metrics.scope.items_change < 0 %}text-success{% endif %}">
+                            <tr style="border-top: 2px solid #dee2e6;">
+                                <td class="metric-card-label" style="padding-top: 0.75rem;"><strong style="text-transform: uppercase; font-size: 0.85rem;">Backlog Size Change</strong></td>
+                                <td class="text-end" style="padding-top: 0.75rem;">
+                                    <strong style="font-size: 1.1rem;" class="{% if metrics.scope.items_change > 0 %}text-danger{% elif metrics.scope.items_change < 0 %}text-success{% endif %}">
                                         {% if metrics.scope.items_change > 0 %}+{% endif %}{{ metrics.scope.items_change }}
                                     </strong>
                                 </td>
                             </tr>
-                            <tr>
-                                <td class="metric-card-label">Created in Period</td>
-                                <td class="text-end"><strong class="text-primary">+{{ metrics.scope.created_items }}</strong></td>
+                            <tr style="background-color: #f8f9fa;">
+                                <td class="metric-card-label" style="padding-left: 2rem; border-top: none; padding-top: 0.5rem;"><span style="text-transform: uppercase; font-size: 0.75rem; color: #6c757d;">New Items Added</span></td>
+                                <td class="text-end" style="border-top: none; padding-top: 0.5rem;"><span class="text-primary">+{{ metrics.scope.created_items }}</span></td>
                             </tr>
-                            <tr>
-                                <td class="metric-card-label">Completed in Period</td>
-                                <td class="text-end"><strong class="text-success">-{{ metrics.scope.completed_items }}</strong></td>
+                            <tr style="background-color: #f8f9fa;">
+                                <td class="metric-card-label" style="padding-left: 2rem; padding-bottom: 0.75rem;"><span style="text-transform: uppercase; font-size: 0.75rem; color: #6c757d;">Items Completed</span></td>
+                                <td class="text-end" style="padding-bottom: 0.75rem;"><span class="text-success">-{{ metrics.scope.completed_items }}</span></td>
                             </tr>
                         </tbody>
                     </table>
@@ -768,28 +702,28 @@
                     <table class="table table-sm table-striped">
                         <tbody>
                             <tr>
-                                <td class="metric-card-label">Initial Scope ({{ weeks_count }}w ago)</td>
+                                <td class="metric-card-label">Initial Backlog ({{ weeks_count }}w ago)</td>
                                 <td class="text-end"><strong>{{ metrics.scope.initial_points }}</strong></td>
                             </tr>
                             <tr>
-                                <td class="metric-card-label">Current Scope</td>
+                                <td class="metric-card-label">Current Backlog</td>
                                 <td class="text-end"><strong>{{ metrics.scope.final_points }}</strong></td>
                             </tr>
-                            <tr>
-                                <td class="metric-card-label">Net Change</td>
-                                <td class="text-end">
-                                    <strong class="{% if metrics.scope.points_change > 0 %}text-danger{% elif metrics.scope.points_change < 0 %}text-success{% endif %}">
+                            <tr style="border-top: 2px solid #dee2e6;">
+                                <td class="metric-card-label" style="padding-top: 0.75rem;"><strong style="text-transform: uppercase; font-size: 0.85rem;">Backlog Size Change</strong></td>
+                                <td class="text-end" style="padding-top: 0.75rem;">
+                                    <strong style="font-size: 1.1rem;" class="{% if metrics.scope.points_change > 0 %}text-danger{% elif metrics.scope.points_change < 0 %}text-success{% endif %}">
                                         {% if metrics.scope.points_change > 0 %}+{% endif %}{{ metrics.scope.points_change }}
                                     </strong>
                                 </td>
                             </tr>
-                            <tr>
-                                <td class="metric-card-label">Created in Period</td>
-                                <td class="text-end"><strong class="text-primary">+{{ metrics.scope.created_points|dec1 }}</strong></td>
+                            <tr style="background-color: #f8f9fa;">
+                                <td class="metric-card-label" style="padding-left: 2rem; border-top: none; padding-top: 0.5rem;"><span style="text-transform: uppercase; font-size: 0.75rem; color: #6c757d;">New Points Added</span></td>
+                                <td class="text-end" style="border-top: none; padding-top: 0.5rem;"><span class="text-primary">+{{ metrics.scope.created_points|dec1 }}</span></td>
                             </tr>
-                            <tr>
-                                <td class="metric-card-label">Completed in Period</td>
-                                <td class="text-end"><strong class="text-success">-{{ metrics.scope.completed_points|dec1 }}</strong></td>
+                            <tr style="background-color: #f8f9fa;">
+                                <td class="metric-card-label" style="padding-left: 2rem; padding-bottom: 0.75rem;"><span style="text-transform: uppercase; font-size: 0.75rem; color: #6c757d;">Points Completed</span></td>
+                                <td class="text-end" style="padding-bottom: 0.75rem;"><span class="text-success">-{{ metrics.scope.completed_points|dec1 }}</span></td>
                             </tr>
                         </tbody>
                     </table>
@@ -813,6 +747,80 @@
                     </div>
                 </div>
             </div>
+            
+            <!-- Scope Changes Over Time Chart -->
+            <div class="mt-4">
+                <h4 class="mb-3">Scope Changes Over Time</h4>
+                <div class="chart-container">
+                    <canvas id="scopeChangesChart"></canvas>
+                </div>
+                <p class="text-muted mt-2 mb-0">
+                    <i class="fas fa-info-circle me-1"></i>
+                    <small>Weekly comparison of items created (red) vs completed (green). Net positive = scope growth.</small>
+                </p>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Bug Analysis Section (after Scope Changes) -->
+        {% if 'burndown' in sections and metrics.bug_analysis.has_data %}
+        <div class="section">
+            <h2 class="section-title">
+                <i class="fas fa-bug"></i>
+                Bug Analysis
+            </h2>
+            
+            <div class="metric-cards">
+                <div class="metric-card">
+                    <div class="metric-card-label"><i class="fas fa-exclamation-circle"></i> Open Bugs</div>
+                    <div class="metric-card-value" style="color: var(--color-red);">
+                        {{ metrics.bug_analysis.open_bugs|int }}
+                    </div>
+                    <div class="metric-card-sublabel">Current state (all time)</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-card-label"><i class="fas fa-check-circle"></i> Resolution Rate</div>
+                    <div class="metric-card-value" style="color: var(--color-green);">
+                        {{ metrics.bug_analysis.resolution_rate|dec1 }}%
+                    </div>
+                    <div class="metric-card-sublabel">{{ metrics.bug_analysis.closed_bugs|int }} closed / {{ metrics.bug_analysis.total_bugs|int }} total</div>
+                </div>
+            </div>
+            
+            {% if metrics.bug_analysis.forecast_weeks %}
+            <div class="info-box mt-4">
+                <div>
+                    <strong><i class="fas fa-crystal-ball"></i> Expected Resolution:</strong>
+                    ~<strong>{{ metrics.bug_analysis.forecast_weeks }} weeks</strong>
+                    {% if metrics.bug_analysis.forecast_date %}
+                    by {{ metrics.bug_analysis.forecast_date }}
+                    {% endif %}
+                    {% if metrics.bug_analysis.avg_closure_rate %}
+                    • {{ metrics.bug_analysis.avg_closure_rate|dec1 }} bugs/week
+                    {% endif %}
+                </div>
+                <div>
+                    <small class="text-muted">
+                        {% if metrics.bug_analysis.weeks_analyzed %}
+                        Based on {{ metrics.bug_analysis.weeks_analyzed }} weeks of data
+                        {% endif %}
+                    </small>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if metrics.bug_analysis.weekly_stats %}
+            <div class="mt-4">
+                <h4 class="mb-3">Bug Trends Over Time</h4>
+                <div class="chart-container">
+                    <canvas id="bugTrendsChart"></canvas>
+                </div>
+                <p class="text-muted mt-2 mb-0">
+                    <i class="fas fa-info-circle me-1"></i>
+                    <small>Orange highlighted areas indicate 3+ consecutive weeks of bugs created exceeding bugs closed.</small>
+                </p>
+            </div>
+            {% endif %}
         </div>
         {% endif %}
 
@@ -825,52 +833,52 @@
             </h2>
             
             {% if metrics.flow.has_data %}
-                <!-- Flow Metrics: Single column showing period aggregates (matches app display) -->
+                <!-- Flow Metrics: Period aggregates matching app display exactly -->
                 <div class="row justify-content-center">
                     <div class="col-md-8">
-                        <h5 class="text-center mb-3">{{ weeks_count }}-Week Period Metrics</h5>
+                        <h5 class="text-center mb-3">{{ metrics.flow.weeks_count }}-Week Period Metrics</h5>
                         <table class="table table-sm table-striped">
                             <tbody>
                                 <tr>
                                     <td class="metric-card-label"><i class="fas fa-tachometer-alt"></i> Flow Velocity</td>
-                                    <td class="text-end"><strong>{{ metrics.flow.period.velocity }}</strong> items/week</td>
+                                    <td class="text-end"><strong>{{ metrics.flow.velocity|round(1) }}</strong> items/week</td>
                                 </tr>
                                 <tr>
                                     <td class="metric-card-label"><i class="fas fa-clock"></i> Flow Time</td>
-                                    <td class="text-end"><strong>{{ metrics.flow.period.cycle_time }}</strong> days</td>
+                                    <td class="text-end"><strong>{{ metrics.flow.flow_time|round(1) }}</strong> days (median)</td>
                                 </tr>
                                 <tr>
                                     <td class="metric-card-label"><i class="fas fa-chart-line"></i> Flow Efficiency</td>
-                                    <td class="text-end"><strong>{{ metrics.flow.period.efficiency|default(0)|round(1) }}</strong>%</td>
+                                    <td class="text-end"><strong>{{ metrics.flow.efficiency|round(1) }}</strong>%</td>
                                 </tr>
                                 <tr>
-                                    <td class="metric-card-label"><i class="fas fa-tasks"></i> Flow Load</td>
-                                    <td class="text-end"><strong>{{ metrics.flow.period.wip }}</strong> items</td>
+                                    <td class="metric-card-label"><i class="fas fa-tasks"></i> Flow Load (WIP)</td>
+                                    <td class="text-end"><strong>{{ metrics.flow.wip }}</strong> items (current)</td>
                                 </tr>
                             </tbody>
                         </table>
                         <p class="text-muted text-center small mt-2 mb-0">
-                            <i class="fas fa-info-circle"></i> Aggregated metrics across {{ weeks_count }}-week period matching app display.
+                            <i class="fas fa-info-circle"></i> 4-week weighted average. Recent weeks weighted more heavily (40%, 30%, 20%, 10% from newest to oldest).
                         </p>
                     </div>
                 </div>
                 
-                {% if metrics.flow.period.work_distribution %}
+                {% if metrics.flow.work_distribution %}
                 <div class="mt-4">
                     <h5 class="mb-3">Work Distribution</h5>
                     
-                    {% set total_items = metrics.flow.period.work_distribution.values() | sum %}
+                    {% set total_items = metrics.flow.work_distribution.total %}
                     {% if total_items > 0 %}
                     <div class="row mb-3">
                         <div class="col-12">
-                            <small class="text-muted text-center d-block mb-2" style="font-weight: 600;">{{ weeks_count }}-week aggregate</small>
+                            <small class="text-muted text-center d-block mb-2" style="font-weight: 600;">{{ metrics.flow.weeks_count }}-week aggregate</small>
                         </div>
                         <div class="col-md-3 col-6 mb-3">
                             <div class="text-center">
                                 <span class="small text-muted d-block mb-1">Feature</span>
                                 <div class="d-flex align-items-baseline justify-content-center">
-                                    <span class="h4 mb-0 me-2" style="color: rgb(25, 135, 84);">{{ metrics.flow.period.work_distribution.get('feature', 0) }}</span>
-                                    <span class="h6 mb-0" style="color: rgb(25, 135, 84);">{{ ((metrics.flow.period.work_distribution.get('feature', 0) / total_items * 100) | round | int) }}%</span>
+                                    <span class="h4 mb-0 me-2" style="color: rgb(25, 135, 84);">{{ metrics.flow.work_distribution.feature }}</span>
+                                    <span class="h6 mb-0" style="color: rgb(25, 135, 84);">{{ ((metrics.flow.work_distribution.feature / total_items * 100) | round | int) }}%</span>
                                 </div>
                             </div>
                         </div>
@@ -878,8 +886,8 @@
                             <div class="text-center">
                                 <span class="small text-muted d-block mb-1">Defect</span>
                                 <div class="d-flex align-items-baseline justify-content-center">
-                                    <span class="h4 mb-0 me-2" style="color: rgb(220, 53, 69);">{{ metrics.flow.period.work_distribution.get('defect', 0) }}</span>
-                                    <span class="h6 mb-0" style="color: rgb(220, 53, 69);">{{ ((metrics.flow.period.work_distribution.get('defect', 0) / total_items * 100) | round | int) }}%</span>
+                                    <span class="h4 mb-0 me-2" style="color: rgb(220, 53, 69);">{{ metrics.flow.work_distribution.defect }}</span>
+                                    <span class="h6 mb-0" style="color: rgb(220, 53, 69);">{{ ((metrics.flow.work_distribution.defect / total_items * 100) | round | int) }}%</span>
                                 </div>
                             </div>
                         </div>
@@ -887,8 +895,8 @@
                             <div class="text-center">
                                 <span class="small text-muted d-block mb-1">Tech Debt</span>
                                 <div class="d-flex align-items-baseline justify-content-center">
-                                    <span class="h4 mb-0 me-2" style="color: rgb(253, 126, 20);">{{ metrics.flow.period.work_distribution.get('tech_debt', 0) }}</span>
-                                    <span class="h6 mb-0" style="color: rgb(253, 126, 20);">{{ ((metrics.flow.period.work_distribution.get('tech_debt', 0) / total_items * 100) | round | int) }}%</span>
+                                    <span class="h4 mb-0 me-2" style="color: rgb(253, 126, 20);">{{ metrics.flow.work_distribution.tech_debt }}</span>
+                                    <span class="h6 mb-0" style="color: rgb(253, 126, 20);">{{ ((metrics.flow.work_distribution.tech_debt / total_items * 100) | round | int) }}%</span>
                                 </div>
                             </div>
                         </div>
@@ -896,8 +904,8 @@
                             <div class="text-center">
                                 <span class="small text-muted d-block mb-1">Risk</span>
                                 <div class="d-flex align-items-baseline justify-content-center">
-                                    <span class="h4 mb-0 me-2" style="color: rgb(255, 193, 7);">{{ metrics.flow.period.work_distribution.get('risk', 0) }}</span>
-                                    <span class="h6 mb-0" style="color: rgb(255, 193, 7);">{{ ((metrics.flow.period.work_distribution.get('risk', 0) / total_items * 100) | round | int) }}%</span>
+                                    <span class="h4 mb-0 me-2" style="color: rgb(255, 193, 7);">{{ metrics.flow.work_distribution.risk }}</span>
+                                    <span class="h6 mb-0" style="color: rgb(255, 193, 7);">{{ ((metrics.flow.work_distribution.risk / total_items * 100) | round | int) }}%</span>
                                 </div>
                             </div>
                         </div>
@@ -930,32 +938,51 @@
             </h2>
             
             {% if metrics.dora.has_data %}
-                <!-- DORA Metrics: Single column showing period aggregates (matches app display) -->
+                <!-- DORA Metrics: Period aggregates matching app display exactly -->
                 <div class="row justify-content-center">
                     <div class="col-md-8">
-                        <h5 class="text-center mb-3">{{ weeks_count }}-Week Period Metrics</h5>
+                        <h5 class="text-center mb-3">{{ metrics.dora.weeks_count }}-Week Period Metrics</h5>
                         <table class="table table-sm table-striped">
                             <tbody>
                                 <tr>
                                     <td class="metric-card-label"><i class="fas fa-shipping-fast"></i> Deployment Frequency</td>
-                                    <td class="text-end"><strong>{{ metrics.dora.period.deployment_frequency }}</strong> per week</td>
+                                    <td class="text-end">
+                                        <strong>{{ metrics.dora.deployment_frequency|round(2) }}</strong> releases/week
+                                        {% if metrics.dora.deployment_frequency_tasks != metrics.dora.deployment_frequency %}
+                                        <br><small class="text-muted">({{ metrics.dora.deployment_frequency_tasks|round(2) }} tasks/week)</small>
+                                        {% endif %}
+                                    </td>
                                 </tr>
                                 <tr>
                                     <td class="metric-card-label"><i class="fas fa-clock"></i> Lead Time For Changes</td>
-                                    <td class="text-end"><strong>{{ metrics.dora.period.lead_time }}</strong> hours</td>
+                                    <td class="text-end">
+                                        {% if metrics.dora.lead_time_days %}
+                                        <strong>{{ metrics.dora.lead_time_days|round(1) }}</strong> days
+                                        <br><small class="text-muted">({{ metrics.dora.lead_time_hours|round(0) }} hours)</small>
+                                        {% else %}
+                                        <span class="text-muted">No data</span>
+                                        {% endif %}
+                                    </td>
                                 </tr>
                                 <tr>
                                     <td class="metric-card-label"><i class="fas fa-exclamation-triangle"></i> Change Failure Rate</td>
-                                    <td class="text-end"><strong>{{ metrics.dora.period.change_failure_rate }}</strong>%</td>
+                                    <td class="text-end"><strong>{{ metrics.dora.change_failure_rate|round(1) }}</strong>%</td>
                                 </tr>
                                 <tr>
                                     <td class="metric-card-label"><i class="fas fa-tools"></i> Mean Time To Recovery</td>
-                                    <td class="text-end"><strong>{{ metrics.dora.period.mttr }}</strong> hours</td>
+                                    <td class="text-end">
+                                        {% if metrics.dora.mttr_hours %}
+                                        <strong>{{ metrics.dora.mttr_hours|round(1) }}</strong> hours
+                                        <br><small class="text-muted">({{ metrics.dora.mttr_days|round(1) }} days)</small>
+                                        {% else %}
+                                        <span class="text-muted">No data</span>
+                                        {% endif %}
+                                    </td>
                                 </tr>
                             </tbody>
                         </table>
                         <p class="text-muted text-center small mt-2 mb-0">
-                            <i class="fas fa-info-circle"></i> Aggregated metrics across {{ weeks_count }}-week period matching app display.
+                            <i class="fas fa-info-circle"></i> Lead Time & MTTR: median of weekly medians. Deployment Frequency: average of weekly counts. CFR: aggregate rate over all weeks.
                         </p>
                     </div>
                 </div>
