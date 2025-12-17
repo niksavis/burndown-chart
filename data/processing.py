@@ -789,18 +789,29 @@ def calculate_weekly_averages(
     # When data_points_count is specified, we already filtered the input data,
     # so use all the filtered weekly data
     if data_points_count is not None:
-        recent_data = weekly_df  # Use all weeks from the filtered input
+        recent_data = weekly_df  # Use all weeks from the filtered input (respects user's data window)
     else:
         # Legacy behavior: limit to last 10 weeks when no filtering specified
         recent_data = weekly_df.tail(10)
 
     # Calculate averages and medians
+    import logging
+
+    logger = logging.getLogger(__name__)
+    logger.error(
+        f"[APP VELOCITY] weeks in recent_data: {len(recent_data)}, items per week: {recent_data['items'].tolist()}, points per week: {recent_data['points'].tolist()}"
+    )
+
     avg_weekly_items = recent_data["items"].mean()
     avg_weekly_points = recent_data["points"].mean()
     med_weekly_items = recent_data["items"].median()
     med_weekly_points = recent_data[
         "points"
     ].median()  # Always round up to 2 decimal places (as float, not int)
+
+    logger.error(
+        f"[APP VELOCITY] median items={med_weekly_items}, median points={med_weekly_points}"
+    )
 
     def round_up_2(x):
         # Ensure we're working with a float and preserve 2 decimal places

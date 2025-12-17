@@ -113,7 +113,7 @@ def register(app):
         if None in [total_items, estimated_items, estimated_points]:
             # Use .get() method for dictionary lookups - this is the Python idiomatic way
             return (
-                f"{calc_results.get('total_points', DEFAULT_TOTAL_POINTS):.0f}",
+                f"{calc_results.get('total_points', DEFAULT_TOTAL_POINTS):.1f}",
                 calc_results
                 or {"total_points": DEFAULT_TOTAL_POINTS, "avg_points_per_item": 0},
             )
@@ -126,7 +126,7 @@ def register(app):
         except (ValueError, TypeError):
             # Return previous values if conversion fails
             return (
-                f"{calc_results.get('total_points', DEFAULT_TOTAL_POINTS):.0f}",
+                f"{calc_results.get('total_points', DEFAULT_TOTAL_POINTS):.1f}",
                 calc_results
                 or {"total_points": DEFAULT_TOTAL_POINTS, "avg_points_per_item": 0},
             )
@@ -149,7 +149,7 @@ def register(app):
 
         # Return updated values
         return (
-            f"{estimated_total_points:.0f}",
+            f"{estimated_total_points:.1f}",
             updated_calc_results,
         )
 
@@ -931,7 +931,7 @@ def register(app):
                 )
 
                 # Format total_points as string since it's a text display field
-                total_points_display = f"{total_points:.0f}"
+                total_points_display = f"{total_points:.1f}"
 
                 logger.info(
                     f"[Settings] Final scope for UI: total_items={total_items}, estimated_items={estimated_items}, total_points={total_points:.1f}, estimated_points={estimated_points}"
@@ -2633,11 +2633,11 @@ def register(app):
             pert_factor=pert_factor,
             deadline=deadline,
             scope_items=scope_items,
-            scope_points=int(scope_points),
+            scope_points=round(scope_points, 1),  # type: ignore[arg-type]
             remaining_items=scope_items,  # Display as Remaining
-            remaining_points=int(scope_points),  # Display as Remaining
+            remaining_points=round(scope_points, 1),  # type: ignore[arg-type]
             total_items=scope_items,  # Remaining Items
-            total_points=int(scope_points),  # Remaining Points
+            total_points=round(scope_points, 1),  # type: ignore[arg-type]
             show_points=show_points,
             data_points=data_points,
             profile_name=profile_name,

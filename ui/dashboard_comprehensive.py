@@ -65,45 +65,78 @@ def _format_date_relative(date_str, reference_date=None):
 
 
 def _calculate_project_health_score(metrics):
-    """Calculate overall project health score (0-100)."""
-    score = 100
+    """Calculate overall project health score (0-100) using continuous/proportional scoring.
 
-    # Velocity consistency (30% weight)
+    Weights:
+    - Velocity consistency: 30% (lower CV = better)
+    - Schedule performance: 25% (on-time or early = better)
+    - Scope stability: 20% (low growth rate = better)
+    - Quality trends: 15% (improving = better)
+    - Recent performance: 10% (positive change = better)
+    """
+    import logging
+
+    logger = logging.getLogger(__name__)
+
+    # Velocity consistency (30 points max)
+    # CV of 0% = full points, CV of 50%+ = 0 points, linear in between
     velocity_cv = metrics.get("velocity_cv", 0)
-    if velocity_cv > 50:
-        score -= 30
-    elif velocity_cv > 30:
-        score -= 15
+    velocity_score = max(0, 30 * (1 - min(velocity_cv / 50, 1)))
+    logger.error(
+        f"[APP HEALTH] velocity_cv={velocity_cv}, velocity_score={velocity_score:.2f}"
+    )
 
-    # Schedule performance (25% weight)
+    # Schedule performance (25 points max)
+    # On-time or early = full points, 60+ days late = 0 points, linear penalty
     schedule_variance = metrics.get("schedule_variance_days", 0)
-    if schedule_variance > 30:
-        score -= 25
-    elif schedule_variance > 14:
-        score -= 12
+    schedule_score = max(0, 25 * (1 - min(schedule_variance / 60, 1)))
+    logger.error(
+        f"[APP HEALTH] schedule_variance_days={schedule_variance}, schedule_score={schedule_score:.2f}"
+    )
 
-    # Scope stability (20% weight)
+    # Scope stability (20 points max)
+    # 0% growth = full points, 40%+ growth = 0 points, linear penalty
     scope_change_rate = metrics.get("scope_change_rate", 0)
-    if scope_change_rate > 20:
-        score -= 20
-    elif scope_change_rate > 10:
-        score -= 10
+    scope_score = max(0, 20 * (1 - min(scope_change_rate / 40, 1)))
+    logger.error(
+        f"[APP HEALTH] scope_change_rate={scope_change_rate}, scope_score={scope_score:.2f}"
+    )
 
-    # Quality trends (15% weight)
+    # Quality trends (15 points max)
+    # Improving = 15, stable = 10, declining = 0
     trend_direction = metrics.get("trend_direction", "stable")
-    if trend_direction == "declining":
-        score -= 15
-    elif trend_direction == "improving":
-        score += 5
+    if trend_direction == "improving":
+        trend_score = 15
+    elif trend_direction == "stable":
+        trend_score = 10
+    else:  # declining
+        trend_score = 0
+    logger.error(
+        f"[APP HEALTH] trend_direction={trend_direction}, trend_score={trend_score}"
+    )
 
-    # Recent performance (10% weight)
+    # Recent performance (10 points max)
+    # +20% change = 10 points, 0% = 5 points, -20% = 0 points, linear
     recent_change = metrics.get("recent_velocity_change", 0)
-    if recent_change < -20:
-        score -= 10
-    elif recent_change > 20:
-        score += 5
+    if recent_change >= 0:
+        # Positive change: 5 base + up to 5 bonus for improvement
+        recent_score = 5 + min(5, 5 * (recent_change / 20))
+    else:
+        # Negative change: linear penalty from 5 down to 0
+        recent_score = max(0, 5 * (1 + recent_change / 20))
+    logger.error(
+        f"[APP HEALTH] recent_velocity_change={recent_change}, recent_score={recent_score:.2f}"
+    )
 
-    return max(0, min(100, int(score)))
+    # Calculate total score (sum of all components)
+    total_score = (
+        velocity_score + schedule_score + scope_score + trend_score + recent_score
+    )
+
+    final_score = max(0, min(100, int(total_score)))
+    logger.error(f"[APP HEALTH] FINAL health_score={final_score}")
+
+    return final_score
 
 
 def _get_health_status(score):
@@ -470,9 +503,9 @@ def _create_executive_summary(statistics_df, settings, forecast_data):
                                                             style={"fontWeight": "600"},
                                                         ),
                                                         html.Span(
-                                                            _format_date_relative(
-                                                                deadline
-                                                            )
+                                                            deadline
+                                                            if deadline
+                                                            else "Not set"
                                                         ),
                                                     ],
                                                     style={
@@ -491,13 +524,13 @@ def _create_executive_summary(statistics_df, settings, forecast_data):
                                                         html.Span(
                                                             "Forecast: ",
                                                             style={"fontWeight": "600"},
+                                                            title=f"PERT-weighted forecast based on {'story points' if settings.get('show_points', True) else 'items'} velocity (matches Burndown Chart and Report)",
                                                         ),
                                                         html.Span(
-                                                            _format_date_relative(
-                                                                forecast_data.get(
-                                                                    "completion_date"
-                                                                )
+                                                            forecast_data.get(
+                                                                "completion_date"
                                                             )
+                                                            or "Not calculated"
                                                         ),
                                                     ],
                                                     style={
@@ -674,7 +707,7 @@ def _create_executive_summary(statistics_df, settings, forecast_data):
                                                                 80,
                                                             ),
                                                             html.Div(
-                                                                f"{completed_points:,.0f}",
+                                                                f"{completed_points:,.1f}",
                                                                 className="mt-3 mb-1",
                                                                 style={
                                                                     "fontSize": "1.1rem",
@@ -732,7 +765,7 @@ def _create_executive_summary(statistics_df, settings, forecast_data):
                                                                 80,
                                                             ),
                                                             html.Div(
-                                                                f"{total_points - completed_points:,.0f}",
+                                                                f"{total_points - completed_points:,.1f}",
                                                                 className="mt-3 mb-1",
                                                                 style={
                                                                     "fontSize": "1.1rem",
@@ -802,7 +835,7 @@ def _create_executive_summary(statistics_df, settings, forecast_data):
                                                     },
                                                 ),
                                                 html.Span(
-                                                    f"{total_points:,.0f} points",
+                                                    f"{total_points:,.1f} points",
                                                     style={"fontWeight": "600"},
                                                 ),
                                             ],
@@ -941,7 +974,7 @@ def _create_throughput_section(statistics_df, forecast_data, settings):
                                 else None,
                                 tooltip_text="Average story points completed per week. Story points represent work complexity and effort. Higher values indicate faster delivery of larger work items."
                                 if show_points
-                                else "Enable Points Tracking in the parameter panel to view this metric.",
+                                else "Enable Story Points Tracking in Settings to view this metric. When disabled, forecasts use item counts instead.",
                                 tooltip_id="throughput-points-per-week",
                             )
                         ],
@@ -965,7 +998,7 @@ def _create_throughput_section(statistics_df, forecast_data, settings):
                                 sparkline_data=None,
                                 tooltip_text="Average story points per completed work item. Shows typical item complexity. Higher values mean larger items taking longer to complete. Use this to understand capacity: fewer large items or more small items per sprint."
                                 if show_points
-                                else "Enable Points Tracking in the parameter panel to view this metric.",
+                                else "Enable Story Points Tracking in Settings to view this metric. When disabled, forecasts use item counts instead.",
                                 tooltip_id="throughput-item-size",
                             )
                         ],
@@ -981,14 +1014,27 @@ def _create_throughput_section(statistics_df, forecast_data, settings):
     )
 
 
-def _create_forecast_section(pert_data, confidence_data):
-    """Create forecasting section with multiple prediction methods."""
+def _create_forecast_section(pert_data, confidence_data, show_points=True):
+    """Create forecasting section with multiple prediction methods.
+
+    Args:
+        pert_data: Dictionary with pert_time_items and pert_time_points
+        confidence_data: Dictionary with ci_50, ci_95, deadline_probability
+        show_points: Whether to use points-based (True) or items-based (False) forecast
+    """
     current_date = datetime.now()
 
+    # Use points-based forecast when available and enabled (matches report and burndown chart)
+    # Use items-based forecast as fallback
+    forecast_days = (
+        pert_data.get("pert_time_points", 0)
+        if show_points
+        else pert_data.get("pert_time_items", 0)
+    )
+    forecast_metric = "story points" if show_points else "items"
+
     # Format forecast dates
-    pert_date = (
-        current_date + timedelta(days=pert_data.get("pert_time_items", 0))
-    ).strftime("%b %d, %Y")
+    pert_date = (current_date + timedelta(days=forecast_days)).strftime("%b %d, %Y")
     optimistic_date = (
         current_date + timedelta(days=confidence_data.get("ci_50", 0))
     ).strftime("%b %d, %Y")
@@ -1033,8 +1079,10 @@ def _create_forecast_section(pert_data, confidence_data):
                                                     ),
                                                     create_info_tooltip(
                                                         "expected-completion-info",
-                                                        "Calculated using PERT three-point estimation: (Optimistic + 4×Most_Likely + Pessimistic) ÷ 6. "
-                                                        "This weighted average emphasizes the most likely scenario (4x weight) while accounting for best/worst cases from your historical velocity data.",
+                                                        f"Calculated using PERT three-point estimation: (Optimistic + 4×Most_Likely + Pessimistic) ÷ 6. "
+                                                        f"Based on {forecast_metric} velocity. "
+                                                        f"This weighted average emphasizes the most likely scenario (4x weight) while accounting for best/worst cases from your historical velocity data. "
+                                                        f"Same method used in Burndown Chart and Report.",
                                                     ),
                                                 ],
                                                 className="mb-1 mt-2 d-flex align-items-center gap-1",
@@ -1048,7 +1096,7 @@ def _create_forecast_section(pert_data, confidence_data):
                                                 },
                                             ),
                                             html.Small(
-                                                "Weighted estimate based on historical velocity",
+                                                f"PERT forecast based on {forecast_metric} velocity",
                                                 className="text-muted",
                                             ),
                                         ],
@@ -1086,10 +1134,10 @@ def _create_forecast_section(pert_data, confidence_data):
                                                     ),
                                                     create_info_tooltip(
                                                         "confidence-intervals-info",
-                                                        "Statistical probability ranges based on velocity variability. "
-                                                        "50%: 50th percentile (median) - the PERT forecast itself. "
-                                                        "95%: 95th percentile - conservative estimate with 1.65σ buffer. "
-                                                        "Wider spread indicates higher velocity uncertainty.",
+                                                        f"Statistical probability ranges based on {forecast_metric} velocity variability. "
+                                                        f"50%: 50th percentile (median) - the PERT forecast itself. "
+                                                        f"95%: 95th percentile - conservative estimate with 1.65σ buffer (adds uncertainty for remaining work). "
+                                                        f"Wider spread indicates higher velocity uncertainty. Calculated from your historical data variance.",
                                                     ),
                                                 ],
                                                 className="mb-1 mt-2 d-flex align-items-center gap-1",
@@ -1982,17 +2030,33 @@ def create_comprehensive_dashboard(
         html.Div: Complete dashboard layout
     """
     # Prepare forecast data
+    # Use points-based forecast when available, otherwise use items-based
+    forecast_days = (
+        pert_time_points if (show_points and pert_time_points) else pert_time_items
+    )
+
+    import logging
+
+    logger = logging.getLogger(__name__)
+
+    schedule_variance_calc = (
+        abs(forecast_days - days_to_deadline)
+        if (forecast_days and days_to_deadline)
+        else 0
+    )
+    logger.error(
+        f"[APP SCHEDULE] forecast_days={forecast_days}, days_to_deadline={days_to_deadline}, schedule_variance={schedule_variance_calc}"
+    )
+
     forecast_data = {
         "pert_time_items": pert_time_items,
         "pert_time_points": pert_time_points,
         "velocity_cv": 25,  # Default coefficient of variation
-        "schedule_variance_days": max(0, pert_time_items - days_to_deadline)
-        if pert_time_items
-        else 0,
-        "completion_date": (datetime.now() + timedelta(days=pert_time_items)).strftime(
+        "schedule_variance_days": schedule_variance_calc,
+        "completion_date": (datetime.now() + timedelta(days=forecast_days)).strftime(
             "%Y-%m-%d"
         )
-        if pert_time_items
+        if forecast_days
         else None,
     }
 
@@ -2002,49 +2066,53 @@ def create_comprehensive_dashboard(
     remaining_items = total_items  # Items still to complete
 
     if not statistics_df.empty and len(statistics_df) >= 4:
-        velocity_std = statistics_df["completed_items"].std()
+        # Use population std (ddof=0) to match report calculation
+        velocity_std = statistics_df["completed_items"].std(ddof=0)
         velocity_mean = statistics_df["completed_items"].mean()
         if velocity_mean > 0:
             forecast_data["velocity_cv"] = (velocity_std / velocity_mean) * 100
 
     # Calculate statistically-based confidence intervals
     # Using Monte Carlo-inspired approach: forecast uncertainty grows with remaining work
-    # Standard error of completion time ≈ (remaining_items / velocity) * (velocity_std / velocity_mean)
+    # Standard error of completion time ≈ (remaining / velocity) * (velocity_std / velocity_mean)
     # This accounts for: more remaining work = more uncertainty, higher velocity variance = more uncertainty
 
-    if pert_time_items and velocity_mean > 0 and velocity_std > 0:
+    # Use points-based forecast when available (matches report and burndown chart)
+    forecast_days = pert_time_points if pert_time_points else pert_time_items
+
+    if forecast_days and velocity_mean > 0 and velocity_std > 0:
         # Coefficient of variation as a ratio (not percentage)
         cv_ratio = velocity_std / velocity_mean
 
         # Forecast standard deviation: uncertainty scales with forecast duration and velocity variability
-        # Using: σ_forecast ≈ pert_time * CV * sqrt(weeks_remaining / weeks_observed)
+        # Using: σ_forecast ≈ forecast_days * CV * sqrt(weeks_remaining / weeks_observed)
         weeks_observed = len(statistics_df) if not statistics_df.empty else 1
-        weeks_remaining = max(1, pert_time_items / 7)  # Convert days to weeks
+        weeks_remaining = max(1, forecast_days / 7)  # Convert days to weeks
         uncertainty_factor = (weeks_remaining / weeks_observed) ** 0.5
 
-        forecast_std_days = pert_time_items * cv_ratio * uncertainty_factor
+        forecast_std_days = forecast_days * cv_ratio * uncertainty_factor
 
         # Confidence intervals using z-scores:
         # 50% CI: ±0.67σ (but we show median which equals PERT estimate)
         # 95% CI: +1.65σ (one-tailed, conservative estimate)
-        ci_50_days = pert_time_items  # Median = PERT estimate (50th percentile)
-        ci_95_days = pert_time_items + (1.65 * forecast_std_days)  # 95th percentile
+        ci_50_days = forecast_days  # Median = PERT estimate (50th percentile)
+        ci_95_days = forecast_days + (1.65 * forecast_std_days)  # 95th percentile
 
         # Calculate deadline probability using z-score
         # Z = (deadline - forecast) / forecast_std
         if days_to_deadline > 0 and forecast_std_days > 0:
-            z_score = (days_to_deadline - pert_time_items) / forecast_std_days
+            z_score = (days_to_deadline - forecast_days) / forecast_std_days
             # Approximate normal CDF using logistic approximation: Φ(z) ≈ 1 / (1 + e^(-1.7 * z))
             deadline_probability = 100 / (1 + 2.718 ** (-1.7 * z_score))
         else:
             # Fallback: simple linear estimate
-            deadline_probability = 75 if pert_time_items <= days_to_deadline else 25
+            deadline_probability = 75 if forecast_days <= days_to_deadline else 25
     else:
         # Fallback for insufficient data: use conservative fixed offsets
-        ci_50_days = pert_time_items if pert_time_items else 0
-        ci_95_days = (pert_time_items + 14) if pert_time_items else 0
+        ci_50_days = forecast_days if forecast_days else 0
+        ci_95_days = (forecast_days + 14) if forecast_days else 0
         deadline_probability = (
-            75 if (pert_time_items or 0) <= (days_to_deadline or 0) else 25
+            75 if (forecast_days or 0) <= (days_to_deadline or 0) else 25
         )
 
     confidence_data = {
@@ -2070,7 +2138,9 @@ def create_comprehensive_dashboard(
             # Throughput Analytics
             _create_throughput_section(statistics_df, forecast_data, settings),
             # Forecast Section
-            _create_forecast_section(forecast_data, confidence_data),
+            _create_forecast_section(
+                forecast_data, confidence_data, show_points=show_points
+            ),
             # Recent Activity Section - uses unfiltered data for consistent 4-week view
             _create_recent_activity_section(statistics_df_unfiltered, show_points),
             # Quality & Scope Section

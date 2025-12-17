@@ -822,20 +822,25 @@ def create_scope_metrics_dashboard(
         total_created_items = 0
         total_created_points = 0
 
-    # Calculate baselines (initial scope at project start)
+    # Calculate baselines (initial scope at start of data period)
     # If total_items_scope is provided, use it as the baseline
-    # Otherwise, calculate baseline as: remaining + completed (at current point)
+    # Otherwise, calculate baseline as: current remaining + completed - created (during period)
+    # This gives us the initial remaining work at the START of the data range
     if total_items_scope is not None:
         baseline_items = total_items_scope  # Use provided initial scope
     else:
-        # Calculate initial scope from current state (remaining + completed so far)
-        baseline_items = remaining_items + total_completed_items
+        # Calculate initial scope at start of period
+        # Initial = Current + Completed - Created
+        baseline_items = remaining_items + total_completed_items - total_created_items
 
     if total_points_scope is not None:
         baseline_points = total_points_scope  # Use provided initial scope
     else:
-        # Calculate initial scope from current state (remaining + completed so far)
-        baseline_points = remaining_points + total_completed_points
+        # Calculate initial scope at start of period
+        # Initial = Current + Completed - Created
+        baseline_points = (
+            remaining_points + total_completed_points - total_created_points
+        )
 
     # Calculate threshold in absolute values - how many items/points can be added
     # before exceeding the threshold percentage

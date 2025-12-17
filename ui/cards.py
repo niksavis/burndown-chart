@@ -1936,7 +1936,7 @@ def create_project_status_card(statistics_df, settings):
             else 0
         )
         completed_points = (
-            int(statistics_df["completed_points"].sum())
+            round(statistics_df["completed_points"].sum(), 1)
             if not statistics_df.empty
             else 0
         )
@@ -1944,18 +1944,18 @@ def create_project_status_card(statistics_df, settings):
         # Calculate true project totals (completed + remaining)
         total_items = remaining_items + completed_items
         total_points = round(
-            remaining_points + completed_points
-        )  # Round to nearest integer
+            remaining_points + completed_points, 1
+        )  # Round to 1 decimal place
         remaining_points = round(
-            remaining_points
-        )  # Round remaining points to nearest integer
+            remaining_points, 1
+        )  # Round remaining points to 1 decimal place
 
         # Calculate percentages based on true project totals
         items_percentage = (
-            int((completed_items / total_items) * 100) if total_items > 0 else 0
+            round((completed_items / total_items) * 100, 1) if total_items > 0 else 0
         )
         points_percentage = (
-            int((completed_points / total_points) * 100) if total_points > 0 else 0
+            round((completed_points / total_points) * 100, 1) if total_points > 0 else 0
         )
 
         # Calculate average weekly velocity and coefficient of variation (last 10 weeks)
@@ -1975,8 +1975,8 @@ def create_project_status_card(statistics_df, settings):
             recent_df.loc[:, "date"] = pd.to_datetime(recent_df["date"])
 
             # Add week and year columns
-            recent_df.loc[:, "week"] = recent_df["date"].dt.isocalendar().week
-            recent_df.loc[:, "year"] = recent_df["date"].dt.isocalendar().year
+            recent_df.loc[:, "week"] = recent_df["date"].dt.isocalendar().week  # type: ignore[attr-defined]
+            recent_df.loc[:, "year"] = recent_df["date"].dt.isocalendar().year  # type: ignore[attr-defined]
 
             # Group by week to get weekly data
             weekly_data = (
@@ -2142,7 +2142,7 @@ def create_project_status_card(statistics_df, settings):
                                                 ),
                                                 html.Div(
                                                     [
-                                                        f"Completed: {completed_points} of {total_points} points",
+                                                        f"Completed: {completed_points:.1f} of {total_points:.1f} points",
                                                     ],
                                                     className="text-muted small",
                                                 ),
@@ -2205,7 +2205,7 @@ def create_project_status_card(statistics_df, settings):
                                                                 ]
                                                             },
                                                         ),
-                                                        f"{float(avg_weekly_points):.2f}",
+                                                        f"{float(avg_weekly_points):.1f}",
                                                         html.Small(" points/week"),
                                                     ],
                                                     className="d-flex align-items-center",
@@ -2350,8 +2350,8 @@ def create_project_summary_card(
         if not statistics_df.empty:
             # Add week and year columns
             recent_df = statistics_df.tail(10).copy()
-            recent_df.loc[:, "week"] = recent_df["date"].dt.isocalendar().week
-            recent_df.loc[:, "year"] = recent_df["date"].dt.isocalendar().year
+            recent_df.loc[:, "week"] = recent_df["date"].dt.isocalendar().week  # type: ignore[attr-defined]
+            recent_df.loc[:, "year"] = recent_df["date"].dt.isocalendar().year  # type: ignore[attr-defined]
 
             weekly_data = (
                 recent_df.groupby(["year", "week"])
@@ -2404,7 +2404,7 @@ def create_project_summary_card(
                         items_completion_str = items_completion_date.strftime(
                             "%Y-%m-%d"
                         )
-                        items_days = int(pert_time_items)
+                        items_days = round(pert_time_items)
                         items_weeks = round(pert_time_items / 7, 1)
                     else:
                         items_completion_str = "Unknown"
@@ -2418,7 +2418,7 @@ def create_project_summary_card(
                         points_completion_str = points_completion_date.strftime(
                             "%Y-%m-%d"
                         )
-                        points_days = int(pert_time_points)
+                        points_days = round(pert_time_points)
                         points_weeks = round(pert_time_points / 7, 1)
                     else:
                         points_completion_str = "Unknown"
@@ -2639,7 +2639,7 @@ def create_project_summary_card(
                                                             },
                                                         ),
                                                         html.Span(
-                                                            f"{float(avg_weekly_points):.2f}",
+                                                            f"{float(avg_weekly_points):.1f}",
                                                             className="fw-bold",
                                                             style={
                                                                 "fontSize": "1.1rem",

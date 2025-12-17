@@ -684,9 +684,9 @@ def _create_project_overview_section(
                                                             },
                                                         ),
                                                         html.Strong(
-                                                            f"{completed_points}"
+                                                            f"{completed_points:.1f}"
                                                         ),
-                                                        f" of {actual_total_points} points",
+                                                        f" of {actual_total_points:.1f} points",
                                                         create_info_tooltip(
                                                             "points-progress-combined",
                                                             "Comparison between item-based and point-based progress tracking. Similar percentages indicate consistent estimation accuracy.",
@@ -834,7 +834,7 @@ def _create_project_overview_section(
                                             ],
                                         ),
                                         html.Small(
-                                            f"{completed_points} of {actual_total_points} points ({remaining_points} remaining)",
+                                            f"{completed_points:.1f} of {actual_total_points:.1f} points ({remaining_points:.1f} remaining)",
                                             className="text-muted mt-1 d-block",
                                         ),
                                     ],
@@ -1711,23 +1711,23 @@ def create_pert_info_table(
     completed_points = 0
     if statistics_df is not None and not statistics_df.empty:
         completed_items = int(statistics_df["completed_items"].sum())
-        completed_points = int(statistics_df["completed_points"].sum())
+        completed_points = round(statistics_df["completed_points"].sum(), 1)
 
     # Calculate actual total project items and points
     actual_total_items = completed_items + total_items
-    actual_total_points = round(completed_points + total_points)
+    actual_total_points = round(completed_points + total_points, 1)
 
-    # Round the remaining points to natural number for display
-    remaining_points = round(total_points)
+    # Round the remaining points to 1 decimal for display
+    remaining_points = round(total_points, 1)
 
     # Calculate percentages based on actual project totals
     items_percentage = (
-        int((completed_items / actual_total_items) * 100)
+        round((completed_items / actual_total_items) * 100, 1)
         if actual_total_items > 0
         else 0
     )
     points_percentage = (
-        int((completed_points / actual_total_points) * 100)
+        round((completed_points / actual_total_points) * 100, 1)
         if actual_total_points > 0
         else 0
     )
@@ -2316,8 +2316,8 @@ def create_parameter_bar_collapsed(
     # Create points display only if enabled
     points_display = []
     if show_points:
-        # Round points to natural number for display
-        display_points_rounded = int(round(display_points))
+        # Round points to 1 decimal for display
+        display_points_rounded = round(display_points, 1)
         points_display = [
             html.Span(
                 [
@@ -2328,11 +2328,11 @@ def create_parameter_bar_collapsed(
                         style={"fontSize": "0.85em"},
                     ),
                     html.Span(
-                        f"{display_points_rounded:,}", style={"fontSize": "0.85em"}
+                        f"{display_points_rounded:.1f}", style={"fontSize": "0.85em"}
                     ),
                 ],
                 className="param-summary-item",
-                title=f"{items_label}: {display_points_rounded:,} points",
+                title=f"{items_label}: {display_points_rounded:.1f} points",
             ),
         ]
 
@@ -3343,7 +3343,7 @@ def create_parameter_panel_expanded(
                                                                         type="number",
                                                                         value=estimated_points,
                                                                         min=0,
-                                                                        step=1,
+                                                                        step=0.5,
                                                                         placeholder="0 if unknown",
                                                                         disabled=not show_points,
                                                                         className="form-control-sm",
@@ -3399,7 +3399,7 @@ def create_parameter_panel_expanded(
                                                                     dbc.Input(
                                                                         id="total-points-display",
                                                                         type="text",
-                                                                        value=f"{total_points:.0f}",
+                                                                        value=f"{total_points:.1f}",
                                                                         disabled=True,
                                                                         className="form-control-sm",
                                                                         style={
