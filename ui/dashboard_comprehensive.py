@@ -1832,19 +1832,17 @@ def _create_insights_section(statistics_df, settings):
         if recent_velocity > historical_velocity * 1.1:
             insights.append(
                 {
-                    "type": "positive",
-                    "title": "[Trend] Accelerating Delivery",
-                    "message": f"Team velocity increased {((recent_velocity / historical_velocity - 1) * 100):.0f}% in recent weeks",
-                    "action": "Consider taking on additional scope or bringing forward deliverables",
+                    "severity": "success",
+                    "message": f"Accelerating Delivery - Team velocity increased {((recent_velocity / historical_velocity - 1) * 100):.0f}% in recent weeks",
+                    "recommendation": "Consider taking on additional scope or bringing forward deliverables to capitalize on this momentum.",
                 }
             )
         elif recent_velocity < historical_velocity * 0.9:
             insights.append(
                 {
-                    "type": "warning",
-                    "title": "[!] Velocity Decline",
-                    "message": f"Team velocity decreased {((1 - recent_velocity / historical_velocity) * 100):.0f}% recently",
-                    "action": "Review team capacity, blockers, and scope complexity",
+                    "severity": "warning",
+                    "message": f"Velocity Decline - Team velocity decreased {((1 - recent_velocity / historical_velocity) * 100):.0f}% recently",
+                    "recommendation": "Review team capacity, identify blockers, and assess scope complexity. Consider retrospectives to understand root causes.",
                 }
             )
 
@@ -1856,19 +1854,17 @@ def _create_insights_section(statistics_df, settings):
             if scope_growth > scope_completion * 0.2:
                 insights.append(
                     {
-                        "type": "warning",
-                        "title": "[Trend] High Scope Growth",
-                        "message": f"New items ({scope_growth}) represent {(scope_growth / scope_completion * 100):.0f}% of completed work",
-                        "action": "Consider scope prioritization and change management processes",
+                        "severity": "warning",
+                        "message": f"High Scope Growth - New items ({scope_growth}) represent {(scope_growth / scope_completion * 100):.0f}% of completed work",
+                        "recommendation": "Consider scope prioritization and implement change management processes. Assess if continuous scope growth impacts delivery predictability.",
                     }
                 )
             elif scope_growth > 0:
                 insights.append(
                     {
-                        "type": "info",
-                        "title": "[Stats] Active Scope Management",
-                        "message": f"Moderate scope growth ({scope_growth} new items) indicates healthy project evolution",
-                        "action": "Continue monitoring scope changes and stakeholder feedback",
+                        "severity": "info",
+                        "message": f"Active Scope Management - Moderate scope growth ({scope_growth} new items) indicates healthy project evolution",
+                        "recommendation": "Continue monitoring scope changes and maintaining stakeholder feedback loops to ensure alignment.",
                     }
                 )
 
@@ -1886,19 +1882,17 @@ def _create_insights_section(statistics_df, settings):
         if velocity_cv < 20:
             insights.append(
                 {
-                    "type": "positive",
-                    "title": "[Tip] Predictable Delivery",
-                    "message": f"Low velocity variation ({velocity_cv:.0f}%) indicates predictable delivery rhythm",
-                    "action": "Maintain current practices and use predictability for better planning",
+                    "severity": "success",
+                    "message": f"Predictable Delivery - Low velocity variation ({velocity_cv:.0f}%) indicates predictable delivery rhythm",
+                    "recommendation": "Maintain current practices and leverage this predictability for better sprint planning and stakeholder commitments.",
                 }
             )
         elif velocity_cv > 50:
             insights.append(
                 {
-                    "type": "warning",
-                    "title": "[Stats] Inconsistent Velocity",
-                    "message": f"High velocity variation ({velocity_cv:.0f}%) suggests unpredictable delivery",
-                    "action": "Investigate causes: story sizing, blockers, team availability, or external dependencies",
+                    "severity": "warning",
+                    "message": f"Inconsistent Velocity - High velocity variation ({velocity_cv:.0f}%) suggests unpredictable delivery",
+                    "recommendation": "Investigate root causes: story sizing accuracy, blockers, team availability, or external dependencies. Consider establishing sprint commitments discipline.",
                 }
             )
 
@@ -1911,72 +1905,124 @@ def _create_insights_section(statistics_df, settings):
             if recent_items > prev_items * 1.2:
                 insights.append(
                     {
-                        "type": "positive",
-                        "title": "[Trend] Increasing Throughput",
-                        "message": f"Recent 4-week throughput ({recent_items} items) exceeded previous period by {((recent_items / prev_items - 1) * 100):.0f}%",
-                        "action": "Analyze what's working well and consider scaling successful practices",
+                        "severity": "success",
+                        "message": f"Increasing Throughput - Recent 4-week throughput ({recent_items} items) exceeded previous period by {((recent_items / prev_items - 1) * 100):.0f}%",
+                        "recommendation": "Analyze what's working well and consider scaling successful practices across the team or to other projects.",
                     }
                 )
 
     if not insights:
         insights.append(
             {
-                "type": "info",
-                "title": "[OK] Stable Performance",
-                "message": "Project metrics are within normal ranges - no immediate concerns detected",
-                "action": "Continue current practices and monitor for changes in upcoming weeks",
+                "severity": "success",
+                "message": "Stable Performance - Project metrics are within normal ranges, no immediate concerns detected",
+                "recommendation": "Continue current practices and monitor for changes in upcoming weeks. Consider documenting what's working well.",
             }
         )
 
-    insight_cards = []
-    for insight in insights:
-        icon_map = {
-            "positive": "fa-thumbs-up",
-            "warning": "fa-exclamation-triangle",
-            "info": "fa-info-circle",
+    # Map severity to configuration (matching Quality Insights style)
+    def get_severity_config(severity: str):
+        severity_configs = {
+            "danger": {
+                "icon": "fa-exclamation-triangle",
+                "color": "danger",
+                "badge_text": "Critical",
+            },
+            "warning": {
+                "icon": "fa-exclamation-circle",
+                "color": "warning",
+                "badge_text": "High",
+            },
+            "info": {
+                "icon": "fa-info-circle",
+                "color": "info",
+                "badge_text": "Medium",
+            },
+            "success": {
+                "icon": "fa-check-circle",
+                "color": "success",
+                "badge_text": "Low",
+            },
         }
-        color_map = {"positive": "#28a745", "warning": "#ffc107", "info": "#17a2b8"}
+        return severity_configs.get(severity, severity_configs["info"])
 
-        insight_cards.append(
-            dbc.Card(
-                [
-                    dbc.CardBody(
+    # Create insight items with expandable details (matching Quality Insights structure)
+    insight_items = []
+    for idx, insight in enumerate(insights):
+        severity_config = get_severity_config(insight["severity"])
+        collapse_id = f"actionable-insight-collapse-{idx}"
+
+        insight_item = dbc.Card(
+            [
+                dbc.CardHeader(
+                    dbc.Row(
                         [
-                            html.Div(
+                            dbc.Col(
                                 [
                                     html.I(
-                                        className=f"fas {icon_map[insight['type']]} me-2",
-                                        style={"color": color_map[insight["type"]]},
+                                        className=f"fas {severity_config['icon']} me-2"
                                     ),
-                                    html.Strong(insight["title"]),
+                                    html.Span(insight["message"]),
                                 ],
-                                className="mb-2",
+                                width=10,
                             ),
-                            html.P(insight["message"], className="mb-2"),
-                            html.Small(
-                                insight["action"], className="text-muted fst-italic"
+                            dbc.Col(
+                                [
+                                    dbc.Badge(
+                                        severity_config["badge_text"],
+                                        color=severity_config["color"],
+                                        className="me-2",
+                                    ),
+                                    dbc.Button(
+                                        html.I(className="fas fa-chevron-down"),
+                                        id=f"actionable-insight-toggle-{idx}",
+                                        color="link",
+                                        size="sm",
+                                        className="p-0",
+                                    ),
+                                ],
+                                width=2,
+                                className="text-end",
+                            ),
+                        ],
+                        align="center",
+                    ),
+                    className=f"bg-{severity_config['color']} bg-opacity-10 border-{severity_config['color']}",
+                    style={"cursor": "pointer"},
+                    id=f"actionable-insight-header-{idx}",
+                ),
+                dbc.Collapse(
+                    dbc.CardBody(
+                        [
+                            html.H6("Recommendation:", className="fw-bold mb-2"),
+                            html.P(
+                                insight["recommendation"],
+                                className="mb-0",
                             ),
                         ]
-                    )
-                ],
-                className="mb-2 shadow-sm border-0",
-            )
-        )
-
-    return html.Div(
-        [
-            html.H5(
-                [
-                    html.I(
-                        className="fas fa-lightbulb me-2", style={"color": "#fd7e14"}
                     ),
-                    "Actionable Insights",
-                ],
-                className="mb-3",
-            ),
-            html.Div(insight_cards),
-        ],
-        className="mb-4",
+                    id=collapse_id,
+                    is_open=False,
+                ),
+            ],
+            className="mb-2",
+        )
+        insight_items.append(insight_item)
+
+    return dbc.Card(
+        dbc.CardBody(
+            [
+                html.H4(
+                    [
+                        html.I(className="fas fa-lightbulb me-2"),
+                        "Actionable Insights",
+                    ],
+                    className="card-title mb-3",
+                ),
+                html.Div(insight_items),
+            ]
+        ),
+        className="mb-3",
     )
 
 
