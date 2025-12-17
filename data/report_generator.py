@@ -805,9 +805,23 @@ def _calculate_scope_metrics(
     current_points = project_scope.get("remaining_total_points", 0)
 
     # Calculate initial scope at window start
-    # Initial = Current + Completed - Created
-    initial_items = current_items + total_completed_items - total_created_items
-    initial_points = current_points + total_completed_points - total_created_points
+    # Match burndown calculation: work backwards from current by adding completed
+    # (Created items are already in current remaining, so don't subtract them)
+    initial_items = current_items + total_completed_items
+    initial_points = current_points + total_completed_points
+
+    logger.error(
+        f"[SCOPE BASELINE] Current: {current_items} items, {current_points:.2f} points"
+    )
+    logger.error(
+        f"[SCOPE BASELINE] Total completed in period: {total_completed_items} items, {total_completed_points:.2f} points"
+    )
+    logger.error(
+        f"[SCOPE BASELINE] Total created in period: {total_created_items} items, {total_created_points:.2f} points"
+    )
+    logger.error(
+        f"[SCOPE BASELINE] Calculated initial: {initial_items} items, {initial_points:.2f} points"
+    )
 
     # Calculate net change
     items_change = current_items - initial_items
