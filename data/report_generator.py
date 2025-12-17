@@ -722,6 +722,7 @@ def _calculate_bug_metrics(
             weekly_stats=weekly_stats,
             date_from=date_from,
             date_to=date_to,
+            all_project_issues=jira_issues,  # Pass all issues for capacity calculation
         )
 
         # Calculate bug resolution forecast

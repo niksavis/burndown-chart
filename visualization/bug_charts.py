@@ -1,8 +1,9 @@
 """
-Mobile Chart Configuration Module
+Bug Analysis Chart Module
 
-This module provides mobile-optimized chart configurations and utilities
-for responsive data visualization on mobile devices.
+This module provides bug analysis charts with responsive configurations
+for mobile, tablet, and desktop viewports. Includes utility functions
+for mobile-optimized chart configurations.
 """
 
 #######################################################################

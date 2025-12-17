@@ -189,8 +189,14 @@ def _render_bug_analysis_content(data_points_count: int):
             # Calculate bug metrics summary
             # Use all_bug_issues for current state (open bugs count)
             # Use timeline_filtered_bugs for historical metrics (resolution rate, trends)
+            # Pass all_issues for total project capacity calculation
             bug_metrics = calculate_bug_metrics_summary(
-                all_bug_issues, timeline_filtered_bugs, weekly_stats, date_from, date_to
+                all_bug_issues,
+                timeline_filtered_bugs,
+                weekly_stats,
+                date_from,
+                date_to,
+                all_project_issues=all_issues,
             )
 
             logger.debug(
@@ -265,6 +271,7 @@ def _render_bug_analysis_content(data_points_count: int):
                 weekly_stats=[],
                 date_from=date_from,
                 date_to=date_to,
+                all_project_issues=all_issues,
             )
             # Create empty forecast for insufficient data
             forecast = {"insufficient_data": True}
