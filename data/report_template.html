@@ -789,23 +789,20 @@
             
             {% if metrics.bug_analysis.forecast_weeks %}
             <div class="info-box mt-4">
-                <div>
-                    <strong><i class="fas fa-crystal-ball"></i> Expected Resolution:</strong>
-                    ~<strong>{{ metrics.bug_analysis.forecast_weeks }} weeks</strong>
-                    {% if metrics.bug_analysis.forecast_date %}
-                    by {{ metrics.bug_analysis.forecast_date }}
+                <strong><i class="fas fa-crystal-ball"></i> Expected Resolution:</strong>
+                ~<strong>{{ metrics.bug_analysis.forecast_weeks }} weeks</strong>
+                {% if metrics.bug_analysis.forecast_date %}
+                by {{ metrics.bug_analysis.forecast_date }}
+                {% endif %}
+                {% if metrics.bug_analysis.avg_closure_rate %}
+                • {{ metrics.bug_analysis.avg_closure_rate|dec1 }} bugs/week
+                {% endif %}
+                <br>
+                <small class="text-muted">
+                    {% if metrics.bug_analysis.weeks_analyzed %}
+                    Based on {{ metrics.bug_analysis.weeks_analyzed }} weeks of data
                     {% endif %}
-                    {% if metrics.bug_analysis.avg_closure_rate %}
-                    • {{ metrics.bug_analysis.avg_closure_rate|dec1 }} bugs/week
-                    {% endif %}
-                </div>
-                <div>
-                    <small class="text-muted">
-                        {% if metrics.bug_analysis.weeks_analyzed %}
-                        Based on {{ metrics.bug_analysis.weeks_analyzed }} weeks of data
-                        {% endif %}
-                    </small>
-                </div>
+                </small>
             </div>
             {% endif %}
             
@@ -841,19 +838,19 @@
                             <tbody>
                                 <tr>
                                     <td class="metric-card-label"><i class="fas fa-tachometer-alt"></i> Flow Velocity</td>
-                                    <td class="text-end"><strong>{{ metrics.flow.velocity|round(1) }}</strong> items/week</td>
+                                    <td class="text-end"><strong style="color: #0d6efd;">{{ metrics.flow.velocity|round(1) }}</strong> items/week</td>
                                 </tr>
                                 <tr>
                                     <td class="metric-card-label"><i class="fas fa-clock"></i> Flow Time</td>
-                                    <td class="text-end"><strong>{{ metrics.flow.flow_time|round(1) }}</strong> days (median)</td>
+                                    <td class="text-end"><strong style="color: #fd7e14;">{{ metrics.flow.flow_time|round(1) }}</strong> days (median)</td>
                                 </tr>
                                 <tr>
                                     <td class="metric-card-label"><i class="fas fa-chart-line"></i> Flow Efficiency</td>
-                                    <td class="text-end"><strong>{{ metrics.flow.efficiency|round(1) }}</strong>%</td>
+                                    <td class="text-end"><strong style="color: #198754;">{{ metrics.flow.efficiency|round(1) }}</strong>%</td>
                                 </tr>
                                 <tr>
                                     <td class="metric-card-label"><i class="fas fa-tasks"></i> Flow Load (WIP)</td>
-                                    <td class="text-end"><strong>{{ metrics.flow.wip }}</strong> items (current)</td>
+                                    <td class="text-end"><strong style="color: #6f42c1;">{{ metrics.flow.wip }}</strong> items (current)</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -947,7 +944,7 @@
                                 <tr>
                                     <td class="metric-card-label"><i class="fas fa-shipping-fast"></i> Deployment Frequency</td>
                                     <td class="text-end">
-                                        <strong>{{ metrics.dora.deployment_frequency|round(2) }}</strong> releases/week
+                                        <strong style="color: #0d6efd;">{{ metrics.dora.deployment_frequency|round(2) }}</strong> releases/week
                                         {% if metrics.dora.deployment_frequency_tasks != metrics.dora.deployment_frequency %}
                                         <br><small class="text-muted">({{ metrics.dora.deployment_frequency_tasks|round(2) }} tasks/week)</small>
                                         {% endif %}
@@ -957,7 +954,7 @@
                                     <td class="metric-card-label"><i class="fas fa-clock"></i> Lead Time For Changes</td>
                                     <td class="text-end">
                                         {% if metrics.dora.lead_time_days %}
-                                        <strong>{{ metrics.dora.lead_time_days|round(1) }}</strong> days
+                                        <strong style="color: #198754;">{{ metrics.dora.lead_time_days|round(1) }}</strong> days
                                         <br><small class="text-muted">({{ metrics.dora.lead_time_hours|round(0) }} hours)</small>
                                         {% else %}
                                         <span class="text-muted">No data</span>
@@ -966,13 +963,13 @@
                                 </tr>
                                 <tr>
                                     <td class="metric-card-label"><i class="fas fa-exclamation-triangle"></i> Change Failure Rate</td>
-                                    <td class="text-end"><strong>{{ metrics.dora.change_failure_rate|round(1) }}</strong>%</td>
+                                    <td class="text-end"><strong style="color: #fd7e14;">{{ metrics.dora.change_failure_rate|round(1) }}</strong>%</td>
                                 </tr>
                                 <tr>
                                     <td class="metric-card-label"><i class="fas fa-tools"></i> Mean Time To Recovery</td>
                                     <td class="text-end">
                                         {% if metrics.dora.mttr_hours %}
-                                        <strong>{{ metrics.dora.mttr_hours|round(1) }}</strong> hours
+                                        <strong style="color: #dc3545;">{{ metrics.dora.mttr_hours|round(1) }}</strong> hours
                                         <br><small class="text-muted">({{ metrics.dora.mttr_days|round(1) }} days)</small>
                                         {% else %}
                                         <span class="text-muted">No data</span>
