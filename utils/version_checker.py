@@ -59,6 +59,33 @@ def get_current_commit() -> Optional[str]:
     return None
 
 
+def get_tag_for_commit(commit_sha: str) -> Optional[str]:
+    """
+    Get the git tag associated with a commit (if any).
+
+    Args:
+        commit_sha: Full or short commit hash
+
+    Returns:
+        Tag name (e.g., "v2.2.0") or None if no tag found
+    """
+    try:
+        app_root = Path(__file__).parent.parent
+        result = subprocess.run(
+            ["git", "tag", "--points-at", commit_sha],
+            cwd=app_root,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            # Return first tag if multiple tags point to same commit
+            return result.stdout.strip().split("\n")[0]
+    except (subprocess.TimeoutExpired, FileNotFoundError, Exception) as e:
+        logger.debug(f"Could not get tag for commit {commit_sha}: {e}")
+    return None
+
+
 def check_for_updates() -> dict:
     """
     Check if newer commits are available on GitHub main branch.
@@ -67,6 +94,7 @@ def check_for_updates() -> dict:
     1. Gets the local commit hash
     2. Queries GitHub API for the latest commit on main branch
     3. Compares the two to determine if an update is available
+    4. Attempts to resolve commits to version tags for display
 
     Gracefully handles:
     - No internet connection
@@ -80,12 +108,16 @@ def check_for_updates() -> dict:
             - update_available (bool): True if remote has newer commits
             - current_commit (str): Local commit hash (short)
             - latest_commit (str): Remote commit hash (short)
+            - current_tag (str): Local version tag (if available)
+            - latest_tag (str): Remote version tag (if available)
             - error (str): Error message if check failed
     """
     result = {
         "update_available": False,
         "current_commit": None,
         "latest_commit": None,
+        "current_tag": None,
+        "latest_tag": None,
         "error": None,
     }
 
@@ -117,6 +149,35 @@ def check_for_updates() -> dict:
                 result["update_available"] = True
             else:
                 logger.debug("No updates available - on latest commit")
+
+            # Try to resolve commits to tags for better display
+            current_tag = get_tag_for_commit(current_commit)
+            if current_tag:
+                result["current_tag"] = current_tag
+                logger.debug(
+                    f"Current commit {current_commit} is tagged as {current_tag}"
+                )
+
+            # For remote tag, we need to query GitHub tags API
+            try:
+                tags_url = f"https://api.github.com/repos/{GITHUB_REPO_OWNER}/{GITHUB_REPO_NAME}/tags"
+                tags_response = requests.get(
+                    tags_url,
+                    timeout=REQUEST_TIMEOUT,
+                    headers={"Accept": "application/vnd.github.v3+json"},
+                )
+                if tags_response.status_code == 200:
+                    tags_data = tags_response.json()
+                    # Find tag that points to latest commit
+                    for tag in tags_data:
+                        if tag.get("commit", {}).get("sha", "")[:7] == latest_commit:
+                            result["latest_tag"] = tag.get("name")
+                            logger.debug(
+                                f"Latest commit {latest_commit} is tagged as {result['latest_tag']}"
+                            )
+                            break
+            except Exception as e:
+                logger.debug(f"Could not fetch remote tags: {e}")
 
         elif response.status_code == 403:
             # Rate limited

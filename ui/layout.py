@@ -352,8 +352,9 @@ def create_app_layout(settings, statistics, is_sample_data):
                                     ),
                                     "Update Available",
                                     html.Span(
-                                        f" • {app.VERSION_CHECK_RESULT.get('current_commit', 'unknown')[:7]} → "
-                                        f"{app.VERSION_CHECK_RESULT.get('latest_commit', 'unknown')[:7]}",
+                                        # Show tags when available, fall back to commit hashes for missing tags
+                                        f" • {app.VERSION_CHECK_RESULT.get('current_tag') or app.VERSION_CHECK_RESULT.get('current_commit', 'unknown')[:7]} → "
+                                        f"{app.VERSION_CHECK_RESULT.get('latest_tag') or app.VERSION_CHECK_RESULT.get('latest_commit', 'unknown')[:7]}",
                                         className="ms-1 opacity-75",
                                         style={"fontSize": "0.7rem"},
                                     ),
