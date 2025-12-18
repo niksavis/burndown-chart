@@ -2,7 +2,6 @@
 
 from datetime import datetime
 import logging
-import time
 from dash import callback, Output, Input, State, no_update
 from data.import_export import export_profile_enhanced
 from data.query_manager import get_active_profile_id
@@ -341,53 +340,83 @@ def poll_report_progress(n_intervals):
             logger.info(
                 f"[Report Progress] Complete status detected, checking report_file: {report_file}"
             )
-            if report_file and Path(report_file).exists():
-                logger.info(f"Report generation complete: {report_file}")
-
-                # Read report content
-                with open(report_file, "r", encoding="utf-8") as f:
-                    html_content = f.read()
-
-                # Get filename from path
-                filename = Path(report_file).name
-
-                # Cleanup
-                TaskProgress.complete_task("generate_report")
-
-                # Delete temp file with retry logic (Windows file locking)
-                temp_path = Path(report_file)
-                for attempt in range(3):
-                    try:
-                        temp_path.unlink(missing_ok=True)
-                        break
-                    except PermissionError:
-                        if attempt < 2:
-                            time.sleep(0.5)  # Wait for file handle release
-                        else:
-                            logger.warning(
-                                f"Could not delete temp file after 3 attempts: {report_file}"
-                            )
-
-                # Trigger download and reset UI
-                return (
-                    "Report ready!",
-                    100,
-                    "success",
-                    True,  # Disable polling
-                    {"display": "none"},  # Hide progress
-                    {},  # Show button
-                    {
-                        "content": html_content,
-                        "filename": filename,
-                        "type": "text/html",
-                    },
+            if report_file:
+                # Resolve to absolute path (report_file might be relative)
+                report_path = Path(report_file).resolve()
+                logger.info(
+                    f"Resolved path: {report_path}, exists: {report_path.exists()}"
                 )
+
+                if report_path.exists():
+                    logger.info(f"Report generation complete: {report_path}")
+
+                    # Get filename from path
+                    filename = report_path.name
+
+                    # Use base64 encoding for reliable download of large HTML files
+                    import base64
+
+                    with open(report_path, "rb") as f:
+                        html_bytes = f.read()
+
+                    base64_content = base64.b64encode(html_bytes).decode("utf-8")
+                    logger.info(
+                        f"Report encoded for download: {len(html_bytes)} bytes, filename: {filename}"
+                    )
+
+                    # CRITICAL: Delete task_progress.json FIRST to prevent re-processing
+                    # This prevents the callback from being triggered multiple times
+                    try:
+                        progress_file.unlink(missing_ok=True)
+                        logger.info("Task progress file cleared to prevent duplicate processing")
+                    except Exception as e:
+                        logger.warning(f"Failed to clear task progress file: {e}")
+
+                    # Cleanup - Delete temp file (safe to do now that download is triggered)
+                    try:
+                        report_path.unlink(missing_ok=True)
+                        logger.info(f"Temp file deleted: {report_file}")
+                    except Exception as e:
+                        logger.warning(f"Failed to delete temp file: {e}")
+
+                    # Trigger download and reset UI
+                    return (
+                        "Report ready!",
+                        100,
+                        "success",
+                        True,  # Disable polling
+                        {"display": "none"},  # Hide progress
+                        {},  # Show button
+                        {
+                            "content": base64_content,
+                            "filename": filename,
+                            "base64": True,
+                            "type": "text/html",
+                        },
+                    )
+                else:
+                    # No report file - error
+                    logger.error(
+                        f"Report file not found at resolved path: {report_path}"
+                    )
+                    TaskProgress.fail_task(
+                        "generate_report", f"Report file not found: {report_path}"
+                    )
+                    return (
+                        "Error: Report file not found",
+                        100,
+                        "danger",
+                        True,
+                        {"display": "none"},
+                        {},
+                        no_update,
+                    )
             else:
-                # No report file - error
-                logger.error("Report generation completed but no file found")
-                TaskProgress.fail_task("generate_report", "Report file not found")
+                # No report_file in metadata
+                logger.error("Report generation completed but no file path in metadata")
+                TaskProgress.fail_task("generate_report", "Report file path missing")
                 return (
-                    "Error: Report file not found",
+                    "Error: Report file path missing",
                     100,
                     "danger",
                     True,
@@ -413,7 +442,7 @@ def poll_report_progress(n_intervals):
         else:
             # In progress - update progress bar
             return (
-                f"{message}: {percent:.0f}%",
+                f"Generating report: {percent:.0f}%",
                 percent,
                 "primary",
                 False,  # Keep polling
