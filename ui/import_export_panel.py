@@ -159,42 +159,20 @@ def _create_import_export_tab():
                             html.I(className="fas fa-download"),
                             html.Span("Export Data"),
                         ],
-                        id="export-project-data-button",
+                        id="export-profile-button",
                         color="primary",
                         className="action-button",
                     ),
                 ],
                 style={"marginBottom": "1rem"},
             ),
-            dcc.Download(id="export-project-data-download"),
-            # Hidden elements (kept for backward compatibility with callbacks)
-            html.Div(
-                [
-                    dbc.RadioItems(
-                        id="export-type-radio",
-                        options=[],
-                        value="quick",
-                        style={"display": "none"},
-                    ),
-                    dbc.Collapse(
-                        id="export-options-collapse",
-                        is_open=False,
-                        children=[
-                            dbc.Checklist(
-                                id="export-options-checklist",
-                                options=[],
-                                value=[],
-                                style={"display": "none"},
-                            ),
-                            html.Div(
-                                id="export-size-estimate", style={"display": "none"}
-                            ),
-                        ],
-                    ),
-                    dbc.Button(id="export-profile-button", style={"display": "none"}),
-                    dcc.Download(id="export-profile-download"),
-                ],
-                style={"display": "none"},
+            dcc.Download(id="export-profile-download"),
+            # Import status alert
+            dbc.Alert(
+                id="import-status-alert",
+                is_open=False,
+                dismissable=True,
+                duration=8000,
             ),
         ],
         className="settings-tab-content",
