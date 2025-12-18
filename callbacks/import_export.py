@@ -186,22 +186,30 @@ def start_report_generation(n_clicks, sections, data_points):
             f"Starting background report generation: sections={sections}, period={time_period} weeks"
         )
 
+        # CRITICAL: Clear any stale task state BEFORE starting new task
+        # This prevents polling callback from seeing old completion state
+        from pathlib import Path
+        import os
+
+        progress_file = Path("task_progress.json")
+
+        # Force delete any existing progress file to prevent stale state
+        if progress_file.exists():
+            try:
+                progress_file.unlink()
+                logger.debug(
+                    "Cleared stale task_progress.json before report generation"
+                )
+            except Exception as e:
+                logger.warning(f"Failed to clear stale progress file: {e}")
+
         # Initialize task progress immediately to prevent old state from showing
         TaskProgress.start_task("generate_report", "Preparing report...")
 
-        # Immediately write initial progress to prevent bar from showing old completion state
-        from pathlib import Path
-        import json
-
-        progress_file = Path("task_progress.json")
+        # Force fsync to ensure file is written before polling starts
         if progress_file.exists():
-            with open(progress_file, "r", encoding="utf-8") as f:
-                state = json.load(f)
-            # Ensure progress starts at 0
-            state["report_progress"]["percent"] = 0
-            state["report_progress"]["message"] = "Starting..."
-            with open(progress_file, "w", encoding="utf-8") as f:
-                json.dump(state, f, indent=2)
+            with open(progress_file, "r+", encoding="utf-8") as f:
+                os.fsync(f.fileno())
 
         # Start report generation in background thread
         def generate_in_background():
