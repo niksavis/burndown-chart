@@ -287,82 +287,44 @@ def create_app_layout(settings, statistics, is_sample_data):
                 create_statistics_data_card(statistics),
                 row_class="mb-4",
             ),
-            # Compact footer with clean design
+            # Compact footer with clean design - 3 equal columns for perfect symmetry
             html.Div(
                 [
                     html.Hr(className="my-2", style={"borderColor": "#dee2e6"}),
                     dbc.Row(
                         [
-                            # Left column - app info with update indicator
+                            # Left column - app version (fixed width for symmetry)
                             dbc.Col(
                                 html.Small(
                                     [
                                         html.I(
                                             className="fas fa-chart-line me-1 text-primary"
                                         ),
+                                        html.Span("v", className="text-muted"),
                                         html.Span(
-                                            "Burndown Chart ", className="fw-medium"
-                                        ),
-                                        html.Span(
-                                            f"v{__version__}", className="text-muted"
-                                        ),
-                                        # Update available indicator (clickable)
-                                        (
-                                            html.Span(
-                                                [
-                                                    html.I(
-                                                        className="fas fa-sync-alt ms-2 me-1",
-                                                        style={
-                                                            "fontSize": "0.75rem",
-                                                            "color": "#198754",
-                                                        },
-                                                    ),
-                                                    html.Span(
-                                                        "Update Available",
-                                                        style={
-                                                            "color": "#198754",
-                                                            "fontWeight": "500",
-                                                        },
-                                                    ),
-                                                ],
-                                                id="footer-update-indicator",
-                                                n_clicks=0,
-                                                className="ms-1",
-                                                style={
-                                                    "cursor": "pointer",
-                                                    "userSelect": "none",
-                                                },
-                                            )
-                                            if hasattr(app, "VERSION_CHECK_RESULT")
-                                            and app.VERSION_CHECK_RESULT.get(
-                                                "update_available", False
-                                            )
-                                            else None
+                                            f"{__version__}", className="fw-medium"
                                         ),
                                     ],
                                     className="text-secondary",
                                 ),
-                                width={"size": "auto"},
-                                className="d-flex align-items-center",
+                                width=4,
+                                className="d-flex align-items-center justify-content-start",
                             ),
-                            # Center column - GitHub link
+                            # Center column - GitHub link (perfectly centered)
                             dbc.Col(
-                                html.Small(
-                                    html.A(
-                                        [
-                                            html.I(className="fab fa-github me-1"),
-                                            "GitHub",
-                                        ],
-                                        href="https://github.com/niksavis/burndown-chart",
-                                        target="_blank",
-                                        className="text-decoration-none text-primary",
-                                        style={"fontWeight": "500"},
-                                    ),
+                                html.A(
+                                    [
+                                        html.I(className="fab fa-github me-1"),
+                                        "GitHub",
+                                    ],
+                                    href="https://github.com/niksavis/burndown-chart",
+                                    target="_blank",
+                                    className="text-decoration-none text-primary fw-medium",
                                 ),
-                                className="text-center flex-grow-1",
-                                width=True,
+                                width=4,
+                                className="d-flex align-items-center justify-content-center",
                             ),
-                            # Right column - Last updated
+                            # Right column - Last updated (fixed width for symmetry)
                             dbc.Col(
                                 html.Small(
                                     [
@@ -371,27 +333,43 @@ def create_app_layout(settings, statistics, is_sample_data):
                                         ),
                                         f"{datetime.now().strftime('%b %d, %Y')}",
                                     ],
-                                    className="text-muted text-end",
+                                    className="text-muted",
                                 ),
-                                width={"size": "auto"},
-                                className="d-flex align-items-center",
+                                width=4,
+                                className="d-flex align-items-center justify-content-end",
                             ),
                         ],
-                        className="d-flex justify-content-between align-items-center g-2",
+                        className="g-2",
                     ),
-                    # Update details tooltip (shown only when update available)
+                    # Update available banner (full width, below main row)
                     (
                         html.Div(
-                            [
-                                html.I(className="fas fa-info-circle me-1"),
-                                html.Span(
-                                    f"Current: {app.VERSION_CHECK_RESULT.get('current_commit', 'unknown')} → "
-                                    f"Latest: {app.VERSION_CHECK_RESULT.get('latest_commit', 'unknown')}",
-                                    style={"fontSize": "0.7rem"},
-                                ),
-                            ],
-                            className="mt-1 text-muted text-center",
-                            style={"fontSize": "0.7rem"},
+                            html.Span(
+                                [
+                                    html.I(
+                                        className="fas fa-sync-alt me-1",
+                                        style={"fontSize": "0.75rem"},
+                                    ),
+                                    "Update Available",
+                                    html.Span(
+                                        f" • {app.VERSION_CHECK_RESULT.get('current_commit', 'unknown')[:7]} → "
+                                        f"{app.VERSION_CHECK_RESULT.get('latest_commit', 'unknown')[:7]}",
+                                        className="ms-1 opacity-75",
+                                        style={"fontSize": "0.7rem"},
+                                    ),
+                                ],
+                                id="footer-update-indicator",
+                                n_clicks=0,
+                                className="d-inline-block",
+                                style={
+                                    "cursor": "pointer",
+                                    "userSelect": "none",
+                                    "color": "#198754",
+                                    "fontWeight": "500",
+                                    "fontSize": "0.8rem",
+                                },
+                            ),
+                            className="mt-2 text-center",
                         )
                         if hasattr(app, "VERSION_CHECK_RESULT")
                         and app.VERSION_CHECK_RESULT.get("update_available", False)

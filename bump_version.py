@@ -11,6 +11,7 @@ If no argument provided, prompts interactively.
 """
 
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -54,7 +55,7 @@ def update_configuration_file(new_version: tuple[int, int, int]) -> None:
     )
 
     config_file.write_text(updated, encoding="utf-8")
-    print(f"✓ Updated configuration/__init__.py to {version_str}")
+    print(f"[OK] Updated configuration/__init__.py to {version_str}")
 
 
 def update_readme_file(new_version: tuple[int, int, int]) -> None:
@@ -70,10 +71,10 @@ def update_readme_file(new_version: tuple[int, int, int]) -> None:
     )
 
     readme_file.write_text(updated, encoding="utf-8")
-    print(f"✓ Updated readme.md badge to {version_str}")
+    print(f"[OK] Updated readme.md badge to {version_str}")
 
 
-def main():
+def main() -> None:
     """Main entry point."""
     print("=" * 60)
     print("Burndown Chart Version Bump Utility")
@@ -126,23 +127,54 @@ def main():
         update_configuration_file(new_version)
         update_readme_file(new_version)
     except Exception as e:
-        print(f"\n✗ Error updating files: {e}")
+        print(f"\n[ERROR] Error updating files: {e}")
         sys.exit(1)
+
+    # Create git tag automatically
+    try:
+        # Commit version changes
+        subprocess.run(
+            ["git", "add", "configuration/__init__.py", "readme.md"],
+            check=True,
+            capture_output=True,
+        )
+        subprocess.run(
+            ["git", "commit", "-m", f"chore: bump version to {new_version_str}"],
+            check=True,
+            capture_output=True,
+        )
+        print("[OK] Committed version changes")
+
+        # Create annotated tag
+        subprocess.run(
+            [
+                "git",
+                "tag",
+                "-a",
+                f"v{new_version_str}",
+                "-m",
+                f"Release v{new_version_str}",
+            ],
+            check=True,
+            capture_output=True,
+        )
+        print(f"[OK] Created tag v{new_version_str}")
+
+    except subprocess.CalledProcessError as e:
+        print(f"\n[WARNING] Could not create git tag automatically: {e}")
+        print("  You may need to commit and tag manually.")
+    except Exception as e:
+        print(f"\n[WARNING] Unexpected error during git operations: {e}")
 
     # Success message
     print(f"\n{'=' * 60}")
-    print(f"✓ Version bumped to {new_version_str}")
+    print(f"[SUCCESS] Version bumped to {new_version_str}")
     print(f"{'=' * 60}")
     print("\nNext steps:")
-    print("  1. Review changes: git diff configuration/__init__.py readme.md")
-    print(
-        "  2. Commit changes: git add -A && git commit -m 'chore: bump version to {}'".format(
-            new_version_str
-        )
-    )
-    print("  3. (Optional) Create tag: git tag v{}".format(new_version_str))
-    print("  4. Merge to main: git checkout main && git merge <branch-name>")
-    print("  5. Push changes: git push origin main --tags")
+    print("  1. Review changes: git log -1 --stat")
+    print("  2. Verify tag: git tag -l v{}".format(new_version_str))
+    print("  3. Merge to main: git checkout main && git merge <branch-name>")
+    print("  4. Push changes: git push origin main --tags")
     print()
 
 
