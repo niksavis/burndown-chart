@@ -382,21 +382,21 @@ def _calculate_dashboard_metrics(
     import logging
 
     logger = logging.getLogger(__name__)
-    logger.error(
+    logger.debug(
         f"[REPORT HEALTH] velocity_cv={velocity_cv}, schedule_variance_days={schedule_variance_days}, scope_change_rate={scope_change_rate}, trend_direction={trend_direction}, recent_velocity_change={recent_velocity_change}"
     )
 
     # Velocity consistency (30 points max)
     velocity_score = max(0, 30 * (1 - min(velocity_cv / 50, 1)))
-    logger.error(f"[REPORT HEALTH] velocity_score={velocity_score:.2f}")
+    logger.debug(f"[REPORT HEALTH] velocity_score={velocity_score:.2f}")
 
     # Schedule performance (25 points max) - will be updated after forecast
     schedule_score = max(0, 25 * (1 - min(schedule_variance_days / 60, 1)))
-    logger.error(f"[REPORT HEALTH] schedule_score={schedule_score:.2f}")
+    logger.debug(f"[REPORT HEALTH] schedule_score={schedule_score:.2f}")
 
     # Scope stability (20 points max)
     scope_score = max(0, 20 * (1 - min(scope_change_rate / 40, 1)))
-    logger.error(f"[REPORT HEALTH] scope_score={scope_score:.2f}")
+    logger.debug(f"[REPORT HEALTH] scope_score={scope_score:.2f}")
 
     # Quality trends (15 points max)
     if trend_direction == "improving":
@@ -405,20 +405,20 @@ def _calculate_dashboard_metrics(
         trend_score = 10
     else:  # declining
         trend_score = 0
-    logger.error(f"[REPORT HEALTH] trend_score={trend_score}")
+    logger.debug(f"[REPORT HEALTH] trend_score={trend_score}")
 
     # Recent performance (10 points max)
     if recent_velocity_change >= 0:
         recent_score = 5 + min(5, 5 * (recent_velocity_change / 20))
     else:
         recent_score = max(0, 5 * (1 + recent_velocity_change / 20))
-    logger.error(f"[REPORT HEALTH] recent_score={recent_score:.2f}")
+    logger.debug(f"[REPORT HEALTH] recent_score={recent_score:.2f}")
 
     health_score = int(
         velocity_score + schedule_score + scope_score + trend_score + recent_score
     )
     health_score = max(0, min(100, health_score))
-    logger.error(
+    logger.debug(
         f"[REPORT HEALTH] INITIAL health_score={health_score} (before schedule recalc)"
     )
 
@@ -452,10 +452,10 @@ def _calculate_dashboard_metrics(
         df_for_velocity, "completed_points"
     )
 
-    logger.error(
+    logger.debug(
         f"[REPORT VELOCITY] df_windowed len={len(df_windowed)}, data_points_count={data_points_count}, df_for_velocity len={len(df_for_velocity)}"
     )
-    logger.error(
+    logger.debug(
         f"[REPORT VELOCITY] velocity_items={velocity_items:.2f} items/week, velocity_points={velocity_points:.2f} points/week"
     )
 
@@ -491,7 +491,7 @@ def _calculate_dashboard_metrics(
         pert_time_points if (show_points and pert_time_points) else pert_time_items
     )
 
-    logger.error(
+    logger.debug(
         f"[REPORT FORECAST] velocity_items={velocity_items:.2f}, velocity_points={velocity_points:.2f}, "
         f"remaining_items={remaining_items}, remaining_points={remaining_points:.2f}, "
         f"pert_factor={pert_factor}, pert_days={pert_days}, pert_time_items={pert_time_items:.2f}, "
@@ -523,7 +523,7 @@ def _calculate_dashboard_metrics(
     # Recalculate schedule variance now that forecast is complete
     if pert_days and days_to_deadline:
         schedule_variance_days = abs(pert_days - days_to_deadline)
-        logger.error(
+        logger.debug(
             f"[REPORT HEALTH] RECALC: schedule_variance_days={schedule_variance_days} (pert_days={pert_days}, days_to_deadline={days_to_deadline})"
         )
 
@@ -533,7 +533,7 @@ def _calculate_dashboard_metrics(
 
         # Schedule performance (25 points max)
         schedule_score = max(0, 25 * (1 - min(schedule_variance_days / 60, 1)))
-        logger.error(f"[REPORT HEALTH] RECALC: schedule_score={schedule_score:.2f}")
+        logger.debug(f"[REPORT HEALTH] RECALC: schedule_score={schedule_score:.2f}")
 
         # Scope stability (20 points max)
         scope_score = max(0, 20 * (1 - min(scope_change_rate / 40, 1)))
@@ -556,7 +556,7 @@ def _calculate_dashboard_metrics(
             velocity_score + schedule_score + scope_score + trend_score + recent_score
         )
         health_score = max(0, min(100, health_score))
-        logger.error(
+        logger.debug(
             f"[REPORT HEALTH] FINAL health_score={health_score} (after schedule recalc)"
         )
 
@@ -831,16 +831,16 @@ def _calculate_scope_metrics(
         current_points + total_completed_points - total_created_points, 1
     )
 
-    logger.error(
+    logger.debug(
         f"[SCOPE BASELINE] Current: {current_items} items, {current_points:.2f} points"
     )
-    logger.error(
+    logger.debug(
         f"[SCOPE BASELINE] Total completed in period: {total_completed_items} items, {total_completed_points:.2f} points"
     )
-    logger.error(
+    logger.debug(
         f"[SCOPE BASELINE] Total created in period: {total_created_items} items, {total_created_points:.2f} points"
     )
-    logger.error(
+    logger.debug(
         f"[SCOPE BASELINE] Calculated initial: {initial_items} items, {initial_points:.2f} points"
     )
 
@@ -922,7 +922,7 @@ def _calculate_flow_metrics(
     # Load weekly values from snapshots (same as app)
     from data.metrics_snapshots import get_metric_weekly_values
 
-    flow_load_values = get_metric_weekly_values(week_labels, "flow_load", "wip_count")
+    # Note: flow_load (WIP) is loaded separately as point-in-time snapshot below
     flow_time_values = get_metric_weekly_values(week_labels, "flow_time", "median_days")
     flow_efficiency_values = get_metric_weekly_values(
         week_labels, "flow_efficiency", "overall_pct"
@@ -2014,13 +2014,16 @@ def generate_html_report_with_progress(
         if not profile_id:
             raise ValueError("No active profile for report generation")
 
-        # Update progress: Loading data
-        _update_report_progress(10, "Loading project data")
+        # Progress checkpoint 1: Initialization
+        _update_report_progress(5, "Initializing report generation...")
 
-        # Load and filter data
+        # Progress checkpoint 2: Loading project data
+        _update_report_progress(10, "Loading project data...")
         report_data = _load_report_data(profile_id, time_period_weeks)
         report_data["profile_id"] = profile_id
 
+        # Progress checkpoint 3: Loading snapshots
+        _update_report_progress(20, "Loading metrics snapshots...")
         # Get display names for metadata
         from data.profile_manager import get_active_profile_and_query_display_names
 
@@ -2028,23 +2031,53 @@ def generate_html_report_with_progress(
         profile_name = context.get("profile_name") or profile_id
         query_name = context.get("query_name") or "Unknown Query"
 
-        # Update progress: Calculating metrics
-        _update_report_progress(30, "Calculating metrics")
+        # Progress checkpoint 4: Dashboard metrics
+        _update_report_progress(30, "Calculating dashboard metrics...")
 
-        # Calculate all metrics
-        metrics = _calculate_all_metrics(report_data, sections, time_period_weeks)
+        # Calculate metrics incrementally with progress updates
+        metrics = {}
+        show_points = report_data["settings"].get("show_points", False)
+
+        # Dashboard always calculated
+        metrics["dashboard"] = _calculate_dashboard_metrics(
+            report_data["all_statistics"],
+            report_data["statistics"],
+            report_data["project_scope"],
+            report_data["settings"],
+            report_data["weeks_count"],
+            show_points,
+        )
+
+        # Progress checkpoint 5: Section-specific metrics (DORA)
+        if "dora" in sections:
+            _update_report_progress(45, "Calculating DORA metrics...")
+            metrics["dora"] = _calculate_dora_metrics(profile_id, time_period_weeks)
+
+        # Progress checkpoint 6: Section-specific metrics (Flow)
+        if "flow" in sections:
+            _update_report_progress(55, "Calculating Flow metrics...")
+            metrics["flow"] = _calculate_flow_metrics(
+                report_data["snapshots"], time_period_weeks
+            )
+
+        # Add remaining sections without DORA/Flow
+        _update_report_progress(60, "Finalizing metrics calculations...")
+        remaining_sections = [s for s in sections if s not in ["dora", "flow"]]
+        if remaining_sections:
+            # Calculate remaining metrics in batch
+            remaining_metrics = _calculate_all_metrics(
+                report_data, remaining_sections, time_period_weeks
+            )
+            metrics.update(remaining_metrics)
+
         metrics["statistics"] = report_data["statistics"]
 
-        # Update progress: Generating charts
-        _update_report_progress(60, "Generating charts")
-
-        # Generate Chart.js scripts
+        # Progress checkpoint 7: Generating charts
+        _update_report_progress(70, "Generating interactive charts...")
         chart_scripts = _generate_chart_scripts(metrics, sections)
 
-        # Update progress: Rendering HTML
-        _update_report_progress(80, "Rendering HTML")
-
-        # Render template
+        # Progress checkpoint 8: Rendering HTML
+        _update_report_progress(80, "Rendering HTML template...")
         html = _render_template(
             profile_name=profile_name,
             query_name=query_name,
@@ -2054,8 +2087,11 @@ def generate_html_report_with_progress(
             chart_script="\n".join(chart_scripts),
         )
 
-        # Update progress: Saving report
-        _update_report_progress(95, "Preparing download")
+        # Progress checkpoint 9: Preparing download
+        _update_report_progress(90, "Preparing download...")
+
+        # Progress checkpoint 10: Finalizing
+        _update_report_progress(95, "Finalizing report...")
 
         # Save to temporary file
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -2074,9 +2110,9 @@ def generate_html_report_with_progress(
             f"Report saved to temporary file: {temp_file} ({len(html):,} bytes)"
         )
 
-        # Complete task with report file path
+        # Complete task with report file path (100% shown by complete_task)
         TaskProgress.complete_task(
-            "generate_report", "Report ready", report_file=str(temp_file)
+            "generate_report", "Report ready for download", report_file=str(temp_file)
         )
 
     except Exception as e:

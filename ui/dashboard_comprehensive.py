@@ -82,7 +82,7 @@ def _calculate_project_health_score(metrics):
     # CV of 0% = full points, CV of 50%+ = 0 points, linear in between
     velocity_cv = metrics.get("velocity_cv", 0)
     velocity_score = max(0, 30 * (1 - min(velocity_cv / 50, 1)))
-    logger.error(
+    logger.debug(
         f"[APP HEALTH] velocity_cv={velocity_cv}, velocity_score={velocity_score:.2f}"
     )
 
@@ -90,7 +90,7 @@ def _calculate_project_health_score(metrics):
     # On-time or early = full points, 60+ days late = 0 points, linear penalty
     schedule_variance = metrics.get("schedule_variance_days", 0)
     schedule_score = max(0, 25 * (1 - min(schedule_variance / 60, 1)))
-    logger.error(
+    logger.debug(
         f"[APP HEALTH] schedule_variance_days={schedule_variance}, schedule_score={schedule_score:.2f}"
     )
 
@@ -98,7 +98,7 @@ def _calculate_project_health_score(metrics):
     # 0% growth = full points, 40%+ growth = 0 points, linear penalty
     scope_change_rate = metrics.get("scope_change_rate", 0)
     scope_score = max(0, 20 * (1 - min(scope_change_rate / 40, 1)))
-    logger.error(
+    logger.debug(
         f"[APP HEALTH] scope_change_rate={scope_change_rate}, scope_score={scope_score:.2f}"
     )
 

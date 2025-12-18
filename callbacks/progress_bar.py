@@ -55,6 +55,23 @@ def update_progress_bars(n_intervals):
         with open(progress_file, "r", encoding="utf-8") as f:
             progress_data = json.load(f)
 
+        task_id = progress_data.get("task_id")
+
+        # ISOLATION: Only handle Update Data tasks, ignore Generate Report tasks
+        if task_id != "update_data":
+            # Different task running (e.g., generate_report) - don't interfere
+            return (
+                {"display": "none"},
+                "Processing: 0%",
+                0,
+                "primary",
+                True,
+                True,
+                {},  # Show Update Data button
+                {"display": "none"},  # Hide Cancel button
+                no_update,  # No metrics trigger
+            )
+
         status = progress_data.get("status", "idle")
         phase = progress_data.get("phase", "fetch")
         fetch_progress = progress_data.get("fetch_progress", {})
