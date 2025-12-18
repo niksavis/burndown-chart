@@ -41,10 +41,33 @@ def _atomic_write_json(file_path: Path, data: dict) -> None:
 
         # Atomic rename (replaces target file)
         # On Windows, need to remove target first if it exists
-        if os.name == "nt" and file_path.exists():
-            file_path.unlink()
+        # Retry logic for Windows file locking issues (e.g. antivirus, polling reads)
+        max_retries = 10
+        retry_delay = 0.05  # Start with 50ms
 
-        Path(temp_path).replace(file_path)
+        for attempt in range(max_retries):
+            try:
+                if os.name == "nt" and file_path.exists():
+                    try:
+                        file_path.unlink()
+                    except FileNotFoundError:
+                        pass  # File already gone, that's fine
+
+                Path(temp_path).replace(file_path)
+                return  # Success
+            except (PermissionError, OSError) as e:
+                # PermissionError: File is open by another process
+                # OSError: Generic OS error (e.g. access denied)
+                if attempt < max_retries - 1:
+                    time.sleep(retry_delay)
+                    retry_delay *= 1.5  # Exponential backoff
+                else:
+                    # Log the specific error on final failure
+                    logger.error(
+                        f"Atomic write failed after {max_retries} attempts: {e}"
+                    )
+                    raise
+
     except Exception:
         # Clean up temp file on error
         try:

@@ -28,7 +28,7 @@ def create_profile_dropdown(id_suffix: str = "") -> dbc.Col:
     # Build dropdown options
     options = []
     for profile in profiles:
-        # Create label with metadata tooltip info
+        # Create label with JIRA URL to help distinguish profiles
         jira_info = ""
         if profile.get("jira_url"):
             jira_info = f" • {profile['jira_url']}"

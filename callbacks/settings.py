@@ -8,7 +8,6 @@ This module handles callbacks related to application settings and parameters.
 # IMPORTS
 #######################################################################
 # Standard library imports
-import time
 from datetime import datetime
 
 # Third-party library imports
@@ -823,9 +822,69 @@ def register(app):
                     "[Settings] Normal refresh: Keeping changelog cache for reuse (saves 1-2 minutes)"
                 )
 
-            success, message, scope_data = sync_jira_scope_and_data(
-                settings_jql, jira_config_for_sync, force_refresh=force_refresh_bool
+            # Run sync in background thread to allow progress polling
+            import threading
+
+            def background_sync():
+                try:
+                    success, message, scope_data = sync_jira_scope_and_data(
+                        settings_jql,
+                        jira_config_for_sync,
+                        force_refresh=force_refresh_bool,
+                    )
+                    if not success:
+                        TaskProgress.fail_task("update_data", message)
+                    else:
+                        # Fetch completed successfully - now trigger metrics calculation
+                        # The progress polling callback will detect "calculate" phase and trigger metrics
+                        TaskProgress.update_progress(
+                            "update_data",
+                            "calculate",
+                            0,
+                            100,
+                            "Fetch complete, starting metrics calculation...",
+                        )
+                except Exception as e:
+                    logger.error(f"Background sync failed: {e}", exc_info=True)
+                    TaskProgress.fail_task("update_data", f"Error: {str(e)}")
+
+            thread = threading.Thread(target=background_sync, daemon=True)
+            thread.start()
+
+            # Return immediately to show progress bar - polling will track completion
+            return (
+                None,  # upload contents
+                None,  # filename
+                html.Div(
+                    [
+                        html.I(className="fas fa-spinner fa-spin me-2"),
+                        "Fetching data from JIRA...",
+                    ],
+                    className="text-info small",
+                ),  # cache status
+                no_update,  # statistics-table
+                no_update,  # total-items-input
+                no_update,  # estimated-items-input
+                no_update,  # total-points-display
+                no_update,  # estimated-points-input
+                no_update,  # current-settings
+                False,  # force-refresh-store (reset)
+                True,  # update-data-unified disabled (operation in progress)
+                button_normal,  # update-data-unified children
+                html.Div(
+                    [html.I(className="fas fa-spinner fa-spin me-2"), "Starting..."],
+                    className="text-info small",
+                ),  # update-data-status
+                "",  # app-notifications
+                None,  # trigger-auto-metrics-calc
+                False,  # progress-poll-interval enabled (start polling)
             )
+
+            # OLD SYNCHRONOUS CODE BELOW - NOT REACHED
+            if False:
+                success = False
+                message = ""
+                scope_data = {}
 
             if success:
                 # Load the updated statistics data after JIRA import
@@ -1204,6 +1263,18 @@ def register(app):
             )
             raise PreventUpdate
 
+        # CRITICAL: Check if metrics calculation already started
+        # This prevents multiple triggers from polling callback
+        # Only allow if message is initial transition message OR hasn't been set yet
+        calc_progress = active_task.get("calculate_progress", {})
+        calc_message = calc_progress.get("message", "")
+        allowed_messages = ["", "Fetch complete, starting metrics calculation..."]
+        if calc_message not in allowed_messages:
+            logger.info(
+                f"[Settings] Metrics already started (message='{calc_message[:50]}'), ignoring duplicate trigger"
+            )
+            raise PreventUpdate
+
         if trigger_timestamp is None:
             # None means no trigger - this is the initial/default store state
             # Don't take any action
@@ -1245,13 +1316,26 @@ def register(app):
                 )
                 return None, None
 
+            # Calculate total weeks FIRST so we can show accurate progress immediately
+            from data.iso_week_bucketing import get_weeks_from_date_range
+            from datetime import datetime
+
+            # Extract date range from statistics
+            dates = [datetime.fromisoformat(stat["date"]) for stat in statistics]
+            start_date = min(dates)
+            end_date = max(dates)
+
+            # Get weeks covering the actual data range
+            custom_weeks = get_weeks_from_date_range(start_date, end_date)
+            total_weeks = len(custom_weeks)
+
             # Phase transition already done by the fetch callback before it returned
-            # Just update the message to show we're starting calculation
+            # Update progress with correct total to show accurate progress bar
             TaskProgress.update_progress(
                 "update_data",
                 "calculate",
                 0,
-                0,
+                total_weeks,
                 "Starting metrics calculation...",
             )
 
@@ -1269,45 +1353,79 @@ def register(app):
 
             # Statistics already validated above - proceed with calculation
             from data.metrics_calculator import calculate_metrics_for_last_n_weeks
-            from data.iso_week_bucketing import get_weeks_from_date_range
-            from datetime import datetime
 
-            # Extract date range from statistics
-            dates = [datetime.fromisoformat(stat["date"]) for stat in statistics]
-            start_date = min(dates)
-            end_date = max(dates)
-
-            # Get weeks covering the actual data range
-            custom_weeks = get_weeks_from_date_range(start_date, end_date)
-
-            # Create progress callback
             def metrics_progress_callback(message: str):
+                """Update TaskProgress during metrics calculation."""
                 logger.debug(f"[Metrics Progress] {message}")
+                # Extract week number from message if present (e.g., "Week 2025-W51")
+                import re
 
-            metrics_success, metrics_message = calculate_metrics_for_last_n_weeks(
-                custom_weeks=custom_weeks,
-                progress_callback=metrics_progress_callback,
-            )
+                week_match = re.search(r"Week (\d{4}-W\d{2})", message)
+                if week_match:
+                    # Find which week we're on
+                    current_week = week_match.group(1)
+                    for idx, week in enumerate(custom_weeks, start=1):
+                        if week == current_week:
+                            percent = (idx / total_weeks) * 100
+                            TaskProgress.update_progress(
+                                "update_data",
+                                "calculate",
+                                idx,
+                                total_weeks,
+                                message,
+                            )
+                            break
+                # CRITICAL: Do NOT update progress for inner messages (e.g., "[Filter] ...")
+                # These don't have week numbers, and updating with current=0 resets the progress bar
+                # Only update when we have actual week progress to report
 
-            if metrics_success:
-                logger.info(f"[Settings] Auto-calculated metrics: {metrics_message}")
-                TaskProgress.complete_task(
-                    "update_data", "✓ Data and metrics updated successfully"
-                )
-            else:
-                logger.warning(
-                    f"[Settings] Metrics calculation had issues: {metrics_message}"
-                )
-                TaskProgress.complete_task(
-                    "update_data", "⚠ Data updated, metrics calculation had issues"
-                )
+            # Run metrics calculation in background thread to prevent blocking
+            import threading
+
+            def background_metrics():
+                try:
+                    metrics_success, metrics_message = (
+                        calculate_metrics_for_last_n_weeks(
+                            custom_weeks=custom_weeks,
+                            progress_callback=metrics_progress_callback,
+                        )
+                    )
+
+                    if metrics_success:
+                        logger.info(
+                            f"[Settings] Auto-calculated metrics: {metrics_message}"
+                        )
+                        TaskProgress.complete_task(
+                            "update_data", "✓ Data and metrics updated successfully"
+                        )
+                    else:
+                        logger.warning(
+                            f"[Settings] Metrics calculation had issues: {metrics_message}"
+                        )
+                        TaskProgress.complete_task(
+                            "update_data",
+                            "⚠ Data updated, metrics calculation had issues",
+                        )
+                except Exception as e:
+                    logger.error(
+                        f"[Settings] Background metrics calculation failed: {e}",
+                        exc_info=True,
+                    )
+                    TaskProgress.fail_task(
+                        "update_data", "⚠ Data updated, metrics calculation failed"
+                    )
+
+            thread = threading.Thread(target=background_metrics, daemon=True)
+            thread.start()
+            logger.info("[Settings] Metrics calculation started in background thread")
 
         except Exception as e:
-            logger.error(f"[Settings] Auto-metrics calculation failed: {e}")
+            logger.error(f"[Settings] Auto-metrics setup failed: {e}", exc_info=True)
             TaskProgress.fail_task(
                 "update_data", "⚠ Data updated, metrics calculation failed"
             )
 
+        # Return immediately - background thread will complete the task
         return None, None
 
     @app.callback(
@@ -2681,8 +2799,6 @@ def register(app):
         Returns:
             Tuple: (max_value, marks_dict) for the data points slider
         """
-        import math
-
         # Calculate max data points from statistics
         max_data_points = 52  # Default max
         if statistics and len(statistics) > 0:
@@ -2900,6 +3016,29 @@ def register(app):
             Tuple of (status message, polling enabled, progress bar style, update button style, cancel button style, metrics trigger)
         """
         from data.task_progress import TaskProgress
+        from pathlib import Path
+        import time
+
+        # Check if app was just restarted (stale task cleanup ran)
+        restart_marker = Path("task_progress.json.restart")
+        if restart_marker.exists():
+            try:
+                import json
+
+                marker_data = json.loads(restart_marker.read_text())
+                restart_time = marker_data.get("restart_time", 0)
+                # If restart was within last 5 seconds, don't restore progress
+                if time.time() - restart_time < 5:
+                    logger.info(
+                        "[Settings] App restart detected - not restoring stale task progress"
+                    )
+                    restart_marker.unlink()  # Clean up marker
+                    raise PreventUpdate
+                else:
+                    # Old marker, ignore it
+                    restart_marker.unlink()
+            except Exception as e:
+                logger.debug(f"Restart marker check failed: {e}")
 
         # Check if Update Data task is active
         active_task = TaskProgress.get_active_task()

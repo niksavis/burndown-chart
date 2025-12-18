@@ -1062,7 +1062,7 @@ def fetch_jira_issues(
                     TaskProgress.fail_task("update_data", "Operation cancelled by user")
                     return False, []
 
-                # Report progress if we know total
+                # Report progress
                 if total_issues:
                     TaskProgress.update_progress(
                         "update_data",
@@ -1070,6 +1070,20 @@ def fetch_jira_issues(
                         current=len(all_issues),
                         total=total_issues,
                         message="Fetching issues from JIRA",
+                    )
+                else:
+                    # First batch or unknown total
+                    msg = (
+                        "Connecting to JIRA..."
+                        if start_at == 0
+                        else f"Fetching issues ({len(all_issues)} so far)..."
+                    )
+                    TaskProgress.update_progress(
+                        "update_data",
+                        "fetch",
+                        current=len(all_issues),
+                        total=0,
+                        message=msg,
                     )
             except Exception as e:
                 logger.debug(f"Progress update/cancellation check failed: {e}")
@@ -2419,6 +2433,20 @@ def sync_jira_scope_and_data(
         Tuple of (success, message, scope_data)
     """
     try:
+        # Update progress to show we're starting
+        try:
+            from data.task_progress import TaskProgress
+
+            TaskProgress.update_progress(
+                "update_data",
+                "fetch",
+                0,
+                0,
+                "Connecting to JIRA...",
+            )
+        except Exception:
+            pass  # Progress update is optional
+
         # Import scope calculator here to avoid circular imports
         from data.jira_scope_calculator import calculate_jira_project_scope
 

@@ -232,6 +232,37 @@ register_all_callbacks(app)
 
 # Run the app
 if __name__ == "__main__":
+    # Clean up stale task progress from previous crashed/killed processes
+    # CRITICAL: This must run BEFORE Dash app starts accepting requests
+    try:
+        from data.task_progress import TaskProgress
+        import time
+
+        active_task = TaskProgress.get_active_task()
+        if active_task and active_task.get("status") == "in_progress":
+            task_id = active_task.get("task_id", "unknown")
+            phase = active_task.get("phase", "unknown")
+            logger.warning(
+                f"[Startup] Found stale in-progress task '{task_id}' (phase={phase}) from previous session - marking as failed"
+            )
+
+            # Add app restart marker so recovery callback knows not to trigger actions
+            import json
+            from pathlib import Path
+
+            restart_marker = Path("task_progress.json.restart")
+            restart_marker.write_text(json.dumps({"restart_time": time.time()}))
+
+            TaskProgress.fail_task(
+                task_id,
+                f"Operation interrupted (app restarted during {phase} phase). Click Update Data to restart.",
+            )
+
+            # Keep marker for 5 seconds so page load callbacks can detect it
+            time.sleep(0.1)  # Small delay to ensure file is written
+    except Exception as e:
+        logger.error(f"[Startup] Failed to clean up stale tasks: {e}")
+
     # Get server configuration
     server_config = get_server_config()
 

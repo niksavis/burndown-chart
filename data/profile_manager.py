@@ -62,7 +62,6 @@ Test Support:
 
 import json
 import shutil
-import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -271,21 +270,18 @@ def get_active_query_workspace() -> Path:
     if not active_query_id:
         raise ValueError("No active_query_id in profiles.json")
 
-    # Validate profile exists
-    profiles = profiles_data.get("profiles", {})
-    if active_profile_id not in profiles:
-        raise ValueError(f"Profile '{active_profile_id}' not found in registry")
+    # Build query workspace path
+    query_workspace = PROFILES_DIR / active_profile_id / "queries" / active_query_id
 
-    # Validate query exists in profile's query list
-    profile_data = profiles[active_profile_id]
-    queries = profile_data.get("queries", [])
-    if active_query_id not in queries:
+    # Validate query directory actually exists (the only check that matters)
+    if not query_workspace.exists():
         raise ValueError(
-            f"Query '{active_query_id}' not found in profile '{active_profile_id}'"
+            f"Query workspace not found at {query_workspace}. "
+            f"The query may have been deleted or not yet created."
         )
 
     # Return query workspace directory
-    return PROFILES_DIR / active_profile_id / "queries" / active_query_id
+    return query_workspace
 
 
 def get_profile_file_path(profile_id: str) -> Path:

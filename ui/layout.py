@@ -359,7 +359,7 @@ def create_app_layout(settings, statistics, is_sample_data):
                                         style={"fontWeight": "500"},
                                     ),
                                 ),
-                                className="text-center",
+                                className="text-center flex-grow-1",
                                 width=True,
                             ),
                             # Right column - Last updated
