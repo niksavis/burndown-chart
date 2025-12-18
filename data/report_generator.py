@@ -432,10 +432,11 @@ def _calculate_dashboard_metrics(
     else:
         health_status = "AT RISK"
 
-    # Calculate velocity using SAME method as app dashboard (daily average, not weekly median)
-    # App dashboard filters to last N DATA POINTS (days), not N weeks
-    # CRITICAL: weeks_count here is actually data_points_count from settings (e.g., 12)
-    # The app does: df.tail(data_points_count) then .mean() on daily records
+    # Calculate velocity using EXACT SAME method as app dashboard
+    # App uses calculate_velocity_from_dataframe() which returns WEEKLY velocity (items per week)
+    # NOT daily average! The app filters to last N data points then calculates weekly velocity
+    from data.processing import calculate_velocity_from_dataframe
+
     data_points_count = settings.get("data_points_count", weeks_count)
     df_for_velocity = (
         df_windowed.tail(data_points_count)
@@ -443,21 +444,19 @@ def _calculate_dashboard_metrics(
         else df_windowed
     )
 
-    velocity_items = (
-        df_for_velocity["completed_items"].mean() if not df_for_velocity.empty else 0
+    # Use the same function as app (returns items PER WEEK, not per day)
+    velocity_items = calculate_velocity_from_dataframe(
+        df_for_velocity, "completed_items"
     )
-    velocity_points = (
-        df_for_velocity["completed_points"].mean() if not df_for_velocity.empty else 0
+    velocity_points = calculate_velocity_from_dataframe(
+        df_for_velocity, "completed_points"
     )
 
     logger.error(
         f"[REPORT VELOCITY] df_windowed len={len(df_windowed)}, data_points_count={data_points_count}, df_for_velocity len={len(df_for_velocity)}"
     )
     logger.error(
-        f"[REPORT VELOCITY] items={list(df_for_velocity['completed_items'])}, mean={velocity_items:.2f}"
-    )
-    logger.error(
-        f"[REPORT VELOCITY] points={list(df_for_velocity['completed_points'])}, mean={velocity_points:.2f}"
+        f"[REPORT VELOCITY] velocity_items={velocity_items:.2f} items/week, velocity_points={velocity_points:.2f} points/week"
     )
 
     # Get deadline and milestone from settings
@@ -465,8 +464,9 @@ def _calculate_dashboard_metrics(
     milestone = settings.get("milestone")
     pert_factor = settings.get("pert_factor", 6)
 
-    # Calculate PERT forecast using SAME approach as app dashboard
-    # Use calculate_rates() to get empirical PERT times (not simplified formula)
+    # Calculate PERT forecast using EXACT SAME method as app comprehensive dashboard
+    # App uses calculate_rates() which returns empirical PERT days (not simplified formula)
+    # This is in ui/dashboard_comprehensive.py and data/processing.py calculate_rates()
     from data.processing import compute_weekly_throughput, calculate_rates
 
     forecast_date = None
@@ -487,34 +487,27 @@ def _calculate_dashboard_metrics(
     )
 
     # Use points or items PERT time based on show_points setting (same as app)
-    if show_points and pert_time_points > 0:
-        pert_days = round(pert_time_points)
-        remaining = remaining_points
-    elif pert_time_items > 0:
-        pert_days = round(pert_time_items)
-        remaining = remaining_items
-    else:
-        pert_days = None
-        remaining = 0
+    pert_days = (
+        pert_time_points if (show_points and pert_time_points) else pert_time_items
+    )
 
     logger.error(
-        f"[REPORT FORECAST] pert_time_items={pert_time_items}, pert_time_points={pert_time_points}, pert_days={pert_days}, show_points={show_points}"
+        f"[REPORT FORECAST] velocity_items={velocity_items:.2f}, velocity_points={velocity_points:.2f}, "
+        f"remaining_items={remaining_items}, remaining_points={remaining_points:.2f}, "
+        f"pert_factor={pert_factor}, pert_days={pert_days}, pert_time_items={pert_time_items:.2f}, "
+        f"pert_time_points={pert_time_points:.2f}, show_points={show_points}"
     )
 
     if pert_days and pert_days > 0:
-        # Use last statistics date from ALL data as starting point (same as app in processing.py line 1379)
-        # App uses df["date"].max() where df contains ALL statistics, not windowed
-        # This ensures forecast matches app exactly, avoiding timezone/midnight issues
-        if not df_all.empty:
-            last_date = df_all["date"].max()
-        else:
-            last_date = datetime.now()
-        forecast_date_obj = last_date + timedelta(days=pert_days)
+        # CRITICAL: App uses datetime.now() as starting point, NOT last_date from data
+        # This is in ui/dashboard_comprehensive.py line 2102:
+        # "completion_date": (datetime.now() + timedelta(days=forecast_days))
+        # The PERT calculation already accounts for time elapsed, so we start from now
+        forecast_date_obj = datetime.now() + timedelta(days=pert_days)
         forecast_date = forecast_date_obj.strftime("%Y-%m-%d")
 
-        # Calculate months to forecast from last_date
-        days_to_forecast = (forecast_date_obj - last_date).days
-        forecast_months = round(days_to_forecast / 30.44)  # Average days per month
+        # Calculate months to forecast from now
+        forecast_months = round(pert_days / 30.44)  # Average days per month
 
     # Calculate months to deadline
     deadline_months = None
@@ -750,8 +743,13 @@ def _calculate_bug_metrics(
         open_bugs = bug_summary.get("open_bugs", 0)
         if open_bugs > 0 and weekly_stats:
             try:
+                # Use min(8, weeks_count) to match app behavior but respect shorter periods
+                # 8 weeks is optimal for trend analysis, but use less if data window is smaller
+                forecast_weeks = min(8, weeks_count)
                 forecast = forecast_bug_resolution(
-                    open_bugs=open_bugs, weekly_stats=weekly_stats, use_last_n_weeks=8
+                    open_bugs=open_bugs,
+                    weekly_stats=weekly_stats,
+                    use_last_n_weeks=forecast_weeks,
                 )
             except Exception as e:
                 logger.warning(f"Failed to calculate bug forecast: {e}")
@@ -817,19 +815,21 @@ def _calculate_scope_metrics(
 
     # Calculate creation/completion totals for the period
     total_created_items = int(df["created_items"].sum())
-    total_created_points = int(df["created_points"].sum())
+    total_created_points = round(df["created_points"].sum(), 1)
     total_completed_items = int(df["completed_items"].sum())
-    total_completed_points = int(df["completed_points"].sum())
+    total_completed_points = round(df["completed_points"].sum(), 1)
 
     # Current scope from project_scope (remaining work)
     current_items = project_scope.get("remaining_items", 0)
-    current_points = project_scope.get("remaining_total_points", 0)
+    current_points = round(project_scope.get("remaining_total_points", 0), 1)
 
     # Calculate initial scope at window start
     # Work backwards from current: Initial = Current + Completed - Created
     # This accounts for both work completed and new work added during the period
     initial_items = current_items + total_completed_items - total_created_items
-    initial_points = current_points + total_completed_points - total_created_points
+    initial_points = round(
+        current_points + total_completed_points - total_created_points, 1
+    )
 
     logger.error(
         f"[SCOPE BASELINE] Current: {current_items} items, {current_points:.2f} points"
@@ -846,7 +846,7 @@ def _calculate_scope_metrics(
 
     # Calculate net change: Current - Initial = (Current) - (Current + Completed - Created) = Created - Completed
     items_change = current_items - initial_items
-    points_change = current_points - initial_points
+    points_change = round(current_points - initial_points, 1)
 
     # Calculate creation/completion ratios
     items_ratio = (
@@ -863,11 +863,11 @@ def _calculate_scope_metrics(
     return {
         "has_data": True,
         "initial_items": initial_items,
-        "initial_points": initial_points,
+        "initial_points": round(initial_points, 1),
         "final_items": current_items,
-        "final_points": current_points,
+        "final_points": round(current_points, 1),
         "items_change": items_change,
-        "points_change": points_change,
+        "points_change": round(points_change, 1),
         "created_items": total_created_items,
         "created_points": total_created_points,
         "completed_items": total_completed_items,
