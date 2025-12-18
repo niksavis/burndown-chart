@@ -25,6 +25,7 @@ from datetime import datetime, timedelta
 
 from ui.style_constants import COLOR_PALETTE
 from ui.tooltip_utils import create_info_tooltip
+from configuration.help_content import DASHBOARD_METRICS_TOOLTIPS
 
 
 #######################################################################
@@ -451,6 +452,25 @@ def _create_executive_summary(statistics_df, settings, forecast_data):
                                 style={"color": "#007bff"},
                             ),
                             "Project Health Overview",
+                            html.Span(
+                                [
+                                    html.I(
+                                        className="fas fa-info-circle ms-2",
+                                        id="health-calculation-info",
+                                        style={
+                                            "fontSize": "0.9rem",
+                                            "color": "#6c757d",
+                                            "cursor": "help",
+                                        },
+                                    ),
+                                    dbc.Tooltip(
+                                        DASHBOARD_METRICS_TOOLTIPS["health_score"],
+                                        target="health-calculation-info",
+                                        placement="right",
+                                    ),
+                                ],
+                                className="d-inline",
+                            ),
                         ],
                         className="mb-4",
                     ),
@@ -1261,28 +1281,8 @@ def _create_forecast_section(pert_data, confidence_data, show_points=True):
                                                 },
                                             ),
                                             html.Small(
-                                                "Chance of meeting deadline",
+                                                "Statistical likelihood of completing by deadline based on Z-score analysis",
                                                 className="text-muted",
-                                            ),
-                                            html.Div(
-                                                _create_progress_ring(
-                                                    confidence_data.get(
-                                                        "deadline_probability", 75
-                                                    ),
-                                                    "#28a745"
-                                                    if confidence_data.get(
-                                                        "deadline_probability", 75
-                                                    )
-                                                    >= 70
-                                                    else "#ffc107"
-                                                    if confidence_data.get(
-                                                        "deadline_probability", 75
-                                                    )
-                                                    >= 40
-                                                    else "#dc3545",
-                                                    70,
-                                                ),
-                                                className="mt-3",
                                             ),
                                         ],
                                         className="p-3",

@@ -701,6 +701,7 @@ DASHBOARD_METRICS_TOOLTIPS = {
     "pert_expected": "Weighted average of optimistic, most likely, and pessimistic forecasts using the formula: (O + 4×ML + P) ÷ 6. Provides the most statistically reliable single-point estimate.",
     "confidence_range": "Uncertainty band around the forecast showing the range of possible completion dates. Wider ranges indicate higher unpredictability; narrower ranges show consistent velocity.",
     "scope_changes": "Additions or removals to project scope over time. Tracks how requirements evolve and impacts forecast accuracy and completion dates.",
+    "health_score": "Health score (0-100%) combines five weighted factors: Velocity Consistency (30% - lower variation = higher score), Schedule Performance (25% - on-time delivery), Scope Stability (20% - controlled growth), Quality Trends (15% - improving/stable velocity), and Recent Performance (10% - latest velocity changes).",
 }
 
 # PARAMETER INPUTS HELP CONTENT - Tooltips for parameter panel controls
