@@ -11,15 +11,17 @@ logger = logging.getLogger(__name__)
 
 @callback(
     [
-        Output("update-data-progress-container", "style"),
-        Output("progress-label", "children"),
-        Output("progress-bar", "value"),
-        Output("progress-bar", "color"),
-        Output("progress-bar", "animated"),
+        Output("update-data-progress-container", "style", allow_duplicate=True),
+        Output("progress-label", "children", allow_duplicate=True),
+        Output("progress-bar", "value", allow_duplicate=True),
+        Output("progress-bar", "color", allow_duplicate=True),
+        Output("progress-bar", "animated", allow_duplicate=True),
         Output("progress-poll-interval", "disabled", allow_duplicate=True),
         Output("update-data-unified", "style", allow_duplicate=True),
+        Output("update-data-unified", "disabled", allow_duplicate=True),
         Output("cancel-operation-btn", "style", allow_duplicate=True),
         Output("trigger-auto-metrics-calc", "data", allow_duplicate=True),
+        Output("metrics-refresh-trigger", "data", allow_duplicate=True),
     ],
     [Input("progress-poll-interval", "n_intervals")],
     prevent_initial_call=True,
@@ -47,8 +49,10 @@ def update_progress_bars(n_intervals):
             True,
             True,
             {},  # Show Update Data button
+            False,  # Enable Update Data button
             {"display": "none"},  # Hide Cancel button
             no_update,  # No metrics trigger
+            no_update,  # No metrics refresh
         )
 
     try:
@@ -68,8 +72,10 @@ def update_progress_bars(n_intervals):
                 True,
                 True,
                 {},  # Show Update Data button
+                False,  # Enable Update Data button
                 {"display": "none"},  # Hide Cancel button
                 no_update,  # No metrics trigger
+                no_update,  # No metrics refresh
             )
 
         status = progress_data.get("status", "idle")
@@ -110,38 +116,30 @@ def update_progress_bars(n_intervals):
                 # Will be handled on next poll as error status
                 raise PreventUpdate
 
-        # RECOVERY: Detect stuck calculate phase and trigger metrics calculation
-        # If task is in calculate phase but calc_percent is 0 and fetch is 100%,
-        # this likely means fetch completed after a page refresh and metrics callback never fired
-        # Trigger the metrics calculation to continue where we left off
+        # RECOVERY: Detect calculate phase and trigger metrics calculation
+        # When background thread completes fetch, it sets phase="calculate" but can't trigger
+        # the metrics callback directly (running in different thread). So we detect the phase
+        # change here and trigger the metrics calculation.
+        # CRITICAL: Only trigger ONCE - check if calc has started (percent > 0 or message changed)
         stuck_metrics_trigger = None
+        calc_message = calc_progress.get("message", "")
+        initial_messages = ["", "Fetch complete, starting metrics calculation..."]
         if (
             status == "in_progress"
             and phase == "calculate"
             and calc_progress.get("percent", 0) == 0
-            and fetch_progress.get("percent", 0) == 100
+            and calc_message in initial_messages
             and not cancelled
         ):
-            from datetime import datetime
+            # Only trigger if the message is still the initial one set by background fetch
+            # Once auto_calculate_metrics_after_fetch runs, it changes the message
+            logger.info(
+                "[Progress] Detected calculate phase transition - triggering metrics calculation"
+            )
+            import time
 
-            start_time_str = progress_data.get("start_time")
-            if start_time_str:
-                elapsed = (
-                    datetime.now() - datetime.fromisoformat(start_time_str)
-                ).total_seconds()
-
-                # If stuck in calculate phase for more than 15 seconds with no progress
-                # (normal metrics calculation starts updating progress within a few seconds)
-                if elapsed > 15:
-                    logger.warning(
-                        f"[Progress] Detected stuck calculate phase ({elapsed:.0f}s with calc_percent=0). "
-                        "This usually happens when page was refreshed during fetch and metrics callback never fired. "
-                        "Auto-triggering metrics calculation to continue."
-                    )
-                    import time
-
-                    # Trigger metrics calculation by returning a timestamp
-                    stuck_metrics_trigger = int(time.time() * 1000)
+            # Trigger metrics calculation by returning a timestamp
+            stuck_metrics_trigger = int(time.time() * 1000)
 
         # Handle complete status - show success for 3 seconds then hide
         if status == "complete":
@@ -160,6 +158,8 @@ def update_progress_bars(n_intervals):
                     logger.info(
                         f"[Progress] Stale completion detected ({elapsed:.0f}s old), hiding immediately"
                     )
+                    import time
+
                     return (
                         {"display": "none"},
                         "Processing: 0%",
@@ -168,13 +168,17 @@ def update_progress_bars(n_intervals):
                         True,
                         True,
                         {},  # Show Update Data button
+                        False,  # Enable Update Data button
                         {"display": "none"},  # Hide Cancel button
                         no_update,  # No metrics trigger
+                        int(time.time() * 1000),  # Trigger metrics refresh
                     )
                 elif elapsed >= 3:
                     # 3 seconds elapsed - hide progress bar but DON'T delete file
                     # Let the next task's start_task() handle cleanup to avoid race condition
                     logger.info("[Progress] Auto-hiding progress bar after 3s")
+                    import time
+
                     return (
                         {"display": "none"},
                         "Processing: 0%",
@@ -183,8 +187,10 @@ def update_progress_bars(n_intervals):
                         True,
                         True,
                         {},  # Show Update Data button
+                        False,  # Enable Update Data button
                         {"display": "none"},  # Hide Cancel button
                         no_update,  # No metrics trigger
+                        int(time.time() * 1000),  # Trigger metrics refresh
                     )
                 else:
                     # Show success message
@@ -192,6 +198,8 @@ def update_progress_bars(n_intervals):
                     logger.info(
                         f"[Progress] Task complete: {message}, hiding in {3 - elapsed:.1f}s"
                     )
+                    import time
+
                     return (
                         {"display": "block", "minHeight": "60px"},
                         message,
@@ -200,11 +208,15 @@ def update_progress_bars(n_intervals):
                         False,  # Not animated when complete
                         False,  # Keep polling to hide after 3s
                         {},  # Show Update Data button
+                        False,  # Enable Update Data button
                         {"display": "none"},  # Hide Cancel button
                         no_update,  # No metrics trigger
+                        int(time.time() * 1000),  # Trigger metrics refresh
                     )
             # No complete_time, hide immediately
             logger.info("[Progress] Task complete (no timestamp), hiding immediately")
+            import time
+
             return (
                 {"display": "none"},
                 "Processing: 0%",
@@ -213,8 +225,10 @@ def update_progress_bars(n_intervals):
                 True,
                 True,
                 {},  # Show Update Data button
+                False,  # Enable Update Data button
                 {"display": "none"},  # Hide Cancel button
                 no_update,  # No metrics trigger
+                int(time.time() * 1000),  # Trigger metrics refresh
             )
 
         # Handle error status - show error message briefly then hide
@@ -238,6 +252,7 @@ def update_progress_bars(n_intervals):
                         True,
                         True,
                         {},  # Show Update Data button
+                        False,  # Enable Update Data button
                         {"display": "none"},  # Hide Cancel button
                         no_update,  # No metrics trigger
                     )
@@ -255,8 +270,10 @@ def update_progress_bars(n_intervals):
                         False,
                         False,  # Keep polling to hide after 3s
                         {},  # Show Update Data button
+                        False,  # Enable Update Data button
                         {"display": "none"},  # Hide Cancel button
                         no_update,  # No metrics trigger
+                        no_update,  # No metrics refresh
                     )
             # No error time, hide immediately
             return (
@@ -267,8 +284,10 @@ def update_progress_bars(n_intervals):
                 True,
                 True,
                 {},  # Show Update Data button
+                False,  # Enable Update Data button
                 {"display": "none"},  # Hide Cancel button
                 no_update,  # No metrics trigger
+                no_update,  # No metrics refresh
             )
 
         # If task is idle, hide progress bar
@@ -281,8 +300,10 @@ def update_progress_bars(n_intervals):
                 True,
                 True,
                 {},  # Show Update Data button
+                False,  # Enable Update Data button
                 {"display": "none"},  # Hide Cancel button
                 no_update,  # No metrics trigger
+                no_update,  # No metrics refresh
             )
 
         # Show progress container with fixed height
@@ -329,6 +350,7 @@ def update_progress_bars(n_intervals):
         )  # Default to in-progress for safety
 
         update_data_style = {"display": "none"} if operation_in_progress else {}
+        update_data_disabled = operation_in_progress  # Disable button during operation
         cancel_button_style = {} if operation_in_progress else {"display": "none"}
 
         return (
@@ -339,10 +361,12 @@ def update_progress_bars(n_intervals):
             True,  # Animated during progress
             False,  # Keep polling enabled
             update_data_style,  # Button visibility from ui_state
+            update_data_disabled,  # Button disabled state from ui_state
             cancel_button_style,  # Button visibility from ui_state
             stuck_metrics_trigger
             if stuck_metrics_trigger
             else no_update,  # Auto-trigger metrics if stuck
+            no_update,  # No metrics refresh during progress
         )
 
     except json.JSONDecodeError as e:
@@ -362,8 +386,10 @@ def update_progress_bars(n_intervals):
             True,
             True,
             {},  # Show Update Data button
+            False,  # Enable Update Data button
             {"display": "none"},  # Hide Cancel button
             no_update,  # No metrics trigger on exception
+            no_update,  # No metrics refresh on exception
         )
 
 
