@@ -29,7 +29,7 @@ Interactive web app for agile project forecasting with JIRA integration and comp
 - **🔮 PERT Forecasting**: Optimistic, most likely, and pessimistic completion predictions
 - **📈 DORA Metrics**: Deployment Frequency, Lead Time, Change Failure Rate, MTTR
 - **🌊 Flow Metrics**: Velocity, Time, Efficiency, Load (WIP), Distribution
-- **� HTML Reports**: Generate comprehensive project snapshots with charts and metrics
+- **📋 HTML Reports**: Generate comprehensive project snapshots with charts and metrics
 - **🔌 JIRA Integration**: Direct API sync with JQL queries and smart caching
 - **📁 File Import**: CSV/JSON upload support
 - **💾 Export**: Download reports, charts, and metrics data
