@@ -584,7 +584,7 @@ def test_import_profile_with_cache(temp_export_zip):
 
 ### Phase 3: HTML Report Generation (10-12 hours)
 
-#### T013: Create Report Generator Module
+#### T013: Create Report Generator Module ✅
 **Priority**: HIGH  
 **Estimate**: 3 hours  
 **File**: `data/report_generator.py` (new)
@@ -647,16 +647,16 @@ def generate_html_report(
 ```
 
 **Checklist**:
-- [ ] Create module structure
-- [ ] Load data from cache files
-- [ ] Generate chart JSON
-- [ ] Render Jinja2 template
-- [ ] Return complete HTML string
-- [ ] Add error handling
+- [x] Create module structure
+- [x] Load data from cache files
+- [x] Generate chart JSON
+- [x] Render Jinja2 template
+- [x] Return complete HTML string
+- [x] Add error handling
 
 ---
 
-#### T014: Create HTML Report Template
+#### T014: Create HTML Report Template ✅
 **Priority**: HIGH  
 **Estimate**: 2 hours  
 **File**: `data/report_template.html` (new)
@@ -767,16 +767,16 @@ def generate_html_report(
 ```
 
 **Checklist**:
-- [ ] Create template structure
-- [ ] Add responsive CSS
-- [ ] Add print styles
-- [ ] Create chart placeholders
-- [ ] Add Jinja2 variables
-- [ ] Test template rendering
+- [x] Create template structure
+- [x] Add responsive CSS
+- [x] Add print styles
+- [x] Create chart placeholders
+- [x] Add Jinja2 variables
+- [x] Test template rendering
 
 ---
 
-#### T015: Chart Embedding Functions
+#### T015: Chart Embedding Functions ✅
 **Priority**: HIGH  
 **Estimate**: 2.5 hours  
 **File**: `data/report_generator.py`
@@ -857,15 +857,15 @@ def generate_dora_charts(metrics: Dict, weeks: int) -> Dict:
 ```
 
 **Checklist**:
-- [ ] Implement burndown chart generation
-- [ ] Implement DORA charts generation
-- [ ] Implement Flow charts generation
-- [ ] Convert Plotly figures to JSON
-- [ ] Test chart rendering in HTML
+- [x] Implement burndown chart generation
+- [x] Implement DORA charts generation
+- [x] Implement Flow charts generation
+- [x] Convert Plotly figures to JSON
+- [x] Test chart rendering in HTML
 
 ---
 
-#### T016: Add Report Generation UI
+#### T016: Add Report Generation UI ✅
 **Priority**: MEDIUM  
 **Estimate**: 1.5 hours  
 **File**: `ui/import_export_panel.py`
@@ -909,18 +909,18 @@ def create_reports_tab():
 ```
 
 **Checklist**:
-- [ ] Create report sections checkboxes
-- [ ] Create time period radio buttons
-- [ ] Add generate button
-- [ ] Add size estimate display
-- [ ] Add dcc.Download component
+- [x] Create report sections checkboxes
+- [x] Create time period radio buttons
+- [x] Add generate button
+- [x] Add size estimate display
+- [x] Add dcc.Download component
 
 ---
 
-#### T017: Create Report Callback
+#### T017: Create Report Callback ✅
 **Priority**: HIGH  
 **Estimate**: 1.5 hours  
-**File**: `callbacks/reporting.py` (new)
+**File**: `callbacks/import_export.py`
 
 **Implementation**:
 ```python
@@ -970,26 +970,28 @@ def generate_report_callback(n_clicks, sections, weeks):
 ```
 
 **Checklist**:
-- [ ] Create callback with inputs
-- [ ] Call report generator
-- [ ] Handle sections selection
-- [ ] Generate filename
-- [ ] Return dcc.Download
-- [ ] Add error handling
+- [x] Create callback with inputs
+- [x] Call report generator
+- [x] Handle sections selection
+- [x] Generate filename
+- [x] Return dcc.Download
+- [x] Add error handling
+- [x] Add progress bar
+- [x] Add background task execution
 
 ---
 
-#### T018: Report Metadata and Branding
+#### T018: Report Metadata and Branding ✅
 **Priority**: LOW  
 **Estimate**: 0.5 hours  
 **File**: `data/report_template.html`
 
 **Checklist**:
-- [ ] Add export timestamp
-- [ ] Add profile name
-- [ ] Add query info
-- [ ] Add footer with branding
-- [ ] Add cache age indicators
+- [x] Add export timestamp
+- [x] Add profile name
+- [x] Add query info
+- [x] Add footer with branding
+- [x] Add cache age indicators
 
 ---
 
