@@ -287,75 +287,88 @@ def create_app_layout(settings, statistics, is_sample_data):
                 create_statistics_data_card(statistics),
                 row_class="mb-4",
             ),
-            # Compact footer with clean design - 3 equal columns for perfect symmetry
+            # Compact footer with clean design
             html.Div(
                 [
-                    html.Hr(className="my-2", style={"borderColor": "#dee2e6"}),
+                    html.Hr(
+                        className="my-2",
+                        style={"borderColor": "#dee2e6", "margin": "0.5rem 0"},
+                    ),
                     dbc.Row(
                         [
-                            # Left column - app version (fixed width for symmetry)
+                            # Left column - app version
                             dbc.Col(
                                 html.Small(
                                     [
                                         html.I(
-                                            className="fas fa-chart-line me-1 text-primary"
+                                            className="fas fa-chart-line me-1 text-primary",
+                                            style={"fontSize": "0.8rem"},
                                         ),
-                                        html.Span("v", className="text-muted"),
                                         html.Span(
-                                            f"{__version__}", className="fw-medium"
+                                            f"v{__version__}",
+                                            className="fw-medium text-secondary",
                                         ),
                                     ],
-                                    className="text-secondary",
+                                    style={"fontSize": "0.8rem"},
                                 ),
-                                width=4,
-                                className="d-flex align-items-center justify-content-start",
+                                xs=12,
+                                sm=4,
+                                className="d-flex align-items-center justify-content-center justify-content-sm-start mb-1 mb-sm-0",
                             ),
-                            # Center column - GitHub link (perfectly centered)
+                            # Center column - GitHub link
                             dbc.Col(
                                 html.A(
                                     [
-                                        html.I(className="fab fa-github me-1"),
+                                        html.I(
+                                            className="fab fa-github me-1",
+                                            style={"fontSize": "0.85rem"},
+                                        ),
                                         "GitHub",
                                     ],
                                     href="https://github.com/niksavis/burndown-chart",
                                     target="_blank",
                                     className="text-decoration-none text-primary fw-medium",
+                                    style={"fontSize": "0.85rem"},
                                 ),
-                                width=4,
-                                className="d-flex align-items-center justify-content-center",
+                                xs=12,
+                                sm=4,
+                                className="d-flex align-items-center justify-content-center mb-1 mb-sm-0",
                             ),
-                            # Right column - Last updated (fixed width for symmetry)
+                            # Right column - Last updated
                             dbc.Col(
                                 html.Small(
                                     [
                                         html.I(
-                                            className="fas fa-clock me-1 text-muted"
+                                            className="fas fa-clock me-1 text-muted",
+                                            style={"fontSize": "0.75rem"},
                                         ),
                                         f"{datetime.now().strftime('%b %d, %Y')}",
                                     ],
                                     className="text-muted",
+                                    style={"fontSize": "0.75rem"},
                                 ),
-                                width=4,
-                                className="d-flex align-items-center justify-content-end",
+                                xs=12,
+                                sm=4,
+                                className="d-flex align-items-center justify-content-center justify-content-sm-end",
                             ),
                         ],
-                        className="g-2",
+                        className="g-1",
                     ),
-                    # Update available banner (full width, below main row)
+                    # Update available banner (compact, below main row)
                     (
                         html.Div(
                             html.Span(
                                 [
                                     html.I(
                                         className="fas fa-sync-alt me-1",
-                                        style={"fontSize": "0.75rem"},
+                                        style={"fontSize": "0.7rem"},
                                     ),
-                                    "Update Available",
+                                    "Update: ",
                                     html.Span(
                                         # Show tags when available, fall back to commit hashes for missing tags
-                                        f" • {app.VERSION_CHECK_RESULT.get('current_tag') or app.VERSION_CHECK_RESULT.get('current_commit', 'unknown')[:7]} → "
+                                        f"{app.VERSION_CHECK_RESULT.get('current_tag') or app.VERSION_CHECK_RESULT.get('current_commit', 'unknown')[:7]} → "
                                         f"{app.VERSION_CHECK_RESULT.get('latest_tag') or app.VERSION_CHECK_RESULT.get('latest_commit', 'unknown')[:7]}",
-                                        className="ms-1 opacity-75",
+                                        className="opacity-75",
                                         style={"fontSize": "0.7rem"},
                                     ),
                                 ],
@@ -367,21 +380,22 @@ def create_app_layout(settings, statistics, is_sample_data):
                                     "userSelect": "none",
                                     "color": "#198754",
                                     "fontWeight": "500",
-                                    "fontSize": "0.8rem",
+                                    "fontSize": "0.75rem",
                                 },
                             ),
-                            className="mt-2 text-center",
+                            className="mt-1 text-center",
+                            style={"lineHeight": "1.2"},
                         )
                         if hasattr(app, "VERSION_CHECK_RESULT")
                         and app.VERSION_CHECK_RESULT.get("update_available", False)
                         else None
                     ),
                 ],
-                className="mt-3 mb-2",
+                className="mt-2 mb-1 py-1",
                 style={
                     "backgroundColor": "#f8f9fa",
-                    "borderRadius": "6px",
-                    "padding": "0.5rem 1rem",
+                    "borderRadius": "4px",
+                    "padding": "0.35rem 0.75rem",
                 },
             ),
         ],
