@@ -44,7 +44,9 @@ def show_version_update_toast(app_init_complete, version_info):
         f"{version_info.get('current')} -> {version_info.get('latest')}"
     )
 
-    # Create toast notification
+    # Create toast notification with Update Now button
+    import dash_bootstrap_components as dbc
+
     toast = create_toast(
         [
             html.Div("A new version is available on GitHub!"),
@@ -54,14 +56,15 @@ def show_version_update_toast(app_init_complete, version_info):
                 className="mt-1",
                 style={"fontSize": "0.85rem", "opacity": "0.9"},
             ),
-            html.A(
+            dbc.Button(
                 [
-                    html.I(className="fab fa-github me-1"),
-                    "View on GitHub",
+                    html.I(className="bi bi-download me-1"),
+                    "Update Now",
                 ],
-                href="https://github.com/niksavis/burndown-chart",
-                target="_blank",
-                className="btn btn-sm btn-success mt-2",
+                id="update-now-btn",
+                color="success",
+                size="sm",
+                className="mt-2",
                 style={"fontSize": "0.85rem"},
             ),
         ],

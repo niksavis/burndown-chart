@@ -101,6 +101,7 @@ Example - Correct callback pattern:
 from ui.layout import USE_ACCORDION_SETTINGS
 
 from callbacks import (
+    app_update,  # Application auto-update callbacks (auto-registers via @callback)  # noqa: F401
     banner_status_icons,  # Banner icon animations during operations (auto-registers via @callback)  # noqa: F401
     bug_analysis,  # Bug analysis metrics callbacks (Feature 004)
     dashboard,  # Dashboard metrics and PERT timeline callbacks (Feature 006, User Story 2)

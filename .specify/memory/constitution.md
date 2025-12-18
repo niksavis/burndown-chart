@@ -126,6 +126,8 @@ Unit tests MUST be written during implementation. Integration and performance te
 
 **Branch Strategy**: Before implementing any feature or bugfix, the AI agent MUST ask: "Should I create a feature/bugfix branch for this, or work directly on main?" and wait for user decision. Main branch commits trigger version update notifications; feature branches enable isolated development.
 
+**Version Management**: Before merging any feature or bugfix branch to main, version MUST be bumped using `python bump_version.py [major|minor|patch]`. This ensures version consistency across `configuration/__init__.py` and `readme.md`, and triggers proper update notifications to users. The AI agent MUST remind the user to bump version before completing any merge to main.
+
 ## Governance
 
 This constitution supersedes conflicting guidance. All code changes MUST comply with Core Principles I-VI.
